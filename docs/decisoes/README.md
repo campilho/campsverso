@@ -37,6 +37,8 @@ A numeração deste diretório continua a partir de **0011**, para não colidir 
 | [0029](0029-catalogo-de-eventos-da-v0-1.md) | Catálogo da v0.1 (38 eventos, 9 comandos) é a especificação do M0 | M0 | contratos §7, §14; tempo §12, §13 |
 | [0030](0030-snake-case-nos-payloads.md) | `snake_case` nos payloads; envelope segue o CloudEvents | M0 | contratos §8, §14 (grafia) |
 | [0031](0031-cartuchos-em-camadas.md) | Cartuchos em camadas (gênero → cenário → mundo); v0.1 com `farm` + `farm_camps`; nome do cartucho `^[a-z][a-z0-9_]*$` | M0/M1 | ADR-0011, 0012, 0025; bíblia §1 |
+| [0032](0032-ferramentas-typescript.md) | Node 24 fixado no projeto, pnpm 12, TypeScript 6.0; scripts de instalação bloqueados por padrão | M0 | CLAUDE.md (stack) |
+| [0033](0033-pipeline-dos-contratos.md) | Pipeline dos contratos: visibilidade fixa por tipo, validação dupla, codegen (gerador no 3.14), AsyncAPI 3.1 gerado, compatibilidade | M0 | contratos §10 |
 
 ## Modelo
 

@@ -36,8 +36,8 @@ Se dois documentos conflitarem, ou se faltar uma decisão: **pare e pergunte**. 
 | Backend | Python 3.15 (ADR-0023), `uv` workspaces, asyncio, Pydantic v2, FastAPI |
 | Barramento | NATS JetStream (`nats-py`); `InMemoryBus` para testes |
 | Estado | SQLite (estado + outbox); snapshots em disco; arquivo JSONL |
-| Contratos | JSON Schema 2020-12 + AsyncAPI 3.0; codegen com `datamodel-code-generator` (Python) e `json-schema-to-typescript` (TS); validação com `jsonschema` e `ajv` |
-| Frontend | TypeScript estrito, `pnpm`, Vite, Phaser (versão estável atual), Vitest |
+| Contratos | JSON Schema 2020-12 (fonte da verdade) + AsyncAPI 3.1 (gerado); codegen com `datamodel-code-generator` (Python, isolado no 3.14) e `json-schema-to-typescript` (TS); validação com `jsonschema` e `ajv` com os mesmos códigos de erro (ADR-0033) |
+| Frontend | TypeScript 6.0 estrito, `pnpm` 12, Node 24 fixado no projeto, Vite, Phaser (versão estável atual), Vitest (ADR-0032) |
 | Qualidade | `ruff`, `pyright` em modo estrito, `pytest` + `hypothesis`, `import-linter`; `eslint`, `dependency-cruiser` |
 | Infra local | `nats-server` como binário em `.tools/` (ADR-0024; containers antes da AWS); `make` como ponto de entrada |
 
@@ -48,8 +48,9 @@ campsverso/
   CLAUDE.md
   Makefile
   contracts/                  # FONTE DA VERDADE dos contratos
-    envelope/  events/  commands/  examples/
-    asyncapi.yaml  CHANGELOG.md
+    common/  envelope/  events/  commands/  examples/{valid,invalid}/  domains.json
+    asyncapi.yaml             # GERADO a partir dos schemas
+    CHANGELOG.md
   packages/
     contracts-py/             # GERADO — não editar à mão
     contracts-ts/             # GERADO — não editar à mão
@@ -71,6 +72,9 @@ campsverso/
       sim/                    # mapa (Tiled), avatar camps, ajustes de números, R-001
   apps/
     ui/                       # Vite + Phaser
+  tools/
+    contracts/                # validação, codegen e compatibilidade (Python)
+    contracts-ts/             # validação com ajv e codegen TypeScript
   config/
     env/local.yaml            # retenção, escala padrão, caminhos
     nats/                     # usuários e permissões por processo
@@ -94,6 +98,7 @@ campsverso/
 ## Comandos
 
 ```
+make help         # lista os alvos
 make setup        # instala dependências Python e TS
 make contracts    # valida schemas e regenera packages/contracts-*
 make check        # lint + tipos + testes + teste de arquitetura + validação de contratos
@@ -104,7 +109,7 @@ make soak DAYS=30 # resistência em modo máximo com o script
 make replay DAY=N # reexecuta um dia a partir do arquivo e compara hashes
 ```
 
-(Criar estes alvos no marco M0 e mantê-los funcionando.)
+Os alvos de marcos futuros já existem e avisam "ainda não implementado (marco Mx)". `make check` inclui `make contracts-check` (validação nos dois validadores e codegen sem diferenças) e `make compat` (compatibilidade com `COMPAT_BASE`, padrão `HEAD`).
 
 ## Como trabalhar neste repositório
 
