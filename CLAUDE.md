@@ -1,0 +1,117 @@
+# CLAUDE.md — Campsverso
+
+Campsverso é uma plataforma de simulação orientada a eventos para agentes de IA autônomos que vivem em mundos 2D. Cada mundo é um **cartucho** (fazenda, estúdio, startup…) rodando sobre um **kernel** genérico. A versão atual é a **v0.1 "Fazenda do Camps"**: um avatar, nenhum LLM, controladores humano, script e replay.
+
+O projeto também é material de aprendizado e de publicações. Clareza, testes e registro das decisões importam tanto quanto o código.
+
+## Documentos de referência
+
+Leia antes de qualquer tarefa não trivial, nesta ordem:
+
+1. `docs/arquitetura/escopo-v0.1.md` — o que construir agora, marcos e critérios de aceite
+2. `docs/arquitetura/fazenda-camps-biblia-v0.1.md` — regras e números do mundo
+3. `docs/arquitetura/contratos-eventos-v0.md` — envelope, eventos, barramento, portas
+4. `docs/arquitetura/kernel-gestao-do-tempo.md` — relógio e políticas de tempo
+5. `docs/arquitetura/pesquisa-componentes-plataforma-simulacao.md` — bibliotecas avaliadas
+
+Se dois documentos conflitarem, ou se faltar uma decisão: **pare e pergunte**. Depois registre a decisão como ADR curto em `docs/decisoes/NNNN-titulo.md`.
+
+## Princípios inegociáveis
+
+1. **Módulos só se conhecem por contrato.** Nenhum serviço importa código de outro serviço. A única dependência compartilhada é o pacote gerado de contratos (`packages/contracts-py`, `packages/contracts-ts`).
+2. **O kernel é o único escritor da verdade do mundo.** Controladores *propõem* (`campsverso.cmd.*`); o kernel valida, aplica e publica fatos.
+3. **Todo recurso externo passa por uma porta.** SDKs de terceiros (NATS, SQLite, FastAPI etc.) só podem ser importados dentro de adaptadores ou da raiz de composição (`main.py` de cada serviço). O CI verifica isso.
+4. **Determinismo.** Sistemas e regras são funções puras de (estado, tick, RNG nomeado). Nunca ler o relógio de parede dentro do kernel de simulação; nunca usar `random` global; ordenar por id sempre que a ordem de iteração afetar o resultado.
+5. **Visibilidade é arquitetura.** Regras ocultas e eventos `internal` nunca chegam a controladores. A garantia vem das permissões de assunto do NATS, não de filtros no código.
+6. **Eventos são imutáveis e versionados.** Dentro de uma versão maior, só campos opcionais novos. Mudança incompatível = novo tipo `...v2`.
+7. **O mundo nunca espera ninguém**, exceto no modo máximo (lockstep), que é exclusivo de controladores `script` e `replay`.
+8. **O kernel não conhece fazendas.** Culturas, preços, horários, ações e o mapa são dados e código do cartucho em `cartridges/farm/`. O kernel nunca importa um cartucho.
+
+## Stack
+
+| Camada | Escolha |
+|---|---|
+| Backend | Python 3.13+ (3.14 se as dependências suportarem), `uv` workspaces, asyncio, Pydantic v2, FastAPI |
+| Barramento | NATS JetStream (`nats-py`); `InMemoryBus` para testes |
+| Estado | SQLite (estado + outbox); snapshots em disco; arquivo JSONL |
+| Contratos | JSON Schema 2020-12 + AsyncAPI 3.0; codegen com `datamodel-code-generator` (Python) e `json-schema-to-typescript` (TS); validação com `jsonschema` e `ajv` |
+| Frontend | TypeScript estrito, `pnpm`, Vite, Phaser (versão estável atual), Vitest |
+| Qualidade | `ruff`, `pyright` em modo estrito, `pytest` + `hypothesis`, `import-linter`; `eslint`, `dependency-cruiser` |
+| Infra local | `docker compose` para o NATS; `make` como ponto de entrada |
+
+## Estrutura do repositório
+
+```
+campsverso/
+  CLAUDE.md
+  Makefile
+  docker-compose.yml          # nats-server com JetStream
+  contracts/                  # FONTE DA VERDADE dos contratos
+    envelope/  events/  commands/  examples/
+    asyncapi.yaml  CHANGELOG.md
+  packages/
+    contracts-py/             # GERADO — não editar à mão
+    contracts-ts/             # GERADO — não editar à mão
+  libs/
+    ports/                    # interfaces das portas (Python)
+    adapters/                 # nats, inmemory, sqlite, jsonl, blob-local...
+  services/
+    kernel/                   # relógio, ECS, grid, ações, regras, outbox
+    perception/               # filtro de percepção
+    controller-runner/        # controladores script e replay
+    gateway/                  # FastAPI + WebSocket; entrada do controlador humano
+    archiver/                 # JetStream -> JSONL
+  cartridges/
+    farm/                     # mapa (Tiled), itens, culturas, ações, sistemas, regras, script
+  apps/
+    ui/                       # Vite + Phaser
+  config/
+    env/local.yaml            # retenção, escala padrão, caminhos
+    nats/                     # usuários e permissões por processo
+  data/                       # gitignored: sqlite, snapshots, archive
+  docs/
+    arquitetura/  decisoes/  diario/
+  tests/
+    e2e/                      # resistência, determinismo, replay, recuperação
+```
+
+## Convenções
+
+- **Idioma:** código, identificadores e nomes de eventos em inglês; documentação, ADRs, diário e textos de UI em português; dados de conteúdo do cartucho (nomes de itens como `rabanete`) em português.
+- **Eventos:** `campsverso.<dominio>.<nome_no_passado>.v<major>`. **Comandos:** `campsverso.cmd.<dominio>.<verbo>.v<major>`. Domínios do kernel são reservados; eventos próprios de um cartucho usam o nome do cartucho como domínio (ex. `campsverso.farm.crop.matured.v1`).
+- **IDs:** UUIDv7 para eventos; ids legíveis e estáveis para entidades (`plot-e-03`, `camps`).
+- **Envelope:** CloudEvents 1.0 com as extensões definidas no contrato; todo evento publicado é validado contra o schema em desenvolvimento e nos testes.
+- **Testes:** escreva o teste junto com o código. Sistemas e ações têm testes de unidade; o fluxo completo tem testes e2e com `InMemoryBus` e com NATS.
+- **Commits:** pequenos, um assunto por commit, mensagens em português no formato `tipo: descrição` (`feat:`, `fix:`, `test:`, `docs:`, `chore:`).
+
+## Comandos
+
+```
+make setup        # instala dependências Python e TS
+make contracts    # valida schemas e regenera packages/contracts-*
+make check        # lint + tipos + testes + teste de arquitetura + validação de contratos
+make up           # sobe o NATS
+make run          # sobe kernel, percepção, controller-runner, gateway e arquivador
+make ui           # sobe a UI em modo desenvolvimento
+make soak DAYS=30 # resistência em modo máximo com o script
+make replay DAY=N # reexecuta um dia a partir do arquivo e compara hashes
+```
+
+(Criar estes alvos no marco M0 e mantê-los funcionando.)
+
+## Como trabalhar neste repositório
+
+1. **Um marco por vez** (ver `escopo-v0.1.md`, seção 7). Comece pelo plano, peça confirmação, depois implemente.
+2. Ao fim de cada marco: `make check` verde, commit, e uma entrada em `docs/diario/AAAA-MM-DD.md` (o que foi feito, o que deu errado, decisões, números, uma frase "para o LinkedIn").
+3. Mudou um contrato? Atualize o schema em `contracts/`, os exemplos, o `CHANGELOG.md` e rode `make contracts`. Nunca edite os pacotes gerados.
+4. Ajustes de equilíbrio do mundo (preços, tempos, probabilidades) vão na configuração do cartucho, nunca no kernel.
+
+## Nunca faça
+
+- Importar NATS, SQLite, FastAPI ou qualquer SDK fora de `libs/adapters/` ou da raiz de composição.
+- Ler `datetime.now()`/`time.time()` dentro de sistemas, regras ou ações do kernel.
+- Escrever estado do mundo fora do kernel, ou decidir regra de jogo na UI.
+- Expor pontos de crescimento, regras ocultas ou eventos `internal` à percepção ou aos controladores.
+- Adicionar LLM, `ModelPort`, memória de agente ou qualquer item marcado "fora" no escopo da v0.1.
+- Apagar ou reescrever arquivos em `data/archive/` (são o registro histórico dos experimentos).
+- Publicar evento sem schema, ou criar tipo de evento não declarado em `contracts/`.

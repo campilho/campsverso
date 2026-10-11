@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+*.egg-info/
+dist/
+build/
+
+# Node / TypeScript
+node_modules/
+*.tsbuildinfo
+
+# Ferramentas baixadas localmente pelo Makefile (ex.: nats-server)
+.tools/
+
+# Dados de execução: sqlite, snapshots, arquivo de eventos (nunca versionar)
+data/
+
+# Segredos
+.env
+.env.*
+!.env.example
+
+# Claude Code: configurações locais de cada máquina
+.claude/settings.local.json
+
+# Sistema e editores
+.DS_Store
+.idea/
+*.swp
