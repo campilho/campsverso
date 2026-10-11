@@ -13,6 +13,7 @@ Leia antes de qualquer tarefa não trivial, nesta ordem:
 3. `docs/arquitetura/contratos-eventos-v0.md` — envelope, eventos, barramento, portas
 4. `docs/arquitetura/kernel-gestao-do-tempo.md` — relógio e políticas de tempo
 5. `docs/arquitetura/pesquisa-componentes-plataforma-simulacao.md` — bibliotecas avaliadas
+6. `docs/decisoes/README.md` — índice das ADRs. **Uma ADR aceita prevalece sobre o texto dos documentos acima.**
 
 Se dois documentos conflitarem, ou se faltar uma decisão: **pare e pergunte**. Depois registre a decisão como ADR curto em `docs/decisoes/NNNN-titulo.md`.
 
@@ -25,7 +26,7 @@ Se dois documentos conflitarem, ou se faltar uma decisão: **pare e pergunte**. 
 5. **Visibilidade é arquitetura.** Regras ocultas e eventos `internal` nunca chegam a controladores. A garantia vem das permissões de assunto do NATS, não de filtros no código.
 6. **Eventos são imutáveis e versionados.** Dentro de uma versão maior, só campos opcionais novos. Mudança incompatível = novo tipo `...v2`.
 7. **O mundo nunca espera ninguém**, exceto no modo máximo (lockstep), que é exclusivo de controladores `script` e `replay`.
-8. **O kernel não conhece fazendas.** Culturas, preços, horários, ações e o mapa são dados e código do cartucho em `cartridges/farm/`. O kernel nunca importa um cartucho.
+8. **O kernel não conhece fazendas.** Culturas, preços, horários, ações e o mapa são dados e código do cartucho em `cartridges/farm/`. O kernel nunca importa um cartucho: os dois se encontram só pelas interfaces de `libs/cartridge-api`, e o kernel carrega o cartucho pelo nome definido na configuração (ADR-0011).
 
 ## Stack
 
@@ -54,6 +55,7 @@ campsverso/
     contracts-ts/             # GERADO — não editar à mão
   libs/
     ports/                    # interfaces das portas (Python)
+    cartridge-api/            # interfaces que um cartucho implementa (ADR-0011)
     adapters/                 # nats, inmemory, sqlite, jsonl, blob-local...
   services/
     kernel/                   # relógio, ECS, grid, ações, regras, outbox
@@ -62,7 +64,9 @@ campsverso/
     gateway/                  # FastAPI + WebSocket; entrada do controlador humano
     archiver/                 # JetStream -> JSONL
   cartridges/
-    farm/                     # mapa (Tiled), itens, culturas, ações, sistemas, regras, script
+    farm/
+      sim/                    # mapa (Tiled), itens, culturas, ações, sistemas, regras (carregado pelo kernel)
+      script/                 # fazendeiro-script; depende só dos contratos (carregado pelo controller-runner)
   apps/
     ui/                       # Vite + Phaser
   config/
