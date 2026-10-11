@@ -1,0 +1,237 @@
+[project]
+name = "campsverso"
+version = "0.1.0.dev0"
+description = "Plataforma de simulação orientada a eventos para agentes autônomos em mundos 2D."
+requires-python = ">=3.15"
+license = "MIT"
+dependencies = [
+  "campsverso-contracts",
+  "campsverso-ports",
+  "campsverso-cartridge-api",
+  "campsverso-adapters",
+  "campsverso-kernel",
+  "campsverso-perception",
+  "campsverso-controller-runner",
+  "campsverso-gateway",
+  "campsverso-archiver",
+  "campsverso-farm-sim",
+  "campsverso-farm-script",
+  "campsverso-farm-camps-sim",
+  "campsverso-tools",
+]
+
+[dependency-groups]
+dev = [
+  "ruff>=0.17",
+  "pyright>=1.1.414",
+  "pytest>=8",
+  "hypothesis>=6",
+  "import-linter>=2",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = [
+  "packages/contracts-py",
+  "libs/*",
+  "services/*",
+  "cartridges/farm/sim",
+  "cartridges/farm/script",
+  "cartridges/farm_camps/sim",
+  "tools/contracts",
+]
+
+[tool.uv.sources]
+campsverso-contracts = { workspace = true }
+campsverso-ports = { workspace = true }
+campsverso-cartridge-api = { workspace = true }
+campsverso-adapters = { workspace = true }
+campsverso-kernel = { workspace = true }
+campsverso-perception = { workspace = true }
+campsverso-controller-runner = { workspace = true }
+campsverso-gateway = { workspace = true }
+campsverso-archiver = { workspace = true }
+campsverso-farm-sim = { workspace = true }
+campsverso-farm-script = { workspace = true }
+campsverso-farm-camps-sim = { workspace = true }
+campsverso-tools = { workspace = true }
+
+# ---------------------------------------------------------------- ruff
+[tool.ruff]
+target-version = "py315"
+line-length = 100
+extend-exclude = ["packages/contracts-py/src/campsverso_contracts/models.py"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "B", "SIM", "RUF", "TID", "PT", "N"]
+
+# Princípio 3: SDKs externos só em libs/adapters ou na raiz de composição (main.py).
+# Pacotes do kernel e dos cartuchos ampliam esta lista no próprio pyproject (relógio de parede, random).
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"nats".msg = "SDK externo: só em libs/adapters ou no main.py do serviço (princípio 3)."
+"fastapi".msg = "SDK externo: só em libs/adapters ou no main.py do serviço (princípio 3)."
+"starlette".msg = "SDK externo: só em libs/adapters ou no main.py do serviço (princípio 3)."
+"uvicorn".msg = "SDK externo: só em libs/adapters ou no main.py do serviço (princípio 3)."
+"websockets".msg = "SDK externo: só em libs/adapters ou no main.py do serviço (princípio 3)."
+"sqlite3".msg = "SDK externo: só em libs/adapters ou no main.py do serviço (princípio 3)."
+
+[tool.ruff.lint.per-file-ignores]
+"libs/adapters/**" = ["TID251"]
+"**/main.py" = ["TID251"]
+
+# ---------------------------------------------------------------- pyright
+[tool.pyright]
+typeCheckingMode = "strict"
+pythonVersion = "3.15"
+venvPath = "."
+venv = ".venv"
+include = ["packages/contracts-py/src", "libs", "services", "cartridges", "tools/contracts"]
+exclude = ["**/__pycache__", "**/.venv", "**/node_modules"]
+
+# ---------------------------------------------------------------- pytest
+[tool.pytest.ini_options]
+addopts = ["--import-mode=importlib", "-q"]
+testpaths = ["libs", "services", "cartridges", "tools/contracts"]
+
+# ---------------------------------------------------------------- import-linter
+# Regras de arquitetura entre pacotes internos (princípios 1 e 8; ADR-0011, ADR-0025, ADR-0031).
+# Imports de SDKs externos e de relógio/random são vigiados pelo ruff (banned-api).
+[tool.importlinter]
+root_packages = [
+  "campsverso_contracts",
+  "campsverso_ports",
+  "campsverso_cartridge_api",
+  "campsverso_adapters",
+  "campsverso_kernel",
+  "campsverso_perception",
+  "campsverso_controller_runner",
+  "campsverso_gateway",
+  "campsverso_archiver",
+  "campsverso_farm_sim",
+  "campsverso_farm_script",
+  "campsverso_farm_camps_sim",
+  "campsverso_tools",
+]
+
+[[tool.importlinter.contracts]]
+name = "Serviços só se conhecem por contrato (princípio 1)"
+type = "independence"
+modules = [
+  "campsverso_kernel",
+  "campsverso_perception",
+  "campsverso_controller_runner",
+  "campsverso_gateway",
+  "campsverso_archiver",
+]
+
+[[tool.importlinter.contracts]]
+name = "Serviços não importam cartuchos: carregam por nome (princípio 8, ADR-0011)"
+type = "forbidden"
+source_modules = [
+  "campsverso_kernel",
+  "campsverso_perception",
+  "campsverso_controller_runner",
+  "campsverso_gateway",
+  "campsverso_archiver",
+]
+forbidden_modules = ["campsverso_farm_sim", "campsverso_farm_script", "campsverso_farm_camps_sim"]
+
+[[tool.importlinter.contracts]]
+name = "O script do cartucho depende só dos contratos (ADR-0011)"
+type = "forbidden"
+source_modules = ["campsverso_farm_script"]
+forbidden_modules = [
+  "campsverso_ports",
+  "campsverso_cartridge_api",
+  "campsverso_adapters",
+  "campsverso_kernel",
+  "campsverso_perception",
+  "campsverso_controller_runner",
+  "campsverso_gateway",
+  "campsverso_archiver",
+  "campsverso_farm_sim",
+  "campsverso_farm_camps_sim",
+]
+
+[[tool.importlinter.contracts]]
+name = "Cartuchos mudam o mundo só pela cartridge-api (ADR-0025)"
+type = "forbidden"
+source_modules = ["campsverso_farm_sim", "campsverso_farm_camps_sim"]
+forbidden_modules = [
+  "campsverso_adapters",
+  "campsverso_kernel",
+  "campsverso_perception",
+  "campsverso_controller_runner",
+  "campsverso_gateway",
+  "campsverso_archiver",
+]
+
+[[tool.importlinter.contracts]]
+name = "A base não conhece quem a estende (ADR-0031)"
+type = "forbidden"
+source_modules = ["campsverso_farm_sim"]
+forbidden_modules = ["campsverso_farm_camps_sim"]
+
+[[tool.importlinter.contracts]]
+name = "Contratos e interfaces não dependem de implementações"
+type = "forbidden"
+source_modules = ["campsverso_contracts", "campsverso_ports", "campsverso_cartridge_api"]
+forbidden_modules = [
+  "campsverso_adapters",
+  "campsverso_kernel",
+  "campsverso_perception",
+  "campsverso_controller_runner",
+  "campsverso_gateway",
+  "campsverso_archiver",
+  "campsverso_farm_sim",
+  "campsverso_farm_script",
+  "campsverso_farm_camps_sim",
+  "campsverso_tools",
+]
+
+[[tool.importlinter.contracts]]
+name = "O pacote de contratos gerado é uma folha"
+type = "forbidden"
+source_modules = ["campsverso_contracts"]
+forbidden_modules = ["campsverso_ports", "campsverso_cartridge_api"]
+
+[[tool.importlinter.contracts]]
+name = "Só a raiz de composição (main) conhece adaptadores (princípio 3)"
+type = "forbidden"
+source_modules = [
+  "campsverso_kernel",
+  "campsverso_perception",
+  "campsverso_controller_runner",
+  "campsverso_gateway",
+  "campsverso_archiver",
+]
+forbidden_modules = ["campsverso_adapters"]
+ignore_imports = [
+  "campsverso_kernel.main -> campsverso_adapters.**",
+  "campsverso_perception.main -> campsverso_adapters.**",
+  "campsverso_controller_runner.main -> campsverso_adapters.**",
+  "campsverso_gateway.main -> campsverso_adapters.**",
+  "campsverso_archiver.main -> campsverso_adapters.**",
+]
+unmatched_ignore_imports_alerting = "none"
+
+[[tool.importlinter.contracts]]
+name = "Ferramentas de desenvolvimento não são importadas pelo sistema"
+type = "forbidden"
+source_modules = [
+  "campsverso_contracts",
+  "campsverso_ports",
+  "campsverso_cartridge_api",
+  "campsverso_adapters",
+  "campsverso_kernel",
+  "campsverso_perception",
+  "campsverso_controller_runner",
+  "campsverso_gateway",
+  "campsverso_archiver",
+  "campsverso_farm_sim",
+  "campsverso_farm_script",
+  "campsverso_farm_camps_sim",
+]
+forbidden_modules = ["campsverso_tools"]

@@ -1,0 +1,9 @@
+packages:
+  - packages/contracts-ts
+  - tools/contracts-ts
+  - apps/*
+
+# Scripts de instalação ficam bloqueados por padrão (pnpm 12).
+# @scarf/scarf só envia telemetria de downloads (vem com @asyncapi/parser): negado.
+allowBuilds:
+  "@scarf/scarf": false

@@ -1,0 +1,14 @@
+[project]
+name = "campsverso-gateway"
+version = "0.1.0.dev0"
+description = "Gateway WebSocket para a UI e entrada do controlador humano."
+requires-python = ">=3.15"
+license = "MIT"
+dependencies = [
+  "campsverso-contracts",
+  "campsverso-ports",
+]
+
+[build-system]
+requires = ["uv_build>=0.13,<0.14"]
+build-backend = "uv_build"

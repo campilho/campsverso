@@ -1,0 +1,16 @@
+[project]
+name = "campsverso-tools"
+version = "0.1.0.dev0"
+description = "Ferramentas de desenvolvimento: validação, codegen e compatibilidade dos contratos."
+requires-python = ">=3.15"
+license = "MIT"
+dependencies = [
+  "jsonschema>=4.25",
+  "referencing>=0.36",
+  "datamodel-code-generator>=0.83",
+  "pyyaml>=6",
+]
+
+[build-system]
+requires = ["uv_build>=0.13,<0.14"]
+build-backend = "uv_build"

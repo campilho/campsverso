@@ -1,0 +1,22 @@
+{
+  "name": "@campsverso/tools-contracts",
+  "version": "0.1.0-dev.0",
+  "description": "Validação (ajv) e codegen TypeScript dos contratos.",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "codegen": "node src/codegen.ts",
+    "validate": "node src/validate.ts",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@asyncapi/parser": "^3.6.3",
+    "@types/node": "^26.6.5",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "json-schema-to-typescript": "^16.0.0",
+    "vitest": "^5.0.3"
+  }
+}

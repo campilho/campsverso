@@ -1,0 +1,29 @@
+{
+  "name": "campsverso",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.11.2",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "24.21.0",
+      "onFail": "download"
+    }
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "test": "pnpm -r --if-present run test",
+    "arch": "depcruise apps packages tools/contracts-ts --config .dependency-cruiser.cjs",
+    "contracts:codegen": "pnpm --filter @campsverso/tools-contracts run codegen",
+    "contracts:validate": "pnpm --filter @campsverso/tools-contracts run validate"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "dependency-cruiser": "^18.5.0",
+    "eslint": "^10.12.0",
+    "globals": "^17.13.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.1"
+  }
+}
