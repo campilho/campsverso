@@ -1,6 +1,6 @@
 # ADR-0033 — Pipeline dos contratos: validação dupla, codegen e compatibilidade
 
-**Status:** aceita · **Data:** 2026-10-11 · **Marco:** M0
+**Status:** aceita; item 4 alterado pela ADR-0034 (o gerador roda no próprio ambiente, no 3.14) · **Data:** 2026-10-11 · **Marco:** M0
 **Complementa:** `contratos-eventos-v0.md` §10 (CI mínimo); ADR-0016, ADR-0023, ADR-0029
 
 ## Contexto

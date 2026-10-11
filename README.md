@@ -17,7 +17,7 @@ Projeto pessoal de aprendizado, construído em público com a ajuda do Claude Co
 
 ## Como começar
 
-Requisitos: [uv](https://docs.astral.sh/uv/) e [pnpm](https://pnpm.io/). O uv instala o Python 3.15; o pnpm usa o Node 24 fixado no projeto.
+Requisitos: [uv](https://docs.astral.sh/uv/) e [pnpm](https://pnpm.io/). O uv instala o Python 3.14; o pnpm usa o Node 24 fixado no projeto.
 
 ```bash
 make setup   # dependências Python e TypeScript

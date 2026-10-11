@@ -28,7 +28,7 @@ A numeração deste diretório continua a partir de **0011**, para não colidir 
 | [0020](0020-biblia-prevalece-nos-numeros-do-mundo.md) | Nos números do mundo vale a bíblia; `water` = 2 ticks | M0/M1 | contratos §8.2; tempo §7 |
 | [0021](0021-campos-ignorados-no-hash-de-determinismo.md) | Hash de determinismo ignora também `causationid` e `correlationid` | M3 | escopo §8 (A4, A5) |
 | [0022](0022-gateway-le-eventos-agent-do-avatar.md) | Gateway assina `agent.camps.>` para o controlador humano | M4/M5 | escopo §5 |
-| [0023](0023-python-3-15.md) | Python 3.15, com volta para 3.14 se alguma dependência quebrar | M0 | CLAUDE.md (stack) |
+| [0023](0023-python-3-15.md) | ~~Python 3.15~~ (substituída pela 0034) | M0 | CLAUDE.md (stack) |
 | [0024](0024-nats-binario-local-containers-antes-da-aws.md) | `nats-server` como binário local; containers antes da AWS | M2 | CLAUDE.md (stack, estrutura) |
 | [0025](0025-modelo-de-mundo-do-kernel.md) | O kernel tem um modelo de mundo genérico ("física"); cartuchos mudam o mundo só pelas primitivas; evento do cartucho só com significado próprio | M0/M1 | CLAUDE.md, princípio 8; contratos §14.3 |
 | [0026](0026-pausa-e-estado-nao-modo.md) | Pausa é estado; modos `continuous` e `max` | M0/M1 | escopo §3, §5; tempo §5 |
@@ -39,6 +39,7 @@ A numeração deste diretório continua a partir de **0011**, para não colidir 
 | [0031](0031-cartuchos-em-camadas.md) | Cartuchos em camadas (gênero → cenário → mundo); v0.1 com `farm` + `farm_camps`; nome do cartucho `^[a-z][a-z0-9_]*$` | M0/M1 | ADR-0011, 0012, 0025; bíblia §1 |
 | [0032](0032-ferramentas-typescript.md) | Node 24 fixado no projeto, pnpm 12, TypeScript 6.0; scripts de instalação bloqueados por padrão | M0 | CLAUDE.md (stack) |
 | [0033](0033-pipeline-dos-contratos.md) | Pipeline dos contratos: visibilidade fixa por tipo, validação dupla, codegen (gerador no 3.14), AsyncAPI 3.1 gerado, compatibilidade | M0 | contratos §10 |
+| [0034](0034-volta-para-python-3-14.md) | Volta para o Python 3.14; revisitar o 3.15 no início da v0.2 | M0 | ADR-0023, ADR-0033 |
 
 ## Modelo
 

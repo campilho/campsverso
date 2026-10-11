@@ -2,7 +2,7 @@
 name = "campsverso-kernel"
 version = "0.1.0.dev0"
 description = "Kernel: relógio, modelo de mundo, ações, regras e outbox. Único escritor da verdade do mundo."
-requires-python = ">=3.15"
+requires-python = ">=3.14"
 license = "MIT"
 dependencies = [
   "campsverso-contracts",

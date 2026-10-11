@@ -33,10 +33,10 @@ Se dois documentos conflitarem, ou se faltar uma decisão: **pare e pergunte**. 
 
 | Camada | Escolha |
 |---|---|
-| Backend | Python 3.15 (ADR-0023), `uv` workspaces, asyncio, Pydantic v2, FastAPI |
+| Backend | Python 3.14 (ADR-0034), `uv` workspaces, asyncio, Pydantic v2, FastAPI |
 | Barramento | NATS JetStream (`nats-py`); `InMemoryBus` para testes |
 | Estado | SQLite (estado + outbox); snapshots em disco; arquivo JSONL |
-| Contratos | JSON Schema 2020-12 (fonte da verdade) + AsyncAPI 3.1 (gerado); codegen com `datamodel-code-generator` (Python, isolado no 3.14) e `json-schema-to-typescript` (TS); validação com `jsonschema` e `ajv` com os mesmos códigos de erro (ADR-0033) |
+| Contratos | JSON Schema 2020-12 (fonte da verdade) + AsyncAPI 3.1 (gerado); codegen com `datamodel-code-generator` (Python) e `json-schema-to-typescript` (TS); validação com `jsonschema` e `ajv` com os mesmos códigos de erro (ADR-0033) |
 | Frontend | TypeScript 6.0 estrito, `pnpm` 12, Node 24 fixado no projeto, Vite, Phaser (versão estável atual), Vitest (ADR-0032) |
 | Qualidade | `ruff`, `pyright` em modo estrito, `pytest` + `hypothesis`, `import-linter`; `eslint`, `dependency-cruiser` |
 | Infra local | `nats-server` como binário em `.tools/` (ADR-0024; containers antes da AWS); `make` como ponto de entrada |

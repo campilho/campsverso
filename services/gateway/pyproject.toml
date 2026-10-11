@@ -2,7 +2,7 @@
 name = "campsverso-gateway"
 version = "0.1.0.dev0"
 description = "Gateway WebSocket para a UI e entrada do controlador humano."
-requires-python = ">=3.15"
+requires-python = ">=3.14"
 license = "MIT"
 dependencies = [
   "campsverso-contracts",

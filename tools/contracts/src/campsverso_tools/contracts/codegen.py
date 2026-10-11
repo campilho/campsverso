@@ -26,12 +26,7 @@ HEADER = "GERADO por tools/contracts a partir de contracts/: não editar à mão
 PY_PACKAGE = Path("packages/contracts-py/src/campsverso_contracts")
 TS_SCHEMAS = Path("packages/contracts-ts/schemas")
 ASYNCAPI = Path("contracts/asyncapi.yaml")
-# O datamodel-code-generator 0.83 ainda não roda sob o Python 3.15 (ADR-0023): roda isolado no
-# 3.14, com versão fixa, e gera código compatível com o 3.15.
-GENERATOR = (
-    "uvx", "--quiet", "--python", "3.14", "--from", "datamodel-code-generator==0.83.0",
-    "--with", "ruff==0.17.0", "datamodel-codegen",
-)  # fmt: skip
+GENERATOR = (sys.executable, "-m", "datamodel_code_generator")
 GENERATOR_OPTIONS = (
     "--input-file-type", "jsonschema",
     "--output-model-type", "pydantic_v2.BaseModel",

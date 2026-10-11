@@ -2,7 +2,7 @@
 name = "campsverso-cartridge-api"
 version = "0.1.0.dev0"
 description = "Interfaces que um cartucho implementa e o kernel consome (ADR-0011, ADR-0025)."
-requires-python = ">=3.15"
+requires-python = ">=3.14"
 license = "MIT"
 dependencies = [
   "campsverso-contracts",

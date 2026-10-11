@@ -2,7 +2,7 @@
 name = "campsverso-ports"
 version = "0.1.0.dev0"
 description = "Interfaces das portas (EventBus, WorldStore, ClockPort...)."
-requires-python = ">=3.15"
+requires-python = ">=3.14"
 license = "MIT"
 dependencies = [
   "campsverso-contracts",

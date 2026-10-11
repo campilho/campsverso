@@ -2,7 +2,7 @@
 name = "campsverso-farm-script"
 version = "0.1.0.dev0"
 description = "Fazendeiro-script do cartucho farm. Depende só dos contratos."
-requires-python = ">=3.15"
+requires-python = ">=3.14"
 license = "MIT"
 dependencies = [
   "campsverso-contracts",

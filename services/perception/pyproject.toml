@@ -2,7 +2,7 @@
 name = "campsverso-perception"
 version = "0.1.0.dev0"
 description = "Filtro de percepção: monta a visão de cada avatar a partir dos eventos genéricos."
-requires-python = ">=3.15"
+requires-python = ">=3.14"
 license = "MIT"
 dependencies = [
   "campsverso-contracts",
