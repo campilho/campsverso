@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/action/failed.v1",
+  "title": "ActionFailedV1",
+  "description": "Ação iniciada que não chegou ao fim.",
+  "x-type": "campsverso.action.failed.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "action_id",
+    "avatar_id",
+    "action",
+    "reason"
+  ],
+  "properties": {
+    "action_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/action_id"
+    },
+    "avatar_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "Avatar (o corpo), independente de quem o controla (ADR-0027)."
+    },
+    "action": {
+      "$ref": "contracts://common/defs.v1#/$defs/token"
+    },
+    "reason": {
+      "$ref": "contracts://common/defs.v1#/$defs/token",
+      "description": "Ex.: cancelled, fainted, blocked, precondition_lost."
+    }
+  }
+}

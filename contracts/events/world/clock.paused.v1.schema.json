@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/world/clock.paused.v1",
+  "title": "WorldClockPausedV1",
+  "description": "Relógio pausado; a pausa é um estado, não um modo (ADR-0026).",
+  "x-type": "campsverso.world.clock.paused.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "reason",
+    "by"
+  ],
+  "properties": {
+    "reason": {
+      "enum": [
+        "debug",
+        "maintenance",
+        "budget"
+      ]
+    },
+    "by": {
+      "$ref": "contracts://common/defs.v1#/$defs/actor"
+    }
+  }
+}

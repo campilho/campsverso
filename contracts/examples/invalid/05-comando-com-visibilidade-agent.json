@@ -1,0 +1,30 @@
+{
+  "expect_error": "visibility_mismatch",
+  "description": "Comandos têm visibilidade observer (ADR-0013).",
+  "event": {
+    "specversion": "1.0",
+    "id": "01a12d2b-6c32-754d-8e46-f51653daae82",
+    "source": "/controller-runner/script/farmer-v1",
+    "type": "campsverso.cmd.action.propose.v1",
+    "time": "2026-10-11T22:00:00Z",
+    "datacontenttype": "application/json",
+    "dataschema": "contracts://commands/action/propose.v1",
+    "worldid": "farm-camps-01",
+    "cartridge": "farm_camps",
+    "tick": 64,
+    "simtime": "2026-03-02T07:04:00-03:00",
+    "seq": 39,
+    "provenance": "simulated",
+    "visibility": "agent",
+    "data": {
+      "avatar_id": "camps",
+      "action": "water",
+      "params": {
+        "target": "plot-e-01"
+      }
+    },
+    "controller": "script",
+    "controllerid": "script/farmer-v1",
+    "correlationid": "01a12d2b-6c32-754d-8e46-f5170107c346"
+  }
+}

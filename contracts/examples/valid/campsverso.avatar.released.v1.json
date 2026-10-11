@@ -1,0 +1,28 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c2c-73f2-88e3-96b766dc2a63",
+  "source": "/kernel/farm-camps-01",
+  "type": "campsverso.avatar.released.v1",
+  "time": "2026-10-11T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/avatar/released.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 64,
+  "simtime": "2026-03-02T07:04:00-03:00",
+  "seq": 25,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "avatar_id": "camps",
+    "previous_controller": {
+      "type": "human",
+      "id": "human/camps-browser"
+    },
+    "controller": {
+      "type": "script",
+      "id": "script/farmer-v1"
+    },
+    "by": "human/operator"
+  }
+}

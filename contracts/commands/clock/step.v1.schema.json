@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://commands/clock/step.v1",
+  "title": "CmdClockStepV1",
+  "description": "Avança N ticks com o relógio pausado.",
+  "x-type": "campsverso.cmd.clock.step.v1",
+  "x-visibility": "observer",
+  "x-producer": "operator",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ticks"
+  ],
+  "properties": {
+    "ticks": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1440
+    }
+  }
+}

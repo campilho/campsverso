@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://commands/clock/pause.v1",
+  "title": "CmdClockPauseV1",
+  "description": "Pede a pausa do relógio.",
+  "x-type": "campsverso.cmd.clock.pause.v1",
+  "x-visibility": "observer",
+  "x-producer": "operator",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "reason"
+  ],
+  "properties": {
+    "reason": {
+      "enum": [
+        "debug",
+        "maintenance",
+        "budget"
+      ]
+    }
+  }
+}

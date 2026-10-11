@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://commands/clock/set_mode.v1",
+  "title": "CmdClockSetModeV1",
+  "description": "Pede a troca de modo do relógio.",
+  "x-type": "campsverso.cmd.clock.set_mode.v1",
+  "x-visibility": "observer",
+  "x-producer": "operator",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "mode"
+  ],
+  "properties": {
+    "mode": {
+      "$ref": "contracts://common/defs.v1#/$defs/clock_mode"
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    }
+  }
+}

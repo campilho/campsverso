@@ -1,0 +1,21 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c2d-779a-9a52-20dfea6be17b",
+  "source": "/kernel/farm-camps-01",
+  "type": "campsverso.avatar.sleep.ended.v1",
+  "time": "2026-10-11T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/avatar/sleep.ended.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 64,
+  "simtime": "2026-03-02T07:04:00-03:00",
+  "seq": 28,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "avatar_id": "camps",
+    "cause": "bed",
+    "energy": 100
+  }
+}

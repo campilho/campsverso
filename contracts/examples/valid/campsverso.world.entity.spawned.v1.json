@@ -1,0 +1,30 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c21-750c-b4b2-64f02e8eaf4d",
+  "source": "/kernel/farm-camps-01",
+  "type": "campsverso.world.entity.spawned.v1",
+  "time": "2026-10-11T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/world/entity.spawned.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 64,
+  "simtime": "2026-03-02T07:04:00-03:00",
+  "seq": 9,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "entity_id": "plot-e-01",
+    "kind": "plot",
+    "position": {
+      "x": 24,
+      "y": 9
+    },
+    "blocking": false,
+    "attributes": {
+      "crop": null,
+      "stage": null,
+      "watered_today": false
+    }
+  }
+}

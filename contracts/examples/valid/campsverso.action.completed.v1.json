@@ -1,0 +1,33 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c2a-7164-8b5d-380c90c529eb",
+  "source": "/kernel/farm-camps-01",
+  "type": "campsverso.action.completed.v1",
+  "time": "2026-10-11T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/action/completed.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 64,
+  "simtime": "2026-03-02T07:04:00-03:00",
+  "seq": 21,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "action_id": "act-000042",
+    "avatar_id": "camps",
+    "action": "water",
+    "params": {
+      "target": "plot-e-01"
+    },
+    "duration_ticks": 2,
+    "observable": [
+      {
+        "entity_id": "plot-e-01",
+        "property": "watered_today",
+        "before": false,
+        "after": true
+      }
+    ]
+  }
+}

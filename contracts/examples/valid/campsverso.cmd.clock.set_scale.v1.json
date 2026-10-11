@@ -1,0 +1,21 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c34-7598-84f1-fd740417f343",
+  "source": "/gateway/operator",
+  "type": "campsverso.cmd.clock.set_scale.v1",
+  "time": "2026-10-11T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://commands/clock/set_scale.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 64,
+  "simtime": "2026-03-02T07:04:00-03:00",
+  "seq": 43,
+  "provenance": "simulated",
+  "visibility": "observer",
+  "data": {
+    "scale": 288,
+    "reason": "operator"
+  },
+  "actor": "human/operator"
+}

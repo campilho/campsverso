@@ -1,0 +1,25 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c23-755b-930c-192ec14526cc",
+  "source": "/kernel/farm-camps-01",
+  "type": "campsverso.world.entity.move_interrupted.v1",
+  "time": "2026-10-11T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/world/entity.move_interrupted.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 64,
+  "simtime": "2026-03-02T07:04:00-03:00",
+  "seq": 11,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "entity_id": "camps",
+    "action_id": "act-000007",
+    "position": {
+      "x": 4,
+      "y": 12
+    },
+    "reason": "cancelled"
+  }
+}

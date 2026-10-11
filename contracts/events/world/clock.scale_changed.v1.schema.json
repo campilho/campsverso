@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/world/clock.scale_changed.v1",
+  "title": "WorldClockScaleChangedV1",
+  "description": "Mudança de escala do relógio.",
+  "x-type": "campsverso.world.clock.scale_changed.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "previous_scale",
+    "scale",
+    "reason",
+    "by"
+  ],
+  "properties": {
+    "previous_scale": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "scale": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "reason": {
+      "enum": [
+        "operator",
+        "experiment",
+        "budget",
+        "human"
+      ]
+    },
+    "by": {
+      "$ref": "contracts://common/defs.v1#/$defs/actor"
+    }
+  }
+}

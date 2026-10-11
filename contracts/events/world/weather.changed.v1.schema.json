@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/world/weather.changed.v1",
+  "title": "WorldWeatherChangedV1",
+  "description": "Clima sorteado para um dia agrícola (ADR-0018).",
+  "x-type": "campsverso.world.weather.changed.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "condition",
+    "day"
+  ],
+  "properties": {
+    "condition": {
+      "$ref": "contracts://common/defs.v1#/$defs/token",
+      "description": "Ex.: sun, rain."
+    },
+    "day": {
+      "$ref": "contracts://common/defs.v1#/$defs/day"
+    }
+  }
+}

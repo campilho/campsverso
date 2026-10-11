@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/world/entity.spawned.v1",
+  "title": "WorldEntitySpawnedV1",
+  "description": "Entidade criada: no mapa (position) ou dentro de um contêiner (container_id).",
+  "x-type": "campsverso.world.entity.spawned.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "entity_id",
+    "kind",
+    "blocking"
+  ],
+  "properties": {
+    "entity_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "kind": {
+      "$ref": "contracts://common/defs.v1#/$defs/token",
+      "description": "Tipo definido pelo cartucho: avatar, plot, bed, chest, well, kiosk, watering_can…"
+    },
+    "position": {
+      "$ref": "contracts://common/defs.v1#/$defs/position"
+    },
+    "container_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "blocking": {
+      "type": "boolean",
+      "description": "Se a entidade bloqueia a passagem no mapa."
+    },
+    "display_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "attributes": {
+      "$ref": "contracts://common/defs.v1#/$defs/attributes",
+      "description": "Estado visível inicial."
+    }
+  }
+}

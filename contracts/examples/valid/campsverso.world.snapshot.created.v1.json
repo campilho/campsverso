@@ -1,0 +1,23 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c31-7630-b374-2b1aa08c07b8",
+  "source": "/kernel/farm-camps-01",
+  "type": "campsverso.world.snapshot.created.v1",
+  "time": "2026-10-11T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/world/snapshot.created.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 64,
+  "simtime": "2026-03-02T07:04:00-03:00",
+  "seq": 37,
+  "provenance": "simulated",
+  "visibility": "internal",
+  "data": {
+    "snapshot_id": "snap-000003",
+    "ref": "snapshots/farm-camps-01/000003.json.gz",
+    "last_seq": 4120,
+    "sha256": "5f2b1c9e0a7d4e3f8b6a1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f",
+    "size_bytes": 18234
+  }
+}

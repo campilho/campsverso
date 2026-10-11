@@ -1,0 +1,30 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c18-7298-9f82-a826cda2b894",
+  "source": "/kernel/farm-camps-01",
+  "type": "campsverso.world.session.started.v1",
+  "time": "2026-10-11T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/world/session.started.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 64,
+  "simtime": "2026-03-02T07:04:00-03:00",
+  "seq": 1,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "cartridge_version": "0.1.0",
+    "seed": 20261011,
+    "tick_seconds": 60,
+    "mode": "continuous",
+    "paused": false,
+    "scale": 72,
+    "resumed": false,
+    "map": {
+      "id": "farm_camps",
+      "width": 32,
+      "height": 18
+    }
+  }
+}

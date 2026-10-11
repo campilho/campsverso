@@ -1,0 +1,18 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c35-7784-b5c2-9b6e00eb4cfd",
+  "source": "/gateway/operator",
+  "type": "campsverso.cmd.clock.resume.v1",
+  "time": "2026-10-11T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://commands/clock/resume.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 64,
+  "simtime": "2026-03-02T07:04:00-03:00",
+  "seq": 45,
+  "provenance": "simulated",
+  "visibility": "observer",
+  "data": {},
+  "actor": "human/operator"
+}

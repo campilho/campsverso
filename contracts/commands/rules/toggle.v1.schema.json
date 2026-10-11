@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://commands/rules/toggle.v1",
+  "title": "CmdRulesToggleV1",
+  "description": "Pede a alternância de uma regra (ADR-0015).",
+  "x-type": "campsverso.cmd.rules.toggle.v1",
+  "x-visibility": "observer",
+  "x-producer": "operator",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "rule",
+    "enabled",
+    "reason"
+  ],
+  "properties": {
+    "rule": {
+      "$ref": "contracts://common/defs.v1#/$defs/token"
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "params": {
+      "$ref": "contracts://common/defs.v1#/$defs/attributes",
+      "description": "Parâmetros da regra."
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "experiment_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/world/clock.resumed.v1",
+  "title": "WorldClockResumedV1",
+  "description": "Relógio retomado no modo em que estava (ADR-0026).",
+  "x-type": "campsverso.world.clock.resumed.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "by"
+  ],
+  "properties": {
+    "by": {
+      "$ref": "contracts://common/defs.v1#/$defs/actor"
+    }
+  }
+}

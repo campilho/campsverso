@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/world/command.rejected.v1",
+  "title": "WorldCommandRejectedV1",
+  "description": "Comando que não é ação (posse, relógio, regras) foi recusado.",
+  "x-type": "campsverso.world.command.rejected.v1",
+  "x-visibility": "observer",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "command_id",
+    "command_type",
+    "reason"
+  ],
+  "properties": {
+    "command_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/uuid7"
+    },
+    "command_type": {
+      "type": "string",
+      "pattern": "^campsverso\\.cmd\\.[a-z0-9_]+(\\.[a-z0-9_]+)+\\.v[0-9]+$"
+    },
+    "reason": {
+      "$ref": "contracts://common/defs.v1#/$defs/token"
+    },
+    "detail": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    }
+  }
+}

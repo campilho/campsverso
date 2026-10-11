@@ -1,0 +1,23 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c27-7230-bafb-5443a9f9c05d",
+  "source": "/kernel/farm-camps-01",
+  "type": "campsverso.world.need.changed.v1",
+  "time": "2026-10-11T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/world/need.changed.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 64,
+  "simtime": "2026-03-02T07:04:00-03:00",
+  "seq": 17,
+  "provenance": "simulated",
+  "visibility": "agent",
+  "data": {
+    "avatar_id": "camps",
+    "need": "fome",
+    "previous_value": 45,
+    "value": 48
+  },
+  "subject": "avatar/camps"
+}

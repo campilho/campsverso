@@ -1,0 +1,23 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c26-768a-b634-10d817b6e1f8",
+  "source": "/kernel/farm-camps-01",
+  "type": "campsverso.world.item.consumed.v1",
+  "time": "2026-10-11T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/world/item.consumed.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 64,
+  "simtime": "2026-03-02T07:04:00-03:00",
+  "seq": 15,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "item": "rabanete",
+    "qty": 1,
+    "container_id": "camps",
+    "reason": "eat",
+    "action_id": "act-000140"
+  }
+}

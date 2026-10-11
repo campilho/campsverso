@@ -1,0 +1,26 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c2f-746e-949f-ca173a2fbab9",
+  "source": "/kernel/farm-camps-01",
+  "type": "campsverso.rules.toggled.v1",
+  "time": "2026-10-11T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/rules/toggled.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 64,
+  "simtime": "2026-03-02T07:04:00-03:00",
+  "seq": 31,
+  "provenance": "simulated",
+  "visibility": "internal",
+  "data": {
+    "rule": "river_proximity_bonus",
+    "from_version": "1.0.0",
+    "to_version": "1.0.0",
+    "enabled": false,
+    "by": "human/operator",
+    "reason": "medir o tempo até desaprender",
+    "experiment_id": "E-001",
+    "effective_at_tick": 21000
+  }
+}

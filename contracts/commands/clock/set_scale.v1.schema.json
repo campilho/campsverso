@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://commands/clock/set_scale.v1",
+  "title": "CmdClockSetScaleV1",
+  "description": "Pede a troca de escala do relógio.",
+  "x-type": "campsverso.cmd.clock.set_scale.v1",
+  "x-visibility": "observer",
+  "x-producer": "operator",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "scale",
+    "reason"
+  ],
+  "properties": {
+    "scale": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "reason": {
+      "enum": [
+        "operator",
+        "experiment",
+        "budget",
+        "human"
+      ]
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c29-77a5-92c4-4403f80f11f9",
+  "source": "/kernel/farm-camps-01",
+  "type": "campsverso.action.rejected.v1",
+  "time": "2026-10-11T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/action/rejected.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 64,
+  "simtime": "2026-03-02T07:04:00-03:00",
+  "seq": 20,
+  "provenance": "simulated",
+  "visibility": "agent",
+  "data": {
+    "avatar_id": "camps",
+    "action": "buy",
+    "params": {
+      "item": "semente_rabanete",
+      "qty": 5
+    },
+    "reason": "closed",
+    "detail": "o quiosque abre às 08:00"
+  },
+  "subject": "avatar/camps"
+}

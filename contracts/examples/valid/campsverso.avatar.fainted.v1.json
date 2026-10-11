@@ -1,0 +1,24 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c2e-77f7-87fa-88ee5e16ac62",
+  "source": "/kernel/farm-camps-01",
+  "type": "campsverso.avatar.fainted.v1",
+  "time": "2026-10-11T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/avatar/fainted.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 64,
+  "simtime": "2026-03-02T07:04:00-03:00",
+  "seq": 29,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "avatar_id": "camps",
+    "reason": "late_night",
+    "position": {
+      "x": 12,
+      "y": 11
+    }
+  }
+}

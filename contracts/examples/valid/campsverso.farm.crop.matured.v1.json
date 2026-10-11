@@ -1,0 +1,23 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c30-7671-8dc0-ce0f5dd8d3cd",
+  "source": "/kernel/farm-camps-01",
+  "type": "campsverso.farm.crop.matured.v1",
+  "time": "2026-10-11T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/farm/crop.matured.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 64,
+  "simtime": "2026-03-02T07:04:00-03:00",
+  "seq": 34,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "plot_id": "plot-e-01",
+    "crop": "rabanete",
+    "planted_day": 1,
+    "day": 3,
+    "days": 2
+  }
+}

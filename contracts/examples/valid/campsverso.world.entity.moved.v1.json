@@ -1,0 +1,37 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c22-71c2-ac26-ccccd4ebb18c",
+  "source": "/kernel/farm-camps-01",
+  "type": "campsverso.world.entity.moved.v1",
+  "time": "2026-10-11T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/world/entity.moved.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 64,
+  "simtime": "2026-03-02T07:04:00-03:00",
+  "seq": 10,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "entity_id": "camps",
+    "action_id": "act-000007",
+    "origin": {
+      "x": 4,
+      "y": 6
+    },
+    "waypoints": [
+      {
+        "x": 4,
+        "y": 13
+      },
+      {
+        "x": 16,
+        "y": 13
+      }
+    ],
+    "depart_tick": 15,
+    "arrival_tick": 22,
+    "tiles_per_tick": 3
+  }
+}

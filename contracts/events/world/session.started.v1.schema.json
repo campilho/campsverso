@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/world/session.started.v1",
+  "title": "WorldSessionStartedV1",
+  "description": "Mundo carregado ou retomado a partir de snapshot.",
+  "x-type": "campsverso.world.session.started.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "cartridge_version",
+    "seed",
+    "tick_seconds",
+    "mode",
+    "paused",
+    "scale",
+    "resumed",
+    "map"
+  ],
+  "properties": {
+    "cartridge_version": {
+      "$ref": "contracts://common/defs.v1#/$defs/semver"
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Seed registrada; os fluxos de RNG nomeados derivam dela."
+    },
+    "tick_seconds": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Duração de um tick em segundos simulados."
+    },
+    "mode": {
+      "$ref": "contracts://common/defs.v1#/$defs/clock_mode"
+    },
+    "paused": {
+      "type": "boolean"
+    },
+    "scale": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "Segundos simulados por segundo real."
+    },
+    "resumed": {
+      "type": "boolean",
+      "description": "Verdadeiro quando o mundo foi retomado a partir de snapshot."
+    },
+    "map": {
+      "type": "object",
+      "title": "SessionMap",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9_-]+$"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}

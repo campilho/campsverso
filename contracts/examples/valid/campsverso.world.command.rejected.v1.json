@@ -1,0 +1,22 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c32-754d-8e46-f5157196501e",
+  "source": "/kernel/farm-camps-01",
+  "type": "campsverso.world.command.rejected.v1",
+  "time": "2026-10-11T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/world/command.rejected.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 64,
+  "simtime": "2026-03-02T07:04:00-03:00",
+  "seq": 38,
+  "provenance": "simulated",
+  "visibility": "observer",
+  "data": {
+    "command_id": "01a12d2b-6c32-754d-8e46-f514ee6d3038",
+    "command_type": "campsverso.cmd.clock.set_mode.v1",
+    "reason": "mode_not_allowed",
+    "detail": "o modo max só é permitido com controladores script ou replay"
+  }
+}

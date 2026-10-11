@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/avatar/decision_requested.v1",
+  "title": "AvatarDecisionRequestedV1",
+  "description": "O avatar está ocioso; o controlador com a posse responde com cmd.action.propose e o mesmo correlationid.",
+  "x-type": "campsverso.avatar.decision_requested.v1",
+  "x-visibility": "agent",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "avatar_id",
+    "reason",
+    "controller",
+    "needs",
+    "position"
+  ],
+  "properties": {
+    "avatar_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "Avatar (o corpo), independente de quem o controla (ADR-0027)."
+    },
+    "reason": {
+      "enum": [
+        "session_started",
+        "possessed",
+        "action_completed",
+        "action_rejected",
+        "action_interrupted",
+        "phase_changed",
+        "need_threshold",
+        "woke_up"
+      ]
+    },
+    "controller": {
+      "$ref": "contracts://common/defs.v1#/$defs/controller_ref",
+      "description": "Quem deve responder."
+    },
+    "needs": {
+      "$ref": "contracts://common/defs.v1#/$defs/needs",
+      "description": "Valores exatos no momento do pedido."
+    },
+    "position": {
+      "$ref": "contracts://common/defs.v1#/$defs/position"
+    }
+  }
+}

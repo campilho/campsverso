@@ -1,0 +1,28 @@
+{
+  "expect_error": "visibility_mismatch",
+  "description": "Evento da regra oculta publicado como world: isolamento da regra oculta (catálogo §1.2).",
+  "event": {
+    "specversion": "1.0",
+    "id": "01a12d2b-6c2f-746e-949f-ca184eb70b51",
+    "source": "/kernel/farm-camps-01",
+    "type": "campsverso.rules.effect_applied.v1",
+    "time": "2026-10-11T22:00:00Z",
+    "datacontenttype": "application/json",
+    "dataschema": "contracts://events/rules/effect_applied.v1",
+    "worldid": "farm-camps-01",
+    "cartridge": "farm_camps",
+    "tick": 64,
+    "simtime": "2026-03-02T07:04:00-03:00",
+    "seq": 32,
+    "provenance": "simulated",
+    "visibility": "world",
+    "data": {
+      "rule": "river_proximity_bonus",
+      "version": "1.0.0",
+      "entity_id": "plot-e-01",
+      "property": "growth_points",
+      "base": 1.0,
+      "applied": 1.5
+    }
+  }
+}

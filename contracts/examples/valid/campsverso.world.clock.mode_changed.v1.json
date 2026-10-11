@@ -1,0 +1,22 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c1a-7067-885c-0959fef0cda5",
+  "source": "/kernel/farm-camps-01",
+  "type": "campsverso.world.clock.mode_changed.v1",
+  "time": "2026-10-11T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/world/clock.mode_changed.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 64,
+  "simtime": "2026-03-02T07:04:00-03:00",
+  "seq": 3,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "previous_mode": "continuous",
+    "mode": "max",
+    "reason": "teste de resistência",
+    "by": "human/operator"
+  }
+}
