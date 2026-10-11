@@ -28,6 +28,8 @@ A numeração deste diretório continua a partir de **0011**, para não colidir 
 | [0020](0020-biblia-prevalece-nos-numeros-do-mundo.md) | Nos números do mundo vale a bíblia; `water` = 2 ticks | M0/M1 | contratos §8.2; tempo §7 |
 | [0021](0021-campos-ignorados-no-hash-de-determinismo.md) | Hash de determinismo ignora também `causationid` e `correlationid` | M3 | escopo §8 (A4, A5) |
 | [0022](0022-gateway-le-eventos-agent-do-avatar.md) | Gateway assina `agent.camps.>` para o controlador humano | M4/M5 | escopo §5 |
+| [0023](0023-python-3-15.md) | Python 3.15, com volta para 3.14 se alguma dependência quebrar | M0 | CLAUDE.md (stack) |
+| [0024](0024-nats-binario-local-containers-antes-da-aws.md) | `nats-server` como binário local; containers antes da AWS | M2 | CLAUDE.md (stack, estrutura) |
 
 ## Modelo
 

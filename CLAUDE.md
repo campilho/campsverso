@@ -32,13 +32,13 @@ Se dois documentos conflitarem, ou se faltar uma decisão: **pare e pergunte**. 
 
 | Camada | Escolha |
 |---|---|
-| Backend | Python 3.13+ (3.14 se as dependências suportarem), `uv` workspaces, asyncio, Pydantic v2, FastAPI |
+| Backend | Python 3.15 (ADR-0023), `uv` workspaces, asyncio, Pydantic v2, FastAPI |
 | Barramento | NATS JetStream (`nats-py`); `InMemoryBus` para testes |
 | Estado | SQLite (estado + outbox); snapshots em disco; arquivo JSONL |
 | Contratos | JSON Schema 2020-12 + AsyncAPI 3.0; codegen com `datamodel-code-generator` (Python) e `json-schema-to-typescript` (TS); validação com `jsonschema` e `ajv` |
 | Frontend | TypeScript estrito, `pnpm`, Vite, Phaser (versão estável atual), Vitest |
 | Qualidade | `ruff`, `pyright` em modo estrito, `pytest` + `hypothesis`, `import-linter`; `eslint`, `dependency-cruiser` |
-| Infra local | `docker compose` para o NATS; `make` como ponto de entrada |
+| Infra local | `nats-server` como binário em `.tools/` (ADR-0024; containers antes da AWS); `make` como ponto de entrada |
 
 ## Estrutura do repositório
 
@@ -46,7 +46,6 @@ Se dois documentos conflitarem, ou se faltar uma decisão: **pare e pergunte**. 
 campsverso/
   CLAUDE.md
   Makefile
-  docker-compose.yml          # nats-server com JetStream
   contracts/                  # FONTE DA VERDADE dos contratos
     envelope/  events/  commands/  examples/
     asyncapi.yaml  CHANGELOG.md
