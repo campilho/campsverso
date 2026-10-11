@@ -9,6 +9,7 @@ dependencies = [
   "referencing>=0.36",
   "datamodel-code-generator>=0.83",
   "pyyaml>=6",
+  "rfc3339-validator>=0.1.4",
 ]
 
 [build-system]
