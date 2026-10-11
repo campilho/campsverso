@@ -41,6 +41,10 @@ A numeração deste diretório continua a partir de **0011**, para não colidir 
 | [0033](0033-pipeline-dos-contratos.md) | Pipeline dos contratos: visibilidade fixa por tipo, validação dupla, codegen (gerador no 3.14), AsyncAPI 3.1 gerado, compatibilidade | M0 | contratos §10 |
 | [0034](0034-volta-para-python-3-14.md) | Volta para o Python 3.14; revisitar o 3.15 no início da v0.2 | M0 | ADR-0023, ADR-0033 |
 | [0035](0035-ci-no-github-actions.md) | CI no GitHub Actions: make check num Linux limpo a cada push e pull request; actions fixadas por hash | M0 | escopo §7 |
+| [0036](0036-convencao-de-nomes-e-ids.md) | Convenção de nomes e ids; unicidade dentro do mundo e da cadeia de cartuchos | M1 | catálogo §1.3, §1.4 |
+| [0037](0037-pipeline-do-tick-configuravel.md) | Ordem do tick em etapas nomeadas e configuráveis, travada por teste de referência | M1 | ADR-0018 |
+| [0038](0038-decisoes-do-kernel-para-o-m1.md) | Kernel do M1: necessidades inteiras, modelo e A* próprios, calendário 2026-10-10, RNG próprio, núcleo + serviço | M1 | ADR-0025 |
+| [0039](0039-decisoes-do-cartucho-farm-para-o-m1.md) | Fazenda do M1: estágios, ids dos objetos, limiares 80/20/0, regra genérica de água, chuva, venda | M1 | bíblia §4, §6, §7, §10 |
 
 ## Modelo
 
