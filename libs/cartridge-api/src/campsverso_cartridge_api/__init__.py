@@ -1,1 +1,72 @@
-"""Interfaces que um cartucho implementa e o kernel consome (ADR-0011, ADR-0025)."""
+"""Interfaces que um cartucho implementa e o kernel consome (ADR-0011, ADR-0025, ADR-0031)."""
+
+from campsverso_cartridge_api.cartridge import Cartridge, CartridgeManifest, WorldBuilder
+from campsverso_cartridge_api.definitions import (
+    AvatarDef,
+    ClockDef,
+    ItemDef,
+    KindDef,
+    NeedDef,
+    SpawnDef,
+    ThresholdDef,
+)
+from campsverso_cartridge_api.model import (
+    Attributes,
+    ControllerRef,
+    ControllerType,
+    Direction,
+    EntityView,
+    Position,
+    Scalar,
+)
+from campsverso_cartridge_api.specs import (
+    Accepted,
+    ActionContext,
+    ActionSpec,
+    DailyAt,
+    OnSessionStart,
+    OnThreshold,
+    Rejection,
+    RuleImpl,
+    SystemContext,
+    SystemSpec,
+    Trigger,
+    Validation,
+)
+from campsverso_cartridge_api.world import Rng, SleepCause, WorldOps, WorldView
+
+__all__ = [
+    "Accepted",
+    "ActionContext",
+    "ActionSpec",
+    "Attributes",
+    "AvatarDef",
+    "Cartridge",
+    "CartridgeManifest",
+    "ClockDef",
+    "ControllerRef",
+    "ControllerType",
+    "DailyAt",
+    "Direction",
+    "EntityView",
+    "ItemDef",
+    "KindDef",
+    "NeedDef",
+    "OnSessionStart",
+    "OnThreshold",
+    "Position",
+    "Rejection",
+    "Rng",
+    "RuleImpl",
+    "Scalar",
+    "SleepCause",
+    "SpawnDef",
+    "SystemContext",
+    "SystemSpec",
+    "ThresholdDef",
+    "Trigger",
+    "Validation",
+    "WorldBuilder",
+    "WorldOps",
+    "WorldView",
+]
