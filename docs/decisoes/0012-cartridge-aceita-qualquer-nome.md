@@ -1,6 +1,6 @@
 # ADR-0012 — Campo `cartridge` do envelope aceita qualquer nome
 
-**Status:** aceita · **Data:** 2026-10-11 · **Marco:** M0
+**Status:** aceita; padrão refinado pela ADR-0031 (`^[a-z][a-z0-9_]*$`) · **Data:** 2026-10-11 · **Marco:** M0
 **Altera:** `contratos-eventos-v0.md` §5 (tabela) e §5.2 (schema do envelope)
 
 ## Contexto

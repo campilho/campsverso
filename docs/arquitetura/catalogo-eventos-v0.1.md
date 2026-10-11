@@ -73,7 +73,7 @@ Cada schema declara a visibilidade do seu tipo (`"x-visibility": "internal"`). O
 
 É o schema da seção 5.2 dos contratos, com estas mudanças:
 
-- `cartridge`: padrão `^[a-z0-9-]+$` (ADR-0012);
+- `cartridge`: padrão `^[a-z][a-z0-9_]*$`, com o cartucho do topo do mundo (ex.: `farm_camps`) (ADR-0012, refinada pela ADR-0031);
 - `id`, `causationid`, `correlationid`: UUIDv7 (tipo `uuid7`), cumprindo a ADR-009 dos contratos;
 - `visibility` igual à declarada pelo schema do tipo (1.2), e `observer` em todo comando (ADR-0013).
 
@@ -175,7 +175,9 @@ Estrutura de `view`, inteiramente genérica (sem nada específico da fazenda):
 - `containers: [{ container_id, items: [item_stack] }]`
 - `entities: [{ entity_id, kind, position?, container_id?, attributes }]`
 
-### 3.8 Cartucho `farm` (produtor: kernel, executando código do cartucho)
+### 3.8 Cartucho `farm`, o gênero (produtor: kernel, executando código do cartucho)
+
+O tipo de evento pertence ao cartucho que o declara (`farm`), mesmo num mundo que roda o cenário `farm_camps` (ADR-0031).
 
 Só os eventos que carregam significado que os genéricos não carregam (ADR-0025):
 

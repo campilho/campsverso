@@ -27,7 +27,7 @@ Se dois documentos conflitarem, ou se faltar uma decisão: **pare e pergunte**. 
 5. **Visibilidade é arquitetura.** Regras ocultas e eventos `internal` nunca chegam a controladores. A garantia vem das permissões de assunto do NATS, não de filtros no código.
 6. **Eventos são imutáveis e versionados.** Dentro de uma versão maior, só campos opcionais novos. Mudança incompatível = novo tipo `...v2`.
 7. **O mundo nunca espera ninguém**, exceto no modo máximo (lockstep), que é exclusivo de controladores `script` e `replay`.
-8. **O kernel conhece a física de um mundo, não as fazendas.** O kernel implementa um modelo de mundo genérico: tempo, espaço, entidades, itens, necessidades, ações, avatares, clima e regras (ADR-0025). Culturas, preços, horários, ações e o mapa são dados e código do cartucho em `cartridges/farm/`, compostos a partir dessas primitivas. Cartuchos mudam o mundo só pelas primitivas, então toda mudança de estado vira um evento genérico. O kernel nunca importa um cartucho: os dois se encontram só pelas interfaces de `libs/cartridge-api`, e o kernel carrega o cartucho pelo nome definido na configuração (ADR-0011).
+8. **O kernel conhece a física de um mundo, não as fazendas.** O kernel implementa um modelo de mundo genérico: tempo, espaço, entidades, itens, necessidades, ações, avatares, clima e regras (ADR-0025). Culturas, preços, horários, ações e o mapa são dados e código do cartucho em `cartridges/farm/`, compostos a partir dessas primitivas. Cartuchos mudam o mundo só pelas primitivas, então toda mudança de estado vira um evento genérico. Cartuchos podem estender outros cartuchos, do gênero (`farm`) ao cenário (`farm_camps`) (ADR-0031). O kernel nunca importa um cartucho: os dois se encontram só pelas interfaces de `libs/cartridge-api`, e o kernel carrega o cartucho pelo nome definido na configuração (ADR-0011).
 
 ## Stack
 
@@ -63,10 +63,12 @@ campsverso/
     controller-runner/        # controladores script e replay
     gateway/                  # FastAPI + WebSocket; entrada do controlador humano
     archiver/                 # JetStream -> JSONL
-  cartridges/
-    farm/
-      sim/                    # mapa (Tiled), itens, culturas, ações, sistemas, regras (carregado pelo kernel)
+  cartridges/                 # em camadas: gênero → cenário (ADR-0031)
+    farm/                     # gênero: mecânicas genéricas de fazenda
+      sim/                    # itens, culturas, ações, sistemas, regras (carregado pelo kernel)
       script/                 # fazendeiro-script; depende só dos contratos (carregado pelo controller-runner)
+    farm_camps/               # cenário da v0.1: estende farm
+      sim/                    # mapa (Tiled), avatar camps, ajustes de números, R-001
   apps/
     ui/                       # Vite + Phaser
   config/
@@ -82,7 +84,7 @@ campsverso/
 ## Convenções
 
 - **Idioma:** código, identificadores e nomes de eventos em inglês; documentação, ADRs, diário e textos de UI em português; dados de conteúdo do cartucho (nomes de itens como `rabanete`) em português.
-- **Eventos:** `campsverso.<dominio>.<nome_no_passado>.v<major>`. **Comandos:** `campsverso.cmd.<dominio>.<verbo>.v<major>`. Domínios do kernel são reservados; eventos próprios de um cartucho usam o nome do cartucho como domínio (ex. `campsverso.farm.crop.matured.v1`).
+- **Eventos:** `campsverso.<dominio>.<nome_no_passado>.v<major>`. **Comandos:** `campsverso.cmd.<dominio>.<verbo>.v<major>`. Domínios do kernel são reservados; eventos próprios de um cartucho usam como domínio o nome do cartucho que os declara (ex. `campsverso.farm.crop.matured.v1`, mesmo num mundo `farm_camps`).
 - **Campos:** payloads em `snake_case` (`applied_tick`, `avatar_id`); atributos do envelope seguem o CloudEvents (`correlationid`) (ADR-0030).
 - **IDs:** UUIDv7 para eventos; ids legíveis e estáveis para entidades (`plot-e-03`, `camps`).
 - **Envelope:** CloudEvents 1.0 com as extensões definidas no contrato; todo evento publicado é validado contra o schema em desenvolvimento e nos testes.

@@ -17,7 +17,7 @@ A numeração deste diretório continua a partir de **0011**, para não colidir 
 | ADR | Decisão | Marco | Altera ou esclarece |
 |---|---|---|---|
 | [0011](0011-api-de-cartucho.md) | `libs/cartridge-api` só com interfaces; cartucho dividido em `sim` e `script`; carregado por nome via *entry points* | M0/M1 | CLAUDE.md, princípios 1 e 8 |
-| [0012](0012-cartridge-aceita-qualquer-nome.md) | `cartridge` no envelope aceita qualquer nome `^[a-z0-9-]+$` | M0 | contratos §5.2 |
+| [0012](0012-cartridge-aceita-qualquer-nome.md) | `cartridge` no envelope aceita qualquer nome (padrão refinado pela 0031) | M0 | contratos §5.2 |
 | [0013](0013-envelope-dos-comandos.md) | Comandos usam o mesmo envelope, com `visibility: observer` | M0 | contratos §7, §8.1 |
 | [0014](0014-sono-e-desmaio-no-dominio-avatar.md) | `avatar.sleep.started/ended.v1` e `avatar.fainted.v1` | M0 | tempo §12 |
 | [0015](0015-comando-para-alternar-regras.md) | Novo `cmd.rules.toggle.v1`; kernel publica `rules.toggled.v1`; sem `rules.hot_applied.v1` | M0/M1 | contratos §7, §8.3; tempo §12 |
@@ -36,6 +36,7 @@ A numeração deste diretório continua a partir de **0011**, para não colidir 
 | [0028](0028-percepcao-so-com-instantaneos.md) | Percepção só com instantâneos na v0.1; deltas na v0.2 | M0/M3 | contratos §14.4 |
 | [0029](0029-catalogo-de-eventos-da-v0-1.md) | Catálogo da v0.1 (38 eventos, 9 comandos) é a especificação do M0 | M0 | contratos §7, §14; tempo §12, §13 |
 | [0030](0030-snake-case-nos-payloads.md) | `snake_case` nos payloads; envelope segue o CloudEvents | M0 | contratos §8, §14 (grafia) |
+| [0031](0031-cartuchos-em-camadas.md) | Cartuchos em camadas (gênero → cenário → mundo); v0.1 com `farm` + `farm_camps`; nome do cartucho `^[a-z][a-z0-9_]*$` | M0/M1 | ADR-0011, 0012, 0025; bíblia §1 |
 
 ## Modelo
 
