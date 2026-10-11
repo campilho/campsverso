@@ -169,15 +169,28 @@ CONTRACT_TYPES: Final[dict[str, ContractType]] = {{
 {entries}
     )
 }}
+
+
+def subject(event_type: str, worldid: str, avatar_id: str | None = None) -> str:
+    """Assunto NATS de um tipo de evento ou comando (catálogo §1.1)."""
+    info = CONTRACT_TYPES[event_type]
+    name = event_type.removeprefix("campsverso.")
+    if info.kind == "command":
+        return f"campsverso.{{worldid}}.{{name}}"
+    if info.visibility == "agent":
+        if avatar_id is None:
+            raise ValueError(f"{{event_type}} tem visibilidade agent e exige avatar_id")
+        return f"campsverso.{{worldid}}.agent.{{avatar_id}}.{{name}}"
+    return f"campsverso.{{worldid}}.{{info.visibility}}.{{name}}"
 '''
 
 
 INIT = f'''"""Contratos do Campsverso. {HEADER}"""
 
 from campsverso_contracts.models import EnvelopeV1
-from campsverso_contracts.registry import CONTRACT_TYPES, ContractType, Kind, Visibility
+from campsverso_contracts.registry import CONTRACT_TYPES, ContractType, Kind, Visibility, subject
 
-__all__ = ["CONTRACT_TYPES", "ContractType", "EnvelopeV1", "Kind", "Visibility"]
+__all__ = ["CONTRACT_TYPES", "ContractType", "EnvelopeV1", "Kind", "Visibility", "subject"]
 '''
 
 

@@ -405,3 +405,16 @@ CONTRACT_TYPES: Final[dict[str, ContractType]] = {
         ),
     )
 }
+
+
+def subject(event_type: str, worldid: str, avatar_id: str | None = None) -> str:
+    """Assunto NATS de um tipo de evento ou comando (catálogo §1.1)."""
+    info = CONTRACT_TYPES[event_type]
+    name = event_type.removeprefix("campsverso.")
+    if info.kind == "command":
+        return f"campsverso.{worldid}.{name}"
+    if info.visibility == "agent":
+        if avatar_id is None:
+            raise ValueError(f"{event_type} tem visibilidade agent e exige avatar_id")
+        return f"campsverso.{worldid}.agent.{avatar_id}.{name}"
+    return f"campsverso.{worldid}.{info.visibility}.{name}"

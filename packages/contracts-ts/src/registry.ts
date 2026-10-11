@@ -352,3 +352,19 @@ export interface PayloadByType {
 export type Envelope<K extends ContractTypeName = ContractTypeName> = {
   [P in K]: Omit<T.EnvelopeV1, "type" | "data"> & { readonly type: P; readonly data: PayloadByType[P] };
 }[K];
+
+/** Assunto NATS de um tipo de evento ou comando (catálogo §1.1). */
+export function subject(type: ContractTypeName, worldid: string, avatarId?: string): string {
+  const info: ContractTypeInfo = CONTRACT_TYPES[type];
+  const name = type.slice("campsverso.".length);
+  if (info.kind === "command") {
+    return `campsverso.${worldid}.${name}`;
+  }
+  if (info.visibility === "agent") {
+    if (avatarId === undefined) {
+      throw new Error(`${type} tem visibilidade agent e exige avatarId`);
+    }
+    return `campsverso.${worldid}.agent.${avatarId}.${name}`;
+  }
+  return `campsverso.${worldid}.${info.visibility}.${name}`;
+}
