@@ -40,6 +40,7 @@ A numeração deste diretório continua a partir de **0011**, para não colidir 
 | [0032](0032-ferramentas-typescript.md) | Node 24 fixado no projeto, pnpm 12, TypeScript 6.0; scripts de instalação bloqueados por padrão | M0 | CLAUDE.md (stack) |
 | [0033](0033-pipeline-dos-contratos.md) | Pipeline dos contratos: visibilidade fixa por tipo, validação dupla, codegen (gerador no 3.14), AsyncAPI 3.1 gerado, compatibilidade | M0 | contratos §10 |
 | [0034](0034-volta-para-python-3-14.md) | Volta para o Python 3.14; revisitar o 3.15 no início da v0.2 | M0 | ADR-0023, ADR-0033 |
+| [0035](0035-ci-no-github-actions.md) | CI no GitHub Actions: make check num Linux limpo a cada push e pull request; actions fixadas por hash | M0 | escopo §7 |
 
 ## Modelo
 

@@ -39,6 +39,7 @@ Se dois documentos conflitarem, ou se faltar uma decisão: **pare e pergunte**. 
 | Contratos | JSON Schema 2020-12 (fonte da verdade) + AsyncAPI 3.1 (gerado); codegen com `datamodel-code-generator` (Python) e `json-schema-to-typescript` (TS); validação com `jsonschema` e `ajv` com os mesmos códigos de erro (ADR-0033) |
 | Frontend | TypeScript 6.0 estrito, `pnpm` 12, Node 24 fixado no projeto, Vite, Phaser (versão estável atual), Vitest (ADR-0032) |
 | Qualidade | `ruff`, `pyright` em modo estrito, `pytest` + `hypothesis`, `import-linter`; `eslint`, `dependency-cruiser` |
+| CI | GitHub Actions roda `make setup` e `make check` a cada push e pull request (ADR-0035) |
 | Infra local | `nats-server` como binário em `.tools/` (ADR-0024; containers antes da AWS); `make` como ponto de entrada |
 
 ## Estrutura do repositório
@@ -114,7 +115,7 @@ Os alvos de marcos futuros já existem e avisam "ainda não implementado (marco 
 ## Como trabalhar neste repositório
 
 1. **Um marco por vez** (ver `escopo-v0.1.md`, seção 7). Comece pelo plano, peça confirmação, depois implemente.
-2. Ao fim de cada marco: `make check` verde, commit, e uma entrada em `docs/diario/AAAA-MM-DD.md` (o que foi feito, o que deu errado, decisões, números, uma frase "para o LinkedIn").
+2. Ao fim de cada marco: `make check` verde (local e no CI), commit, e uma entrada em `docs/diario/AAAA-MM-DD.md` (o que foi feito, o que deu errado, decisões, números, uma frase "para o LinkedIn").
 3. Mudou um contrato? Atualize o schema em `contracts/`, os exemplos, o `CHANGELOG.md` e rode `make contracts`. Nunca edite os pacotes gerados.
 4. Ajustes de equilíbrio do mundo (preços, tempos, probabilidades) vão na configuração do cartucho, nunca no kernel.
 
