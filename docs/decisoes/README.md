@@ -30,6 +30,12 @@ A numeração deste diretório continua a partir de **0011**, para não colidir 
 | [0022](0022-gateway-le-eventos-agent-do-avatar.md) | Gateway assina `agent.camps.>` para o controlador humano | M4/M5 | escopo §5 |
 | [0023](0023-python-3-15.md) | Python 3.15, com volta para 3.14 se alguma dependência quebrar | M0 | CLAUDE.md (stack) |
 | [0024](0024-nats-binario-local-containers-antes-da-aws.md) | `nats-server` como binário local; containers antes da AWS | M2 | CLAUDE.md (stack, estrutura) |
+| [0025](0025-modelo-de-mundo-do-kernel.md) | O kernel tem um modelo de mundo genérico ("física"); cartuchos mudam o mundo só pelas primitivas; evento do cartucho só com significado próprio | M0/M1 | CLAUDE.md, princípio 8; contratos §14.3 |
+| [0026](0026-pausa-e-estado-nao-modo.md) | Pausa é estado; modos `continuous` e `max` | M0/M1 | escopo §3, §5; tempo §5 |
+| [0027](0027-avatar-id-nos-eventos-do-kernel.md) | `avatar_id` nos eventos do kernel; `agent_id` fica para a cognição | M0 | contratos §8.1, §8.2 |
+| [0028](0028-percepcao-so-com-instantaneos.md) | Percepção só com instantâneos na v0.1; deltas na v0.2 | M0/M3 | contratos §14.4 |
+| [0029](0029-catalogo-de-eventos-da-v0-1.md) | Catálogo da v0.1 (38 eventos, 9 comandos) é a especificação do M0 | M0 | contratos §7, §14; tempo §12, §13 |
+| [0030](0030-snake-case-nos-payloads.md) | `snake_case` nos payloads; envelope segue o CloudEvents | M0 | contratos §8, §14 (grafia) |
 
 ## Modelo
 

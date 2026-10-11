@@ -13,7 +13,8 @@ Leia antes de qualquer tarefa não trivial, nesta ordem:
 3. `docs/arquitetura/contratos-eventos-v0.md` — envelope, eventos, barramento, portas
 4. `docs/arquitetura/kernel-gestao-do-tempo.md` — relógio e políticas de tempo
 5. `docs/arquitetura/pesquisa-componentes-plataforma-simulacao.md` — bibliotecas avaliadas
-6. `docs/decisoes/README.md` — índice das ADRs. **Uma ADR aceita prevalece sobre o texto dos documentos acima.**
+6. `docs/arquitetura/catalogo-eventos-v0.1.md` — eventos e comandos da v0.1 (depois do M0, guia de leitura dos schemas em `contracts/`)
+7. `docs/decisoes/README.md` — índice das ADRs. **Uma ADR aceita prevalece sobre o texto dos documentos acima.**
 
 Se dois documentos conflitarem, ou se faltar uma decisão: **pare e pergunte**. Depois registre a decisão como ADR curto em `docs/decisoes/NNNN-titulo.md`.
 
@@ -26,7 +27,7 @@ Se dois documentos conflitarem, ou se faltar uma decisão: **pare e pergunte**. 
 5. **Visibilidade é arquitetura.** Regras ocultas e eventos `internal` nunca chegam a controladores. A garantia vem das permissões de assunto do NATS, não de filtros no código.
 6. **Eventos são imutáveis e versionados.** Dentro de uma versão maior, só campos opcionais novos. Mudança incompatível = novo tipo `...v2`.
 7. **O mundo nunca espera ninguém**, exceto no modo máximo (lockstep), que é exclusivo de controladores `script` e `replay`.
-8. **O kernel não conhece fazendas.** Culturas, preços, horários, ações e o mapa são dados e código do cartucho em `cartridges/farm/`. O kernel nunca importa um cartucho: os dois se encontram só pelas interfaces de `libs/cartridge-api`, e o kernel carrega o cartucho pelo nome definido na configuração (ADR-0011).
+8. **O kernel conhece a física de um mundo, não as fazendas.** O kernel implementa um modelo de mundo genérico: tempo, espaço, entidades, itens, necessidades, ações, avatares, clima e regras (ADR-0025). Culturas, preços, horários, ações e o mapa são dados e código do cartucho em `cartridges/farm/`, compostos a partir dessas primitivas. Cartuchos mudam o mundo só pelas primitivas, então toda mudança de estado vira um evento genérico. O kernel nunca importa um cartucho: os dois se encontram só pelas interfaces de `libs/cartridge-api`, e o kernel carrega o cartucho pelo nome definido na configuração (ADR-0011).
 
 ## Stack
 
@@ -82,6 +83,7 @@ campsverso/
 
 - **Idioma:** código, identificadores e nomes de eventos em inglês; documentação, ADRs, diário e textos de UI em português; dados de conteúdo do cartucho (nomes de itens como `rabanete`) em português.
 - **Eventos:** `campsverso.<dominio>.<nome_no_passado>.v<major>`. **Comandos:** `campsverso.cmd.<dominio>.<verbo>.v<major>`. Domínios do kernel são reservados; eventos próprios de um cartucho usam o nome do cartucho como domínio (ex. `campsverso.farm.crop.matured.v1`).
+- **Campos:** payloads em `snake_case` (`applied_tick`, `avatar_id`); atributos do envelope seguem o CloudEvents (`correlationid`) (ADR-0030).
 - **IDs:** UUIDv7 para eventos; ids legíveis e estáveis para entidades (`plot-e-03`, `camps`).
 - **Envelope:** CloudEvents 1.0 com as extensões definidas no contrato; todo evento publicado é validado contra o schema em desenvolvimento e nos testes.
 - **Testes:** escreva o teste junto com o código. Sistemas e ações têm testes de unidade; o fluxo completo tem testes e2e com `InMemoryBus` e com NATS.
