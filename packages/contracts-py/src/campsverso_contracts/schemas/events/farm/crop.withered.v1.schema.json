@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/farm/crop.withered.v1",
+  "title": "FarmCropWitheredV1",
+  "description": "Planta murchou por falta de água.",
+  "x-type": "campsverso.farm.crop.withered.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "plot_id",
+    "crop",
+    "day",
+    "dry_days"
+  ],
+  "properties": {
+    "plot_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "crop": {
+      "$ref": "contracts://common/defs.v1#/$defs/item_id"
+    },
+    "day": {
+      "$ref": "contracts://common/defs.v1#/$defs/day"
+    },
+    "dry_days": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Viradas seguidas sem rega."
+    }
+  }
+}

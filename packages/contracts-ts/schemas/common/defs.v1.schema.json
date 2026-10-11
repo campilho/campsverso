@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://common/defs.v1",
+  "title": "CommonDefsV1",
+  "description": "Tipos comuns usados pelos schemas de eventos e comandos (catálogo da v0.1, seção 1.4).",
+  "$defs": {
+    "uuid7": {
+      "title": "Uuid7",
+      "description": "UUID versão 7 (RFC 9562), ordenável por tempo.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "entity_id": {
+      "title": "EntityId",
+      "description": "Id legível e estável de uma entidade: camps, plot-e-03, bed.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "item_id": {
+      "title": "ItemId",
+      "description": "Id de item ou cultura; conteúdo do cartucho, em português, sem acento: moeda, semente_rabanete.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "action_id": {
+      "title": "ActionId",
+      "description": "Id de ação: contador determinístico do kernel.",
+      "type": "string",
+      "pattern": "^act-[0-9]{6,}$"
+    },
+    "token": {
+      "title": "Token",
+      "description": "Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "maxLength": 64
+    },
+    "semver": {
+      "title": "Semver",
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+    },
+    "actor": {
+      "title": "Actor",
+      "description": "Quem causou: human/operator, script/farmer-v1, system/kernel.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "tick": {
+      "title": "Tick",
+      "description": "Tick do kernel (1 minuto simulado na fazenda).",
+      "type": "integer",
+      "minimum": 0
+    },
+    "day": {
+      "title": "Day",
+      "description": "Dia simulado (dia agrícola, ADR-0018), começando em 1.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "position": {
+      "title": "Position",
+      "description": "Posição em tiles.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y"
+      ],
+      "properties": {
+        "x": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "y": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "item_stack": {
+      "title": "ItemStack",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "item",
+        "qty"
+      ],
+      "properties": {
+        "item": {
+          "$ref": "#/$defs/item_id"
+        },
+        "qty": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "controller_type": {
+      "title": "ControllerType",
+      "enum": [
+        "human",
+        "script",
+        "replay",
+        "llm",
+        "mcp",
+        "supervised"
+      ]
+    },
+    "controller_ref": {
+      "title": "ControllerRef",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id"
+      ],
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/controller_type"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "clock_mode": {
+      "title": "ClockMode",
+      "description": "Modos do relógio na v0.1; a pausa é um estado à parte (ADR-0026).",
+      "enum": [
+        "continuous",
+        "max"
+      ]
+    },
+    "scalar": {
+      "title": "Scalar",
+      "type": [
+        "string",
+        "number",
+        "boolean",
+        "null"
+      ]
+    },
+    "attributes": {
+      "title": "Attributes",
+      "description": "Atributos visíveis de uma entidade (ADR-0025): nomes em snake_case, valores escalares.",
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      }
+    },
+    "needs": {
+      "title": "Needs",
+      "description": "Valor atual de cada necessidade (0 a 100), pelo nome definido no cartucho.",
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]*$"
+      },
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 100
+      }
+    },
+    "params": {
+      "title": "Params",
+      "description": "Parâmetros de uma ação. A forma depende da ação e é validada pelo cartucho, não por este schema.",
+      "type": "object",
+      "additionalProperties": {}
+    }
+  }
+}

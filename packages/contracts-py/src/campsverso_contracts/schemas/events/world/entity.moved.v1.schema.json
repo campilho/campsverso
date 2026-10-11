@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/world/entity.moved.v1",
+  "title": "WorldEntityMovedV1",
+  "description": "Movimento como trajeto: só esquinas e destino; a UI interpola (D1).",
+  "x-type": "campsverso.world.entity.moved.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "entity_id",
+    "action_id",
+    "origin",
+    "waypoints",
+    "depart_tick",
+    "arrival_tick",
+    "tiles_per_tick"
+  ],
+  "properties": {
+    "entity_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "action_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/action_id"
+    },
+    "origin": {
+      "$ref": "contracts://common/defs.v1#/$defs/position"
+    },
+    "waypoints": {
+      "type": "array",
+      "items": {
+        "$ref": "contracts://common/defs.v1#/$defs/position"
+      },
+      "minItems": 1,
+      "description": "Pontos de inflexão do trajeto e o destino."
+    },
+    "depart_tick": {
+      "$ref": "contracts://common/defs.v1#/$defs/tick"
+    },
+    "arrival_tick": {
+      "$ref": "contracts://common/defs.v1#/$defs/tick"
+    },
+    "tiles_per_tick": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    }
+  }
+}

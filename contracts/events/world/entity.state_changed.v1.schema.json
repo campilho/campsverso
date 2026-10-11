@@ -18,6 +18,7 @@
     },
     "changes": {
       "$ref": "contracts://common/defs.v1#/$defs/attributes",
+      "type": "object",
       "minProperties": 1
     },
     "cause": {

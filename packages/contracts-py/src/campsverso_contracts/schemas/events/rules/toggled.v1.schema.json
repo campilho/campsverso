@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/rules/toggled.v1",
+  "title": "RulesToggledV1",
+  "description": "Regra ligada, desligada ou parametrizada a quente (ADR-0015).",
+  "x-type": "campsverso.rules.toggled.v1",
+  "x-visibility": "internal",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "rule",
+    "from_version",
+    "to_version",
+    "enabled",
+    "by",
+    "reason",
+    "effective_at_tick"
+  ],
+  "properties": {
+    "rule": {
+      "$ref": "contracts://common/defs.v1#/$defs/token"
+    },
+    "from_version": {
+      "$ref": "contracts://common/defs.v1#/$defs/semver"
+    },
+    "to_version": {
+      "$ref": "contracts://common/defs.v1#/$defs/semver"
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "params": {
+      "$ref": "contracts://common/defs.v1#/$defs/attributes",
+      "description": "Parâmetros da regra."
+    },
+    "by": {
+      "$ref": "contracts://common/defs.v1#/$defs/actor"
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "experiment_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "effective_at_tick": {
+      "$ref": "contracts://common/defs.v1#/$defs/tick"
+    }
+  }
+}

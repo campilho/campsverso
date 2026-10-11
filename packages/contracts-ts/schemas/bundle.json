@@ -1,0 +1,1908 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "GERADO por tools/contracts a partir de contracts/: não editar à mão.",
+  "title": "ContractsBundle",
+  "type": "object",
+  "$defs": {
+    "Uuid7": {
+      "title": "Uuid7",
+      "description": "UUID versão 7 (RFC 9562), ordenável por tempo.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "EntityId": {
+      "title": "EntityId",
+      "description": "Id legível e estável de uma entidade: camps, plot-e-03, bed.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "ItemId": {
+      "title": "ItemId",
+      "description": "Id de item ou cultura; conteúdo do cartucho, em português, sem acento: moeda, semente_rabanete.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "ActionId": {
+      "title": "ActionId",
+      "description": "Id de ação: contador determinístico do kernel.",
+      "type": "string",
+      "pattern": "^act-[0-9]{6,}$"
+    },
+    "Token": {
+      "title": "Token",
+      "description": "Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "maxLength": 64
+    },
+    "Semver": {
+      "title": "Semver",
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+    },
+    "Actor": {
+      "title": "Actor",
+      "description": "Quem causou: human/operator, script/farmer-v1, system/kernel.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "Tick": {
+      "title": "Tick",
+      "description": "Tick do kernel (1 minuto simulado na fazenda).",
+      "type": "integer",
+      "minimum": 0
+    },
+    "Day": {
+      "title": "Day",
+      "description": "Dia simulado (dia agrícola, ADR-0018), começando em 1.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "Position": {
+      "title": "Position",
+      "description": "Posição em tiles.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y"
+      ],
+      "properties": {
+        "x": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "y": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "ItemStack": {
+      "title": "ItemStack",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "item",
+        "qty"
+      ],
+      "properties": {
+        "item": {
+          "$ref": "#/$defs/ItemId"
+        },
+        "qty": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "ControllerType": {
+      "title": "ControllerType",
+      "enum": [
+        "human",
+        "script",
+        "replay",
+        "llm",
+        "mcp",
+        "supervised"
+      ]
+    },
+    "ControllerRef": {
+      "title": "ControllerRef",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id"
+      ],
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/ControllerType"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "ClockMode": {
+      "title": "ClockMode",
+      "description": "Modos do relógio na v0.1; a pausa é um estado à parte (ADR-0026).",
+      "enum": [
+        "continuous",
+        "max"
+      ]
+    },
+    "Scalar": {
+      "title": "Scalar",
+      "type": [
+        "string",
+        "number",
+        "boolean",
+        "null"
+      ]
+    },
+    "Attributes": {
+      "title": "Attributes",
+      "description": "Atributos visíveis de uma entidade (ADR-0025): nomes em snake_case, valores escalares.",
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/Scalar"
+      }
+    },
+    "Needs": {
+      "title": "Needs",
+      "description": "Valor atual de cada necessidade (0 a 100), pelo nome definido no cartucho.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 100
+      }
+    },
+    "Params": {
+      "title": "Params",
+      "description": "Parâmetros de uma ação. A forma depende da ação e é validada pelo cartucho, não por este schema.",
+      "type": "object",
+      "additionalProperties": {}
+    },
+    "CmdActionProposeV1": {
+      "title": "CmdActionProposeV1",
+      "description": "Controlador propõe uma ação para o avatar.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "avatar_id",
+        "action",
+        "params"
+      ],
+      "properties": {
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Avatar (o corpo), independente de quem o controla (ADR-0027)."
+        },
+        "action": {
+          "$ref": "#/$defs/Token"
+        },
+        "params": {
+          "$ref": "#/$defs/Params"
+        },
+        "intent": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "at_tick": {
+          "$ref": "#/$defs/Tick",
+          "description": "Tick exato de aplicação; só aceito do controlador replay em modo máximo."
+        }
+      }
+    },
+    "CmdAvatarPossessV1": {
+      "title": "CmdAvatarPossessV1",
+      "description": "Pede a posse do avatar para um controlador.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "avatar_id",
+        "controller"
+      ],
+      "properties": {
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Avatar (o corpo), independente de quem o controla (ADR-0027)."
+        },
+        "controller": {
+          "$ref": "#/$defs/ControllerRef"
+        }
+      }
+    },
+    "CmdAvatarReleaseV1": {
+      "title": "CmdAvatarReleaseV1",
+      "description": "Devolve o avatar ao controlador padrão do cartucho.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "avatar_id"
+      ],
+      "properties": {
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Avatar (o corpo), independente de quem o controla (ADR-0027)."
+        }
+      }
+    },
+    "CmdClockPauseV1": {
+      "title": "CmdClockPauseV1",
+      "description": "Pede a pausa do relógio.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reason"
+      ],
+      "properties": {
+        "reason": {
+          "enum": [
+            "debug",
+            "maintenance",
+            "budget"
+          ]
+        }
+      }
+    },
+    "CmdClockResumeV1": {
+      "title": "CmdClockResumeV1",
+      "description": "Pede a retomada do relógio.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {}
+    },
+    "CmdClockSetModeV1": {
+      "title": "CmdClockSetModeV1",
+      "description": "Pede a troca de modo do relógio.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode"
+      ],
+      "properties": {
+        "mode": {
+          "$ref": "#/$defs/ClockMode"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      }
+    },
+    "CmdClockSetScaleV1": {
+      "title": "CmdClockSetScaleV1",
+      "description": "Pede a troca de escala do relógio.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scale",
+        "reason"
+      ],
+      "properties": {
+        "scale": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "reason": {
+          "enum": [
+            "operator",
+            "experiment",
+            "budget",
+            "human"
+          ]
+        }
+      }
+    },
+    "CmdClockStepV1": {
+      "title": "CmdClockStepV1",
+      "description": "Avança N ticks com o relógio pausado.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticks"
+      ],
+      "properties": {
+        "ticks": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1440
+        }
+      }
+    },
+    "CmdRulesToggleV1": {
+      "title": "CmdRulesToggleV1",
+      "description": "Pede a alternância de uma regra (ADR-0015).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule",
+        "enabled",
+        "reason"
+      ],
+      "properties": {
+        "rule": {
+          "$ref": "#/$defs/Token"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "params": {
+          "$ref": "#/$defs/Attributes",
+          "description": "Parâmetros da regra."
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "experiment_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      }
+    },
+    "EnvelopeV1": {
+      "title": "EnvelopeV1",
+      "description": "Envelope CloudEvents 1.0 com as extensões do Campsverso (contratos §5; ADR-0012, ADR-0013, ADR-0031). Os nomes dos atributos seguem o CloudEvents: minúsculas sem separador (ADR-0030).",
+      "type": "object",
+      "required": [
+        "specversion",
+        "id",
+        "source",
+        "type",
+        "time",
+        "datacontenttype",
+        "dataschema",
+        "worldid",
+        "cartridge",
+        "seq",
+        "provenance",
+        "visibility",
+        "data"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "specversion": {
+          "const": "1.0"
+        },
+        "id": {
+          "$ref": "#/$defs/Uuid7"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "type": {
+          "type": "string",
+          "pattern": "^campsverso\\.[a-z0-9_]+(\\.[a-z0-9_]+)+\\.v[0-9]+$"
+        },
+        "time": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "subject": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "datacontenttype": {
+          "const": "application/json"
+        },
+        "dataschema": {
+          "type": "string",
+          "pattern": "^contracts://(events|commands)/[a-z0-9_]+/[a-z0-9_.]+\\.v[0-9]+$"
+        },
+        "worldid": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 64
+        },
+        "cartridge": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "maxLength": 64
+        },
+        "tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "simtime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "actor": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "controller": {
+          "$ref": "#/$defs/ControllerType"
+        },
+        "controllerid": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "causationid": {
+          "$ref": "#/$defs/Uuid7"
+        },
+        "correlationid": {
+          "$ref": "#/$defs/Uuid7"
+        },
+        "provenance": {
+          "enum": [
+            "simulated",
+            "real",
+            "staged"
+          ]
+        },
+        "visibility": {
+          "enum": [
+            "world",
+            "agent",
+            "observer",
+            "internal"
+          ]
+        },
+        "traceparent": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "ActionAcceptedV1": {
+      "title": "ActionAcceptedV1",
+      "description": "Ação validada e agendada; applied_tick permite o replay exato.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id",
+        "avatar_id",
+        "action",
+        "params",
+        "applied_tick",
+        "duration_ticks"
+      ],
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/ActionId"
+        },
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Avatar (o corpo), independente de quem o controla (ADR-0027)."
+        },
+        "action": {
+          "$ref": "#/$defs/Token"
+        },
+        "params": {
+          "$ref": "#/$defs/Params"
+        },
+        "applied_tick": {
+          "$ref": "#/$defs/Tick"
+        },
+        "duration_ticks": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Duração prevista."
+        },
+        "replaces": {
+          "$ref": "#/$defs/ActionId",
+          "description": "Ação em andamento cancelada por esta."
+        }
+      }
+    },
+    "ActionCompletedV1": {
+      "title": "ActionCompletedV1",
+      "description": "Ação concluída; observable é só um resumo legível.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id",
+        "avatar_id",
+        "action",
+        "params",
+        "duration_ticks"
+      ],
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/ActionId"
+        },
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Avatar (o corpo), independente de quem o controla (ADR-0027)."
+        },
+        "action": {
+          "$ref": "#/$defs/Token"
+        },
+        "params": {
+          "$ref": "#/$defs/Params"
+        },
+        "duration_ticks": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Duração real."
+        },
+        "observable": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "title": "ObservableChange",
+            "additionalProperties": false,
+            "required": [
+              "entity_id",
+              "property",
+              "before",
+              "after"
+            ],
+            "properties": {
+              "entity_id": {
+                "$ref": "#/$defs/EntityId"
+              },
+              "property": {
+                "$ref": "#/$defs/Token"
+              },
+              "before": {
+                "$ref": "#/$defs/Scalar"
+              },
+              "after": {
+                "$ref": "#/$defs/Scalar"
+              }
+            }
+          }
+        }
+      }
+    },
+    "ActionEffectsExplainedV1": {
+      "title": "ActionEffectsExplainedV1",
+      "description": "Regras, inclusive ocultas, que contribuíram para o resultado de uma ação.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id",
+        "rules_applied"
+      ],
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/ActionId"
+        },
+        "rules_applied": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "title": "RuleApplied",
+            "additionalProperties": false,
+            "required": [
+              "rule",
+              "version",
+              "hidden"
+            ],
+            "properties": {
+              "rule": {
+                "$ref": "#/$defs/Token"
+              },
+              "version": {
+                "$ref": "#/$defs/Semver"
+              },
+              "hidden": {
+                "type": "boolean"
+              },
+              "multiplier": {
+                "type": "number"
+              }
+            }
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "ActionFailedV1": {
+      "title": "ActionFailedV1",
+      "description": "Ação iniciada que não chegou ao fim.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id",
+        "avatar_id",
+        "action",
+        "reason"
+      ],
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/ActionId"
+        },
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Avatar (o corpo), independente de quem o controla (ADR-0027)."
+        },
+        "action": {
+          "$ref": "#/$defs/Token"
+        },
+        "reason": {
+          "$ref": "#/$defs/Token",
+          "description": "Ex.: cancelled, fainted, blocked, precondition_lost."
+        }
+      }
+    },
+    "ActionRejectedV1": {
+      "title": "ActionRejectedV1",
+      "description": "Ação recusada, com motivo legível por máquina.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "avatar_id",
+        "action",
+        "params",
+        "reason"
+      ],
+      "properties": {
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Avatar (o corpo), independente de quem o controla (ADR-0027)."
+        },
+        "action": {
+          "$ref": "#/$defs/Token"
+        },
+        "params": {
+          "$ref": "#/$defs/Params"
+        },
+        "reason": {
+          "$ref": "#/$defs/Token",
+          "description": "Ex.: not_in_control, not_adjacent, missing_item, closed, not_ripe."
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      }
+    },
+    "AvatarDecisionRequestedV1": {
+      "title": "AvatarDecisionRequestedV1",
+      "description": "O avatar está ocioso; o controlador com a posse responde com cmd.action.propose e o mesmo correlationid.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "avatar_id",
+        "reason",
+        "controller",
+        "needs",
+        "position"
+      ],
+      "properties": {
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Avatar (o corpo), independente de quem o controla (ADR-0027)."
+        },
+        "reason": {
+          "enum": [
+            "session_started",
+            "possessed",
+            "action_completed",
+            "action_rejected",
+            "action_interrupted",
+            "phase_changed",
+            "need_threshold",
+            "woke_up"
+          ]
+        },
+        "controller": {
+          "$ref": "#/$defs/ControllerRef",
+          "description": "Quem deve responder."
+        },
+        "needs": {
+          "$ref": "#/$defs/Needs",
+          "description": "Valores exatos no momento do pedido."
+        },
+        "position": {
+          "$ref": "#/$defs/Position"
+        }
+      }
+    },
+    "AvatarFaintedV1": {
+      "title": "AvatarFaintedV1",
+      "description": "O avatar desmaiou: acordado às 02:00 ou sem energia (ADR-0014).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "avatar_id",
+        "reason",
+        "position"
+      ],
+      "properties": {
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Avatar (o corpo), independente de quem o controla (ADR-0027)."
+        },
+        "reason": {
+          "enum": [
+            "late_night",
+            "exhausted"
+          ]
+        },
+        "position": {
+          "$ref": "#/$defs/Position"
+        }
+      }
+    },
+    "AvatarPossessedV1": {
+      "title": "AvatarPossessedV1",
+      "description": "Posse do avatar assumida por um controlador.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "avatar_id",
+        "controller",
+        "by"
+      ],
+      "properties": {
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Avatar (o corpo), independente de quem o controla (ADR-0027)."
+        },
+        "previous_controller": {
+          "$ref": "#/$defs/ControllerRef",
+          "description": "Ausente na abertura da sessão."
+        },
+        "controller": {
+          "$ref": "#/$defs/ControllerRef"
+        },
+        "by": {
+          "$ref": "#/$defs/Actor"
+        }
+      }
+    },
+    "AvatarReleasedV1": {
+      "title": "AvatarReleasedV1",
+      "description": "Posse devolvida ao controlador padrão do cartucho.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "avatar_id",
+        "previous_controller",
+        "controller",
+        "by"
+      ],
+      "properties": {
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Avatar (o corpo), independente de quem o controla (ADR-0027)."
+        },
+        "previous_controller": {
+          "$ref": "#/$defs/ControllerRef"
+        },
+        "controller": {
+          "$ref": "#/$defs/ControllerRef"
+        },
+        "by": {
+          "$ref": "#/$defs/Actor"
+        }
+      }
+    },
+    "AvatarSleepEndedV1": {
+      "title": "AvatarSleepEndedV1",
+      "description": "O avatar acordou (ADR-0014).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "avatar_id",
+        "cause",
+        "energy"
+      ],
+      "properties": {
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Avatar (o corpo), independente de quem o controla (ADR-0027)."
+        },
+        "cause": {
+          "enum": [
+            "bed",
+            "faint"
+          ]
+        },
+        "energy": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
+    "AvatarSleepStartedV1": {
+      "title": "AvatarSleepStartedV1",
+      "description": "O avatar dormiu na cama ou desmaiou (ADR-0014).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "avatar_id",
+        "cause",
+        "position",
+        "wake_at_tick"
+      ],
+      "properties": {
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Avatar (o corpo), independente de quem o controla (ADR-0027)."
+        },
+        "cause": {
+          "enum": [
+            "bed",
+            "faint"
+          ]
+        },
+        "position": {
+          "$ref": "#/$defs/Position"
+        },
+        "wake_at_tick": {
+          "$ref": "#/$defs/Tick"
+        }
+      }
+    },
+    "FarmBuyerPaidV1": {
+      "title": "FarmBuyerPaidV1",
+      "description": "Pagamento das vendas às 06:00, com o preço de cada item.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "container_id",
+        "items",
+        "total",
+        "day"
+      ],
+      "properties": {
+        "container_id": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "title": "PaidItem",
+            "additionalProperties": false,
+            "required": [
+              "item",
+              "qty",
+              "unit_price"
+            ],
+            "properties": {
+              "item": {
+                "$ref": "#/$defs/ItemId"
+              },
+              "qty": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "unit_price": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "minItems": 1
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "day": {
+          "$ref": "#/$defs/Day"
+        }
+      }
+    },
+    "FarmCropMaturedV1": {
+      "title": "FarmCropMaturedV1",
+      "description": "Planta madura; days é a evidência observável da regra oculta (bíblia §13).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plot_id",
+        "crop",
+        "planted_day",
+        "day",
+        "days"
+      ],
+      "properties": {
+        "plot_id": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "crop": {
+          "$ref": "#/$defs/ItemId"
+        },
+        "planted_day": {
+          "$ref": "#/$defs/Day"
+        },
+        "day": {
+          "$ref": "#/$defs/Day"
+        },
+        "days": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Dias entre o plantio e a maturidade."
+        }
+      }
+    },
+    "FarmCropWitheredV1": {
+      "title": "FarmCropWitheredV1",
+      "description": "Planta murchou por falta de água.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plot_id",
+        "crop",
+        "day",
+        "dry_days"
+      ],
+      "properties": {
+        "plot_id": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "crop": {
+          "$ref": "#/$defs/ItemId"
+        },
+        "day": {
+          "$ref": "#/$defs/Day"
+        },
+        "dry_days": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Viradas seguidas sem rega."
+        }
+      }
+    },
+    "PerceptionDeliveredV1": {
+      "title": "PerceptionDeliveredV1",
+      "description": "Instantâneo do que o avatar percebe, a cada pedido de decisão (ADR-0028).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "avatar_id",
+        "kind",
+        "as_of_tick",
+        "view"
+      ],
+      "properties": {
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Avatar (o corpo), independente de quem o controla (ADR-0027)."
+        },
+        "kind": {
+          "enum": [
+            "snapshot"
+          ]
+        },
+        "as_of_tick": {
+          "$ref": "#/$defs/Tick"
+        },
+        "view": {
+          "type": "object",
+          "title": "PerceptionView",
+          "description": "Visão genérica: o que é da fazenda chega como atributo de entidade (ADR-0025).",
+          "additionalProperties": false,
+          "required": [
+            "clock",
+            "weather",
+            "self",
+            "containers",
+            "entities"
+          ],
+          "properties": {
+            "clock": {
+              "type": "object",
+              "title": "ViewClock",
+              "additionalProperties": false,
+              "required": [
+                "tick",
+                "sim_time",
+                "day",
+                "phase"
+              ],
+              "properties": {
+                "tick": {
+                  "$ref": "#/$defs/Tick"
+                },
+                "sim_time": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "day": {
+                  "$ref": "#/$defs/Day"
+                },
+                "phase": {
+                  "$ref": "#/$defs/Token"
+                }
+              }
+            },
+            "weather": {
+              "type": "object",
+              "title": "ViewWeather",
+              "additionalProperties": false,
+              "required": [
+                "condition",
+                "day"
+              ],
+              "properties": {
+                "condition": {
+                  "$ref": "#/$defs/Token"
+                },
+                "day": {
+                  "$ref": "#/$defs/Day"
+                }
+              }
+            },
+            "self": {
+              "type": "object",
+              "title": "ViewSelf",
+              "additionalProperties": false,
+              "required": [
+                "entity_id",
+                "position",
+                "needs",
+                "asleep"
+              ],
+              "properties": {
+                "entity_id": {
+                  "$ref": "#/$defs/EntityId"
+                },
+                "position": {
+                  "$ref": "#/$defs/Position"
+                },
+                "needs": {
+                  "$ref": "#/$defs/Needs"
+                },
+                "asleep": {
+                  "type": "boolean"
+                },
+                "action": {
+                  "type": "object",
+                  "title": "ViewAction",
+                  "additionalProperties": false,
+                  "required": [
+                    "action_id",
+                    "action",
+                    "params",
+                    "end_tick"
+                  ],
+                  "properties": {
+                    "action_id": {
+                      "$ref": "#/$defs/ActionId"
+                    },
+                    "action": {
+                      "$ref": "#/$defs/Token"
+                    },
+                    "params": {
+                      "$ref": "#/$defs/Params"
+                    },
+                    "end_tick": {
+                      "$ref": "#/$defs/Tick"
+                    }
+                  }
+                }
+              }
+            },
+            "containers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "title": "ViewContainer",
+                "additionalProperties": false,
+                "required": [
+                  "container_id",
+                  "items"
+                ],
+                "properties": {
+                  "container_id": {
+                    "$ref": "#/$defs/EntityId"
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/ItemStack"
+                    }
+                  }
+                }
+              }
+            },
+            "entities": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "title": "ViewEntity",
+                "additionalProperties": false,
+                "required": [
+                  "entity_id",
+                  "kind",
+                  "attributes"
+                ],
+                "properties": {
+                  "entity_id": {
+                    "$ref": "#/$defs/EntityId"
+                  },
+                  "kind": {
+                    "$ref": "#/$defs/Token"
+                  },
+                  "position": {
+                    "$ref": "#/$defs/Position"
+                  },
+                  "container_id": {
+                    "$ref": "#/$defs/EntityId"
+                  },
+                  "attributes": {
+                    "$ref": "#/$defs/Attributes"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "RulesEffectAppliedV1": {
+      "title": "RulesEffectAppliedV1",
+      "description": "Efeito numérico de uma regra sobre uma entidade.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule",
+        "version",
+        "entity_id",
+        "property",
+        "base",
+        "applied"
+      ],
+      "properties": {
+        "rule": {
+          "$ref": "#/$defs/Token"
+        },
+        "version": {
+          "$ref": "#/$defs/Semver"
+        },
+        "entity_id": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "property": {
+          "$ref": "#/$defs/Token"
+        },
+        "base": {
+          "type": "number"
+        },
+        "applied": {
+          "type": "number"
+        }
+      }
+    },
+    "RulesLoadedV1": {
+      "title": "RulesLoadedV1",
+      "description": "Conjunto de regras carregado, com versões e estado inicial.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rules",
+        "source_ref"
+      ],
+      "properties": {
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "title": "LoadedRule",
+            "additionalProperties": false,
+            "required": [
+              "rule",
+              "version",
+              "hidden",
+              "enabled",
+              "params"
+            ],
+            "properties": {
+              "rule": {
+                "$ref": "#/$defs/Token"
+              },
+              "version": {
+                "$ref": "#/$defs/Semver"
+              },
+              "hidden": {
+                "type": "boolean"
+              },
+              "enabled": {
+                "type": "boolean"
+              },
+              "params": {
+                "$ref": "#/$defs/Attributes",
+                "description": "Parâmetros da regra."
+              }
+            }
+          }
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "RulesToggledV1": {
+      "title": "RulesToggledV1",
+      "description": "Regra ligada, desligada ou parametrizada a quente (ADR-0015).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule",
+        "from_version",
+        "to_version",
+        "enabled",
+        "by",
+        "reason",
+        "effective_at_tick"
+      ],
+      "properties": {
+        "rule": {
+          "$ref": "#/$defs/Token"
+        },
+        "from_version": {
+          "$ref": "#/$defs/Semver"
+        },
+        "to_version": {
+          "$ref": "#/$defs/Semver"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "params": {
+          "$ref": "#/$defs/Attributes",
+          "description": "Parâmetros da regra."
+        },
+        "by": {
+          "$ref": "#/$defs/Actor"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "experiment_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "effective_at_tick": {
+          "$ref": "#/$defs/Tick"
+        }
+      }
+    },
+    "WorldClockJumpedV1": {
+      "title": "WorldClockJumpedV1",
+      "description": "Salto de tempo até o próximo evento agendado (simulação de eventos discretos).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from_tick",
+        "to_tick"
+      ],
+      "properties": {
+        "from_tick": {
+          "$ref": "#/$defs/Tick"
+        },
+        "to_tick": {
+          "$ref": "#/$defs/Tick"
+        }
+      }
+    },
+    "WorldClockModeChangedV1": {
+      "title": "WorldClockModeChangedV1",
+      "description": "Mudança de modo do relógio (ADR-0026).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "previous_mode",
+        "mode",
+        "reason",
+        "by"
+      ],
+      "properties": {
+        "previous_mode": {
+          "$ref": "#/$defs/ClockMode"
+        },
+        "mode": {
+          "$ref": "#/$defs/ClockMode"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "by": {
+          "$ref": "#/$defs/Actor"
+        }
+      }
+    },
+    "WorldClockPausedV1": {
+      "title": "WorldClockPausedV1",
+      "description": "Relógio pausado; a pausa é um estado, não um modo (ADR-0026).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reason",
+        "by"
+      ],
+      "properties": {
+        "reason": {
+          "enum": [
+            "debug",
+            "maintenance",
+            "budget"
+          ]
+        },
+        "by": {
+          "$ref": "#/$defs/Actor"
+        }
+      }
+    },
+    "WorldClockPhaseChangedV1": {
+      "title": "WorldClockPhaseChangedV1",
+      "description": "Mudança de fase do dia; os nomes das fases vêm do cartucho.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "phase",
+        "day"
+      ],
+      "properties": {
+        "phase": {
+          "$ref": "#/$defs/Token",
+          "description": "Ex.: amanhecer, meio_dia, entardecer, noite, madrugada."
+        },
+        "day": {
+          "$ref": "#/$defs/Day"
+        }
+      }
+    },
+    "WorldClockResumedV1": {
+      "title": "WorldClockResumedV1",
+      "description": "Relógio retomado no modo em que estava (ADR-0026).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "by"
+      ],
+      "properties": {
+        "by": {
+          "$ref": "#/$defs/Actor"
+        }
+      }
+    },
+    "WorldClockScaleChangedV1": {
+      "title": "WorldClockScaleChangedV1",
+      "description": "Mudança de escala do relógio.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "previous_scale",
+        "scale",
+        "reason",
+        "by"
+      ],
+      "properties": {
+        "previous_scale": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "scale": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "reason": {
+          "enum": [
+            "operator",
+            "experiment",
+            "budget",
+            "human"
+          ]
+        },
+        "by": {
+          "$ref": "#/$defs/Actor"
+        }
+      }
+    },
+    "WorldClockSteppedV1": {
+      "title": "WorldClockSteppedV1",
+      "description": "Avanço passo a passo com o relógio pausado.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticks",
+        "from_tick",
+        "to_tick"
+      ],
+      "properties": {
+        "ticks": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1440
+        },
+        "from_tick": {
+          "$ref": "#/$defs/Tick"
+        },
+        "to_tick": {
+          "$ref": "#/$defs/Tick"
+        }
+      }
+    },
+    "WorldCommandRejectedV1": {
+      "title": "WorldCommandRejectedV1",
+      "description": "Comando que não é ação (posse, relógio, regras) foi recusado.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command_id",
+        "command_type",
+        "reason"
+      ],
+      "properties": {
+        "command_id": {
+          "$ref": "#/$defs/Uuid7"
+        },
+        "command_type": {
+          "type": "string",
+          "pattern": "^campsverso\\.cmd\\.[a-z0-9_]+(\\.[a-z0-9_]+)+\\.v[0-9]+$"
+        },
+        "reason": {
+          "$ref": "#/$defs/Token"
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      }
+    },
+    "WorldEntityMoveInterruptedV1": {
+      "title": "WorldEntityMoveInterruptedV1",
+      "description": "Movimento interrompido; traz a posição real no momento (D1).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entity_id",
+        "action_id",
+        "position",
+        "reason"
+      ],
+      "properties": {
+        "entity_id": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "action_id": {
+          "$ref": "#/$defs/ActionId"
+        },
+        "position": {
+          "$ref": "#/$defs/Position"
+        },
+        "reason": {
+          "enum": [
+            "cancelled",
+            "blocked",
+            "fainted"
+          ]
+        }
+      }
+    },
+    "WorldEntityMovedV1": {
+      "title": "WorldEntityMovedV1",
+      "description": "Movimento como trajeto: só esquinas e destino; a UI interpola (D1).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entity_id",
+        "action_id",
+        "origin",
+        "waypoints",
+        "depart_tick",
+        "arrival_tick",
+        "tiles_per_tick"
+      ],
+      "properties": {
+        "entity_id": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "action_id": {
+          "$ref": "#/$defs/ActionId"
+        },
+        "origin": {
+          "$ref": "#/$defs/Position"
+        },
+        "waypoints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Position"
+          },
+          "minItems": 1,
+          "description": "Pontos de inflexão do trajeto e o destino."
+        },
+        "depart_tick": {
+          "$ref": "#/$defs/Tick"
+        },
+        "arrival_tick": {
+          "$ref": "#/$defs/Tick"
+        },
+        "tiles_per_tick": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "WorldEntitySpawnedV1": {
+      "title": "WorldEntitySpawnedV1",
+      "description": "Entidade criada: no mapa (position) ou dentro de um contêiner (container_id).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entity_id",
+        "kind",
+        "blocking"
+      ],
+      "properties": {
+        "entity_id": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "kind": {
+          "$ref": "#/$defs/Token",
+          "description": "Tipo definido pelo cartucho: avatar, plot, bed, chest, well, kiosk, watering_can…"
+        },
+        "position": {
+          "$ref": "#/$defs/Position"
+        },
+        "container_id": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "blocking": {
+          "type": "boolean",
+          "description": "Se a entidade bloqueia a passagem no mapa."
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "attributes": {
+          "$ref": "#/$defs/Attributes",
+          "description": "Estado visível inicial."
+        }
+      }
+    },
+    "WorldEntityStateChangedV1": {
+      "title": "WorldEntityStateChangedV1",
+      "description": "Mudança de atributos visíveis de uma entidade (ADR-0025).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entity_id",
+        "changes"
+      ],
+      "properties": {
+        "entity_id": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "changes": {
+          "$ref": "#/$defs/Attributes"
+        },
+        "cause": {
+          "$ref": "#/$defs/Token",
+          "description": "Ação ou nome do sistema que causou a mudança."
+        },
+        "action_id": {
+          "$ref": "#/$defs/ActionId"
+        }
+      }
+    },
+    "WorldItemConsumedV1": {
+      "title": "WorldItemConsumedV1",
+      "description": "Item saiu do mundo.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "item",
+        "qty",
+        "container_id",
+        "reason"
+      ],
+      "properties": {
+        "item": {
+          "$ref": "#/$defs/ItemId"
+        },
+        "qty": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "container_id": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "reason": {
+          "$ref": "#/$defs/Token",
+          "description": "Ex.: eat, plant, buy_payment, buyer_collect."
+        },
+        "action_id": {
+          "$ref": "#/$defs/ActionId"
+        }
+      }
+    },
+    "WorldItemCreatedV1": {
+      "title": "WorldItemCreatedV1",
+      "description": "Item surgiu num contêiner.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "item",
+        "qty",
+        "container_id",
+        "reason"
+      ],
+      "properties": {
+        "item": {
+          "$ref": "#/$defs/ItemId"
+        },
+        "qty": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "container_id": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "reason": {
+          "$ref": "#/$defs/Token",
+          "description": "Ex.: initial, harvest, buy, payment."
+        },
+        "action_id": {
+          "$ref": "#/$defs/ActionId"
+        }
+      }
+    },
+    "WorldItemTransferredV1": {
+      "title": "WorldItemTransferredV1",
+      "description": "Item passou de um contêiner para outro.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "item",
+        "qty",
+        "from_container",
+        "to_container",
+        "reason"
+      ],
+      "properties": {
+        "item": {
+          "$ref": "#/$defs/ItemId"
+        },
+        "qty": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "from_container": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "to_container": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "reason": {
+          "$ref": "#/$defs/Token",
+          "description": "Ex.: deposit, withdraw, sell."
+        },
+        "action_id": {
+          "$ref": "#/$defs/ActionId"
+        }
+      }
+    },
+    "WorldNeedChangedV1": {
+      "title": "WorldNeedChangedV1",
+      "description": "Valor de uma necessidade; no máximo um por hora simulada por necessidade.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "avatar_id",
+        "need",
+        "previous_value",
+        "value"
+      ],
+      "properties": {
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Avatar (o corpo), independente de quem o controla (ADR-0027)."
+        },
+        "need": {
+          "$ref": "#/$defs/Token",
+          "description": "Ex.: fome, energia."
+        },
+        "previous_value": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "value": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
+    "WorldNeedThresholdCrossedV1": {
+      "title": "WorldNeedThresholdCrossedV1",
+      "description": "Uma necessidade cruzou um limiar definido pelo cartucho.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "avatar_id",
+        "need",
+        "threshold",
+        "direction",
+        "value"
+      ],
+      "properties": {
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Avatar (o corpo), independente de quem o controla (ADR-0027)."
+        },
+        "need": {
+          "$ref": "#/$defs/Token"
+        },
+        "threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "direction": {
+          "enum": [
+            "up",
+            "down"
+          ]
+        },
+        "value": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
+    "WorldSessionStartedV1": {
+      "title": "WorldSessionStartedV1",
+      "description": "Mundo carregado ou retomado a partir de snapshot.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cartridge_version",
+        "seed",
+        "tick_seconds",
+        "mode",
+        "paused",
+        "scale",
+        "resumed",
+        "map"
+      ],
+      "properties": {
+        "cartridge_version": {
+          "$ref": "#/$defs/Semver"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Seed registrada; os fluxos de RNG nomeados derivam dela."
+        },
+        "tick_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Duração de um tick em segundos simulados."
+        },
+        "mode": {
+          "$ref": "#/$defs/ClockMode"
+        },
+        "paused": {
+          "type": "boolean"
+        },
+        "scale": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Segundos simulados por segundo real."
+        },
+        "resumed": {
+          "type": "boolean",
+          "description": "Verdadeiro quando o mundo foi retomado a partir de snapshot."
+        },
+        "map": {
+          "type": "object",
+          "title": "SessionMap",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "width",
+            "height"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9_-]+$"
+            },
+            "width": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
+    "WorldSnapshotCreatedV1": {
+      "title": "WorldSnapshotCreatedV1",
+      "description": "Snapshot persistido no BlobStore.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "snapshot_id",
+        "ref",
+        "last_seq",
+        "sha256",
+        "size_bytes"
+      ],
+      "properties": {
+        "snapshot_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "last_seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "WorldWeatherChangedV1": {
+      "title": "WorldWeatherChangedV1",
+      "description": "Clima sorteado para um dia agrícola (ADR-0018).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "condition",
+        "day"
+      ],
+      "properties": {
+        "condition": {
+          "$ref": "#/$defs/Token",
+          "description": "Ex.: sun, rain."
+        },
+        "day": {
+          "$ref": "#/$defs/Day"
+        }
+      }
+    }
+  }
+}

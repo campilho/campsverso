@@ -4,7 +4,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from campsverso_tools.contracts import catalog, checks
+from campsverso_tools.contracts import catalog, checks, codegen, compat
 from campsverso_tools.contracts.validation import Problem
 
 
@@ -39,12 +39,24 @@ def main(argv: list[str] | None = None) -> int:
     )
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("check", help="meta-schema, convenções e exemplos")
+    generate = commands.add_parser(
+        "codegen", help="gera packages/contracts-* e contracts/asyncapi.yaml"
+    )
+    generate.add_argument("--check", action="store_true", help="não escreve; falha se algo mudaria")
+    compatibility = commands.add_parser("compat", help="mesma versão maior só ganha campo opcional")
+    compatibility.add_argument("--base", default="HEAD", help="commit de comparação (padrão: HEAD)")
     args = parser.parse_args(argv)
 
     contracts = catalog.load(catalog.find_contracts_dir(args.root.resolve()))
     match args.command:
         case "check":
             return _check(contracts)
+        case "codegen":
+            repo = contracts.root.parent
+            return _report("codegen", codegen.run(contracts, repo, check=args.check))
+        case "compat":
+            repo = contracts.root.parent
+            return _report("compatibilidade", compat.check_compat(contracts, repo, args.base))
         case _:
             parser.error(f"comando desconhecido: {args.command}")
 

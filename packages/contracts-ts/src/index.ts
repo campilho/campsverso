@@ -1,2 +1,3 @@
-// GERADO a partir de contracts/ por tools/contracts-ts: não editar à mão.
-export {};
+/* GERADO por tools/contracts-ts a partir de contracts/: não editar à mão. */
+export type * from "./types.ts";
+export * from "./registry.ts";

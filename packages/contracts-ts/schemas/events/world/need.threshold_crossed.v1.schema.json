@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/world/need.threshold_crossed.v1",
+  "title": "WorldNeedThresholdCrossedV1",
+  "description": "Uma necessidade cruzou um limiar definido pelo cartucho.",
+  "x-type": "campsverso.world.need.threshold_crossed.v1",
+  "x-visibility": "agent",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "avatar_id",
+    "need",
+    "threshold",
+    "direction",
+    "value"
+  ],
+  "properties": {
+    "avatar_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "Avatar (o corpo), independente de quem o controla (ADR-0027)."
+    },
+    "need": {
+      "$ref": "contracts://common/defs.v1#/$defs/token"
+    },
+    "threshold": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "direction": {
+      "enum": [
+        "up",
+        "down"
+      ]
+    },
+    "value": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/farm/buyer.paid.v1",
+  "title": "FarmBuyerPaidV1",
+  "description": "Pagamento das vendas às 06:00, com o preço de cada item.",
+  "x-type": "campsverso.farm.buyer.paid.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "container_id",
+    "items",
+    "total",
+    "day"
+  ],
+  "properties": {
+    "container_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "title": "PaidItem",
+        "additionalProperties": false,
+        "required": [
+          "item",
+          "qty",
+          "unit_price"
+        ],
+        "properties": {
+          "item": {
+            "$ref": "contracts://common/defs.v1#/$defs/item_id"
+          },
+          "qty": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "unit_price": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "minItems": 1
+    },
+    "total": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "day": {
+      "$ref": "contracts://common/defs.v1#/$defs/day"
+    }
+  }
+}

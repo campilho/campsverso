@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/world/clock.jumped.v1",
+  "title": "WorldClockJumpedV1",
+  "description": "Salto de tempo até o próximo evento agendado (simulação de eventos discretos).",
+  "x-type": "campsverso.world.clock.jumped.v1",
+  "x-visibility": "internal",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "from_tick",
+    "to_tick"
+  ],
+  "properties": {
+    "from_tick": {
+      "$ref": "contracts://common/defs.v1#/$defs/tick"
+    },
+    "to_tick": {
+      "$ref": "contracts://common/defs.v1#/$defs/tick"
+    }
+  }
+}

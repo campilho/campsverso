@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/world/entity.move_interrupted.v1",
+  "title": "WorldEntityMoveInterruptedV1",
+  "description": "Movimento interrompido; traz a posição real no momento (D1).",
+  "x-type": "campsverso.world.entity.move_interrupted.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "entity_id",
+    "action_id",
+    "position",
+    "reason"
+  ],
+  "properties": {
+    "entity_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "action_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/action_id"
+    },
+    "position": {
+      "$ref": "contracts://common/defs.v1#/$defs/position"
+    },
+    "reason": {
+      "enum": [
+        "cancelled",
+        "blocked",
+        "fainted"
+      ]
+    }
+  }
+}

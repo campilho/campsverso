@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/action/completed.v1",
+  "title": "ActionCompletedV1",
+  "description": "Ação concluída; observable é só um resumo legível.",
+  "x-type": "campsverso.action.completed.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "action_id",
+    "avatar_id",
+    "action",
+    "params",
+    "duration_ticks"
+  ],
+  "properties": {
+    "action_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/action_id"
+    },
+    "avatar_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "Avatar (o corpo), independente de quem o controla (ADR-0027)."
+    },
+    "action": {
+      "$ref": "contracts://common/defs.v1#/$defs/token"
+    },
+    "params": {
+      "$ref": "contracts://common/defs.v1#/$defs/params"
+    },
+    "duration_ticks": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Duração real."
+    },
+    "observable": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "title": "ObservableChange",
+        "additionalProperties": false,
+        "required": [
+          "entity_id",
+          "property",
+          "before",
+          "after"
+        ],
+        "properties": {
+          "entity_id": {
+            "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+          },
+          "property": {
+            "$ref": "contracts://common/defs.v1#/$defs/token"
+          },
+          "before": {
+            "$ref": "contracts://common/defs.v1#/$defs/scalar"
+          },
+          "after": {
+            "$ref": "contracts://common/defs.v1#/$defs/scalar"
+          }
+        }
+      }
+    }
+  }
+}

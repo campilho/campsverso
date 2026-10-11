@@ -1,0 +1,1409 @@
+# GERADO por tools/contracts a partir de contracts/: não editar à mão.
+
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
+from typing import Annotated, Any, Literal
+from typing_extensions import TypeAliasType
+
+
+class ContractsBundle(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+
+
+class Position(BaseModel):
+    """
+    Posição em tiles.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    x: Annotated[int, Field(ge=0)]
+    y: Annotated[int, Field(ge=0)]
+
+
+class ItemStack(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    item: Annotated[str, Field(max_length=64, pattern="^[a-z0-9]+(_[a-z0-9]+)*$", title="ItemId")]
+    """
+    Id de item ou cultura; conteúdo do cartucho, em português, sem acento: moeda, semente_rabanete.
+    """
+    qty: Annotated[int, Field(ge=1)]
+
+
+class ControllerRef(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    type: Annotated[
+        Literal["human", "script", "replay", "llm", "mcp", "supervised"],
+        Field(title="ControllerType"),
+    ]
+    id: Annotated[str, Field(max_length=128, min_length=1)]
+
+
+NeedsAdditionalProperty = TypeAliasType(
+    "NeedsAdditionalProperty", Annotated[float, Field(ge=0.0, le=100.0)]
+)
+
+
+class CmdActionProposeV1(BaseModel):
+    """
+    Controlador propõe uma ação para o avatar.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Avatar (o corpo), independente de quem o controla (ADR-0027).
+    """
+    action: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    params: dict[str, Any]
+    intent: Annotated[str | None, Field(max_length=500, min_length=1)] = None
+    at_tick: Annotated[int | None, Field(ge=0, title="Tick")] = None
+    """
+    Tick exato de aplicação; só aceito do controlador replay em modo máximo.
+    """
+
+
+class CmdAvatarPossessV1(BaseModel):
+    """
+    Pede a posse do avatar para um controlador.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Avatar (o corpo), independente de quem o controla (ADR-0027).
+    """
+    controller: ControllerRef
+
+
+class CmdAvatarReleaseV1(BaseModel):
+    """
+    Devolve o avatar ao controlador padrão do cartucho.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Avatar (o corpo), independente de quem o controla (ADR-0027).
+    """
+
+
+class CmdClockPauseV1(BaseModel):
+    """
+    Pede a pausa do relógio.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    reason: Literal["debug", "maintenance", "budget"]
+
+
+class CmdClockResumeV1(BaseModel):
+    """
+    Pede a retomada do relógio.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+
+
+class CmdClockSetModeV1(BaseModel):
+    """
+    Pede a troca de modo do relógio.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    mode: Annotated[Literal["continuous", "max"], Field(title="ClockMode")]
+    """
+    Modos do relógio na v0.1; a pausa é um estado à parte (ADR-0026).
+    """
+    reason: Annotated[str | None, Field(max_length=200, min_length=1)] = None
+
+
+class CmdClockSetScaleV1(BaseModel):
+    """
+    Pede a troca de escala do relógio.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    scale: Annotated[float, Field(gt=0.0)]
+    reason: Literal["operator", "experiment", "budget", "human"]
+
+
+class CmdClockStepV1(BaseModel):
+    """
+    Avança N ticks com o relógio pausado.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    ticks: Annotated[int, Field(ge=1, le=1440)]
+
+
+class CmdRulesToggleV1(BaseModel):
+    """
+    Pede a alternância de uma regra (ADR-0015).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    rule: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    enabled: bool
+    params: dict[str, str | float | bool | None] | None = None
+    """
+    Parâmetros da regra.
+    """
+    reason: Annotated[str, Field(max_length=500, min_length=1)]
+    experiment_id: Annotated[str | None, Field(max_length=64, min_length=1)] = None
+
+
+class EnvelopeV1(BaseModel):
+    """
+    Envelope CloudEvents 1.0 com as extensões do Campsverso (contratos §5; ADR-0012, ADR-0013, ADR-0031). Os nomes dos atributos seguem o CloudEvents: minúsculas sem separador (ADR-0030).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    specversion: Literal["1.0"]
+    id: Annotated[
+        str,
+        Field(
+            pattern="^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            title="Uuid7",
+        ),
+    ]
+    """
+    UUID versão 7 (RFC 9562), ordenável por tempo.
+    """
+    source: Annotated[str, Field(max_length=256, min_length=1)]
+    type: Annotated[str, Field(pattern="^campsverso\\.[a-z0-9_]+(\\.[a-z0-9_]+)+\\.v[0-9]+$")]
+    time: AwareDatetime
+    subject: Annotated[str | None, Field(max_length=256)] = None
+    datacontenttype: Literal["application/json"]
+    dataschema: Annotated[
+        str,
+        Field(pattern="^contracts://(events|commands)/[a-z0-9_]+/[a-z0-9_.]+\\.v[0-9]+$"),
+    ]
+    worldid: Annotated[str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$")]
+    cartridge: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$")]
+    tick: Annotated[int | None, Field(ge=0)] = None
+    simtime: AwareDatetime | None = None
+    seq: Annotated[int, Field(ge=0)]
+    actor: Annotated[str | None, Field(max_length=128)] = None
+    controller: Annotated[
+        Literal["human", "script", "replay", "llm", "mcp", "supervised"] | None,
+        Field(title="ControllerType"),
+    ] = None
+    controllerid: Annotated[str | None, Field(max_length=128)] = None
+    causationid: Annotated[
+        str | None,
+        Field(
+            pattern="^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            title="Uuid7",
+        ),
+    ] = None
+    """
+    UUID versão 7 (RFC 9562), ordenável por tempo.
+    """
+    correlationid: Annotated[
+        str | None,
+        Field(
+            pattern="^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            title="Uuid7",
+        ),
+    ] = None
+    """
+    UUID versão 7 (RFC 9562), ordenável por tempo.
+    """
+    provenance: Literal["simulated", "real", "staged"]
+    visibility: Literal["world", "agent", "observer", "internal"]
+    traceparent: Annotated[str | None, Field(max_length=128)] = None
+    data: dict[str, Any]
+
+
+class ActionAcceptedV1(BaseModel):
+    """
+    Ação validada e agendada; applied_tick permite o replay exato.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    action_id: Annotated[str, Field(pattern="^act-[0-9]{6,}$", title="ActionId")]
+    """
+    Id de ação: contador determinístico do kernel.
+    """
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Avatar (o corpo), independente de quem o controla (ADR-0027).
+    """
+    action: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    params: dict[str, Any]
+    applied_tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+    duration_ticks: Annotated[int, Field(ge=0)]
+    """
+    Duração prevista.
+    """
+    replaces: Annotated[str | None, Field(pattern="^act-[0-9]{6,}$", title="ActionId")] = None
+    """
+    Ação em andamento cancelada por esta.
+    """
+
+
+class ObservableChange(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    entity_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    property: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    before: Annotated[str | float | bool | None, Field(title="Scalar")]
+    after: Annotated[str | float | bool | None, Field(title="Scalar")]
+
+
+class ActionCompletedV1(BaseModel):
+    """
+    Ação concluída; observable é só um resumo legível.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    action_id: Annotated[str, Field(pattern="^act-[0-9]{6,}$", title="ActionId")]
+    """
+    Id de ação: contador determinístico do kernel.
+    """
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Avatar (o corpo), independente de quem o controla (ADR-0027).
+    """
+    action: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    params: dict[str, Any]
+    duration_ticks: Annotated[int, Field(ge=0)]
+    """
+    Duração real.
+    """
+    observable: list[ObservableChange] | None = None
+
+
+class RuleApplied(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    rule: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    version: Annotated[
+        str,
+        Field(
+            pattern="^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+            title="Semver",
+        ),
+    ]
+    hidden: bool
+    multiplier: float | None = None
+
+
+class ActionEffectsExplainedV1(BaseModel):
+    """
+    Regras, inclusive ocultas, que contribuíram para o resultado de uma ação.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    action_id: Annotated[str, Field(pattern="^act-[0-9]{6,}$", title="ActionId")]
+    """
+    Id de ação: contador determinístico do kernel.
+    """
+    rules_applied: Annotated[list[RuleApplied], Field(min_length=1)]
+
+
+class ActionFailedV1(BaseModel):
+    """
+    Ação iniciada que não chegou ao fim.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    action_id: Annotated[str, Field(pattern="^act-[0-9]{6,}$", title="ActionId")]
+    """
+    Id de ação: contador determinístico do kernel.
+    """
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Avatar (o corpo), independente de quem o controla (ADR-0027).
+    """
+    action: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    reason: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Ex.: cancelled, fainted, blocked, precondition_lost.
+    """
+
+
+class ActionRejectedV1(BaseModel):
+    """
+    Ação recusada, com motivo legível por máquina.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Avatar (o corpo), independente de quem o controla (ADR-0027).
+    """
+    action: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    params: dict[str, Any]
+    reason: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Ex.: not_in_control, not_adjacent, missing_item, closed, not_ripe.
+    """
+    detail: Annotated[str | None, Field(max_length=500, min_length=1)] = None
+
+
+class AvatarDecisionRequestedV1(BaseModel):
+    """
+    O avatar está ocioso; o controlador com a posse responde com cmd.action.propose e o mesmo correlationid.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Avatar (o corpo), independente de quem o controla (ADR-0027).
+    """
+    reason: Literal[
+        "session_started",
+        "possessed",
+        "action_completed",
+        "action_rejected",
+        "action_interrupted",
+        "phase_changed",
+        "need_threshold",
+        "woke_up",
+    ]
+    controller: ControllerRef
+    """
+    Quem deve responder.
+    """
+    needs: dict[str, NeedsAdditionalProperty]
+    """
+    Valores exatos no momento do pedido.
+    """
+    position: Position
+
+
+class AvatarFaintedV1(BaseModel):
+    """
+    O avatar desmaiou: acordado às 02:00 ou sem energia (ADR-0014).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Avatar (o corpo), independente de quem o controla (ADR-0027).
+    """
+    reason: Literal["late_night", "exhausted"]
+    position: Position
+
+
+class AvatarPossessedV1(BaseModel):
+    """
+    Posse do avatar assumida por um controlador.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Avatar (o corpo), independente de quem o controla (ADR-0027).
+    """
+    previous_controller: ControllerRef | None = None
+    """
+    Ausente na abertura da sessão.
+    """
+    controller: ControllerRef
+    by: Annotated[str, Field(max_length=128, min_length=1, title="Actor")]
+    """
+    Quem causou: human/operator, script/farmer-v1, system/kernel.
+    """
+
+
+class AvatarReleasedV1(BaseModel):
+    """
+    Posse devolvida ao controlador padrão do cartucho.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Avatar (o corpo), independente de quem o controla (ADR-0027).
+    """
+    previous_controller: ControllerRef
+    controller: ControllerRef
+    by: Annotated[str, Field(max_length=128, min_length=1, title="Actor")]
+    """
+    Quem causou: human/operator, script/farmer-v1, system/kernel.
+    """
+
+
+class AvatarSleepEndedV1(BaseModel):
+    """
+    O avatar acordou (ADR-0014).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Avatar (o corpo), independente de quem o controla (ADR-0027).
+    """
+    cause: Literal["bed", "faint"]
+    energy: Annotated[float, Field(ge=0.0, le=100.0)]
+
+
+class AvatarSleepStartedV1(BaseModel):
+    """
+    O avatar dormiu na cama ou desmaiou (ADR-0014).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Avatar (o corpo), independente de quem o controla (ADR-0027).
+    """
+    cause: Literal["bed", "faint"]
+    position: Position
+    wake_at_tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+
+
+class PaidItem(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    item: Annotated[str, Field(max_length=64, pattern="^[a-z0-9]+(_[a-z0-9]+)*$", title="ItemId")]
+    """
+    Id de item ou cultura; conteúdo do cartucho, em português, sem acento: moeda, semente_rabanete.
+    """
+    qty: Annotated[int, Field(ge=1)]
+    unit_price: Annotated[int, Field(ge=0)]
+
+
+class FarmBuyerPaidV1(BaseModel):
+    """
+    Pagamento das vendas às 06:00, com o preço de cada item.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    container_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    items: Annotated[list[PaidItem], Field(min_length=1)]
+    total: Annotated[int, Field(ge=0)]
+    day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+
+
+class FarmCropMaturedV1(BaseModel):
+    """
+    Planta madura; days é a evidência observável da regra oculta (bíblia §13).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    plot_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    crop: Annotated[str, Field(max_length=64, pattern="^[a-z0-9]+(_[a-z0-9]+)*$", title="ItemId")]
+    """
+    Id de item ou cultura; conteúdo do cartucho, em português, sem acento: moeda, semente_rabanete.
+    """
+    planted_day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+    day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+    days: Annotated[int, Field(ge=1)]
+    """
+    Dias entre o plantio e a maturidade.
+    """
+
+
+class FarmCropWitheredV1(BaseModel):
+    """
+    Planta murchou por falta de água.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    plot_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    crop: Annotated[str, Field(max_length=64, pattern="^[a-z0-9]+(_[a-z0-9]+)*$", title="ItemId")]
+    """
+    Id de item ou cultura; conteúdo do cartucho, em português, sem acento: moeda, semente_rabanete.
+    """
+    day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+    dry_days: Annotated[int, Field(ge=1)]
+    """
+    Viradas seguidas sem rega.
+    """
+
+
+class ViewClock(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+    sim_time: AwareDatetime
+    day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+    phase: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+
+
+class ViewWeather(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    condition: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+
+
+class ViewAction(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    action_id: Annotated[str, Field(pattern="^act-[0-9]{6,}$", title="ActionId")]
+    """
+    Id de ação: contador determinístico do kernel.
+    """
+    action: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    params: dict[str, Any]
+    end_tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+
+
+class ViewSelf(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    entity_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    position: Position
+    needs: dict[str, NeedsAdditionalProperty]
+    asleep: bool
+    action: Annotated[ViewAction | None, Field(title="ViewAction")] = None
+
+
+class ViewContainer(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    container_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    items: list[ItemStack]
+
+
+class ViewEntity(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    entity_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    kind: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    position: Position | None = None
+    container_id: Annotated[
+        str | None,
+        Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId"),
+    ] = None
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    attributes: dict[str, str | float | bool | None]
+
+
+class PerceptionView(BaseModel):
+    """
+    Visão genérica: o que é da fazenda chega como atributo de entidade (ADR-0025).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    clock: Annotated[ViewClock, Field(title="ViewClock")]
+    weather: Annotated[ViewWeather, Field(title="ViewWeather")]
+    self: Annotated[ViewSelf, Field(title="ViewSelf")]
+    containers: list[ViewContainer]
+    entities: list[ViewEntity]
+
+
+class PerceptionDeliveredV1(BaseModel):
+    """
+    Instantâneo do que o avatar percebe, a cada pedido de decisão (ADR-0028).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Avatar (o corpo), independente de quem o controla (ADR-0027).
+    """
+    kind: Literal["snapshot"]
+    as_of_tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+    view: Annotated[PerceptionView, Field(title="PerceptionView")]
+    """
+    Visão genérica: o que é da fazenda chega como atributo de entidade (ADR-0025).
+    """
+
+
+class RulesEffectAppliedV1(BaseModel):
+    """
+    Efeito numérico de uma regra sobre uma entidade.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    rule: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    version: Annotated[
+        str,
+        Field(
+            pattern="^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+            title="Semver",
+        ),
+    ]
+    entity_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    property: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    base: float
+    applied: float
+
+
+class LoadedRule(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    rule: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    version: Annotated[
+        str,
+        Field(
+            pattern="^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+            title="Semver",
+        ),
+    ]
+    hidden: bool
+    enabled: bool
+    params: dict[str, str | float | bool | None]
+    """
+    Parâmetros da regra.
+    """
+
+
+class RulesLoadedV1(BaseModel):
+    """
+    Conjunto de regras carregado, com versões e estado inicial.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    rules: list[LoadedRule]
+    source_ref: Annotated[str, Field(max_length=256, min_length=1)]
+
+
+class RulesToggledV1(BaseModel):
+    """
+    Regra ligada, desligada ou parametrizada a quente (ADR-0015).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    rule: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    from_version: Annotated[
+        str,
+        Field(
+            pattern="^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+            title="Semver",
+        ),
+    ]
+    to_version: Annotated[
+        str,
+        Field(
+            pattern="^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+            title="Semver",
+        ),
+    ]
+    enabled: bool
+    params: dict[str, str | float | bool | None] | None = None
+    """
+    Parâmetros da regra.
+    """
+    by: Annotated[str, Field(max_length=128, min_length=1, title="Actor")]
+    """
+    Quem causou: human/operator, script/farmer-v1, system/kernel.
+    """
+    reason: Annotated[str, Field(max_length=500, min_length=1)]
+    experiment_id: Annotated[str | None, Field(max_length=64, min_length=1)] = None
+    effective_at_tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+
+
+class WorldClockJumpedV1(BaseModel):
+    """
+    Salto de tempo até o próximo evento agendado (simulação de eventos discretos).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    from_tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+    to_tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+
+
+class WorldClockModeChangedV1(BaseModel):
+    """
+    Mudança de modo do relógio (ADR-0026).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    previous_mode: Annotated[Literal["continuous", "max"], Field(title="ClockMode")]
+    """
+    Modos do relógio na v0.1; a pausa é um estado à parte (ADR-0026).
+    """
+    mode: Annotated[Literal["continuous", "max"], Field(title="ClockMode")]
+    """
+    Modos do relógio na v0.1; a pausa é um estado à parte (ADR-0026).
+    """
+    reason: Annotated[str, Field(max_length=200, min_length=1)]
+    by: Annotated[str, Field(max_length=128, min_length=1, title="Actor")]
+    """
+    Quem causou: human/operator, script/farmer-v1, system/kernel.
+    """
+
+
+class WorldClockPausedV1(BaseModel):
+    """
+    Relógio pausado; a pausa é um estado, não um modo (ADR-0026).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    reason: Literal["debug", "maintenance", "budget"]
+    by: Annotated[str, Field(max_length=128, min_length=1, title="Actor")]
+    """
+    Quem causou: human/operator, script/farmer-v1, system/kernel.
+    """
+
+
+class WorldClockPhaseChangedV1(BaseModel):
+    """
+    Mudança de fase do dia; os nomes das fases vêm do cartucho.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    phase: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Ex.: amanhecer, meio_dia, entardecer, noite, madrugada.
+    """
+    day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+
+
+class WorldClockResumedV1(BaseModel):
+    """
+    Relógio retomado no modo em que estava (ADR-0026).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    by: Annotated[str, Field(max_length=128, min_length=1, title="Actor")]
+    """
+    Quem causou: human/operator, script/farmer-v1, system/kernel.
+    """
+
+
+class WorldClockScaleChangedV1(BaseModel):
+    """
+    Mudança de escala do relógio.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    previous_scale: Annotated[float, Field(gt=0.0)]
+    scale: Annotated[float, Field(gt=0.0)]
+    reason: Literal["operator", "experiment", "budget", "human"]
+    by: Annotated[str, Field(max_length=128, min_length=1, title="Actor")]
+    """
+    Quem causou: human/operator, script/farmer-v1, system/kernel.
+    """
+
+
+class WorldClockSteppedV1(BaseModel):
+    """
+    Avanço passo a passo com o relógio pausado.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    ticks: Annotated[int, Field(ge=1, le=1440)]
+    from_tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+    to_tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+
+
+class WorldCommandRejectedV1(BaseModel):
+    """
+    Comando que não é ação (posse, relógio, regras) foi recusado.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    command_id: Annotated[
+        str,
+        Field(
+            pattern="^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            title="Uuid7",
+        ),
+    ]
+    """
+    UUID versão 7 (RFC 9562), ordenável por tempo.
+    """
+    command_type: Annotated[
+        str, Field(pattern="^campsverso\\.cmd\\.[a-z0-9_]+(\\.[a-z0-9_]+)+\\.v[0-9]+$")
+    ]
+    reason: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    detail: Annotated[str | None, Field(max_length=500, min_length=1)] = None
+
+
+class WorldEntityMoveInterruptedV1(BaseModel):
+    """
+    Movimento interrompido; traz a posição real no momento (D1).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    entity_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    action_id: Annotated[str, Field(pattern="^act-[0-9]{6,}$", title="ActionId")]
+    """
+    Id de ação: contador determinístico do kernel.
+    """
+    position: Position
+    reason: Literal["cancelled", "blocked", "fainted"]
+
+
+class WorldEntityMovedV1(BaseModel):
+    """
+    Movimento como trajeto: só esquinas e destino; a UI interpola (D1).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    entity_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    action_id: Annotated[str, Field(pattern="^act-[0-9]{6,}$", title="ActionId")]
+    """
+    Id de ação: contador determinístico do kernel.
+    """
+    origin: Position
+    waypoints: Annotated[list[Position], Field(min_length=1)]
+    """
+    Pontos de inflexão do trajeto e o destino.
+    """
+    depart_tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+    arrival_tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+    tiles_per_tick: Annotated[float, Field(gt=0.0)]
+
+
+class WorldEntitySpawnedV1(BaseModel):
+    """
+    Entidade criada: no mapa (position) ou dentro de um contêiner (container_id).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    entity_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    kind: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Tipo definido pelo cartucho: avatar, plot, bed, chest, well, kiosk, watering_can…
+    """
+    position: Position | None = None
+    container_id: Annotated[
+        str | None,
+        Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId"),
+    ] = None
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    blocking: bool
+    """
+    Se a entidade bloqueia a passagem no mapa.
+    """
+    display_name: Annotated[str | None, Field(max_length=64, min_length=1)] = None
+    attributes: dict[str, str | float | bool | None] | None = None
+    """
+    Estado visível inicial.
+    """
+
+
+class WorldEntityStateChangedV1(BaseModel):
+    """
+    Mudança de atributos visíveis de uma entidade (ADR-0025).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    entity_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    changes: dict[str, str | float | bool | None]
+    cause: Annotated[
+        str | None, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")
+    ] = None
+    """
+    Ação ou nome do sistema que causou a mudança.
+    """
+    action_id: Annotated[str | None, Field(pattern="^act-[0-9]{6,}$", title="ActionId")] = None
+    """
+    Id de ação: contador determinístico do kernel.
+    """
+
+
+class WorldItemConsumedV1(BaseModel):
+    """
+    Item saiu do mundo.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    item: Annotated[str, Field(max_length=64, pattern="^[a-z0-9]+(_[a-z0-9]+)*$", title="ItemId")]
+    """
+    Id de item ou cultura; conteúdo do cartucho, em português, sem acento: moeda, semente_rabanete.
+    """
+    qty: Annotated[int, Field(ge=1)]
+    container_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    reason: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Ex.: eat, plant, buy_payment, buyer_collect.
+    """
+    action_id: Annotated[str | None, Field(pattern="^act-[0-9]{6,}$", title="ActionId")] = None
+    """
+    Id de ação: contador determinístico do kernel.
+    """
+
+
+class WorldItemCreatedV1(BaseModel):
+    """
+    Item surgiu num contêiner.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    item: Annotated[str, Field(max_length=64, pattern="^[a-z0-9]+(_[a-z0-9]+)*$", title="ItemId")]
+    """
+    Id de item ou cultura; conteúdo do cartucho, em português, sem acento: moeda, semente_rabanete.
+    """
+    qty: Annotated[int, Field(ge=1)]
+    container_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    reason: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Ex.: initial, harvest, buy, payment.
+    """
+    action_id: Annotated[str | None, Field(pattern="^act-[0-9]{6,}$", title="ActionId")] = None
+    """
+    Id de ação: contador determinístico do kernel.
+    """
+
+
+class WorldItemTransferredV1(BaseModel):
+    """
+    Item passou de um contêiner para outro.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    item: Annotated[str, Field(max_length=64, pattern="^[a-z0-9]+(_[a-z0-9]+)*$", title="ItemId")]
+    """
+    Id de item ou cultura; conteúdo do cartucho, em português, sem acento: moeda, semente_rabanete.
+    """
+    qty: Annotated[int, Field(ge=1)]
+    from_container: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    to_container: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    reason: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Ex.: deposit, withdraw, sell.
+    """
+    action_id: Annotated[str | None, Field(pattern="^act-[0-9]{6,}$", title="ActionId")] = None
+    """
+    Id de ação: contador determinístico do kernel.
+    """
+
+
+class WorldNeedChangedV1(BaseModel):
+    """
+    Valor de uma necessidade; no máximo um por hora simulada por necessidade.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Avatar (o corpo), independente de quem o controla (ADR-0027).
+    """
+    need: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Ex.: fome, energia.
+    """
+    previous_value: Annotated[float, Field(ge=0.0, le=100.0)]
+    value: Annotated[float, Field(ge=0.0, le=100.0)]
+
+
+class WorldNeedThresholdCrossedV1(BaseModel):
+    """
+    Uma necessidade cruzou um limiar definido pelo cartucho.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Avatar (o corpo), independente de quem o controla (ADR-0027).
+    """
+    need: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    threshold: Annotated[float, Field(ge=0.0, le=100.0)]
+    direction: Literal["up", "down"]
+    value: Annotated[float, Field(ge=0.0, le=100.0)]
+
+
+class SessionMap(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    id: Annotated[str, Field(max_length=64, min_length=1, pattern="^[a-z0-9_-]+$")]
+    width: Annotated[int, Field(ge=1)]
+    height: Annotated[int, Field(ge=1)]
+
+
+class WorldSessionStartedV1(BaseModel):
+    """
+    Mundo carregado ou retomado a partir de snapshot.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    cartridge_version: Annotated[
+        str,
+        Field(
+            pattern="^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+            title="Semver",
+        ),
+    ]
+    seed: Annotated[int, Field(ge=0)]
+    """
+    Seed registrada; os fluxos de RNG nomeados derivam dela.
+    """
+    tick_seconds: Annotated[int, Field(ge=1)]
+    """
+    Duração de um tick em segundos simulados.
+    """
+    mode: Annotated[Literal["continuous", "max"], Field(title="ClockMode")]
+    """
+    Modos do relógio na v0.1; a pausa é um estado à parte (ADR-0026).
+    """
+    paused: bool
+    scale: Annotated[float, Field(gt=0.0)]
+    """
+    Segundos simulados por segundo real.
+    """
+    resumed: bool
+    """
+    Verdadeiro quando o mundo foi retomado a partir de snapshot.
+    """
+    map: Annotated[SessionMap, Field(title="SessionMap")]
+
+
+class WorldSnapshotCreatedV1(BaseModel):
+    """
+    Snapshot persistido no BlobStore.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    snapshot_id: Annotated[str, Field(max_length=64, min_length=1)]
+    ref: Annotated[str, Field(max_length=256, min_length=1)]
+    last_seq: Annotated[int, Field(ge=0)]
+    sha256: Annotated[str, Field(pattern="^[0-9a-f]{64}$")]
+    size_bytes: Annotated[int, Field(ge=0)]
+
+
+class WorldWeatherChangedV1(BaseModel):
+    """
+    Clima sorteado para um dia agrícola (ADR-0018).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    condition: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Ex.: sun, rain.
+    """
+    day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """

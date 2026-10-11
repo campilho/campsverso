@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/action/effects_explained.v1",
+  "title": "ActionEffectsExplainedV1",
+  "description": "Regras, inclusive ocultas, que contribuíram para o resultado de uma ação.",
+  "x-type": "campsverso.action.effects_explained.v1",
+  "x-visibility": "internal",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "action_id",
+    "rules_applied"
+  ],
+  "properties": {
+    "action_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/action_id"
+    },
+    "rules_applied": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "title": "RuleApplied",
+        "additionalProperties": false,
+        "required": [
+          "rule",
+          "version",
+          "hidden"
+        ],
+        "properties": {
+          "rule": {
+            "$ref": "contracts://common/defs.v1#/$defs/token"
+          },
+          "version": {
+            "$ref": "contracts://common/defs.v1#/$defs/semver"
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "multiplier": {
+            "type": "number"
+          }
+        }
+      },
+      "minItems": 1
+    }
+  }
+}

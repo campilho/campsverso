@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://commands/action/propose.v1",
+  "title": "CmdActionProposeV1",
+  "description": "Controlador propõe uma ação para o avatar.",
+  "x-type": "campsverso.cmd.action.propose.v1",
+  "x-visibility": "observer",
+  "x-producer": "controller",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "avatar_id",
+    "action",
+    "params"
+  ],
+  "properties": {
+    "avatar_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "Avatar (o corpo), independente de quem o controla (ADR-0027)."
+    },
+    "action": {
+      "$ref": "contracts://common/defs.v1#/$defs/token"
+    },
+    "params": {
+      "$ref": "contracts://common/defs.v1#/$defs/params"
+    },
+    "intent": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "at_tick": {
+      "$ref": "contracts://common/defs.v1#/$defs/tick",
+      "description": "Tick exato de aplicação; só aceito do controlador replay em modo máximo."
+    }
+  }
+}

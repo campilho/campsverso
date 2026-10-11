@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/world/clock.mode_changed.v1",
+  "title": "WorldClockModeChangedV1",
+  "description": "Mudança de modo do relógio (ADR-0026).",
+  "x-type": "campsverso.world.clock.mode_changed.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "previous_mode",
+    "mode",
+    "reason",
+    "by"
+  ],
+  "properties": {
+    "previous_mode": {
+      "$ref": "contracts://common/defs.v1#/$defs/clock_mode"
+    },
+    "mode": {
+      "$ref": "contracts://common/defs.v1#/$defs/clock_mode"
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "by": {
+      "$ref": "contracts://common/defs.v1#/$defs/actor"
+    }
+  }
+}

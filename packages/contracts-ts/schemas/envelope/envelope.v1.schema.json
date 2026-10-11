@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://envelope/envelope.v1",
+  "title": "EnvelopeV1",
+  "description": "Envelope CloudEvents 1.0 com as extensões do Campsverso (contratos §5; ADR-0012, ADR-0013, ADR-0031). Os nomes dos atributos seguem o CloudEvents: minúsculas sem separador (ADR-0030).",
+  "type": "object",
+  "required": [
+    "specversion", "id", "source", "type", "time", "datacontenttype", "dataschema",
+    "worldid", "cartridge", "seq", "provenance", "visibility", "data"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "specversion": { "const": "1.0" },
+    "id": { "$ref": "contracts://common/defs.v1#/$defs/uuid7" },
+    "source": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "type": {
+      "type": "string",
+      "pattern": "^campsverso\\.[a-z0-9_]+(\\.[a-z0-9_]+)+\\.v[0-9]+$"
+    },
+    "time": { "type": "string", "format": "date-time" },
+    "subject": { "type": "string", "maxLength": 256 },
+    "datacontenttype": { "const": "application/json" },
+    "dataschema": { "type": "string", "pattern": "^contracts://(events|commands)/[a-z0-9_]+/[a-z0-9_.]+\\.v[0-9]+$" },
+    "worldid": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "maxLength": 64 },
+    "cartridge": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "maxLength": 64 },
+    "tick": { "type": "integer", "minimum": 0 },
+    "simtime": { "type": "string", "format": "date-time" },
+    "seq": { "type": "integer", "minimum": 0 },
+    "actor": { "type": "string", "maxLength": 128 },
+    "controller": { "$ref": "contracts://common/defs.v1#/$defs/controller_type" },
+    "controllerid": { "type": "string", "maxLength": 128 },
+    "causationid": { "$ref": "contracts://common/defs.v1#/$defs/uuid7" },
+    "correlationid": { "$ref": "contracts://common/defs.v1#/$defs/uuid7" },
+    "provenance": { "enum": ["simulated", "real", "staged"] },
+    "visibility": { "enum": ["world", "agent", "observer", "internal"] },
+    "traceparent": { "type": "string", "maxLength": 128 },
+    "data": { "type": "object" }
+  }
+}

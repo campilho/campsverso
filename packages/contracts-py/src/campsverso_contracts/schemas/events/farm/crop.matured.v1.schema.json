@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/farm/crop.matured.v1",
+  "title": "FarmCropMaturedV1",
+  "description": "Planta madura; days é a evidência observável da regra oculta (bíblia §13).",
+  "x-type": "campsverso.farm.crop.matured.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "plot_id",
+    "crop",
+    "planted_day",
+    "day",
+    "days"
+  ],
+  "properties": {
+    "plot_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "crop": {
+      "$ref": "contracts://common/defs.v1#/$defs/item_id"
+    },
+    "planted_day": {
+      "$ref": "contracts://common/defs.v1#/$defs/day"
+    },
+    "day": {
+      "$ref": "contracts://common/defs.v1#/$defs/day"
+    },
+    "days": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Dias entre o plantio e a maturidade."
+    }
+  }
+}

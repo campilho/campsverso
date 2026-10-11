@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/world/item.transferred.v1",
+  "title": "WorldItemTransferredV1",
+  "description": "Item passou de um contêiner para outro.",
+  "x-type": "campsverso.world.item.transferred.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "item",
+    "qty",
+    "from_container",
+    "to_container",
+    "reason"
+  ],
+  "properties": {
+    "item": {
+      "$ref": "contracts://common/defs.v1#/$defs/item_id"
+    },
+    "qty": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "from_container": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "to_container": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "reason": {
+      "$ref": "contracts://common/defs.v1#/$defs/token",
+      "description": "Ex.: deposit, withdraw, sell."
+    },
+    "action_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/action_id"
+    }
+  }
+}

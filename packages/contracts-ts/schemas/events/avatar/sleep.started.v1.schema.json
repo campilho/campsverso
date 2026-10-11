@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/avatar/sleep.started.v1",
+  "title": "AvatarSleepStartedV1",
+  "description": "O avatar dormiu na cama ou desmaiou (ADR-0014).",
+  "x-type": "campsverso.avatar.sleep.started.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "avatar_id",
+    "cause",
+    "position",
+    "wake_at_tick"
+  ],
+  "properties": {
+    "avatar_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "Avatar (o corpo), independente de quem o controla (ADR-0027)."
+    },
+    "cause": {
+      "enum": [
+        "bed",
+        "faint"
+      ]
+    },
+    "position": {
+      "$ref": "contracts://common/defs.v1#/$defs/position"
+    },
+    "wake_at_tick": {
+      "$ref": "contracts://common/defs.v1#/$defs/tick"
+    }
+  }
+}

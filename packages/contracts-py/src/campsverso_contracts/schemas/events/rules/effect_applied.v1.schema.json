@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/rules/effect_applied.v1",
+  "title": "RulesEffectAppliedV1",
+  "description": "Efeito numérico de uma regra sobre uma entidade.",
+  "x-type": "campsverso.rules.effect_applied.v1",
+  "x-visibility": "internal",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "rule",
+    "version",
+    "entity_id",
+    "property",
+    "base",
+    "applied"
+  ],
+  "properties": {
+    "rule": {
+      "$ref": "contracts://common/defs.v1#/$defs/token"
+    },
+    "version": {
+      "$ref": "contracts://common/defs.v1#/$defs/semver"
+    },
+    "entity_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "property": {
+      "$ref": "contracts://common/defs.v1#/$defs/token"
+    },
+    "base": {
+      "type": "number"
+    },
+    "applied": {
+      "type": "number"
+    }
+  }
+}

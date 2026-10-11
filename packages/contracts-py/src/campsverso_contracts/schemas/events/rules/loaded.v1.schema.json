@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/rules/loaded.v1",
+  "title": "RulesLoadedV1",
+  "description": "Conjunto de regras carregado, com versões e estado inicial.",
+  "x-type": "campsverso.rules.loaded.v1",
+  "x-visibility": "internal",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "rules",
+    "source_ref"
+  ],
+  "properties": {
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "title": "LoadedRule",
+        "additionalProperties": false,
+        "required": [
+          "rule",
+          "version",
+          "hidden",
+          "enabled",
+          "params"
+        ],
+        "properties": {
+          "rule": {
+            "$ref": "contracts://common/defs.v1#/$defs/token"
+          },
+          "version": {
+            "$ref": "contracts://common/defs.v1#/$defs/semver"
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "params": {
+            "$ref": "contracts://common/defs.v1#/$defs/attributes",
+            "description": "Parâmetros da regra."
+          }
+        }
+      }
+    },
+    "source_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    }
+  }
+}

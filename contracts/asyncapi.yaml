@@ -1,0 +1,2644 @@
+# GERADO por tools/contracts a partir de contracts/: não editar à mão.
+asyncapi: 3.1.0
+info:
+  title: Campsverso
+  version: 0.1.0
+  description: 'GERADO por tools/contracts a partir de contracts/: não editar à mão.
+
+
+    Cada mensagem viaja dentro do envelope CloudEvents 1.0 (EnvelopeV1, modo estruturado); o payload descrito
+    aqui é o campo `data`.'
+  license:
+    name: MIT
+defaultContentType: application/json
+servers:
+  local:
+    host: localhost:4222
+    protocol: nats
+    description: NATS JetStream local (ADR-0024).
+channels:
+  ActionAcceptedV1:
+    address: campsverso.{worldid}.world.action.accepted.v1
+    title: campsverso.action.accepted.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      ActionAcceptedV1:
+        $ref: '#/components/messages/ActionAcceptedV1'
+  ActionCompletedV1:
+    address: campsverso.{worldid}.world.action.completed.v1
+    title: campsverso.action.completed.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      ActionCompletedV1:
+        $ref: '#/components/messages/ActionCompletedV1'
+  ActionEffectsExplainedV1:
+    address: campsverso.{worldid}.internal.action.effects_explained.v1
+    title: campsverso.action.effects_explained.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      ActionEffectsExplainedV1:
+        $ref: '#/components/messages/ActionEffectsExplainedV1'
+  ActionFailedV1:
+    address: campsverso.{worldid}.world.action.failed.v1
+    title: campsverso.action.failed.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      ActionFailedV1:
+        $ref: '#/components/messages/ActionFailedV1'
+  ActionRejectedV1:
+    address: campsverso.{worldid}.agent.{avatar_id}.action.rejected.v1
+    title: campsverso.action.rejected.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+      avatar_id:
+        $ref: '#/components/parameters/avatar_id'
+    messages:
+      ActionRejectedV1:
+        $ref: '#/components/messages/ActionRejectedV1'
+  AvatarDecisionRequestedV1:
+    address: campsverso.{worldid}.agent.{avatar_id}.avatar.decision_requested.v1
+    title: campsverso.avatar.decision_requested.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+      avatar_id:
+        $ref: '#/components/parameters/avatar_id'
+    messages:
+      AvatarDecisionRequestedV1:
+        $ref: '#/components/messages/AvatarDecisionRequestedV1'
+  AvatarFaintedV1:
+    address: campsverso.{worldid}.world.avatar.fainted.v1
+    title: campsverso.avatar.fainted.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      AvatarFaintedV1:
+        $ref: '#/components/messages/AvatarFaintedV1'
+  AvatarPossessedV1:
+    address: campsverso.{worldid}.world.avatar.possessed.v1
+    title: campsverso.avatar.possessed.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      AvatarPossessedV1:
+        $ref: '#/components/messages/AvatarPossessedV1'
+  AvatarReleasedV1:
+    address: campsverso.{worldid}.world.avatar.released.v1
+    title: campsverso.avatar.released.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      AvatarReleasedV1:
+        $ref: '#/components/messages/AvatarReleasedV1'
+  AvatarSleepEndedV1:
+    address: campsverso.{worldid}.world.avatar.sleep.ended.v1
+    title: campsverso.avatar.sleep.ended.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      AvatarSleepEndedV1:
+        $ref: '#/components/messages/AvatarSleepEndedV1'
+  AvatarSleepStartedV1:
+    address: campsverso.{worldid}.world.avatar.sleep.started.v1
+    title: campsverso.avatar.sleep.started.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      AvatarSleepStartedV1:
+        $ref: '#/components/messages/AvatarSleepStartedV1'
+  CmdActionProposeV1:
+    address: campsverso.{worldid}.cmd.action.propose.v1
+    title: campsverso.cmd.action.propose.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      CmdActionProposeV1:
+        $ref: '#/components/messages/CmdActionProposeV1'
+  CmdAvatarPossessV1:
+    address: campsverso.{worldid}.cmd.avatar.possess.v1
+    title: campsverso.cmd.avatar.possess.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      CmdAvatarPossessV1:
+        $ref: '#/components/messages/CmdAvatarPossessV1'
+  CmdAvatarReleaseV1:
+    address: campsverso.{worldid}.cmd.avatar.release.v1
+    title: campsverso.cmd.avatar.release.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      CmdAvatarReleaseV1:
+        $ref: '#/components/messages/CmdAvatarReleaseV1'
+  CmdClockPauseV1:
+    address: campsverso.{worldid}.cmd.clock.pause.v1
+    title: campsverso.cmd.clock.pause.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      CmdClockPauseV1:
+        $ref: '#/components/messages/CmdClockPauseV1'
+  CmdClockResumeV1:
+    address: campsverso.{worldid}.cmd.clock.resume.v1
+    title: campsverso.cmd.clock.resume.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      CmdClockResumeV1:
+        $ref: '#/components/messages/CmdClockResumeV1'
+  CmdClockSetModeV1:
+    address: campsverso.{worldid}.cmd.clock.set_mode.v1
+    title: campsverso.cmd.clock.set_mode.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      CmdClockSetModeV1:
+        $ref: '#/components/messages/CmdClockSetModeV1'
+  CmdClockSetScaleV1:
+    address: campsverso.{worldid}.cmd.clock.set_scale.v1
+    title: campsverso.cmd.clock.set_scale.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      CmdClockSetScaleV1:
+        $ref: '#/components/messages/CmdClockSetScaleV1'
+  CmdClockStepV1:
+    address: campsverso.{worldid}.cmd.clock.step.v1
+    title: campsverso.cmd.clock.step.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      CmdClockStepV1:
+        $ref: '#/components/messages/CmdClockStepV1'
+  CmdRulesToggleV1:
+    address: campsverso.{worldid}.cmd.rules.toggle.v1
+    title: campsverso.cmd.rules.toggle.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      CmdRulesToggleV1:
+        $ref: '#/components/messages/CmdRulesToggleV1'
+  FarmBuyerPaidV1:
+    address: campsverso.{worldid}.world.farm.buyer.paid.v1
+    title: campsverso.farm.buyer.paid.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      FarmBuyerPaidV1:
+        $ref: '#/components/messages/FarmBuyerPaidV1'
+  FarmCropMaturedV1:
+    address: campsverso.{worldid}.world.farm.crop.matured.v1
+    title: campsverso.farm.crop.matured.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      FarmCropMaturedV1:
+        $ref: '#/components/messages/FarmCropMaturedV1'
+  FarmCropWitheredV1:
+    address: campsverso.{worldid}.world.farm.crop.withered.v1
+    title: campsverso.farm.crop.withered.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      FarmCropWitheredV1:
+        $ref: '#/components/messages/FarmCropWitheredV1'
+  PerceptionDeliveredV1:
+    address: campsverso.{worldid}.agent.{avatar_id}.perception.delivered.v1
+    title: campsverso.perception.delivered.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+      avatar_id:
+        $ref: '#/components/parameters/avatar_id'
+    messages:
+      PerceptionDeliveredV1:
+        $ref: '#/components/messages/PerceptionDeliveredV1'
+  RulesEffectAppliedV1:
+    address: campsverso.{worldid}.internal.rules.effect_applied.v1
+    title: campsverso.rules.effect_applied.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      RulesEffectAppliedV1:
+        $ref: '#/components/messages/RulesEffectAppliedV1'
+  RulesLoadedV1:
+    address: campsverso.{worldid}.internal.rules.loaded.v1
+    title: campsverso.rules.loaded.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      RulesLoadedV1:
+        $ref: '#/components/messages/RulesLoadedV1'
+  RulesToggledV1:
+    address: campsverso.{worldid}.internal.rules.toggled.v1
+    title: campsverso.rules.toggled.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      RulesToggledV1:
+        $ref: '#/components/messages/RulesToggledV1'
+  WorldClockJumpedV1:
+    address: campsverso.{worldid}.internal.world.clock.jumped.v1
+    title: campsverso.world.clock.jumped.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorldClockJumpedV1:
+        $ref: '#/components/messages/WorldClockJumpedV1'
+  WorldClockModeChangedV1:
+    address: campsverso.{worldid}.world.world.clock.mode_changed.v1
+    title: campsverso.world.clock.mode_changed.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorldClockModeChangedV1:
+        $ref: '#/components/messages/WorldClockModeChangedV1'
+  WorldClockPausedV1:
+    address: campsverso.{worldid}.world.world.clock.paused.v1
+    title: campsverso.world.clock.paused.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorldClockPausedV1:
+        $ref: '#/components/messages/WorldClockPausedV1'
+  WorldClockPhaseChangedV1:
+    address: campsverso.{worldid}.world.world.clock.phase_changed.v1
+    title: campsverso.world.clock.phase_changed.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorldClockPhaseChangedV1:
+        $ref: '#/components/messages/WorldClockPhaseChangedV1'
+  WorldClockResumedV1:
+    address: campsverso.{worldid}.world.world.clock.resumed.v1
+    title: campsverso.world.clock.resumed.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorldClockResumedV1:
+        $ref: '#/components/messages/WorldClockResumedV1'
+  WorldClockScaleChangedV1:
+    address: campsverso.{worldid}.world.world.clock.scale_changed.v1
+    title: campsverso.world.clock.scale_changed.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorldClockScaleChangedV1:
+        $ref: '#/components/messages/WorldClockScaleChangedV1'
+  WorldClockSteppedV1:
+    address: campsverso.{worldid}.world.world.clock.stepped.v1
+    title: campsverso.world.clock.stepped.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorldClockSteppedV1:
+        $ref: '#/components/messages/WorldClockSteppedV1'
+  WorldCommandRejectedV1:
+    address: campsverso.{worldid}.observer.world.command.rejected.v1
+    title: campsverso.world.command.rejected.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorldCommandRejectedV1:
+        $ref: '#/components/messages/WorldCommandRejectedV1'
+  WorldEntityMoveInterruptedV1:
+    address: campsverso.{worldid}.world.world.entity.move_interrupted.v1
+    title: campsverso.world.entity.move_interrupted.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorldEntityMoveInterruptedV1:
+        $ref: '#/components/messages/WorldEntityMoveInterruptedV1'
+  WorldEntityMovedV1:
+    address: campsverso.{worldid}.world.world.entity.moved.v1
+    title: campsverso.world.entity.moved.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorldEntityMovedV1:
+        $ref: '#/components/messages/WorldEntityMovedV1'
+  WorldEntitySpawnedV1:
+    address: campsverso.{worldid}.world.world.entity.spawned.v1
+    title: campsverso.world.entity.spawned.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorldEntitySpawnedV1:
+        $ref: '#/components/messages/WorldEntitySpawnedV1'
+  WorldEntityStateChangedV1:
+    address: campsverso.{worldid}.world.world.entity.state_changed.v1
+    title: campsverso.world.entity.state_changed.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorldEntityStateChangedV1:
+        $ref: '#/components/messages/WorldEntityStateChangedV1'
+  WorldItemConsumedV1:
+    address: campsverso.{worldid}.world.world.item.consumed.v1
+    title: campsverso.world.item.consumed.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorldItemConsumedV1:
+        $ref: '#/components/messages/WorldItemConsumedV1'
+  WorldItemCreatedV1:
+    address: campsverso.{worldid}.world.world.item.created.v1
+    title: campsverso.world.item.created.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorldItemCreatedV1:
+        $ref: '#/components/messages/WorldItemCreatedV1'
+  WorldItemTransferredV1:
+    address: campsverso.{worldid}.world.world.item.transferred.v1
+    title: campsverso.world.item.transferred.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorldItemTransferredV1:
+        $ref: '#/components/messages/WorldItemTransferredV1'
+  WorldNeedChangedV1:
+    address: campsverso.{worldid}.agent.{avatar_id}.world.need.changed.v1
+    title: campsverso.world.need.changed.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+      avatar_id:
+        $ref: '#/components/parameters/avatar_id'
+    messages:
+      WorldNeedChangedV1:
+        $ref: '#/components/messages/WorldNeedChangedV1'
+  WorldNeedThresholdCrossedV1:
+    address: campsverso.{worldid}.agent.{avatar_id}.world.need.threshold_crossed.v1
+    title: campsverso.world.need.threshold_crossed.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+      avatar_id:
+        $ref: '#/components/parameters/avatar_id'
+    messages:
+      WorldNeedThresholdCrossedV1:
+        $ref: '#/components/messages/WorldNeedThresholdCrossedV1'
+  WorldSessionStartedV1:
+    address: campsverso.{worldid}.world.world.session.started.v1
+    title: campsverso.world.session.started.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorldSessionStartedV1:
+        $ref: '#/components/messages/WorldSessionStartedV1'
+  WorldSnapshotCreatedV1:
+    address: campsverso.{worldid}.internal.world.snapshot.created.v1
+    title: campsverso.world.snapshot.created.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorldSnapshotCreatedV1:
+        $ref: '#/components/messages/WorldSnapshotCreatedV1'
+  WorldWeatherChangedV1:
+    address: campsverso.{worldid}.world.world.weather.changed.v1
+    title: campsverso.world.weather.changed.v1
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorldWeatherChangedV1:
+        $ref: '#/components/messages/WorldWeatherChangedV1'
+operations:
+  sendActionAcceptedV1:
+    action: send
+    channel:
+      $ref: '#/channels/ActionAcceptedV1'
+    messages:
+    - $ref: '#/channels/ActionAcceptedV1/messages/ActionAcceptedV1'
+    x-producer: kernel
+  sendActionCompletedV1:
+    action: send
+    channel:
+      $ref: '#/channels/ActionCompletedV1'
+    messages:
+    - $ref: '#/channels/ActionCompletedV1/messages/ActionCompletedV1'
+    x-producer: kernel
+  sendActionEffectsExplainedV1:
+    action: send
+    channel:
+      $ref: '#/channels/ActionEffectsExplainedV1'
+    messages:
+    - $ref: '#/channels/ActionEffectsExplainedV1/messages/ActionEffectsExplainedV1'
+    x-producer: kernel
+  sendActionFailedV1:
+    action: send
+    channel:
+      $ref: '#/channels/ActionFailedV1'
+    messages:
+    - $ref: '#/channels/ActionFailedV1/messages/ActionFailedV1'
+    x-producer: kernel
+  sendActionRejectedV1:
+    action: send
+    channel:
+      $ref: '#/channels/ActionRejectedV1'
+    messages:
+    - $ref: '#/channels/ActionRejectedV1/messages/ActionRejectedV1'
+    x-producer: kernel
+  sendAvatarDecisionRequestedV1:
+    action: send
+    channel:
+      $ref: '#/channels/AvatarDecisionRequestedV1'
+    messages:
+    - $ref: '#/channels/AvatarDecisionRequestedV1/messages/AvatarDecisionRequestedV1'
+    x-producer: kernel
+  sendAvatarFaintedV1:
+    action: send
+    channel:
+      $ref: '#/channels/AvatarFaintedV1'
+    messages:
+    - $ref: '#/channels/AvatarFaintedV1/messages/AvatarFaintedV1'
+    x-producer: kernel
+  sendAvatarPossessedV1:
+    action: send
+    channel:
+      $ref: '#/channels/AvatarPossessedV1'
+    messages:
+    - $ref: '#/channels/AvatarPossessedV1/messages/AvatarPossessedV1'
+    x-producer: kernel
+  sendAvatarReleasedV1:
+    action: send
+    channel:
+      $ref: '#/channels/AvatarReleasedV1'
+    messages:
+    - $ref: '#/channels/AvatarReleasedV1/messages/AvatarReleasedV1'
+    x-producer: kernel
+  sendAvatarSleepEndedV1:
+    action: send
+    channel:
+      $ref: '#/channels/AvatarSleepEndedV1'
+    messages:
+    - $ref: '#/channels/AvatarSleepEndedV1/messages/AvatarSleepEndedV1'
+    x-producer: kernel
+  sendAvatarSleepStartedV1:
+    action: send
+    channel:
+      $ref: '#/channels/AvatarSleepStartedV1'
+    messages:
+    - $ref: '#/channels/AvatarSleepStartedV1/messages/AvatarSleepStartedV1'
+    x-producer: kernel
+  sendCmdActionProposeV1:
+    action: send
+    channel:
+      $ref: '#/channels/CmdActionProposeV1'
+    messages:
+    - $ref: '#/channels/CmdActionProposeV1/messages/CmdActionProposeV1'
+    x-producer: controller
+  sendCmdAvatarPossessV1:
+    action: send
+    channel:
+      $ref: '#/channels/CmdAvatarPossessV1'
+    messages:
+    - $ref: '#/channels/CmdAvatarPossessV1/messages/CmdAvatarPossessV1'
+    x-producer: operator
+  sendCmdAvatarReleaseV1:
+    action: send
+    channel:
+      $ref: '#/channels/CmdAvatarReleaseV1'
+    messages:
+    - $ref: '#/channels/CmdAvatarReleaseV1/messages/CmdAvatarReleaseV1'
+    x-producer: operator
+  sendCmdClockPauseV1:
+    action: send
+    channel:
+      $ref: '#/channels/CmdClockPauseV1'
+    messages:
+    - $ref: '#/channels/CmdClockPauseV1/messages/CmdClockPauseV1'
+    x-producer: operator
+  sendCmdClockResumeV1:
+    action: send
+    channel:
+      $ref: '#/channels/CmdClockResumeV1'
+    messages:
+    - $ref: '#/channels/CmdClockResumeV1/messages/CmdClockResumeV1'
+    x-producer: operator
+  sendCmdClockSetModeV1:
+    action: send
+    channel:
+      $ref: '#/channels/CmdClockSetModeV1'
+    messages:
+    - $ref: '#/channels/CmdClockSetModeV1/messages/CmdClockSetModeV1'
+    x-producer: operator
+  sendCmdClockSetScaleV1:
+    action: send
+    channel:
+      $ref: '#/channels/CmdClockSetScaleV1'
+    messages:
+    - $ref: '#/channels/CmdClockSetScaleV1/messages/CmdClockSetScaleV1'
+    x-producer: operator
+  sendCmdClockStepV1:
+    action: send
+    channel:
+      $ref: '#/channels/CmdClockStepV1'
+    messages:
+    - $ref: '#/channels/CmdClockStepV1/messages/CmdClockStepV1'
+    x-producer: operator
+  sendCmdRulesToggleV1:
+    action: send
+    channel:
+      $ref: '#/channels/CmdRulesToggleV1'
+    messages:
+    - $ref: '#/channels/CmdRulesToggleV1/messages/CmdRulesToggleV1'
+    x-producer: operator
+  sendFarmBuyerPaidV1:
+    action: send
+    channel:
+      $ref: '#/channels/FarmBuyerPaidV1'
+    messages:
+    - $ref: '#/channels/FarmBuyerPaidV1/messages/FarmBuyerPaidV1'
+    x-producer: kernel
+  sendFarmCropMaturedV1:
+    action: send
+    channel:
+      $ref: '#/channels/FarmCropMaturedV1'
+    messages:
+    - $ref: '#/channels/FarmCropMaturedV1/messages/FarmCropMaturedV1'
+    x-producer: kernel
+  sendFarmCropWitheredV1:
+    action: send
+    channel:
+      $ref: '#/channels/FarmCropWitheredV1'
+    messages:
+    - $ref: '#/channels/FarmCropWitheredV1/messages/FarmCropWitheredV1'
+    x-producer: kernel
+  sendPerceptionDeliveredV1:
+    action: send
+    channel:
+      $ref: '#/channels/PerceptionDeliveredV1'
+    messages:
+    - $ref: '#/channels/PerceptionDeliveredV1/messages/PerceptionDeliveredV1'
+    x-producer: perception
+  sendRulesEffectAppliedV1:
+    action: send
+    channel:
+      $ref: '#/channels/RulesEffectAppliedV1'
+    messages:
+    - $ref: '#/channels/RulesEffectAppliedV1/messages/RulesEffectAppliedV1'
+    x-producer: kernel
+  sendRulesLoadedV1:
+    action: send
+    channel:
+      $ref: '#/channels/RulesLoadedV1'
+    messages:
+    - $ref: '#/channels/RulesLoadedV1/messages/RulesLoadedV1'
+    x-producer: kernel
+  sendRulesToggledV1:
+    action: send
+    channel:
+      $ref: '#/channels/RulesToggledV1'
+    messages:
+    - $ref: '#/channels/RulesToggledV1/messages/RulesToggledV1'
+    x-producer: kernel
+  sendWorldClockJumpedV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorldClockJumpedV1'
+    messages:
+    - $ref: '#/channels/WorldClockJumpedV1/messages/WorldClockJumpedV1'
+    x-producer: kernel
+  sendWorldClockModeChangedV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorldClockModeChangedV1'
+    messages:
+    - $ref: '#/channels/WorldClockModeChangedV1/messages/WorldClockModeChangedV1'
+    x-producer: kernel
+  sendWorldClockPausedV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorldClockPausedV1'
+    messages:
+    - $ref: '#/channels/WorldClockPausedV1/messages/WorldClockPausedV1'
+    x-producer: kernel
+  sendWorldClockPhaseChangedV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorldClockPhaseChangedV1'
+    messages:
+    - $ref: '#/channels/WorldClockPhaseChangedV1/messages/WorldClockPhaseChangedV1'
+    x-producer: kernel
+  sendWorldClockResumedV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorldClockResumedV1'
+    messages:
+    - $ref: '#/channels/WorldClockResumedV1/messages/WorldClockResumedV1'
+    x-producer: kernel
+  sendWorldClockScaleChangedV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorldClockScaleChangedV1'
+    messages:
+    - $ref: '#/channels/WorldClockScaleChangedV1/messages/WorldClockScaleChangedV1'
+    x-producer: kernel
+  sendWorldClockSteppedV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorldClockSteppedV1'
+    messages:
+    - $ref: '#/channels/WorldClockSteppedV1/messages/WorldClockSteppedV1'
+    x-producer: kernel
+  sendWorldCommandRejectedV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorldCommandRejectedV1'
+    messages:
+    - $ref: '#/channels/WorldCommandRejectedV1/messages/WorldCommandRejectedV1'
+    x-producer: kernel
+  sendWorldEntityMoveInterruptedV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorldEntityMoveInterruptedV1'
+    messages:
+    - $ref: '#/channels/WorldEntityMoveInterruptedV1/messages/WorldEntityMoveInterruptedV1'
+    x-producer: kernel
+  sendWorldEntityMovedV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorldEntityMovedV1'
+    messages:
+    - $ref: '#/channels/WorldEntityMovedV1/messages/WorldEntityMovedV1'
+    x-producer: kernel
+  sendWorldEntitySpawnedV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorldEntitySpawnedV1'
+    messages:
+    - $ref: '#/channels/WorldEntitySpawnedV1/messages/WorldEntitySpawnedV1'
+    x-producer: kernel
+  sendWorldEntityStateChangedV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorldEntityStateChangedV1'
+    messages:
+    - $ref: '#/channels/WorldEntityStateChangedV1/messages/WorldEntityStateChangedV1'
+    x-producer: kernel
+  sendWorldItemConsumedV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorldItemConsumedV1'
+    messages:
+    - $ref: '#/channels/WorldItemConsumedV1/messages/WorldItemConsumedV1'
+    x-producer: kernel
+  sendWorldItemCreatedV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorldItemCreatedV1'
+    messages:
+    - $ref: '#/channels/WorldItemCreatedV1/messages/WorldItemCreatedV1'
+    x-producer: kernel
+  sendWorldItemTransferredV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorldItemTransferredV1'
+    messages:
+    - $ref: '#/channels/WorldItemTransferredV1/messages/WorldItemTransferredV1'
+    x-producer: kernel
+  sendWorldNeedChangedV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorldNeedChangedV1'
+    messages:
+    - $ref: '#/channels/WorldNeedChangedV1/messages/WorldNeedChangedV1'
+    x-producer: kernel
+  sendWorldNeedThresholdCrossedV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorldNeedThresholdCrossedV1'
+    messages:
+    - $ref: '#/channels/WorldNeedThresholdCrossedV1/messages/WorldNeedThresholdCrossedV1'
+    x-producer: kernel
+  sendWorldSessionStartedV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorldSessionStartedV1'
+    messages:
+    - $ref: '#/channels/WorldSessionStartedV1/messages/WorldSessionStartedV1'
+    x-producer: kernel
+  sendWorldSnapshotCreatedV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorldSnapshotCreatedV1'
+    messages:
+    - $ref: '#/channels/WorldSnapshotCreatedV1/messages/WorldSnapshotCreatedV1'
+    x-producer: kernel
+  sendWorldWeatherChangedV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorldWeatherChangedV1'
+    messages:
+    - $ref: '#/channels/WorldWeatherChangedV1/messages/WorldWeatherChangedV1'
+    x-producer: kernel
+components:
+  schemas:
+    Uuid7:
+      title: Uuid7
+      description: UUID versão 7 (RFC 9562), ordenável por tempo.
+      type: string
+      pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
+    EntityId:
+      title: EntityId
+      description: 'Id legível e estável de uma entidade: camps, plot-e-03, bed.'
+      type: string
+      pattern: ^[a-z0-9]+(-[a-z0-9]+)*$
+      maxLength: 64
+    ItemId:
+      title: ItemId
+      description: 'Id de item ou cultura; conteúdo do cartucho, em português, sem acento: moeda, semente_rabanete.'
+      type: string
+      pattern: ^[a-z0-9]+(_[a-z0-9]+)*$
+      maxLength: 64
+    ActionId:
+      title: ActionId
+      description: 'Id de ação: contador determinístico do kernel.'
+      type: string
+      pattern: ^act-[0-9]{6,}$
+    Token:
+      title: Token
+      description: 'Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo
+        de entidade, motivo.'
+      type: string
+      pattern: ^[a-z][a-z0-9_]*$
+      maxLength: 64
+    Semver:
+      title: Semver
+      type: string
+      pattern: ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$
+    Actor:
+      title: Actor
+      description: 'Quem causou: human/operator, script/farmer-v1, system/kernel.'
+      type: string
+      minLength: 1
+      maxLength: 128
+    Tick:
+      title: Tick
+      description: Tick do kernel (1 minuto simulado na fazenda).
+      type: integer
+      minimum: 0
+    Day:
+      title: Day
+      description: Dia simulado (dia agrícola, ADR-0018), começando em 1.
+      type: integer
+      minimum: 1
+    Position:
+      title: Position
+      description: Posição em tiles.
+      type: object
+      additionalProperties: false
+      required:
+      - x
+      - y
+      properties:
+        x:
+          type: integer
+          minimum: 0
+        y:
+          type: integer
+          minimum: 0
+    ItemStack:
+      title: ItemStack
+      type: object
+      additionalProperties: false
+      required:
+      - item
+      - qty
+      properties:
+        item:
+          $ref: '#/components/schemas/ItemId'
+        qty:
+          type: integer
+          minimum: 1
+    ControllerType:
+      title: ControllerType
+      enum:
+      - human
+      - script
+      - replay
+      - llm
+      - mcp
+      - supervised
+    ControllerRef:
+      title: ControllerRef
+      type: object
+      additionalProperties: false
+      required:
+      - type
+      - id
+      properties:
+        type:
+          $ref: '#/components/schemas/ControllerType'
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+    ClockMode:
+      title: ClockMode
+      description: Modos do relógio na v0.1; a pausa é um estado à parte (ADR-0026).
+      enum:
+      - continuous
+      - max
+    Scalar:
+      title: Scalar
+      type:
+      - string
+      - number
+      - boolean
+      - 'null'
+    Attributes:
+      title: Attributes
+      description: 'Atributos visíveis de uma entidade (ADR-0025): nomes em snake_case, valores escalares.'
+      type: object
+      additionalProperties:
+        $ref: '#/components/schemas/Scalar'
+    Needs:
+      title: Needs
+      description: Valor atual de cada necessidade (0 a 100), pelo nome definido no cartucho.
+      type: object
+      additionalProperties:
+        type: number
+        minimum: 0
+        maximum: 100
+    Params:
+      title: Params
+      description: Parâmetros de uma ação. A forma depende da ação e é validada pelo cartucho, não por
+        este schema.
+      type: object
+      additionalProperties: {}
+    CmdActionProposeV1:
+      title: CmdActionProposeV1
+      description: Controlador propõe uma ação para o avatar.
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - action
+      - params
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: Avatar (o corpo), independente de quem o controla (ADR-0027).
+        action:
+          $ref: '#/components/schemas/Token'
+        params:
+          $ref: '#/components/schemas/Params'
+        intent:
+          type: string
+          minLength: 1
+          maxLength: 500
+        at_tick:
+          $ref: '#/components/schemas/Tick'
+          description: Tick exato de aplicação; só aceito do controlador replay em modo máximo.
+    CmdAvatarPossessV1:
+      title: CmdAvatarPossessV1
+      description: Pede a posse do avatar para um controlador.
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - controller
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: Avatar (o corpo), independente de quem o controla (ADR-0027).
+        controller:
+          $ref: '#/components/schemas/ControllerRef'
+    CmdAvatarReleaseV1:
+      title: CmdAvatarReleaseV1
+      description: Devolve o avatar ao controlador padrão do cartucho.
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: Avatar (o corpo), independente de quem o controla (ADR-0027).
+    CmdClockPauseV1:
+      title: CmdClockPauseV1
+      description: Pede a pausa do relógio.
+      type: object
+      additionalProperties: false
+      required:
+      - reason
+      properties:
+        reason:
+          enum:
+          - debug
+          - maintenance
+          - budget
+    CmdClockResumeV1:
+      title: CmdClockResumeV1
+      description: Pede a retomada do relógio.
+      type: object
+      additionalProperties: false
+      required: []
+      properties: {}
+    CmdClockSetModeV1:
+      title: CmdClockSetModeV1
+      description: Pede a troca de modo do relógio.
+      type: object
+      additionalProperties: false
+      required:
+      - mode
+      properties:
+        mode:
+          $ref: '#/components/schemas/ClockMode'
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 200
+    CmdClockSetScaleV1:
+      title: CmdClockSetScaleV1
+      description: Pede a troca de escala do relógio.
+      type: object
+      additionalProperties: false
+      required:
+      - scale
+      - reason
+      properties:
+        scale:
+          type: number
+          exclusiveMinimum: 0
+        reason:
+          enum:
+          - operator
+          - experiment
+          - budget
+          - human
+    CmdClockStepV1:
+      title: CmdClockStepV1
+      description: Avança N ticks com o relógio pausado.
+      type: object
+      additionalProperties: false
+      required:
+      - ticks
+      properties:
+        ticks:
+          type: integer
+          minimum: 1
+          maximum: 1440
+    CmdRulesToggleV1:
+      title: CmdRulesToggleV1
+      description: Pede a alternância de uma regra (ADR-0015).
+      type: object
+      additionalProperties: false
+      required:
+      - rule
+      - enabled
+      - reason
+      properties:
+        rule:
+          $ref: '#/components/schemas/Token'
+        enabled:
+          type: boolean
+        params:
+          $ref: '#/components/schemas/Attributes'
+          description: Parâmetros da regra.
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+        experiment_id:
+          type: string
+          minLength: 1
+          maxLength: 64
+    EnvelopeV1:
+      title: EnvelopeV1
+      description: 'Envelope CloudEvents 1.0 com as extensões do Campsverso (contratos §5; ADR-0012, ADR-0013,
+        ADR-0031). Os nomes dos atributos seguem o CloudEvents: minúsculas sem separador (ADR-0030).'
+      type: object
+      required:
+      - specversion
+      - id
+      - source
+      - type
+      - time
+      - datacontenttype
+      - dataschema
+      - worldid
+      - cartridge
+      - seq
+      - provenance
+      - visibility
+      - data
+      additionalProperties: false
+      properties:
+        specversion:
+          const: '1.0'
+        id:
+          $ref: '#/components/schemas/Uuid7'
+        source:
+          type: string
+          minLength: 1
+          maxLength: 256
+        type:
+          type: string
+          pattern: ^campsverso\.[a-z0-9_]+(\.[a-z0-9_]+)+\.v[0-9]+$
+        time:
+          type: string
+          format: date-time
+        subject:
+          type: string
+          maxLength: 256
+        datacontenttype:
+          const: application/json
+        dataschema:
+          type: string
+          pattern: ^contracts://(events|commands)/[a-z0-9_]+/[a-z0-9_.]+\.v[0-9]+$
+        worldid:
+          type: string
+          pattern: ^[a-z0-9]+(-[a-z0-9]+)*$
+          maxLength: 64
+        cartridge:
+          type: string
+          pattern: ^[a-z][a-z0-9_]*$
+          maxLength: 64
+        tick:
+          type: integer
+          minimum: 0
+        simtime:
+          type: string
+          format: date-time
+        seq:
+          type: integer
+          minimum: 0
+        actor:
+          type: string
+          maxLength: 128
+        controller:
+          $ref: '#/components/schemas/ControllerType'
+        controllerid:
+          type: string
+          maxLength: 128
+        causationid:
+          $ref: '#/components/schemas/Uuid7'
+        correlationid:
+          $ref: '#/components/schemas/Uuid7'
+        provenance:
+          enum:
+          - simulated
+          - real
+          - staged
+        visibility:
+          enum:
+          - world
+          - agent
+          - observer
+          - internal
+        traceparent:
+          type: string
+          maxLength: 128
+        data:
+          type: object
+    ActionAcceptedV1:
+      title: ActionAcceptedV1
+      description: Ação validada e agendada; applied_tick permite o replay exato.
+      type: object
+      additionalProperties: false
+      required:
+      - action_id
+      - avatar_id
+      - action
+      - params
+      - applied_tick
+      - duration_ticks
+      properties:
+        action_id:
+          $ref: '#/components/schemas/ActionId'
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: Avatar (o corpo), independente de quem o controla (ADR-0027).
+        action:
+          $ref: '#/components/schemas/Token'
+        params:
+          $ref: '#/components/schemas/Params'
+        applied_tick:
+          $ref: '#/components/schemas/Tick'
+        duration_ticks:
+          type: integer
+          minimum: 0
+          description: Duração prevista.
+        replaces:
+          $ref: '#/components/schemas/ActionId'
+          description: Ação em andamento cancelada por esta.
+    ActionCompletedV1:
+      title: ActionCompletedV1
+      description: Ação concluída; observable é só um resumo legível.
+      type: object
+      additionalProperties: false
+      required:
+      - action_id
+      - avatar_id
+      - action
+      - params
+      - duration_ticks
+      properties:
+        action_id:
+          $ref: '#/components/schemas/ActionId'
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: Avatar (o corpo), independente de quem o controla (ADR-0027).
+        action:
+          $ref: '#/components/schemas/Token'
+        params:
+          $ref: '#/components/schemas/Params'
+        duration_ticks:
+          type: integer
+          minimum: 0
+          description: Duração real.
+        observable:
+          type: array
+          items:
+            type: object
+            title: ObservableChange
+            additionalProperties: false
+            required:
+            - entity_id
+            - property
+            - before
+            - after
+            properties:
+              entity_id:
+                $ref: '#/components/schemas/EntityId'
+              property:
+                $ref: '#/components/schemas/Token'
+              before:
+                $ref: '#/components/schemas/Scalar'
+              after:
+                $ref: '#/components/schemas/Scalar'
+    ActionEffectsExplainedV1:
+      title: ActionEffectsExplainedV1
+      description: Regras, inclusive ocultas, que contribuíram para o resultado de uma ação.
+      type: object
+      additionalProperties: false
+      required:
+      - action_id
+      - rules_applied
+      properties:
+        action_id:
+          $ref: '#/components/schemas/ActionId'
+        rules_applied:
+          type: array
+          items:
+            type: object
+            title: RuleApplied
+            additionalProperties: false
+            required:
+            - rule
+            - version
+            - hidden
+            properties:
+              rule:
+                $ref: '#/components/schemas/Token'
+              version:
+                $ref: '#/components/schemas/Semver'
+              hidden:
+                type: boolean
+              multiplier:
+                type: number
+          minItems: 1
+    ActionFailedV1:
+      title: ActionFailedV1
+      description: Ação iniciada que não chegou ao fim.
+      type: object
+      additionalProperties: false
+      required:
+      - action_id
+      - avatar_id
+      - action
+      - reason
+      properties:
+        action_id:
+          $ref: '#/components/schemas/ActionId'
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: Avatar (o corpo), independente de quem o controla (ADR-0027).
+        action:
+          $ref: '#/components/schemas/Token'
+        reason:
+          $ref: '#/components/schemas/Token'
+          description: 'Ex.: cancelled, fainted, blocked, precondition_lost.'
+    ActionRejectedV1:
+      title: ActionRejectedV1
+      description: Ação recusada, com motivo legível por máquina.
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - action
+      - params
+      - reason
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: Avatar (o corpo), independente de quem o controla (ADR-0027).
+        action:
+          $ref: '#/components/schemas/Token'
+        params:
+          $ref: '#/components/schemas/Params'
+        reason:
+          $ref: '#/components/schemas/Token'
+          description: 'Ex.: not_in_control, not_adjacent, missing_item, closed, not_ripe.'
+        detail:
+          type: string
+          minLength: 1
+          maxLength: 500
+    AvatarDecisionRequestedV1:
+      title: AvatarDecisionRequestedV1
+      description: O avatar está ocioso; o controlador com a posse responde com cmd.action.propose e o
+        mesmo correlationid.
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - reason
+      - controller
+      - needs
+      - position
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: Avatar (o corpo), independente de quem o controla (ADR-0027).
+        reason:
+          enum:
+          - session_started
+          - possessed
+          - action_completed
+          - action_rejected
+          - action_interrupted
+          - phase_changed
+          - need_threshold
+          - woke_up
+        controller:
+          $ref: '#/components/schemas/ControllerRef'
+          description: Quem deve responder.
+        needs:
+          $ref: '#/components/schemas/Needs'
+          description: Valores exatos no momento do pedido.
+        position:
+          $ref: '#/components/schemas/Position'
+    AvatarFaintedV1:
+      title: AvatarFaintedV1
+      description: 'O avatar desmaiou: acordado às 02:00 ou sem energia (ADR-0014).'
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - reason
+      - position
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: Avatar (o corpo), independente de quem o controla (ADR-0027).
+        reason:
+          enum:
+          - late_night
+          - exhausted
+        position:
+          $ref: '#/components/schemas/Position'
+    AvatarPossessedV1:
+      title: AvatarPossessedV1
+      description: Posse do avatar assumida por um controlador.
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - controller
+      - by
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: Avatar (o corpo), independente de quem o controla (ADR-0027).
+        previous_controller:
+          $ref: '#/components/schemas/ControllerRef'
+          description: Ausente na abertura da sessão.
+        controller:
+          $ref: '#/components/schemas/ControllerRef'
+        by:
+          $ref: '#/components/schemas/Actor'
+    AvatarReleasedV1:
+      title: AvatarReleasedV1
+      description: Posse devolvida ao controlador padrão do cartucho.
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - previous_controller
+      - controller
+      - by
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: Avatar (o corpo), independente de quem o controla (ADR-0027).
+        previous_controller:
+          $ref: '#/components/schemas/ControllerRef'
+        controller:
+          $ref: '#/components/schemas/ControllerRef'
+        by:
+          $ref: '#/components/schemas/Actor'
+    AvatarSleepEndedV1:
+      title: AvatarSleepEndedV1
+      description: O avatar acordou (ADR-0014).
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - cause
+      - energy
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: Avatar (o corpo), independente de quem o controla (ADR-0027).
+        cause:
+          enum:
+          - bed
+          - faint
+        energy:
+          type: number
+          minimum: 0
+          maximum: 100
+    AvatarSleepStartedV1:
+      title: AvatarSleepStartedV1
+      description: O avatar dormiu na cama ou desmaiou (ADR-0014).
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - cause
+      - position
+      - wake_at_tick
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: Avatar (o corpo), independente de quem o controla (ADR-0027).
+        cause:
+          enum:
+          - bed
+          - faint
+        position:
+          $ref: '#/components/schemas/Position'
+        wake_at_tick:
+          $ref: '#/components/schemas/Tick'
+    FarmBuyerPaidV1:
+      title: FarmBuyerPaidV1
+      description: Pagamento das vendas às 06:00, com o preço de cada item.
+      type: object
+      additionalProperties: false
+      required:
+      - container_id
+      - items
+      - total
+      - day
+      properties:
+        container_id:
+          $ref: '#/components/schemas/EntityId'
+        items:
+          type: array
+          items:
+            type: object
+            title: PaidItem
+            additionalProperties: false
+            required:
+            - item
+            - qty
+            - unit_price
+            properties:
+              item:
+                $ref: '#/components/schemas/ItemId'
+              qty:
+                type: integer
+                minimum: 1
+              unit_price:
+                type: integer
+                minimum: 0
+          minItems: 1
+        total:
+          type: integer
+          minimum: 0
+        day:
+          $ref: '#/components/schemas/Day'
+    FarmCropMaturedV1:
+      title: FarmCropMaturedV1
+      description: Planta madura; days é a evidência observável da regra oculta (bíblia §13).
+      type: object
+      additionalProperties: false
+      required:
+      - plot_id
+      - crop
+      - planted_day
+      - day
+      - days
+      properties:
+        plot_id:
+          $ref: '#/components/schemas/EntityId'
+        crop:
+          $ref: '#/components/schemas/ItemId'
+        planted_day:
+          $ref: '#/components/schemas/Day'
+        day:
+          $ref: '#/components/schemas/Day'
+        days:
+          type: integer
+          minimum: 1
+          description: Dias entre o plantio e a maturidade.
+    FarmCropWitheredV1:
+      title: FarmCropWitheredV1
+      description: Planta murchou por falta de água.
+      type: object
+      additionalProperties: false
+      required:
+      - plot_id
+      - crop
+      - day
+      - dry_days
+      properties:
+        plot_id:
+          $ref: '#/components/schemas/EntityId'
+        crop:
+          $ref: '#/components/schemas/ItemId'
+        day:
+          $ref: '#/components/schemas/Day'
+        dry_days:
+          type: integer
+          minimum: 1
+          description: Viradas seguidas sem rega.
+    PerceptionDeliveredV1:
+      title: PerceptionDeliveredV1
+      description: Instantâneo do que o avatar percebe, a cada pedido de decisão (ADR-0028).
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - kind
+      - as_of_tick
+      - view
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: Avatar (o corpo), independente de quem o controla (ADR-0027).
+        kind:
+          enum:
+          - snapshot
+        as_of_tick:
+          $ref: '#/components/schemas/Tick'
+        view:
+          type: object
+          title: PerceptionView
+          description: 'Visão genérica: o que é da fazenda chega como atributo de entidade (ADR-0025).'
+          additionalProperties: false
+          required:
+          - clock
+          - weather
+          - self
+          - containers
+          - entities
+          properties:
+            clock:
+              type: object
+              title: ViewClock
+              additionalProperties: false
+              required:
+              - tick
+              - sim_time
+              - day
+              - phase
+              properties:
+                tick:
+                  $ref: '#/components/schemas/Tick'
+                sim_time:
+                  type: string
+                  format: date-time
+                day:
+                  $ref: '#/components/schemas/Day'
+                phase:
+                  $ref: '#/components/schemas/Token'
+            weather:
+              type: object
+              title: ViewWeather
+              additionalProperties: false
+              required:
+              - condition
+              - day
+              properties:
+                condition:
+                  $ref: '#/components/schemas/Token'
+                day:
+                  $ref: '#/components/schemas/Day'
+            self:
+              type: object
+              title: ViewSelf
+              additionalProperties: false
+              required:
+              - entity_id
+              - position
+              - needs
+              - asleep
+              properties:
+                entity_id:
+                  $ref: '#/components/schemas/EntityId'
+                position:
+                  $ref: '#/components/schemas/Position'
+                needs:
+                  $ref: '#/components/schemas/Needs'
+                asleep:
+                  type: boolean
+                action:
+                  type: object
+                  title: ViewAction
+                  additionalProperties: false
+                  required:
+                  - action_id
+                  - action
+                  - params
+                  - end_tick
+                  properties:
+                    action_id:
+                      $ref: '#/components/schemas/ActionId'
+                    action:
+                      $ref: '#/components/schemas/Token'
+                    params:
+                      $ref: '#/components/schemas/Params'
+                    end_tick:
+                      $ref: '#/components/schemas/Tick'
+            containers:
+              type: array
+              items:
+                type: object
+                title: ViewContainer
+                additionalProperties: false
+                required:
+                - container_id
+                - items
+                properties:
+                  container_id:
+                    $ref: '#/components/schemas/EntityId'
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ItemStack'
+            entities:
+              type: array
+              items:
+                type: object
+                title: ViewEntity
+                additionalProperties: false
+                required:
+                - entity_id
+                - kind
+                - attributes
+                properties:
+                  entity_id:
+                    $ref: '#/components/schemas/EntityId'
+                  kind:
+                    $ref: '#/components/schemas/Token'
+                  position:
+                    $ref: '#/components/schemas/Position'
+                  container_id:
+                    $ref: '#/components/schemas/EntityId'
+                  attributes:
+                    $ref: '#/components/schemas/Attributes'
+    RulesEffectAppliedV1:
+      title: RulesEffectAppliedV1
+      description: Efeito numérico de uma regra sobre uma entidade.
+      type: object
+      additionalProperties: false
+      required:
+      - rule
+      - version
+      - entity_id
+      - property
+      - base
+      - applied
+      properties:
+        rule:
+          $ref: '#/components/schemas/Token'
+        version:
+          $ref: '#/components/schemas/Semver'
+        entity_id:
+          $ref: '#/components/schemas/EntityId'
+        property:
+          $ref: '#/components/schemas/Token'
+        base:
+          type: number
+        applied:
+          type: number
+    RulesLoadedV1:
+      title: RulesLoadedV1
+      description: Conjunto de regras carregado, com versões e estado inicial.
+      type: object
+      additionalProperties: false
+      required:
+      - rules
+      - source_ref
+      properties:
+        rules:
+          type: array
+          items:
+            type: object
+            title: LoadedRule
+            additionalProperties: false
+            required:
+            - rule
+            - version
+            - hidden
+            - enabled
+            - params
+            properties:
+              rule:
+                $ref: '#/components/schemas/Token'
+              version:
+                $ref: '#/components/schemas/Semver'
+              hidden:
+                type: boolean
+              enabled:
+                type: boolean
+              params:
+                $ref: '#/components/schemas/Attributes'
+                description: Parâmetros da regra.
+        source_ref:
+          type: string
+          minLength: 1
+          maxLength: 256
+    RulesToggledV1:
+      title: RulesToggledV1
+      description: Regra ligada, desligada ou parametrizada a quente (ADR-0015).
+      type: object
+      additionalProperties: false
+      required:
+      - rule
+      - from_version
+      - to_version
+      - enabled
+      - by
+      - reason
+      - effective_at_tick
+      properties:
+        rule:
+          $ref: '#/components/schemas/Token'
+        from_version:
+          $ref: '#/components/schemas/Semver'
+        to_version:
+          $ref: '#/components/schemas/Semver'
+        enabled:
+          type: boolean
+        params:
+          $ref: '#/components/schemas/Attributes'
+          description: Parâmetros da regra.
+        by:
+          $ref: '#/components/schemas/Actor'
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+        experiment_id:
+          type: string
+          minLength: 1
+          maxLength: 64
+        effective_at_tick:
+          $ref: '#/components/schemas/Tick'
+    WorldClockJumpedV1:
+      title: WorldClockJumpedV1
+      description: Salto de tempo até o próximo evento agendado (simulação de eventos discretos).
+      type: object
+      additionalProperties: false
+      required:
+      - from_tick
+      - to_tick
+      properties:
+        from_tick:
+          $ref: '#/components/schemas/Tick'
+        to_tick:
+          $ref: '#/components/schemas/Tick'
+    WorldClockModeChangedV1:
+      title: WorldClockModeChangedV1
+      description: Mudança de modo do relógio (ADR-0026).
+      type: object
+      additionalProperties: false
+      required:
+      - previous_mode
+      - mode
+      - reason
+      - by
+      properties:
+        previous_mode:
+          $ref: '#/components/schemas/ClockMode'
+        mode:
+          $ref: '#/components/schemas/ClockMode'
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 200
+        by:
+          $ref: '#/components/schemas/Actor'
+    WorldClockPausedV1:
+      title: WorldClockPausedV1
+      description: Relógio pausado; a pausa é um estado, não um modo (ADR-0026).
+      type: object
+      additionalProperties: false
+      required:
+      - reason
+      - by
+      properties:
+        reason:
+          enum:
+          - debug
+          - maintenance
+          - budget
+        by:
+          $ref: '#/components/schemas/Actor'
+    WorldClockPhaseChangedV1:
+      title: WorldClockPhaseChangedV1
+      description: Mudança de fase do dia; os nomes das fases vêm do cartucho.
+      type: object
+      additionalProperties: false
+      required:
+      - phase
+      - day
+      properties:
+        phase:
+          $ref: '#/components/schemas/Token'
+          description: 'Ex.: amanhecer, meio_dia, entardecer, noite, madrugada.'
+        day:
+          $ref: '#/components/schemas/Day'
+    WorldClockResumedV1:
+      title: WorldClockResumedV1
+      description: Relógio retomado no modo em que estava (ADR-0026).
+      type: object
+      additionalProperties: false
+      required:
+      - by
+      properties:
+        by:
+          $ref: '#/components/schemas/Actor'
+    WorldClockScaleChangedV1:
+      title: WorldClockScaleChangedV1
+      description: Mudança de escala do relógio.
+      type: object
+      additionalProperties: false
+      required:
+      - previous_scale
+      - scale
+      - reason
+      - by
+      properties:
+        previous_scale:
+          type: number
+          exclusiveMinimum: 0
+        scale:
+          type: number
+          exclusiveMinimum: 0
+        reason:
+          enum:
+          - operator
+          - experiment
+          - budget
+          - human
+        by:
+          $ref: '#/components/schemas/Actor'
+    WorldClockSteppedV1:
+      title: WorldClockSteppedV1
+      description: Avanço passo a passo com o relógio pausado.
+      type: object
+      additionalProperties: false
+      required:
+      - ticks
+      - from_tick
+      - to_tick
+      properties:
+        ticks:
+          type: integer
+          minimum: 1
+          maximum: 1440
+        from_tick:
+          $ref: '#/components/schemas/Tick'
+        to_tick:
+          $ref: '#/components/schemas/Tick'
+    WorldCommandRejectedV1:
+      title: WorldCommandRejectedV1
+      description: Comando que não é ação (posse, relógio, regras) foi recusado.
+      type: object
+      additionalProperties: false
+      required:
+      - command_id
+      - command_type
+      - reason
+      properties:
+        command_id:
+          $ref: '#/components/schemas/Uuid7'
+        command_type:
+          type: string
+          pattern: ^campsverso\.cmd\.[a-z0-9_]+(\.[a-z0-9_]+)+\.v[0-9]+$
+        reason:
+          $ref: '#/components/schemas/Token'
+        detail:
+          type: string
+          minLength: 1
+          maxLength: 500
+    WorldEntityMoveInterruptedV1:
+      title: WorldEntityMoveInterruptedV1
+      description: Movimento interrompido; traz a posição real no momento (D1).
+      type: object
+      additionalProperties: false
+      required:
+      - entity_id
+      - action_id
+      - position
+      - reason
+      properties:
+        entity_id:
+          $ref: '#/components/schemas/EntityId'
+        action_id:
+          $ref: '#/components/schemas/ActionId'
+        position:
+          $ref: '#/components/schemas/Position'
+        reason:
+          enum:
+          - cancelled
+          - blocked
+          - fainted
+    WorldEntityMovedV1:
+      title: WorldEntityMovedV1
+      description: 'Movimento como trajeto: só esquinas e destino; a UI interpola (D1).'
+      type: object
+      additionalProperties: false
+      required:
+      - entity_id
+      - action_id
+      - origin
+      - waypoints
+      - depart_tick
+      - arrival_tick
+      - tiles_per_tick
+      properties:
+        entity_id:
+          $ref: '#/components/schemas/EntityId'
+        action_id:
+          $ref: '#/components/schemas/ActionId'
+        origin:
+          $ref: '#/components/schemas/Position'
+        waypoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/Position'
+          minItems: 1
+          description: Pontos de inflexão do trajeto e o destino.
+        depart_tick:
+          $ref: '#/components/schemas/Tick'
+        arrival_tick:
+          $ref: '#/components/schemas/Tick'
+        tiles_per_tick:
+          type: number
+          exclusiveMinimum: 0
+    WorldEntitySpawnedV1:
+      title: WorldEntitySpawnedV1
+      description: 'Entidade criada: no mapa (position) ou dentro de um contêiner (container_id).'
+      type: object
+      additionalProperties: false
+      required:
+      - entity_id
+      - kind
+      - blocking
+      properties:
+        entity_id:
+          $ref: '#/components/schemas/EntityId'
+        kind:
+          $ref: '#/components/schemas/Token'
+          description: 'Tipo definido pelo cartucho: avatar, plot, bed, chest, well, kiosk, watering_can…'
+        position:
+          $ref: '#/components/schemas/Position'
+        container_id:
+          $ref: '#/components/schemas/EntityId'
+        blocking:
+          type: boolean
+          description: Se a entidade bloqueia a passagem no mapa.
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 64
+        attributes:
+          $ref: '#/components/schemas/Attributes'
+          description: Estado visível inicial.
+    WorldEntityStateChangedV1:
+      title: WorldEntityStateChangedV1
+      description: Mudança de atributos visíveis de uma entidade (ADR-0025).
+      type: object
+      additionalProperties: false
+      required:
+      - entity_id
+      - changes
+      properties:
+        entity_id:
+          $ref: '#/components/schemas/EntityId'
+        changes:
+          $ref: '#/components/schemas/Attributes'
+        cause:
+          $ref: '#/components/schemas/Token'
+          description: Ação ou nome do sistema que causou a mudança.
+        action_id:
+          $ref: '#/components/schemas/ActionId'
+    WorldItemConsumedV1:
+      title: WorldItemConsumedV1
+      description: Item saiu do mundo.
+      type: object
+      additionalProperties: false
+      required:
+      - item
+      - qty
+      - container_id
+      - reason
+      properties:
+        item:
+          $ref: '#/components/schemas/ItemId'
+        qty:
+          type: integer
+          minimum: 1
+        container_id:
+          $ref: '#/components/schemas/EntityId'
+        reason:
+          $ref: '#/components/schemas/Token'
+          description: 'Ex.: eat, plant, buy_payment, buyer_collect.'
+        action_id:
+          $ref: '#/components/schemas/ActionId'
+    WorldItemCreatedV1:
+      title: WorldItemCreatedV1
+      description: Item surgiu num contêiner.
+      type: object
+      additionalProperties: false
+      required:
+      - item
+      - qty
+      - container_id
+      - reason
+      properties:
+        item:
+          $ref: '#/components/schemas/ItemId'
+        qty:
+          type: integer
+          minimum: 1
+        container_id:
+          $ref: '#/components/schemas/EntityId'
+        reason:
+          $ref: '#/components/schemas/Token'
+          description: 'Ex.: initial, harvest, buy, payment.'
+        action_id:
+          $ref: '#/components/schemas/ActionId'
+    WorldItemTransferredV1:
+      title: WorldItemTransferredV1
+      description: Item passou de um contêiner para outro.
+      type: object
+      additionalProperties: false
+      required:
+      - item
+      - qty
+      - from_container
+      - to_container
+      - reason
+      properties:
+        item:
+          $ref: '#/components/schemas/ItemId'
+        qty:
+          type: integer
+          minimum: 1
+        from_container:
+          $ref: '#/components/schemas/EntityId'
+        to_container:
+          $ref: '#/components/schemas/EntityId'
+        reason:
+          $ref: '#/components/schemas/Token'
+          description: 'Ex.: deposit, withdraw, sell.'
+        action_id:
+          $ref: '#/components/schemas/ActionId'
+    WorldNeedChangedV1:
+      title: WorldNeedChangedV1
+      description: Valor de uma necessidade; no máximo um por hora simulada por necessidade.
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - need
+      - previous_value
+      - value
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: Avatar (o corpo), independente de quem o controla (ADR-0027).
+        need:
+          $ref: '#/components/schemas/Token'
+          description: 'Ex.: fome, energia.'
+        previous_value:
+          type: number
+          minimum: 0
+          maximum: 100
+        value:
+          type: number
+          minimum: 0
+          maximum: 100
+    WorldNeedThresholdCrossedV1:
+      title: WorldNeedThresholdCrossedV1
+      description: Uma necessidade cruzou um limiar definido pelo cartucho.
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - need
+      - threshold
+      - direction
+      - value
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: Avatar (o corpo), independente de quem o controla (ADR-0027).
+        need:
+          $ref: '#/components/schemas/Token'
+        threshold:
+          type: number
+          minimum: 0
+          maximum: 100
+        direction:
+          enum:
+          - up
+          - down
+        value:
+          type: number
+          minimum: 0
+          maximum: 100
+    WorldSessionStartedV1:
+      title: WorldSessionStartedV1
+      description: Mundo carregado ou retomado a partir de snapshot.
+      type: object
+      additionalProperties: false
+      required:
+      - cartridge_version
+      - seed
+      - tick_seconds
+      - mode
+      - paused
+      - scale
+      - resumed
+      - map
+      properties:
+        cartridge_version:
+          $ref: '#/components/schemas/Semver'
+        seed:
+          type: integer
+          minimum: 0
+          description: Seed registrada; os fluxos de RNG nomeados derivam dela.
+        tick_seconds:
+          type: integer
+          minimum: 1
+          description: Duração de um tick em segundos simulados.
+        mode:
+          $ref: '#/components/schemas/ClockMode'
+        paused:
+          type: boolean
+        scale:
+          type: number
+          exclusiveMinimum: 0
+          description: Segundos simulados por segundo real.
+        resumed:
+          type: boolean
+          description: Verdadeiro quando o mundo foi retomado a partir de snapshot.
+        map:
+          type: object
+          title: SessionMap
+          additionalProperties: false
+          required:
+          - id
+          - width
+          - height
+          properties:
+            id:
+              type: string
+              minLength: 1
+              maxLength: 64
+              pattern: ^[a-z0-9_-]+$
+            width:
+              type: integer
+              minimum: 1
+            height:
+              type: integer
+              minimum: 1
+    WorldSnapshotCreatedV1:
+      title: WorldSnapshotCreatedV1
+      description: Snapshot persistido no BlobStore.
+      type: object
+      additionalProperties: false
+      required:
+      - snapshot_id
+      - ref
+      - last_seq
+      - sha256
+      - size_bytes
+      properties:
+        snapshot_id:
+          type: string
+          minLength: 1
+          maxLength: 64
+        ref:
+          type: string
+          minLength: 1
+          maxLength: 256
+        last_seq:
+          type: integer
+          minimum: 0
+        sha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+        size_bytes:
+          type: integer
+          minimum: 0
+    WorldWeatherChangedV1:
+      title: WorldWeatherChangedV1
+      description: Clima sorteado para um dia agrícola (ADR-0018).
+      type: object
+      additionalProperties: false
+      required:
+      - condition
+      - day
+      properties:
+        condition:
+          $ref: '#/components/schemas/Token'
+          description: 'Ex.: sun, rain.'
+        day:
+          $ref: '#/components/schemas/Day'
+  messages:
+    ActionAcceptedV1:
+      name: campsverso.action.accepted.v1
+      title: ActionAcceptedV1
+      summary: Ação validada e agendada; applied_tick permite o replay exato.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ActionAcceptedV1'
+      x-visibility: world
+      x-producer: kernel
+    ActionCompletedV1:
+      name: campsverso.action.completed.v1
+      title: ActionCompletedV1
+      summary: Ação concluída; observable é só um resumo legível.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ActionCompletedV1'
+      x-visibility: world
+      x-producer: kernel
+    ActionEffectsExplainedV1:
+      name: campsverso.action.effects_explained.v1
+      title: ActionEffectsExplainedV1
+      summary: Regras, inclusive ocultas, que contribuíram para o resultado de uma ação.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ActionEffectsExplainedV1'
+      x-visibility: internal
+      x-producer: kernel
+    ActionFailedV1:
+      name: campsverso.action.failed.v1
+      title: ActionFailedV1
+      summary: Ação iniciada que não chegou ao fim.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ActionFailedV1'
+      x-visibility: world
+      x-producer: kernel
+    ActionRejectedV1:
+      name: campsverso.action.rejected.v1
+      title: ActionRejectedV1
+      summary: Ação recusada, com motivo legível por máquina.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ActionRejectedV1'
+      x-visibility: agent
+      x-producer: kernel
+    AvatarDecisionRequestedV1:
+      name: campsverso.avatar.decision_requested.v1
+      title: AvatarDecisionRequestedV1
+      summary: O avatar está ocioso; o controlador com a posse responde com cmd.action.propose e o mesmo
+        correlationid.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/AvatarDecisionRequestedV1'
+      x-visibility: agent
+      x-producer: kernel
+    AvatarFaintedV1:
+      name: campsverso.avatar.fainted.v1
+      title: AvatarFaintedV1
+      summary: 'O avatar desmaiou: acordado às 02:00 ou sem energia (ADR-0014).'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/AvatarFaintedV1'
+      x-visibility: world
+      x-producer: kernel
+    AvatarPossessedV1:
+      name: campsverso.avatar.possessed.v1
+      title: AvatarPossessedV1
+      summary: Posse do avatar assumida por um controlador.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/AvatarPossessedV1'
+      x-visibility: world
+      x-producer: kernel
+    AvatarReleasedV1:
+      name: campsverso.avatar.released.v1
+      title: AvatarReleasedV1
+      summary: Posse devolvida ao controlador padrão do cartucho.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/AvatarReleasedV1'
+      x-visibility: world
+      x-producer: kernel
+    AvatarSleepEndedV1:
+      name: campsverso.avatar.sleep.ended.v1
+      title: AvatarSleepEndedV1
+      summary: O avatar acordou (ADR-0014).
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/AvatarSleepEndedV1'
+      x-visibility: world
+      x-producer: kernel
+    AvatarSleepStartedV1:
+      name: campsverso.avatar.sleep.started.v1
+      title: AvatarSleepStartedV1
+      summary: O avatar dormiu na cama ou desmaiou (ADR-0014).
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/AvatarSleepStartedV1'
+      x-visibility: world
+      x-producer: kernel
+    CmdActionProposeV1:
+      name: campsverso.cmd.action.propose.v1
+      title: CmdActionProposeV1
+      summary: Controlador propõe uma ação para o avatar.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CmdActionProposeV1'
+      x-visibility: observer
+      x-producer: controller
+    CmdAvatarPossessV1:
+      name: campsverso.cmd.avatar.possess.v1
+      title: CmdAvatarPossessV1
+      summary: Pede a posse do avatar para um controlador.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CmdAvatarPossessV1'
+      x-visibility: observer
+      x-producer: operator
+    CmdAvatarReleaseV1:
+      name: campsverso.cmd.avatar.release.v1
+      title: CmdAvatarReleaseV1
+      summary: Devolve o avatar ao controlador padrão do cartucho.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CmdAvatarReleaseV1'
+      x-visibility: observer
+      x-producer: operator
+    CmdClockPauseV1:
+      name: campsverso.cmd.clock.pause.v1
+      title: CmdClockPauseV1
+      summary: Pede a pausa do relógio.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CmdClockPauseV1'
+      x-visibility: observer
+      x-producer: operator
+    CmdClockResumeV1:
+      name: campsverso.cmd.clock.resume.v1
+      title: CmdClockResumeV1
+      summary: Pede a retomada do relógio.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CmdClockResumeV1'
+      x-visibility: observer
+      x-producer: operator
+    CmdClockSetModeV1:
+      name: campsverso.cmd.clock.set_mode.v1
+      title: CmdClockSetModeV1
+      summary: Pede a troca de modo do relógio.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CmdClockSetModeV1'
+      x-visibility: observer
+      x-producer: operator
+    CmdClockSetScaleV1:
+      name: campsverso.cmd.clock.set_scale.v1
+      title: CmdClockSetScaleV1
+      summary: Pede a troca de escala do relógio.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CmdClockSetScaleV1'
+      x-visibility: observer
+      x-producer: operator
+    CmdClockStepV1:
+      name: campsverso.cmd.clock.step.v1
+      title: CmdClockStepV1
+      summary: Avança N ticks com o relógio pausado.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CmdClockStepV1'
+      x-visibility: observer
+      x-producer: operator
+    CmdRulesToggleV1:
+      name: campsverso.cmd.rules.toggle.v1
+      title: CmdRulesToggleV1
+      summary: Pede a alternância de uma regra (ADR-0015).
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CmdRulesToggleV1'
+      x-visibility: observer
+      x-producer: operator
+    FarmBuyerPaidV1:
+      name: campsverso.farm.buyer.paid.v1
+      title: FarmBuyerPaidV1
+      summary: Pagamento das vendas às 06:00, com o preço de cada item.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/FarmBuyerPaidV1'
+      x-visibility: world
+      x-producer: kernel
+    FarmCropMaturedV1:
+      name: campsverso.farm.crop.matured.v1
+      title: FarmCropMaturedV1
+      summary: Planta madura; days é a evidência observável da regra oculta (bíblia §13).
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/FarmCropMaturedV1'
+      x-visibility: world
+      x-producer: kernel
+    FarmCropWitheredV1:
+      name: campsverso.farm.crop.withered.v1
+      title: FarmCropWitheredV1
+      summary: Planta murchou por falta de água.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/FarmCropWitheredV1'
+      x-visibility: world
+      x-producer: kernel
+    PerceptionDeliveredV1:
+      name: campsverso.perception.delivered.v1
+      title: PerceptionDeliveredV1
+      summary: Instantâneo do que o avatar percebe, a cada pedido de decisão (ADR-0028).
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/PerceptionDeliveredV1'
+      x-visibility: agent
+      x-producer: perception
+    RulesEffectAppliedV1:
+      name: campsverso.rules.effect_applied.v1
+      title: RulesEffectAppliedV1
+      summary: Efeito numérico de uma regra sobre uma entidade.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/RulesEffectAppliedV1'
+      x-visibility: internal
+      x-producer: kernel
+    RulesLoadedV1:
+      name: campsverso.rules.loaded.v1
+      title: RulesLoadedV1
+      summary: Conjunto de regras carregado, com versões e estado inicial.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/RulesLoadedV1'
+      x-visibility: internal
+      x-producer: kernel
+    RulesToggledV1:
+      name: campsverso.rules.toggled.v1
+      title: RulesToggledV1
+      summary: Regra ligada, desligada ou parametrizada a quente (ADR-0015).
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/RulesToggledV1'
+      x-visibility: internal
+      x-producer: kernel
+    WorldClockJumpedV1:
+      name: campsverso.world.clock.jumped.v1
+      title: WorldClockJumpedV1
+      summary: Salto de tempo até o próximo evento agendado (simulação de eventos discretos).
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorldClockJumpedV1'
+      x-visibility: internal
+      x-producer: kernel
+    WorldClockModeChangedV1:
+      name: campsverso.world.clock.mode_changed.v1
+      title: WorldClockModeChangedV1
+      summary: Mudança de modo do relógio (ADR-0026).
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorldClockModeChangedV1'
+      x-visibility: world
+      x-producer: kernel
+    WorldClockPausedV1:
+      name: campsverso.world.clock.paused.v1
+      title: WorldClockPausedV1
+      summary: Relógio pausado; a pausa é um estado, não um modo (ADR-0026).
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorldClockPausedV1'
+      x-visibility: world
+      x-producer: kernel
+    WorldClockPhaseChangedV1:
+      name: campsverso.world.clock.phase_changed.v1
+      title: WorldClockPhaseChangedV1
+      summary: Mudança de fase do dia; os nomes das fases vêm do cartucho.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorldClockPhaseChangedV1'
+      x-visibility: world
+      x-producer: kernel
+    WorldClockResumedV1:
+      name: campsverso.world.clock.resumed.v1
+      title: WorldClockResumedV1
+      summary: Relógio retomado no modo em que estava (ADR-0026).
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorldClockResumedV1'
+      x-visibility: world
+      x-producer: kernel
+    WorldClockScaleChangedV1:
+      name: campsverso.world.clock.scale_changed.v1
+      title: WorldClockScaleChangedV1
+      summary: Mudança de escala do relógio.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorldClockScaleChangedV1'
+      x-visibility: world
+      x-producer: kernel
+    WorldClockSteppedV1:
+      name: campsverso.world.clock.stepped.v1
+      title: WorldClockSteppedV1
+      summary: Avanço passo a passo com o relógio pausado.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorldClockSteppedV1'
+      x-visibility: world
+      x-producer: kernel
+    WorldCommandRejectedV1:
+      name: campsverso.world.command.rejected.v1
+      title: WorldCommandRejectedV1
+      summary: Comando que não é ação (posse, relógio, regras) foi recusado.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorldCommandRejectedV1'
+      x-visibility: observer
+      x-producer: kernel
+    WorldEntityMoveInterruptedV1:
+      name: campsverso.world.entity.move_interrupted.v1
+      title: WorldEntityMoveInterruptedV1
+      summary: Movimento interrompido; traz a posição real no momento (D1).
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorldEntityMoveInterruptedV1'
+      x-visibility: world
+      x-producer: kernel
+    WorldEntityMovedV1:
+      name: campsverso.world.entity.moved.v1
+      title: WorldEntityMovedV1
+      summary: 'Movimento como trajeto: só esquinas e destino; a UI interpola (D1).'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorldEntityMovedV1'
+      x-visibility: world
+      x-producer: kernel
+    WorldEntitySpawnedV1:
+      name: campsverso.world.entity.spawned.v1
+      title: WorldEntitySpawnedV1
+      summary: 'Entidade criada: no mapa (position) ou dentro de um contêiner (container_id).'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorldEntitySpawnedV1'
+      x-visibility: world
+      x-producer: kernel
+    WorldEntityStateChangedV1:
+      name: campsverso.world.entity.state_changed.v1
+      title: WorldEntityStateChangedV1
+      summary: Mudança de atributos visíveis de uma entidade (ADR-0025).
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorldEntityStateChangedV1'
+      x-visibility: world
+      x-producer: kernel
+    WorldItemConsumedV1:
+      name: campsverso.world.item.consumed.v1
+      title: WorldItemConsumedV1
+      summary: Item saiu do mundo.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorldItemConsumedV1'
+      x-visibility: world
+      x-producer: kernel
+    WorldItemCreatedV1:
+      name: campsverso.world.item.created.v1
+      title: WorldItemCreatedV1
+      summary: Item surgiu num contêiner.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorldItemCreatedV1'
+      x-visibility: world
+      x-producer: kernel
+    WorldItemTransferredV1:
+      name: campsverso.world.item.transferred.v1
+      title: WorldItemTransferredV1
+      summary: Item passou de um contêiner para outro.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorldItemTransferredV1'
+      x-visibility: world
+      x-producer: kernel
+    WorldNeedChangedV1:
+      name: campsverso.world.need.changed.v1
+      title: WorldNeedChangedV1
+      summary: Valor de uma necessidade; no máximo um por hora simulada por necessidade.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorldNeedChangedV1'
+      x-visibility: agent
+      x-producer: kernel
+    WorldNeedThresholdCrossedV1:
+      name: campsverso.world.need.threshold_crossed.v1
+      title: WorldNeedThresholdCrossedV1
+      summary: Uma necessidade cruzou um limiar definido pelo cartucho.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorldNeedThresholdCrossedV1'
+      x-visibility: agent
+      x-producer: kernel
+    WorldSessionStartedV1:
+      name: campsverso.world.session.started.v1
+      title: WorldSessionStartedV1
+      summary: Mundo carregado ou retomado a partir de snapshot.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorldSessionStartedV1'
+      x-visibility: world
+      x-producer: kernel
+    WorldSnapshotCreatedV1:
+      name: campsverso.world.snapshot.created.v1
+      title: WorldSnapshotCreatedV1
+      summary: Snapshot persistido no BlobStore.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorldSnapshotCreatedV1'
+      x-visibility: internal
+      x-producer: kernel
+    WorldWeatherChangedV1:
+      name: campsverso.world.weather.changed.v1
+      title: WorldWeatherChangedV1
+      summary: Clima sorteado para um dia agrícola (ADR-0018).
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorldWeatherChangedV1'
+      x-visibility: world
+      x-producer: kernel
+  parameters:
+    worldid:
+      description: 'Instância do mundo, ex.: farm-camps-01.'
+    avatar_id:
+      description: Avatar destinatário (visibilidade agent).

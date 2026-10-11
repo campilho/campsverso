@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/world/item.consumed.v1",
+  "title": "WorldItemConsumedV1",
+  "description": "Item saiu do mundo.",
+  "x-type": "campsverso.world.item.consumed.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "item",
+    "qty",
+    "container_id",
+    "reason"
+  ],
+  "properties": {
+    "item": {
+      "$ref": "contracts://common/defs.v1#/$defs/item_id"
+    },
+    "qty": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "container_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "reason": {
+      "$ref": "contracts://common/defs.v1#/$defs/token",
+      "description": "Ex.: eat, plant, buy_payment, buyer_collect."
+    },
+    "action_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/action_id"
+    }
+  }
+}

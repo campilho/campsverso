@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://commands/clock/resume.v1",
+  "title": "CmdClockResumeV1",
+  "description": "Pede a retomada do relógio.",
+  "x-type": "campsverso.cmd.clock.resume.v1",
+  "x-visibility": "observer",
+  "x-producer": "operator",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [],
+  "properties": {}
+}
