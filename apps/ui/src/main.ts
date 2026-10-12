@@ -11,7 +11,7 @@ import { el } from "./dom.ts";
 import { renderHud } from "./panels/hud.ts";
 import { OperatorPanel } from "./panels/operator.ts";
 import { MapCanvas } from "./render/canvas.ts";
-import { estimateTick } from "./simclock.ts";
+import { DisplayClock, clockText } from "./simclock.ts";
 import { Store } from "./store.ts";
 import { parseTiledMap } from "./tiled.ts";
 
@@ -49,9 +49,12 @@ const panel =
     ? new OperatorPanel(aside, (command, data) => { connection.send(command, data); }, () => { dirty = true; })
     : undefined;
 
+const clock = new DisplayClock();
+let welcomes = 0;
 let mapId: string | undefined;
 let dirty = true;
 let lastPanel = 0;
+let lastClock = "";
 let rejection: { event: EnvelopeV1; seenAt: number } | undefined;
 
 async function loadMap(id: string): Promise<void> {
@@ -64,6 +67,14 @@ async function loadMap(id: string): Promise<void> {
 store.onChange(() => {
   dirty = true;
   const state = store.state;
+  if (state !== undefined) {
+    if (store.welcomes !== welcomes) {
+      welcomes = store.welcomes;
+      clock.reset(state, performance.now());
+    } else {
+      clock.observe(state, performance.now());
+    }
+  }
   const id = state?.session?.map?.id;
   if (id !== undefined && id !== mapId) {
     mapId = id;
@@ -79,16 +90,20 @@ function frame(now: number): void {
   const state = store.state;
   const avatarId = store.welcome?.avatar_id ?? "camps";
   if (state !== undefined) {
-    const tick = estimateTick(state, store.receivedAtMs, now);
+    const tick = clock.at(state, now, store.status === "open");
     map.draw(state, tick);
-    if (dirty || now - lastPanel > 1000) {
-      if (now - lastPanel >= PANEL_EVERY_MS) {
-        const recent = rejection !== undefined && now - rejection.seenAt < REJECTION_SHOWN_MS ? rejection.event : undefined;
-        renderHud(hud, state, tick, avatarId, store.status, recent);
-        panel?.render(state, avatarId, store.welcome?.commands ?? [], store.timeline, store.lastReply);
-        dirty = false;
-        lastPanel = now;
-      }
+    const shownClock = clockText(state, tick);
+    const panelDue = (dirty || now - lastPanel > 1000) && now - lastPanel >= PANEL_EVERY_MS;
+    if (panelDue || shownClock !== lastClock) {
+      // O HUD acompanha cada minuto mostrado; o painel do operador, só as mudanças de estado.
+      const recent = rejection !== undefined && now - rejection.seenAt < REJECTION_SHOWN_MS ? rejection.event : undefined;
+      renderHud(hud, state, tick, avatarId, store.status, recent);
+      lastClock = shownClock;
+    }
+    if (panelDue) {
+      panel?.render(state, avatarId, store.welcome?.commands ?? [], store.timeline, store.lastReply);
+      dirty = false;
+      lastPanel = now;
     }
   } else {
     hud.replaceChildren(el("p", {}, store.status === "closed" ? "sem conexão com o gateway…" : "conectando ao gateway…"));

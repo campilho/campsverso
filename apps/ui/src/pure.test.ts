@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { positionAt } from "./motion.ts";
 import { applyMergePatch } from "./patch.ts";
 import { entityColor, tileColor } from "./render/skin.ts";
-import { MAX_AHEAD, clockText, estimateTick } from "./simclock.ts";
+import { DisplayClock, MAX_AHEAD, clockText } from "./simclock.ts";
 import { Store } from "./store.ts";
 import { matches, shortType, summarize } from "./timeline.ts";
 import { parseTiledMap, tileAt } from "./tiled.ts";
@@ -57,17 +57,20 @@ describe("merge patch (RFC 7386)", () => {
     expect(applyMergePatch({ a: [1, 2] }, { a: [3] })).toEqual({ a: [3] });
   });
 
-  it("a loja aplica o patch e só reinicia a estimativa quando o tick muda", () => {
+  it("a loja aplica o patch e conta os welcomes", () => {
     const store = new Store();
-    store.applyWelcome(
-      { type: "campsverso.realtime.welcome.v1", worldid: "w", view: "player", avatar_id: "camps", commands: [], state: state(), events: [] },
-      1000,
-    );
-    store.applyUpdate({ type: "campsverso.realtime.update.v1", patch: { clock: { paused: true } }, events: [] }, 2000);
+    store.applyWelcome({
+      type: "campsverso.realtime.welcome.v1",
+      worldid: "w",
+      view: "player",
+      avatar_id: "camps",
+      commands: [],
+      state: state(),
+      events: [],
+    });
+    store.applyUpdate({ type: "campsverso.realtime.update.v1", patch: { clock: { paused: true } }, events: [] });
     expect(store.state?.clock.paused).toBe(true);
-    expect(store.receivedAtMs).toBe(1000);
-    store.applyUpdate({ type: "campsverso.realtime.update.v1", patch: { tick: 101 }, events: [] }, 3000);
-    expect(store.receivedAtMs).toBe(3000);
+    expect(store.welcomes).toBe(1);
   });
 });
 
@@ -100,12 +103,93 @@ describe("trajeto", () => {
   });
 });
 
-describe("relógio estimado", () => {
-  it("avança pela escala só no contínuo sem pausa, com teto", () => {
-    expect(estimateTick(state(), 0, 10_000)).toBeCloseTo(100 + (10 * 72) / 60);
-    expect(estimateTick(state({ clock: { mode: "continuous", scale: 72, paused: true } }), 0, 10_000)).toBe(100);
-    expect(estimateTick(state({ clock: { mode: "max", scale: 72, paused: false } }), 0, 10_000)).toBe(100);
-    expect(estimateTick(state(), 0, 10_000_000)).toBe(100 + MAX_AHEAD);
+describe("relógio da tela", () => {
+  const at72 = state(); // 72 s simulados por segundo: 1,2 tick por segundo
+  const at720 = state({ clock: { mode: "continuous", scale: 720, paused: false } });
+
+  /** Quadros a cada `every` ms de `from` até `to`; devolve todos os ticks mostrados. */
+  function frames(clock: DisplayClock, s: ObserverState, from: number, to: number, live = true, every = 50): number[] {
+    const shown: number[] = [];
+    for (let now = from; now <= to; now += every) {
+      shown.push(clock.at(s, now, live));
+    }
+    return shown;
+  }
+
+  const monotonic = (values: number[]): boolean => values.every((v, i) => i === 0 || v >= (values[i - 1] ?? v));
+
+  it("anda na escala entre eventos, com teto", () => {
+    const clock = new DisplayClock();
+    clock.reset(at72, 0);
+    expect(frames(clock, at72, 0, 10_000).at(-1)).toBeCloseTo(112, 1);
+    expect(frames(clock, at72, 10_050, 200_000).at(-1)).toBeCloseTo(100 + MAX_AHEAD, 0);
+  });
+
+  it("evento atrasado: não volta nem trava, só desacelera até acertar", () => {
+    const clock = new DisplayClock();
+    clock.reset(at72, 0);
+    const before = frames(clock, at72, 0, 5000); // 106
+    const late = { ...at72, tick: 105 }; // aconteceu há quase 1 s
+    clock.observe(late, 5000);
+    const after = frames(clock, late, 5050, 9000);
+    expect(monotonic([...before, ...after])).toBe(true);
+    expect(after.every((v, i) => i === 0 || v > (after[i - 1] ?? 0))).toBe(true); // sempre andando
+    expect(after.at(-1)).toBeCloseTo(105 + 4 * 1.2, 0);
+  });
+
+  it("trocar 720× por 72× não faz o relógio voltar nem saltar", () => {
+    const clock = new DisplayClock();
+    clock.reset(at720, 0);
+    const fast = frames(clock, at720, 0, 5000); // 160
+    clock.observe(at72, 5000); // escala nova, sem evento novo
+    const slow = frames(clock, at72, 5050, 6000);
+    expect(monotonic([...fast, ...slow])).toBe(true);
+    expect((slow.at(-1) ?? 0) - (fast.at(-1) ?? 0)).toBeCloseTo(1.2, 1);
+  });
+
+  it("numa aba em segundo plano (um quadro por segundo) a 720× continua estável", () => {
+    const clock = new DisplayClock();
+    clock.reset(at720, 0);
+    let s = at720;
+    let shown: number[] = [];
+    for (let second = 1; second <= 20; second++) {
+      s = { ...s, tick: 100 + Math.floor(second * 12 - 1.5) }; // evento ~125 ms atrasado
+      clock.observe(s, second * 1000);
+      shown = [...shown, ...frames(clock, s, second * 1000, second * 1000 + 999, true, 1000)];
+    }
+    expect(monotonic(shown)).toBe(true);
+    const gaps = shown.slice(1).map((v, i) => v - (shown[i] ?? v));
+    expect(Math.min(...gaps.slice(3))).toBeGreaterThan(10); // sem paradas: anda uns 12 ticks por quadro
+    expect(Math.abs((shown.at(-1) ?? 0) - (100 + 20 * 12))).toBeLessThan(3);
+  });
+
+  it("um passo com a pausa pula direto para o tick novo", () => {
+    const clock = new DisplayClock();
+    const paused = state({ clock: { mode: "continuous", scale: 72, paused: true } });
+    clock.reset(paused, 0);
+    const stepped = { ...paused, tick: 160 };
+    clock.observe(stepped, 1000);
+    expect(clock.at(stepped, 1000, true)).toBe(160);
+  });
+
+  it("para sem conexão, na pausa e no modo máximo", () => {
+    const clock = new DisplayClock();
+    clock.reset(at72, 0);
+    expect(frames(clock, at72, 0, 10_000, false).at(-1)).toBe(100);
+    const paused = state({ clock: { mode: "continuous", scale: 72, paused: true } });
+    clock.observe(paused, 10_000);
+    expect(frames(clock, paused, 10_000, 20_000).at(-1)).toBe(100);
+    const max = state({ clock: { mode: "max", scale: 72, paused: false } });
+    clock.observe(max, 20_000);
+    expect(frames(clock, max, 20_000, 30_000).at(-1)).toBe(100);
+  });
+
+  it("um welcome novo recomeça, mesmo para trás", () => {
+    const clock = new DisplayClock();
+    clock.reset(at72, 0);
+    frames(clock, at72, 0, 10_000);
+    clock.reset(state({ tick: 3 }), 10_000);
+    expect(clock.at(state({ tick: 3 }), 10_000, true)).toBe(3);
   });
 
   it("mostra a hora do mundo, no fuso do mundo", () => {

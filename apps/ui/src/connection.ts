@@ -42,13 +42,12 @@ export class Connection {
   }
 
   private receive(message: Incoming): void {
-    const now = performance.now();
     switch (message.type) {
       case "campsverso.realtime.welcome.v1":
-        this.store.applyWelcome(message, now);
+        this.store.applyWelcome(message);
         break;
       case "campsverso.realtime.update.v1":
-        this.store.applyUpdate(message, now);
+        this.store.applyUpdate(message);
         break;
       case "campsverso.realtime.reply.v1":
         this.store.applyReply(message);

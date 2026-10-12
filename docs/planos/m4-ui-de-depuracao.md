@@ -135,6 +135,6 @@ As decisões viraram a ADR-0049 (cochilo) e a ADR-0050 (as demais).
 - **O gateway serve a UI compilada.** `make sandbox` e `make run` abrem a UI em `http://127.0.0.1:8765`, sem precisar do Vite. O `make ui` fica para mexer na UI, com recarga ao salvar.
 - **O NatsBus reconhece na hora um pedido negado por permissão.** Antes, uma publicação negada esperava 5 s e virava "barramento indisponível". Agora vira `PermissionDeniedError` assim que o servidor avisa.
 - **O tick do último pedido de decisão vem do próprio evento.** O teste com NATS mostrou que, com `world` e `agent` em streams separados, o maior tick já visto dependia da ordem de chegada.
-- **A tela estima o relógio entre eventos.** Tick quieto não gera evento. No contínuo, a UI avança o relógio pela escala, com teto de 120 ticks, e para quando o mundo pausa.
+- **A tela estima o relógio entre eventos.** Tick quieto não gera evento. No contínuo, a UI avança o relógio pela escala, com teto de 120 ticks, e para quando o mundo pausa. Na revisão do usuário, o relógio voltava ao trocar de escala e seguia andando sem conexão. A versão corrigida nunca volta, corrige a diferença aos poucos e para sem conexão (diário de 12/out, "Depois do M4").
 - **As fotos da percepção não vão para a tela.** São dos controladores, e pesadas.
 - **Cada parte do painel só se refaz quando o dado dela muda.** Refazer os botões a cada 150 ms engoliria cliques.

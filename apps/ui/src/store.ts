@@ -20,8 +20,8 @@ export class Store {
   status: Status = "connecting";
   welcome: RealtimeWelcomeV1 | undefined;
   state: ObserverState | undefined;
-  /** Quando o estado chegou (relógio de parede do browser), para estimar o tick (simclock.ts). */
-  receivedAtMs = 0;
+  /** Quantos welcomes chegaram: cada um recomeça o relógio da tela (simclock.ts). */
+  welcomes = 0;
   /** Da mais antiga para a mais nova; só as últimas TIMELINE_LIMIT. */
   timeline: EnvelopeV1[] = [];
   lastReply: RealtimeReplyV1 | undefined;
@@ -42,23 +42,19 @@ export class Store {
     this.changed();
   }
 
-  applyWelcome(message: RealtimeWelcomeV1, nowMs: number): void {
+  applyWelcome(message: RealtimeWelcomeV1): void {
     this.welcome = message;
     this.state = message.state;
-    this.receivedAtMs = nowMs;
+    this.welcomes += 1;
     this.timeline = message.events.slice(-TIMELINE_LIMIT);
     this.changed();
   }
 
-  applyUpdate(message: RealtimeUpdateV1, nowMs: number): void {
+  applyUpdate(message: RealtimeUpdateV1): void {
     if (this.state === undefined) {
       return; // sem welcome não há sobre o que aplicar; o próximo welcome traz tudo
     }
-    const before = this.state.tick;
     this.state = applyMergePatch(this.state, message.patch) as unknown as ObserverState;
-    if (this.state.tick !== before) {
-      this.receivedAtMs = nowMs;
-    }
     if (message.events.length > 0) {
       this.timeline = [...this.timeline, ...message.events].slice(-TIMELINE_LIMIT);
     }
