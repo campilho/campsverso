@@ -49,7 +49,7 @@ campsverso/
   CLAUDE.md
   Makefile
   contracts/                  # FONTE DA VERDADE dos contratos
-    common/  envelope/  events/  commands/  realtime/  examples/{valid,invalid}/  domains.json
+    common/  envelope/  events/  commands/  realtime/  live/  examples/{valid,invalid}/  domains.json
     asyncapi.yaml             # GERADO a partir dos schemas
     CHANGELOG.md
   packages/
@@ -86,6 +86,7 @@ campsverso/
     arquitetura/  decisoes/  diario/
     planos/                   # plano de cada marco, aprovado antes do código; futuro.md: tarefas sem marco
     design/                   # referências visuais (Claude Design)
+    custos/                   # tempo e tokens por marco (make sessoes), só números
   tests/
     e2e/                      # resistência, determinismo, replay, recuperação
     support/                  # campsverso_testkit: mundos e roteiros para testes (ADR-0040)
@@ -119,6 +120,7 @@ make ui           # a UI em modo desenvolvimento (Vite), com proxy para o gatewa
 make soak DAYS=30 # resistência em modo máximo, com processos e NATS próprios (SEM_REGRA=1)
 make replay DAY=N # reexecuta um dia a partir do snapshot e do diário e compara com o arquivo
 make metrics      # métricas da bíblia §13 a partir do arquivo (ARCHIVE=pasta do mundo)
+make sessoes      # tempo e tokens do Claude Code por turno e por marco em docs/custos (MARCO=M5)
 ```
 
 Os alvos de marcos futuros já existem e avisam "ainda não implementado (marco Mx)". `make check` inclui `make contracts-check` (validação nos dois validadores e codegen sem diferenças) e `make compat` (compatibilidade com `COMPAT_BASE`, padrão `HEAD`).

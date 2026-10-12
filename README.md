@@ -19,7 +19,8 @@ Projeto pessoal de aprendizado, construído em público com a ajuda do Claude Co
 | M2: durabilidade (NATS, outbox, arquivo JSONL, snapshots, retomada) | concluído |
 | M3: controladores headless (percepção, fazendeiro-script, replay, modo máximo) | concluído |
 | M4: UI de depuração (gateway WebSocket, canvas, visões jogador/operador, controles do relógio) | concluído |
-| M5: controlador humano (clicar para mover, menu de ações, assumir e devolver a posse) | próximo |
+| M5: controlador humano (clicar para mover, menu de ações, assumir e devolver a posse) | em teste |
+| M6: renderer Phaser (mapa, tiles e sprites, animações) | próximo |
 
 ## Como começar
 
@@ -33,11 +34,14 @@ make run     # o mundo oficial: NATS, kernel, percepção, fazendeiro-script, ar
 make stop    # derruba o NATS
 make ui      # a UI em modo desenvolvimento (Vite), ligada ao gateway do run ou do sandbox
 make soak DAYS=30   # 30 dias simulados em modo máximo, com processos e NATS próprios
+make sessoes MARCO=M5   # tempo e tokens do Claude Code por marco, em docs/custos/
 make metrics        # métricas do mundo a partir do arquivo de eventos
 make help    # todos os alvos
 ```
 
 O `make run` gera as senhas locais do NATS em `.env`, fora do git. O mundo fica em `data/farm-camps-01/` (estado e snapshots) e o histórico de eventos em `data/archive/`. A UI abre em `http://127.0.0.1:8765/?view=player` (jogador) ou `?view=operator` (operador, com relógio e linha do tempo). O `make sandbox` faz o mesmo numa pasta própria em `data/sandbox/`, sem tocar no mundo oficial.
+
+Para jogar, clique em "Assumir o Camps". O clique esquerdo anda; o clique direito abre o menu de ações da coisa clicada, ou o do próprio Camps. "Devolver ao script" devolve o controle ao fazendeiro-script.
 
 ## Documentação
 
@@ -45,6 +49,7 @@ O `make run` gera as senhas locais do NATS em `.env`, fora do git. O mundo fica 
 - [Contratos](contracts/): os JSON Schemas de todos os eventos e comandos (fonte da verdade) e o [changelog](contracts/CHANGELOG.md).
 - [Decisões (ADRs)](docs/decisoes/README.md)
 - [Diário de bordo](docs/diario/)
+- [Custos de desenvolvimento](docs/custos/): tempo e tokens do Claude Code por marco
 
 ## Licença
 

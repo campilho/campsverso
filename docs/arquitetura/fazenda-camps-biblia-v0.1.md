@@ -163,7 +163,7 @@ Moedas também são um item (`moeda`). Isso mantém a economia dentro da mesma p
 
 ## 8. Catálogo de ações v0.1 (afordâncias)
 
-Todas as ações são propostas por **qualquer controlador** via `campsverso.cmd.action.propose.v1`, com o mesmo catálogo para humano, script e replay.
+Todas as ações são propostas por **qualquer controlador** via `campsverso.cmd.action.propose.v1`, com o mesmo catálogo para humano, script e replay. O menu de quem joga vem do catálogo de afordâncias do gênero (`affordances` no `farm.yaml`), publicado no `session.started` (ADR-0051).
 
 | Ação | Alvo | Pré-condições | Duração (ticks) | Energia | Efeito |
 |---|---|---|---|---|---|

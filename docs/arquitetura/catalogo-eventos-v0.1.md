@@ -241,6 +241,17 @@ Estas mensagens não passam pelo NATS nem levam envelope. São o protocolo da UI
 - **Nada de desenho:** qualquer renderer (canvas, Phaser, 3D) usa o mesmo estado.
 - **O estado não tem `null`,** porque no merge patch `null` apaga a chave. Atributo nulo é atributo ausente.
 - **`reply` só diz se o gateway publicou o comando.** Quem aceita ou recusa o comando no mundo é o kernel, com um evento (`clock.paused`, `world.command.rejected`…).
+- **Desde o M5 (ADR-0051):**
+  - o estado traz `pulse` (o último pulso do kernel e se ele está vivo) e `session.affordances` (o catálogo de ações do cartucho);
+  - cada conexão recebe as recusas dos próprios comandos, mesmo sem ver eventos `observer`.
+
+### 3.12 Avisos fora do histórico (`contracts/live`, ADR-0051)
+
+| Mensagem | Assunto | Campos |
+|---|---|---|
+| `campsverso.live.kernel.v1` | `campsverso.<mundo>.live.kernel`, NATS puro, fora de todos os streams | `worldid` · `tick` · `sim_time` · `mode` · `scale` · `paused` · `pulse_seconds` · `sent_at` |
+
+O pulso sai a cada `kernel.pulse_seconds` de tempo real. Não entra no arquivo JSONL, no replay nem no hash de determinismo.
 
 ---
 

@@ -1,6 +1,6 @@
 # Plano do M5 — Controlador humano
 
-**Status:** aprovado em 12/out/2026 (ADR-0051), em implementação.
+**Status:** implementado em 12/out/2026. Falta a partida de meio dia do usuário (o critério de pronto). O que mudou está na seção 8.
 **Escopo** (escopo §7): clicar para mover, menu de ações, assumir e devolver a posse.
 **Pronto quando:** você joga meio dia e devolve ao script sem quebrar nada.
 **Critério de aceite:** A9 (posse) pelo caminho da UI: o humano assume, joga e devolve, e os comandos de quem não tem a posse são recusados.
@@ -134,3 +134,20 @@ As decisões viraram a ADR-0051.
 6. `feat: UI joga: clique, menu de ações, assumir e devolver`
 7. `test: A9 pela UI com NATS`
 8. `docs: fechamento do M5`
+
+## 8. Como ficou
+
+| Item | Resultado |
+|---|---|
+| **Roteiro no navegador embutido** | assumir; plantar longe do canteiro (o kernel recusa: `not_adjacent`, e a tela mostra); clique esquerdo para chegar perto; plantar rabanete; o menu do próprio Camps ("Comer" desabilitado sem comida); devolver, e o script volta regando o canteiro plantado |
+| **Modo máximo** | o operador assume e o mundo passa a 72× antes; o jogador recebe "O kernel recusou avatar.possess (mode_not_allowed…)" |
+| **A9 com NATS** | um cliente WebSocket assume, anda, planta, vê um comando do script recusado com `not_in_control`, devolve, e o script volta a agir; cerca de 2 s |
+| **Pulso** | a cada 1 s, fora do arquivo; com `kill -9` no kernel, o estado vira "sem sinal" em cerca de 3 s. Custo medido em 45 s a 72× num MacBook Pro M3: +0,02 s de CPU no kernel e +0,13 s no gateway |
+| **Custos** | `make sessoes` grava os turnos de M0 a M5 em `docs/custos/` |
+
+**O que mudou em relação ao plano:**
+
+- **Cada conexão vê a recusa dos próprios comandos.** `world.command.rejected` é `observer`, e a visão jogador não saberia por que o kernel recusou o seu "Assumir". O gateway guarda os ids dos comandos de cada conexão.
+- **No YAML do cartucho, a chave é `kinds`.** No YAML 1.1, `on:` vira booleano. O contrato continua `on`.
+- **Clique direito no chão anda,** como o esquerdo. Não há menu de chão.
+- **Os avisos da tela vêm direto dos eventos de cada update,** e não da linha do tempo. No modo máximo, a linha do tempo enche (1.000 entradas), e os avisos novos se perdiam.
