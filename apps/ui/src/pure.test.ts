@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { positionAt } from "./motion.ts";
 import { applyMergePatch } from "./patch.ts";
 import { entityColor, tileColor } from "./render/skin.ts";
-import { DisplayClock, MAX_AHEAD, clockText } from "./simclock.ts";
+import { DisplayClock, MAX_AHEAD, clockText, isLive } from "./simclock.ts";
 import { Store } from "./store.ts";
 import { matches, shortType, summarize } from "./timeline.ts";
 import { parseTiledMap, tileAt } from "./tiled.ts";
@@ -182,6 +182,19 @@ describe("relógio da tela", () => {
     const max = state({ clock: { mode: "max", scale: 72, paused: false } });
     clock.observe(max, 20_000);
     expect(frames(clock, max, 20_000, 30_000).at(-1)).toBe(100);
+  });
+
+  it("o pulso do kernel ancora o relógio mesmo sem evento, e sem sinal ele para", () => {
+    const clock = new DisplayClock();
+    clock.reset(at72, 0);
+    frames(clock, at72, 0, 2000); // ~102,4 pela estimativa
+    const pulsed = { ...at72, pulse: { tick: 103, alive: true } };
+    clock.observe(pulsed, 2000);
+    expect(frames(clock, pulsed, 2050, 3000).at(-1)).toBeGreaterThan(103.5);
+    const silent = { ...pulsed, pulse: { tick: 103, alive: false } };
+    clock.observe(silent, 3000);
+    const frozen = frames(clock, silent, 3050, 9000, isLive(silent, true));
+    expect(frozen.at(-1)).toBe(frozen[0]);
   });
 
   it("um welcome novo recomeça, mesmo para trás", () => {

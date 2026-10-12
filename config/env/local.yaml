@@ -14,6 +14,9 @@ nats:
     INTERNAL: {subjects: ["campsverso.*.internal.>"], max_age: 90d, max_bytes: 1GiB}
     COMMANDS: {subjects: ["campsverso.*.cmd.>"], max_age: 30d, max_bytes: 256MiB}
 
+kernel:
+  pulse_seconds: 1  # pulso do kernel em tempo real (ADR-0051); 5 ou 10 se pesar; 0 desliga
+
 snapshots:
   full_every_ticks: 60  # um snapshot completo por hora simulada (decisão 3)
   keep_full: 168  # os mais recentes que ficam (7 dias simulados); o inicial nunca sai

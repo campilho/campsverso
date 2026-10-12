@@ -33,11 +33,24 @@ async def _wait_any(events: tuple[asyncio.Event, ...], seconds: float) -> None:
 
 class ClockLoop:
     def __init__(
-        self, service: KernelService, clock: WallClock, telemetry: Telemetry | None = None
+        self,
+        service: KernelService,
+        clock: WallClock,
+        telemetry: Telemetry | None = None,
+        *,
+        pulse_seconds: float = 0.0,  # 0: sem pulso (ADR-0051)
     ) -> None:
         self._service = service
         self._clock = clock
         self._telemetry = telemetry
+        self._pulse_seconds = pulse_seconds
+        self._next_pulse = 0.0
+
+    async def _pulse(self, now: float) -> None:
+        """Em qualquer modo, pausado ou esperando o lockstep: o pulso diz que o kernel está vivo."""
+        if self._pulse_seconds > 0 and now >= self._next_pulse:
+            self._next_pulse = now + self._pulse_seconds
+            await self._service.announce_pulse(self._pulse_seconds)
 
     async def run(self, stop: asyncio.Event) -> None:
         service, core = self._service, self._service.core
@@ -51,6 +64,7 @@ class ClockLoop:
                 raise service.failure
             now = self._clock.monotonic()
             elapsed, last = now - last, now
+            await self._pulse(now)
             if core.paused:
                 await _wait(stop, _IDLE_SECONDS)
                 continue

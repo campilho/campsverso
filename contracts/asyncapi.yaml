@@ -586,6 +586,18 @@ channels:
         $ref: '#/components/messages/RealtimeUpdateV1'
       RealtimeWelcomeV1:
         $ref: '#/components/messages/RealtimeWelcomeV1'
+  LiveKernelV1:
+    address: campsverso.{worldid}.live.kernel
+    title: campsverso.live.kernel.v1
+    description: 'Fora dos streams: não fica no histórico nem no arquivo JSONL.'
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      LiveKernelV1:
+        $ref: '#/components/messages/LiveKernelV1'
 operations:
   sendActionAcceptedV1:
     action: send
@@ -958,6 +970,13 @@ operations:
     messages:
     - $ref: '#/channels/Realtime/messages/RealtimeWelcomeV1'
     x-producer: gateway
+  sendLiveKernelV1:
+    action: send
+    channel:
+      $ref: '#/channels/LiveKernelV1'
+    messages:
+    - $ref: '#/channels/LiveKernelV1/messages/LiveKernelV1'
+    x-producer: kernel
 components:
   schemas:
     Uuid7:
@@ -2467,6 +2486,52 @@ components:
           description: 'Ex.: sun, rain.'
         day:
           $ref: '#/components/schemas/Day'
+    LiveKernelV1:
+      title: LiveKernelV1
+      description: 'Pulso do kernel: o tick de verdade e o relógio, a cada kernel.pulse_seconds de tempo
+        real. Vai para campsverso.<mundo>.live.kernel, que nenhum stream guarda: não entra no histórico,
+        no arquivo JSONL nem no replay (ADR-0051).'
+      type: object
+      additionalProperties: false
+      required:
+      - type
+      - worldid
+      - tick
+      - sim_time
+      - mode
+      - scale
+      - paused
+      - pulse_seconds
+      - sent_at
+      properties:
+        type:
+          const: campsverso.live.kernel.v1
+        worldid:
+          type: string
+          pattern: ^[a-z0-9]+(-[a-z0-9]+)*$
+          maxLength: 64
+        tick:
+          $ref: '#/components/schemas/Tick'
+          description: O tick em que o kernel está agora, mesmo sem evento.
+        sim_time:
+          type: string
+          format: date-time
+        mode:
+          $ref: '#/components/schemas/ClockMode'
+        scale:
+          type: number
+          exclusiveMinimum: 0
+        paused:
+          type: boolean
+        pulse_seconds:
+          type: number
+          exclusiveMinimum: 0
+          description: O intervalo entre pulsos; quem escuta usa para saber quando o kernel ficou sem
+            sinal.
+        sent_at:
+          type: string
+          format: date-time
+          description: Relógio de parede de quem mandou.
     RealtimeCommandV1:
       title: RealtimeCommandV1
       description: Pedido da UI para o gateway publicar um comando. O gateway monta o envelope e o valida
@@ -2672,6 +2737,23 @@ components:
                   type: number
                   exclusiveMinimum: 0
                 paused:
+                  type: boolean
+            pulse:
+              type: object
+              title: ObserverPulse
+              additionalProperties: false
+              description: 'O último pulso do kernel (ADR-0051): o tick de verdade, mesmo sem evento.
+                `alive` vira falso depois de 3 pulsos perdidos. Ausente até o primeiro pulso.'
+              required:
+              - tick
+              - alive
+              properties:
+                tick:
+                  $ref: '#/components/schemas/Tick'
+                sim_time:
+                  type: string
+                  format: date-time
+                alive:
                   type: boolean
             weather:
               type: object
@@ -3263,6 +3345,16 @@ components:
       contentType: application/json
       payload:
         $ref: '#/components/schemas/RealtimeWelcomeV1'
+    LiveKernelV1:
+      name: campsverso.live.kernel.v1
+      title: LiveKernelV1
+      summary: 'Pulso do kernel: o tick de verdade e o relógio, a cada kernel.pulse_seconds de tempo real.
+        Vai para campsverso.<mundo>.live.kernel, que nenhum stream guarda: não entra no histórico, no
+        arquivo JSONL nem no replay (ADR-0051).'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/LiveKernelV1'
+      x-producer: kernel
   parameters:
     worldid:
       description: 'Instância do mundo, ex.: farm-camps-01.'

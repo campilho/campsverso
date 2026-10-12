@@ -28,6 +28,11 @@
       "scale": 72,
       "paused": true
     },
+    "pulse": {
+      "tick": 66,
+      "sim_time": "2026-03-02T07:06:00-03:00",
+      "alive": true
+    },
     "weather": {
       "1": "sun"
     },

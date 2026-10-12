@@ -1,0 +1,11 @@
+{
+  "type": "campsverso.live.kernel.v1",
+  "worldid": "farm-camps-01",
+  "tick": 64,
+  "sim_time": "2026-10-10T07:04:00-03:00",
+  "mode": "continuous",
+  "scale": 72,
+  "paused": false,
+  "pulse_seconds": 1,
+  "sent_at": "2026-10-12T15:00:00.120Z"
+}

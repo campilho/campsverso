@@ -167,9 +167,22 @@ async def test_gateway_visoes_comandos_e_a6(tmp_path: Path, nats: NatsServer) ->
         await asyncio.sleep(1)  # o mundo pausado não publica mais nada
         reference = await _reference(nats, "referencia")
         state = (await gateway.welcome("operator"))["state"]
+        pulse = state.pop("pulse")  # o pulso não vem dos streams (ADR-0051)
         assert state == reference, _diff(state, reference)
+        assert pulse["alive"] is True
+        assert pulse["tick"] >= state["tick"]
+
+        # Pulso: com o kernel morto, o gateway marca "sem sinal" depois de 3 pulsos perdidos.
+        processes.running["kernel"].kill()
+        processes.running["kernel"].wait()
+        async with asyncio.timeout(10):
+            while (await gateway.welcome("operator"))["state"]["pulse"]["alive"]:
+                await asyncio.sleep(0.5)
     finally:
         processes.stop("kernel")
         processes.stop("gateway", "controller", "perception", "archiver")
     log = (tmp_path / "gateway.log").read_text(encoding="utf-8")
     assert "gateway.failed" not in log
+    archived = [line for path in (tmp_path / "archive").rglob("*.jsonl") for line in path.open()]
+    assert archived
+    assert not any("campsverso.live." in line for line in archived)

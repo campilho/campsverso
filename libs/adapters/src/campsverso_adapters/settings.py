@@ -59,6 +59,7 @@ class EnvSettings:
     snapshot_keep_full: int
     archive_compress_after_days: int
     gateway: GatewaySettings = field(default_factory=GatewaySettings)
+    pulse_seconds: float = 1.0  # pulso do kernel (ADR-0051); 0 desliga
 
 
 type ClockMode = Literal["continuous", "max"]
@@ -90,6 +91,7 @@ def load_env(path: Path, root: Path | None = None) -> EnvSettings:
     snapshots = cast(Mapping[str, Any], doc["snapshots"])
     archive = cast(Mapping[str, Any], doc["archive"])
     gateway = cast(Mapping[str, Any], doc.get("gateway") or {})
+    kernel = cast(Mapping[str, Any], doc.get("kernel") or {})
     maps = cast(Mapping[str, str], gateway.get("maps") or {})
     return EnvSettings(
         data_dir=base / str(doc["data_dir"]),
@@ -117,6 +119,7 @@ def load_env(path: Path, root: Path | None = None) -> EnvSettings:
             maps={str(k): base / str(v) for k, v in maps.items()},
             ui_dir=base / str(gateway["ui_dir"]) if gateway.get("ui_dir") else None,
         ),
+        pulse_seconds=float(kernel.get("pulse_seconds", 1.0)),
     )
 
 

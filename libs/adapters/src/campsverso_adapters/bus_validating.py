@@ -1,5 +1,8 @@
 """Decorador de EventBus que valida cada envelope antes de publicar (critério A2)."""
 
+from collections.abc import Mapping
+from typing import Any
+
 from campsverso_adapters.contract_validation import ContractValidator, Problem
 from campsverso_ports import BatchHandler, Consumer, Envelope, EventBus, Handler, Subscription
 
@@ -23,6 +26,9 @@ class ValidatingBus:
         if problems:
             raise ContractViolationError(subject, problems)
         await self._inner.publish(subject, envelope)
+
+    async def announce(self, subject: str, message: Mapping[str, Any]) -> None:
+        await self._inner.announce(subject, message)  # aviso sem envelope: o teste valida a forma
 
     async def subscribe(self, pattern: str, handler: Handler) -> Subscription:
         return await self._inner.subscribe(pattern, handler)

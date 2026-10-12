@@ -23,7 +23,7 @@ def _setup() -> tuple[EventValidator, tuple[JsonObject, ...], catalog.Contracts]
         json.loads(path.read_text(encoding="utf-8"))
         for path in sorted((contracts.examples_dir / "valid").glob("*.json"))
     )  # só envelopes: as mensagens do WebSocket têm o validador delas (ADR-0050)
-    examples = tuple(d for d in documents if not d["type"].startswith("campsverso.realtime."))
+    examples = tuple(d for d in documents if not d["type"].startswith(catalog.MESSAGE_PREFIXES))
     return EventValidator(contracts), examples, contracts
 
 

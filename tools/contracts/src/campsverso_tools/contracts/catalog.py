@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 type JsonObject = dict[str, Any]
-type Kind = Literal["common", "envelope", "event", "command", "realtime"]
+type Kind = Literal["common", "envelope", "event", "command", "message"]
 
 VISIBILITIES = ("world", "agent", "observer", "internal")
 ID_PREFIX = "contracts://"
@@ -17,8 +17,12 @@ _KIND_BY_DIR: dict[str, Kind] = {
     "envelope": "envelope",
     "events": "event",
     "commands": "command",
-    "realtime": "realtime",  # mensagens do WebSocket entre gateway e UI (ADR-0050)
+    # Mensagens sem envelope: o WebSocket entre gateway e UI (ADR-0050) e os avisos que não ficam
+    # no histórico, como o pulso do kernel (ADR-0051).
+    "realtime": "message",
+    "live": "message",
 }
+MESSAGE_PREFIXES = tuple(f"campsverso.{d}." for d, k in _KIND_BY_DIR.items() if k == "message")
 
 
 @dataclass(frozen=True)
@@ -66,11 +70,11 @@ class SchemaFile:
 
     @property
     def expected_message(self) -> str | None:
-        """realtime/<nome>.vN vira campsverso.realtime.<nome>.vN."""
-        if self.kind != "realtime":
+        """realtime/<nome>.vN vira campsverso.realtime.<nome>.vN (o mesmo para live/)."""
+        if self.kind != "message":
             return None
         parts = self.path.as_posix().removesuffix(SUFFIX).split("/")
-        return f"campsverso.realtime.{parts[1]}" if len(parts) == 2 else None
+        return f"campsverso.{parts[0]}.{parts[1]}" if len(parts) == 2 else None
 
     @property
     def visibility(self) -> str | None:

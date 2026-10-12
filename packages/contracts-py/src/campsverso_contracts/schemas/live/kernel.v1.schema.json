@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://live/kernel.v1",
+  "title": "LiveKernelV1",
+  "description": "Pulso do kernel: o tick de verdade e o relógio, a cada kernel.pulse_seconds de tempo real. Vai para campsverso.<mundo>.live.kernel, que nenhum stream guarda: não entra no histórico, no arquivo JSONL nem no replay (ADR-0051).",
+  "x-message": "campsverso.live.kernel.v1",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "type",
+    "worldid",
+    "tick",
+    "sim_time",
+    "mode",
+    "scale",
+    "paused",
+    "pulse_seconds",
+    "sent_at"
+  ],
+  "properties": {
+    "type": {
+      "const": "campsverso.live.kernel.v1"
+    },
+    "worldid": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "tick": {
+      "$ref": "contracts://common/defs.v1#/$defs/tick",
+      "description": "O tick em que o kernel está agora, mesmo sem evento."
+    },
+    "sim_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "mode": {
+      "$ref": "contracts://common/defs.v1#/$defs/clock_mode"
+    },
+    "scale": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "paused": {
+      "type": "boolean"
+    },
+    "pulse_seconds": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "O intervalo entre pulsos; quem escuta usa para saber quando o kernel ficou sem sinal."
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Relógio de parede de quem mandou."
+    }
+  }
+}

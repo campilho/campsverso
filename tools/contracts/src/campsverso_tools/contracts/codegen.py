@@ -94,7 +94,7 @@ def _bundle_defs(contracts: Contracts, prefix: str) -> JsonObject:
     for value in common.content["$defs"].values():
         defs[str(value["title"])] = _rewrite(value, titles, prefix)
     for f in contracts.files:
-        if f.kind in ("envelope", "event", "command", "realtime"):
+        if f.kind in ("envelope", "event", "command", "message"):
             defs[f.title] = _rewrite(f.content, titles, prefix)
     return defs
 
@@ -257,6 +257,7 @@ def _asyncapi(contracts: Contracts) -> str:
             "x-producer": f.content["x-producer"],
         }
     _realtime(contracts, channels, operations, messages)
+    _live(contracts, channels, operations, messages)
     document: JsonObject = {
         "asyncapi": "3.1.0",
         "info": {
@@ -304,7 +305,10 @@ def _realtime(
     contracts: Contracts, channels: JsonObject, operations: JsonObject, messages: JsonObject
 ) -> None:
     """Um canal WebSocket com as mensagens do gateway, do ponto de vista do gateway (ADR-0050)."""
-    files = sorted(contracts.by_message.values(), key=lambda f: str(f.message_type))
+    files = sorted(
+        (f for f in contracts.by_message.values() if f.path.parts[0] == "realtime"),
+        key=lambda f: str(f.message_type),
+    )
     if not files:
         return
     channels["Realtime"] = {
@@ -328,6 +332,38 @@ def _realtime(
             "channel": {"$ref": "#/channels/Realtime"},
             "messages": [{"$ref": f"#/channels/Realtime/messages/{f.title}"}],
             "x-producer": "ui" if action == "receive" else "gateway",
+        }
+
+
+def _live(
+    contracts: Contracts, channels: JsonObject, operations: JsonObject, messages: JsonObject
+) -> None:
+    """Avisos no NATS que nenhum stream guarda, como o pulso do kernel (ADR-0051)."""
+    for f in sorted(contracts.by_message.values(), key=lambda f: str(f.message_type)):
+        if f.path.parts[0] != "live":
+            continue
+        name = str(f.message_type).removeprefix("campsverso.").rsplit(".", 1)[0]  # live.kernel
+        channels[f.title] = {
+            "address": f"campsverso.{{worldid}}.{name}",
+            "title": f.message_type,
+            "description": "Fora dos streams: não fica no histórico nem no arquivo JSONL.",
+            "servers": [{"$ref": "#/servers/local"}],
+            "parameters": {"worldid": {"$ref": "#/components/parameters/worldid"}},
+            "messages": {f.title: {"$ref": f"#/components/messages/{f.title}"}},
+        }
+        messages[f.title] = {
+            "name": f.message_type,
+            "title": f.title,
+            "summary": f.content.get("description", ""),
+            "contentType": "application/json",
+            "payload": {"$ref": f"#/components/schemas/{f.title}"},
+            "x-producer": f.content.get("x-producer", "kernel"),
+        }
+        operations[f"send{f.title}"] = {
+            "action": "send",
+            "channel": {"$ref": f"#/channels/{f.title}"},
+            "messages": [{"$ref": f"#/channels/{f.title}/messages/{f.title}"}],
+            "x-producer": f.content.get("x-producer", "kernel"),
         }
 
 

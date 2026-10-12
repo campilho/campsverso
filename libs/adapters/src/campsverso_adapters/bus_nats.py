@@ -10,7 +10,7 @@
 import asyncio
 import contextlib
 import json
-from collections.abc import Awaitable, Sequence
+from collections.abc import Awaitable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -226,6 +226,14 @@ class NatsBus:
             )
         except _UNAVAILABLE as error:
             raise BusUnavailableError(f"publicação em {subject} falhou: {error!r}") from error
+
+    async def announce(self, subject: str, message: Mapping[str, Any]) -> None:
+        """NATS puro, sem JetStream: o assunto `live` não pertence a nenhum stream (ADR-0051)."""
+        payload = json.dumps(message, ensure_ascii=False, separators=(",", ":")).encode()
+        try:
+            await self._nc.publish(subject, payload)
+        except _UNAVAILABLE as error:
+            raise BusUnavailableError(f"aviso em {subject} falhou: {error!r}") from error
 
     # ------------------------------------------------------------- assinar
 

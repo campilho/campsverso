@@ -11,7 +11,7 @@ import { el } from "./dom.ts";
 import { renderHud } from "./panels/hud.ts";
 import { OperatorPanel } from "./panels/operator.ts";
 import { MapCanvas } from "./render/canvas.ts";
-import { DisplayClock, clockText } from "./simclock.ts";
+import { DisplayClock, clockText, isLive } from "./simclock.ts";
 import { Store } from "./store.ts";
 import { parseTiledMap } from "./tiled.ts";
 
@@ -90,7 +90,7 @@ function frame(now: number): void {
   const state = store.state;
   const avatarId = store.welcome?.avatar_id ?? "camps";
   if (state !== undefined) {
-    const tick = clock.at(state, now, store.status === "open");
+    const tick = clock.at(state, now, isLive(state, store.status === "open"));
     map.draw(state, tick);
     const shownClock = clockText(state, tick);
     const panelDue = (dirty || now - lastPanel > 1000) && now - lastPanel >= PANEL_EVERY_MS;

@@ -9,7 +9,13 @@ from typing import Any
 
 from jsonschema import Draft202012Validator, SchemaError
 
-from campsverso_tools.contracts.catalog import VISIBILITIES, Contracts, JsonObject, SchemaFile
+from campsverso_tools.contracts.catalog import (
+    MESSAGE_PREFIXES,
+    VISIBILITIES,
+    Contracts,
+    JsonObject,
+    SchemaFile,
+)
 from campsverso_tools.contracts.validation import EventValidator, MessageValidator, Problem
 
 SNAKE_CASE = re.compile(r"^[a-z][a-z0-9]*(_[a-z0-9]+)*$")
@@ -18,7 +24,6 @@ TYPE_NAME = re.compile(r"^campsverso\.(cmd\.)?([a-z0-9_]+)\.[a-z0-9_]+(\.[a-z0-9
 # Palavras reservadas do Python não viram nome de campo, nem o par `to` (ADR-0030):
 # os modelos Pydantic gerados precisariam de apelidos.
 RESERVED = frozenset(keyword.kwlist) | {"to"}
-REALTIME = "campsverso.realtime."
 PRODUCERS = frozenset({"kernel", "perception", "controller", "operator"})
 
 
@@ -53,7 +58,7 @@ def _check_file(f: SchemaFile, contracts: Contracts) -> list[Problem]:
 
     if f.kind in ("event", "command"):
         problems.extend(_check_type(f, contracts))
-    if f.kind == "realtime":
+    if f.kind == "message":
         problems.extend(_check_message(f))
 
     for node_path, node in _nodes(f.content, f.title):
@@ -114,7 +119,7 @@ def _check_type(f: SchemaFile, contracts: Contracts) -> list[Problem]:
 
 
 def _check_message(f: SchemaFile) -> list[Problem]:
-    """Mensagens do WebSocket: o nome vem da pasta, e o campo `type` o repete (ADR-0050)."""
+    """Mensagens sem envelope: o nome vem da pasta, e o campo `type` o repete (ADR-0050)."""
     where = f.path.as_posix()
     problems: list[Problem] = []
     if f.message_type is None or f.message_type != f.expected_message:
@@ -162,14 +167,15 @@ def check_conventions(contracts: Contracts) -> list[Problem]:
 def check_examples(contracts: Contracts) -> list[Problem]:
     """Válidos passam e cobrem todos os tipos; cada inválido falha com o código esperado.
 
-    Eventos e comandos são envelopes; mensagens `campsverso.realtime.*` são validadas como mensagens
-    do WebSocket (ADR-0050). Um exemplo inválido traz o documento em `event` ou em `message`.
+    Eventos e comandos são envelopes; mensagens `campsverso.realtime.*` e `campsverso.live.*` são
+    validadas como mensagens (ADR-0050, ADR-0051). Um exemplo inválido traz o documento em `event`
+    ou em `message`.
     """
     events = EventValidator(contracts)
     messages = MessageValidator(contracts)
 
     def validate(document: JsonObject) -> list[Problem]:
-        is_message = str(document.get("type", "")).startswith(REALTIME)
+        is_message = str(document.get("type", "")).startswith(MESSAGE_PREFIXES)
         return (messages if is_message else events).validate(document)
 
     problems: list[Problem] = []

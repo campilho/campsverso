@@ -48,7 +48,9 @@ export function renderHud(
       el("span", {}, state.phase),
       el("span", {}, `clima: ${weather}`),
       el("span", { className: "badge" }, clockBadge(state)),
-      el("span", { className: `status ${status}` }, STATUS[status]),
+      status === "open" && state.pulse?.alive === false
+        ? el("span", { className: "status closed" }, "kernel sem sinal")
+        : el("span", { className: `status ${status}` }, STATUS[status]),
     ),
     el(
       "div",

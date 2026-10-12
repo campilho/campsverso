@@ -147,6 +147,28 @@
             }
           }
         },
+        "pulse": {
+          "type": "object",
+          "title": "ObserverPulse",
+          "additionalProperties": false,
+          "description": "O último pulso do kernel (ADR-0051): o tick de verdade, mesmo sem evento. `alive` vira falso depois de 3 pulsos perdidos. Ausente até o primeiro pulso.",
+          "required": [
+            "tick",
+            "alive"
+          ],
+          "properties": {
+            "tick": {
+              "$ref": "contracts://common/defs.v1#/$defs/tick"
+            },
+            "sim_time": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "alive": {
+              "type": "boolean"
+            }
+          }
+        },
         "weather": {
           "type": "object",
           "description": "Condição do clima por dia (a chave é o número do dia).",

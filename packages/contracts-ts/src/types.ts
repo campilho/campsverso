@@ -891,6 +891,29 @@ export interface WorldWeatherChangedV1 {
   day: Day;
 }
 /**
+ * Pulso do kernel: o tick de verdade e o relógio, a cada kernel.pulse_seconds de tempo real. Vai para campsverso.<mundo>.live.kernel, que nenhum stream guarda: não entra no histórico, no arquivo JSONL nem no replay (ADR-0051).
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "LiveKernelV1".
+ */
+export interface LiveKernelV1 {
+  type: "campsverso.live.kernel.v1";
+  worldid: string;
+  tick: Tick;
+  sim_time: string;
+  mode: ClockMode;
+  scale: number;
+  paused: boolean;
+  /**
+   * O intervalo entre pulsos; quem escuta usa para saber quando o kernel ficou sem sinal.
+   */
+  pulse_seconds: number;
+  /**
+   * Relógio de parede de quem mandou.
+   */
+  sent_at: string;
+}
+/**
  * Pedido da UI para o gateway publicar um comando. O gateway monta o envelope e o valida contra o contrato do comando (ADR-0050).
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
@@ -979,6 +1002,7 @@ export interface ObserverState {
   phase: Token;
   session?: ObserverSession;
   clock: ObserverClock;
+  pulse?: ObserverPulse;
   /**
    * Condição do clima por dia (a chave é o número do dia).
    */
@@ -1040,6 +1064,14 @@ export interface ObserverClock {
   mode?: ClockMode;
   scale?: number;
   paused?: boolean;
+}
+/**
+ * O último pulso do kernel (ADR-0051): o tick de verdade, mesmo sem evento. `alive` vira falso depois de 3 pulsos perdidos. Ausente até o primeiro pulso.
+ */
+export interface ObserverPulse {
+  tick: Tick;
+  sim_time?: string;
+  alive: boolean;
 }
 export interface ObserverEntity {
   kind: Token;

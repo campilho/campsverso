@@ -32,6 +32,7 @@ from campsverso_ports import (
     IdGenerator,
     Message,
     RealtimeConnection,
+    Subscription,
     Telemetry,
     View,
     WallClock,
@@ -57,6 +58,8 @@ VISIBLE: Mapping[View, frozenset[str]] = {
 SKIPPED = frozenset({"campsverso.perception.delivered.v1"})
 PROJECTED = ("world", "agent")
 QUEUE_LIMIT = 2000  # mensagens esperando uma UI lenta; acima disso, a conexão cai
+PULSE = "campsverso.live.kernel.v1"
+PULSES_TO_SILENCE = 3  # pulsos perdidos até o kernel ficar "sem sinal" (ADR-0051)
 
 
 @dataclass(eq=False)
@@ -111,6 +114,8 @@ class GatewayService:
         self._pending: list[Envelope] = []
         self._clients: set[_Client] = set()
         self._consumers: list[Consumer] = []
+        self._live: Subscription | None = None
+        self._pulse: dict[str, Any] | None = None  # o último pulso e quando chegou
         self._flusher: asyncio.Task[None] | None = None
         self.failure: BaseException | None = None
 
@@ -149,6 +154,7 @@ class GatewayService:
             self._consumers.append(
                 await self._bus.consume(pattern, f"gateway-{w}-{stream}", handler)
             )
+        self._live = await self._bus.subscribe(f"campsverso.{w}.live.kernel", self._on_pulse)
         self._flusher = asyncio.create_task(self._flush_loop())
 
     async def stop(self) -> None:
@@ -159,6 +165,9 @@ class GatewayService:
         for consumer in self._consumers:
             await consumer.unsubscribe()
         self._consumers.clear()
+        if self._live is not None:
+            await self._live.unsubscribe()
+            self._live = None
 
     async def caught_up(self) -> None:
         """Todos os streams entregues até agora já estão na projeção (para testes e para subir)."""
@@ -182,6 +191,29 @@ class GatewayService:
             self.failure = error
             raise
 
+    async def _on_pulse(self, _: str, message: Envelope) -> None:
+        """O pulso do kernel: fica só na memória; nada dele vai para o arquivo do gateway."""
+        if message.get("type") != PULSE or not isinstance(message.get("tick"), int):
+            return
+        self._pulse = {
+            "tick": int(message["tick"]),
+            "sim_time": message.get("sim_time"),
+            "every": float(message.get("pulse_seconds") or 1.0),
+            "at": self._clock.monotonic(),
+        }
+
+    def _pulse_state(self) -> dict[str, Any] | None:
+        if self._pulse is None:
+            return None
+        silent = (
+            self._clock.monotonic() - self._pulse["at"] > PULSES_TO_SILENCE * self._pulse["every"]
+        )
+        return {
+            "tick": self._pulse["tick"],
+            "sim_time": self._pulse["sim_time"],
+            "alive": not silent,
+        }
+
     def _seen_before(self, stream: str, envelope: Envelope) -> bool:
         if stream in PROJECTED:
             return self.projection.seen(stream, envelope)
@@ -194,7 +226,7 @@ class GatewayService:
 
     def flush(self) -> None:
         """Manda o que mudou desde o último flush. Sem `await`: conexão nova não entra no meio."""
-        state = observer_state(self.projection)
+        state = observer_state(self.projection, self._pulse_state())
         patch = merge_diff(self._state, state)
         events = sorted(self._pending, key=_order)
         self._pending = []

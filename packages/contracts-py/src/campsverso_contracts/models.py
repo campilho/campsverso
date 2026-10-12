@@ -1501,6 +1501,37 @@ class WorldWeatherChangedV1(BaseModel):
     """
 
 
+class LiveKernelV1(BaseModel):
+    """
+    Pulso do kernel: o tick de verdade e o relógio, a cada kernel.pulse_seconds de tempo real. Vai para campsverso.<mundo>.live.kernel, que nenhum stream guarda: não entra no histórico, no arquivo JSONL nem no replay (ADR-0051).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    type: Literal["campsverso.live.kernel.v1"]
+    worldid: Annotated[str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$")]
+    tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    O tick em que o kernel está agora, mesmo sem evento.
+    """
+    sim_time: AwareDatetime
+    mode: Annotated[Literal["continuous", "max"], Field(title="ClockMode")]
+    """
+    Modos do relógio na v0.1; a pausa é um estado à parte (ADR-0026).
+    """
+    scale: Annotated[float, Field(gt=0.0)]
+    paused: bool
+    pulse_seconds: Annotated[float, Field(gt=0.0)]
+    """
+    O intervalo entre pulsos; quem escuta usa para saber quando o kernel ficou sem sinal.
+    """
+    sent_at: AwareDatetime
+    """
+    Relógio de parede de quem mandou.
+    """
+
+
 class RealtimeCommandV1(BaseModel):
     """
     Pedido da UI para o gateway publicar um comando. O gateway monta o envelope e o valida contra o contrato do comando (ADR-0050).
@@ -1622,6 +1653,22 @@ class ObserverClock(BaseModel):
     paused: bool | None = None
 
 
+class ObserverPulse(BaseModel):
+    """
+    O último pulso do kernel (ADR-0051): o tick de verdade, mesmo sem evento. `alive` vira falso depois de 3 pulsos perdidos. Ausente até o primeiro pulso.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+    sim_time: AwareDatetime | None = None
+    alive: bool
+
+
 class ObserverEntity(BaseModel):
     model_config = ConfigDict(
         extra="ignore",
@@ -1737,6 +1784,10 @@ class ObserverState(BaseModel):
     clock: Annotated[ObserverClock, Field(title="ObserverClock")]
     """
     Vazio até o session.started; a pausa é estado, não modo (ADR-0026).
+    """
+    pulse: Annotated[ObserverPulse | None, Field(title="ObserverPulse")] = None
+    """
+    O último pulso do kernel (ADR-0051): o tick de verdade, mesmo sem evento. `alive` vira falso depois de 3 pulsos perdidos. Ausente até o primeiro pulso.
     """
     weather: dict[str, Token]
     """

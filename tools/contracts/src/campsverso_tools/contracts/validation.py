@@ -41,7 +41,7 @@ def _registry(contracts: Contracts) -> Registry[Any]:
 
 
 class MessageValidator:
-    """Mensagens do WebSocket entre gateway e UI (contracts/realtime, ADR-0050)."""
+    """Mensagens sem envelope: contracts/realtime (ADR-0050) e contracts/live (ADR-0051)."""
 
     def __init__(self, contracts: Contracts) -> None:
         registry = _registry(contracts)

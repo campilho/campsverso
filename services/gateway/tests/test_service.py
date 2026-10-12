@@ -164,3 +164,33 @@ async def test_gateway_volta_do_arquivo_sem_repetir_eventos(rig: Rig) -> None:
     replayed = [e for _, e in rig.pipeline.inner.published if e["visibility"] == "world"]
     await again._on_batch("world", [("x", e) for e in replayed])  # pyright: ignore[reportPrivateUsage]
     assert observer_state(again.projection) == before  # reentrega não muda nada
+
+
+async def test_pulso_do_kernel_e_sem_sinal(rig: Rig) -> None:
+    """O pulso entra no estado; sem pulso por 3 intervalos, o kernel fica sem sinal (ADR-0051)."""
+    rig.gateway.flush()
+    operator, _ = await rig.connect("operator")
+    pulse = {
+        "type": "campsverso.live.kernel.v1",
+        "worldid": WORLD,
+        "tick": 42,
+        "sim_time": "2026-10-10T06:42:00-03:00",
+        "mode": "continuous",
+        "scale": 72,
+        "paused": False,
+        "pulse_seconds": 1,
+        "sent_at": "2026-10-12T15:00:00.000Z",
+    }
+    await rig.pipeline.inner.announce(f"campsverso.{WORLD}.live.kernel", pulse)
+    rig.gateway.flush()
+    update = await operator.receive_until("update")
+    assert MESSAGES.validate(dict(update)) == []
+    assert update["patch"]["pulse"] == {
+        "tick": 42,
+        "sim_time": "2026-10-10T06:42:00-03:00",
+        "alive": True,
+    }
+    rig.pipeline.clock.advance(3.5)
+    rig.gateway.flush()
+    assert (await operator.receive_until("update"))["patch"] == {"pulse": {"alive": False}}
+    assert rig.pipeline.inner.announced[-1][1] is pulse  # nada do pulso em `published`

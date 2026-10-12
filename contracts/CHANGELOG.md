@@ -20,6 +20,12 @@ Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão 
   - As ferramentas validam as mensagens nos dois validadores, com os códigos `message_schema` e `unknown_message`, e geram os tipos Python e TypeScript.
 - O `asyncapi.yaml` ganha o servidor `gateway` (`ws`), o canal `Realtime` e a indicação do servidor em cada canal NATS.
 
+## Não publicado (M5)
+
+- **Mensagem nova `campsverso.live.kernel.v1`** em `contracts/live/` (ADR-0051): o pulso do kernel, com o tick de verdade e o relógio. Vai para `campsverso.<mundo>.live.kernel`, fora de todos os streams.
+- **`ObserverState` ganha `pulse`,** um campo opcional e compatível: o tick do último pulso e se o kernel está vivo.
+- **As ferramentas tratam `realtime` e `live` como mensagens sem envelope.** O AsyncAPI ganha o canal do pulso.
+
 ## v0.1: 2026-10-11
 
 Primeira versão, gerada a partir do [catálogo da v0.1](../docs/arquitetura/catalogo-eventos-v0.1.md) (ADR-0029).

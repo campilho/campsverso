@@ -7,6 +7,7 @@ cresce; quando ele volta, o publicador alcança. Republicar não duplica: o id d
 """
 
 import asyncio
+import contextlib
 from collections import OrderedDict
 from collections.abc import Mapping, Sequence
 from typing import Any
@@ -173,6 +174,26 @@ class KernelService:
             self._blobs.delete(old.ref)
         if extra:
             self._store.prune_outbox(snapshots[len(extra) + 1].next_seq)
+
+    async def announce_pulse(self, pulse_seconds: float) -> None:
+        """O pulso (ADR-0051): o tick de agora, num assunto que nenhum stream guarda.
+
+        Não passa pelo núcleo nem pelo outbox: não é fato, e perdê-lo não perde nada.
+        """
+        core = self.core
+        message = {
+            "type": "campsverso.live.kernel.v1",
+            "worldid": self._worldid,
+            "tick": core.tick,
+            "sim_time": core.calendar.simtime_iso(core.tick),
+            "mode": core.mode,
+            "scale": core.scale,
+            "paused": core.paused,
+            "pulse_seconds": pulse_seconds,
+            "sent_at": self._clock.now().isoformat(timespec="milliseconds").replace("+00:00", "Z"),
+        }
+        with contextlib.suppress(BusUnavailableError):  # o próximo pulso tenta de novo
+            await self._bus.announce(f"campsverso.{self._worldid}.live.kernel", message)
 
     async def publish_pending(self) -> None:
         """Publica o outbox em ordem de seq. Quem chega durante uma publicação só grava e sai."""

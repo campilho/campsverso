@@ -1,6 +1,8 @@
 """EventBus em memória: testes e, no futuro, forks sem NATS (D4)."""
 
+from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Any
 
 from campsverso_ports import BatchHandler, Envelope, Handler
 
@@ -35,6 +37,13 @@ class InMemoryBus:
     def __init__(self) -> None:
         self._subscriptions: list[_Subscription] = []
         self.published: list[tuple[str, Envelope]] = []
+        self.announced: list[tuple[str, Mapping[str, Any]]] = []  # avisos: fora do `published`
+
+    async def announce(self, subject: str, message: Mapping[str, Any]) -> None:
+        self.announced.append((subject, message))
+        for subscription in list(self._subscriptions):
+            if subject_matches(subscription.pattern, subject):
+                await subscription.handler(subject, message)
 
     async def publish(self, subject: str, envelope: Envelope) -> None:
         self.published.append((subject, envelope))

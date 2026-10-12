@@ -40,6 +40,13 @@ class EventBus(Protocol):
         """Publica uma vez por `id`: republicar o mesmo envelope não duplica (contratos §5)."""
         ...
 
+    async def announce(self, subject: str, message: Mapping[str, Any]) -> None:
+        """Aviso sem histórico: só quem assina agora recebe, e nada fica guardado (ADR-0051).
+
+        Serve ao pulso do kernel. Não é evento: não tem envelope, `seq` nem deduplicação.
+        """
+        ...
+
     async def subscribe(self, pattern: str, handler: Handler) -> Subscription:
         """Assinatura efêmera: só recebe o que for publicado enquanto estiver ativa."""
         ...

@@ -1,5 +1,6 @@
 """O serviço publica pelo barramento validador: nenhum evento sai fora do contrato (critério A2)."""
 
+import asyncio
 from typing import Any
 
 from campsverso_adapters import (
@@ -12,6 +13,7 @@ from campsverso_adapters import (
     ValidatingBus,
 )
 from campsverso_kernel import Engine, KernelService, run_version
+from campsverso_kernel.runner import ClockLoop
 from campsverso_kernel.testing import SCRIPT, LabCartridge, make_core
 from campsverso_ports import Envelope, EventBus
 
@@ -81,3 +83,41 @@ async def test_dois_dias_publicados_pelo_barramento_validador() -> None:
     assert "causationid" in completed
     subjects = {s.split(".")[2] for s, _ in inner.published}
     assert subjects == {"world", "agent", "internal", "cmd"}
+
+
+async def test_pulso_no_ritmo_configurado_e_fora_do_historico() -> None:
+    """O pulso (ADR-0051) sai a cada `pulse_seconds` de tempo real e não vira fato publicado."""
+    inner = InMemoryBus()
+    clock = FakeWallClock()
+    engine = Engine(make_core(), run_version("lab", 60, {"lab": LabCartridge()}))
+    service = KernelService(
+        engine,
+        ValidatingBus(inner),
+        clock,
+        SequentialUuid7Ids(),
+        SqliteWorldStore(":memory:"),
+        MemoryBlobStore(),
+        MemoryTelemetry(),
+    )
+    pulses: list[Envelope] = []
+
+    async def on_pulse(_: str, message: Envelope) -> None:
+        pulses.append(message)
+
+    await inner.subscribe("campsverso.*.live.>", on_pulse)
+    await service.start()
+    stop = asyncio.Event()
+    running = asyncio.create_task(ClockLoop(service, clock, pulse_seconds=1.0).run(stop))
+    for _ in range(3):
+        await asyncio.sleep(0.15)
+        clock.advance(0.5)  # meio segundo: ainda não é hora do próximo pulso
+        await asyncio.sleep(0.15)
+        clock.advance(0.5)
+    await asyncio.sleep(0.15)
+    stop.set()
+    await running
+    assert len(pulses) == 4  # o primeiro na hora e um por segundo de relógio
+    assert pulses[-1]["type"] == "campsverso.live.kernel.v1"
+    assert pulses[-1]["tick"] == service.core.tick
+    assert {p["pulse_seconds"] for p in pulses} == {1.0}
+    assert all(".live." not in subject for subject, _ in inner.published)

@@ -20,7 +20,10 @@ def without_nulls(value: Any) -> Any:
     return value
 
 
-def observer_state(projection: Projection) -> dict[str, Any]:
+def observer_state(
+    projection: Projection, pulse: Mapping[str, Any] | None = None
+) -> dict[str, Any]:
+    """O estado da UI; `pulse` é o último pulso do kernel, já com `alive` (ADR-0051)."""
     p = projection
     return without_nulls(
         {
@@ -31,6 +34,7 @@ def observer_state(projection: Projection) -> dict[str, Any]:
             "phase": p.phase,
             "session": p.session,
             "clock": p.clock,
+            "pulse": pulse,
             "weather": p.weather,
             "entities": p.entities,
             "containers": {k: v for k, v in p.containers.items() if v},

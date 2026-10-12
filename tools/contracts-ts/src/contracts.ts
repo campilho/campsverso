@@ -35,8 +35,9 @@ export interface TypeInfo {
   readonly dataschema: string;
 }
 
-const SCHEMA_DIRS = ["common", "envelope", "events", "commands", "realtime"];
-const REALTIME = "campsverso.realtime.";
+const SCHEMA_DIRS = ["common", "envelope", "events", "commands", "realtime", "live"];
+/** Mensagens sem envelope: o WebSocket da UI (ADR-0050) e os avisos fora do histórico (ADR-0051). */
+const MESSAGE_PREFIXES = ["campsverso.realtime.", "campsverso.live."];
 
 export function readJson(path: string): JsonObject {
   return JSON.parse(readFileSync(path, "utf8")) as JsonObject;
@@ -99,7 +100,7 @@ export class EventValidator {
     }
   }
 
-  /** Nomes das mensagens do WebSocket entre gateway e UI (contracts/realtime, ADR-0050). */
+  /** Nomes das mensagens sem envelope (contracts/realtime e contracts/live). */
   messageNames(): string[] {
     return [...this.messages.keys()].sort();
   }
@@ -114,10 +115,11 @@ export class EventValidator {
     return validate(message) ? [] : describe(validate.errors).map((m) => ({ code: "message_schema", message: m }));
   }
 
-  /** Evento, comando ou mensagem do WebSocket, conforme o prefixo do `type`. */
+  /** Evento, comando ou mensagem sem envelope, conforme o prefixo do `type`. */
   validateAny(document: JsonObject): Problem[] {
     const type = typeof document.type === "string" ? document.type : "";
-    return type.startsWith(REALTIME) ? this.validateMessage(document) : this.validate(document);
+    const isMessage = MESSAGE_PREFIXES.some((prefix) => type.startsWith(prefix));
+    return isMessage ? this.validateMessage(document) : this.validate(document);
   }
 
   validate(event: JsonObject): Problem[] {

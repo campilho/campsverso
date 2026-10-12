@@ -190,7 +190,7 @@ async def run(args: argparse.Namespace) -> int:
         telemetry.info(
             "kernel.running", tick=core.tick, mode=core.mode, scale=core.scale, paused=core.paused
         )
-        await ClockLoop(service, clock, telemetry).run(stop)
+        await ClockLoop(service, clock, telemetry, pulse_seconds=env.pulse_seconds).run(stop)
         await service.stop()
         telemetry.info("kernel.stopped", tick=core.tick)
     finally:

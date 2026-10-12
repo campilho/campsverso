@@ -9,8 +9,10 @@
  *   estimativa em cerca de um segundo: um pouco mais devagar quando está adiantada, um pouco mais
  *   depressa quando está atrasada. Muito atrasada (um passo com a pausa, por exemplo), ela pula.
  * - **Mudou o ritmo, a âncora vem para onde a tela está**, e a escala nova vale daí em diante.
- * - **Sem conexão, na pausa ou no modo máximo, não anda sozinha.** E nunca passa de `MAX_AHEAD`
- *   ticks além do último evento, caso o kernel pare.
+ * - **Sem conexão, com o kernel sem sinal, na pausa ou no modo máximo, não anda sozinha.** E nunca
+ *   passa de `MAX_AHEAD` ticks além da última âncora.
+ * - **O pulso do kernel (ADR-0051) também ancora:** a cada segundo chega o tick de verdade, mesmo
+ *   sem evento.
  */
 import type { ObserverState } from "@campsverso/contracts";
 
@@ -29,6 +31,16 @@ function rate(state: ObserverState): number {
   return clock.scale / session.tick_seconds / 1000;
 }
 
+/** O tick mais recente que se sabe de verdade: o do último evento ou o do pulso do kernel. */
+export function knownTick(state: ObserverState): number {
+  return Math.max(state.tick, state.pulse?.tick ?? 0);
+}
+
+/** O relógio anda sozinho na tela? Só com conexão e com o kernel dando sinal (ADR-0051). */
+export function isLive(state: ObserverState, connected: boolean): boolean {
+  return connected && state.pulse?.alive !== false;
+}
+
 function settings(state: ObserverState): string {
   return JSON.stringify([state.clock.mode, state.clock.scale, state.clock.paused]);
 }
@@ -43,23 +55,25 @@ export class DisplayClock {
 
   /** Um welcome: começa de novo, inclusive para trás (pode ser outra sessão do mundo). */
   reset(state: ObserverState, nowMs: number): void {
-    this.shown = this.anchorTick = this.stateTick = state.tick;
+    this.shown = this.anchorTick = this.stateTick = knownTick(state);
     this.anchorAt = this.frameAt = nowMs;
     this.settings = settings(state);
   }
 
-  /** O estado mudou: um tick novo ancora nele; um relógio novo ancora onde a tela está. */
+  /** O estado mudou: um tick novo (de evento ou de pulso) ancora nele; um relógio novo ancora
+   * onde a tela está. */
   observe(state: ObserverState, nowMs: number): void {
     const current = settings(state);
+    const known = knownTick(state);
     if (current !== this.settings) {
-      this.anchorTick = Math.max(this.shown, state.tick);
+      this.anchorTick = Math.max(this.shown, known);
       this.anchorAt = nowMs;
       this.settings = current;
-    } else if (state.tick !== this.stateTick) {
-      this.anchorTick = state.tick;
+    } else if (known !== this.stateTick) {
+      this.anchorTick = known;
       this.anchorAt = nowMs;
     }
-    this.stateTick = state.tick;
+    this.stateTick = known;
   }
 
   /** O tick a mostrar agora (fracionário, para interpolar trajetos); chamado a cada quadro. */
@@ -82,7 +96,7 @@ export class DisplayClock {
         this.shown = Math.min(shown, this.anchorTick + MAX_AHEAD);
       }
     }
-    this.shown = Math.max(this.shown, state.tick);
+    this.shown = Math.max(this.shown, knownTick(state));
     return this.shown;
   }
 }
