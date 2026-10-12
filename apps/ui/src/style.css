@@ -1,0 +1,305 @@
+:root {
+  color-scheme: dark;
+  --bg: #15171c;
+  --panel: #1f232b;
+  --line: #2f3542;
+  --text: #e6e6e6;
+  --muted: #9aa3b2;
+  --world: #2e8b57;
+  --agent: #2f6fd6;
+  --internal: #8e44ad;
+  --observer: #b9770e;
+  --bad: #e74c3c;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+header {
+  display: flex;
+  gap: 16px;
+  align-items: baseline;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+header h1 {
+  margin: 0;
+  font-size: 18px;
+}
+
+header .view {
+  color: var(--muted);
+}
+
+header a {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+main {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  align-items: flex-start;
+}
+
+.world {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+canvas {
+  /* Cabe na tela sem perder a proporção do mapa; o HUD fica à vista logo abaixo. */
+  max-width: 100%;
+  max-height: calc(100vh - 210px);
+  width: auto;
+  height: auto;
+  margin: 0 auto;
+  image-rendering: pixelated;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  display: block;
+}
+
+.hud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: var(--panel);
+  border-radius: 4px;
+}
+
+.hud > div {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.badge {
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: var(--line);
+}
+
+.status.open {
+  color: #7bd88f;
+}
+
+.status.closed {
+  color: var(--bad);
+}
+
+.need {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.bar {
+  width: 110px;
+  height: 10px;
+  background: #0d0f13;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #f39c12, #27ae60);
+}
+
+.item {
+  padding: 1px 6px;
+  background: var(--line);
+  border-radius: 3px;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.hud label,
+.hint {
+  color: var(--muted);
+}
+
+.toast {
+  width: 100%;
+  padding: 6px 10px;
+  background: rgba(231, 76, 60, 0.18);
+  border-left: 3px solid var(--bad);
+}
+
+aside.operator {
+  flex: 0 0 420px;
+  max-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+aside h2 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.card {
+  background: var(--panel);
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+
+.card.grow {
+  flex: 1 1 auto;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+}
+
+.card h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.card p {
+  margin: 4px 0;
+}
+
+.buttons {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+button {
+  background: var(--line);
+  color: var(--text);
+  border: 1px solid #444b5a;
+  border-radius: 3px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+button.active {
+  background: #3d5a80;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.error {
+  color: var(--bad);
+}
+
+.mono {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.filters input[type="text"],
+.filters input:not([type]) {
+  flex: 1 1 140px;
+  background: #0d0f13;
+  color: var(--text);
+  border: 1px solid var(--line);
+  padding: 3px 6px;
+}
+
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  font-family: ui-monospace, monospace;
+  font-size: 11.5px;
+}
+
+.timeline li {
+  display: grid;
+  grid-template-columns: 52px 62px 1fr;
+  gap: 2px 6px;
+  padding: 3px 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.timeline .summary {
+  grid-column: 3;
+  color: var(--muted);
+}
+
+.timeline .tick {
+  color: var(--muted);
+}
+
+.vis-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.world .vis-tag,
+li.world .vis-tag,
+.vis.world {
+  color: var(--world);
+}
+
+li.agent .vis-tag,
+.vis.agent {
+  color: var(--agent);
+}
+
+li.internal {
+  background: rgba(142, 68, 173, 0.16);
+}
+
+li.internal .vis-tag,
+.vis.internal {
+  color: #c39bd3;
+}
+
+li.observer .vis-tag,
+.vis.observer {
+  color: var(--observer);
+}
+
+li.rejected .type {
+  color: var(--bad);
+}
+
+@media (max-width: 1100px) {
+  main {
+    flex-direction: column;
+  }
+
+  aside.operator {
+    flex-basis: auto;
+    width: 100%;
+    max-height: none;
+  }
+}

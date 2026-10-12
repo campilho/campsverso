@@ -20,6 +20,7 @@ export default defineConfig(
       parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
     },
   },
+  { files: ["apps/ui/src/**/*.ts"], languageOptions: { globals: { ...globals.browser } } },
   { files: ["**/*.js", "**/*.cjs"], extends: [tseslint.configs.disableTypeChecked] },
   { files: ["**/*.cjs"], languageOptions: { sourceType: "commonjs" } },
 );
