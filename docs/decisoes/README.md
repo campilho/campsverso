@@ -53,6 +53,7 @@ A numeração deste diretório continua a partir de **0011**, para não colidir 
 | [0045](0045-nats-local-usuarios-e-senhas.md) | nats-server 2.14.8 com sha256 fixado; um usuário por processo; senhas em `.env`; `make up`/`stop`/`run` | M2 | ADR-0024; plano do M2 §3 |
 | [0046](0046-kernel-recusa-comandos-fora-do-contrato.md) | O kernel valida comandos contra o contrato no caminho determinístico; inválidos viram `invalid_command` | M2 | ADR-0013; A2 |
 | [0047](0047-decisoes-do-plano-do-m3.md) | Decisões do M3: `move {near}`, percepção durável, soak de 2 dias no check e 30 à mão, `make replay` pelo kernel, lockstep sem prazo, `make metrics`, sem salto de tempo; futuro: enxergar o mapa num raio N | M3 | plano do M3 |
+| [0048](0048-ciclo-de-decisao-do-m3.md) | Ciclo de decisão do M3: a foto traz o pedido (`decision`), lockstep pela dívida de decisão, replay com agenda (`at_tick`), ids derivados, `caught_up`, controlador inicial por mundo, hash sem o sha256 do snapshot | M3 | catálogo §3.7; ADR-0021, 0028, 0047 |
 
 ## Modelo
 

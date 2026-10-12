@@ -165,7 +165,7 @@ Notação dos payloads (`data`): `campo: tipo`; `?` marca campo opcional.
 
 | Tipo | Vis. | Payload | Origem |
 |---|---|---|---|
-| `campsverso.perception.delivered.v1` | agent | `avatar_id` · `kind: snapshot` · `as_of_tick: int` · `view` (abaixo) | §14.4; ADR-0025, ADR-0028 |
+| `campsverso.perception.delivered.v1` | agent | `avatar_id` · `kind: snapshot` · `as_of_tick: int` · `decision?: { reason, controller }` · `view` (abaixo) | §14.4; ADR-0025, ADR-0028, ADR-0048 |
 
 Estrutura de `view`, inteiramente genérica (sem nada específico da fazenda):
 
