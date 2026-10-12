@@ -1,0 +1,8 @@
+# Estado inicial do cenário (bíblia §2 e §5).
+avatar:
+  id: camps
+  default_controller: {type: script, id: script/farmer-v1}
+watering_can: watering-can  # entidade guardada no inventário do avatar (ADR-0039)
+initial_items:
+  camps: {moeda: 100, semente_rabanete: 10}
+  chest: {rabanete: 5}

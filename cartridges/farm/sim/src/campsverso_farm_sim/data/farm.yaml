@@ -1,0 +1,122 @@
+# Cartucho farm (gênero): mecânicas genéricas de fazenda.
+# Números da bíblia da Fazenda do Camps (§3, §5–§9) e da ADR-0039. O cenário pode sobrescrever.
+
+clock:
+  tick_seconds: 60
+  day_starts_at: "06:00"  # dia agrícola (ADR-0018)
+  default_scale: 72
+  phases:
+    amanhecer: "06:00"
+    meio_dia: "12:00"
+    entardecer: "18:00"
+    noite: "20:00"
+    madrugada: "00:00"
+
+movement:
+  tiles_per_minute: 3
+
+needs:
+  fome: {initial: 0, rates_per_hour: {awake: 3, asleep: 1}}
+  energia: {initial: 100, rates_per_hour: {asleep: 5}, role: energy}  # sono ruim, onde estiver (ADR-0041)
+
+thresholds:  # ADR-0039
+  - {need: fome, value: 80, direction: up, requests_decision: true}
+  - {need: energia, value: 20, direction: down, requests_decision: true}
+  - {need: energia, value: 0, direction: down, requests_decision: false}  # desmaio
+
+hunger_doubles_energy_at: 80
+
+items:
+  moeda: {category: moeda}
+  semente_rabanete: {category: semente, crop: rabanete, price: 10}
+  semente_batata: {category: semente, crop: batata, price: 20}
+  semente_abobora: {category: semente, crop: abobora, price: 40}
+  rabanete: {category: colheita, sale_price: 25, hunger: 25}
+  batata: {category: colheita, sale_price: 50, hunger: 35}
+  abobora: {category: colheita, sale_price: 120, hunger: 50}
+
+crops:
+  rabanete: {seed: semente_rabanete, points_to_mature: 3}
+  batata: {seed: semente_batata, points_to_mature: 5}
+  abobora: {seed: semente_abobora, points_to_mature: 8}
+
+stages:  # ADR-0039
+  broto_at_points: 1
+  crescendo_at_fraction: 0.5
+  wither_after_dry_days: 2
+
+growth:
+  points_per_watered_day: 1.0
+
+actions:  # duração em ticks (minutos), energia gasta na conclusão (bíblia §8) e política de
+  # interrupção (ADR-0052): never recusa um comando novo com busy; cancel cancela; partial guarda o feito
+  plant: {duration: 5, energy: 2, interrupt: never}
+  water: {duration: 2, energy: 2, interrupt: never}
+  refill: {duration: 3, energy: 1, interrupt: never}
+  harvest: {duration: 3, energy: 1, interrupt: never}
+  clear: {duration: 3, energy: 2, interrupt: never}
+  eat: {duration: 10, energy: 0, interrupt: never}
+  deposit: {duration: 1, energy: 0, interrupt: never}
+  withdraw: {duration: 1, energy: 0, interrupt: never}
+  sell: {duration: 1, energy: 0, interrupt: never}
+  buy: {duration: 2, energy: 0, interrupt: never}
+  sleep: {duration: 1, energy: 0, interrupt: never}
+
+sleep:  # dorme-se a qualquer hora (ADR-0049)
+  night_from: "20:00"  # daqui até wake_at, dorme até wake_at; antes, é cochilo até a energia encher
+  wake_at: "06:00"
+  beds:  # onde se dorme bem: taxas por hora que substituem a de dormir no chão (ADR-0041)
+    bed: {energia: 12.5}
+
+kiosk: {opens: "08:00", closes: "18:00"}
+buyer: {collects: "22:00", pays: "06:00"}
+weather: {draw_at: "05:00", rain_probability: 0.2}
+faint: {late_night_at: "02:00", wake_at: "06:00", wake_energy: 50}
+watering_can: {capacity: 10}
+
+# Catálogo de ações para quem joga (ADR-0051): o que aparece no menu de cada tipo de entidade, ou do
+# próprio avatar (`self`), em `kinds`. O menu só sugere; quem decide é o kernel. Escolhas: lista, `crops`
+# (as culturas) ou `{category: ...}` (os itens da categoria). `source`: onde a escolha vale (any,
+# inventory ou target). Sem escolhas, o parâmetro é um número.
+affordances:
+  - {action: plant, label: Plantar, kinds: [plot], params: [{name: crop, label: Cultura, choices: crops}]}
+  - {action: water, label: Regar, kinds: [plot]}
+  - {action: harvest, label: Colher, kinds: [plot]}
+  - {action: clear, label: Limpar o canteiro, kinds: [plot]}
+  - {action: refill, label: Encher o regador, kinds: [well]}
+  - action: deposit
+    label: Guardar no baú
+    kinds: [chest]
+    params:
+      - {name: item, label: Item, choices: {category: [colheita, semente]}, source: inventory}
+      - {name: qty, label: Quantidade, minimum: 1, default: 1}
+  - action: withdraw
+    label: Pegar do baú
+    kinds: [chest]
+    params:
+      - {name: item, label: Item, choices: {category: [colheita, semente]}, source: target}
+      - {name: qty, label: Quantidade, minimum: 1, default: 1}
+  - action: sell
+    label: Vender
+    kinds: [sell_box]
+    params:
+      - {name: item, label: Colheita, choices: {category: [colheita]}, source: inventory}
+      - {name: qty, label: Quantidade, minimum: 1, default: 1}
+  - action: buy
+    label: Comprar
+    kinds: [kiosk]
+    params:
+      - {name: item, label: Semente, choices: {category: [semente]}}
+      - {name: qty, label: Quantidade, minimum: 1, default: 1}
+  - {action: sleep, label: Dormir na cama, kinds: [bed]}
+  - action: eat
+    label: Comer
+    kinds: [self]
+    target: false
+    params: [{name: item, label: Comida, choices: {category: [colheita]}, source: inventory}]
+  - {action: sleep, label: Dormir aqui, kinds: [self], target: false}
+  - action: wait
+    label: Esperar
+    kinds: [self]
+    target: false
+    params: [{name: ticks, label: Minutos, minimum: 1, default: 15}]

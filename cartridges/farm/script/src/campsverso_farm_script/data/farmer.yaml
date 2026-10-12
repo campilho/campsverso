@@ -1,0 +1,36 @@
+# Fazendeiro-script (bíblia §11): a linha de base determinística. Só usa a percepção.
+# Números do gênero farm que o script precisa conhecer; o mundo pode ter outros.
+
+id: script/farmer-v1
+wait_ticks: 15  # "esperar 15 minutos"
+
+sleep:
+  bed_kind: bed
+  at: "21:30"  # a partir daqui, dormir
+  low_energy: 10  # ou antes, a qualquer hora, se a energia cair abaixo disto (de dia, cochilo)
+  ground_after: "01:30"  # tarde demais para andar até a cama: dorme no chão (ADR-0041)
+  wake_at: "06:00"
+
+needs: {hunger: fome, energy: energia}
+hunger_eat_at: 70
+food_reserve: 3  # colheitas guardadas para comer; o resto vai para a venda
+
+foods:  # comestíveis e valor de venda (bíblia §5): come primeiro o de menor valor
+  rabanete: 25
+  batata: 50
+  abobora: 120
+
+crop: rabanete  # o script é deliberadamente ingênuo: só planta rabanete
+seed: semente_rabanete
+seed_price: 10
+
+kinds:
+  plot: plot
+  well: well
+  chest: chest
+  sell_box: sell_box
+  kiosk: kiosk
+  can: watering_can
+
+stages: {ripe: madura, withered: murcha}
+rain: rain

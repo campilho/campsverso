@@ -18,8 +18,9 @@ playwright-report/
 # Ferramentas baixadas localmente pelo Makefile (ex.: nats-server)
 .tools/
 
-# Dados de execução: sqlite, snapshots, arquivo de eventos (nunca versionar)
-data/
+# Dados de execução: sqlite, snapshots, arquivo de eventos (nunca versionar). Só a pasta da raiz:
+# as pastas data/ dos cartuchos (farm.yaml, map.tmj...) são código e vão para o git.
+/data/
 
 # Segredos
 .env
