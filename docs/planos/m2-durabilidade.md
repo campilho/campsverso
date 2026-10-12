@@ -1,85 +1,117 @@
 # Plano do M2 — Durabilidade
 
-**Status:** proposta para aprovação · **Data:** 2026-10-11
+**Status:** decisões respondidas em 11/out/2026; **aguardando o OK final do usuário para começar** (o item 5 da seção 5 ainda espera confirmação).
 **Escopo** (escopo §7): adaptador NATS, outbox, arquivador JSONL, snapshots, retomada após queda.
 **Pronto quando:** `kill -9` no kernel no meio de um dia → reinício sem lacunas nem duplicatas de `seq`.
 
-## 1. Ideia central: o determinismo faz a recuperação
+## 0. Primeiro passo: ajuste do sono (ADR-0041)
 
-O kernel do M1 é determinístico: mesmo estado, mesmos comandos nos mesmos ticks, mesmos fatos. O M2 usa isso para recuperar sem gravar o estado inteiro a cada tick:
+- Dormir em qualquer lugar: sem alvo, o avatar dorme onde está, com o sono ruim do gênero (5/h). Com alvo, uma cama ou análogo ao lado dá a taxa do móvel (cama 12,5/h).
+- A primitiva `start_sleep` do kernel passa a receber as taxas de recuperação daquele sono.
+- Atualizar bíblia §7 e §8, dados do gênero e testes.
 
-| Peça | O que guarda | Onde |
-|---|---|---|
-| **Diário de entradas** | cada comando aplicado e o tick em que valeu (propostas e comandos de controle) | SQLite, tabela `inputs` |
-| **Outbox** | cada fato já envelopado, com `seq` e `id`, e a marca de publicado | SQLite, tabela `outbox` |
-| **Snapshot** | o estado completo do mundo (entidades, necessidades, ações em curso, estado do RNG, seq, tick) | disco, `data/<mundo>/snapshots/`, com sha256 |
+## 1. Recuperação: snapshot completo + incrementais, como num banco de dados
 
-- **Cada tick é uma transação SQLite:** os fatos do tick, as entradas consumidas e o tick corrente gravam juntos. Uma queda no meio do tick perde só o que não foi gravado.
+É a estratégia de backup de um banco: um **snapshot completo** de tempos em tempos e **incrementais** no intervalo. Na falha: último completo + incrementais.
+
+O incremental escolhido é o menor possível: **as entradas, não o estado.** É o equivalente ao *write-ahead log* (WAL) de um banco, ou ao log de comandos do Redis. Isso só funciona porque o kernel é determinístico: o mesmo estado mais os mesmos comandos nos mesmos ticks dão os mesmos fatos. Assim, o tamanho do incremental cresce com o número de comandos (pequeno), e não com o tamanho do estado do mundo, que no futuro pode ser grande e complexo.
+
+| Peça | O que guarda | Onde | Configuração |
+|---|---|---|---|
+| **Snapshot completo** | todo o estado do mundo: entidades, necessidades, ações em curso, RNG, seq, tick, versão do código e dos cartuchos | disco, `data/<mundo>/snapshots/`, com sha256 | `snapshots.full_every_ticks` (início: 60 = 1 hora simulada) e `snapshots.keep_full` (quantos guardar) |
+| **Incremental (diário de entradas)** | cada comando aplicado e o tick em que valeu | SQLite, tabela `inputs` | — |
+| **Outbox** | cada fato já envelopado, com `seq`, `id` e a marca de publicado | SQLite, tabela `outbox` | — |
+
+- **Cada tick é uma transação SQLite:** os fatos do tick, as entradas consumidas e o tick corrente gravam juntos.
 - **Recuperação:**
-  1. carrega o último snapshot;
-  2. reexecuta o diário até o último tick gravado, conferindo que os fatos regenerados são idênticos aos do outbox;
+  1. carrega o último snapshot completo;
+  2. reexecuta os incrementais até o último tick gravado, conferindo que os fatos regenerados são idênticos aos do outbox;
   3. continua do ponto onde parou.
-  - Uma divergência na conferência é erro fatal, porque denuncia uma quebra de determinismo. Assim o próprio reinício vira um teste de determinismo contínuo.
-- **Publicação:** um publicador lê o outbox em ordem de `seq` e publica no JetStream com `Nats-Msg-Id` = id do evento. Se cair entre publicar e marcar, republica com o mesmo id, e o JetStream descarta a duplicata. Os consumidores também deduplicam por id (princípio 5 dos contratos).
-- **Comandos:** chegam pelo stream `COMMANDS` com consumidor durável. O kernel só confirma (*ack*) depois de gravar a entrada no diário, então um comando recebido e não gravado volta a ser entregue depois do reinício. O kernel deduplica pelo id do comando (ADR-0017).
+  - Divergência na conferência é erro fatal: denuncia quebra de determinismo.
+- **Proteção de versão:** o snapshot guarda a versão do código e dos cartuchos. A recuperação se recusa a reexecutar incrementais gravados por outra versão.
+  - Por isso, parar com elegância (para um deploy, por exemplo) sempre grava um snapshot completo antes (tempo §9.2).
+- **Se um dia o estado ficar enorme** (centenas de agentes), dá para acrescentar snapshots diferenciais (só as entidades que mudaram) atrás da mesma porta, sem mudar o resto.
+- **Publicação no NATS:** um publicador lê o outbox em ordem de `seq` e publica com `Nats-Msg-Id` = id do evento. Republicar depois de uma queda não duplica, porque o JetStream e os consumidores deduplicam por id.
+- **Comandos:** chegam pelo stream `COMMANDS` com consumidor durável. O kernel só confirma depois de gravar a entrada; um comando não gravado volta a ser entregue depois do reinício e é deduplicado pelo id (ADR-0017).
+- **O mesmo mecanismo prepara o replay do M3** (critério A5): reexecutar um dia a partir de um snapshot e do diário.
 
-Isso também prepara o **replay do M3** (critério A5): reexecutar um dia a partir do snapshot e do diário é exatamente o que a recuperação faz.
+## 2. Arquivo histórico e retenção
 
-## 2. O que será construído
+- **Um JSONL por mundo e por dia simulado** (`data/archive/<mundo>/dia-0001.jsonl`), só acrescentando.
+- **Guardar todos os dias?** No começo e nos experimentos, sim. Estimativa: um dia roteirizado da fazenda gera cerca de 112 KB, uns 40 MB por ano por mundo, ou uns 4 MB comprimido.
+- **Política proposta:**
+  - **Comprimir os dias antigos** (gzip, `archive.compress_after_days`, início: 7). Comprimir não reescreve o conteúdo.
+  - **Mover para armazenamento frio** (disco externo ou, na fase AWS, S3 Glacier) quando o volume pedir.
+  - **Apagar só por decisão manual do operador**, nunca automaticamente. O CLAUDE.md proíbe apagar ou reescrever `data/archive/`: é o registro histórico dos experimentos e a base do replay público.
+- **Testes nunca escrevem em `data/archive/`:** usam pastas temporárias, apagadas ao fim do teste.
+- **Retenção dos streams no NATS** é outra coisa: é a janela quente, configurável por stream (D3). Lá os dados vencem sozinhos, porque o arquivo JSONL é a memória longa.
+
+## 3. O que será construído
 
 1. **`make tools`:** baixa o `nats-server` (linha 2.14, versão fixa) para `.tools/`, conferindo o sha256 publicado no GitHub da NATS. Builds para macOS arm64 e Linux amd64 (para o CI).
 2. **`config/nats/nats.conf`:**
    - JetStream ligado, só em `127.0.0.1`;
-   - um usuário por processo (kernel, percepção, controlador, gateway, arquivador, operador), com as permissões de assunto do contratos §6;
-   - o controlador **não** consegue assinar `internal` (critério A8, testado já aqui).
+   - um usuário por processo, com as permissões de assunto do contratos §6;
+   - o controlador não consegue assinar `internal` (A8);
+   - **as senhas são geradas na máquina, num arquivo fora do git** (decisão 2), e lidas via variáveis de ambiente.
 3. **`config/env/local.yaml`:**
-   - retenção por stream (D3: `WORLD` e `OBSERVER` 30 dias, `AGENT` 14, `INTERNAL` 90, `COMMANDS` 30, ADR-0017);
-   - caminhos e frequência de snapshot.
+   - retenção dos streams;
+   - caminhos;
+   - `snapshots.full_every_ticks`, `snapshots.keep_full` e `archive.compress_after_days`.
    - Mais **`config/worlds/farm-camps-01.yaml`**: mundo, cartucho, seed e data-base (ADR-0038).
 4. **Novas portas e adaptadores:**
    - **`WorldStore`** em SQLite: outbox, diário e metadados;
    - **`BlobStore`** em disco: snapshots;
-   - **`EventArchive`** em JSONL;
-   - **`EventBus`** com NATS JetStream: publicação com deduplicação, consumidores duráveis e criação idempotente dos streams;
+   - **`EventArchive`** em JSONL, com compressão dos dias antigos;
+   - **`EventBus`** com NATS JetStream: deduplicação, consumidores duráveis e criação idempotente dos streams;
    - **`TelemetryPort`:** logs JSON estruturados.
 5. **Kernel:**
-   - serialização do estado (snapshot) e restauração;
-   - recuperação com conferência;
-   - **`main.py`** (raiz de composição): lê a configuração e roda nos modos contínuo (acumulador de tempo real), máximo (o mais rápido possível, sem lockstep, que é do M3) e pausado.
-6. **Arquivador** (processo próprio):
-   - consome todos os streams com consumidores duráveis;
-   - grava **um JSONL por mundo e por dia simulado**, só acrescentando;
-   - deduplica por id e retoma do ponto certo depois de cair (parte do A6).
-7. **`make run` e `make stop`:** sobem o kernel e o arquivador num `Procfile`, com o `honcho`; os outros processos chegam nos marcos seguintes.
+   - snapshot completo (serializar e restaurar) e recuperação com conferência e proteção de versão;
+   - **`main.py`:** modos contínuo (acumulador de tempo real), máximo (o mais rápido possível; o lockstep é do M3) e pausado.
+6. **Arquivador** (processo próprio): consome todos os streams com consumidores duráveis, deduplica por id e retoma do ponto certo depois de cair.
+7. **`make run` e `make stop`:** sobem os processos juntos (decisão 5).
 8. **CI:** baixa o `nats-server` e roda também os testes que dependem do NATS.
 
-## 3. Testes (critérios de pronto)
+## 4. Testes (critérios de pronto)
 
 - **A7, recuperação:**
   1. NATS de verdade e kernel como processo, em modo contínuo com escala alta (um dia em cerca de 15 s);
   2. `kill -9` no meio do dia e reinício;
-  3. no fim, o stream e o arquivo têm `seq` contínua (sem lacunas, sem duplicatas) e o **hash canônico é igual ao de uma execução sem queda**.
-- **A6, parte do arquivador:** derrubar o arquivador no meio do dia e religar; o JSONL fica completo e sem repetições.
+  3. `seq` contínua (sem lacunas nem duplicatas) e **hash canônico igual ao de uma execução sem queda**.
+- **A6, parte do arquivador:** derrubar e religar o arquivador no meio do dia; o JSONL fica completo e sem repetições.
 - **A8:** a credencial do controlador tenta assinar `campsverso.*.internal.>` e é negada pelo NATS.
 - **Unidade:**
-  - snapshot de ida e volta, com o estado restaurado igual ao original;
-  - a conferência da recuperação detecta um fato adulterado;
+  - snapshot de ida e volta;
+  - a recuperação detecta um fato adulterado e uma versão diferente;
   - o publicador republica sem duplicar;
-  - o arquivador separa os arquivos por dia.
+  - o arquivador separa os arquivos por dia e comprime os antigos.
 
-## 4. Decisões para aprovar
+## 5. Decisões
 
-| # | Decisão | Recomendação |
+| # | Decisão | Situação |
 |---|---|---|
-| 1 | Estratégia de recuperação | snapshot + diário de entradas + reexecução determinística com conferência (seção 1). A alternativa, gravar o estado inteiro a cada tick, é mais simples de explicar, mas mais lenta e não ajuda o replay. |
-| 2 | Credenciais do NATS local | geradas na máquina por `make tools`, num arquivo fora do git, e lidas pelo `nats.conf` via variáveis de ambiente. Nada de senha no repositório público. |
-| 3 | Frequência de snapshot | a cada hora simulada e ao parar com elegância. A recuperação reexecuta no máximo 60 ticks. |
-| 4 | Arquivo histórico | um JSONL por mundo e por dia simulado (`data/archive/<mundo>/dia-0001.jsonl`), só acrescentando. |
-| 5 | Subir os processos | `honcho` com um `Procfile` (Python, multiplataforma). |
-| 6 | Download | `nats-server` 2.14.x do GitHub oficial da NATS (`nats-io/nats-server`), cerca de 20 MB, com checksum conferido. Preciso do seu ok. |
+| 1 | Recuperação: snapshot completo + incrementais (diário de entradas), configurável | **aprovada** (seção 1) |
+| 2 | Credenciais do NATS: nada no repositório | **aprovada** |
+| 3 | Snapshot completo a cada hora simulada, configurável | **aprovada** |
+| 4 | JSONL por mundo e por dia; retenção: comprimir após 7 dias, armazenamento frio depois, apagar só manualmente | **aprovada**, com a política da seção 2 |
+| 5 | Como subir os processos juntos (abaixo) | **aguarda confirmação** |
+| 6 | Baixar o `nats-server` 2.14.x do GitHub oficial da NATS | **aprovada** (o download acontece só quando o M2 começar) |
 
-## 5. Commits previstos
+### O que é a decisão 5
 
+O sistema é feito de **processos separados**: o kernel e o arquivador agora; a percepção, o controller-runner e o gateway nos próximos marcos; mais o NATS. Para desenvolver, é preciso subir todos juntos, ver os logs num terminal só e derrubar todos de uma vez. As opções:
+
+| Opção | Como é | Prós | Contras |
+|---|---|---|---|
+| **honcho + Procfile** (recomendada agora) | O `Procfile` tem uma linha por processo (`kernel: uv run python -m campsverso_kernel.main`). O `honcho`, uma ferramenta pequena em Python (versão do Foreman, do Ruby), sobe todos, mostra os logs com o nome de cada um em cores, e Ctrl+C derruba todos | entra como dependência de desenvolvimento pelo `uv`; nada global para instalar; funciona igual no Mac e no Linux | é mais uma ferramenta |
+| Script bash | um script sobe cada processo em segundo plano e derruba todos ao sair | nenhuma dependência | frágil: processos órfãos, logs misturados, código para manter |
+| `docker compose` | um container por processo | é o caminho da AWS (ADR-0024) | exige Docker, que não está instalado; fica para antes da AWS |
+
+O `Procfile` tem quase o mesmo formato dos serviços de um `docker-compose.yml`, então a troca, quando os containers chegarem, é direta.
+
+## 6. Commits previstos
+
+- ajuste do sono (ADR-0041);
 - configuração do NATS e `make tools`;
 - portas e adaptadores (SQLite, disco, JSONL, NATS);
 - snapshot e recuperação no kernel;
@@ -87,5 +119,5 @@ Isso também prepara o **replay do M3** (critério A5): reexecutar um dia a part
 - `main.py` do kernel e modos de relógio;
 - arquivador;
 - `make run` e CI com NATS;
-- teste de `kill -9` (A7), teste do arquivador (A6) e teste de permissão (A8);
+- testes A7, A6 e A8;
 - ADRs e diário.

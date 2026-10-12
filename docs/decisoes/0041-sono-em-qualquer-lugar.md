@@ -1,6 +1,6 @@
 # ADR-0041 — Dormir em qualquer lugar; a cama turbina a recuperação
 
-**Status:** proposta · **Data:** 2026-10-11 · **Marco:** antes do M2 (ajuste pequeno no M1)
+**Status:** aceita · **Data:** 2026-10-11 · **Marco:** M2 (primeiro passo, antes da durabilidade)
 **Altera:** `fazenda-camps-biblia-v0.1.md` §7 e §8 (`sleep`); ADR-0039
 
 ## Contexto
@@ -18,7 +18,7 @@ A revisão do M1 levantou três pontos:
 - o sono fora da cama deve recuperar o mínimo, algo como o desmaio;
 - camas e coisas análogas devem turbinar a recuperação.
 
-## Proposta
+## Decisão
 
 1. **`sleep` sem alvo:** dorme onde está (sono ruim). **`sleep` com alvo:** uma entidade de dormir adjacente (cama hoje; rede, sofá ou saco de dormir no futuro) dá sono bom.
 2. **A recuperação depende do lugar.**
@@ -29,6 +29,8 @@ A revisão do M1 levantou três pontos:
 5. **Desmaio:** continua como na bíblia (acorda às 06:00 com 50).
 
 ## Para o futuro (não agora)
+
+- **Mais indicadores do estado do avatar**, ligados por cartucho. Necessidades já são declaradas pela cadeia de cartuchos (ADR-0025): um mundo só tem as que os seus cartuchos declaram. Para um cenário desligar uma necessidade herdada do gênero, o construtor ganha uma operação de remover (com marcação explícita, como o override da ADR-0031) quando o primeiro caso aparecer.
 
 - **Itens que recuperam energia** (café, comidas), com limite.
 - **Uma segunda necessidade, "sono"** (pressão de sono). Ela sobe enquanto se está acordado, só baixa dormindo e, em 100, desmaia.
