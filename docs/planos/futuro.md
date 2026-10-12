@@ -17,3 +17,6 @@ Ideias e pendências que ainda não têm marco. Cada uma vira plano, ou ADR, qua
 | **Playwright.** Testes automáticos da tela num navegador de verdade | ADR-0050 | no M6 |
 | **Ações padrão do mundo.** Ações que todo mundo tem (andar, esperar, talvez dormir), declaradas pelo kernel. Hoje, cada cartucho declara o próprio catálogo | ADR-0051 | quando houver um segundo cartucho |
 | **Teclado e arrastar.** Atalhos de teclado para as ações e arrastar no mapa. No M5, só o mouse, com os cliques esquerdo e direito | ADR-0051 | depois do M6 |
+| **Fila de ações.** Clicar em três canteiros e o avatar fazer um depois do outro, em vez de recusar com `busy` enquanto trabalha. Põe estado novo no kernel (a fila de cada avatar) | ajuste depois do M5 (12/out) | depois do M6, jogando |
+| **Despertador.** Acordar numa hora marcada. O sono continua não cancelável pelo controlador; o despertador seria uma regra do mundo que encerra o sono, como a de acordar às 06:00 | ajuste depois do M5 (12/out) | junto com a necessidade "sono" |
+| **Cartuchos só de arte.** Pacotes genéricos de arte (terreno, construções, personagens), sem mapa, reaproveitados por vários mundos: a fazenda, o vilarejo, o estúdio. No M6, a arte fica em camadas no gênero e no cenário | ADR-0053 | antes de um segundo gênero |

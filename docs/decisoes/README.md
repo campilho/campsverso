@@ -57,6 +57,8 @@ A numeração deste diretório continua a partir de **0011**, para não colidir 
 | [0049](0049-cochilo-dormir-a-qualquer-hora.md) | Dormir a qualquer hora: à noite até as 06:00; de dia, cochilo até a energia encher (no máximo até as 06:00); `not_tired` com energia cheia | M4 | bíblia §7, §8, §11; ADR-0041 |
 | [0050](0050-decisoes-do-plano-do-m4.md) | Decisões do M4: contrato `realtime`, projeção no gateway com merge patch (genérica, sem desenho), mapa do cartucho pelo gateway, visões filtradas no gateway em 127.0.0.1, métricas no M7, `make sandbox`, sem Playwright | M4 | plano do M4; ADR-0022, 0025 |
 | [0051](0051-decisoes-do-plano-do-m5.md) | Decisões do M5: catálogo de ações do cartucho no `session.started`, as duas visões jogam, "Assumir" passa o mundo ao contínuo, clique esquerdo anda e direito abre o menu, sem devolução automática, pulso de 1 s, custos em `docs/custos/` | M5 | plano do M5; ADR-0022, 0050 |
+| [0052](0052-politica-de-interrupcao-das-acoes.md) | Política de interrupção de cada ação (`never`, `cancel`, `partial`), declarada pelo cartucho; `busy` para quem trabalha; gancho para guardar o trabalho feito; fila e despertador no futuro | M6 | bíblia §8; ADR-0038, 0051 |
+| [0053](0053-decisoes-do-plano-do-m6.md) | Decisões do M6: Phaser 4.2.1, arte no cartucho em camadas com manifesto, LPC com créditos, mapa visual num arquivo à parte, noite e chuva simples, `?render=debug`, retrato recortado, Playwright de fumaça no CI | M6 | plano do M6; ADR-0031, 0050 |
 
 ## Modelo
 
