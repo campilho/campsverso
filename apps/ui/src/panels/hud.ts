@@ -1,5 +1,5 @@
 /** HUD das duas visões: relógio, clima, avatar, necessidades e inventário (escopo §6). */
-import type { EnvelopeV1, ObserverState } from "@campsverso/contracts";
+import type { ObserverState } from "@campsverso/contracts";
 
 import { el } from "../dom.ts";
 import { clockText } from "../simclock.ts";
@@ -24,7 +24,6 @@ export function renderHud(
   tick: number,
   avatarId: string,
   status: Status,
-  rejection: EnvelopeV1 | undefined,
 ): void {
   const avatar = state.entities[avatarId];
   const controller = state.controllers[avatarId];
@@ -71,11 +70,5 @@ export function renderHud(
       ...items.map(([item, qty]) => el("span", { className: "item" }, `${item} ×${String(qty)}`)),
       ...held.map((text) => el("span", { className: "item held" }, text)),
     ),
-    ...(rejection === undefined ? [] : [toast(rejection)]),
   );
-}
-
-function toast(rejection: EnvelopeV1): HTMLElement {
-  const data = rejection.data as Record<string, unknown>;
-  return el("div", { className: "toast" }, `ação recusada: ${String(data.reason)} (${String(data.action)})`);
 }

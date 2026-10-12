@@ -28,6 +28,15 @@ export class MapCanvas {
     this.grid = grid;
   }
 
+  /** O tile sob um ponto da tela (coordenadas do evento do mouse), ou nada fora do mapa. */
+  tileAt(clientX: number, clientY: number): { x: number; y: number } | undefined {
+    const box = this.canvas.getBoundingClientRect();
+    const x = Math.floor(((clientX - box.left) * this.canvas.width) / box.width / TILE);
+    const y = Math.floor(((clientY - box.top) * this.canvas.height) / box.height / TILE);
+    const inside = x >= 0 && y >= 0 && x * TILE < this.canvas.width && y * TILE < this.canvas.height;
+    return inside ? { x, y } : undefined;
+  }
+
   private resize(width: number, height: number): void {
     if (this.canvas.width !== width * TILE || this.canvas.height !== height * TILE) {
       this.canvas.width = width * TILE;

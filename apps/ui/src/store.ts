@@ -26,9 +26,15 @@ export class Store {
   timeline: EnvelopeV1[] = [];
   lastReply: RealtimeReplyV1 | undefined;
   private readonly listeners = new Set<() => void>();
+  private readonly eventListeners = new Set<(events: readonly EnvelopeV1[]) => void>();
 
   onChange(listener: () => void): void {
     this.listeners.add(listener);
+  }
+
+  /** Os eventos novos de cada update, na ordem (os do welcome são histórico e não entram). */
+  onEvents(listener: (events: readonly EnvelopeV1[]) => void): void {
+    this.eventListeners.add(listener);
   }
 
   private changed(): void {
@@ -57,6 +63,9 @@ export class Store {
     this.state = applyMergePatch(this.state, message.patch) as unknown as ObserverState;
     if (message.events.length > 0) {
       this.timeline = [...this.timeline, ...message.events].slice(-TIMELINE_LIMIT);
+      for (const listener of this.eventListeners) {
+        listener(message.events);
+      }
     }
     this.changed();
   }

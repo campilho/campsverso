@@ -135,11 +135,67 @@ canvas {
   color: var(--muted);
 }
 
-.toast {
-  width: 100%;
+.control {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.control .hint {
+  color: var(--muted);
+}
+
+.notice {
+  margin-top: 8px;
   padding: 6px 10px;
   background: rgba(231, 76, 60, 0.18);
   border-left: 3px solid var(--bad);
+  border-radius: 3px;
+}
+
+.action-menu {
+  position: absolute;
+  z-index: 10;
+  min-width: 220px;
+  max-width: 360px;
+  padding: 8px;
+  background: var(--panel);
+  border: 1px solid #444b5a;
+  border-radius: 4px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.action-menu[hidden],
+.notice[hidden] {
+  display: none;
+}
+
+.action-menu .menu-title {
+  font-weight: bold;
+  color: var(--muted);
+}
+
+.action-menu .menu-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.action-menu select,
+.action-menu input {
+  background: #0d0f13;
+  color: var(--text);
+  border: 1px solid var(--line);
+  padding: 2px 4px;
+}
+
+.action-menu input[type="number"] {
+  width: 64px;
 }
 
 aside.operator {

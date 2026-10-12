@@ -57,6 +57,25 @@ describe("merge patch (RFC 7386)", () => {
     expect(applyMergePatch({ a: [1, 2] }, { a: [3] })).toEqual({ a: [3] });
   });
 
+  it("os eventos novos chegam a quem escuta mesmo com a linha do tempo cheia", () => {
+    const store = new Store();
+    store.applyWelcome({
+      type: "campsverso.realtime.welcome.v1",
+      worldid: "w",
+      view: "player",
+      avatar_id: "camps",
+      commands: [],
+      state: state(),
+      events: Array.from({ length: 1000 }, () => event("campsverso.world.x.v1", "world", {})),
+    });
+    const heard: string[] = [];
+    store.onEvents((events) => heard.push(...events.map((e) => e.type)));
+    const rejected = event("campsverso.world.command.rejected.v1", "observer", { reason: "mode_not_allowed" });
+    store.applyUpdate({ type: "campsverso.realtime.update.v1", patch: {}, events: [rejected] });
+    expect(heard).toEqual(["campsverso.world.command.rejected.v1"]);
+    expect(store.timeline).toHaveLength(1000);
+  });
+
   it("a loja aplica o patch e conta os welcomes", () => {
     const store = new Store();
     store.applyWelcome({

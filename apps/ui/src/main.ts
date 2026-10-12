@@ -1,22 +1,30 @@
-/** UI de depuração do Campsverso (M4; ADR-0050): o mundo pelo gateway, desenhado num canvas.
+/** UI de depuração do Campsverso (M4 e M5; ADR-0050, ADR-0051): o mundo pelo gateway, num canvas.
  *
  * `?view=player` (padrão) mostra o mapa e o HUD; `?view=operator` acrescenta o painel do operador.
+ * Nas duas visões dá para assumir o Camps e jogar: o clique esquerdo anda, o direito abre o menu.
  */
 import "./style.css";
 
-import type { EnvelopeV1 } from "@campsverso/contracts";
+import type { EnvelopeV1, ObserverState } from "@campsverso/contracts";
 
 import { Connection, type View } from "./connection.ts";
-import { el } from "./dom.ts";
+import { button, el } from "./dom.ts";
+import { positionAt } from "./motion.ts";
 import { renderHud } from "./panels/hud.ts";
+import { ActionMenu } from "./panels/menu.ts";
 import { OperatorPanel } from "./panels/operator.ts";
+import { inControl, menuFor, proposal, thingAt, walkTo } from "./play.ts";
 import { MapCanvas } from "./render/canvas.ts";
 import { DisplayClock, clockText, isLive } from "./simclock.ts";
 import { Store } from "./store.ts";
 import { parseTiledMap } from "./tiled.ts";
 
-const REJECTION_SHOWN_MS = 6000;
+const NOTICE_MS = 6000;
 const PANEL_EVERY_MS = 150;
+const PROPOSE = "campsverso.cmd.action.propose.v1";
+const POSSESS = "campsverso.cmd.avatar.possess.v1";
+const RELEASE = "campsverso.cmd.avatar.release.v1";
+const SET_MODE = "campsverso.cmd.clock.set_mode.v1";
 
 const view: View = new URLSearchParams(location.search).get("view") === "operator" ? "operator" : "player";
 const store = new Store();
@@ -25,6 +33,8 @@ const connection = new Connection(`${scheme}://${location.host}/ws?view=${view}`
 
 const canvas = el("canvas");
 const hud = el("div", { className: "hud" });
+const control = el("div", { className: "control" });
+const notice = el("div", { className: "notice" });
 const aside = el("aside", { className: "operator" });
 const other = view === "operator" ? "player" : "operator";
 const header = el(
@@ -41,9 +51,13 @@ if (app === null) {
   throw new Error("#app não existe no index.html");
 }
 app.className = view;
-app.replaceChildren(header, el("main", {}, el("section", { className: "world" }, canvas, hud), view === "operator" && aside));
+app.replaceChildren(
+  header,
+  el("main", {}, el("section", { className: "world" }, control, canvas, notice, hud), view === "operator" && aside),
+);
 
 const map = new MapCanvas(canvas);
+const menu = new ActionMenu(document.body);
 const panel =
   view === "operator"
     ? new OperatorPanel(aside, (command, data) => { connection.send(command, data); }, () => { dirty = true; })
@@ -55,7 +69,34 @@ let mapId: string | undefined;
 let dirty = true;
 let lastPanel = 0;
 let lastClock = "";
-let rejection: { event: EnvelopeV1; seenAt: number } | undefined;
+let lastControl = "";
+let shownTick = 0;
+let noticeUntil = 0;
+let lastReply = "";
+
+function avatarId(): string {
+  return store.welcome?.avatar_id ?? "camps";
+}
+
+function say(text: string): void {
+  notice.textContent = text;
+  notice.hidden = false;
+  noticeUntil = performance.now() + NOTICE_MS;
+}
+
+/** Recusas que interessam a quem joga: as ações do avatar e os comandos desta conexão. */
+function explain(event: EnvelopeV1): string | undefined {
+  const data = event.data as Record<string, unknown>;
+  const detail = typeof data.detail === "string" ? `: ${data.detail}` : "";
+  if (event.type === "campsverso.action.rejected.v1" && data.avatar_id === avatarId()) {
+    return `O kernel recusou ${String(data.action)} (${String(data.reason)}${detail}).`;
+  }
+  if (event.type === "campsverso.world.command.rejected.v1") {
+    const command = String(data.command_type).replace(/^campsverso\.cmd\./, "").replace(/\.v\d+$/, "");
+    return `O kernel recusou ${command} (${String(data.reason)}${detail}).`;
+  }
+  return undefined;
+}
 
 async function loadMap(id: string): Promise<void> {
   const response = await fetch(`/content/maps/${encodeURIComponent(id)}.tmj`);
@@ -80,36 +121,129 @@ store.onChange(() => {
     mapId = id;
     void loadMap(id);
   }
-  const last = store.timeline.at(-1);
-  if (last?.type === "campsverso.action.rejected.v1" && last.id !== rejection?.event.id) {
-    rejection = { event: last, seenAt: performance.now() };
+  const reply = store.lastReply;
+  if (reply?.ok === false && reply.error !== undefined && reply.request_id !== lastReply) {
+    lastReply = reply.request_id;
+    say(`O gateway recusou o pedido (${reply.error.code}): ${reply.error.message}`);
   }
 });
 
+store.onEvents((events) => {
+  for (const event of events) {
+    const text = explain(event);
+    if (text !== undefined) {
+      say(text);
+    }
+  }
+});
+
+// ---------------------------------------------------------------- jogar (ADR-0051)
+
+function assume(state: ObserverState): void {
+  if (view === "operator" && state.clock.mode === "max") {
+    // O modo máximo é só de script e replay (princípio 7): o operador passa o mundo ao contínuo.
+    connection.send(SET_MODE, { mode: "continuous", reason: "o humano vai jogar" });
+  }
+  connection.send(POSSESS, { avatar_id: avatarId() });
+}
+
+function renderControl(state: ObserverState): void {
+  const mine = inControl(state, avatarId());
+  const controller = state.controllers[avatarId()];
+  const busy = state.actions[avatarId()] !== undefined || state.asleep[avatarId()] === true;
+  const key = JSON.stringify([mine, controller, busy, store.status, state.clock.mode]);
+  if (key === lastControl) {
+    return; // refazer o botão sem mudança engoliria cliques
+  }
+  lastControl = key;
+  const hint = !mine
+    ? `O Camps está com ${controller === undefined ? "ninguém" : controller.id}. Assuma para jogar.`
+    : busy
+      ? "Você controla o Camps."
+      : "Sua vez: clique esquerdo anda; clique direito abre o menu (no Camps, o menu de si).";
+  control.replaceChildren(
+    mine
+      ? button("Devolver ao script", () => { connection.send(RELEASE, { avatar_id: avatarId() }); }, store.status === "open")
+      : button("Assumir o Camps", () => { assume(state); }, store.status === "open"),
+    el("span", { className: "hint" }, hint),
+  );
+}
+
+/** Onde o avatar aparece na tela agora (o trajeto interpolado, arredondado ao tile). */
+function avatarTile(state: ObserverState): { x: number; y: number } | undefined {
+  const motion = state.motion[avatarId()];
+  const at = motion === undefined ? state.entities[avatarId()]?.position : positionAt(motion, shownTick);
+  return at === undefined ? undefined : { x: Math.round(at.x), y: Math.round(at.y) };
+}
+
+canvas.addEventListener("click", (event) => {
+  menu.close();
+  const state = store.state;
+  const tile = map.tileAt(event.clientX, event.clientY);
+  if (state === undefined || tile === undefined) {
+    return;
+  }
+  if (!inControl(state, avatarId())) {
+    say("Assuma o controle do Camps para jogar.");
+    return;
+  }
+  connection.send(PROPOSE, { ...walkTo(state, avatarId(), tile.x, tile.y) });
+});
+
+canvas.addEventListener("contextmenu", (event) => {
+  event.preventDefault();
+  const state = store.state;
+  const tile = map.tileAt(event.clientX, event.clientY);
+  if (state === undefined || tile === undefined) {
+    return;
+  }
+  if (!inControl(state, avatarId())) {
+    say("Assuma o controle do Camps para jogar.");
+    return;
+  }
+  const me = avatarTile(state);
+  const clicked = me?.x === tile.x && me.y === tile.y ? "self" : thingAt(state, tile.x, tile.y);
+  if (clicked === undefined) {
+    connection.send(PROPOSE, { ...walkTo(state, avatarId(), tile.x, tile.y) }); // chão: só andar
+    return;
+  }
+  const entity = clicked === "self" ? state.entities[avatarId()] : state.entities[clicked];
+  const title = clicked === "self" ? `${entity?.display_name ?? avatarId()} (você)` : (entity?.display_name ?? clicked);
+  menu.open(event.pageX, event.pageY, title, menuFor(state, avatarId(), clicked), (entry, chosen) => {
+    connection.send(PROPOSE, { ...proposal(avatarId(), entry, chosen) });
+  });
+});
+
+// ---------------------------------------------------------------- quadros
+
 function frame(now: number): void {
   const state = store.state;
-  const avatarId = store.welcome?.avatar_id ?? "camps";
   if (state !== undefined) {
     const tick = clock.at(state, now, isLive(state, store.status === "open"));
+    shownTick = tick;
     map.draw(state, tick);
+    renderControl(state);
     const shownClock = clockText(state, tick);
     const panelDue = (dirty || now - lastPanel > 1000) && now - lastPanel >= PANEL_EVERY_MS;
     if (panelDue || shownClock !== lastClock) {
       // O HUD acompanha cada minuto mostrado; o painel do operador, só as mudanças de estado.
-      const recent = rejection !== undefined && now - rejection.seenAt < REJECTION_SHOWN_MS ? rejection.event : undefined;
-      renderHud(hud, state, tick, avatarId, store.status, recent);
+      renderHud(hud, state, tick, avatarId(), store.status);
       lastClock = shownClock;
     }
     if (panelDue) {
-      panel?.render(state, avatarId, store.welcome?.commands ?? [], store.timeline, store.lastReply);
+      panel?.render(state, avatarId(), store.welcome?.commands ?? [], store.timeline, store.lastReply);
       dirty = false;
       lastPanel = now;
     }
   } else {
     hud.replaceChildren(el("p", {}, store.status === "closed" ? "sem conexão com o gateway…" : "conectando ao gateway…"));
   }
+  if (!notice.hidden && now > noticeUntil) {
+    notice.hidden = true;
+  }
   requestAnimationFrame(frame);
 }
 
+notice.hidden = true;
 connection.open();
 requestAnimationFrame(frame);
