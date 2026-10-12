@@ -1,6 +1,6 @@
 # Plano do M4 — UI de depuração
 
-**Status:** aprovado em 12/out/2026 (ADR-0049 e ADR-0050), em implementação.
+**Status:** **concluído** em 12/out/2026. O que mudou na implementação está na seção 8.
 **Escopo** (escopo §7): gateway WebSocket, canvas simples, visões jogador e operador, controles do relógio.
 **Pronto quando:** dá para assistir a um dia ao vivo no browser e pausar, acelerar e avançar passo a passo.
 **Critérios de aceite tocados:** A6 no gateway (derrubar o gateway não derruba o kernel; ao voltar, ele retoma do ponto certo) e a visão jogador sem nada `internal`. Prepara o M5 (humano joga) e o M7 (métricas no painel).
@@ -119,3 +119,22 @@ As decisões viraram a ADR-0049 (cochilo) e a ADR-0050 (as demais).
 7. `feat: make sandbox, make ui e permissões do gateway`
 8. `test: gateway com NATS e A6 do gateway`
 9. `docs: fechamento do M4`
+
+## 8. Como ficou
+
+| Item | Resultado |
+|---|---|
+| **Pronto quando** | no `make sandbox`, pelo navegador: um dia inteiro a 720× (cerca de 2 minutos), da manhã à noite e à manhã seguinte; pausar, avançar 1 e 10 ticks, 1×, 72×, 720× e máximo, com cada comando voltando como evento do kernel |
+| **Visões** | o jogador nunca recebe `internal` nem `observer` (teste em memória e com NATS); o operador vê os snapshots e a regra oculta em roxo na linha do tempo |
+| **A6 no gateway** | `kill -9` no gateway: o kernel segue; ao voltar, o gateway retoma do arquivo, e o estado fica igual ao montado do zero a partir dos streams |
+| **Contrato** | `contracts/realtime` com 4 mensagens, validadas pelo jsonschema e pelo ajv; tipos gerados para Python e TypeScript; canal WebSocket no AsyncAPI |
+| **Cochilo** | à noite, até as 06:00; de dia, até a energia encher (5 h 36 na cama saindo de 30); `not_tired` com a energia cheia |
+
+**O que mudou em relação ao plano:**
+
+- **O gateway serve a UI compilada.** `make sandbox` e `make run` abrem a UI em `http://127.0.0.1:8765`, sem precisar do Vite. O `make ui` fica para mexer na UI, com recarga ao salvar.
+- **O NatsBus reconhece na hora um pedido negado por permissão.** Antes, uma publicação negada esperava 5 s e virava "barramento indisponível". Agora vira `PermissionDeniedError` assim que o servidor avisa.
+- **O tick do último pedido de decisão vem do próprio evento.** O teste com NATS mostrou que, com `world` e `agent` em streams separados, o maior tick já visto dependia da ordem de chegada.
+- **A tela estima o relógio entre eventos.** Tick quieto não gera evento. No contínuo, a UI avança o relógio pela escala, com teto de 120 ticks, e para quando o mundo pausa.
+- **As fotos da percepção não vão para a tela.** São dos controladores, e pesadas.
+- **Cada parte do painel só se refaz quando o dado dela muda.** Refazer os botões a cada 150 ms engoliria cliques.

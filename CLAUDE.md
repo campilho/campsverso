@@ -49,7 +49,7 @@ campsverso/
   CLAUDE.md
   Makefile
   contracts/                  # FONTE DA VERDADE dos contratos
-    common/  envelope/  events/  commands/  examples/{valid,invalid}/  domains.json
+    common/  envelope/  events/  commands/  realtime/  examples/{valid,invalid}/  domains.json
     asyncapi.yaml             # GERADO a partir dos schemas
     CHANGELOG.md
   packages/
@@ -58,7 +58,8 @@ campsverso/
   libs/
     ports/                    # interfaces das portas (Python)
     cartridge-api/            # interfaces que um cartucho implementa (ADR-0011)
-    adapters/                 # nats, inmemory, sqlite, jsonl, blob-local...
+    adapters/                 # nats, inmemory, sqlite, jsonl, blob-local, fastapi (WebSocket)...
+    world-view/               # projeção genérica do mundo a partir dos eventos (percepção e gateway; ADR-0050)
   services/
     kernel/                   # relógio, ECS, grid, ações, regras, outbox
     perception/               # filtro de percepção
@@ -83,7 +84,7 @@ campsverso/
   data/                       # gitignored: sqlite, snapshots, archive
   docs/
     arquitetura/  decisoes/  diario/
-    planos/                   # plano de cada marco, aprovado antes do código
+    planos/                   # plano de cada marco, aprovado antes do código; futuro.md: tarefas sem marco
     design/                   # referências visuais (Claude Design)
   tests/
     e2e/                      # resistência, determinismo, replay, recuperação
@@ -111,8 +112,10 @@ make tools        # baixa o nats-server com versão e sha256 fixados (.tools/)
 make secrets      # gera em .env (fora do git) as senhas do NATS que faltam
 make up           # sobe o NATS em segundo plano
 make stop         # derruba o NATS
-make run          # sobe o NATS e o Procfile (honcho): kernel, percepção, script e arquivador
-make ui           # sobe a UI em modo desenvolvimento
+make run          # sobe o NATS e o Procfile (honcho): kernel, percepção, script, arquivador e gateway
+make sandbox      # mundo descartável com tudo ligado, em data/sandbox/<data-hora> (não toca no oficial)
+make ui-build     # compila a UI em apps/ui/dist; o gateway a serve em http://127.0.0.1:8765
+make ui           # a UI em modo desenvolvimento (Vite), com proxy para o gateway
 make soak DAYS=30 # resistência em modo máximo, com processos e NATS próprios (SEM_REGRA=1)
 make replay DAY=N # reexecuta um dia a partir do snapshot e do diário e compara com o arquivo
 make metrics      # métricas da bíblia §13 a partir do arquivo (ARCHIVE=pasta do mundo)
