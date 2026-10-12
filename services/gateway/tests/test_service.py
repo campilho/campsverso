@@ -241,3 +241,22 @@ async def test_jogador_assume_joga_e_devolve(rig: Rig) -> None:
     await pipeline.kernel.run_ticks(1)
     released = pipeline.of_type("avatar.released.v1")[-1]
     assert released["controller"] == {"type": "script", "id": "script/farmer-v1"}
+
+
+async def test_jogador_ve_a_recusa_do_proprio_comando(rig: Rig) -> None:
+    """Com o mundo no modo máximo, o kernel recusa o humano; o jogador vê o motivo (ADR-0051)."""
+    rig.gateway.flush()
+    player, _ = await rig.connect("player")
+    other, _ = await rig.connect("player")
+    fake = {"avatar_id": "camps", "controller": {"type": "human", "id": "x"}}
+    reply = await _ask(player, POSSESS, fake)
+    await rig.pipeline.kernel.run_ticks(1)
+    rig.gateway.flush()
+    update = await player.receive_until("update")
+    (rejected,) = [
+        e for e in update["events"] if e["type"] == "campsverso.world.command.rejected.v1"
+    ]
+    assert rejected["data"]["command_id"] == reply["command_id"]
+    assert rejected["data"]["reason"] == "mode_not_allowed"
+    seen_by_other = await other.receive_until("update")
+    assert all(e["visibility"] in {"world", "agent"} for e in seen_by_other["events"])

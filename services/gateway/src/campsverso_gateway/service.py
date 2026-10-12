@@ -69,6 +69,7 @@ SKIPPED = frozenset({"campsverso.perception.delivered.v1"})
 PROJECTED = ("world", "agent")
 QUEUE_LIMIT = 2000  # mensagens esperando uma UI lenta; acima disso, a conexão cai
 PULSE = "campsverso.live.kernel.v1"
+COMMAND_REJECTED = "campsverso.world.command.rejected.v1"
 PULSES_TO_SILENCE = 3  # pulsos perdidos até o kernel ficar "sem sinal" (ADR-0051)
 
 
@@ -78,10 +79,19 @@ class _Client:
     queue: asyncio.Queue[Message] = field(
         default_factory=lambda: asyncio.Queue[Message](QUEUE_LIMIT)
     )
+    sent: set[str] = field(default_factory=set[str])  # ids dos comandos que esta conexão mandou
 
     @property
     def view(self) -> View:
         return self.connection.view
+
+    def sees(self, envelope: Envelope) -> bool:
+        """O que a visão vê, mais a recusa dos próprios comandos: quem joga precisa saber por que
+        o kernel não aceitou o seu "Assumir", mesmo sem ver os eventos `observer` (ADR-0051)."""
+        if envelope["visibility"] in VISIBLE[self.view]:
+            return True
+        data: Mapping[str, Any] = envelope["data"]
+        return envelope["type"] == COMMAND_REJECTED and data.get("command_id") in self.sent
 
 
 def _order(envelope: Envelope) -> tuple[int, str, int]:
@@ -245,7 +255,7 @@ class GatewayService:
         self._state = state
         self._timeline.extend(events)
         for client in list(self._clients):
-            visible = [e for e in events if e["visibility"] in VISIBLE[client.view]]
+            visible = [e for e in events if client.sees(e)]
             if patch or visible:
                 self._enqueue(client, {"type": UPDATE, "patch": patch, "events": visible})
 
@@ -270,7 +280,10 @@ class GatewayService:
         writer = asyncio.create_task(self._write(client))
         try:
             async for message in connection.messages():
-                self._enqueue(client, await self._command(view, message))
+                reply = await self._command(view, message)
+                if reply.get("ok"):
+                    client.sent.add(str(reply["command_id"]))
+                self._enqueue(client, reply)
         finally:
             self._clients.discard(client)
             writer.cancel()
