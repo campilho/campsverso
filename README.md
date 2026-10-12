@@ -14,8 +14,9 @@ Projeto pessoal de aprendizado, construído em público com a ajuda do Claude Co
 
 | Marco | Situação |
 |---|---|
-| M0: fundação (monorepo, contratos, codegen, CI local) | concluído |
-| M1: kernel sem barramento | próximo |
+| M0: fundação (monorepo, contratos, codegen, CI) | concluído |
+| M1: kernel sem barramento (modelo de mundo, relógio, ações, regras, cartuchos farm e farm_camps) | concluído |
+| M2: durabilidade (NATS, outbox, arquivo JSONL, snapshots, retomada) | próximo |
 
 ## Como começar
 

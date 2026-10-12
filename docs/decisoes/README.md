@@ -45,6 +45,7 @@ A numeração deste diretório continua a partir de **0011**, para não colidir 
 | [0037](0037-pipeline-do-tick-configuravel.md) | Ordem do tick em etapas nomeadas e configuráveis, travada por teste de referência | M1 | ADR-0018 |
 | [0038](0038-decisoes-do-kernel-para-o-m1.md) | Kernel do M1: necessidades inteiras, modelo e A* próprios, calendário 2026-10-10, RNG próprio, núcleo + serviço | M1 | ADR-0025 |
 | [0039](0039-decisoes-do-cartucho-farm-para-o-m1.md) | Fazenda do M1: estágios, ids dos objetos, limiares 80/20/0, regra genérica de água, chuva, venda | M1 | bíblia §4, §6, §7, §10 |
+| [0040](0040-kits-de-teste.md) | Kits de teste: laboratório genérico no kernel; Fazenda do Camps em `campsverso_testkit`, fora do sistema | M1 | ADR-0011, ADR-0025 |
 
 ## Modelo
 

@@ -84,6 +84,7 @@ campsverso/
     arquitetura/  decisoes/  diario/
   tests/
     e2e/                      # resistência, determinismo, replay, recuperação
+    support/                  # campsverso_testkit: mundos e roteiros para testes (ADR-0040)
 ```
 
 ## Convenções

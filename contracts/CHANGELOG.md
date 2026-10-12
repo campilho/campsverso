@@ -15,3 +15,7 @@ Primeira versão, gerada a partir do [catálogo da v0.1](../docs/arquitetura/cat
 - **Exemplos:** um válido por tipo e 10 inválidos, cada um com o código de erro esperado.
 - **Domínios:** `contracts/domains.json` lista os domínios reservados do kernel e os de cartucho. Acrescentamos `clock` aos reservados, porque os comandos de relógio são `campsverso.cmd.clock.*` (documento de tempo §13).
 - **`asyncapi.yaml`**: AsyncAPI 3.1, gerado a partir dos schemas (ADR-0033).
+
+### Pacotes gerados (sem mudança nos schemas)
+
+- `subject()` em `campsverso_contracts` e `@campsverso/contracts`: a regra do assunto NATS (catálogo §1.1) num lugar só.
