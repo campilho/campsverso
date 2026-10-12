@@ -9,6 +9,7 @@ dependencies = [
   "campsverso-ports",
   "campsverso-cartridge-api",
   "campsverso-adapters",
+  "campsverso-world-view",
   "campsverso-kernel",
   "campsverso-perception",
   "campsverso-controller-runner",
@@ -54,6 +55,7 @@ campsverso-contracts = { workspace = true }
 campsverso-ports = { workspace = true }
 campsverso-cartridge-api = { workspace = true }
 campsverso-adapters = { workspace = true }
+campsverso-world-view = { workspace = true }
 campsverso-kernel = { workspace = true }
 campsverso-perception = { workspace = true }
 campsverso-controller-runner = { workspace = true }
@@ -116,6 +118,7 @@ root_packages = [
   "campsverso_ports",
   "campsverso_cartridge_api",
   "campsverso_adapters",
+  "campsverso_world_view",
   "campsverso_kernel",
   "campsverso_perception",
   "campsverso_controller_runner",
@@ -205,6 +208,26 @@ forbidden_modules = [
 ]
 
 [[tool.importlinter.contracts]]
+name = "A projeção comum só lê eventos: não conhece serviços, adaptadores nem cartuchos (ADR-0050)"
+type = "forbidden"
+source_modules = ["campsverso_world_view"]
+forbidden_modules = [
+  "campsverso_ports",
+  "campsverso_cartridge_api",
+  "campsverso_adapters",
+  "campsverso_kernel",
+  "campsverso_perception",
+  "campsverso_controller_runner",
+  "campsverso_gateway",
+  "campsverso_archiver",
+  "campsverso_farm_sim",
+  "campsverso_farm_script",
+  "campsverso_farm_camps_sim",
+  "campsverso_tools",
+  "campsverso_testkit",
+]
+
+[[tool.importlinter.contracts]]
 name = "O pacote de contratos gerado é uma folha"
 type = "forbidden"
 source_modules = ["campsverso_contracts"]
@@ -243,6 +266,7 @@ source_modules = [
   "campsverso_ports",
   "campsverso_cartridge_api",
   "campsverso_adapters",
+  "campsverso_world_view",
   "campsverso_kernel",
   "campsverso_perception",
   "campsverso_controller_runner",

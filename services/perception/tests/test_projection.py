@@ -1,9 +1,9 @@
-"""Projeção da percepção: só eventos visíveis, trajeto pela metade, itens e necessidades."""
+"""A foto da percepção sobre a projeção comum: trajeto pela metade, itens e necessidades."""
 
 import json
 from typing import Any
 
-from campsverso_perception.projection import Projection
+from campsverso_perception.view import PerceptionState as Projection
 
 
 def ev(seq: int, tick: int, kind: str, /, **data: Any) -> dict[str, Any]:

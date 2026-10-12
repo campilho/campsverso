@@ -1,8 +1,9 @@
-"""Projeção do mundo visível, montada só com eventos `world` e `agent` (ADR-0028; bíblia §12).
+"""Projeção do mundo, montada só com eventos `world` e `agent` publicados (ADR-0028, ADR-0050).
 
-Nada aqui conhece fazendas: a visão é genérica; o que é da fazenda chega como atributo.
+Nada aqui conhece fazendas: o estado é o modelo de mundo do kernel (ADR-0025), e o que é da fazenda
+chega como atributo. Também não há nada de desenho: posições são tiles, trajetos são ticks.
 Pontos de crescimento e regras ocultas nunca chegam a esta projeção, porque o kernel não os publica
-fora de `internal`, que a percepção não tem permissão de ler (princípio 5).
+fora de `internal`, e quem a usa (percepção, gateway) não aplica eventos `internal` (princípio 5).
 """
 
 import math
@@ -16,7 +17,9 @@ def _position(raw: Any) -> dict[str, int]:
     return {"x": int(raw["x"]), "y": int(raw["y"])}
 
 
-def _path(origin: Mapping[str, int], waypoints: list[Mapping[str, int]]) -> list[dict[str, int]]:
+def path_from(
+    origin: Mapping[str, int], waypoints: list[Mapping[str, int]]
+) -> list[dict[str, int]]:
     """Refaz o trajeto tile a tile a partir das esquinas (D1): segmentos retos em 4 direções."""
     path = [_position(origin)]
     for corner in waypoints:
@@ -30,12 +33,12 @@ def _path(origin: Mapping[str, int], waypoints: list[Mapping[str, int]]) -> list
 
 
 class Projection:
-    """O mundo como os avatares podem percebê-lo, por mundo. Serializável em JSON."""
+    """O mundo como se vê de fora, por mundo. Serializável em JSON; chaves desconhecidas ficam de
+    fora, para que um serviço guarde as suas junto (a percepção guarda o `seq` das fotos)."""
 
     def __init__(self, state: Mapping[str, Any] | None = None) -> None:
         raw: Mapping[str, Any] = state or {}
         self.last_seq: dict[str, int] = dict(raw.get("last_seq", {}))  # por stream lido
-        self.out_seq: int = int(raw.get("out_seq", 0))  # seq das fotos publicadas
         self.cartridge: str | None = raw.get("cartridge")
         self.tick: int = int(raw.get("tick", 0))
         self.simtime: str | None = raw.get("simtime")
@@ -54,11 +57,18 @@ class Projection:
             k: dict(v) for k, v in raw.get("needs", {}).items()
         }
         self.asleep: dict[str, bool] = dict(raw.get("asleep", {}))
+        self.session: dict[str, Any] | None = raw.get("session")  # do session.started
+        self.clock: dict[str, Any] = dict(raw.get("clock", {}))  # mode, scale, paused
+        self.controllers: dict[str, dict[str, str]] = {
+            k: dict(v) for k, v in raw.get("controllers", {}).items()
+        }
+        self.decisions: dict[str, dict[str, Any]] = {  # último pedido de decisão por avatar
+            k: dict(v) for k, v in raw.get("decisions", {}).items()
+        }
 
     def export(self) -> dict[str, Any]:
         return {
             "last_seq": self.last_seq,
-            "out_seq": self.out_seq,
             "cartridge": self.cartridge,
             "tick": self.tick,
             "simtime": self.simtime,
@@ -71,6 +81,10 @@ class Projection:
             "actions": self.actions,
             "needs": self.needs,
             "asleep": self.asleep,
+            "session": self.session,
+            "clock": self.clock,
+            "controllers": self.controllers,
+            "decisions": self.decisions,
         }
 
     # ------------------------------------------------------------- eventos
@@ -99,6 +113,8 @@ class Projection:
             entity["position"] = _position(data["position"])
         if data.get("container_id") is not None:
             entity["container_id"] = data["container_id"]
+        if data.get("display_name") is not None:
+            entity["display_name"] = data["display_name"]
         self.entities[str(data["entity_id"])] = entity
 
     def _on_world_entity_state_changed(self, data: Mapping[str, Any]) -> None:
@@ -108,7 +124,7 @@ class Projection:
 
     def _on_world_entity_moved(self, data: Mapping[str, Any]) -> None:
         entity_id = str(data["entity_id"])
-        path = _path(data["origin"], list(data["waypoints"]))
+        path = path_from(data["origin"], list(data["waypoints"]))
         self.motion[entity_id] = {
             "path": path,
             "depart_tick": int(data["depart_tick"]),
@@ -177,8 +193,42 @@ class Projection:
         self.needs[avatar_id] = {k: float(v) for k, v in data["needs"].items()}
         if avatar_id in self.entities:
             self.entities[avatar_id]["position"] = _position(data["position"])
+        self.controllers[avatar_id] = dict(data["controller"])
+        self.decisions[avatar_id] = {"reason": data["reason"], "tick": self.tick}
 
-    # ------------------------------------------------------------- visão
+    def _on_avatar_possessed(self, data: Mapping[str, Any]) -> None:
+        self.controllers[str(data["avatar_id"])] = dict(data["controller"])
+
+    _on_avatar_released = _on_avatar_possessed
+
+    # ------------------------------------------------------------- sessão e relógio
+
+    def _on_world_session_started(self, data: Mapping[str, Any]) -> None:
+        self.session = {
+            "cartridge_version": data["cartridge_version"],
+            "tick_seconds": int(data["tick_seconds"]),
+        }
+        if data.get("map") is not None:
+            self.session["map"] = dict(data["map"])
+        self.clock = {
+            "mode": data["mode"],
+            "scale": float(data["scale"]),
+            "paused": bool(data["paused"]),
+        }
+
+    def _on_world_clock_paused(self, data: Mapping[str, Any]) -> None:
+        self.clock["paused"] = True
+
+    def _on_world_clock_resumed(self, data: Mapping[str, Any]) -> None:
+        self.clock["paused"] = False
+
+    def _on_world_clock_mode_changed(self, data: Mapping[str, Any]) -> None:
+        self.clock["mode"] = data["mode"]
+
+    def _on_world_clock_scale_changed(self, data: Mapping[str, Any]) -> None:
+        self.clock["scale"] = float(data["scale"])
+
+    # ------------------------------------------------------------- consultas
 
     def position_at(self, entity_id: str, tick: int) -> dict[str, int] | None:
         motion = self.motion.get(entity_id)
@@ -187,44 +237,3 @@ class Projection:
         path = cast(list[dict[str, int]], motion["path"])
         steps = math.floor((tick - motion["depart_tick"]) * motion["tiles_per_tick"] + 1e-9)
         return path[max(0, min(len(path) - 1, steps))]
-
-    def view(self, avatar_id: str) -> dict[str, Any]:
-        """O instantâneo de `perception.delivered.v1` (catálogo §3.7), no tick mais recente."""
-        tick = self.tick
-        me: dict[str, Any] = {
-            "entity_id": avatar_id,
-            "position": self.position_at(avatar_id, tick),
-            "needs": dict(sorted(self.needs.get(avatar_id, {}).items())),
-            "asleep": self.asleep.get(avatar_id, False),
-        }
-        if avatar_id in self.actions:
-            me["action"] = dict(self.actions[avatar_id])
-        today = str(self.day)
-        weather_day = today if today in self.weather else max(self.weather, key=int, default=today)
-        entities: list[dict[str, Any]] = []
-        for entity_id, entity in sorted(self.entities.items()):
-            item: dict[str, Any] = {"entity_id": entity_id, "kind": entity["kind"]}
-            position = self.position_at(entity_id, tick)
-            if position is not None:
-                item["position"] = position
-            if "container_id" in entity:
-                item["container_id"] = entity["container_id"]
-            item["attributes"] = dict(sorted(entity["attributes"].items()))
-            entities.append(item)
-        return {
-            "clock": {"tick": tick, "sim_time": self.simtime, "day": self.day, "phase": self.phase},
-            "weather": {
-                "condition": self.weather.get(weather_day, "desconhecido"),
-                "day": int(weather_day),
-            },
-            "self": me,
-            "containers": [
-                {
-                    "container_id": container,
-                    "items": [{"item": i, "qty": q} for i, q in sorted(stock.items())],
-                }
-                for container, stock in sorted(self.containers.items())
-                if stock
-            ],
-            "entities": entities,
-        }

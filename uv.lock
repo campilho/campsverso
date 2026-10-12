@@ -19,6 +19,7 @@ members = [
     "campsverso-ports",
     "campsverso-testkit",
     "campsverso-tools",
+    "campsverso-world-view",
 ]
 
 [[package]]
@@ -89,6 +90,7 @@ dependencies = [
     { name = "campsverso-ports" },
     { name = "campsverso-testkit" },
     { name = "campsverso-tools" },
+    { name = "campsverso-world-view" },
 ]
 
 [package.dev-dependencies]
@@ -120,6 +122,7 @@ requires-dist = [
     { name = "campsverso-ports", editable = "libs/ports" },
     { name = "campsverso-testkit", editable = "tests/support" },
     { name = "campsverso-tools", editable = "tools/contracts" },
+    { name = "campsverso-world-view", editable = "libs/world-view" },
 ]
 
 [package.metadata.requires-dev]
@@ -309,6 +312,7 @@ dependencies = [
     { name = "campsverso-adapters" },
     { name = "campsverso-contracts" },
     { name = "campsverso-ports" },
+    { name = "campsverso-world-view" },
 ]
 
 [package.metadata]
@@ -316,6 +320,7 @@ requires-dist = [
     { name = "campsverso-adapters", editable = "libs/adapters" },
     { name = "campsverso-contracts", editable = "packages/contracts-py" },
     { name = "campsverso-ports", editable = "libs/ports" },
+    { name = "campsverso-world-view", editable = "libs/world-view" },
 ]
 
 [[package]]
@@ -378,6 +383,11 @@ requires-dist = [
     { name = "referencing", specifier = ">=0.36" },
     { name = "rfc3339-validator", specifier = ">=0.1.4" },
 ]
+
+[[package]]
+name = "campsverso-world-view"
+version = "0.1.0.dev0"
+source = { editable = "libs/world-view" }
 
 [[package]]
 name = "click"

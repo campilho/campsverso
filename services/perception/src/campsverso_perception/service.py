@@ -11,7 +11,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from campsverso_contracts import CONTRACT_TYPES, subject
-from campsverso_perception.projection import Projection
+from campsverso_perception.view import PerceptionState
 from campsverso_ports import (
     BlobStore,
     Consumer,
@@ -49,11 +49,11 @@ class PerceptionService:
         self.delivered = 0
         self.failure: BaseException | None = None
 
-    def _load(self) -> Projection:
+    def _load(self) -> PerceptionState:
         try:
-            return Projection(json.loads(self._blobs.get(self._key)))
+            return PerceptionState(json.loads(self._blobs.get(self._key)))
         except FileNotFoundError, KeyError:
-            return Projection()
+            return PerceptionState()
 
     def _save(self) -> None:
         data = json.dumps(self.projection.export(), ensure_ascii=False, separators=(",", ":"))
