@@ -18,6 +18,11 @@ jobs:
     name: make check
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    defaults:
+      run:
+        # Explícito: só assim o GitHub liga o pipefail, e um make que falha dentro de "| tee" falha o
+        # passo. Sem isso, o código de saída seria o do tee.
+        shell: bash
     steps:
       # Actions fixadas pelo hash do commit (etiquetas podem ser movidas); a versão fica no comentário.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -52,7 +57,12 @@ jobs:
         run: pnpm --filter @campsverso/ui exec playwright install --with-deps chromium
 
       - name: make ui-e2e
-        run: make ui-e2e
+        # Como no make check: se falhar, o fim da saída vira uma anotação pública.
+        run: |
+          make ui-e2e 2>&1 | tee ui-e2e.log || {
+            tail -n 80 ui-e2e.log | python3 -c 'import sys; t = sys.stdin.read().replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"); print("::error title=make ui-e2e falhou::" + t)'
+            exit 1
+          }
 
       - name: Telas do teste de fumaça
         if: always()

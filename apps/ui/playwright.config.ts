@@ -19,7 +19,8 @@ export default defineConfig({
   use: {
     baseURL: `http://127.0.0.1:${String(PORT)}`,
     browserName: "chromium",
-    ...(ci ? {} : { channel: "chrome" }),
+    // No CI não há GPU: o Chromium desenha o WebGL por software (SwiftShader).
+    ...(ci ? { launchOptions: { args: ["--enable-unsafe-swiftshader"] } } : { channel: "chrome" }),
     viewport: { width: 1300, height: 900 },
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
