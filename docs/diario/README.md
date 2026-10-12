@@ -20,7 +20,7 @@ Do primeiro commit (11/out/2026, 12h15) à tag `v0.1.0` (12/out/2026), em dois d
 | **Commits** | cerca de 100 |
 | **Código** | cerca de 15.800 linhas de Python (serviços, bibliotecas, cartuchos, ferramentas e testes) e 3.200 de TypeScript na tela, fora os pacotes gerados dos contratos |
 | **Contratos** | 49 tipos (eventos, comandos e mensagens da tela), validados em Python e em TypeScript com os mesmos códigos de erro |
-| **Testes** | 222 em Python, 40 da tela (Vitest), 3 dos contratos e 3 no navegador (Playwright) |
+| **Testes** | 223 em Python, 40 da tela (Vitest), 3 dos contratos e 3 no navegador (Playwright) |
 | **Critérios de aceite** | 11 de 11 ([aceite-v0.1.md](../aceite-v0.1.md)) |
 | **Velocidade** | um dia simulado em cerca de 1,1 s no modo máximo; 30 dias em 35 s num MacBook Pro M3 |
 | **A regra oculta** | com ela, o leste amadurece em 2 dias e o oeste em 3; o fazendeiro-script termina 30 dias com 1.175 moedas (sem ela, 750) |

@@ -348,3 +348,42 @@ def test_metricas_do_dia_pelo_catalogo_do_cartucho() -> None:
         )
     assert sorted(p.metrics, key=int) == [str(d) for d in range(4, 12)]
     assert Projection(json.loads(json.dumps(p.export()))).metrics == p.metrics
+
+
+def test_metricas_nao_dependem_da_ordem_entre_os_streams() -> None:
+    """A fome (stream agent) pode chegar antes do session.started (stream world)."""
+    p = Projection()
+    p.apply("agent", ev(0, 30, "world.need.changed.v1", avatar_id="camps", need="fome", value=3.65))
+    p.apply(
+        "world",
+        ev(
+            0,
+            0,
+            "world.session.started.v1",
+            cartridge_version="0.2.0",
+            seed=7,
+            tick_seconds=60,
+            mode="max",
+            paused=False,
+            scale=72,
+            metrics=CATALOG,
+        ),
+    )
+    p.apply("world", ev(1, 0, "world.entity.spawned.v1", entity_id="camps", kind="avatar"))
+    p.apply(
+        "world",
+        ev(
+            2,
+            0,
+            "world.item.created.v1",
+            item="moeda",
+            qty=100,
+            container_id="camps",
+            reason="initial",
+        ),
+    )
+    in_order = _farm()
+    in_order.apply(
+        "agent", ev(0, 30, "world.need.changed.v1", avatar_id="camps", need="fome", value=3.65)
+    )
+    assert p.metrics == in_order.metrics == {"1": {"moedas": 100, "pico_fome": 3.65}}

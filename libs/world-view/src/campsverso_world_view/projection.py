@@ -82,6 +82,12 @@ class Projection:
         self.metrics: dict[str, dict[str, Any]] = {  # dia -> id -> valor (ADR-0054)
             k: dict(v) for k, v in raw.get("metrics", {}).items()
         }
+        # O pico de cada necessidade por dia, com ou sem catálogo: a fome chega pelo stream
+        # agent, que pode passar na frente do session.started (stream world). O máximo não
+        # depende da ordem.
+        self.peaks: dict[str, dict[str, float]] = {
+            k: dict(v) for k, v in raw.get("peaks", {}).items()
+        }
         self._event_tick = self.tick  # o tick do evento sendo aplicado
 
     def export(self) -> dict[str, Any]:
@@ -105,6 +111,7 @@ class Projection:
             "controllers": self.controllers,
             "decisions": self.decisions,
             "metrics": self.metrics,
+            "peaks": self.peaks,
         }
 
     # ------------------------------------------------------------- eventos
@@ -126,12 +133,16 @@ class Projection:
         data = cast(Mapping[str, Any], envelope["data"])
         if str(envelope["type"]) == "campsverso.world.session.started.v1":
             self._on_world_session_started(data)  # o catálogo precisa estar lá antes de contar
+            for day in list(self.peaks):
+                self._show_peaks(day)
         else:
             self._count(str(envelope["type"]), data)  # antes: o grupo é o da entidade agora
+            self._peak(str(envelope["type"]), data)
         handler = getattr(self, "_on_" + name.replace(".", "_"), None)
         if handler is not None and name != "world.session.started":
             handler(data)
-        self._sample()
+        if stream == "world":  # itens só mudam por eventos world, que chegam em ordem
+            self._sample()
 
     def _on_world_entity_spawned(self, data: Mapping[str, Any]) -> None:
         entity: dict[str, Any] = {
@@ -315,17 +326,30 @@ class Projection:
                         group = self._group(_lookup(data, str(by["field"])), by.get("attribute"))
                         counts = values.setdefault(metric["id"], {})
                         counts[group] = counts.get(group, 0) + 1
-            elif metric["kind"] == "max_need":
-                need = str(metric.get("need"))
-                peak = None
-                if kind == "campsverso.world.need.changed.v1" and data.get("need") == need:
-                    peak = float(data["value"])
-                elif kind == "campsverso.avatar.decision_requested.v1":
-                    value = cast(Mapping[str, Any], data.get("needs") or {}).get(need)
-                    peak = None if value is None else float(value)
-                if peak is not None:
-                    values = self._day_values(self._metric_day())
-                    values[metric["id"]] = max(float(values.get(metric["id"], 0.0)), peak)
+
+    def _peak(self, kind: str, data: Mapping[str, Any]) -> None:
+        values: Mapping[str, Any] = {}
+        if kind == "campsverso.world.need.changed.v1":
+            values = {str(data["need"]): data["value"]}
+        elif kind == "campsverso.avatar.decision_requested.v1":
+            values = cast(Mapping[str, Any], data.get("needs") or {})
+        if not values:
+            return
+        day = self._metric_day()
+        peaks = self.peaks.setdefault(day, {})
+        for need, value in values.items():
+            peaks[need] = max(peaks.get(need, 0.0), float(value))
+        newest = max(int(d) for d in self.peaks)
+        for old in [d for d in self.peaks if int(d) <= newest - METRIC_DAYS]:
+            del self.peaks[old]
+        self._show_peaks(day)
+
+    def _show_peaks(self, day: str) -> None:
+        peaks = self.peaks.get(day, {})
+        for metric in self._catalog():
+            need = str(metric.get("need"))
+            if metric["kind"] == "max_need" and need in peaks:
+                self._day_values(day)[metric["id"]] = peaks[need]
 
     def _group(self, value: Any, attribute: Any) -> str:
         if attribute is None:
@@ -340,8 +364,6 @@ class Projection:
         if not items or self.session is None:
             return
         day = self._metric_day()
-        if self.metrics and int(day) < max(int(d) for d in self.metrics):
-            return  # evento atrasado de outro stream: não reescreve um dia que já passou
         avatars = [i for i, e in self.entities.items() if e["kind"] == "avatar"]
         values = self._day_values(day)
         for metric in items:
