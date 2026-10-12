@@ -322,3 +322,64 @@ async def test_a9_humano_joga_pela_ui_e_devolve(tmp_path: Path, nats: NatsServer
     finally:
         processes.stop("kernel")
         processes.stop("gateway", "controller", "perception", "archiver")
+
+
+async def test_a6_percepcao_cai_e_volta_sem_derrubar_o_kernel(
+    tmp_path: Path, nats: NatsServer
+) -> None:
+    """A6 para a percepção: com `kill -9` nela, o kernel segue; ao voltar, ela retoma as fotos do
+    ponto certo, sem repetir nenhuma, e o script volta a agir."""
+    world = _world(tmp_path)
+    processes = Processes(nats, tmp_path, world)
+    processes.start()
+    seen: list[Envelope] = []
+    bus = await NatsBus.connect(
+        nats.url,
+        user="operator",
+        password=nats.passwords["operator"],
+        name="teste-a6-percepcao",
+        streams=STREAMS,
+    )
+
+    async def collect(batch: Sequence[tuple[str, Envelope]]) -> None:
+        seen.extend(envelope for _, envelope in batch)
+
+    def photos() -> list[Envelope]:
+        return [e for e in seen if e["type"] == "campsverso.perception.delivered.v1"]
+
+    def kernel_tick() -> int:
+        return max(
+            (int(e["tick"]) for e in seen if str(e["source"]).startswith("/kernel/")), default=0
+        )
+
+    async def until(check: Callable[[], bool], timeout: float = 30) -> None:
+        async with asyncio.timeout(timeout):
+            while not check():
+                await asyncio.sleep(0.1)
+
+    await bus.consume("campsverso.*.world.>", "a6p-world", collect)
+    await bus.consume("campsverso.*.agent.camps.>", "a6p-agent", collect)
+    try:
+        await until(lambda: len(photos()) >= 3)
+        perception = processes.running["perception"]
+        perception.kill()  # kill -9
+        perception.wait()
+        down = kernel_tick()
+        await until(lambda: kernel_tick() >= down + 120)  # duas horas simuladas sem a percepção
+        assert "kernel" not in processes.dead()
+        count = len(photos())
+        world_path, data = str(world), str(tmp_path / "data")
+        processes.spawn(
+            "perception", "campsverso_perception.main", "--world", world_path, "--data-dir", data
+        )
+        await until(lambda: len(photos()) > count)  # voltou a entregar
+        mark = len(seen)
+        await until(lambda: any(e["type"] == "campsverso.action.accepted.v1" for e in seen[mark:]))
+    finally:
+        processes.stop("kernel")
+        processes.stop("controller", "perception", "archiver")
+        await bus.close()
+    seqs = [int(e["seq"]) for e in photos()]
+    ids = [str(e["id"]) for e in photos()]
+    assert len(set(ids)) == len(ids)
+    assert len(set(seqs)) == len(seqs)  # nenhuma foto repetida depois da volta
