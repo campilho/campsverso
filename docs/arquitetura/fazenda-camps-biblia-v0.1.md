@@ -26,8 +26,8 @@ Uma pequena fazenda genérica, sem lore, onde um único avatar planta, rega, col
 | Nome exibido | Camps |
 | Papel | fazendeiro |
 | Controlador inicial | `script` |
-| Aparência (para o sprite LPC) | homem adulto; cabelo escuro curto, barba curta grisalha; camisa social azul com mangas dobradas; calça cáqui; sapato marrom; relógio de pulso |
-| Retrato (HUD/diálogos) | ilustração em pixel art já existente (gerada no Gemini) |
+| Aparência (sprite LPC) | homem adulto; chapéu bordô de aba larga; cabelo castanho-claro curto, com topete; barba castanho-clara; sobrancelhas grossas; camisa vermelha de manga comprida, abotoada; calça azul com a barra dobrada; botas de couro; regador na mão. Montado no gerador de personagens LPC (`cartridges/farm_camps/art/camps.png`, ADR-0053) |
+| Retrato (HUD/diálogos) | na v0.1, a cabeça recortada do próprio sprite; depois, um retrato próprio de fazendeiro em pixel art |
 | Personalidade | **nenhuma na v0.1** (cartão de identidade fica para a v0.2) |
 
 ---
