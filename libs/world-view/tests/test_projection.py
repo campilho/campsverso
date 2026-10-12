@@ -33,7 +33,7 @@ def started() -> Projection:
             mode="continuous",
             paused=False,
             scale=72,
-            map={"id": "farm-camps", "width": 32, "height": 18},
+            map={"id": "farm_camps", "width": 32, "height": 18},
         ),
     )
     p.apply(
@@ -56,7 +56,7 @@ def test_sessao_e_relogio() -> None:
     assert p.session == {
         "cartridge_version": "0.1.0",
         "tick_seconds": 60,
-        "map": {"id": "farm-camps", "width": 32, "height": 18},
+        "map": {"id": "farm_camps", "width": 32, "height": 18},
     }
     assert p.clock == {"mode": "continuous", "scale": 72.0, "paused": False}
     p.apply("world", ev(2, 5, "world.clock.paused.v1", reason="debug", by="human/operador"))

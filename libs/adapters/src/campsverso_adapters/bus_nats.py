@@ -10,7 +10,7 @@
 import asyncio
 import contextlib
 import json
-from collections.abc import Sequence
+from collections.abc import Awaitable, Sequence
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -202,10 +202,28 @@ class NatsBus:
 
     # ------------------------------------------------------------- publicar
 
+    async def _unless_denied[T](self, request: Awaitable[T], what: str) -> T:
+        """Espera a resposta, mas desiste assim que o servidor avisar violação de permissão: sem
+        isso, um pedido negado só falharia no fim do tempo limite, como se o NATS tivesse caído."""
+        known = len(self._errors)
+        task = asyncio.ensure_future(request)
+        while not task.done():
+            await asyncio.wait({task}, timeout=0.01)
+            denied = [e for e in self._errors[known:] if "permissions violation" in str(e).lower()]
+            if denied and not task.done():
+                task.cancel()
+                with contextlib.suppress(asyncio.CancelledError, *_UNAVAILABLE):
+                    await task
+                raise PermissionDeniedError(f"{self._user} não pode {what}: {denied[-1]}")
+        return task.result()
+
     async def publish(self, subject: str, envelope: Envelope) -> None:
         payload = json.dumps(envelope, ensure_ascii=False, separators=(",", ":")).encode()
+        headers = {"Nats-Msg-Id": str(envelope["id"])}
         try:
-            await self._js.publish(subject, payload, headers={"Nats-Msg-Id": str(envelope["id"])})
+            await self._unless_denied(
+                self._js.publish(subject, payload, headers=headers), f"publicar em {subject}"
+            )
         except _UNAVAILABLE as error:
             raise BusUnavailableError(f"publicação em {subject} falhou: {error!r}") from error
 
@@ -238,7 +256,7 @@ class NatsBus:
         stream = self._stream_for(pattern)
         for _ in range(120):  # no primeiro `make run`, quem cria os streams pode subir depois
             try:
-                await self._js.stream_info(stream)
+                await self._unless_denied(self._js.stream_info(stream), f"consultar {stream}")
             except nats.js.errors.NotFoundError:
                 await asyncio.sleep(0.5)
                 continue
@@ -246,16 +264,19 @@ class NatsBus:
                 pass
             break
         try:
-            sub = await self._js.pull_subscribe(
-                pattern,
-                durable=durable,
-                stream=stream,
-                config=api.ConsumerConfig(
-                    ack_policy=api.AckPolicy.EXPLICIT,
-                    deliver_policy=api.DeliverPolicy.ALL,
-                    ack_wait=30,
-                    max_ack_pending=1000,
+            sub = await self._unless_denied(
+                self._js.pull_subscribe(
+                    pattern,
+                    durable=durable,
+                    stream=stream,
+                    config=api.ConsumerConfig(
+                        ack_policy=api.AckPolicy.EXPLICIT,
+                        deliver_policy=api.DeliverPolicy.ALL,
+                        ack_wait=30,
+                        max_ack_pending=1000,
+                    ),
                 ),
+                f"consumir {pattern}",
             )
         except nats.js.errors.APIError as error:
             if error.code == 403 or "permission" in str(error).lower():

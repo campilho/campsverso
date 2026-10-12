@@ -12,6 +12,9 @@ dependencies = [
   "rfc3339-validator>=0.1.4",
   "pyyaml>=6",
   "nats-py>=2.16",
+  "fastapi>=0.143.0",
+  "uvicorn>=0.54.0",
+  "websockets>=17.2",
 ]
 
 [build-system]

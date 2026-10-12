@@ -90,7 +90,7 @@ stop: ## derruba o NATS que o make up subiu
 	  echo "NATS não está no ar"; \
 	fi
 
-run: up ## sobe kernel, percepção, script e arquivador com o honcho (Procfile); Ctrl+C derruba todos
+run: up ## sobe kernel, percepção, script, arquivador e gateway com o honcho (Procfile); Ctrl+C derruba todos
 	$(PY) honcho start -f Procfile
 
 ui: ## sobe a UI em modo desenvolvimento (marco M4)

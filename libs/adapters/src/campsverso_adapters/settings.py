@@ -5,7 +5,7 @@ Só as raízes de composição (main.py) e os testes leem estes arquivos; os ser
 
 import re
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal, cast
@@ -42,6 +42,14 @@ class NatsSettings:
 
 
 @dataclass(frozen=True, slots=True)
+class GatewaySettings:
+    host: str = "127.0.0.1"  # só local na v0.1, sem login (ADR-0050)
+    port: int = 8765
+    maps: dict[str, Path] = field(default_factory=dict[str, Path])  # id do mapa -> arquivo Tiled
+    ui_dir: Path | None = None  # UI compilada; sem ela, a UI roda pelo Vite (make ui)
+
+
+@dataclass(frozen=True, slots=True)
 class EnvSettings:
     data_dir: Path
     archive_dir: Path
@@ -50,6 +58,7 @@ class EnvSettings:
     snapshot_every_ticks: int
     snapshot_keep_full: int
     archive_compress_after_days: int
+    gateway: GatewaySettings = field(default_factory=GatewaySettings)
 
 
 type ClockMode = Literal["continuous", "max"]
@@ -80,6 +89,8 @@ def load_env(path: Path, root: Path | None = None) -> EnvSettings:
     streams = cast(Mapping[str, Mapping[str, Any]], nats["streams"])
     snapshots = cast(Mapping[str, Any], doc["snapshots"])
     archive = cast(Mapping[str, Any], doc["archive"])
+    gateway = cast(Mapping[str, Any], doc.get("gateway") or {})
+    maps = cast(Mapping[str, str], gateway.get("maps") or {})
     return EnvSettings(
         data_dir=base / str(doc["data_dir"]),
         archive_dir=base / str(archive["dir"]),
@@ -100,6 +111,12 @@ def load_env(path: Path, root: Path | None = None) -> EnvSettings:
         snapshot_every_ticks=int(snapshots["full_every_ticks"]),
         snapshot_keep_full=int(snapshots["keep_full"]),
         archive_compress_after_days=int(archive["compress_after_days"]),
+        gateway=GatewaySettings(
+            host=str(gateway.get("host", "127.0.0.1")),
+            port=int(gateway.get("port", 8765)),
+            maps={str(k): base / str(v) for k, v in maps.items()},
+            ui_dir=base / str(gateway["ui_dir"]) if gateway.get("ui_dir") else None,
+        ),
     )
 
 

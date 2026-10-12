@@ -7,6 +7,8 @@ license = "MIT"
 dependencies = [
   "campsverso-contracts",
   "campsverso-ports",
+  "campsverso-world-view",
+  "campsverso-adapters",  # só o main.py (raiz de composição) importa
 ]
 
 [build-system]

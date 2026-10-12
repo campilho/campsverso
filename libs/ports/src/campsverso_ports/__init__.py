@@ -15,6 +15,14 @@ from campsverso_ports.bus import (
 from campsverso_ports.clock import WallClock
 from campsverso_ports.flags import FlagPort, RuleConfig
 from campsverso_ports.ids import IdGenerator
+from campsverso_ports.realtime import (
+    ConnectionClosedError,
+    ConnectionHandler,
+    Message,
+    RealtimeConnection,
+    RealtimeGateway,
+    View,
+)
 from campsverso_ports.store import (
     Commit,
     InputKind,
@@ -32,6 +40,8 @@ __all__ = [
     "BlobStore",
     "BusUnavailableError",
     "Commit",
+    "ConnectionClosedError",
+    "ConnectionHandler",
     "Consumer",
     "Envelope",
     "EnvelopeValidator",
@@ -42,13 +52,17 @@ __all__ = [
     "IdGenerator",
     "InputKind",
     "InputRow",
+    "Message",
     "OutboxRow",
     "PermissionDeniedError",
+    "RealtimeConnection",
+    "RealtimeGateway",
     "RuleConfig",
     "SnapshotRef",
     "StoreState",
     "Subscription",
     "Telemetry",
+    "View",
     "WallClock",
     "WorldStore",
 ]

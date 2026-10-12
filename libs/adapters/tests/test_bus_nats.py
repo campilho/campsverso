@@ -113,6 +113,35 @@ async def test_a8_controlador_nao_cria_consumidor_no_stream_internal(nats: NatsS
     await controller.close()
 
 
+async def test_gateway_le_os_quatro_streams_do_avatar(nats: NatsServer) -> None:
+    await (await _connect(nats, "kernel", manage=True)).close()
+    gateway = await _connect(nats, "gateway")
+    for pattern, durable in (
+        ("campsverso.w.world.>", "g-world"),
+        ("campsverso.w.agent.camps.>", "g-agent"),
+        ("campsverso.w.internal.>", "g-internal"),
+        ("campsverso.w.observer.>", "g-observer"),
+    ):
+        consumer = await gateway.consume(pattern, durable, Collector())
+        await consumer.unsubscribe()
+    with pytest.raises(PermissionDeniedError):  # só o avatar da v0.1 (ADR-0022)
+        await gateway.consume("campsverso.w.agent.outro.>", "g-outro", Collector())
+    await gateway.close()
+
+
+async def test_gateway_so_publica_comandos_do_relogio(nats: NatsServer) -> None:
+    await (await _connect(nats, "kernel", manage=True)).close()
+    gateway = await _connect(nats, "gateway")
+    await gateway.publish("campsverso.w.cmd.clock.pause.v1", _event(_ID, 0))
+    with pytest.raises(PermissionDeniedError):
+        await gateway.publish("campsverso.w.cmd.action.propose.v1", _event(_ID2, 1))
+    await gateway.close()
+
+
+_ID = "01a12d2b-6c1d-7670-9f5b-49c93d5575ea"
+_ID2 = "01a12d2b-6c1d-7670-9f5b-49c93d5575eb"
+
+
 async def _ignore(_: str, __: Envelope) -> None:
     return None
 
