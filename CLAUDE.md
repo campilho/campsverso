@@ -77,8 +77,9 @@ campsverso/
     contracts/                # validação, codegen e compatibilidade (Python)
     contracts-ts/             # validação com ajv e codegen TypeScript
   config/
-    env/local.yaml            # retenção, escala padrão, caminhos
-    nats/                     # usuários e permissões por processo
+    env/local.yaml            # retenção dos streams, snapshots, arquivo, caminhos
+    worlds/                   # um arquivo por mundo: cartucho, seed, data-base, relógio inicial
+    nats/                     # usuários e permissões por processo (senhas em .env, fora do git)
   data/                       # gitignored: sqlite, snapshots, archive
   docs/
     arquitetura/  decisoes/  diario/
@@ -103,11 +104,14 @@ campsverso/
 
 ```
 make help         # lista os alvos
-make setup        # instala dependências Python e TS
+make setup        # instala dependências Python e TS e o nats-server (make tools)
 make contracts    # valida schemas e regenera packages/contracts-*
 make check        # lint + tipos + testes + teste de arquitetura + validação de contratos
-make up           # sobe o NATS
-make run          # sobe kernel, percepção, controller-runner, gateway e arquivador
+make tools        # baixa o nats-server com versão e sha256 fixados (.tools/)
+make secrets      # gera em .env (fora do git) as senhas do NATS que faltam
+make up           # sobe o NATS em segundo plano
+make stop         # derruba o NATS
+make run          # sobe o NATS e os processos do Procfile (honcho): kernel e arquivador
 make ui           # sobe a UI em modo desenvolvimento
 make soak DAYS=30 # resistência em modo máximo com o script
 make replay DAY=N # reexecuta um dia a partir do arquivo e compara hashes

@@ -16,17 +16,22 @@ Projeto pessoal de aprendizado, construído em público com a ajuda do Claude Co
 |---|---|
 | M0: fundação (monorepo, contratos, codegen, CI) | concluído |
 | M1: kernel sem barramento (modelo de mundo, relógio, ações, regras, cartuchos farm e farm_camps) | concluído |
-| M2: durabilidade (NATS, outbox, arquivo JSONL, snapshots, retomada) | próximo |
+| M2: durabilidade (NATS, outbox, arquivo JSONL, snapshots, retomada) | concluído |
+| M3: controladores headless (percepção, fazendeiro-script, replay, modo máximo) | próximo |
 
 ## Como começar
 
 Requisitos: [uv](https://docs.astral.sh/uv/) e [pnpm](https://pnpm.io/). O uv instala o Python 3.14; o pnpm usa o Node 24 fixado no projeto.
 
 ```bash
-make setup   # dependências Python e TypeScript
+make setup   # dependências Python e TypeScript, e o nats-server com versão fixa
 make check   # lint, tipos, testes, arquitetura e contratos
+make run     # sobe o NATS, o kernel e o arquivador (Ctrl+C derruba os processos)
+make stop    # derruba o NATS
 make help    # todos os alvos
 ```
+
+O `make run` gera as senhas locais do NATS em `.env`, fora do git. O mundo fica em `data/farm-camps-01/` (estado e snapshots) e o histórico de eventos em `data/archive/`.
 
 ## Documentação
 

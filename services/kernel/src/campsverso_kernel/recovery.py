@@ -1,4 +1,4 @@
-"""Abrir um mundo: novo, ou retomado do último snapshot mais os incrementais (plano do M2 §1).
+"""Abrir um mundo: novo, ou retomado do último snapshot mais os incrementais (ADR-0044).
 
 A recuperação é a de um banco de dados: carrega o último snapshot completo e reexecuta o diário de
 entradas até a última fronteira gravada. Como o núcleo é determinístico, os fatos regenerados têm de

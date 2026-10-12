@@ -48,6 +48,10 @@ A numeração deste diretório continua a partir de **0011**, para não colidir 
 | [0040](0040-kits-de-teste.md) | Kits de teste: laboratório genérico no kernel; Fazenda do Camps em `campsverso_testkit`, fora do sistema | M1 | ADR-0011, ADR-0025 |
 | [0041](0041-sono-em-qualquer-lugar.md) | Dormir em qualquer lugar; a cama (e análogos) turbina a recuperação; sono ruim 5/h; indicadores ligados por cartucho | M2 | bíblia §7, §8; ADR-0039 |
 | [0042](0042-eventos-de-sono-v2.md) | Eventos `sleep.started/ended.v2` (`cause: voluntary\|faint`, `bed_id` opcional); taxa do chão = taxa `asleep` do gênero; camas em `sleep.beds` | M2 | catálogo §3.5; ADR-0041 |
+| [0043](0043-arquivo-jsonl-por-data-simulada.md) | Arquivo JSONL por mundo e data simulada; confirmar depois de gravar; linha cortada removida; dias antigos em `.gz` | M2 | plano do M2 §2 |
+| [0044](0044-recuperacao-transparente.md) | Recuperação transparente (sem `session.started` no reinício); só grava o que produziu algo; snapshot é fato; versão = sha256 do código | M2 | plano do M2 §1 |
+| [0045](0045-nats-local-usuarios-e-senhas.md) | nats-server 2.14.8 com sha256 fixado; um usuário por processo; senhas em `.env`; `make up`/`stop`/`run` | M2 | ADR-0024; plano do M2 §3 |
+| [0046](0046-kernel-recusa-comandos-fora-do-contrato.md) | O kernel valida comandos contra o contrato no caminho determinístico; inválidos viram `invalid_command` | M2 | ADR-0013; A2 |
 
 ## Modelo
 

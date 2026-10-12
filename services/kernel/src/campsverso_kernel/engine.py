@@ -42,7 +42,7 @@ class Engine:
         self._validator = validator
 
     def submit(self, command: Mapping[str, Any]) -> None:
-        """Comandos vêm de fora: fora do contrato, são recusados sem tocar no mundo.
+        """Comandos vêm de fora: fora do contrato, são recusados sem tocar no mundo (ADR-0046).
 
         A validação roda aqui, no caminho que a recuperação também reexecuta, para que a mesma
         entrada do diário dê sempre o mesmo resultado.

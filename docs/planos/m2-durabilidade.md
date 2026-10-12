@@ -1,6 +1,6 @@
 # Plano do M2 — Durabilidade
 
-**Status:** todas as decisões aprovadas em 11/out/2026; **aguardando o OK do usuário para começar a implementação.**
+**Status:** **concluído** em 11/out/2026 (noite). O que mudou na implementação está na seção 7.
 **Escopo** (escopo §7): adaptador NATS, outbox, arquivador JSONL, snapshots, retomada após queda.
 **Pronto quando:** `kill -9` no kernel no meio de um dia → reinício sem lacunas nem duplicatas de `seq`.
 
@@ -121,3 +121,15 @@ O `Procfile` tem quase o mesmo formato dos serviços de um `docker-compose.yml`,
 - `make run` e CI com NATS;
 - testes A7, A6 e A8;
 - ADRs e diário.
+
+## 7. Como ficou (11/out/2026)
+
+Os critérios da seção 4 passam com processos e NATS de verdade, e o `make check` roda todos eles.
+
+| Item do plano | Resultado |
+|---|---|
+| Ajuste do sono | feito, com eventos novos `sleep.*.v2`, porque o sono no chão não cabia no enum do v1 (ADR-0042) |
+| Arquivo `dia-0001.jsonl` | virou **um arquivo por data simulada** (`2026-10-10.jsonl`): o arquivador não conhece o calendário do cartucho (ADR-0043) |
+| Recuperação | como planejado; a queda não publica `session.started` (é invisível para quem consome), e só se grava o que produziu algo (ADR-0044) |
+| `nats-server` | 2.14.8, a mais nova da linha 2.14; a 2.15 saiu em setembro e fica para depois (ADR-0045) |
+| Imprevisto | um comando fora do contrato derrubava o kernel e envenenava o outbox. Agora o kernel recusa com `invalid_command` (ADR-0046) |
