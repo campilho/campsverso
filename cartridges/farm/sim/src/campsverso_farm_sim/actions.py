@@ -3,12 +3,13 @@
 import math
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from campsverso_cartridge_api import (
     Accepted,
     ActionContext,
     EntityView,
+    Interrupt,
     Rejection,
     Validation,
     WorldOps,
@@ -49,10 +50,12 @@ def item_info(view: WorldView, item: object) -> Mapping[str, Any] | None:
     return items.get(item) if isinstance(item, str) else None
 
 
+INTERRUPTS: tuple[Interrupt, ...] = ("never", "cancel", "partial")
+
+
 @dataclass(frozen=True)
 class FarmAction:
     name: str = ""
-    cancellable: bool = True
 
     def check(self, ctx: ActionContext) -> Rejection | None:
         raise NotImplementedError
@@ -64,7 +67,9 @@ class FarmAction:
         rejection = self.check(ctx)
         if rejection is not None:
             return rejection
-        return Accepted(int(section(ctx.view, "actions", self.name)["duration"]))
+        numbers = section(ctx.view, "actions", self.name)
+        # `interrupt` é obrigatório nos dados e conferido ao montar o mundo (ADR-0052)
+        return Accepted(int(numbers["duration"]), cast(Interrupt, numbers["interrupt"]))
 
     def complete(self, ctx: ActionContext, ops: WorldOps) -> None:
         self.apply(ctx, ops)
@@ -74,6 +79,9 @@ class FarmAction:
                 section(ctx.view)["hunger_doubles_energy_at"]
             )
             ops.change_need(ctx.avatar_id, ENERGY, -(energy * 2 if hungry else energy))
+
+    def interrupted(self, ctx: ActionContext, ops: WorldOps, elapsed_ticks: int) -> None:
+        pass  # nenhuma ação da fazenda é `partial` na v0.1 (ADR-0052)
 
 
 def _plot(ctx: ActionContext) -> EntityView | Rejection:
@@ -329,7 +337,6 @@ class Sleep(FarmAction):
     """Dorme a qualquer hora, onde está ou numa cama ao lado (ADR-0041 e ADR-0049)."""
 
     name: str = "sleep"
-    cancellable: bool = False
 
     def check(self, ctx: ActionContext) -> Rejection | None:
         bed = _bed(ctx)

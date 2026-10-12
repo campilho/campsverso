@@ -2,7 +2,7 @@
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 from campsverso_cartridge_api.model import Direction, EntityView, Scalar
 from campsverso_cartridge_api.world import WorldOps, WorldView
@@ -14,9 +14,16 @@ class Rejection:
     detail: str | None = None
 
 
+type Interrupt = Literal["never", "cancel", "partial"]
+"""O que um comando novo do mesmo controlador faz com a ação em andamento (ADR-0052):
+`never` recusa com `busy`; `cancel` cancela, e nada da ação acontece; `partial` interrompe, e o
+cartucho grava o trabalho feito (`ActionSpec.interrupted`)."""
+
+
 @dataclass(frozen=True, slots=True)
 class Accepted:
     duration_ticks: int  # pelo menos 1 (ADR-0038)
+    interrupt: Interrupt = "never"  # decidida na validação, com os dados do mundo (ADR-0052)
 
 
 type Validation = Rejection | Accepted
@@ -34,15 +41,16 @@ class ActionSpec(Protocol):
     @property
     def name(self) -> str: ...
 
-    @property
-    def cancellable(self) -> bool: ...
-
     def validate(self, ctx: ActionContext) -> Validation:
         """Pré-condições na hora da proposta. Não muda o mundo."""
         ...
 
     def complete(self, ctx: ActionContext, ops: WorldOps) -> None:
         """Efeitos na conclusão, inclusive o custo (ADR-0038)."""
+        ...
+
+    def interrupted(self, ctx: ActionContext, ops: WorldOps, elapsed_ticks: int) -> None:
+        """Só nas ações `partial`: grava o trabalho feito em `elapsed_ticks` (ADR-0052)."""
         ...
 
 

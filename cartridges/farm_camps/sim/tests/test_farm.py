@@ -4,7 +4,7 @@ import pytest
 
 from campsverso_kernel.facts import Fact
 from campsverso_kernel.world import to_units
-from campsverso_testkit.farm import Farmer, make_core, of_type
+from campsverso_testkit.farm import SCRIPT_ID, Farmer, make_core, of_type
 
 
 def _farmer(*, river_bonus: bool = True, seed: int = 20261010) -> Farmer:
@@ -39,6 +39,40 @@ def test_plantar_regar_e_os_custos_de_energia() -> None:
     assert world.entity("plot-e-01").attributes["watered_today"] is True
     assert world.entity("watering-can").attributes["charges"] == 9
     assert world.need("camps", "energia") == 96  # plantar 2 + regar 2
+
+
+def test_plantar_durante_um_plantio_e_recusado_com_busy() -> None:
+    """A partida de 12/out: o segundo plantio cancelava o primeiro. Agora é recusado (ADR-0052)."""
+    farmer = _farmer()
+    farmer.walk(23, 9)
+    start = len(farmer.facts)
+
+    def plant(n: int, target: str) -> None:
+        farmer.core.submit(
+            {
+                "id": f"cmd-busy-{n}",
+                "type": "campsverso.cmd.action.propose.v1",
+                "controllerid": SCRIPT_ID,
+                "data": {
+                    "avatar_id": "camps",
+                    "action": "plant",
+                    "params": {"target": target, "crop": "rabanete"},
+                },
+            }
+        )
+
+    plant(1, "plot-e-01")
+    farmer.run(1)
+    plant(2, "plot-e-05")
+    farmer.run(6)
+    facts = farmer.facts[start:]
+    (accepted,) = of_type(facts, "action.accepted")
+    assert (accepted["params"]["target"], accepted["interrupt"]) == ("plot-e-01", "never")
+    (rejected,) = of_type(facts, "action.rejected")
+    assert rejected["reason"] == "busy"
+    assert of_type(facts, "action.failed") == []
+    assert farmer.core.world.entity("plot-e-01").attributes["crop"] == "rabanete"
+    assert farmer.core.world.entity("plot-e-05").attributes["crop"] is None
 
 
 def test_fome_alta_dobra_o_custo_de_energia() -> None:

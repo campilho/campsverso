@@ -161,3 +161,50 @@ def test_pedido_de_decisao_guarda_o_tick_do_proprio_evento() -> None:
     )
     assert p.decisions["camps"]["tick"] == 35
     assert p.tick == 40
+
+
+def test_acao_com_inicio_e_politica_e_sono_com_hora_de_acordar() -> None:
+    """A barra de progresso da tela sai daqui (ADR-0052)."""
+    p = started()
+    p.apply(
+        "world",
+        ev(
+            2,
+            10,
+            "action.accepted.v1",
+            action_id="act-1",
+            avatar_id="camps",
+            action="plant",
+            params={"target": "plot-e-01"},
+            applied_tick=10,
+            duration_ticks=5,
+            interrupt="never",
+        ),
+    )
+    assert p.actions["camps"] == {
+        "action_id": "act-1",
+        "action": "plant",
+        "params": {"target": "plot-e-01"},
+        "applied_tick": 10,
+        "end_tick": 15,
+        "interrupt": "never",
+    }
+    p.apply(
+        "world",
+        ev(
+            3,
+            20,
+            "avatar.sleep.started.v2",
+            avatar_id="camps",
+            cause="voluntary",
+            position={"x": 3, "y": 4},
+            wake_at_tick=80,
+        ),
+    )
+    assert p.sleep == {"camps": {"since_tick": 20, "wake_at_tick": 80}}
+    assert Projection(json.loads(json.dumps(p.export()))).sleep == p.sleep
+    p.apply(
+        "world",
+        ev(4, 80, "avatar.sleep.ended.v2", avatar_id="camps", cause="voluntary", energy=100.0),
+    )
+    assert (p.sleep, p.asleep) == ({}, {"camps": False})

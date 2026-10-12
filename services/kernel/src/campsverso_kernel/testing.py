@@ -95,7 +95,6 @@ class Touch:
     """Toca a caixa (adjacente): 2 ticks, custa 10 de energia e rende pedras."""
 
     name: str = "touch"
-    cancellable: bool = True
 
     def validate(self, ctx: ActionContext) -> Validation:
         me, box = ctx.view.entity(ctx.avatar_id), ctx.view.entity("box")
@@ -112,11 +111,49 @@ class Touch:
         ops.change_need(ctx.avatar_id, "energia", -10)
         ops.explain_effects("box")
 
+    def interrupted(self, ctx: ActionContext, ops: WorldOps, elapsed_ticks: int) -> None:
+        pass  # `never`: nunca é interrompida por comando
+
+
+DIG_DEPTH = 4  # palmos
+DIG_TICKS = 2  # ticks por palmo
+
+
+def _dug(view: WorldView) -> int:
+    value = view.entity("box").attributes.get("dug", 0)
+    return value if isinstance(value, int) else 0
+
+
+@dataclass(frozen=True)
+class Dig:
+    """Cava ao lado da caixa, 4 palmos de 2 ticks. Parar no meio guarda os palmos cavados, e cavar
+    de novo continua de onde parou (`partial`, ADR-0052)."""
+
+    name: str = "dig"
+
+    def validate(self, ctx: ActionContext) -> Validation:
+        me, box = ctx.view.entity(ctx.avatar_id), ctx.view.entity("box")
+        assert me.position is not None
+        assert box.position is not None
+        if me.position.chebyshev(box.position) > 1:
+            return Rejection("not_adjacent")
+        left = DIG_DEPTH - _dug(ctx.view)
+        if left <= 0:
+            return Rejection("already_done")
+        return Accepted(left * DIG_TICKS, "partial")
+
+    def complete(self, ctx: ActionContext, ops: WorldOps) -> None:
+        ops.set_attributes("box", visible={"dug": DIG_DEPTH})
+
+    def interrupted(self, ctx: ActionContext, ops: WorldOps, elapsed_ticks: int) -> None:
+        done = elapsed_ticks // DIG_TICKS
+        if done:
+            ops.set_attributes("box", visible={"dug": _dug(ctx.view) + done})
+
 
 @dataclass(frozen=True)
 class Nap:
     name: str = "nap"
-    cancellable: bool = True
 
     def validate(self, ctx: ActionContext) -> Validation:
         return Accepted(1)
@@ -131,6 +168,9 @@ class Nap:
             rates_per_hour=rates,
             bed_id=str(bed) if bed else None,
         )
+
+    def interrupted(self, ctx: ActionContext, ops: WorldOps, elapsed_ticks: int) -> None:
+        pass
 
 
 @dataclass(frozen=True)
@@ -187,6 +227,7 @@ class LabCartridge:
         world.add_threshold(ThresholdDef("energia", 0, "down", requests_decision=False))
         world.add_action(Touch())
         world.add_action(Nap())
+        world.add_action(Dig())
         world.add_system(
             LabSystem(
                 "dawn", "scheduled", 10, (OnSessionStart(),), lambda c, o: o.set_weather("sun", 1)

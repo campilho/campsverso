@@ -47,6 +47,7 @@ def test_mover_aceita_publica_trajeto_e_conclui_no_tempo(core: KernelCore) -> No
     (accepted,) = _only(facts, "action.accepted")
     (moved,) = _only(facts, "world.entity.moved")
     assert accepted["duration_ticks"] == 2
+    assert accepted["interrupt"] == "cancel"  # andar se cancela (ADR-0052)
     assert moved["waypoints"] == [{"x": 3, "y": 1}]
     assert moved["arrival_tick"] == moved["depart_tick"] + 2
     later = _run(core, 2)
@@ -111,6 +112,65 @@ def _walk_to_box(core: KernelCore) -> None:
     _run(core)
     core.submit(command("move", {"target": {"x": 3, "y": 1}}))
     _run(core, 3)
+
+
+# ------------------------------------------------------------- política de interrupção (ADR-0052)
+
+
+def test_acao_never_recusa_comando_novo_com_busy_e_termina(core: KernelCore) -> None:
+    _walk_to_box(core)
+    core.submit(command("touch"))
+    (accepted,) = _only(_run(core), "action.accepted")
+    assert accepted["interrupt"] == "never"
+    core.submit(command("wait", {"ticks": 3}))
+    facts = _run(core, 2)
+    (rejected,) = _only(facts, "action.rejected")
+    assert rejected["reason"] == "busy"
+    assert rejected["detail"] == f"touch termina no tick {accepted['applied_tick'] + 2}"
+    assert _only(facts, "action.failed") == []
+    assert [c["action"] for c in _only(facts, "action.completed")] == ["touch"]
+
+
+def test_acao_partial_guarda_o_trabalho_e_continua_mais_curta(core: KernelCore) -> None:
+    _walk_to_box(core)
+    core.submit(command("dig"))
+    (accepted,) = _only(_run(core), "action.accepted")
+    assert (accepted["interrupt"], accepted["duration_ticks"]) == ("partial", 8)
+    _run(core, 4)
+    core.submit(command("wait", {"ticks": 1}))
+    facts = _run(core)
+    (failed,) = _only(facts, "action.failed")
+    (waiting,) = _only(facts, "action.accepted")
+    done = failed["elapsed_ticks"] // 2
+    assert failed["reason"] == "cancelled"
+    assert done >= 2
+    assert waiting["replaces"] == failed["action_id"]
+    assert core.world.entity_map["box"].attributes["dug"] == done
+    _run(core, 2)
+    core.submit(command("dig"))
+    (again,) = _only(_run(core), "action.accepted")
+    assert again["duration_ticks"] == (4 - done) * 2
+
+
+def test_retomar_a_mesma_acao_partial_desconta_o_que_foi_feito(core: KernelCore) -> None:
+    _walk_to_box(core)
+    core.submit(command("dig"))
+    _run(core, 4)
+    core.submit({**command("dig"), "id": "cmd-dig-2"})
+    facts = _run(core)
+    (failed,) = _only(facts, "action.failed")
+    (accepted,) = _only(facts, "action.accepted")
+    assert accepted["duration_ticks"] == (4 - failed["elapsed_ticks"] // 2) * 2
+
+
+def test_desmaio_interrompe_a_acao_partial_e_guarda_o_trabalho(core: KernelCore) -> None:
+    _walk_to_box(core)
+    core.submit(command("dig"))
+    _run(core, 5)
+    core.world.faint("ana", "exhausted", 60, {"energia": 50})
+    (failed,) = _only(core.drain(), "action.failed")
+    assert failed["reason"] == "fainted"
+    assert core.world.entity_map["box"].attributes["dug"] == failed["elapsed_ticks"] // 2
 
 
 def test_acao_do_cartucho_aplica_regra_oculta_e_explica_o_efeito(core: KernelCore) -> None:

@@ -12,9 +12,11 @@ from types import MappingProxyType
 from typing import Any, Literal, cast
 
 from campsverso_cartridge_api import (
+    ActionContext,
     Attributes,
     ControllerRef,
     EntityView,
+    Interrupt,
     Position,
     Scalar,
     SleepCause,
@@ -86,6 +88,7 @@ class RunningAction:
     command_id: str | None
     correlation: str | None
     trajectory: Trajectory | None = None
+    interrupt: Interrupt = "cancel"  # ADR-0052
 
 
 @dataclass
@@ -568,10 +571,13 @@ class World:
     def interrupt_action(
         self, avatar_id: str, reason: Literal["cancelled", "fainted"]
     ) -> str | None:
+        """Para a ação em andamento; numa ação `partial`, o cartucho grava o trabalho feito
+        (ADR-0052)."""
         avatar = self.avatar_map[avatar_id]
         action = avatar.action
         if action is None:
             return None
+        elapsed = self.tick - action.applied_tick
         if action.trajectory is not None:
             position = action.trajectory.position_at(self.tick)
             self.entity_map[avatar_id].position = position
@@ -585,6 +591,18 @@ class World:
                 },
             )
         avatar.action = None
+        spec = self.definition.actions.get(action.name)
+        if action.interrupt == "partial" and spec is not None:
+            outer = self._context
+            with self.context(
+                action=action,
+                cause=action.name,
+                caused_by=outer.caused_by,
+                correlation=outer.correlation,
+            ):
+                spec.interrupted(
+                    ActionContext(avatar_id, action.action_id, action.params, self), self, elapsed
+                )
         self.emit_fact(
             "campsverso.action.failed.v1",
             {
@@ -592,6 +610,7 @@ class World:
                 "avatar_id": avatar_id,
                 "action": action.name,
                 "reason": reason,
+                "elapsed_ticks": elapsed,
             },
         )
         return action.action_id
@@ -710,6 +729,7 @@ def _action_data(action: RunningAction) -> dict[str, Any]:
         "end_tick": action.end_tick,
         "command_id": action.command_id,
         "correlation": action.correlation,
+        "interrupt": action.interrupt,
         "trajectory": None
         if trajectory is None
         else {
@@ -731,6 +751,7 @@ def _action_from(raw: Mapping[str, Any]) -> RunningAction:
         end_tick=int(raw["end_tick"]),
         command_id=raw["command_id"],
         correlation=raw["correlation"],
+        interrupt=raw.get("interrupt", "cancel"),  # fotos de antes da ADR-0052
         trajectory=None
         if trajectory is None
         else Trajectory(

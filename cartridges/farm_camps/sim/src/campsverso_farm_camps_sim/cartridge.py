@@ -21,7 +21,7 @@ DATA = Path(__file__).parent / "data"
 @dataclass(frozen=True)
 class FarmCampsCartridge:
     manifest: CartridgeManifest = field(
-        default_factory=lambda: CartridgeManifest("farm_camps", "0.1.0", extends=("farm",))
+        default_factory=lambda: CartridgeManifest("farm_camps", "0.2.0", extends=("farm",))
     )
 
     def contribute(self, world: WorldBuilder) -> None:

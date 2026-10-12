@@ -16,7 +16,7 @@ from campsverso_cartridge_api import (
     WorldBuilder,
 )
 from campsverso_farm_sim import config
-from campsverso_farm_sim.actions import ALL_ACTIONS, EMPTY_HIDDEN, EMPTY_PLOT
+from campsverso_farm_sim.actions import ALL_ACTIONS, EMPTY_HIDDEN, EMPTY_PLOT, INTERRUPTS
 from campsverso_farm_sim.rules import WaterProximityBonus
 from campsverso_farm_sim.systems import build_systems
 
@@ -75,7 +75,7 @@ def affordances(data: dict[str, Any]) -> tuple[AffordanceDef, ...]:
 
 @dataclass(frozen=True)
 class FarmCartridge:
-    manifest: CartridgeManifest = field(default_factory=lambda: CartridgeManifest("farm", "0.1.0"))
+    manifest: CartridgeManifest = field(default_factory=lambda: CartridgeManifest("farm", "0.2.0"))
 
     def contribute(self, world: WorldBuilder) -> None:
         data = config.load()
@@ -113,6 +113,9 @@ class FarmCartridge:
                 )
             )
         for action in ALL_ACTIONS:
+            interrupt = data["actions"][action.name].get("interrupt")
+            if interrupt not in INTERRUPTS:  # ADR-0052
+                raise ValueError(f"farm.yaml: {action.name} precisa de interrupt em {INTERRUPTS}")
             world.add_action(action)
         for system in build_systems(data):
             world.add_system(system)

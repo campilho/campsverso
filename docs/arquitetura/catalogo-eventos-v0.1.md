@@ -120,14 +120,14 @@ Notação dos payloads (`data`): `campo: tipo`; `?` marca campo opcional.
 
 | Tipo | Vis. | Payload | Origem |
 |---|---|---|---|
-| `campsverso.action.accepted.v1` | world | `action_id` · `avatar_id` · `action: string` · `params: object` · `applied_tick: int` · `duration_ticks: int` (previsto) · `replaces?: action_id` (ação cancelada por esta) | contratos §7, §14.1 |
+| `campsverso.action.accepted.v1` | world | `action_id` · `avatar_id` · `action: string` · `params: object` · `applied_tick: int` · `duration_ticks: int` (previsto) · `replaces?: action_id` (ação cancelada por esta) · `interrupt?: never\|cancel\|partial` (ADR-0052) | contratos §7, §14.1 |
 | `campsverso.action.rejected.v1` | agent | `avatar_id` · `action` · `params` · `reason: string` · `detail?: string` | contratos §7; bíblia §8 |
 | `campsverso.action.completed.v1` | world | `action_id` · `avatar_id` · `action` · `params` · `duration_ticks: int` (real) · `observable?: [{ entity_id, property, before, after }]` (resumo legível; o estado vem dos eventos genéricos) | §8.2 |
-| `campsverso.action.failed.v1` | world | `action_id` · `avatar_id` · `action` · `reason: string` (`cancelled`, `fainted`, `blocked`, `precondition_lost`) | contratos §7 |
+| `campsverso.action.failed.v1` | world | `action_id` · `avatar_id` · `action` · `reason: string` (`cancelled`, `fainted`, `blocked`, `precondition_lost`) · `elapsed_ticks?: int` (quanto durou; ADR-0052) | contratos §7 |
 | `campsverso.action.effects_explained.v1` | internal | `action_id` · `rules_applied: [{ rule, version, hidden: bool, multiplier?: number }]` | §8.2; bíblia §10 |
 
 **Motivos de rejeição previstos** (string aberta; o cartucho pode acrescentar):
-`not_in_control`, `unknown_action`, `invalid_params`, `busy` (dormindo; `sleep` não se cancela), `unreachable`, `not_passable`, `not_adjacent`, `missing_item`, `insufficient_funds`, `closed`, `not_ripe`, `not_withered`, `plot_occupied`, `no_plant`, `can_empty`, `not_edible`, `not_tired` (cochilo com a energia cheia; ADR-0049).
+`not_in_control`, `unknown_action`, `invalid_params`, `busy` (dormindo, ou numa ação `never`; ADR-0052), `unreachable`, `not_passable`, `not_adjacent`, `missing_item`, `insufficient_funds`, `closed`, `not_ripe`, `not_withered`, `plot_occupied`, `no_plant`, `can_empty`, `not_edible`, `not_tired` (cochilo com a energia cheia; ADR-0049).
 
 **Parâmetros por ação:** validados pelo cartucho, não pelo schema genérico.
 
@@ -171,7 +171,7 @@ Estrutura de `view`, inteiramente genérica (sem nada específico da fazenda):
 
 - `clock: { tick, sim_time, day, phase }`
 - `weather: { condition, day }`
-- `self: { entity_id, position, needs, asleep: bool, action?: { action_id, action, params, end_tick } }`
+- `self: { entity_id, position, needs, asleep: bool, action?: { action_id, action, params, end_tick, applied_tick?, interrupt? } }` (os dois últimos desde a ADR-0052)
 - `containers: [{ container_id, items: [item_stack] }]`
 - `entities: [{ entity_id, kind, position?, container_id?, attributes }]`
 
@@ -244,6 +244,7 @@ Estas mensagens não passam pelo NATS nem levam envelope. São o protocolo da UI
 - **Desde o M5 (ADR-0051):**
   - o estado traz `pulse` (o último pulso do kernel e se ele está vivo) e `session.affordances` (o catálogo de ações do cartucho);
   - cada conexão recebe as recusas dos próprios comandos, mesmo sem ver eventos `observer`.
+- **Desde a ADR-0052:** a ação em andamento traz `applied_tick` e `interrupt`, e o estado traz `sleep` (início e tick previsto para acordar, por avatar). É o que a tela usa para a barra de progresso.
 
 ### 3.12 Avisos fora do histórico (`contracts/live`, ADR-0051)
 

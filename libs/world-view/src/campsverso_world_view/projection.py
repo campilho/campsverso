@@ -57,6 +57,9 @@ class Projection:
             k: dict(v) for k, v in raw.get("needs", {}).items()
         }
         self.asleep: dict[str, bool] = dict(raw.get("asleep", {}))
+        self.sleep: dict[str, dict[str, int]] = {  # início e fim previsto do sono (ADR-0052)
+            k: dict(v) for k, v in raw.get("sleep", {}).items()
+        }
         self.session: dict[str, Any] | None = raw.get("session")  # do session.started
         self.clock: dict[str, Any] = dict(raw.get("clock", {}))  # mode, scale, paused
         self.controllers: dict[str, dict[str, str]] = {
@@ -82,6 +85,7 @@ class Projection:
             "actions": self.actions,
             "needs": self.needs,
             "asleep": self.asleep,
+            "sleep": self.sleep,
             "session": self.session,
             "clock": self.clock,
             "controllers": self.controllers,
@@ -166,12 +170,16 @@ class Projection:
         self.phase, self.day = str(data["phase"]), int(data["day"])
 
     def _on_action_accepted(self, data: Mapping[str, Any]) -> None:
-        self.actions[str(data["avatar_id"])] = {
+        action: dict[str, Any] = {
             "action_id": data["action_id"],
             "action": data["action"],
             "params": dict(data.get("params") or {}),
+            "applied_tick": int(data["applied_tick"]),
             "end_tick": int(data["applied_tick"]) + int(data["duration_ticks"]),
         }
+        if "interrupt" in data:  # ADR-0052; ausente nos arquivos antigos
+            action["interrupt"] = data["interrupt"]
+        self.actions[str(data["avatar_id"])] = action
 
     def _finish(self, data: Mapping[str, Any]) -> None:
         avatar_id = str(data["avatar_id"])
@@ -184,10 +192,18 @@ class Projection:
     _on_action_failed = _finish
 
     def _on_avatar_sleep_started(self, data: Mapping[str, Any]) -> None:
-        self.asleep[str(data["avatar_id"])] = True
+        avatar_id = str(data["avatar_id"])
+        self.asleep[avatar_id] = True
+        if "wake_at_tick" in data:  # só na v2
+            self.sleep[avatar_id] = {
+                "since_tick": self._event_tick,
+                "wake_at_tick": int(data["wake_at_tick"]),
+            }
 
     def _on_avatar_sleep_ended(self, data: Mapping[str, Any]) -> None:
-        self.asleep[str(data["avatar_id"])] = False
+        avatar_id = str(data["avatar_id"])
+        self.asleep[avatar_id] = False
+        self.sleep.pop(avatar_id, None)
 
     def _on_world_need_changed(self, data: Mapping[str, Any]) -> None:
         self.needs.setdefault(str(data["avatar_id"]), {})[str(data["need"])] = float(data["value"])

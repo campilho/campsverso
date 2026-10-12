@@ -613,10 +613,6 @@ class KernelCore:
 
     # ------------------------------------------------------------- ações
 
-    def _cancellable(self, action: RunningAction) -> bool:
-        spec = self.definition.actions.get(action.name)
-        return spec is None or spec.cancellable  # move e wait (do kernel) podem ser canceladas
-
     def _propose(self, command: Mapping[str, Any]) -> None:
         world = self.world
         command_id = str(command.get("id", ""))
@@ -656,8 +652,9 @@ class KernelCore:
                 return reject("too_late", f"at_tick {at_tick}, tick atual {self.tick}")
         if avatar.asleep:
             return reject("busy", "o avatar está dormindo")
-        if avatar.action is not None and not self._cancellable(avatar.action):
-            return reject("busy", f"a ação {avatar.action.name} não pode ser cancelada")
+        running = avatar.action
+        if running is not None and running.interrupt == "never":  # ADR-0052
+            return reject("busy", f"{running.name} termina no tick {running.end_tick}")
         action_id = f"act-{self._action_counter + 1:06d}"
         result, trajectory = self._validate(avatar, name, params, action_id)
         if isinstance(result, Rejection):
@@ -665,6 +662,11 @@ class KernelCore:
 
         with world.context(caused_by=command_id, correlation=correlation):
             replaced = world.interrupt_action(avatar.avatar_id, "cancelled")
+        if running is not None and running.interrupt == "partial":
+            # O trabalho guardado pode mudar a validação: retomar a mesma ação fica mais curto.
+            result, trajectory = self._validate(avatar, name, params, action_id)
+            if isinstance(result, Rejection):
+                return reject(result.reason, result.detail)
         self._action_counter += 1
         action = RunningAction(
             action_id=action_id,
@@ -675,6 +677,7 @@ class KernelCore:
             command_id=command_id,
             correlation=correlation,
             trajectory=trajectory,
+            interrupt=result.interrupt,
         )
         avatar.action = action
         accepted: dict[str, Any] = {
@@ -684,6 +687,7 @@ class KernelCore:
             "params": params,
             "applied_tick": self.tick,
             "duration_ticks": result.duration_ticks,
+            "interrupt": result.interrupt,
         }
         if replaced is not None:
             accepted["replaces"] = replaced
@@ -715,7 +719,7 @@ class KernelCore:
             ticks = params.get("ticks")
             if not isinstance(ticks, int) or not 1 <= ticks <= 60:
                 return Rejection("invalid_params", "wait exige ticks entre 1 e 60"), None
-            return Accepted(ticks), None
+            return Accepted(ticks, "cancel"), None  # andar e esperar se cancelam (ADR-0052)
         spec = self.definition.actions.get(name)
         if spec is None:
             return Rejection("unknown_action"), None
@@ -765,7 +769,8 @@ class KernelCore:
         if path is None:
             return Rejection("unreachable"), None
         duration = max(1, math.ceil((len(path) - 1) / self.tiles_per_tick - 1e-9))
-        return Accepted(duration), Trajectory(origin, tuple(path), self.tick, self.tiles_per_tick)
+        trajectory = Trajectory(origin, tuple(path), self.tick, self.tiles_per_tick)
+        return Accepted(duration, "cancel"), trajectory
 
     def _complete(self, avatar: Avatar) -> None:
         world = self.world

@@ -181,7 +181,11 @@ Todas as ações são propostas por **qualquer controlador** via `campsverso.cmd
 | `wait` | — | — | n (1–60) | 0 | nada |
 
 **Regras gerais:**
-- Uma ação por vez; uma ação em andamento pode ser **cancelada** por novo comando do mesmo controlador (exceto `sleep`).
+- Uma ação por vez. O que acontece com um comando novo do mesmo controlador durante uma ação depende da **política de interrupção** da ação (ADR-0052), declarada no `farm.yaml`:
+  - `never`: o comando é recusado com `busy`, e a ação continua. Vale para todas as ações da tabela acima, inclusive `sleep`;
+  - `cancel`: a ação é cancelada, e nada dela acontece. Vale para `move` e `wait`, que são do kernel;
+  - `partial`: a ação para, e o cartucho grava o trabalho feito; propor de novo continua de onde parou. Nenhuma ação da v0.1 usa.
+- O desmaio interrompe qualquer ação, qualquer que seja a política.
 - Comando de controlador que não detém a posse → `action.rejected` com motivo `not_in_control`.
 - Toda rejeição traz motivo legível por máquina (`not_adjacent`, `missing_item`, `closed`, `not_ripe`, `insufficient_funds`, `not_tired`…). Isso será sinal de aprendizado para o LLM na v0.2.
 
