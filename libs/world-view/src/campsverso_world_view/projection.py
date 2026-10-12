@@ -65,6 +65,7 @@ class Projection:
         self.decisions: dict[str, dict[str, Any]] = {  # último pedido de decisão por avatar
             k: dict(v) for k, v in raw.get("decisions", {}).items()
         }
+        self._event_tick = self.tick  # o tick do evento sendo aplicado
 
     def export(self) -> dict[str, Any]:
         return {
@@ -97,6 +98,9 @@ class Projection:
         self.last_seq[stream] = int(envelope["seq"])
         self.cartridge = str(envelope.get("cartridge") or self.cartridge)
         tick = envelope.get("tick")
+        # O tick do próprio evento: `self.tick` é o maior já visto, e world e agent chegam por
+        # streams diferentes, sem ordem garantida entre eles.
+        self._event_tick = tick if isinstance(tick, int) else self.tick
         if isinstance(tick, int) and tick >= self.tick:
             self.tick, self.simtime = tick, cast(str | None, envelope.get("simtime"))
         name = str(envelope["type"]).removeprefix("campsverso.").rsplit(".", 1)[0]
@@ -194,7 +198,7 @@ class Projection:
         if avatar_id in self.entities:
             self.entities[avatar_id]["position"] = _position(data["position"])
         self.controllers[avatar_id] = dict(data["controller"])
-        self.decisions[avatar_id] = {"reason": data["reason"], "tick": self.tick}
+        self.decisions[avatar_id] = {"reason": data["reason"], "tick": self._event_tick}
 
     def _on_avatar_possessed(self, data: Mapping[str, Any]) -> None:
         self.controllers[str(data["avatar_id"])] = dict(data["controller"])

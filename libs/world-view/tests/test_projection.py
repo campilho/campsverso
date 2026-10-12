@@ -138,3 +138,24 @@ def test_vai_e_volta_em_json_e_ignora_chaves_de_outros() -> None:
 def test_trajeto_tile_a_tile_pelas_esquinas() -> None:
     path = path_from({"x": 1, "y": 1}, [{"x": 3, "y": 1}, {"x": 3, "y": 2}])
     assert path == [{"x": 1, "y": 1}, {"x": 2, "y": 1}, {"x": 3, "y": 1}, {"x": 3, "y": 2}]
+
+
+def test_pedido_de_decisao_guarda_o_tick_do_proprio_evento() -> None:
+    """world pode chegar antes de agent: o tick do pedido não pode vir do maior tick já visto."""
+    p = started()
+    p.apply("world", ev(2, 40, "world.clock.phase_changed.v1", phase="meio_dia", day=1))
+    p.apply(
+        "agent",
+        ev(
+            0,
+            35,
+            "avatar.decision_requested.v1",
+            avatar_id="camps",
+            reason="action_completed",
+            controller=SCRIPT,
+            needs={"fome": 1, "energia": 99},
+            position={"x": 4, "y": 4},
+        ),
+    )
+    assert p.decisions["camps"]["tick"] == 35
+    assert p.tick == 40
