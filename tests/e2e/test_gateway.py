@@ -281,6 +281,8 @@ async def test_a9_humano_joga_pela_ui_e_devolve(tmp_path: Path, nats: NatsServer
             assert player.state["session"]["affordances"]
             await player.ask(POSSESS, {"avatar_id": "camps"})
             await player.until(lambda p: p.state["controllers"]["camps"]["type"] == "human")
+            # O trabalho que o script deixou em andamento não se cancela (ADR-0052): espera acabar.
+            await player.until(lambda p: "camps" not in p.state["actions"])
 
             # Um canteiro vazio longe da casa, onde o script ainda não chegou.
             empty = sorted(
@@ -292,7 +294,8 @@ async def test_a9_humano_joga_pela_ui_e_devolve(tmp_path: Path, nats: NatsServer
             await player.ask(
                 PROPOSE, {"avatar_id": "camps", "action": "move", "params": {"near": plot}}
             )
-            await player.until(lambda p: p.saw("action.completed.v1", mark, action="move"))
+            near = {"near": plot}
+            await player.until(lambda p: p.saw("action.completed.v1", mark, params=near))
             plant = {"target": plot, "crop": "rabanete"}
             await player.ask(PROPOSE, {"avatar_id": "camps", "action": "plant", "params": plant})
             await player.until(
