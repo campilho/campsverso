@@ -26,6 +26,13 @@ Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão 
 - **`ObserverState` ganha `pulse`,** um campo opcional e compatível: o tick do último pulso e se o kernel está vivo.
 - **As ferramentas tratam `realtime` e `live` como mensagens sem envelope.** O AsyncAPI ganha o canal do pulso.
 
+## Não publicado (M7)
+
+- **Catálogo de métricas** (ADR-0054), só com campos opcionais:
+  - `common/defs.v1` ganha `metric`: `count` de um tipo de evento (com `where` e `by`), `max_need` e `item`;
+  - `world.session.started.v1` ganha `metrics`, o catálogo declarado pelo cartucho;
+  - o `ObserverState` ganha `session.metrics` e `metrics`, os valores dos últimos 8 dias simulados.
+
 ## Não publicado (M6)
 
 - **Política de interrupção das ações** (ADR-0052), só com campos opcionais:

@@ -1,5 +1,6 @@
 """Cartucho farm, o gênero: mecânicas genéricas de fazenda (ADR-0031)."""
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, cast
@@ -11,6 +12,7 @@ from campsverso_cartridge_api import (
     ClockDef,
     ItemDef,
     KindDef,
+    MetricDef,
     NeedDef,
     ThresholdDef,
     WorldBuilder,
@@ -73,6 +75,24 @@ def affordances(data: dict[str, Any]) -> tuple[AffordanceDef, ...]:
     )
 
 
+def metrics(data: Mapping[str, Any]) -> tuple[MetricDef, ...]:
+    """O catálogo de métricas do dia, dos dados (ADR-0054)."""
+    return tuple(
+        MetricDef(
+            id=str(entry["id"]),
+            label=str(entry["label"]),
+            kind=entry["kind"],
+            event=entry.get("event"),
+            where=dict(entry.get("where", {})),
+            by_field=entry.get("by", {}).get("field"),
+            by_attribute=entry.get("by", {}).get("attribute"),
+            need=entry.get("need"),
+            item=entry.get("item"),
+        )
+        for entry in data.get("metrics", [])
+    )
+
+
 @dataclass(frozen=True)
 class FarmCartridge:
     manifest: CartridgeManifest = field(default_factory=lambda: CartridgeManifest("farm", "0.2.0"))
@@ -122,6 +142,8 @@ class FarmCartridge:
         world.add_rule_impl(WaterProximityBonus())
         for affordance in affordances(data):
             world.add_affordance(affordance)
+        for metric in metrics(data):
+            world.add_metric(metric)
 
     def rules_file(self) -> Path | None:
         return None  # o gênero não liga nenhuma regra; o cenário decide (ADR-0039)

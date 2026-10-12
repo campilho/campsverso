@@ -103,3 +103,28 @@ class AffordanceDef:
     on: tuple[str, ...]
     target: bool = True
     params: tuple[AffordanceParam, ...] = ()
+
+
+type MetricKind = Literal["count", "max_need", "item"]
+
+
+@dataclass(frozen=True, slots=True)
+class MetricDef:
+    """Uma métrica do dia simulado, contada pela projeção comum e mostrada ao operador (ADR-0054).
+
+    - `count`: quantos eventos `event` houve no dia, só os que batem com `where` (caminhos com
+      ponto, ex. `params.target`). Com `by_field`, um valor por grupo: o valor do campo, ou, com
+      `by_attribute`, o atributo da entidade cujo id está no campo.
+    - `max_need`: o pico da necessidade `need` no dia.
+    - `item`: a quantidade do item `item` com os avatares no fim do dia.
+    """
+
+    id: str
+    label: str
+    kind: MetricKind
+    event: str | None = None
+    where: Mapping[str, Scalar] = field(default_factory=dict[str, Scalar])
+    by_field: str | None = None
+    by_attribute: str | None = None
+    need: str | None = None
+    item: str | None = None

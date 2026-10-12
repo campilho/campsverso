@@ -240,6 +240,26 @@ class KernelCore:
             catalog.append(entry)
         return {"affordances": catalog} if catalog else {}
 
+    def _metrics(self) -> dict[str, Any]:
+        """O catálogo de métricas do dia (ADR-0054); ausente se o cartucho não declarar nenhuma."""
+        catalog: list[dict[str, Any]] = []
+        for m in self.definition.metrics:
+            entry: dict[str, Any] = {"id": m.id, "label": m.label, "kind": m.kind}
+            if m.event is not None:
+                entry["event"] = m.event
+            if m.where:
+                entry["where"] = dict(m.where)
+            if m.by_field is not None:
+                entry["by"] = {"field": m.by_field} | (
+                    {"attribute": m.by_attribute} if m.by_attribute else {}
+                )
+            if m.need is not None:
+                entry["need"] = m.need
+            if m.item is not None:
+                entry["item"] = m.item
+            catalog.append(entry)
+        return {"metrics": catalog} if catalog else {}
+
     def start(self) -> None:
         world = self.world
         grid = self.definition.grid
@@ -255,6 +275,7 @@ class KernelCore:
                 "resumed": False,
                 "map": {"id": grid.map_id, "width": grid.width, "height": grid.height},
                 **self._affordances(),
+                **self._metrics(),
             },
         )
         world.emit_fact(

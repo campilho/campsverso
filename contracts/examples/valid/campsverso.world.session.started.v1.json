@@ -54,6 +54,33 @@
           }
         ]
       }
+    ],
+    "metrics": [
+      {
+        "id": "colheitas",
+        "label": "Colheitas",
+        "kind": "count",
+        "event": "campsverso.action.completed.v1",
+        "where": {
+          "action": "harvest"
+        },
+        "by": {
+          "field": "params.target",
+          "attribute": "group"
+        }
+      },
+      {
+        "id": "pico_fome",
+        "label": "Pico de fome",
+        "kind": "max_need",
+        "need": "fome"
+      },
+      {
+        "id": "moedas",
+        "label": "Moedas no fim do dia",
+        "kind": "item",
+        "item": "moeda"
+      }
     ]
   }
 }

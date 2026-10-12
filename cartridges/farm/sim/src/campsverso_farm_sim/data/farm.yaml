@@ -120,3 +120,15 @@ affordances:
     kinds: [self]
     target: false
     params: [{name: ticks, label: Minutos, minimum: 1, default: 15}]
+
+# Métricas do dia (bíblia §13), mostradas no painel do operador (ADR-0054). Um cenário pode
+# acrescentar as suas. "Dias até amadurecer" e "tempo real por dia" ficam no make metrics.
+metrics:
+  - {id: colheitas, label: Colheitas, kind: count, event: campsverso.action.completed.v1,
+     where: {action: harvest}, by: {field: params.target, attribute: group}}
+  - {id: moedas, label: Moedas no fim do dia, kind: item, item: moeda}
+  - {id: recusas, label: Ações recusadas, kind: count, event: campsverso.action.rejected.v1,
+     by: {field: reason}}
+  - {id: murchas, label: Plantas murchas, kind: count, event: campsverso.farm.crop.withered.v1}
+  - {id: pico_fome, label: Pico de fome, kind: max_need, need: fome}
+  - {id: desmaios, label: Desmaios, kind: count, event: campsverso.avatar.fainted.v1}

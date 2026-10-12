@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from campsverso_cartridge_api import CartridgeManifest, ItemDef, WorldBuilder
+from campsverso_cartridge_api import CartridgeManifest, ItemDef, MetricDef, WorldBuilder
 from campsverso_kernel import DefinitionError, RealTimePacer, build_world, resolve_chain
 from campsverso_kernel.testing import LabCartridge
 
@@ -64,3 +64,42 @@ def test_acumulador_converte_tempo_real_em_ticks_sem_perder_o_resto() -> None:
     assert pacer.ticks_for(0.5) == 0
     assert pacer.ticks_for(0.5) == 1
     assert sum(pacer.ticks_for(0.1) for _ in range(100)) == 12
+
+
+@dataclass(frozen=True)
+class MetricLayer:
+    """Uma camada que só acrescenta métricas (ADR-0054)."""
+
+    manifest: CartridgeManifest
+    metrics: tuple[MetricDef, ...]
+
+    def contribute(self, world: WorldBuilder) -> None:
+        for metric in self.metrics:
+            world.add_metric(metric)
+
+    def rules_file(self) -> Path | None:
+        return None
+
+
+def test_metricas_em_camadas_e_conferidas_na_carga() -> None:
+    touches = MetricDef(
+        "toques",
+        "Toques",
+        "count",
+        event="campsverso.action.completed.v1",
+        where={"action": "touch"},
+    )
+    energy = MetricDef("energia_max", "Pico de energia", "max_need", need="energia")
+    top = MetricLayer(CartridgeManifest("top", "1.0.0", ("lab",)), (touches, energy))
+    definition = build_world("top", {"lab": LabCartridge(), "top": top})
+    assert [m.id for m in definition.metrics] == ["toques", "energia_max"]
+
+    wrong = (
+        MetricDef("x", "X", "count", event="campsverso.farm.inexistente.v1"),
+        MetricDef("y", "Y", "max_need", need="sede"),
+        MetricDef("z", "Z", "item", item="ouro"),
+    )
+    for metric, problem in zip(wrong, ("contratos", "necessidade", "item"), strict=True):
+        layer = MetricLayer(CartridgeManifest("top", "1.0.0", ("lab",)), (metric,))
+        with pytest.raises(DefinitionError, match=problem):
+            build_world("top", {"lab": LabCartridge(), "top": layer})

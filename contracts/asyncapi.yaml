@@ -1188,6 +1188,58 @@ components:
       - never
       - cancel
       - partial
+    Metric:
+      title: Metric
+      description: Uma métrica do dia simulado, declarada pelo cartucho e contada pela projeção comum
+        (ADR-0054). `count` conta um tipo de evento; `max_need` guarda o pico de uma necessidade; `item`
+        guarda a quantidade de um item com os avatares no fim do dia.
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - label
+      - kind
+      properties:
+        id:
+          $ref: '#/components/schemas/Token'
+        label:
+          type: string
+          minLength: 1
+          maxLength: 60
+        kind:
+          type: string
+          enum:
+          - count
+          - max_need
+          - item
+        event:
+          type: string
+          pattern: ^campsverso\.[a-z0-9_]+(\.[a-z0-9_]+)*\.v[0-9]+$
+          description: O tipo de evento contado (`count`).
+        where:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Scalar'
+          description: Campos do evento que precisam bater; caminhos com ponto (`params.target`).
+        by:
+          type: object
+          title: MetricGroup
+          additionalProperties: false
+          required:
+          - field
+          properties:
+            field:
+              type: string
+              pattern: ^[a-z0-9_]+(\.[a-z0-9_]+)*$
+            attribute:
+              $ref: '#/components/schemas/Token'
+              description: Agrupa pelo atributo da entidade cujo id está no campo (o `group` do canteiro).
+        need:
+          $ref: '#/components/schemas/Token'
+          description: A necessidade (`max_need`).
+        item:
+          $ref: '#/components/schemas/ItemId'
+          description: O item (`item`).
     CmdActionProposeV1:
       title: CmdActionProposeV1
       description: Controlador propõe uma ação para o avatar.
@@ -2539,6 +2591,12 @@ components:
             $ref: '#/components/schemas/Affordance'
           description: Catálogo de ações que o cartucho oferece a quem joga (ADR-0051). O menu só sugere;
             quem decide é o kernel.
+        metrics:
+          type: array
+          maxItems: 64
+          items:
+            $ref: '#/components/schemas/Metric'
+          description: Catálogo de métricas do dia que o cartucho declara (ADR-0054).
     WorldSnapshotCreatedV1:
       title: WorldSnapshotCreatedV1
       description: Snapshot persistido no BlobStore.
@@ -2826,6 +2884,11 @@ components:
                   items:
                     $ref: '#/components/schemas/Affordance'
                   description: O catálogo de ações do session.started, para montar os menus (ADR-0051).
+                metrics:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Metric'
+                  description: O catálogo de métricas do session.started (ADR-0054).
             clock:
               type: object
               title: ObserverClock
@@ -2990,6 +3053,19 @@ components:
                     $ref: '#/components/schemas/Token'
                   tick:
                     $ref: '#/components/schemas/Tick'
+            metrics:
+              type: object
+              description: As métricas dos últimos dias simulados (no máximo 8), por dia e por id; com
+                agrupamento, um valor por grupo (ADR-0054).
+              additionalProperties:
+                type: object
+                title: ObserverDayMetrics
+                additionalProperties:
+                  anyOf:
+                  - type: number
+                  - type: object
+                    additionalProperties:
+                      type: number
         events:
           type: array
           maxItems: 5000

@@ -107,6 +107,59 @@ class Affordance(BaseModel):
     params: list[AffordanceParam] | None = None
 
 
+class MetricGroup(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    field: Annotated[str, Field(pattern="^[a-z0-9_]+(\\.[a-z0-9_]+)*$")]
+    attribute: Annotated[
+        str | None, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")
+    ] = None
+    """
+    Agrupa pelo atributo da entidade cujo id está no campo (o `group` do canteiro).
+    """
+
+
+class Metric(BaseModel):
+    """
+    Uma métrica do dia simulado, declarada pelo cartucho e contada pela projeção comum (ADR-0054). `count` conta um tipo de evento; `max_need` guarda o pico de uma necessidade; `item` guarda a quantidade de um item com os avatares no fim do dia.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    id: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    label: Annotated[str, Field(max_length=60, min_length=1)]
+    kind: Literal["count", "max_need", "item"]
+    event: Annotated[
+        str | None, Field(pattern="^campsverso\\.[a-z0-9_]+(\\.[a-z0-9_]+)*\\.v[0-9]+$")
+    ] = None
+    """
+    O tipo de evento contado (`count`).
+    """
+    where: dict[str, str | float | bool | None] | None = None
+    """
+    Campos do evento que precisam bater; caminhos com ponto (`params.target`).
+    """
+    by: Annotated[MetricGroup | None, Field(title="MetricGroup")] = None
+    need: Annotated[
+        str | None, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")
+    ] = None
+    """
+    A necessidade (`max_need`).
+    """
+    item: Annotated[
+        str | None,
+        Field(max_length=64, pattern="^[a-z0-9]+(_[a-z0-9]+)*$", title="ItemId"),
+    ] = None
+    """
+    O item (`item`).
+    """
+
+
 class CmdActionProposeV1(BaseModel):
     """
     Controlador propõe uma ação para o avatar.
@@ -1540,6 +1593,10 @@ class WorldSessionStartedV1(BaseModel):
     """
     Catálogo de ações que o cartucho oferece a quem joga (ADR-0051). O menu só sugere; quem decide é o kernel.
     """
+    metrics: Annotated[list[Metric] | None, Field(max_length=64)] = None
+    """
+    Catálogo de métricas do dia que o cartucho declara (ADR-0054).
+    """
 
 
 class WorldSnapshotCreatedV1(BaseModel):
@@ -1712,6 +1769,10 @@ class ObserverSession(BaseModel):
     affordances: list[Affordance] | None = None
     """
     O catálogo de ações do session.started, para montar os menus (ADR-0051).
+    """
+    metrics: list[Metric] | None = None
+    """
+    O catálogo de métricas do session.started (ADR-0054).
     """
 
 
@@ -1920,6 +1981,10 @@ class ObserverState(BaseModel):
     Quem controla cada avatar.
     """
     decisions: dict[str, ObserverDecision]
+    metrics: dict[str, dict[str, float | dict[str, float]]] | None = None
+    """
+    As métricas dos últimos dias simulados (no máximo 8), por dia e por id; com agrupamento, um valor por grupo (ADR-0054).
+    """
 
 
 class RealtimeWelcomeV1(BaseModel):

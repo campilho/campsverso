@@ -25,6 +25,9 @@ def test_estado_inicial_da_biblia() -> None:
     assert dict(world.items("chest")) == {"rabanete": 5}
     assert world.entity("watering-can").attributes["charges"] == 10
     assert world.entity("kiosk").attributes["open"] is False
+    # O grupo vem do mapa (ADR-0054): as métricas separam oeste e leste por ele.
+    assert world.entity("plot-w-01").attributes["group"] == "oeste"
+    assert world.entity("plot-e-08").attributes["group"] == "leste"
 
 
 def test_plantar_regar_e_os_custos_de_energia() -> None:
@@ -362,6 +365,21 @@ def test_catalogo_de_acoes_bate_com_as_acoes_e_sai_no_session_started() -> None:
     catalog = {(a["action"], a["label"]) for a in started["affordances"]}
     assert ("plant", "Plantar") in catalog
     assert ("sleep", "Dormir aqui") in catalog
+
+
+def test_catalogo_de_metricas_sai_no_session_started() -> None:
+    """As métricas da bíblia §13 (ADR-0054): colheitas agrupadas pelo `group` do canteiro."""
+    farmer = _farmer()
+    (started,) = of_type(farmer.facts, "world.session.started")
+    metrics = {m["id"]: m for m in started["metrics"]}
+    assert list(metrics) == ["colheitas", "moedas", "recusas", "murchas", "pico_fome", "desmaios"]
+    assert metrics["colheitas"]["by"] == {"field": "params.target", "attribute": "group"}
+    assert metrics["moedas"] == {
+        "id": "moedas",
+        "label": "Moedas no fim do dia",
+        "kind": "item",
+        "item": "moeda",
+    }
 
 
 def section_crops(farmer: Farmer) -> set[str]:

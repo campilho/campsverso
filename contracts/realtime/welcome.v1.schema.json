@@ -133,6 +133,13 @@
                 "$ref": "contracts://common/defs.v1#/$defs/affordance"
               },
               "description": "O catálogo de ações do session.started, para montar os menus (ADR-0051)."
+            },
+            "metrics": {
+              "type": "array",
+              "items": {
+                "$ref": "contracts://common/defs.v1#/$defs/metric"
+              },
+              "description": "O catálogo de métricas do session.started (ADR-0054)."
             }
           }
         },
@@ -389,6 +396,33 @@
               "tick": {
                 "$ref": "contracts://common/defs.v1#/$defs/tick"
               }
+            }
+          }
+        },
+        "metrics": {
+          "type": "object",
+          "description": "As métricas dos últimos dias simulados (no máximo 8), por dia e por id; com agrupamento, um valor por grupo (ADR-0054).",
+          "propertyNames": {
+            "pattern": "^[1-9][0-9]*$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "title": "ObserverDayMetrics",
+            "propertyNames": {
+              "pattern": "^[a-z][a-z0-9_]*$"
+            },
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "number"
+                  }
+                }
+              ]
             }
           }
         }

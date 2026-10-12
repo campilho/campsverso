@@ -11,6 +11,7 @@ from campsverso_cartridge_api.definitions import (
     ClockDef,
     ItemDef,
     KindDef,
+    MetricDef,
     NeedDef,
     SpawnDef,
     ThresholdDef,
@@ -50,6 +51,10 @@ class WorldBuilder(Protocol):
 
     def add_affordance(self, affordance: AffordanceDef) -> None:
         """Uma entrada do catálogo de ações para quem joga (ADR-0051); a ação precisa existir."""
+        ...
+
+    def add_metric(self, metric: MetricDef, *, override: bool = False) -> None:
+        """Uma métrica do dia (ADR-0054); um cartucho que estende outro acrescenta as suas."""
         ...
 
     def set_map(self, tiled: Mapping[str, Any]) -> None:

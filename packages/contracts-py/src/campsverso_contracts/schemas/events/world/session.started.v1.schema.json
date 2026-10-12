@@ -79,6 +79,14 @@
         "$ref": "contracts://common/defs.v1#/$defs/affordance"
       },
       "description": "Catálogo de ações que o cartucho oferece a quem joga (ADR-0051). O menu só sugere; quem decide é o kernel."
+    },
+    "metrics": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "$ref": "contracts://common/defs.v1#/$defs/metric"
+      },
+      "description": "Catálogo de métricas do dia que o cartucho declara (ADR-0054)."
     }
   }
 }

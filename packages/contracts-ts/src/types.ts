@@ -179,6 +179,34 @@ export interface Affordance {
   params?: AffordanceParam[];
 }
 /**
+ * Uma métrica do dia simulado, declarada pelo cartucho e contada pela projeção comum (ADR-0054). `count` conta um tipo de evento; `max_need` guarda o pico de uma necessidade; `item` guarda a quantidade de um item com os avatares no fim do dia.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "Metric".
+ */
+export interface Metric {
+  id: Token;
+  label: string;
+  kind: "count" | "max_need" | "item";
+  /**
+   * O tipo de evento contado (`count`).
+   */
+  event?: string;
+  /**
+   * Campos do evento que precisam bater; caminhos com ponto (`params.target`).
+   */
+  where?: {
+    [k: string]: Scalar | undefined;
+  };
+  by?: MetricGroup;
+  need?: Token;
+  item?: ItemId;
+}
+export interface MetricGroup {
+  field: string;
+  attribute?: Token;
+}
+/**
  * Controlador propõe uma ação para o avatar.
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
@@ -917,6 +945,12 @@ export interface WorldSessionStartedV1 {
    * Catálogo de ações que o cartucho oferece a quem joga (ADR-0051). O menu só sugere; quem decide é o kernel.
    */
   affordances?: Affordance[];
+  /**
+   * Catálogo de métricas do dia que o cartucho declara (ADR-0054).
+   *
+   * @maxItems 64
+   */
+  metrics?: Metric[];
 }
 export interface SessionMap {
   id: string;
@@ -1105,6 +1139,12 @@ export interface ObserverState {
   decisions: {
     [k: string]: ObserverDecision | undefined;
   };
+  /**
+   * As métricas dos últimos dias simulados (no máximo 8), por dia e por id; com agrupamento, um valor por grupo (ADR-0054).
+   */
+  metrics?: {
+    [k: string]: ObserverDayMetrics | undefined;
+  };
 }
 export interface ObserverSession {
   cartridge_version: Semver;
@@ -1114,6 +1154,10 @@ export interface ObserverSession {
    * O catálogo de ações do session.started, para montar os menus (ADR-0051).
    */
   affordances?: Affordance[];
+  /**
+   * O catálogo de métricas do session.started (ADR-0054).
+   */
+  metrics?: Metric[];
 }
 /**
  * O mapa do cartucho; o arquivo fica no gateway em /content/maps/<id>.tmj (ADR-0050).
@@ -1176,4 +1220,12 @@ export interface ObserverSleep {
 export interface ObserverDecision {
   reason: Token;
   tick: Tick;
+}
+export interface ObserverDayMetrics {
+  [k: string]:
+    | number
+    | {
+        [k: string]: number | undefined;
+      }
+    | undefined;
 }

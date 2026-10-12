@@ -123,6 +123,16 @@
         "reason": "action_completed",
         "tick": 14
       }
+    },
+    "metrics": {
+      "1": {
+        "colheitas": {
+          "oeste": 2,
+          "leste": 3
+        },
+        "pico_fome": 42.5,
+        "moedas": 120
+      }
     }
   },
   "events": [
