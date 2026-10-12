@@ -22,7 +22,7 @@ NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR
 
 .DEFAULT_GOAL := help
 .PHONY: help setup contracts check lint fmt types test arch contracts-check compat \
-        up stop run ui soak replay tools secrets
+        up stop run ui soak replay metrics tools secrets
 
 help: ## lista os alvos
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-16s %s\n", $$1, $$2}'
@@ -90,17 +90,25 @@ stop: ## derruba o NATS que o make up subiu
 	  echo "NATS não está no ar"; \
 	fi
 
-run: up ## sobe kernel e arquivador juntos com o honcho (Procfile); Ctrl+C derruba os dois
+run: up ## sobe kernel, percepção, script e arquivador com o honcho (Procfile); Ctrl+C derruba todos
 	$(PY) honcho start -f Procfile
 
 ui: ## sobe a UI em modo desenvolvimento (marco M4)
 	@echo "make ui: ainda não implementado (marco M4)"; exit 1
 
-soak: ## resistência em modo máximo com o script: make soak DAYS=30 (marco M3)
-	@echo "make soak: ainda não implementado (marco M3)"; exit 1
+DAYS ?= 30
+ARCHIVE ?= data/archive/farm-camps-01
 
-replay: ## reexecuta um dia a partir do arquivo e compara hashes: make replay DAY=N (marco M3)
-	@echo "make replay: ainda não implementado (marco M3)"; exit 1
+soak: tools ## resistência com processos e NATS próprios: make soak DAYS=30 (SEM_REGRA=1 desliga a R-001)
+	$(PY) python -m campsverso_testkit.soak --days $(DAYS) \
+	  --out data/soak/$$(date +%Y%m%d-%H%M%S) $(if $(SEM_REGRA),--sem-regra,)
+
+replay: ## reexecuta um dia gravado do mundo e compara com o arquivo: make replay DAY=N
+	@test -n "$(DAY)" || { echo "uso: make replay DAY=N"; exit 1; }
+	$(PY) python -m campsverso_kernel.main --replay-day $(DAY)
+
+metrics: ## métricas da bíblia §13 a partir do arquivo: make metrics [ARCHIVE=pasta do mundo]
+	$(PY) python -m campsverso_tools.metrics $(ARCHIVE)
 
 secrets: ## gera em .env (fora do git) as senhas do NATS que ainda faltam
 	@touch .env && chmod 600 .env
