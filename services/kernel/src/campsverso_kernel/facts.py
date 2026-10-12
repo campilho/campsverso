@@ -45,6 +45,10 @@ class FactLog:
         self._pending.append(fact)
         return fact
 
+    @property
+    def pending(self) -> bool:
+        return bool(self._pending)
+
     def drain(self) -> list[Fact]:
         facts, self._pending = self._pending, []
         return facts

@@ -35,6 +35,7 @@ from campsverso_kernel.world import (
     Trajectory,
     World,
     controller_data,
+    plain,
     position_data,
     to_units,
 )
@@ -85,7 +86,7 @@ class KernelCore:
         )
         self.rules_source = rules_source
         self.mode: ClockMode = "continuous"
-        self.scale = definition.clock.default_scale
+        self.scale = float(definition.clock.default_scale)
         self.paused = False
         self.tiles_per_tick = definition.tiles_per_minute / self.calendar.ticks_per_minute
         self._queue: deque[Mapping[str, Any]] = deque()
@@ -142,6 +143,61 @@ class KernelCore:
             lines.append(f"{stage}: {', '.join(parts) or '-'}")
         return lines
 
+    def configure_clock(self, mode: ClockMode, scale: float | None, paused: bool) -> None:
+        """Estado inicial do relógio de um mundo novo, antes de `start` (config/worlds/)."""
+        if mode == "max" and any(
+            a.default_controller.type not in LOCKSTEP_CONTROLLERS
+            for a in self.definition.avatars.values()
+        ):
+            raise ValueError("o modo max só é permitido com controladores script ou replay")
+        if scale is not None and scale <= 0:
+            raise ValueError("a escala precisa ser positiva")
+        self.mode, self.paused = mode, paused
+        self.scale = self.scale if scale is None else float(scale)
+
+    # ------------------------------------------------------------- snapshot (M2)
+
+    def export_state(self) -> dict[str, Any]:
+        """Tudo o que muda durante a simulação; a definição vem de novo dos cartuchos."""
+        return {
+            "mode": self.mode,
+            "scale": self.scale,
+            "paused": self.paused,
+            "queue": [plain(command) for command in self._queue],
+            "action_counter": self._action_counter,
+            "triggered": [
+                {
+                    "system": system.name,
+                    "need": trigger.need,
+                    "value": trigger.value,
+                    "direction": trigger.direction,
+                    "avatar_id": avatar_id,
+                }
+                for system, trigger, avatar_id in self._triggered
+            ],
+            "next_seq": self.log.next_seq,
+            "world": self.world.export_state(),
+        }
+
+    def restore_state(self, state: Mapping[str, Any]) -> None:
+        self.mode = cast(ClockMode, state["mode"])
+        self.scale = float(state["scale"])
+        self.paused = bool(state["paused"])
+        self._queue = deque(cast(list[Mapping[str, Any]], state["queue"]))
+        self._action_counter = int(state["action_counter"])
+        self._triggered = []
+        for raw in cast(list[Mapping[str, Any]], state["triggered"]):
+            system = self.definition.systems[str(raw["system"])]
+            trigger = next(
+                t
+                for t in system.triggers
+                if isinstance(t, OnThreshold)
+                and (t.need, t.value, t.direction) == (raw["need"], raw["value"], raw["direction"])
+            )
+            self._triggered.append((system, trigger, str(raw["avatar_id"])))
+        self.log.next_seq = int(state["next_seq"])
+        self.world.import_state(cast(Mapping[str, Any], state["world"]))
+
     # ------------------------------------------------------------- sessão
 
     def start(self) -> None:
@@ -194,7 +250,7 @@ class KernelCore:
             return
         handler = self._control.get(command_type)
         if handler is None:
-            self._reject_command(command, "unknown_command")
+            self.reject_command(command, "unknown_command")
             return
         try:
             reason = handler(command, cast(Mapping[str, Any], command.get("data") or {}))
@@ -202,9 +258,9 @@ class KernelCore:
             reason = f"invalid_command:{error}"
         if reason is not None:
             code, _, detail = reason.partition(":")
-            self._reject_command(command, code, detail or None)
+            self.reject_command(command, code, detail or None)
 
-    def _reject_command(
+    def reject_command(
         self, command: Mapping[str, Any], reason: str, detail: str | None = None
     ) -> None:
         data: dict[str, Any] = {
@@ -489,7 +545,7 @@ class KernelCore:
         data = cast(Mapping[str, Any], command.get("data") or {})
         avatar = world.avatar_map.get(str(data.get("avatar_id")))
         if avatar is None:
-            self._reject_command(command, "unknown_avatar")
+            self.reject_command(command, "unknown_avatar")
             return
         name = str(data.get("action", ""))
         params = dict(cast(Mapping[str, Any], data.get("params") or {}))

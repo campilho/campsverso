@@ -2,12 +2,33 @@
 
 from typing import Any
 
-from campsverso_adapters import FakeWallClock, InMemoryBus, SequentialUuid7Ids, ValidatingBus
-from campsverso_kernel import KernelService
-from campsverso_kernel.testing import SCRIPT, make_core
-from campsverso_ports import Envelope
+from campsverso_adapters import (
+    FakeWallClock,
+    InMemoryBus,
+    MemoryBlobStore,
+    MemoryTelemetry,
+    SequentialUuid7Ids,
+    SqliteWorldStore,
+    ValidatingBus,
+)
+from campsverso_kernel import Engine, KernelService, run_version
+from campsverso_kernel.testing import SCRIPT, LabCartridge, make_core
+from campsverso_ports import Envelope, EventBus
 
 ids = SequentialUuid7Ids()
+
+
+def lab_service(bus: EventBus) -> KernelService:
+    engine = Engine(make_core(), run_version("lab", 60, {"lab": LabCartridge()}))
+    return KernelService(
+        engine,
+        bus,
+        FakeWallClock(),
+        SequentialUuid7Ids(),
+        SqliteWorldStore(":memory:"),
+        MemoryBlobStore(),
+        MemoryTelemetry(),
+    )
 
 
 def _command(action: str, params: dict[str, Any], correlation: str | None = None) -> dict[str, Any]:
@@ -36,7 +57,7 @@ def _command(action: str, params: dict[str, Any], correlation: str | None = None
 async def test_dois_dias_publicados_pelo_barramento_validador() -> None:
     inner = InMemoryBus()
     bus = ValidatingBus(inner)
-    service = KernelService(make_core(), bus, FakeWallClock(), SequentialUuid7Ids())
+    service = lab_service(bus)
     decisions: list[Envelope] = []
 
     async def on_decision(_: str, envelope: Envelope) -> None:

@@ -49,5 +49,9 @@ class RngStreams:
         return self._streams[name]
 
     def states(self) -> dict[str, int]:
-        """Estado de cada fluxo, para snapshots (M2)."""
+        """Estado de cada fluxo já usado, para snapshots (M2)."""
         return {name: stream.state for name, stream in sorted(self._streams.items())}
+
+    def restore(self, states: dict[str, int]) -> None:
+        """Fluxos nunca usados não entram no snapshot: nascem da seed quando forem pedidos."""
+        self._streams = {name: SplitMix64(state) for name, state in states.items()}

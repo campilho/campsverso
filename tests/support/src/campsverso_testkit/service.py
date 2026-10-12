@@ -2,10 +2,23 @@
 
 from typing import Any
 
-from campsverso_adapters import FakeWallClock, InMemoryBus, SequentialUuid7Ids, ValidatingBus
+from campsverso_adapters import (
+    ContractValidator,
+    FakeWallClock,
+    InMemoryBus,
+    MemoryBlobStore,
+    MemoryTelemetry,
+    SequentialUuid7Ids,
+    SqliteWorldStore,
+    ValidatingBus,
+)
+from campsverso_kernel.engine import Engine
 from campsverso_kernel.service import KernelService
+from campsverso_kernel.version import run_version
 from campsverso_ports import Envelope
 from campsverso_testkit.farm import SCRIPT_ID, WORLD, event_type, make_core
+
+SNAPSHOT_EVERY = 60
 
 
 class ServiceFarmer:
@@ -13,9 +26,22 @@ class ServiceFarmer:
 
     def __init__(self, seed: int = 20261010) -> None:
         self.inner = InMemoryBus()
-        self.bus = ValidatingBus(self.inner)
+        self.bus = ValidatingBus(self.inner)  # nenhum evento sai fora do contrato (A2)
         self.ids = SequentialUuid7Ids()
-        self.service = KernelService(make_core(seed), self.bus, FakeWallClock(), self.ids)
+        self.store = SqliteWorldStore(":memory:")
+        self.blobs = MemoryBlobStore()
+        self.telemetry = MemoryTelemetry()
+        validator = ContractValidator()
+        engine = Engine(make_core(seed), run_version("farm_camps", SNAPSHOT_EVERY), validator)
+        self.service = KernelService(
+            engine,
+            self.bus,
+            FakeWallClock(),
+            self.ids,
+            self.store,
+            self.blobs,
+            self.telemetry,
+        )
         self.core = self.service.core
         self._seq = 0
         self.correlation: str | None = None

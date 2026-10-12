@@ -1,0 +1,15 @@
+# Mundo farm-camps-01: a Fazenda do Camps da v0.1 (ADR-0038).
+# Vale para criar o mundo. Um mundo que já existe continua do seu snapshot: mudar a seed ou a
+# data-base aqui não o altera, e o kernel recusa a diferença.
+
+worldid: farm-camps-01
+cartridge: farm_camps
+seed: 20261010
+start: "2026-10-10T06:00:00-03:00"  # o dia em que o projeto começou
+
+clock:  # estado inicial do relógio; depois, só por comandos
+  mode: continuous
+  scale: 72  # 1 dia simulado em 20 minutos reais
+  paused: false
+
+rules_file: null  # null: o arquivo de regras do cartucho (cartridges/farm_camps/.../rules.yaml)

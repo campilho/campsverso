@@ -28,14 +28,48 @@ class _Instance:
 
 class RulesEngine:
     def __init__(self, impls: Mapping[str, RuleImpl], configs: Sequence[RuleConfig]) -> None:
+        self._impls = impls
         self._rules: dict[str, _Instance] = {}
+        self._load(configs)
+
+    def _load(self, configs: Sequence[RuleConfig]) -> None:
+        self._rules = {}
         for config in sorted(configs, key=lambda c: c.rule):
-            impl = impls.get(config.impl)
+            impl = self._impls.get(config.impl)
             if impl is None:
                 raise DefinitionError(
                     f"regra {config.rule}: implementação {config.impl!r} inexistente"
                 )
             self._rules[config.rule] = _Instance(config, impl, config.enabled, dict(config.params))
+
+    def export_state(self) -> list[dict[str, Any]]:
+        """Cada instância como está agora (ligada ou não, com os parâmetros em vigor)."""
+        return [
+            {
+                "rule": name,
+                "impl": r.config.impl,
+                "version": r.config.version,
+                "hidden": r.config.hidden,
+                "enabled": r.enabled,
+                "params": dict(r.params),
+            }
+            for name, r in self._rules.items()
+        ]
+
+    def restore_state(self, state: Sequence[Mapping[str, Any]]) -> None:
+        self._load(
+            [
+                RuleConfig(
+                    rule=str(r["rule"]),
+                    impl=str(r["impl"]),
+                    version=str(r["version"]),
+                    hidden=bool(r["hidden"]),
+                    enabled=bool(r["enabled"]),
+                    params=dict(r["params"]),
+                )
+                for r in state
+            ]
+        )
 
     def loaded(self) -> list[dict[str, Any]]:
         return [

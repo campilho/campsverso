@@ -9,7 +9,7 @@ from collections.abc import Generator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from campsverso_cartridge_api import (
     Attributes,
@@ -218,6 +218,63 @@ class World:
             units = {n.need: to_units(n.initial) for n in self.definition.needs.values()}
             self.needs[avatar.entity_id] = dict(sorted(units.items()))
             self.reported_needs[avatar.entity_id] = dict(sorted(units.items()))
+
+    # ------------------------------------------------------------- snapshot (M2)
+
+    def export_state(self) -> dict[str, Any]:
+        """Estado completo numa fronteira de tick, em tipos JSON e na ordem atual dos dicionários.
+
+        Guardar a ordem faz o mundo restaurado iterar exatamente como o original.
+        """
+        if self.crossings:
+            raise WorldRuleError("snapshot no meio de um tick: há limiares cruzados pendentes")
+        return {
+            "tick": self.tick,
+            "entities": [_entity_data(e) for e in self.entity_map.values()],
+            "containers": {c: dict(stock) for c, stock in self.containers.items()},
+            "needs": {a: dict(units) for a, units in self.needs.items()},
+            "reported_needs": {a: dict(units) for a, units in self.reported_needs.items()},
+            "avatars": [_avatar_data(a) for a in self.avatar_map.values()],
+            "weather": [[day, condition] for day, condition in self.weather_by_day.items()],
+            "contributions": {
+                entity: {
+                    name: {
+                        "rule": c.rule,
+                        "version": c.version,
+                        "hidden": c.hidden,
+                        "base": c.base,
+                        "applied": c.applied,
+                    }
+                    for name, c in rules.items()
+                }
+                for entity, rules in self.contributions.items()
+            },
+            "rng": self._rng.states(),
+            "rules": self.rules.export_state(),
+        }
+
+    def import_state(self, state: Mapping[str, Any]) -> None:
+        self.tick = int(state["tick"])
+        self.entity_map = {
+            e["entity_id"]: _entity_from(e) for e in cast(list[dict[str, Any]], state["entities"])
+        }
+        self.containers = {c: dict(stock) for c, stock in state["containers"].items()}
+        self.needs = {a: dict(units) for a, units in state["needs"].items()}
+        self.reported_needs = {a: dict(units) for a, units in state["reported_needs"].items()}
+        self.avatar_map = {
+            a["avatar_id"]: _avatar_from(a) for a in cast(list[dict[str, Any]], state["avatars"])
+        }
+        self.weather_by_day = {int(day): str(condition) for day, condition in state["weather"]}
+        self.contributions = {
+            entity: {name: Contribution(**c) for name, c in rules.items()}
+            for entity, rules in state["contributions"].items()
+        }
+        self.crossings = []
+        self.blocked = frozenset(
+            e.position for e in self.entity_map.values() if e.blocking and e.position is not None
+        )
+        self._rng.restore(dict(state["rng"]))
+        self.rules.restore_state(state["rules"])
 
     # ------------------------------------------------------------- contexto e fatos
 
@@ -603,3 +660,123 @@ class World:
         if event_type not in CONTRACT_TYPES:
             raise WorldRuleError(f"tipo de evento não declarado em contracts/: {event_type}")
         self.emit_fact(event_type, dict(data))
+
+
+# ----------------------------------------------------------------- snapshot: (de)serialização
+
+
+def _position_from(raw: Any) -> Position | None:
+    return None if raw is None else Position(int(raw["x"]), int(raw["y"]))
+
+
+def _controller_from(raw: Mapping[str, Any]) -> ControllerRef:
+    return ControllerRef(raw["type"], str(raw["id"]))
+
+
+def _entity_data(e: Entity) -> dict[str, Any]:
+    return {
+        "entity_id": e.entity_id,
+        "kind": e.kind,
+        "position": None if e.position is None else position_data(e.position),
+        "container_id": e.container_id,
+        "blocking": e.blocking,
+        "display_name": e.display_name,
+        "attributes": dict(e.attributes),
+        "hidden": dict(e.hidden),
+    }
+
+
+def _entity_from(raw: Mapping[str, Any]) -> Entity:
+    return Entity(
+        entity_id=str(raw["entity_id"]),
+        kind=str(raw["kind"]),
+        position=_position_from(raw["position"]),
+        container_id=raw["container_id"],
+        blocking=bool(raw["blocking"]),
+        display_name=raw["display_name"],
+        attributes=dict(raw["attributes"]),
+        hidden=dict(raw["hidden"]),
+    )
+
+
+def _action_data(action: RunningAction) -> dict[str, Any]:
+    trajectory = action.trajectory
+    return {
+        "action_id": action.action_id,
+        "name": action.name,
+        "params": plain(action.params),
+        "applied_tick": action.applied_tick,
+        "end_tick": action.end_tick,
+        "command_id": action.command_id,
+        "correlation": action.correlation,
+        "trajectory": None
+        if trajectory is None
+        else {
+            "origin": position_data(trajectory.origin),
+            "path": [[p.x, p.y] for p in trajectory.path],
+            "depart_tick": trajectory.depart_tick,
+            "tiles_per_tick": trajectory.tiles_per_tick,
+        },
+    }
+
+
+def _action_from(raw: Mapping[str, Any]) -> RunningAction:
+    trajectory = raw["trajectory"]
+    return RunningAction(
+        action_id=str(raw["action_id"]),
+        name=str(raw["name"]),
+        params=dict(raw["params"]),
+        applied_tick=int(raw["applied_tick"]),
+        end_tick=int(raw["end_tick"]),
+        command_id=raw["command_id"],
+        correlation=raw["correlation"],
+        trajectory=None
+        if trajectory is None
+        else Trajectory(
+            origin=Position(int(trajectory["origin"]["x"]), int(trajectory["origin"]["y"])),
+            path=tuple(Position(int(x), int(y)) for x, y in trajectory["path"]),
+            depart_tick=int(trajectory["depart_tick"]),
+            tiles_per_tick=float(trajectory["tiles_per_tick"]),
+        ),
+    )
+
+
+def _avatar_data(a: Avatar) -> dict[str, Any]:
+    return {
+        "avatar_id": a.avatar_id,
+        "controller": controller_data(a.controller),
+        "default_controller": controller_data(a.default_controller),
+        "action": None if a.action is None else _action_data(a.action),
+        "asleep": a.asleep,
+        "sleep_cause": a.sleep_cause,
+        "bed_id": a.bed_id,
+        "wake_tick": a.wake_tick,
+        "wake_needs": dict(a.wake_needs),
+        "sleep_rates": dict(a.sleep_rates),
+        "pending": list(a.pending),
+    }
+
+
+def _avatar_from(raw: Mapping[str, Any]) -> Avatar:
+    return Avatar(
+        avatar_id=str(raw["avatar_id"]),
+        controller=_controller_from(raw["controller"]),
+        default_controller=_controller_from(raw["default_controller"]),
+        action=None if raw["action"] is None else _action_from(raw["action"]),
+        asleep=bool(raw["asleep"]),
+        sleep_cause=raw["sleep_cause"],
+        bed_id=raw["bed_id"],
+        wake_tick=raw["wake_tick"],
+        wake_needs=dict(raw["wake_needs"]),
+        sleep_rates=dict(raw["sleep_rates"]),
+        pending=list(raw["pending"]),
+    )
+
+
+def plain(value: Any) -> Any:
+    """Cópia em tipos JSON simples (MappingProxyType e tuplas viram dict e list)."""
+    if isinstance(value, Mapping):
+        return {str(k): plain(v) for k, v in value.items()}  # pyright: ignore[reportUnknownVariableType, reportUnknownArgumentType]
+    if isinstance(value, list | tuple):
+        return [plain(v) for v in value]  # pyright: ignore[reportUnknownVariableType]
+    return value
