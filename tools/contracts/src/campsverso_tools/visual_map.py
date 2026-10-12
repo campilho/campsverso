@@ -25,6 +25,7 @@ OUT = REPO / "cartridges/farm_camps/art/map-visual.tmj"
 TILESET_IMAGE = "../../farm/art/terrain.png"  # relativo ao mapa visual, para abrir no Tiled
 
 PATHS = {"path", "entrance"}
+HOUSE = {"wall", "floor", "door"}
 # Tipo lógico -> prefixo do tile desenhado no chão (o teste de coerência usa a mesma tabela)
 GROUND = {
     "grass": "grass-",
@@ -33,7 +34,7 @@ GROUND = {
     "entrance": "dirt",
     "river": "water-",
     "soil": "soil-",
-    "wall": "wall",
+    "wall": "floor",  # a parede é uma faixa fina por cima do chão (camada over)
     "floor": "floor",
     "door": "floor",
 }
@@ -89,9 +90,7 @@ def _ground(types: Grid, x: int, y: int) -> str:
         # Terra arada inteira em cada canteiro: as bordas do pacote têm grama dentro do tile, e a
         # planta ficaria em cima da grama.
         return "soil-c"
-    if kind == "wall":
-        return "wall"
-    return "floor-alt" if _variant(x, y, 2) else "floor"  # floor e door
+    return "floor"  # wall, floor e door: tábuas contínuas
 
 
 def _overlays(types: Grid, x: int, y: int) -> list[str]:
@@ -107,6 +106,15 @@ def _overlays(types: Grid, x: int, y: int) -> list[str]:
 
     if kind == "tree":
         return ["hedge-" + _nine(*_sides(tree, x, y))]
+    if kind == "wall":
+        # Parede fina: a faixa de pedra fica na borda que dá para fora da casa.
+        def outside(cx: int, cy: int) -> bool:
+            inside = 0 <= cx < width and 0 <= cy < height and types[cy][cx] in HOUSE
+            return not inside
+
+        n, e, s, w = _sides(outside, x, y)
+        sides = ("t" if n else "b" if s else "") + ("l" if w else "r" if e else "")
+        return [f"wall-{sides}"] if sides else []
     if kind != "grass":
         return []
     n, e, s, w = _sides(path, x, y)

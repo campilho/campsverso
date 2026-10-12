@@ -48,9 +48,9 @@ def test_cada_tile_desenhado_combina_com_o_tipo_logico() -> None:
         for i, gid in enumerate(layer["data"]):
             kind = logic[i // width][i % width]
             if gid:
-                expected = "hedge-" if kind == "tree" else "dirt-edge-"
-                assert kind in ("tree", "grass")
-                assert names[gid].startswith(expected)
+                expected = {"tree": "hedge-", "grass": "dirt-edge-", "wall": "wall-"}
+                assert kind in expected
+                assert names[gid].startswith(expected[kind])
 
 
 def test_manifestos_apontam_para_arquivos_e_quadros_que_existem() -> None:
