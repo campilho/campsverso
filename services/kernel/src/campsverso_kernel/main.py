@@ -15,6 +15,7 @@ import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import cast
 
 from campsverso_adapters import (
     ContractValidator,
@@ -30,11 +31,14 @@ from campsverso_adapters import (
     YamlFlags,
     load_env,
     load_world,
+    read_world_archive,
 )
+from campsverso_cartridge_api import ControllerRef, ControllerType
 from campsverso_kernel.core import WorldConfig
 from campsverso_kernel.definition import WorldDefinition
 from campsverso_kernel.loader import build_world, discover
 from campsverso_kernel.recovery import open_world
+from campsverso_kernel.replay import DayReplay, replay_day
 from campsverso_kernel.runner import ClockLoop
 from campsverso_kernel.service import KernelService
 from campsverso_kernel.version import RunVersion, run_version
@@ -73,7 +77,45 @@ def _parse(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument("--data-dir", type=Path, help="substitui data_dir do ambiente")
     parser.add_argument("--nats-url", help="substitui nats.url do ambiente")
     parser.add_argument("--scale", type=float, help="escala inicial de um mundo novo")
+    parser.add_argument(
+        "--replay-day", type=int, help="não sobe o kernel: reexecuta o dia N e compara (A5)"
+    )
+    parser.add_argument("--archive-dir", type=Path, help="substitui archive.dir do ambiente")
     return parser.parse_args(argv)
+
+
+def replay(args: argparse.Namespace) -> int:
+    """`make replay DAY=N`: reexecuta o dia a partir do snapshot e do diário e compara (A5)."""
+    env, world = load_env(args.env), load_world(args.world)
+    prepared = prepare(env, world)
+    data_dir: Path = args.data_dir or env.data_dir
+    archive_dir: Path = (args.archive_dir or env.archive_dir) / world.worldid
+    store = SqliteWorldStore(data_dir / world.worldid / "world.sqlite")
+    try:
+        result = replay_day(
+            prepared.definition,
+            prepared.config,
+            prepared.version,
+            store,
+            DiskBlobStore(data_dir),
+            read_world_archive(archive_dir),
+            args.replay_day,
+            ContractValidator(),
+        )
+    finally:
+        store.close()
+    print(
+        f"dia {result.day} (ticks {result.start} a {result.end - 1}), a partir de "
+        f"{result.from_snapshot}: {len(result.regenerated)} fatos reexecutados, "
+        f"{len(result.recorded)} no arquivo"
+    )
+    print(f"  reexecução: {DayReplay.digest(result.regenerated)}")
+    print(f"  arquivo:    {DayReplay.digest(result.recorded)}")
+    if result.equal:
+        print("  iguais: o dia se reproduz.")
+        return 0
+    print(f"  DIFERENTES. Primeira diferença (reexecução, arquivo): {result.first_difference()}")
+    return 1
 
 
 async def run(args: argparse.Namespace) -> int:
@@ -96,6 +138,12 @@ async def run(args: argparse.Namespace) -> int:
     )
     core = engine.core
     if recovery is None:
+        core.configure_controllers(
+            {
+                avatar: ControllerRef(cast(ControllerType, kind), cid)
+                for avatar, (kind, cid) in world.controllers.items()
+            }
+        )
         core.configure_clock(world.mode, args.scale or world.scale, world.paused)
         telemetry.info("kernel.new_world", worldid=world.worldid, seed=world.seed)
     else:
@@ -152,7 +200,8 @@ async def run(args: argparse.Namespace) -> int:
 
 
 def main() -> None:
-    sys.exit(asyncio.run(run(_parse(sys.argv[1:]))))
+    args = _parse(sys.argv[1:])
+    sys.exit(replay(args) if args.replay_day is not None else asyncio.run(run(args)))
 
 
 if __name__ == "__main__":

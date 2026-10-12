@@ -24,6 +24,7 @@ from campsverso_ports import (
     InputRow,
     OutboxRow,
     RuleConfig,
+    SnapshotRef,
     WorldStore,
 )
 
@@ -77,6 +78,25 @@ def open_world(
     produced = _replay(engine, inputs, state.tick)
     _verify(produced, expected)
     return engine, Recovery(latest.ref, latest.tick, state.tick, len(inputs), len(produced))
+
+
+def reexecute(
+    definition: WorldDefinition,
+    config: WorldConfig,
+    version: RunVersion,
+    store: WorldStore,
+    blobs: BlobStore,
+    snapshot: SnapshotRef,
+    until_tick: int,
+    validator: EnvelopeValidator | None = None,
+) -> list[Fact]:
+    """Os fatos de reexecutar o diário a partir de um snapshot até `until_tick` (replay, A5)."""
+    data = blobs.get(snapshot.ref)
+    if hashlib.sha256(data).hexdigest() != snapshot.sha256:
+        raise RecoveryError(f"o snapshot {snapshot.ref} não confere com o sha256 gravado")
+    engine = Engine(restore(definition, config, decode(data)), version, validator)
+    inputs = [i for i in store.inputs_from(snapshot.next_input) if i.tick <= until_tick]
+    return _replay(engine, inputs, until_tick)
 
 
 def _replay(engine: Engine, inputs: Sequence[InputRow], until_tick: int) -> list[Fact]:

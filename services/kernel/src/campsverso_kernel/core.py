@@ -91,6 +91,7 @@ class KernelCore:
         self.tiles_per_tick = definition.tiles_per_minute / self.calendar.ticks_per_minute
         self._queue: deque[Mapping[str, Any]] = deque()
         self._scheduled: list[tuple[int, Mapping[str, Any]]] = []  # (at_tick, comando) do replay
+        self._initial_controllers: dict[str, ControllerRef] = {}
         self._action_counter = 0
         self._triggered: list[tuple[SystemSpec, OnThreshold, str]] = []
         self._phases = {parse_hhmm(hhmm): name for name, hhmm in definition.clock.phases}
@@ -144,12 +145,21 @@ class KernelCore:
             lines.append(f"{stage}: {', '.join(parts) or '-'}")
         return lines
 
+    def configure_controllers(self, controllers: Mapping[str, ControllerRef]) -> None:
+        """Quem controla cada avatar quando um mundo novo começa (config/worlds/), antes de `start`.
+
+        O controlador padrão continua o do cartucho: é para ele que `release` devolve o avatar.
+        """
+        unknown = sorted(set(controllers) - set(self.definition.avatars))
+        if unknown:
+            raise ValueError(f"avatares inexistentes: {unknown}")
+        self._initial_controllers = dict(controllers)
+
     def configure_clock(self, mode: ClockMode, scale: float | None, paused: bool) -> None:
         """Estado inicial do relógio de um mundo novo, antes de `start` (config/worlds/)."""
-        if mode == "max" and any(
-            a.default_controller.type not in LOCKSTEP_CONTROLLERS
-            for a in self.definition.avatars.values()
-        ):
+        initial = {a.entity_id: a.default_controller for a in self.definition.avatars.values()}
+        initial |= self._initial_controllers
+        if mode == "max" and any(c.type not in LOCKSTEP_CONTROLLERS for c in initial.values()):
             raise ValueError("o modo max só é permitido com controladores script ou replay")
         if scale is not None and scale <= 0:
             raise ValueError("a escala precisa ser positiva")
@@ -226,6 +236,8 @@ class KernelCore:
             {"rules": world.rules.loaded(), "source_ref": self.rules_source or "(nenhum)"},
         )
         world.spawn_all()
+        for avatar_id, controller in sorted(self._initial_controllers.items()):
+            world.avatar_map[avatar_id].controller = controller
         for avatar in world.avatar_map.values():
             world.emit_fact(
                 "campsverso.avatar.possessed.v1",
