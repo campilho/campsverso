@@ -1,6 +1,7 @@
 """Critérios do M3 com processos e NATS de verdade: A3 (curto), A4 e A5 (plano do M3 §5).
 
-O soak inteiro de 30 dias roda à mão (`make soak DAYS=30`); aqui roda uma versão de 2 dias.
+O soak inteiro de 30 dias roda à mão (`make soak DAYS=30`); aqui roda uma versão de 3 dias,
+o bastante para a primeira colheita.
 """
 
 import subprocess
@@ -18,11 +19,12 @@ pytestmark = pytest.mark.skipif(not available(), reason="sem nats-server: rode `
 DAY = 1440
 
 
-async def test_a3_dois_dias_sem_intervencao_e_a5_replay_pelo_kernel(tmp_path: Path) -> None:
-    result = await run(2, tmp_path, quiet=True)
+async def test_a3_tres_dias_sem_intervencao_e_a5_replay_pelo_kernel(tmp_path: Path) -> None:
+    result = await run(3, tmp_path, quiet=True)
     assert result.ok, result.reason
     assert result.metrics["faints"] == 0
     assert result.metrics["rejections"] == {}
+    assert result.metrics["days"] == 3
     assert result.metrics["harvests"]  # já colheu
     replay = subprocess.run(
         [

@@ -4,7 +4,8 @@
 
 Lê só o arquivo JSONL, como qualquer leitor externo: não importa o kernel nem os cartuchos.
 O dia agrícola sai do tick (ticks por dia = 86.400 / tick_seconds da sessão), o que vale para
-mundos que começam na hora em que o dia vira, como a fazenda (06:00).
+mundos que começam na hora em que o dia vira, como a fazenda (06:00). Os totais contam só os dias
+completos: o último dia de uma execução costuma parar no meio, e as moedas dele enganam.
 """
 
 import argparse
@@ -46,36 +47,43 @@ class DayMetrics:
     hunger_peak: float = 0.0
     faints: int = 0
     real_seconds: float = 0.0
+    complete: bool = True
 
 
 @dataclass
 class Report:
     days: list[DayMetrics]
 
+    @property
+    def complete_days(self) -> list[DayMetrics]:
+        return [d for d in self.days if d.complete]
+
     def totals(self) -> dict[str, Any]:
+        """Totais dos dias completos; o dia parcial, se houver, só aparece como `partial_day`."""
+        days = self.complete_days
+        partial = next((d.day for d in self.days if not d.complete), None)
         matured: dict[str, list[int]] = {}
-        for d in self.days:
+        for d in days:
             for group, values in d.matured_days.items():
                 matured.setdefault(group, []).extend(values)
         harvests = Counter[str]()
         rejections = Counter[str]()
-        for d in self.days:
+        for d in days:
             harvests.update(d.harvests)
             rejections.update(d.rejections)
         return {
-            "days": len(self.days),
-            "coins_end": self.days[-1].coins_end if self.days else 0,
+            "days": len(days),
+            "partial_day": partial,
+            "coins_end": days[-1].coins_end if days else 0,
             "harvests": dict(sorted(harvests.items())),
             "mean_days_to_mature": {
                 g: round(sum(v) / len(v), 2) for g, v in sorted(matured.items()) if v
             },
             "rejections": dict(sorted(rejections.items())),
-            "withered": sum(d.withered for d in self.days),
-            "hunger_peak": max((d.hunger_peak for d in self.days), default=0.0),
-            "faints": sum(d.faints for d in self.days),
-            "real_seconds_per_day": round(
-                sum(d.real_seconds for d in self.days) / max(1, len(self.days)), 3
-            ),
+            "withered": sum(d.withered for d in days),
+            "hunger_peak": max((d.hunger_peak for d in days), default=0.0),
+            "faints": sum(d.faints for d in days),
+            "real_seconds_per_day": round(sum(d.real_seconds for d in days) / max(1, len(days)), 3),
         }
 
 
@@ -92,11 +100,12 @@ def compute(envelopes: Iterable[Mapping[str, Any]], avatar: str = AVATAR) -> Rep
     days: dict[int, DayMetrics] = {}
     first_time: dict[int, float] = {}
     last_time: dict[int, float] = {}
-    coins = 0
+    coins, last_tick = 0, 0
     for envelope in kernel:
         kind, data = str(envelope["type"]), envelope["data"]
         if kind == "campsverso.world.session.started.v1":
             ticks_per_day = 86400 // int(data["tick_seconds"])
+        last_tick = max(last_tick, int(envelope["tick"]))
         day = int(envelope["tick"]) // ticks_per_day + 1
         metrics = days.setdefault(day, DayMetrics(day, coins_end=coins))
         stamp = _seconds(str(envelope["time"]))
@@ -133,6 +142,7 @@ def compute(envelopes: Iterable[Mapping[str, Any]], avatar: str = AVATAR) -> Rep
         metrics.coins_end = coins
     for day, metrics in days.items():
         metrics.real_seconds = round(last_time[day] - first_time[day], 3)
+        metrics.complete = last_tick >= day * ticks_per_day  # o mundo chegou ao dia seguinte
     return Report([days[d] for d in sorted(days)])
 
 
@@ -146,10 +156,13 @@ def _table(report: Report) -> str:
             for g in ("oeste", "leste")
         )
         harvests = f"{d.harvests.get('oeste', 0)}/{d.harvests.get('leste', 0)}"
+        mark = " " if d.complete else "*"
         lines.append(
-            f"{d.day:3d}  {d.coins_end:6d}  {harvests:>14}  {mature:>15}  {d.hunger_peak:8.1f}"
+            f"{d.day:3d}{mark} {d.coins_end:6d}  {harvests:>14}  {mature:>15}  {d.hunger_peak:8.1f}"
             f"  {d.faints:8d}  {sum(d.rejections.values()):7d}  {d.real_seconds:7.2f}"
         )
+    if any(not d.complete for d in report.days):
+        lines.append("* dia incompleto: fica fora dos totais")
     return "\n".join(lines)
 
 

@@ -95,7 +95,7 @@ Os critérios da seção 5 passam no `make check`; o soak de 30 dias rodou à m�
 | Item | Resultado |
 |---|---|
 | A3 + A10 | `make soak DAYS=30`: **27 s** reais com os quatro processos e o NATS; nenhuma recusa, desmaio ou planta murcha; 100 → **1.175** moedas no dia 30 |
-| A11 (prévia) | com a R-001, o rabanete amadurece em 2 dias no leste e 3 no oeste (116 × 80 colheitas); sem ela, 3 e 3, e o dia 30 fecha com 710 moedas |
+| A11 (prévia) | com a R-001, o rabanete amadurece em 2 dias no leste e 3 no oeste (112 × 72 colheitas); sem ela, 3 e 3, e o dia 30 fecha com 750 moedas |
 | A4 | o mesmo hash em duas execuções, em memória e com processos |
 | A5 | `--replay-day N` reproduz o dia: o dia 15 do soak, a partir do snapshot inicial, deu os mesmos 474 fatos |
 | A9 | humano assume (só fora do modo máximo), o script é recusado com `not_in_control`, a posse volta e o script retoma |

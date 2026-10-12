@@ -26,12 +26,28 @@ def test_metricas_por_dia() -> None:
         ev(5, 1510, "action.completed.v1", action="harvest", params={"target": "plot-e-01"}),
         ev(6, 1520, "action.rejected.v1", reason="not_adjacent"),
         ev(7, 1530, "avatar.decision_requested.v1", needs={"fome": 72.5}),
+        ev(8, 2880, "world.clock.phase_changed.v1"),  # o dia 3 começa: o dia 2 fica completo
         {"source": "/perception/w", "seq": 0, "tick": 1600, "type": "x", "time": "", "data": {}},
     ]
     report = compute(envelopes)
-    day1, day2 = report.days
+    day1, day2, day3 = report.days
+    assert (day2.complete, day3.complete) == (True, False)
     assert (day1.day, day1.coins_end) == (1, 70)
     assert day2.harvests == {"leste": 1}
     assert report.totals()["mean_days_to_mature"] == {"leste": 2.0, "oeste": 3.0}
     assert day2.rejections == {"not_adjacent": 1}
     assert day2.hunger_peak == 72.5
+
+
+def test_dia_incompleto_fica_fora_dos_totais() -> None:
+    envelopes: list[dict[str, Any]] = [
+        ev(0, 0, "world.session.started.v1", tick_seconds=60),
+        ev(1, 0, "world.item.created.v1", item="moeda", qty=100, container_id="camps"),
+        ev(2, 1440, "world.item.consumed.v1", item="moeda", qty=30, container_id="camps"),
+        ev(3, 1450, "avatar.fainted.v1"),
+    ]
+    report = compute(envelopes)
+    assert [d.complete for d in report.days] == [True, False]
+    totals = report.totals()
+    assert (totals["days"], totals["partial_day"]) == (1, 2)
+    assert (totals["coins_end"], totals["faints"]) == (100, 0)
