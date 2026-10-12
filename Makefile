@@ -22,7 +22,7 @@ NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR
 
 .DEFAULT_GOAL := help
 .PHONY: help setup contracts check lint fmt types test arch contracts-check compat \
-        up stop run ui ui-build sandbox soak replay metrics tools secrets
+        up stop run ui ui-build sandbox soak replay metrics sessoes tools secrets
 
 help: ## lista os alvos
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-16s %s\n", $$1, $$2}'
@@ -115,6 +115,9 @@ replay: ## reexecuta um dia gravado do mundo e compara com o arquivo: make repla
 
 metrics: ## métricas da bíblia §13 a partir do arquivo: make metrics [ARCHIVE=pasta do mundo]
 	$(PY) python -m campsverso_tools.metrics $(ARCHIVE)
+
+sessoes: ## tempo e tokens por turno e por marco em docs/custos (MARCO=M5 marca os turnos novos)
+	$(PY) python -m campsverso_tools.sessions $(if $(MARCO),--marco $(MARCO),)
 
 secrets: ## gera em .env (fora do git) as senhas do NATS que ainda faltam
 	@touch .env && chmod 600 .env
