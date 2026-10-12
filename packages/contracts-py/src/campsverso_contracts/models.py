@@ -529,7 +529,7 @@ class AvatarReleasedV1(BaseModel):
 
 class AvatarSleepEndedV1(BaseModel):
     """
-    O avatar acordou (ADR-0014).
+    O avatar acordou (ADR-0014). Substituído pelo v2, sem produtor desde o M2 (ADR-0042).
     """
 
     model_config = ConfigDict(
@@ -545,9 +545,37 @@ class AvatarSleepEndedV1(BaseModel):
     energy: Annotated[float, Field(ge=0.0, le=100.0)]
 
 
+class AvatarSleepEndedV2(BaseModel):
+    """
+    O avatar acordou (ADR-0014, ADR-0041, ADR-0042).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Avatar (o corpo), independente de quem o controla (ADR-0027).
+    """
+    cause: Literal["voluntary", "faint"]
+    """
+    voluntary: o controlador mandou dormir; faint: desmaio.
+    """
+    bed_id: Annotated[
+        str | None,
+        Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId"),
+    ] = None
+    """
+    Cama ou entidade análoga usada no sono. Ausente quando o avatar dormiu onde estava.
+    """
+    energy: Annotated[float, Field(ge=0.0, le=100.0)]
+
+
 class AvatarSleepStartedV1(BaseModel):
     """
-    O avatar dormiu na cama ou desmaiou (ADR-0014).
+    O avatar dormiu na cama ou desmaiou (ADR-0014). Substituído pelo v2, sem produtor desde o M2 (ADR-0042).
     """
 
     model_config = ConfigDict(
@@ -560,6 +588,38 @@ class AvatarSleepStartedV1(BaseModel):
     Avatar (o corpo), independente de quem o controla (ADR-0027).
     """
     cause: Literal["bed", "faint"]
+    position: Position
+    wake_at_tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+
+
+class AvatarSleepStartedV2(BaseModel):
+    """
+    O avatar dormiu por escolha, na cama ou onde estava, ou desmaiou (ADR-0014, ADR-0041, ADR-0042).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Avatar (o corpo), independente de quem o controla (ADR-0027).
+    """
+    cause: Literal["voluntary", "faint"]
+    """
+    voluntary: o controlador mandou dormir; faint: desmaio.
+    """
+    bed_id: Annotated[
+        str | None,
+        Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId"),
+    ] = None
+    """
+    Cama ou entidade análoga usada no sono. Ausente quando o avatar dorme onde está.
+    """
     position: Position
     wake_at_tick: Annotated[int, Field(ge=0, title="Tick")]
     """

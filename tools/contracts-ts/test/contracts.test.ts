@@ -9,9 +9,9 @@ describe("validador ajv dos contratos", () => {
     expect(checkExamples()).toEqual([]);
   });
 
-  it("conhece os 38 eventos e 9 comandos da v0.1", () => {
+  it("conhece os 40 eventos (38 da v0.1 e 2 de sono v2) e 9 comandos", () => {
     const kinds = typeInfos(loadSchemas()).map((info) => info.kind);
-    expect(kinds.filter((kind) => kind === "event")).toHaveLength(38);
+    expect(kinds.filter((kind) => kind === "event")).toHaveLength(40);
     expect(kinds.filter((kind) => kind === "command")).toHaveLength(9);
   });
 

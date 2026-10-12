@@ -47,6 +47,7 @@ A numeração deste diretório continua a partir de **0011**, para não colidir 
 | [0039](0039-decisoes-do-cartucho-farm-para-o-m1.md) | Fazenda do M1: estágios, ids dos objetos, limiares 80/20/0, regra genérica de água, chuva, venda | M1 | bíblia §4, §6, §7, §10 |
 | [0040](0040-kits-de-teste.md) | Kits de teste: laboratório genérico no kernel; Fazenda do Camps em `campsverso_testkit`, fora do sistema | M1 | ADR-0011, ADR-0025 |
 | [0041](0041-sono-em-qualquer-lugar.md) | Dormir em qualquer lugar; a cama (e análogos) turbina a recuperação; sono ruim 5/h; indicadores ligados por cartucho | M2 | bíblia §7, §8; ADR-0039 |
+| [0042](0042-eventos-de-sono-v2.md) | Eventos `sleep.started/ended.v2` (`cause: voluntary\|faint`, `bed_id` opcional); taxa do chão = taxa `asleep` do gênero; camas em `sleep.beds` | M2 | catálogo §3.5; ADR-0041 |
 
 ## Modelo
 

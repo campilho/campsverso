@@ -72,11 +72,23 @@ export const CONTRACT_TYPES = {
     producer: "kernel",
     dataschema: "contracts://events/avatar/sleep.ended.v1",
   },
+  "campsverso.avatar.sleep.ended.v2": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/avatar/sleep.ended.v2",
+  },
   "campsverso.avatar.sleep.started.v1": {
     kind: "event",
     visibility: "world",
     producer: "kernel",
     dataschema: "contracts://events/avatar/sleep.started.v1",
+  },
+  "campsverso.avatar.sleep.started.v2": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/avatar/sleep.started.v2",
   },
   "campsverso.cmd.action.propose.v1": {
     kind: "command",
@@ -309,7 +321,9 @@ export interface PayloadByType {
   "campsverso.avatar.possessed.v1": T.AvatarPossessedV1;
   "campsverso.avatar.released.v1": T.AvatarReleasedV1;
   "campsverso.avatar.sleep.ended.v1": T.AvatarSleepEndedV1;
+  "campsverso.avatar.sleep.ended.v2": T.AvatarSleepEndedV2;
   "campsverso.avatar.sleep.started.v1": T.AvatarSleepStartedV1;
+  "campsverso.avatar.sleep.started.v2": T.AvatarSleepStartedV2;
   "campsverso.cmd.action.propose.v1": T.CmdActionProposeV1;
   "campsverso.cmd.avatar.possess.v1": T.CmdAvatarPossessV1;
   "campsverso.cmd.avatar.release.v1": T.CmdAvatarReleaseV1;

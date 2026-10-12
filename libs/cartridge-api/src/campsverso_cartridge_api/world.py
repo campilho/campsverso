@@ -9,7 +9,7 @@ from typing import Any, Literal, Protocol
 
 from campsverso_cartridge_api.model import Attributes, EntityView, Position
 
-type SleepCause = Literal["bed", "faint"]
+type SleepCause = Literal["voluntary", "faint"]
 
 
 class Rng(Protocol):
@@ -93,7 +93,12 @@ class WorldOps(Protocol):
         cause: SleepCause,
         wake_in_ticks: int,
         wake_needs: Mapping[str, float] | None = None,
-    ) -> None: ...
+        rates_per_hour: Mapping[str, float] | None = None,
+        bed_id: str | None = None,
+    ) -> None:
+        """Dorme até `wake_in_ticks`. `rates_per_hour` substitui a taxa `asleep` das necessidades
+        durante este sono (a cama recupera mais; ADR-0041). `bed_id` é a cama ou análogo usado."""
+        ...
 
     def faint(
         self,

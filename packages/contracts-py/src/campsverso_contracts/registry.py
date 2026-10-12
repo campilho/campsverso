@@ -108,12 +108,28 @@ CONTRACT_TYPES: Final[dict[str, ContractType]] = {
             models.AvatarSleepEndedV1,
         ),
         ContractType(
+            "campsverso.avatar.sleep.ended.v2",
+            "event",
+            "world",
+            "kernel",
+            "contracts://events/avatar/sleep.ended.v2",
+            models.AvatarSleepEndedV2,
+        ),
+        ContractType(
             "campsverso.avatar.sleep.started.v1",
             "event",
             "world",
             "kernel",
             "contracts://events/avatar/sleep.started.v1",
             models.AvatarSleepStartedV1,
+        ),
+        ContractType(
+            "campsverso.avatar.sleep.started.v2",
+            "event",
+            "world",
+            "kernel",
+            "contracts://events/avatar/sleep.started.v2",
+            models.AvatarSleepStartedV2,
         ),
         ContractType(
             "campsverso.cmd.action.propose.v1",

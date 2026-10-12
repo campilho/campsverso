@@ -5,7 +5,7 @@ from typing import Any
 from campsverso_adapters import FakeWallClock, InMemoryBus, SequentialUuid7Ids, ValidatingBus
 from campsverso_kernel.service import KernelService
 from campsverso_ports import Envelope
-from campsverso_testkit.farm import SCRIPT_ID, WORLD, make_core
+from campsverso_testkit.farm import SCRIPT_ID, WORLD, event_type, make_core
 
 
 class ServiceFarmer:
@@ -34,7 +34,7 @@ class ServiceFarmer:
         return [e for s, e in self.inner.published if ".cmd." not in s]
 
     def of_type(self, event: str) -> list[dict[str, Any]]:
-        return [dict(e["data"]) for e in self.events if e["type"] == f"campsverso.{event}.v1"]
+        return [dict(e["data"]) for e in self.events if e["type"] == event_type(event)]
 
     async def run(self, ticks: int) -> None:
         await self.service.run_ticks(ticks)

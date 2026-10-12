@@ -3,6 +3,7 @@
 Não é o fazendeiro-script (M3): só propõe a próxima ação de um roteiro.
 """
 
+import re
 from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -75,5 +76,10 @@ class Farmer:
         return self.do("move", target={"x": x, "y": y})
 
 
+def event_type(event: str) -> str:
+    """`avatar.sleep.ended.v2` vira o tipo completo; sem versão no fim, vale a v1."""
+    return f"campsverso.{event}" if re.search(r"\.v\d+$", event) else f"campsverso.{event}.v1"
+
+
 def of_type(facts: list[Fact], event: str) -> list[Mapping[str, Any]]:
-    return [f.data for f in facts if f.type == f"campsverso.{event}.v1"]
+    return [f.data for f in facts if f.type == event_type(event)]

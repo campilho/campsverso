@@ -395,7 +395,8 @@ export interface AvatarReleasedV1 {
   by: Actor;
 }
 /**
- * O avatar acordou (ADR-0014).
+ * @deprecated
+ * O avatar acordou (ADR-0014). Substituído pelo v2, sem produtor desde o M2 (ADR-0042).
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
  * via the `definition` "AvatarSleepEndedV1".
@@ -406,7 +407,23 @@ export interface AvatarSleepEndedV1 {
   energy: number;
 }
 /**
- * O avatar dormiu na cama ou desmaiou (ADR-0014).
+ * O avatar acordou (ADR-0014, ADR-0041, ADR-0042).
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "AvatarSleepEndedV2".
+ */
+export interface AvatarSleepEndedV2 {
+  avatar_id: EntityId;
+  /**
+   * voluntary: o controlador mandou dormir; faint: desmaio.
+   */
+  cause: "voluntary" | "faint";
+  bed_id?: EntityId;
+  energy: number;
+}
+/**
+ * @deprecated
+ * O avatar dormiu na cama ou desmaiou (ADR-0014). Substituído pelo v2, sem produtor desde o M2 (ADR-0042).
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
  * via the `definition` "AvatarSleepStartedV1".
@@ -414,6 +431,22 @@ export interface AvatarSleepEndedV1 {
 export interface AvatarSleepStartedV1 {
   avatar_id: EntityId;
   cause: "bed" | "faint";
+  position: Position;
+  wake_at_tick: Tick;
+}
+/**
+ * O avatar dormiu por escolha, na cama ou onde estava, ou desmaiou (ADR-0014, ADR-0041, ADR-0042).
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "AvatarSleepStartedV2".
+ */
+export interface AvatarSleepStartedV2 {
+  avatar_id: EntityId;
+  /**
+   * voluntary: o controlador mandou dormir; faint: desmaio.
+   */
+  cause: "voluntary" | "faint";
+  bed_id?: EntityId;
   position: Position;
   wake_at_tick: Tick;
 }

@@ -147,12 +147,13 @@ Moedas também são um item (`moeda`). Isso mantém a economia dentro da mesma p
 | Necessidade | Escala | Dinâmica | Efeito |
 |---|---|---|---|
 | Fome | 0 (saciado) → 100 | +3 por hora acordado, +1 por hora dormindo | a partir de 80, as ações gastam o **dobro** de energia |
-| Energia | 0 → 100 | gasta por ação (tabela 8); dormir recupera 12,5 por hora | em 0, o avatar **desmaia** |
+| Energia | 0 → 100 | gasta por ação (tabela 8); dormir recupera 12,5 por hora na cama e 5 por hora no chão | em 0, o avatar **desmaia** |
 
-**Sono:**
-- Dormir só na cama, a partir das 20:00. Acorda às 06:00.
+**Sono** (ADR-0041):
+- Dorme-se em qualquer lugar, a partir das 20:00, e acorda-se às 06:00.
+- **Na cama** (ou análogo, ao lado): energia = mínimo(100, energia + 12,5 × horas dormidas).
+- **No chão**, onde estiver: o sono ruim recupera 5 por hora (8 h dão +40).
 - Se ainda estiver acordado às 02:00, ou se a energia chegar a 0, desmaia onde estiver e acorda às 06:00 **com energia 50**.
-- Ao acordar depois de dormir na cama, energia = mínimo(100, energia + 12,5 × horas dormidas).
 
 **Ordem de grandeza diária:** a fome sobe cerca de 56 pontos por dia, o equivalente a pouco mais de 2 rabanetes.
 
@@ -174,7 +175,7 @@ Todas as ações são propostas por **qualquer controlador** via `campsverso.cmd
 | `deposit` / `withdraw` | baú | adjacente; quantidade disponível | 1 | 0 | transfere itens |
 | `sell` | caixa de vendas | adjacente; colheita no inventário | 1 | 0 | itens vão para a caixa |
 | `buy` | quiosque | aberto (08:00–18:00); moedas suficientes | 2 | 0 | moedas −; sementes + |
-| `sleep` | cama | adjacente; após 20:00 | até 06:00 | — | recupera energia |
+| `sleep` | cama (opcional) | após 20:00; com alvo, ao lado da cama | até 06:00 | — | recupera energia: 12,5/h na cama, 5/h sem alvo |
 | `wait` | — | — | n (1–60) | 0 | nada |
 
 **Regras gerais:**

@@ -111,6 +111,15 @@ channels:
     messages:
       AvatarSleepEndedV1:
         $ref: '#/components/messages/AvatarSleepEndedV1'
+  AvatarSleepEndedV2:
+    address: campsverso.{worldid}.world.avatar.sleep.ended.v2
+    title: campsverso.avatar.sleep.ended.v2
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      AvatarSleepEndedV2:
+        $ref: '#/components/messages/AvatarSleepEndedV2'
   AvatarSleepStartedV1:
     address: campsverso.{worldid}.world.avatar.sleep.started.v1
     title: campsverso.avatar.sleep.started.v1
@@ -120,6 +129,15 @@ channels:
     messages:
       AvatarSleepStartedV1:
         $ref: '#/components/messages/AvatarSleepStartedV1'
+  AvatarSleepStartedV2:
+    address: campsverso.{worldid}.world.avatar.sleep.started.v2
+    title: campsverso.avatar.sleep.started.v2
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      AvatarSleepStartedV2:
+        $ref: '#/components/messages/AvatarSleepStartedV2'
   CmdActionProposeV1:
     address: campsverso.{worldid}.cmd.action.propose.v1
     title: campsverso.cmd.action.propose.v1
@@ -521,12 +539,26 @@ operations:
     messages:
     - $ref: '#/channels/AvatarSleepEndedV1/messages/AvatarSleepEndedV1'
     x-producer: kernel
+  sendAvatarSleepEndedV2:
+    action: send
+    channel:
+      $ref: '#/channels/AvatarSleepEndedV2'
+    messages:
+    - $ref: '#/channels/AvatarSleepEndedV2/messages/AvatarSleepEndedV2'
+    x-producer: kernel
   sendAvatarSleepStartedV1:
     action: send
     channel:
       $ref: '#/channels/AvatarSleepStartedV1'
     messages:
     - $ref: '#/channels/AvatarSleepStartedV1/messages/AvatarSleepStartedV1'
+    x-producer: kernel
+  sendAvatarSleepStartedV2:
+    action: send
+    channel:
+      $ref: '#/channels/AvatarSleepStartedV2'
+    messages:
+    - $ref: '#/channels/AvatarSleepStartedV2/messages/AvatarSleepStartedV2'
     x-producer: kernel
   sendCmdActionProposeV1:
     action: send
@@ -1389,7 +1421,8 @@ components:
           $ref: '#/components/schemas/Actor'
     AvatarSleepEndedV1:
       title: AvatarSleepEndedV1
-      description: O avatar acordou (ADR-0014).
+      description: O avatar acordou (ADR-0014). Substituído pelo v2, sem produtor desde o M2 (ADR-0042).
+      deprecated: true
       type: object
       additionalProperties: false
       required:
@@ -1408,9 +1441,36 @@ components:
           type: number
           minimum: 0
           maximum: 100
+    AvatarSleepEndedV2:
+      title: AvatarSleepEndedV2
+      description: O avatar acordou (ADR-0014, ADR-0041, ADR-0042).
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - cause
+      - energy
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: Avatar (o corpo), independente de quem o controla (ADR-0027).
+        cause:
+          enum:
+          - voluntary
+          - faint
+          description: 'voluntary: o controlador mandou dormir; faint: desmaio.'
+        bed_id:
+          $ref: '#/components/schemas/EntityId'
+          description: Cama ou entidade análoga usada no sono. Ausente quando o avatar dormiu onde estava.
+        energy:
+          type: number
+          minimum: 0
+          maximum: 100
     AvatarSleepStartedV1:
       title: AvatarSleepStartedV1
-      description: O avatar dormiu na cama ou desmaiou (ADR-0014).
+      description: O avatar dormiu na cama ou desmaiou (ADR-0014). Substituído pelo v2, sem produtor desde
+        o M2 (ADR-0042).
+      deprecated: true
       type: object
       additionalProperties: false
       required:
@@ -1426,6 +1486,33 @@ components:
           enum:
           - bed
           - faint
+        position:
+          $ref: '#/components/schemas/Position'
+        wake_at_tick:
+          $ref: '#/components/schemas/Tick'
+    AvatarSleepStartedV2:
+      title: AvatarSleepStartedV2
+      description: O avatar dormiu por escolha, na cama ou onde estava, ou desmaiou (ADR-0014, ADR-0041,
+        ADR-0042).
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - cause
+      - position
+      - wake_at_tick
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: Avatar (o corpo), independente de quem o controla (ADR-0027).
+        cause:
+          enum:
+          - voluntary
+          - faint
+          description: 'voluntary: o controlador mandou dormir; faint: desmaio.'
+        bed_id:
+          $ref: '#/components/schemas/EntityId'
+          description: Cama ou entidade análoga usada no sono. Ausente quando o avatar dorme onde está.
         position:
           $ref: '#/components/schemas/Position'
         wake_at_tick:
@@ -2298,19 +2385,38 @@ components:
     AvatarSleepEndedV1:
       name: campsverso.avatar.sleep.ended.v1
       title: AvatarSleepEndedV1
-      summary: O avatar acordou (ADR-0014).
+      summary: O avatar acordou (ADR-0014). Substituído pelo v2, sem produtor desde o M2 (ADR-0042).
       contentType: application/json
       payload:
         $ref: '#/components/schemas/AvatarSleepEndedV1'
       x-visibility: world
       x-producer: kernel
+    AvatarSleepEndedV2:
+      name: campsverso.avatar.sleep.ended.v2
+      title: AvatarSleepEndedV2
+      summary: O avatar acordou (ADR-0014, ADR-0041, ADR-0042).
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/AvatarSleepEndedV2'
+      x-visibility: world
+      x-producer: kernel
     AvatarSleepStartedV1:
       name: campsverso.avatar.sleep.started.v1
       title: AvatarSleepStartedV1
-      summary: O avatar dormiu na cama ou desmaiou (ADR-0014).
+      summary: O avatar dormiu na cama ou desmaiou (ADR-0014). Substituído pelo v2, sem produtor desde
+        o M2 (ADR-0042).
       contentType: application/json
       payload:
         $ref: '#/components/schemas/AvatarSleepStartedV1'
+      x-visibility: world
+      x-producer: kernel
+    AvatarSleepStartedV2:
+      name: campsverso.avatar.sleep.started.v2
+      title: AvatarSleepStartedV2
+      summary: O avatar dormiu por escolha, na cama ou onde estava, ou desmaiou (ADR-0014, ADR-0041, ADR-0042).
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/AvatarSleepStartedV2'
       x-visibility: world
       x-producer: kernel
     CmdActionProposeV1:

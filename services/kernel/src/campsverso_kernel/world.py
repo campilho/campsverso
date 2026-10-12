@@ -96,8 +96,10 @@ class Avatar:
     action: RunningAction | None = None
     asleep: bool = False
     sleep_cause: SleepCause | None = None
+    bed_id: str | None = None
     wake_tick: int | None = None
     wake_needs: dict[str, float] = field(default_factory=dict[str, float])
+    sleep_rates: dict[str, int] = field(default_factory=dict[str, int])  # unidades por tick
     pending: list[str] = field(default_factory=list[str])
 
     @property
@@ -150,18 +152,27 @@ class World:
 
     # ------------------------------------------------------------- montagem
 
+    def _unit_rate(self, need: str, per_hour: float) -> int:
+        exact = per_hour * SCALE * self.calendar.tick_seconds / 3600
+        if abs(exact - round(exact)) > 1e-9:
+            raise WorldRuleError(f"taxa de {need} ({per_hour}/h) não vira unidade inteira por tick")
+        return round(exact)
+
     def _unit_rates(self) -> dict[str, dict[str, int]]:
-        rates: dict[str, dict[str, int]] = {}
-        for need in self.definition.needs.values():
-            rates[need.need] = {}
-            for state, per_hour in need.rates_per_hour.items():
-                exact = per_hour * SCALE * self.calendar.tick_seconds / 3600
-                if abs(exact - round(exact)) > 1e-9:
-                    raise WorldRuleError(
-                        f"taxa de {need.need} ({per_hour}/h) não vira unidade inteira por tick"
-                    )
-                rates[need.need][state] = round(exact)
-        return rates
+        return {
+            need.need: {
+                state: self._unit_rate(need.need, per_hour)
+                for state, per_hour in need.rates_per_hour.items()
+            }
+            for need in self.definition.needs.values()
+        }
+
+    def rate(self, avatar_id: str, need: str) -> int:
+        """Unidades por tick agora: o sono em curso pode trocar a taxa `asleep` (ADR-0041)."""
+        avatar = self.avatar_map[avatar_id]
+        if avatar.asleep and need in avatar.sleep_rates:
+            return avatar.sleep_rates[need]
+        return self.rates[need].get("asleep" if avatar.asleep else "awake", 0)
 
     def spawn_all(self) -> None:
         """Cria entidades, itens iniciais, necessidades e avatares, publicando os fatos."""
@@ -421,9 +432,8 @@ class World:
 
     def integrate_needs(self, ticks: int) -> None:
         for avatar_id in sorted(self.avatar_map):
-            state = "asleep" if self.avatar_map[avatar_id].asleep else "awake"
             for need in sorted(self.needs[avatar_id]):
-                rate = self.rates[need].get(state, 0)
+                rate = self.rate(avatar_id, need)
                 if rate:
                     self.set_need_units(avatar_id, need, self.needs[avatar_id][need] + rate * ticks)
 
@@ -460,44 +470,41 @@ class World:
         cause: SleepCause,
         wake_in_ticks: int,
         wake_needs: Mapping[str, float] | None = None,
+        rates_per_hour: Mapping[str, float] | None = None,
+        bed_id: str | None = None,
     ) -> None:
+        if bed_id is not None and bed_id not in self.entity_map:
+            raise WorldRuleError(f"entidade de dormir inexistente: {bed_id}")
         avatar = self.avatar_map[avatar_id]
         avatar.asleep = True
         avatar.sleep_cause = cause
+        avatar.bed_id = bed_id
         avatar.wake_tick = self.tick + wake_in_ticks
         avatar.wake_needs = dict(wake_needs or {})
+        avatar.sleep_rates = {
+            need: self._unit_rate(need, per_hour)
+            for need, per_hour in sorted((rates_per_hour or {}).items())
+        }
         position = self.position_of(avatar_id)
         assert position is not None
-        self.emit_fact(
-            "campsverso.avatar.sleep.started.v1",
-            {
-                "avatar_id": avatar_id,
-                "cause": cause,
-                "position": position_data(position),
-                "wake_at_tick": avatar.wake_tick,
-            },
-        )
+        data: dict[str, Any] = {"avatar_id": avatar_id, "cause": cause}
+        if bed_id is not None:
+            data["bed_id"] = bed_id
+        data |= {"position": position_data(position), "wake_at_tick": avatar.wake_tick}
+        self.emit_fact("campsverso.avatar.sleep.started.v2", data)
 
     def wake(self, avatar_id: str) -> None:
         avatar = self.avatar_map[avatar_id]
         for need, value in sorted(avatar.wake_needs.items()):
             self.set_need_units(avatar_id, need, to_units(value))
         energy = next((n.need for n in self.definition.needs.values() if n.role == "energy"), None)
-        cause = avatar.sleep_cause or "bed"
-        avatar.asleep, avatar.sleep_cause, avatar.wake_tick, avatar.wake_needs = (
-            False,
-            None,
-            None,
-            {},
-        )
-        self.emit_fact(
-            "campsverso.avatar.sleep.ended.v1",
-            {
-                "avatar_id": avatar_id,
-                "cause": cause,
-                "energy": self.need(avatar_id, energy) if energy is not None else 0.0,
-            },
-        )
+        data: dict[str, Any] = {"avatar_id": avatar_id, "cause": avatar.sleep_cause or "voluntary"}
+        if avatar.bed_id is not None:
+            data["bed_id"] = avatar.bed_id
+        data["energy"] = self.need(avatar_id, energy) if energy is not None else 0.0
+        avatar.asleep, avatar.sleep_cause, avatar.bed_id, avatar.wake_tick = False, None, None, None
+        avatar.wake_needs, avatar.sleep_rates = {}, {}
+        self.emit_fact("campsverso.avatar.sleep.ended.v2", data)
         avatar.add_pending("woke_up")
 
     def interrupt_action(

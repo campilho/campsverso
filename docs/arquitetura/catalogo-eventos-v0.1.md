@@ -139,7 +139,7 @@ Notação dos payloads (`data`): `campo: tipo`; `?` marca campo opcional.
 | `refill` | `{ target: well_id }` |
 | `eat` | `{ item }` |
 | `deposit`, `withdraw`, `sell`, `buy` | `{ item, qty }` |
-| `sleep` | `{ target: bed_id }` |
+| `sleep` | `{ target?: bed_id }` (sem alvo, dorme onde está; ADR-0041) |
 | `wait` | `{ ticks: 1–60 }` |
 
 ### 3.5 Avatares e posse (produtor: kernel)
@@ -149,8 +149,8 @@ Notação dos payloads (`data`): `campo: tipo`; `?` marca campo opcional.
 | `campsverso.avatar.possessed.v1` | world | `avatar_id` · `previous_controller?: controller_ref` (ausente na abertura da sessão) · `controller: controller_ref` · `by: string` | §14.1 |
 | `campsverso.avatar.released.v1` | world | `avatar_id` · `previous_controller: controller_ref` · `controller: controller_ref` (o padrão do cartucho) · `by: string` | §14.1 |
 | `campsverso.avatar.decision_requested.v1` | agent | `avatar_id` · `reason: session_started\|possessed\|action_completed\|action_rejected\|action_interrupted\|phase_changed\|need_threshold\|woke_up` · `controller: controller_ref` (quem deve responder) · `needs: { <nome>: number }` · `position` | §14.1. **Novo:** os dois primeiros motivos, mais `needs` e `position`. As necessidades mudam a cada tick e só o kernel sabe o valor exato no momento do pedido |
-| `campsverso.avatar.sleep.started.v1` | world | `avatar_id` · `cause: bed\|faint` · `position` · `wake_at_tick: int` | ADR-0014 |
-| `campsverso.avatar.sleep.ended.v1` | world | `avatar_id` · `cause: bed\|faint` · `energy: number` | ADR-0014 |
+| `campsverso.avatar.sleep.started.v2` | world | `avatar_id` · `cause: voluntary\|faint` · `bed_id?` · `position` · `wake_at_tick: int` | ADR-0014, ADR-0042 (o v1, com `cause: bed\|faint`, não tem mais produtor) |
+| `campsverso.avatar.sleep.ended.v2` | world | `avatar_id` · `cause: voluntary\|faint` · `bed_id?` · `energy: number` | ADR-0014, ADR-0042 (idem) |
 | `campsverso.avatar.fainted.v1` | world | `avatar_id` · `reason: late_night\|exhausted` · `position` | ADR-0014 |
 
 ### 3.6 Regras (produtor: kernel)

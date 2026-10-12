@@ -15,9 +15,10 @@ def test_exemplos_do_repositorio_validam_e_cobrem_todos_os_tipos(
     assert checks.check_examples(contracts) == []
 
 
-def test_catalogo_da_v0_1_tem_38_eventos_e_9_comandos(contracts: catalog.Contracts) -> None:
+def test_catalogo_tem_40_eventos_e_9_comandos(contracts: catalog.Contracts) -> None:
+    """Os 38 da v0.1 mais os dois de sono v2 (ADR-0042)."""
     kinds = [f.kind for f in contracts.by_type.values()]
-    assert kinds.count("event") == 38
+    assert kinds.count("event") == 40
     assert kinds.count("command") == 9
 
 

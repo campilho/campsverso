@@ -798,7 +798,8 @@
     },
     "AvatarSleepEndedV1": {
       "title": "AvatarSleepEndedV1",
-      "description": "O avatar acordou (ADR-0014).",
+      "description": "O avatar acordou (ADR-0014). Substituído pelo v2, sem produtor desde o M2 (ADR-0042).",
+      "deprecated": true,
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -824,9 +825,43 @@
         }
       }
     },
+    "AvatarSleepEndedV2": {
+      "title": "AvatarSleepEndedV2",
+      "description": "O avatar acordou (ADR-0014, ADR-0041, ADR-0042).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "avatar_id",
+        "cause",
+        "energy"
+      ],
+      "properties": {
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Avatar (o corpo), independente de quem o controla (ADR-0027)."
+        },
+        "cause": {
+          "enum": [
+            "voluntary",
+            "faint"
+          ],
+          "description": "voluntary: o controlador mandou dormir; faint: desmaio."
+        },
+        "bed_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Cama ou entidade análoga usada no sono. Ausente quando o avatar dormiu onde estava."
+        },
+        "energy": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
     "AvatarSleepStartedV1": {
       "title": "AvatarSleepStartedV1",
-      "description": "O avatar dormiu na cama ou desmaiou (ADR-0014).",
+      "description": "O avatar dormiu na cama ou desmaiou (ADR-0014). Substituído pelo v2, sem produtor desde o M2 (ADR-0042).",
+      "deprecated": true,
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -845,6 +880,41 @@
             "bed",
             "faint"
           ]
+        },
+        "position": {
+          "$ref": "#/$defs/Position"
+        },
+        "wake_at_tick": {
+          "$ref": "#/$defs/Tick"
+        }
+      }
+    },
+    "AvatarSleepStartedV2": {
+      "title": "AvatarSleepStartedV2",
+      "description": "O avatar dormiu por escolha, na cama ou onde estava, ou desmaiou (ADR-0014, ADR-0041, ADR-0042).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "avatar_id",
+        "cause",
+        "position",
+        "wake_at_tick"
+      ],
+      "properties": {
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Avatar (o corpo), independente de quem o controla (ADR-0027)."
+        },
+        "cause": {
+          "enum": [
+            "voluntary",
+            "faint"
+          ],
+          "description": "voluntary: o controlador mandou dormir; faint: desmaio."
+        },
+        "bed_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Cama ou entidade análoga usada no sono. Ausente quando o avatar dorme onde está."
         },
         "position": {
           "$ref": "#/$defs/Position"

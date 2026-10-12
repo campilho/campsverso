@@ -657,9 +657,8 @@ class KernelCore:
                 candidates.append(avatar.action.end_tick)
             if avatar.wake_tick is not None:
                 candidates.append(avatar.wake_tick)
-            state = "asleep" if avatar.asleep else "awake"
             for threshold in self.definition.thresholds:
-                rate = world.rates[threshold.need].get(state, 0)
+                rate = world.rate(avatar_id, threshold.need)
                 units = world.needs[avatar_id][threshold.need]
                 level = to_units(threshold.value)
                 if threshold.direction == "up" and rate > 0 and units < level:

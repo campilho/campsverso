@@ -286,17 +286,30 @@ class Buy(FarmAction):
         ops.create_item(item, qty, ctx.avatar_id, "buy")
 
 
+def _bed(ctx: ActionContext) -> EntityView | Rejection | None:
+    """Sem alvo, dorme onde está; com alvo, uma cama ou análogo adjacente (ADR-0041)."""
+    target = ctx.params.get("target")
+    if target is None:
+        return None
+    beds = section(ctx.view, "sleep", "beds")
+    match = next(
+        (e for kind in sorted(beds) for e in ctx.view.entities(kind) if e.entity_id == target),
+        None,
+    )
+    if match is None:
+        return Rejection("invalid_params", f"{target!r} não é lugar de dormir")
+    return match if adjacent(ctx.view, ctx.avatar_id, match) else Rejection("not_adjacent")
+
+
 @dataclass(frozen=True)
 class Sleep(FarmAction):
     name: str = "sleep"
     cancellable: bool = False
 
     def check(self, ctx: ActionContext) -> Rejection | None:
-        bed = find(ctx.view, "bed", ctx.params.get("target"))
+        bed = _bed(ctx)
         if isinstance(bed, Rejection):
             return bed
-        if not adjacent(ctx.view, ctx.avatar_id, bed):
-            return Rejection("not_adjacent")
         rules = section(ctx.view, "sleep")
         # Pode dormir a partir de allowed_from e até a hora de acordar (atravessa a meia-noite).
         until_allowed = ctx.view.ticks_until(str(rules["allowed_from"]))
@@ -304,8 +317,16 @@ class Sleep(FarmAction):
         return None if until_wake < until_allowed else Rejection("too_early_to_sleep")
 
     def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
+        bed = _bed(ctx)
+        assert not isinstance(bed, Rejection)
+        rules = section(ctx.view, "sleep")
+        rates = None if bed is None else dict(section(ctx.view, "sleep", "beds", bed.kind))
         ops.start_sleep(
-            ctx.avatar_id, "bed", ctx.view.ticks_until(str(section(ctx.view, "sleep")["wake_at"]))
+            ctx.avatar_id,
+            "voluntary",
+            ctx.view.ticks_until(str(rules["wake_at"])),
+            rates_per_hour=rates,
+            bed_id=None if bed is None else bed.entity_id,
         )
 
 

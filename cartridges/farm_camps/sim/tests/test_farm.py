@@ -1,5 +1,7 @@
 """Ações e sistemas do gênero farm, exercitados no cenário real (bíblia §6 a §10; ADR-0039)."""
 
+import pytest
+
 from campsverso_kernel.world import to_units
 from campsverso_testkit.farm import Farmer, make_core, of_type
 
@@ -61,7 +63,7 @@ def test_recusas_com_motivo_legivel() -> None:
     assert _last_rejection(farmer) == "invalid_params"
     farmer.do("eat", item="moeda")
     assert _last_rejection(farmer) == "not_edible"
-    farmer.do("sleep")
+    farmer.do("sleep", target="bed")
     assert _last_rejection(farmer) == "not_adjacent"
 
 
@@ -108,21 +110,48 @@ def test_venda_recolhida_as_22_e_paga_as_6() -> None:
     assert farmer.core.world.items("camps")["moeda"] == 150
 
 
-def test_dormir_so_depois_das_20_na_cama() -> None:
+def test_dormir_na_cama_so_depois_das_20() -> None:
     farmer = _farmer()
     farmer.walk(4, 3)  # ao lado da cama (3,3)
-    farmer.do("sleep")
+    farmer.do("sleep", target="bed")
     assert _last_rejection(farmer) == "too_early_to_sleep"
     farmer.until("21:00")
-    farmer.do("sleep")
+    farmer.core.world.set_need_units("camps", "energia", to_units(40))
+    farmer.do("sleep", target="bed")
     world = farmer.core.world
     assert world.is_asleep("camps")
     farmer.until("06:00")
     farmer.run(1)
-    (ended,) = of_type(farmer.facts, "avatar.sleep.ended")
-    assert ended["cause"] == "bed"
-    assert ended["energy"] == 100.0
+    (ended,) = of_type(farmer.facts, "avatar.sleep.ended.v2")
+    assert (ended["cause"], ended["bed_id"]) == ("voluntary", "bed")
+    assert ended["energy"] == 100.0  # 40 + 12,5/h por 9 h, no teto
     assert of_type(farmer.facts, "avatar.fainted") == []
+
+
+def test_dormir_no_chao_recupera_menos() -> None:
+    """Sem alvo, dorme onde está, mesmo ao lado da cama: 5/h em vez de 12,5/h (ADR-0041)."""
+    farmer = _farmer()
+    farmer.walk(12, 9)  # no meio da fazenda, longe da cama
+    farmer.until("21:00")
+    farmer.core.world.set_need_units("camps", "energia", to_units(40))
+    farmer.do("sleep")
+    (started,) = of_type(farmer.facts, "avatar.sleep.started.v2")
+    assert "bed_id" not in started
+    assert started["position"] == {"x": 12, "y": 9}
+    farmer.until("06:00")
+    farmer.run(1)
+    (ended,) = of_type(farmer.facts, "avatar.sleep.ended.v2")
+    assert ended["energy"] == pytest.approx(40 + 5 * 539 / 60)  # 5/h das 21:01 às 06:00
+
+
+def test_dormir_exige_cama_de_verdade_e_ao_lado() -> None:
+    farmer = _farmer()
+    farmer.walk(12, 9)
+    farmer.until("21:00")
+    farmer.do("sleep", target="chest")
+    assert _last_rejection(farmer) == "invalid_params"
+    farmer.do("sleep", target="bed")
+    assert _last_rejection(farmer) == "not_adjacent"
 
 
 def test_quem_fica_acordado_desmaia_as_2_e_acorda_com_50() -> None:
@@ -133,7 +162,8 @@ def test_quem_fica_acordado_desmaia_as_2_e_acorda_com_50() -> None:
     assert fainted["reason"] == "late_night"
     farmer.until("06:00")
     farmer.run(1)
-    assert of_type(farmer.facts, "avatar.sleep.ended")[0]["energy"] == 50.0
+    (ended,) = of_type(farmer.facts, "avatar.sleep.ended.v2")
+    assert (ended["cause"], ended["energy"]) == ("faint", 50.0)
 
 
 def test_energia_zero_desmaia_na_hora() -> None:

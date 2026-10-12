@@ -122,7 +122,15 @@ class Nap:
         return Accepted(1)
 
     def complete(self, ctx: ActionContext, ops: WorldOps) -> None:
-        ops.start_sleep(ctx.avatar_id, "bed", ctx.view.ticks_until("06:00"))
+        bed = ctx.params.get("bed")
+        rates = {"energia": 24.0} if bed else None  # a caixa serve de cama: o dobro do chão
+        ops.start_sleep(
+            ctx.avatar_id,
+            "voluntary",
+            ctx.view.ticks_until("06:00"),
+            rates_per_hour=rates,
+            bed_id=str(bed) if bed else None,
+        )
 
 
 @dataclass(frozen=True)

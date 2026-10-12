@@ -32,7 +32,7 @@ async def _scripted_day(seed: int = 20261010) -> ServiceFarmer:
     await farm.do("sell", item="rabanete", qty=2)
     await farm.until("20:30")
     await farm.do("move", target={"x": 4, "y": 3})
-    await farm.do("sleep")
+    await farm.do("sleep", target="bed")
     await farm.until("06:00")
     await farm.run(1)
     return farm
@@ -55,7 +55,8 @@ async def test_um_dia_roteirizado_de_fazendeiro() -> None:
     (paid,) = farm.of_type("farm.buyer.paid")
     assert paid["total"] == 50
     assert farm.of_type("avatar.fainted") == []
-    assert farm.of_type("avatar.sleep.ended")[0]["cause"] == "bed"
+    (ended,) = farm.of_type("avatar.sleep.ended.v2")
+    assert (ended["cause"], ended["bed_id"]) == ("voluntary", "bed")
     stages = {p: farm.core.world.entity(p).attributes["stage"] for p in ("plot-e-01", "plot-w-04")}
     weather = farm.core.world.weather(1)
     if weather != "rain":  # sem chuva no dia 1, só a rega conta, e a R-001 aparece já no dia 2

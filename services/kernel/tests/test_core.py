@@ -1,3 +1,4 @@
+import re
 from collections.abc import Sequence
 from typing import Any
 
@@ -14,7 +15,8 @@ def _types(facts: Sequence[Fact]) -> list[str]:
 
 
 def _only(facts: Sequence[Fact], event: str) -> list[dict[str, Any]]:
-    return [dict(f.data) for f in facts if f.type == f"campsverso.{event}.v1"]
+    wanted = f"campsverso.{event}" if re.search(r"\.v\d+$", event) else f"campsverso.{event}.v1"
+    return [dict(f.data) for f in facts if f.type == wanted]
 
 
 def _run(core: KernelCore, ticks: int = 1) -> list[Fact]:
@@ -168,13 +170,13 @@ def test_energia_zero_desmaia_e_acorda_com_energia_de_desmaio(core: KernelCore) 
         core.submit(command("touch"))
         facts += _run(core, 3)
     (fainted,) = _only(facts, "avatar.fainted")
-    (slept,) = _only(facts, "avatar.sleep.started")
+    (slept,) = _only(facts, "avatar.sleep.started.v2")
     assert fainted["reason"] == "exhausted"
     assert slept["cause"] == "faint"
     core.submit(command("wait", {"ticks": 1}))
     assert _only(_run(core), "action.rejected")[0]["reason"] == "busy"
     woke = _run(core, 60)
-    (ended,) = _only(woke, "avatar.sleep.ended")
+    (ended,) = _only(woke, "avatar.sleep.ended.v2")
     assert ended == {"avatar_id": "ana", "cause": "faint", "energy": 50.0}
     assert _only(woke, "avatar.decision_requested")[-1]["reason"] == "woke_up"
 
@@ -182,11 +184,27 @@ def test_energia_zero_desmaia_e_acorda_com_energia_de_desmaio(core: KernelCore) 
 def test_dormir_ate_a_virada_do_dia(core: KernelCore) -> None:
     core.submit(command("nap"))
     facts = _run(core, 2)
-    (slept,) = _only(facts, "avatar.sleep.started")
-    assert slept["cause"] == "bed"
+    (slept,) = _only(facts, "avatar.sleep.started.v2")
+    assert slept["cause"] == "voluntary"
+    assert "bed_id" not in slept  # dormiu onde estava (ADR-0041)
     assert slept["wake_at_tick"] == 1440  # 06:00 do dia 2
+    assert core.world.rate("ana", "energia") == 24  # 12/h da necessidade: 24 unidades por tick
     core.advance(1440 - core.tick + 1)
     assert core.world.avatar_map["ana"].asleep is False
+
+
+def test_a_cama_troca_a_taxa_de_recuperacao_so_durante_o_sono(core: KernelCore) -> None:
+    _walk_to_box(core)
+    core.submit(command("nap", {"bed": "box"}))
+    (slept,) = _only(_run(core, 2), "avatar.sleep.started.v2")
+    assert slept["bed_id"] == "box"
+    assert core.world.rate("ana", "energia") == 48  # 24/h passados pela ação
+    core.advance(1440 - core.tick + 1)
+    woke = core.drain()
+    (ended,) = _only(woke, "avatar.sleep.ended.v2")
+    assert ended["bed_id"] == "box"
+    assert ended["energy"] == 100.0
+    assert core.world.rate("ana", "energia") == 0  # acordada, sem taxa
 
 
 def test_relogio_pausa_avanca_passo_a_passo_e_retoma(core: KernelCore) -> None:
