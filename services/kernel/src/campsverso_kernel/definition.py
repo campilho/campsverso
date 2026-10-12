@@ -12,12 +12,14 @@ from campsverso_cartridge_api import (
     ClockDef,
     ItemDef,
     KindDef,
+    MetricDef,
     NeedDef,
     RuleImpl,
     SpawnDef,
     SystemSpec,
     ThresholdDef,
 )
+from campsverso_contracts import CONTRACT_TYPES
 from campsverso_kernel.errors import DefinitionError
 from campsverso_kernel.pipeline import DEFAULT_STAGES
 from campsverso_kernel.space import GridMap
@@ -44,6 +46,7 @@ class WorldDefinition:
     initial_items: tuple[tuple[str, str, int], ...]
     stages: tuple[str, ...] = DEFAULT_STAGES
     affordances: tuple[AffordanceDef, ...] = ()  # catálogo de ações para quem joga (ADR-0051)
+    metrics: tuple[MetricDef, ...] = ()  # métricas do dia para o operador (ADR-0054)
 
     @property
     def top(self) -> CartridgeManifest:
@@ -85,6 +88,7 @@ class DefinitionBuilder:
     thresholds: list[ThresholdDef] = field(default_factory=list[ThresholdDef])
     actions: dict[str, ActionSpec] = field(default_factory=dict[str, ActionSpec])
     affordances: list[AffordanceDef] = field(default_factory=list[AffordanceDef])
+    metrics: dict[str, MetricDef] = field(default_factory=dict[str, MetricDef])
     systems: dict[str, SystemSpec] = field(default_factory=dict[str, SystemSpec])
     rule_impls: dict[str, RuleImpl] = field(default_factory=dict[str, RuleImpl])
     tiled: Mapping[str, Any] | None = None
@@ -131,6 +135,9 @@ class DefinitionBuilder:
     def add_affordance(self, affordance: AffordanceDef) -> None:
         self.affordances.append(affordance)
 
+    def add_metric(self, metric: MetricDef, *, override: bool = False) -> None:
+        _register(self.metrics, metric.id, metric, override=override, what="métrica")
+
     def set_map(self, tiled: Mapping[str, Any]) -> None:
         self.tiled = tiled
 
@@ -142,6 +149,22 @@ class DefinitionBuilder:
 
     def add_items(self, container_id: str, item: str, qty: int) -> None:
         self.initial_items.append((container_id, item, qty))
+
+    def _metrics(self) -> tuple[MetricDef, ...]:
+        """Cada métrica cita o que existe: um evento dos contratos, uma necessidade, um item."""
+        for metric in self.metrics.values():
+            problem = None
+            if metric.kind == "count" and metric.event not in CONTRACT_TYPES:
+                problem = f"o evento {metric.event!r} não está nos contratos"
+            elif metric.kind == "count" and metric.by_attribute and not metric.by_field:
+                problem = "agrupar por atributo exige o campo com o id da entidade"
+            elif metric.kind == "max_need" and metric.need not in self.needs:
+                problem = f"a necessidade {metric.need!r} não existe"
+            elif metric.kind == "item" and metric.item not in self.items:
+                problem = f"o item {metric.item!r} não existe"
+            if problem is not None:
+                raise DefinitionError(f"métrica {metric.id!r}: {problem}")
+        return tuple(self.metrics.values())
 
     def _affordances(self) -> tuple[AffordanceDef, ...]:
         for affordance in self.affordances:
@@ -165,6 +188,12 @@ class DefinitionBuilder:
                     position=obj.position,
                     blocking=bool(obj.properties.get("blocking", False)),
                     display_name=cast(str | None, obj.properties.get("display_name")),
+                    # As outras propriedades viram atributos visíveis (o `group` dos canteiros).
+                    attributes={
+                        k: v
+                        for k, v in sorted(obj.properties.items())
+                        if k not in ("blocking", "display_name")
+                    },
                 )
             )
         self._validate(grid)
@@ -179,6 +208,7 @@ class DefinitionBuilder:
             thresholds=tuple(self.thresholds),
             actions=dict(self.actions),
             affordances=self._affordances(),
+            metrics=self._metrics(),
             systems=dict(self.systems),
             rule_impls=dict(self.rule_impls),
             grid=grid,

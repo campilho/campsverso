@@ -718,7 +718,13 @@
      "height": 32,
      "rotation": 0,
      "visible": true,
-     "properties": []
+     "properties": [
+      {
+       "name": "group",
+       "type": "string",
+       "value": "leste"
+      }
+     ]
     },
     {
      "id": 7,
@@ -730,7 +736,13 @@
      "height": 32,
      "rotation": 0,
      "visible": true,
-     "properties": []
+     "properties": [
+      {
+       "name": "group",
+       "type": "string",
+       "value": "leste"
+      }
+     ]
     },
     {
      "id": 8,
@@ -742,7 +754,13 @@
      "height": 32,
      "rotation": 0,
      "visible": true,
-     "properties": []
+     "properties": [
+      {
+       "name": "group",
+       "type": "string",
+       "value": "leste"
+      }
+     ]
     },
     {
      "id": 9,
@@ -754,7 +772,13 @@
      "height": 32,
      "rotation": 0,
      "visible": true,
-     "properties": []
+     "properties": [
+      {
+       "name": "group",
+       "type": "string",
+       "value": "leste"
+      }
+     ]
     },
     {
      "id": 10,
@@ -766,7 +790,13 @@
      "height": 32,
      "rotation": 0,
      "visible": true,
-     "properties": []
+     "properties": [
+      {
+       "name": "group",
+       "type": "string",
+       "value": "leste"
+      }
+     ]
     },
     {
      "id": 11,
@@ -778,7 +808,13 @@
      "height": 32,
      "rotation": 0,
      "visible": true,
-     "properties": []
+     "properties": [
+      {
+       "name": "group",
+       "type": "string",
+       "value": "leste"
+      }
+     ]
     },
     {
      "id": 12,
@@ -790,7 +826,13 @@
      "height": 32,
      "rotation": 0,
      "visible": true,
-     "properties": []
+     "properties": [
+      {
+       "name": "group",
+       "type": "string",
+       "value": "leste"
+      }
+     ]
     },
     {
      "id": 13,
@@ -802,7 +844,13 @@
      "height": 32,
      "rotation": 0,
      "visible": true,
-     "properties": []
+     "properties": [
+      {
+       "name": "group",
+       "type": "string",
+       "value": "leste"
+      }
+     ]
     },
     {
      "id": 14,
@@ -814,7 +862,13 @@
      "height": 32,
      "rotation": 0,
      "visible": true,
-     "properties": []
+     "properties": [
+      {
+       "name": "group",
+       "type": "string",
+       "value": "oeste"
+      }
+     ]
     },
     {
      "id": 15,
@@ -826,7 +880,13 @@
      "height": 32,
      "rotation": 0,
      "visible": true,
-     "properties": []
+     "properties": [
+      {
+       "name": "group",
+       "type": "string",
+       "value": "oeste"
+      }
+     ]
     },
     {
      "id": 16,
@@ -838,7 +898,13 @@
      "height": 32,
      "rotation": 0,
      "visible": true,
-     "properties": []
+     "properties": [
+      {
+       "name": "group",
+       "type": "string",
+       "value": "oeste"
+      }
+     ]
     },
     {
      "id": 17,
@@ -850,7 +916,13 @@
      "height": 32,
      "rotation": 0,
      "visible": true,
-     "properties": []
+     "properties": [
+      {
+       "name": "group",
+       "type": "string",
+       "value": "oeste"
+      }
+     ]
     },
     {
      "id": 18,
@@ -862,7 +934,13 @@
      "height": 32,
      "rotation": 0,
      "visible": true,
-     "properties": []
+     "properties": [
+      {
+       "name": "group",
+       "type": "string",
+       "value": "oeste"
+      }
+     ]
     },
     {
      "id": 19,
@@ -874,7 +952,13 @@
      "height": 32,
      "rotation": 0,
      "visible": true,
-     "properties": []
+     "properties": [
+      {
+       "name": "group",
+       "type": "string",
+       "value": "oeste"
+      }
+     ]
     },
     {
      "id": 20,
@@ -886,7 +970,13 @@
      "height": 32,
      "rotation": 0,
      "visible": true,
-     "properties": []
+     "properties": [
+      {
+       "name": "group",
+       "type": "string",
+       "value": "oeste"
+      }
+     ]
     },
     {
      "id": 21,
@@ -898,7 +988,13 @@
      "height": 32,
      "rotation": 0,
      "visible": true,
-     "properties": []
+     "properties": [
+      {
+       "name": "group",
+       "type": "string",
+       "value": "oeste"
+      }
+     ]
     },
     {
      "id": 22,
