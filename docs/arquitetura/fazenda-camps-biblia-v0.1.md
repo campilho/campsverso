@@ -149,8 +149,10 @@ Moedas também são um item (`moeda`). Isso mantém a economia dentro da mesma p
 | Fome | 0 (saciado) → 100 | +3 por hora acordado, +1 por hora dormindo | a partir de 80, as ações gastam o **dobro** de energia |
 | Energia | 0 → 100 | gasta por ação (tabela 8); dormir recupera 12,5 por hora na cama e 5 por hora no chão | em 0, o avatar **desmaia** |
 
-**Sono** (ADR-0041):
-- Dorme-se em qualquer lugar, a partir das 20:00, e acorda-se às 06:00.
+**Sono** (ADR-0041, ADR-0049):
+- Dorme-se em qualquer lugar e a qualquer hora.
+- **À noite** (das 20:00 às 06:00), dorme-se até as 06:00.
+- **De dia**, é um cochilo: acorda quando a energia chega a 100, ou às 06:00, o que vier antes. Com a energia já em 100, não há cochilo (`not_tired`).
 - **Na cama** (ou análogo, ao lado): energia = mínimo(100, energia + 12,5 × horas dormidas).
 - **No chão**, onde estiver: o sono ruim recupera 5 por hora (8 h dão +40).
 - Se ainda estiver acordado às 02:00, ou se a energia chegar a 0, desmaia onde estiver e acorda às 06:00 **com energia 50**.
@@ -175,13 +177,13 @@ Todas as ações são propostas por **qualquer controlador** via `campsverso.cmd
 | `deposit` / `withdraw` | baú | adjacente; quantidade disponível | 1 | 0 | transfere itens |
 | `sell` | caixa de vendas | adjacente; colheita no inventário | 1 | 0 | itens vão para a caixa |
 | `buy` | quiosque | aberto (08:00–18:00); moedas suficientes | 2 | 0 | moedas −; sementes + |
-| `sleep` | cama (opcional) | após 20:00; com alvo, ao lado da cama | até 06:00 | — | recupera energia: 12,5/h na cama, 5/h sem alvo |
+| `sleep` | cama (opcional) | com alvo, ao lado da cama; de dia, energia abaixo de 100 | à noite, até 06:00; de dia, até a energia encher (no máximo até 06:00) | — | recupera energia: 12,5/h na cama, 5/h sem alvo |
 | `wait` | — | — | n (1–60) | 0 | nada |
 
 **Regras gerais:**
 - Uma ação por vez; uma ação em andamento pode ser **cancelada** por novo comando do mesmo controlador (exceto `sleep`).
 - Comando de controlador que não detém a posse → `action.rejected` com motivo `not_in_control`.
-- Toda rejeição traz motivo legível por máquina (`not_adjacent`, `missing_item`, `closed`, `not_ripe`, `insufficient_funds`, `too_early_to_sleep`…). Isso será sinal de aprendizado para o LLM na v0.2.
+- Toda rejeição traz motivo legível por máquina (`not_adjacent`, `missing_item`, `closed`, `not_ripe`, `insufficient_funds`, `not_tired`…). Isso será sinal de aprendizado para o LLM na v0.2.
 
 ---
 
@@ -229,7 +231,7 @@ Efeito prático (dias até amadurecer):
 
 Prioridades avaliadas a cada decisão, na ordem. A primeira aplicável vence. Empates são decididos por **menor distância** e depois **menor id**, para garantir determinismo.
 
-1. **Dormir:** se energia < 10 ou horário ≥ 21:30 → ir até a cama e dormir.
+1. **Dormir:** se energia < 10 (a qualquer hora; de dia, é um cochilo) ou horário ≥ 21:30 → ir até a cama e dormir.
 2. **Comer:** se fome ≥ 70 e há comestível no inventário → comer o de menor valor de venda; se não houver no inventário, mas houver no baú → retirar e comer.
 3. **Colher:** se existe planta madura → colher a mais próxima.
 4. **Limpar:** se existe planta murcha → limpar.

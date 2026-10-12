@@ -83,9 +83,11 @@ def test_dormir_na_cama_depois_das_21_30() -> None:
     assert decide(time="21:30", at=(4, 4)) == ("sleep", {"target": "bed"})
 
 
-def test_energia_baixa_so_dorme_depois_das_20() -> None:
-    assert decide(time="19:00", energy=5, plots=[]) == ("wait", {"ticks": 15})
+def test_energia_baixa_dorme_a_qualquer_hora() -> None:
+    """De dia vira cochilo (ADR-0049); com energia boa, o script segue o dia."""
+    assert decide(time="10:00", energy=5, at=(4, 4)) == ("sleep", {"target": "bed"})
     assert decide(time="20:00", energy=5, at=(4, 4)) == ("sleep", {"target": "bed"})
+    assert decide(time="19:00", energy=50, plots=[]) == ("wait", {"ticks": 15})
 
 
 def test_tarde_demais_para_andar_dorme_no_chao() -> None:

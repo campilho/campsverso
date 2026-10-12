@@ -116,7 +116,7 @@ class _Turn:
 
     def sleep(self) -> Proposal | None:
         rules = self.c["sleep"]
-        tired = self.energy < float(rules["low_energy"]) and self._night(rules["allowed_from"])
+        tired = self.energy < float(rules["low_energy"])  # a qualquer hora: de dia, cochilo
         if not (tired or self._night(rules["at"])):
             return None
         bed = self.nearest(self.of_kind(rules["bed_kind"]))

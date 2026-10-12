@@ -127,7 +127,7 @@ Notação dos payloads (`data`): `campo: tipo`; `?` marca campo opcional.
 | `campsverso.action.effects_explained.v1` | internal | `action_id` · `rules_applied: [{ rule, version, hidden: bool, multiplier?: number }]` | §8.2; bíblia §10 |
 
 **Motivos de rejeição previstos** (string aberta; o cartucho pode acrescentar):
-`not_in_control`, `unknown_action`, `invalid_params`, `busy` (dormindo; `sleep` não se cancela), `unreachable`, `not_passable`, `not_adjacent`, `missing_item`, `insufficient_funds`, `closed`, `not_ripe`, `not_withered`, `plot_occupied`, `no_plant`, `can_empty`, `not_edible`, `too_early_to_sleep`.
+`not_in_control`, `unknown_action`, `invalid_params`, `busy` (dormindo; `sleep` não se cancela), `unreachable`, `not_passable`, `not_adjacent`, `missing_item`, `insufficient_funds`, `closed`, `not_ripe`, `not_withered`, `plot_occupied`, `no_plant`, `can_empty`, `not_edible`, `not_tired` (cochilo com a energia cheia; ADR-0049).
 
 **Parâmetros por ação:** validados pelo cartucho, não pelo schema genérico.
 
@@ -139,7 +139,7 @@ Notação dos payloads (`data`): `campo: tipo`; `?` marca campo opcional.
 | `refill` | `{ target: well_id }` |
 | `eat` | `{ item }` |
 | `deposit`, `withdraw`, `sell`, `buy` | `{ item, qty }` |
-| `sleep` | `{ target?: bed_id }` (sem alvo, dorme onde está; ADR-0041) |
+| `sleep` | `{ target?: bed_id }` (sem alvo, dorme onde está; ADR-0041). A qualquer hora; de dia, é cochilo (ADR-0049) |
 | `wait` | `{ ticks: 1–60 }` |
 
 ### 3.5 Avatares e posse (produtor: kernel)

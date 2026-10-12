@@ -1,5 +1,6 @@
 """Ações do gênero fazenda (bíblia §8). Duração e custo vêm dos dados; efeitos, das primitivas."""
 
+import math
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
@@ -17,6 +18,7 @@ from campsverso_farm_sim.config import ENERGY, HUNGER, section
 
 EMPTY_PLOT: dict[str, Any] = {"crop": None, "stage": None, "watered_today": False}
 EMPTY_HIDDEN: dict[str, Any] = {"growth_points": 0.0, "planted_day": None, "dry_days": 0}
+FULL = 100.0  # energia cheia (bíblia §7)
 
 
 def find(view: WorldView, kind: str, target: object) -> EntityView | Rejection:
@@ -301,8 +303,31 @@ def _bed(ctx: ActionContext) -> EntityView | Rejection | None:
     return match if adjacent(ctx.view, ctx.avatar_id, match) else Rejection("not_adjacent")
 
 
+def _night(view: WorldView) -> bool:
+    """Entre o começo da noite e a hora de acordar (atravessa a meia-noite)."""
+    rules = section(view, "sleep")
+    return view.ticks_until(str(rules["wake_at"])) < view.ticks_until(str(rules["night_from"]))
+
+
+def _sleep_ticks(ctx: ActionContext, bed: EntityView | None) -> int:
+    """À noite, dorme até a hora de acordar. De dia é um cochilo: acorda com a energia cheia, na
+    taxa do lugar, ou na hora de acordar, o que vier antes (ADR-0049)."""
+    until_wake = ctx.view.ticks_until(str(section(ctx.view, "sleep")["wake_at"]))
+    if _night(ctx.view):
+        return until_wake
+    if bed is None:
+        rate = float(section(ctx.view, "needs", ENERGY, "rates_per_hour")["asleep"])
+    else:
+        rate = float(section(ctx.view, "sleep", "beds", bed.kind)[ENERGY])
+    ticks_per_hour = 3600 / int(section(ctx.view, "clock")["tick_seconds"])
+    missing = FULL - ctx.view.need(ctx.avatar_id, ENERGY)
+    return min(until_wake, math.ceil(round(missing * ticks_per_hour / rate, 6)))
+
+
 @dataclass(frozen=True)
 class Sleep(FarmAction):
+    """Dorme a qualquer hora, onde está ou numa cama ao lado (ADR-0041 e ADR-0049)."""
+
     name: str = "sleep"
     cancellable: bool = False
 
@@ -310,21 +335,16 @@ class Sleep(FarmAction):
         bed = _bed(ctx)
         if isinstance(bed, Rejection):
             return bed
-        rules = section(ctx.view, "sleep")
-        # Pode dormir a partir de allowed_from e até a hora de acordar (atravessa a meia-noite).
-        until_allowed = ctx.view.ticks_until(str(rules["allowed_from"]))
-        until_wake = ctx.view.ticks_until(str(rules["wake_at"]))
-        return None if until_wake < until_allowed else Rejection("too_early_to_sleep")
+        return Rejection("not_tired") if _sleep_ticks(ctx, bed) == 0 else None
 
     def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
         bed = _bed(ctx)
         assert not isinstance(bed, Rejection)
-        rules = section(ctx.view, "sleep")
         rates = None if bed is None else dict(section(ctx.view, "sleep", "beds", bed.kind))
         ops.start_sleep(
             ctx.avatar_id,
             "voluntary",
-            ctx.view.ticks_until(str(rules["wake_at"])),
+            _sleep_ticks(ctx, bed),
             rates_per_hour=rates,
             bed_id=None if bed is None else bed.entity_id,
         )

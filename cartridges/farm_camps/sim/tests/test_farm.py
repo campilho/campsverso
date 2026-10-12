@@ -2,6 +2,7 @@
 
 import pytest
 
+from campsverso_kernel.facts import Fact
 from campsverso_kernel.world import to_units
 from campsverso_testkit.farm import Farmer, make_core, of_type
 
@@ -110,11 +111,9 @@ def test_venda_recolhida_as_22_e_paga_as_6() -> None:
     assert farmer.core.world.items("camps")["moeda"] == 150
 
 
-def test_dormir_na_cama_so_depois_das_20() -> None:
+def test_a_noite_dorme_na_cama_ate_as_6() -> None:
     farmer = _farmer()
     farmer.walk(4, 3)  # ao lado da cama (3,3)
-    farmer.do("sleep", target="bed")
-    assert _last_rejection(farmer) == "too_early_to_sleep"
     farmer.until("21:00")
     farmer.core.world.set_need_units("camps", "energia", to_units(40))
     farmer.do("sleep", target="bed")
@@ -126,6 +125,52 @@ def test_dormir_na_cama_so_depois_das_20() -> None:
     assert (ended["cause"], ended["bed_id"]) == ("voluntary", "bed")
     assert ended["energy"] == 100.0  # 40 + 12,5/h por 9 h, no teto
     assert of_type(farmer.facts, "avatar.fainted") == []
+
+
+def _nap(farmer: Farmer, energy: float, **params: str) -> tuple[int, Fact]:
+    """Cochila agora com a energia dada; devolve quantos ticks durou e o fim do sono."""
+    farmer.core.world.set_need_units("camps", "energia", to_units(energy))
+    farmer.do("sleep", **params)
+    (started,) = [f for f in farmer.facts if f.type.endswith("avatar.sleep.started.v2")]
+    while farmer.core.world.is_asleep("camps"):
+        farmer.run(1)
+    (ended,) = [f for f in farmer.facts if f.type.endswith("avatar.sleep.ended.v2")]
+    return ended.tick - started.tick, ended
+
+
+def test_cochilo_de_dia_na_cama_acorda_com_a_energia_cheia() -> None:
+    """De dia, dormir é cochilo: acaba quando a energia enche (ADR-0049)."""
+    farmer = _farmer()
+    farmer.walk(4, 3)
+    farmer.until("10:00")
+    ticks, ended = _nap(farmer, 30, target="bed")
+    assert ticks == 336  # 70 pontos a 12,5/h: 5 h 36 min
+    assert ended.data["energy"] == 100.0
+
+
+def test_cochilo_no_chao_e_mais_longo() -> None:
+    farmer = _farmer()
+    farmer.walk(12, 9)
+    ticks, ended = _nap(farmer, 80)
+    assert ticks == 240  # 20 pontos a 5/h: 4 h
+    assert ended.data["energy"] == 100.0
+
+
+def test_cochilo_no_fim_da_tarde_vai_no_maximo_ate_as_6() -> None:
+    farmer = _farmer()
+    farmer.walk(12, 9)
+    farmer.until("19:00")
+    ticks, ended = _nap(farmer, 10)  # encher levaria 18 h no chão
+    assert ended.tick % 1440 == 0  # acordou às 06:00, a virada do dia agrícola
+    assert ended.data["energy"] == pytest.approx(10 + 5 * ticks / 60)
+    assert of_type(farmer.facts, "avatar.fainted") == []
+
+
+def test_com_energia_cheia_nao_ha_cochilo() -> None:
+    farmer = _farmer()
+    farmer.do("sleep")
+    assert _last_rejection(farmer) == "not_tired"
+    assert not farmer.core.world.is_asleep("camps")
 
 
 def test_dormir_no_chao_recupera_menos() -> None:
