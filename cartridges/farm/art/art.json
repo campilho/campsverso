@@ -1,46 +1,244 @@
 {
   "version": 1,
   "tile_size": 32,
+  "credits": "CREDITS.csv",
+  "sheets": {
+    "terrain": {
+      "image": "terrain.png",
+      "frame_width": 32,
+      "frame_height": 32
+    },
+    "objects": {
+      "image": "objects.png",
+      "frame_width": 64,
+      "frame_height": 96
+    },
+    "crops": {
+      "image": "crops.png",
+      "frame_width": 32,
+      "frame_height": 64
+    }
+  },
   "tiles": {
-    "grass": {"color": "#6dab4f"},
-    "path": {"color": "#c9a26b"},
-    "tree": {"color": "#2f6b34"},
-    "river": {"color": "#3b7dd8"},
-    "wall": {"color": "#7a5c46"},
-    "door": {"color": "#a8743d"},
-    "soil": {"color": "#8a5a35"},
-    "floor": {"color": "#d9c3a0"},
-    "entrance": {"color": "#b08d57"}
+    "grass": {
+      "color": "#6dab4f"
+    },
+    "path": {
+      "color": "#c9a26b"
+    },
+    "tree": {
+      "color": "#2f6b34"
+    },
+    "river": {
+      "color": "#3b7dd8"
+    },
+    "wall": {
+      "color": "#7a5c46"
+    },
+    "door": {
+      "color": "#a8743d"
+    },
+    "soil": {
+      "color": "#8a5a35"
+    },
+    "floor": {
+      "color": "#d9c3a0"
+    },
+    "entrance": {
+      "color": "#b08d57"
+    }
   },
   "kinds": {
-    "avatar": {"color": "#f5f5f5"},
-    "bed": {"color": "#c0392b", "label": "cama"},
-    "chest": {"color": "#8e5b2a", "label": "baú"},
-    "kiosk": {"color": "#e67e22", "label": "loja"},
-    "sell_box": {"color": "#d4ac0d", "label": "venda"},
-    "table": {"color": "#a0785a", "label": "mesa"},
-    "well": {"color": "#5d6d7e", "label": "poço"},
-    "door": {"color": "#6e4b2a", "label": "porta"},
+    "avatar": {
+      "color": "#f5f5f5"
+    },
+    "well": {
+      "sheet": "objects",
+      "frame": 0
+    },
+    "chest": {
+      "sheet": "objects",
+      "frame": 1
+    },
+    "table": {
+      "sheet": "objects",
+      "frame": 2
+    },
+    "kiosk": {
+      "sheet": "objects",
+      "frame": 3
+    },
+    "sell_box": {
+      "sheet": "objects",
+      "frame": 4
+    },
+    "bed": {
+      "sheet": "objects",
+      "frame": 5,
+      "scale": 0.5
+    },
+    "door": {},
     "plot": {
-      "color": "#5b3a1e",
       "variants": [
-        {"when": {"stage": "semente"}, "look": {"color": "#7d5a3c", "label": "{crop}"}},
-        {"when": {"stage": "broto"}, "look": {"color": "#9bc46a", "label": "{crop}"}},
-        {"when": {"stage": "crescendo"}, "look": {"color": "#5fa83a", "label": "{crop}"}},
-        {"when": {"stage": "madura"}, "look": {"color": "#e8c02e", "label": "{crop}"}},
-        {"when": {"stage": "murcha"}, "look": {"color": "#7f7f6a", "label": "{crop}"}}
+        {
+          "when": {
+            "stage": "semente"
+          },
+          "look": {
+            "sheet": "crops",
+            "frame": 12
+          }
+        },
+        {
+          "when": {
+            "crop": "batata",
+            "stage": "broto"
+          },
+          "look": {
+            "sheet": "crops",
+            "frame": 0
+          }
+        },
+        {
+          "when": {
+            "crop": "rabanete",
+            "stage": "broto"
+          },
+          "look": {
+            "sheet": "crops",
+            "frame": 1
+          }
+        },
+        {
+          "when": {
+            "crop": "abobora",
+            "stage": "broto"
+          },
+          "look": {
+            "sheet": "crops",
+            "frame": 2
+          }
+        },
+        {
+          "when": {
+            "crop": "batata",
+            "stage": "crescendo"
+          },
+          "look": {
+            "sheet": "crops",
+            "frame": 6
+          }
+        },
+        {
+          "when": {
+            "crop": "rabanete",
+            "stage": "crescendo"
+          },
+          "look": {
+            "sheet": "crops",
+            "frame": 7
+          }
+        },
+        {
+          "when": {
+            "crop": "abobora",
+            "stage": "crescendo"
+          },
+          "look": {
+            "sheet": "crops",
+            "frame": 8
+          }
+        },
+        {
+          "when": {
+            "crop": "batata",
+            "stage": "madura"
+          },
+          "look": {
+            "sheet": "crops",
+            "frame": 9
+          }
+        },
+        {
+          "when": {
+            "crop": "rabanete",
+            "stage": "madura"
+          },
+          "look": {
+            "sheet": "crops",
+            "frame": 10
+          }
+        },
+        {
+          "when": {
+            "crop": "abobora",
+            "stage": "madura"
+          },
+          "look": {
+            "sheet": "crops",
+            "frame": 11
+          }
+        },
+        {
+          "when": {
+            "crop": "batata",
+            "stage": "murcha"
+          },
+          "look": {
+            "sheet": "crops",
+            "frame": 6,
+            "tint": "#9c8a5a"
+          }
+        },
+        {
+          "when": {
+            "crop": "rabanete",
+            "stage": "murcha"
+          },
+          "look": {
+            "sheet": "crops",
+            "frame": 7,
+            "tint": "#9c8a5a"
+          }
+        },
+        {
+          "when": {
+            "crop": "abobora",
+            "stage": "murcha"
+          },
+          "look": {
+            "sheet": "crops",
+            "frame": 8,
+            "tint": "#9c8a5a"
+          }
+        }
       ],
       "overlays": [
-        {"when": {"watered_today": true}, "look": {"badge": "#4fc3f7"}}
+        {
+          "when": {
+            "watered_today": true
+          },
+          "look": {
+            "badge": "#4fc3f7"
+          }
+        }
       ]
     }
   },
   "phases": {
-    "entardecer": {"shade": 0.12},
-    "noite": {"shade": 0.38},
-    "madrugada": {"shade": 0.45}
+    "entardecer": {
+      "shade": 0.12
+    },
+    "noite": {
+      "shade": 0.38
+    },
+    "madrugada": {
+      "shade": 0.45
+    }
   },
   "weather": {
-    "rain": {"effect": "rain"}
+    "rain": {
+      "effect": "rain"
+    }
   }
 }

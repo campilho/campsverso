@@ -1,0 +1,165 @@
+{
+  "type": "tileset",
+  "version": "1.10",
+  "tiledversion": "1.11.0",
+  "name": "terrain",
+  "image": "terrain.png",
+  "imagewidth": 256,
+  "imageheight": 160,
+  "tilewidth": 32,
+  "tileheight": 32,
+  "tilecount": 37,
+  "columns": 8,
+  "margin": 0,
+  "spacing": 0,
+  "tiles": [
+    {
+      "id": 0,
+      "type": "grass-0"
+    },
+    {
+      "id": 1,
+      "type": "grass-1"
+    },
+    {
+      "id": 2,
+      "type": "grass-2"
+    },
+    {
+      "id": 3,
+      "type": "dirt-0"
+    },
+    {
+      "id": 4,
+      "type": "dirt-1"
+    },
+    {
+      "id": 5,
+      "type": "dirt-2"
+    },
+    {
+      "id": 6,
+      "type": "dirt-edge-tl"
+    },
+    {
+      "id": 7,
+      "type": "dirt-edge-t"
+    },
+    {
+      "id": 8,
+      "type": "dirt-edge-tr"
+    },
+    {
+      "id": 9,
+      "type": "dirt-edge-l"
+    },
+    {
+      "id": 10,
+      "type": "dirt-edge-r"
+    },
+    {
+      "id": 11,
+      "type": "dirt-edge-bl"
+    },
+    {
+      "id": 12,
+      "type": "dirt-edge-b"
+    },
+    {
+      "id": 13,
+      "type": "dirt-edge-br"
+    },
+    {
+      "id": 14,
+      "type": "water-l"
+    },
+    {
+      "id": 15,
+      "type": "water-c"
+    },
+    {
+      "id": 16,
+      "type": "hedge-tl"
+    },
+    {
+      "id": 17,
+      "type": "hedge-t"
+    },
+    {
+      "id": 18,
+      "type": "hedge-tr"
+    },
+    {
+      "id": 19,
+      "type": "hedge-l"
+    },
+    {
+      "id": 20,
+      "type": "hedge-c"
+    },
+    {
+      "id": 21,
+      "type": "hedge-r"
+    },
+    {
+      "id": 22,
+      "type": "hedge-bl"
+    },
+    {
+      "id": 23,
+      "type": "hedge-b"
+    },
+    {
+      "id": 24,
+      "type": "hedge-br"
+    },
+    {
+      "id": 25,
+      "type": "soil-tl"
+    },
+    {
+      "id": 26,
+      "type": "soil-t"
+    },
+    {
+      "id": 27,
+      "type": "soil-tr"
+    },
+    {
+      "id": 28,
+      "type": "soil-l"
+    },
+    {
+      "id": 29,
+      "type": "soil-c"
+    },
+    {
+      "id": 30,
+      "type": "soil-r"
+    },
+    {
+      "id": 31,
+      "type": "soil-bl"
+    },
+    {
+      "id": 32,
+      "type": "soil-b"
+    },
+    {
+      "id": 33,
+      "type": "soil-br"
+    },
+    {
+      "id": 34,
+      "type": "floor"
+    },
+    {
+      "id": 35,
+      "type": "floor-alt"
+    },
+    {
+      "id": 36,
+      "type": "wall"
+    }
+  ]
+}

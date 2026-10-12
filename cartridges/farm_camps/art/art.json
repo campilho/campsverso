@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "credits": "CREDITS.csv",
+  "visual_map": "map-visual.tmj",
+  "sheets": {
+    "camps": {
+      "image": "camps.png",
+      "frame_width": 64,
+      "frame_height": 64
+    }
+  },
+  "avatars": {
+    "camps": {
+      "sheet": "camps",
+      "animations": {
+        "thrust": {
+          "row": 0,
+          "frames": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "fps": 9
+        },
+        "watering": {
+          "row": 0,
+          "frames": [
+            0,
+            1,
+            4,
+            4,
+            4,
+            4,
+            5
+          ],
+          "fps": 6
+        },
+        "walk": {
+          "row": 4,
+          "frames": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "per_tile": 4
+        },
+        "idle": {
+          "row": 8,
+          "frames": [
+            0,
+            0,
+            1
+          ],
+          "fps": 2
+        },
+        "lying": {
+          "row": 12,
+          "frames": [
+            5
+          ],
+          "single": true
+        }
+      },
+      "actions": {
+        "move": "walk",
+        "water": "watering",
+        "*": "thrust"
+      },
+      "idle": "idle",
+      "asleep": "lying",
+      "portrait": {
+        "frame": 90,
+        "x": 16,
+        "y": 9,
+        "size": 32
+      }
+    }
+  }
+}
