@@ -1,4 +1,5 @@
-"""Gateway com NATS e processos de verdade: visões, comandos do relógio e A6 (ADR-0050).
+"""Gateway com NATS e processos de verdade: visões, comandos do relógio, A6 (ADR-0050) e o A9
+jogado pela tela (ADR-0051).
 
 A UI é simulada por um cliente WebSocket. O mundo roda no modo contínuo na escala 720, com os cinco
 processos, como no `make sandbox`.
@@ -14,8 +15,8 @@ from typing import Any
 import websockets
 import yaml
 
-from campsverso_adapters import NatsBus, load_env
-from campsverso_gateway.state import observer_state
+from campsverso_adapters import NatsBus, Uuid7Ids, load_env
+from campsverso_gateway.state import apply_merge_patch, observer_state
 from campsverso_ports import Envelope
 from campsverso_testkit.nats_server import REPO, NatsServer
 from campsverso_testkit.soak import ENV, WORLD, Processes
@@ -140,7 +141,7 @@ async def test_gateway_visoes_comandos_e_a6(tmp_path: Path, nats: NatsServer) ->
         assert "campsverso.cmd.clock.pause.v1" in operator["commands"]
         await asyncio.sleep(3)  # o mundo anda uns 36 minutos simulados
         player = await gateway.welcome("player")
-        assert player["commands"] == []
+        assert "campsverso.cmd.clock.pause.v1" not in player["commands"]  # o relógio é do operador
         assert {e["visibility"] for e in player["events"]} <= {"world", "agent"}
         seen = {e["visibility"] for e in (await gateway.welcome("operator"))["events"]}
         assert "internal" in seen  # o snapshot do tick 0, por exemplo
@@ -186,3 +187,135 @@ async def test_gateway_visoes_comandos_e_a6(tmp_path: Path, nats: NatsServer) ->
     archived = [line for path in (tmp_path / "archive").rglob("*.jsonl") for line in path.open()]
     assert archived
     assert not any("campsverso.live." in line for line in archived)
+
+
+# ---------------------------------------------------------------- A9 pela tela (M5; ADR-0051)
+
+PROPOSE = "campsverso.cmd.action.propose.v1"
+POSSESS = "campsverso.cmd.avatar.possess.v1"
+RELEASE = "campsverso.cmd.avatar.release.v1"
+
+
+class Player:
+    """Uma UI de mentira: aplica os merge patches e guarda os eventos, como a de verdade."""
+
+    def __init__(self, ws: websockets.ClientConnection) -> None:
+        self.ws = ws
+        self.state: dict[str, Any] = {}
+        self.events: list[Message] = []
+        self._n = 0
+
+    async def start(self) -> None:
+        welcome: Message = json.loads(await self.ws.recv())
+        self.state = welcome["state"]
+
+    def _take(self, message: Message) -> None:
+        if message["type"] == "campsverso.realtime.update.v1":
+            self.state = apply_merge_patch(self.state, message["patch"])
+            self.events += message["events"]
+
+    async def ask(self, command: str, data: Message) -> Message:
+        self._n += 1
+        request_id = f"jogo-{self._n}"
+        payload = {
+            "type": "campsverso.realtime.command.v1",
+            "request_id": request_id,
+            "command": command,
+            "data": data,
+        }
+        await self.ws.send(json.dumps(payload))
+        async with asyncio.timeout(15):
+            while True:
+                message: Message = json.loads(await self.ws.recv())
+                if message.get("request_id") == request_id:
+                    assert message["ok"] is True, message
+                    return message
+                self._take(message)
+
+    async def until(self, check: Callable[[Player], bool], timeout: float = 20) -> None:
+        async with asyncio.timeout(timeout):
+            while not check(self):
+                self._take(json.loads(await self.ws.recv()))
+
+    def saw(self, kind: str, since: int = 0, **data: Any) -> bool:
+        return any(
+            e["type"] == f"campsverso.{kind}"
+            and all(e["data"].get(k) == v for k, v in data.items())
+            for e in self.events[since:]
+        )
+
+
+def _forged_script_command() -> Message:
+    """Um comando do script enquanto o humano tem a posse: o kernel recusa (not_in_control)."""
+    return {
+        "specversion": "1.0",
+        "id": Uuid7Ids().new_id(),
+        "source": "/controller-runner/script/farmer-v1",
+        "type": PROPOSE,
+        "time": "2026-10-12T15:00:00Z",
+        "datacontenttype": "application/json",
+        "dataschema": "contracts://commands/action/propose.v1",
+        "worldid": "farm-camps-01",
+        "cartridge": "farm_camps",
+        "seq": 0,
+        "controller": "script",
+        "controllerid": "script/farmer-v1",
+        "actor": "script/farmer-v1",
+        "provenance": "simulated",
+        "visibility": "observer",
+        "data": {"avatar_id": "camps", "action": "wait", "params": {"ticks": 1}},
+    }
+
+
+async def test_a9_humano_joga_pela_ui_e_devolve(tmp_path: Path, nats: NatsServer) -> None:
+    world = _world(tmp_path)
+    processes = Processes(nats, tmp_path, world)
+    gateway = Gateway(processes, tmp_path, world)
+    processes.start()
+    gateway.spawn()
+    try:
+        await gateway.welcome("player")
+        async with websockets.connect(gateway.url("player")) as ws:
+            player = Player(ws)
+            await player.start()
+            assert player.state["session"]["affordances"]
+            await player.ask(POSSESS, {"avatar_id": "camps"})
+            await player.until(lambda p: p.state["controllers"]["camps"]["type"] == "human")
+
+            # Um canteiro vazio longe da casa, onde o script ainda não chegou.
+            empty = sorted(
+                (i for i, e in player.state["entities"].items() if e["kind"] == "plot"),
+                reverse=True,
+            )
+            plot = next(i for i in empty if "crop" not in player.state["entities"][i]["attributes"])
+            mark = len(player.events)
+            await player.ask(
+                PROPOSE, {"avatar_id": "camps", "action": "move", "params": {"near": plot}}
+            )
+            await player.until(lambda p: p.saw("action.completed.v1", mark, action="move"))
+            plant = {"target": plot, "crop": "rabanete"}
+            await player.ask(PROPOSE, {"avatar_id": "camps", "action": "plant", "params": plant})
+            await player.until(
+                lambda p: p.state["entities"][plot]["attributes"].get("crop") == "rabanete"
+            )
+
+            bus = await NatsBus.connect(
+                nats.url,
+                user="operator",
+                password=nats.passwords["operator"],
+                name="teste-script",
+                streams=STREAMS,
+            )
+            await bus.publish(
+                "campsverso.farm-camps-01.cmd.action.propose.v1", _forged_script_command()
+            )
+            await bus.close()
+            await player.until(lambda p: p.saw("action.rejected.v1", reason="not_in_control"))
+
+            mark = len(player.events)
+            await player.ask(RELEASE, {"avatar_id": "camps"})
+            await player.until(lambda p: p.state["controllers"]["camps"]["type"] == "script")
+            await player.until(lambda p: p.saw("action.accepted.v1", mark))  # o script voltou
+    finally:
+        processes.stop("kernel")
+        processes.stop("gateway", "controller", "perception", "archiver")
