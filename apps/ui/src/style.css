@@ -371,3 +371,83 @@ li.rejected .type {
     max-height: none;
   }
 }
+
+/* ---------------------------------------------------------------- M6: retrato e créditos (ADR-0053) */
+
+.portrait {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  flex: none;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #3d5a3a;
+  overflow: hidden;
+}
+
+.portrait canvas {
+  width: 56px;
+  height: 56px;
+  border: none;
+  border-radius: 0;
+  image-rendering: pixelated;
+}
+
+.portrait-badge {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  padding: 0 4px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  color: #ffe08a;
+  background: rgba(20, 20, 20, 0.8);
+}
+
+dialog.credits {
+  max-width: min(760px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: inherit;
+  background: var(--panel);
+}
+
+dialog.credits::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+dialog.credits header {
+  padding: 0 0 8px;
+}
+
+dialog.credits h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+dialog.credits h3 {
+  margin: 16px 0 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+dialog.credits article {
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+}
+
+dialog.credits article p {
+  margin: 2px 0;
+}
+
+dialog.credits .license {
+  color: var(--muted);
+}
+
+dialog.credits .urls {
+  font-size: 11px;
+  word-break: break-all;
+}

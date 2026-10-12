@@ -4,6 +4,8 @@ import { loadArt } from "./load.ts";
 import {
   animationFor,
   colorNumber,
+  facingOf,
+  frameOf,
   lookOf,
   mergeManifests,
   rooted,
@@ -35,7 +37,19 @@ const SCENARIO: ArtManifest = {
   version: 1,
   tiles: { grass: { color: "#00ff00" } },
   visual_map: "map-visual.tmj",
-  avatars: { camps: { idle: "idle", asleep: "hurt", actions: { move: "walk", water: "watering", "*": "thrust" } } },
+  credits: "CREDITS.csv",
+  avatars: {
+    camps: {
+      sheet: "camps",
+      animations: {
+        walk: { row: 4, frames: [1, 2, 3, 4, 5, 6, 7, 8], per_tile: 4 },
+        lying: { row: 12, frames: [5], single: true },
+      },
+      idle: "idle",
+      asleep: "hurt",
+      actions: { move: "walk", water: "watering", "*": "thrust" },
+    },
+  },
 };
 
 describe("manifesto de arte (ADR-0053)", () => {
@@ -44,6 +58,7 @@ describe("manifesto de arte (ADR-0053)", () => {
     expect(art.tiles?.grass).toEqual({ color: "#00ff00" });
     expect(art.sheets?.crops?.image).toBe("/content/art/farm/crops.png");
     expect(art.visual_map).toBe("/content/art/farm_camps/map-visual.tmj");
+    expect(art.credits).toBe("/content/art/farm_camps/CREDITS.csv");
     expect(art.kinds?.plot?.variants).toHaveLength(2);
   });
 
@@ -73,6 +88,20 @@ describe("manifesto de arte (ADR-0053)", () => {
     expect(animationFor(camps, "sleep", true)).toBe("hurt");
   });
 
+  it("o avatar olha para onde anda, e o quadro sai da linha da direção", () => {
+    expect(facingOf(1, 0.2, "down")).toBe("right");
+    expect(facingOf(0, -1, "down")).toBe("up");
+    expect(facingOf(0, 0, "left")).toBe("left");
+    const walk = SCENARIO.avatars?.camps?.animations?.walk;
+    const lying = SCENARIO.avatars?.camps?.animations?.lying;
+    if (walk === undefined || lying === undefined) {
+      throw new Error("sem animações no exemplo");
+    }
+    expect(frameOf(walk, 9, "down", 0)).toBe(6 * 9 + 1); // linha 4 + down (2)
+    expect(frameOf(walk, 9, "right", 9.5)).toBe(7 * 9 + 2); // volta ao começo do ciclo
+    expect(frameOf(lying, 9, "left", 3)).toBe(12 * 9 + 5); // uma direção só
+  });
+
   it("cores do CSS viram números do Phaser", () => {
     expect(colorNumber("#6dab4f")).toBe(0x6dab4f);
     expect(colorNumber("hsl(0 100% 50%)")).toBe(0xff0000);
@@ -88,9 +117,23 @@ describe("manifesto de arte (ADR-0053)", () => {
     };
     const get = (url: string): Promise<Response> =>
       Promise.resolve(url in files ? new Response(JSON.stringify(files[url])) : new Response("", { status: 404 }));
-    const art = await loadArt(get);
+    const { manifest: art, credits } = await loadArt(get);
     expect(art.tiles?.grass?.color).toBe("#00ff00");
     expect(art.sheets?.crops?.image).toBe("/content/art/farm/crops.png");
-    expect(await loadArt(() => Promise.resolve(new Response("", { status: 404 })))).toEqual({ version: 1 });
+    expect(credits).toEqual([{ layer: "farm_camps", url: "/content/art/farm_camps/CREDITS.csv" }]);
+    const empty = await loadArt(() => Promise.resolve(new Response("", { status: 404 })));
+    expect(empty).toEqual({ manifest: { version: 1 }, credits: [] });
+  });
+});
+
+describe("créditos da arte (ADR-0053)", () => {
+  it("o CSV dos créditos aceita vírgulas e aspas dentro dos campos", async () => {
+    const { parseCsv } = await import("../panels/credits.ts");
+    const csv = 'file,authors,urls\ncamps.png,"bluecarrot16, ElizaWy","https://a, https://b"\r\nterrain.png,"Sharm ""Lanea""",\n';
+    expect(parseCsv(csv)).toEqual([
+      ["file", "authors", "urls"],
+      ["camps.png", "bluecarrot16, ElizaWy", "https://a, https://b"],
+      ["terrain.png", 'Sharm "Lanea"', ""],
+    ]);
   });
 });

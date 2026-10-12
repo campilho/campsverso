@@ -25,6 +25,8 @@ export interface Look {
   readonly tint?: string;
   /** Um ponto de cor no canto (o canteiro regado). */
   readonly badge?: string;
+  /** Escala do quadro (a cama LPC tem 2 tiles de largura; a casa da fazenda, só 3). */
+  readonly scale?: number;
 }
 
 export interface Variant {
@@ -40,23 +42,27 @@ export interface KindArt extends Look {
 }
 
 export interface Animation {
-  readonly sheet: string;
-  /** Uma linha de quadros por direção, na ordem `up`, `left`, `down`, `right` (padrão LPC). */
+  /** Primeira linha: uma por direção, na ordem `up`, `left`, `down`, `right` (padrão LPC). */
   readonly row: number;
-  readonly frames: number;
-  /** Só uma direção (o `hurt` do LPC, deitado). */
+  /** A sequência de colunas que se repete. */
+  readonly frames: readonly number[];
+  /** Quadros por segundo de tela; ações mais rápidas no relógio acelerado. */
+  readonly fps?: number;
+  /** Quadros por tile andado: o passo acompanha o deslocamento, sem patinar. */
+  readonly per_tile?: number;
+  /** Uma só direção (o `hurt` do LPC, deitado). */
   readonly single?: boolean;
-  /** Quadro parado quando a animação acaba (deitado = o último). */
-  readonly hold?: number;
 }
 
 export interface AvatarArt {
+  readonly sheet: string;
   readonly animations?: Readonly<Record<string, Animation>>;
   /** Ação → animação; `*` vale para as que não estão na lista. */
   readonly actions?: Readonly<Record<string, string>>;
   readonly idle?: string;
   readonly asleep?: string;
-  readonly portrait?: { readonly sheet: string; readonly frame: number; readonly x: number; readonly y: number; readonly size: number };
+  /** Um recorte de um quadro da folha, para o HUD. */
+  readonly portrait?: { readonly frame: number; readonly x: number; readonly y: number; readonly size: number };
 }
 
 export interface ArtManifest {
@@ -72,6 +78,8 @@ export interface ArtManifest {
   /** O mapa visual (Tiled), desenhado no lugar das cores dos tiles. */
   readonly visual_map?: string;
   readonly avatars?: Readonly<Record<string, AvatarArt>>;
+  /** Os créditos da arte desta camada (CSV), mostrados na tela. */
+  readonly credits?: string;
 }
 
 export const EMPTY: ArtManifest = { version: 1 };
@@ -100,6 +108,7 @@ export function rooted(manifest: ArtManifest, root: string): ArtManifest {
     ...manifest,
     ...(manifest.sheets === undefined ? {} : { sheets }),
     ...(manifest.visual_map === undefined ? {} : { visual_map: `${root}/${manifest.visual_map}` }),
+    ...(manifest.credits === undefined ? {} : { credits: `${root}/${manifest.credits}` }),
   };
 }
 
@@ -201,4 +210,27 @@ export function colorNumber(css: string): number {
     return Math.round(v * 255);
   };
   return (channel(h + 1 / 3) << 16) | (channel(h) << 8) | channel(h - 1 / 3);
+}
+
+export type Facing = "up" | "left" | "down" | "right";
+
+const ROW_OF: Readonly<Record<Facing, number>> = { up: 0, left: 1, down: 2, right: 3 };
+
+/** Para onde olha quem se move (dx, dy em tiles); parado, continua olhando para onde olhava. */
+export function facingOf(dx: number, dy: number, previous: Facing): Facing {
+  if (Math.abs(dx) < 1e-6 && Math.abs(dy) < 1e-6) {
+    return previous;
+  }
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    return dx > 0 ? "right" : "left";
+  }
+  return dy > 0 ? "down" : "up";
+}
+
+/** O quadro da folha num passo da animação (`step` cresce com o tempo ou com o caminho andado). */
+export function frameOf(animation: Animation, columns: number, facing: Facing, step: number): number {
+  const row = animation.row + (animation.single === true ? 0 : ROW_OF[facing]);
+  const cycle = animation.frames;
+  const index = ((Math.floor(step) % cycle.length) + cycle.length) % cycle.length;
+  return row * columns + (cycle[index] ?? 0);
 }

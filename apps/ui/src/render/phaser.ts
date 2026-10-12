@@ -7,7 +7,21 @@
 import type { ObserverState } from "@campsverso/contracts";
 import Phaser from "phaser";
 
-import { EMPTY, colorNumber, lookOf, shadeOf, tileLook, weatherEffect, type ArtManifest, type Resolved } from "../art/manifest.ts";
+import {
+  EMPTY,
+  animationFor,
+  colorNumber,
+  facingOf,
+  frameOf,
+  lookOf,
+  shadeOf,
+  tileLook,
+  weatherEffect,
+  type ArtManifest,
+  type AvatarArt,
+  type Facing,
+  type Resolved,
+} from "../art/manifest.ts";
 import { el } from "../dom.ts";
 import { positionAt, type Point } from "../motion.ts";
 import { progressOf } from "../progress.ts";
@@ -17,10 +31,23 @@ import { tileUnder, type WorldRenderer } from "./renderer.ts";
 const TILE = 32;
 const DROPS = 140;
 const FONT = "ui-monospace, monospace";
+const MAP_KEY = "visual-map";
+const FEET = 2; // os pés do LPC ficam um pouco acima da borda do quadro
 
 interface Frame {
   readonly state: ObserverState;
   readonly tick: number;
+}
+
+/** Profundidade pela linha do chão: quem está mais embaixo na tela fica na frente. */
+function depthAt(y: number): number {
+  return 10 + y;
+}
+
+/** Quantos quadros cabem numa linha da folha. */
+function columnsOf(scene: Phaser.Scene, sheet: string): number {
+  const width = scene.textures.getFrame(sheet, 0).width;
+  return Math.max(1, Math.floor(scene.textures.get(sheet).getSourceImage().width / width));
 }
 
 /** Uma entidade parada no mapa: um quadro da arte, ou um quadrado de cor com rótulo. */
@@ -31,30 +58,33 @@ class ThingView {
   private readonly badge: Phaser.GameObjects.Arc;
 
   constructor(scene: Phaser.Scene) {
-    this.box = scene.add.rectangle(0, 0, TILE - 6, TILE - 6, 0xffffff).setStrokeStyle(1, 0x000000, 0.45).setDepth(10);
-    this.image = scene.add.image(0, 0, "__DEFAULT").setVisible(false).setDepth(10);
-    this.label = scene.add.text(0, 0, "", { fontFamily: FONT, fontSize: "9px", color: "#ffffff" }).setOrigin(0.5).setDepth(11);
-    this.badge = scene.add.circle(0, 0, 3.5, 0x4fc3f7).setVisible(false).setDepth(11);
+    this.box = scene.add.rectangle(0, 0, TILE - 6, TILE - 6, 0xffffff).setStrokeStyle(1, 0x000000, 0.45);
+    this.image = scene.add.image(0, 0, "__DEFAULT").setVisible(false).setOrigin(0.5, 1);
+    this.label = scene.add.text(0, 0, "", { fontFamily: FONT, fontSize: "9px", color: "#ffffff" }).setOrigin(0.5);
+    this.badge = scene.add.circle(0, 0, 3.5, 0x4fc3f7).setVisible(false).setStrokeStyle(1, 0x0b3d5c);
   }
 
   show(scene: Phaser.Scene, look: Resolved, x: number, y: number): void {
     const cx = x * TILE + TILE / 2;
     const cy = y * TILE + TILE / 2;
+    const depth = depthAt(y);
     const sheet = look.sheet !== undefined && scene.textures.exists(look.sheet) ? look.sheet : undefined;
-    const sprite = sheet !== undefined;
-    this.box.setVisible(!sprite).setPosition(cx, cy).setFillStyle(colorNumber(look.color ?? "#ff00ff"));
-    this.image.setVisible(sprite).setPosition(cx, cy);
+    this.box.setVisible(sheet === undefined && look.color !== undefined).setPosition(cx, cy).setDepth(depth);
+    if (look.color !== undefined) {
+      this.box.setFillStyle(colorNumber(look.color));
+    }
+    this.image.setVisible(sheet !== undefined).setPosition(cx, (y + 1) * TILE).setDepth(depth);
     if (sheet !== undefined) {
-      this.image.setTexture(sheet, look.frame ?? 0);
+      this.image.setTexture(sheet, look.frame ?? 0).setScale(look.scale ?? 1);
       if (look.tint === undefined) {
         this.image.clearTint();
       } else {
         this.image.setTint(colorNumber(look.tint));
       }
     }
-    this.label.setText(sprite ? "" : (look.label ?? "")).setPosition(cx, cy + 1);
+    this.label.setText(sheet === undefined ? (look.label ?? "") : "").setPosition(cx, cy + 1).setDepth(depth + 0.1);
     const [badge] = look.badges;
-    this.badge.setVisible(badge !== undefined).setPosition(x * TILE + TILE - 7, y * TILE + 7);
+    this.badge.setVisible(badge !== undefined).setPosition(x * TILE + TILE - 6, y * TILE + TILE - 6).setDepth(depth + 0.2);
     if (badge !== undefined) {
       this.badge.setFillStyle(colorNumber(badge));
     }
@@ -67,43 +97,83 @@ class ThingView {
   }
 }
 
-/** Um avatar: o corpo, o rótulo da ação e a barra de progresso (ADR-0052). */
+/** Um avatar: o sprite animado (ou um círculo, sem arte), o rótulo da ação e a barra de progresso. */
 class AvatarView {
   private readonly body: Phaser.GameObjects.Arc;
   private readonly initial: Phaser.GameObjects.Text;
+  private readonly sprite: Phaser.GameObjects.Sprite;
   private readonly tag: Phaser.GameObjects.Text;
   private readonly bar: Phaser.GameObjects.Graphics;
+  private facing: Facing = "down";
+  private last: Point | undefined;
+  private walked = 0;
+  private animation: string | undefined;
+  private since = 0;
 
   constructor(scene: Phaser.Scene, id: string) {
-    this.body = scene.add.circle(0, 0, TILE * 0.34, 0xf5f5f5).setStrokeStyle(2, 0x1b1b1b).setDepth(20);
+    this.body = scene.add.circle(0, 0, TILE * 0.34, 0xf5f5f5).setStrokeStyle(2, 0x1b1b1b);
     this.initial = scene.add
       .text(0, 0, id.slice(0, 1).toUpperCase(), { fontFamily: FONT, fontSize: "12px", color: "#1b1b1b", fontStyle: "bold" })
-      .setOrigin(0.5)
-      .setDepth(21);
+      .setOrigin(0.5);
+    this.sprite = scene.add.sprite(0, 0, "__DEFAULT").setOrigin(0.5, 1).setVisible(false);
     this.tag = scene.add
       .text(0, 0, "", { fontFamily: FONT, fontSize: "11px", color: "#ffe08a", fontStyle: "bold", backgroundColor: "rgba(20,20,20,0.8)", padding: { x: 4, y: 1 } })
       .setOrigin(0.5, 1)
-      .setDepth(30);
-    this.bar = scene.add.graphics().setDepth(30);
+      .setDepth(60);
+    this.bar = scene.add.graphics().setDepth(60);
   }
 
-  show(look: Resolved, at: Point, progress: ReturnType<typeof progressOf>): void {
+  show(scene: Phaser.Scene, look: Resolved, art: AvatarArt | undefined, frame: Frame, id: string, at: Point, time: number): void {
+    const { state, tick } = frame;
     const cx = at.x * TILE + TILE / 2;
-    const cy = at.y * TILE + TILE / 2;
-    this.body.setPosition(cx, cy).setFillStyle(colorNumber(look.color ?? "#f5f5f5"));
-    this.initial.setPosition(cx, cy + 1);
-    this.tag.setVisible(progress !== undefined).setText(progress?.label ?? "").setPosition(cx, at.y * TILE - 6);
+    const depth = depthAt(at.y) + 0.5;
+    const action = state.actions[id];
+    const asleep = state.asleep[id] === true;
+    const moved = this.last === undefined ? { x: 0, y: 0 } : { x: at.x - this.last.x, y: at.y - this.last.y };
+    this.walked += Math.hypot(moved.x, moved.y);
+    this.last = at;
+    const target = action?.params.target;
+    const thing = typeof target === "string" ? state.entities[target]?.position : undefined;
+    this.facing =
+      action?.action === "move" || thing === undefined
+        ? facingOf(moved.x, moved.y, this.facing)
+        : facingOf(thing.x - at.x, thing.y - at.y, this.facing);
+
+    const name = animationFor(art, action?.action, asleep);
+    const animation = name === undefined ? undefined : art?.animations?.[name];
+    const sheet = art !== undefined && scene.textures.exists(art.sheet) ? art.sheet : undefined;
+    if (name !== this.animation) {
+      this.animation = name;
+      this.since = time;
+    }
+    const drawn = sheet !== undefined && animation !== undefined;
+    this.body.setVisible(!drawn).setPosition(cx, at.y * TILE + TILE / 2).setDepth(depth);
+    this.body.setFillStyle(colorNumber(look.color ?? "#f5f5f5"));
+    this.initial.setVisible(!drawn).setPosition(cx, at.y * TILE + TILE / 2 + 1).setDepth(depth + 0.01);
+    this.sprite.setVisible(drawn).setPosition(cx, (at.y + 1) * TILE + FEET).setDepth(depth);
+    if (sheet !== undefined && animation !== undefined) {
+      // O relógio acelerado acelera as ações; pausado, tudo para.
+      const pace = state.clock.paused === true ? 0 : Math.min(3, Math.max(0.5, (state.clock.scale ?? 72) / 72));
+      const step =
+        animation.per_tile === undefined
+          ? ((time - this.since) / 1000) * (animation.fps ?? 6) * pace
+          : this.walked * animation.per_tile;
+      this.sprite.setTexture(sheet, frameOf(animation, columnsOf(scene, sheet), this.facing, step));
+    }
+
+    const progress = progressOf(state, id, tick);
+    const top = drawn ? (at.y + 1) * TILE - 50 : at.y * TILE - 4;
+    this.tag.setVisible(progress !== undefined).setText(progress?.label ?? "").setPosition(cx, top - 3);
     this.bar.clear();
     if (progress?.fraction !== undefined) {
       const width = TILE - 4;
-      const top = at.y * TILE - 4;
       this.bar.fillStyle(0x141414, 0.8).fillRect(cx - width / 2 - 1, top - 1, width + 2, 6);
       this.bar.fillStyle(0x7bd88f, 1).fillRect(cx - width / 2, top, width * progress.fraction, 4);
     }
   }
 
   destroy(): void {
-    for (const object of [this.body, this.initial, this.tag, this.bar]) {
+    for (const object of [this.body, this.initial, this.sprite, this.tag, this.bar]) {
       object.destroy();
     }
   }
@@ -118,6 +188,7 @@ class WorldScene extends Phaser.Scene {
   private terrain!: Phaser.GameObjects.Graphics;
   private shade!: Phaser.GameObjects.Rectangle;
   private rain!: Phaser.GameObjects.Graphics;
+  private visual: Phaser.Tilemaps.Tilemap | undefined;
   private readonly things = new Map<string, ThingView>();
   private readonly avatars = new Map<string, AvatarView>();
 
@@ -127,14 +198,14 @@ class WorldScene extends Phaser.Scene {
 
   create(): void {
     this.terrain = this.add.graphics().setDepth(0);
-    this.shade = this.add.rectangle(0, 0, 1, 1, 0x0c123c, 0).setOrigin(0).setDepth(40);
-    this.rain = this.add.graphics().setDepth(41);
+    this.shade = this.add.rectangle(0, 0, 1, 1, 0x0c123c, 0).setOrigin(0).setDepth(80);
+    this.rain = this.add.graphics().setDepth(81);
     this.created = true;
-    this.loadSheets();
+    this.loadArt();
   }
 
-  /** Carrega as folhas do manifesto que ainda não estão na memória (depois do `create`). */
-  loadSheets(): void {
+  /** Carrega as folhas e o mapa visual do manifesto que ainda não estão na memória. */
+  loadArt(): void {
     if (!this.created) {
       return;
     }
@@ -144,6 +215,10 @@ class WorldScene extends Phaser.Scene {
         this.load.spritesheet(name, sheet.image, { frameWidth: sheet.frame_width, frameHeight: sheet.frame_height });
         pending = true;
       }
+    }
+    if (this.art.visual_map !== undefined && !this.cache.tilemap.exists(MAP_KEY)) {
+      this.load.tilemapTiledJSON(MAP_KEY, this.art.visual_map);
+      pending = true;
     }
     if (pending) {
       this.load.once("complete", () => {
@@ -164,17 +239,32 @@ class WorldScene extends Phaser.Scene {
     if (frame === undefined) {
       return;
     }
-    const { state, tick } = frame;
+    const { state } = frame;
     this.drawThings(state);
-    this.drawAvatars(state, tick);
+    this.drawAvatars(frame, time);
     this.shade.setSize(width, height).setFillStyle(0x0c123c, shadeOf(this.art, state.phase));
     this.drawRain(weatherEffect(this.art, state.weather[String(state.day)]) === "rain", time, width, height);
   }
 
+  /** O mapa visual do cartucho, quando há; senão, uma cor por tipo de tile do mapa lógico. */
   private drawTerrain(): void {
-    const grid = this.grid;
     this.terrain.clear();
-    if (grid === undefined) {
+    if (this.visual === undefined && this.cache.tilemap.exists(MAP_KEY)) {
+      const map = this.make.tilemap({ key: MAP_KEY });
+      const tilesets = map.tilesets
+        .map((tileset) => (this.textures.exists(tileset.name) ? map.addTilesetImage(tileset.name, tileset.name) : null))
+        .filter((tileset): tileset is Phaser.Tilemaps.Tileset => tileset !== null);
+      if (tilesets.length === map.tilesets.length) {
+        map.layers.forEach((layer, index) => {
+          map.createLayer(layer.name, tilesets, 0, 0).setDepth(index * 0.01);
+        });
+        this.visual = map;
+      } else {
+        map.destroy();
+      }
+    }
+    const grid = this.grid;
+    if (this.visual !== undefined || grid === undefined) {
       return;
     }
     for (let y = 0; y < grid.height; y++) {
@@ -207,7 +297,8 @@ class WorldScene extends Phaser.Scene {
     }
   }
 
-  private drawAvatars(state: ObserverState, tick: number): void {
+  private drawAvatars(frame: Frame, time: number): void {
+    const { state, tick } = frame;
     const seen = new Set<string>();
     for (const [id, entity] of Object.entries(state.entities)) {
       if (entity?.kind !== "avatar") {
@@ -224,7 +315,8 @@ class WorldScene extends Phaser.Scene {
         view = new AvatarView(this, id);
         this.avatars.set(id, view);
       }
-      view.show(lookOf(this.art, "avatar", entity.attributes), at, progressOf(state, id, tick));
+      const art = this.art.avatars?.[id] ?? this.art.avatars?.["*"];
+      view.show(this, lookOf(this.art, "avatar", entity.attributes), art, frame, id, at, time);
     }
     for (const [id, view] of this.avatars) {
       if (!seen.has(id)) {
@@ -284,7 +376,7 @@ export class PhaserRenderer implements WorldRenderer {
   setArt(art: ArtManifest): void {
     this.scene.art = art;
     this.scene.terrainDirty = true;
-    this.scene.loadSheets(); // antes do create, quem carrega é o próprio create
+    this.scene.loadArt(); // antes do create, quem carrega é o próprio create
   }
 
   draw(state: ObserverState, tick: number): void {

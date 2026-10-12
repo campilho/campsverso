@@ -44,6 +44,8 @@ describe("barra de progresso e ocupado (ADR-0052)", () => {
   it("sem o início (arquivo antigo), só o rótulo", () => {
     const old = { camps: { action_id: "act-1", action: "water", params: {}, end_tick: 105 } };
     expect(progressOf(state({ actions: old }), "camps", 101)).toEqual({ label: "water" });
+    const walking = { camps: { action_id: "act-2", action: "move", params: {}, applied_tick: 100, end_tick: 104 } };
+    expect(progressOf(state({ actions: walking }), "camps", 101)).toEqual({ label: "Andando", fraction: 0.25 });
   });
 
   it("o sono tem barra até a hora de acordar", () => {

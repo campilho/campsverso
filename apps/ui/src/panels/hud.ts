@@ -24,6 +24,7 @@ export function renderHud(
   tick: number,
   avatarId: string,
   status: Status,
+  portrait?: HTMLElement,
 ): void {
   const avatar = state.entities[avatarId];
   const controller = state.controllers[avatarId];
@@ -54,6 +55,7 @@ export function renderHud(
     el(
       "div",
       { className: "hud-avatar" },
+      portrait,
       el("strong", {}, avatar?.display_name ?? avatarId),
       el("span", {}, controller === undefined ? "sem controlador" : `${controller.type} · ${controller.id}`),
       el(

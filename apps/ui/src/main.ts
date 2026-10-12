@@ -9,15 +9,17 @@ import "./style.css";
 
 import type { EnvelopeV1, ObserverState } from "@campsverso/contracts";
 
-import { loadArt } from "./art/load.ts";
+import { loadArt, type LoadedArt } from "./art/load.ts";
 import { Connection, type View } from "./connection.ts";
 import { button, el } from "./dom.ts";
 import { positionAt } from "./motion.ts";
+import { CreditsDialog } from "./panels/credits.ts";
 import { renderHud } from "./panels/hud.ts";
 import { ActionMenu } from "./panels/menu.ts";
 import { OperatorPanel } from "./panels/operator.ts";
+import { Portrait } from "./panels/portrait.ts";
 import { inControl, menuFor, proposal, thingAt, walkTo } from "./play.ts";
-import { busyText } from "./progress.ts";
+import { busyText, progressOf } from "./progress.ts";
 import { MapCanvas } from "./render/canvas.ts";
 import { PhaserRenderer } from "./render/phaser.ts";
 import type { WorldRenderer } from "./render/renderer.ts";
@@ -55,7 +57,9 @@ const switchLink = el("a", {}, `abrir a visão ${other === "operator" ? "do oper
 switchLink.href = `?view=${other}${debug ? "&render=debug" : ""}`;
 const renderLink = el("a", {}, debug ? "visual de jogo" : "canvas de depuração");
 renderLink.href = `?view=${view}${debug ? "" : "&render=debug"}`;
-header.append(el("nav", {}, renderLink, switchLink));
+const creditsLink = el("a", {}, "créditos");
+creditsLink.href = "#creditos";
+header.append(el("nav", {}, creditsLink, renderLink, switchLink));
 const app = document.querySelector<HTMLElement>("#app");
 if (app === null) {
   throw new Error("#app não existe no index.html");
@@ -67,6 +71,13 @@ app.replaceChildren(
 );
 
 const menu = new ActionMenu(document.body);
+const portrait = new Portrait();
+const credits = new CreditsDialog(document.body);
+let art: LoadedArt | undefined;
+creditsLink.addEventListener("click", (event) => {
+  event.preventDefault();
+  void credits.open(art?.credits ?? []);
+});
 const panel =
   view === "operator"
     ? new OperatorPanel(aside, (command, data) => { connection.send(command, data); }, () => { dirty = true; })
@@ -125,6 +136,9 @@ store.onChange(() => {
     if (store.welcomes !== welcomes) {
       welcomes = store.welcomes;
       clock.reset(state, performance.now());
+      if (art !== undefined) {
+        portrait.setArt(art.manifest, avatarId());
+      }
     } else {
       clock.observe(state, performance.now());
     }
@@ -240,7 +254,8 @@ function frame(now: number): void {
     const panelDue = (dirty || now - lastPanel > 1000) && now - lastPanel >= PANEL_EVERY_MS;
     if (panelDue || shownClock !== lastClock) {
       // O HUD acompanha cada minuto mostrado; o painel do operador, só as mudanças de estado.
-      renderHud(hud, state, tick, avatarId(), store.status);
+      portrait.setBadge(progressOf(state, avatarId(), tick)?.label ?? "");
+      renderHud(hud, state, tick, avatarId(), store.status, portrait.element);
       lastClock = shownClock;
     }
     if (panelDue) {
@@ -259,7 +274,9 @@ function frame(now: number): void {
 
 notice.hidden = true;
 connection.open();
-void loadArt().then((art) => {
-  map.setArt(art);
+void loadArt().then((loaded) => {
+  art = loaded;
+  map.setArt(loaded.manifest);
+  portrait.setArt(loaded.manifest, avatarId());
 });
 requestAnimationFrame(frame);

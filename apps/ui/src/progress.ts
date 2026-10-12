@@ -17,9 +17,12 @@ function fraction(start: number, end: number, tick: number): number {
   return end <= start ? 1 : Math.min(1, Math.max(0, (tick - start) / (end - start)));
 }
 
+/** As ações do próprio kernel (ADR-0038), que nenhum cartucho põe no catálogo. */
+const KERNEL_LABELS: Readonly<Record<string, string>> = { move: "Andando", wait: "Esperando" };
+
 /** O rótulo da ação no catálogo do cartucho ("Plantar"), ou o nome dela. */
 export function actionLabel(state: ObserverState, action: string): string {
-  return state.session?.affordances?.find((a) => a.action === action)?.label ?? action;
+  return state.session?.affordances?.find((a) => a.action === action)?.label ?? KERNEL_LABELS[action] ?? action;
 }
 
 export function progressOf(state: ObserverState, avatarId: string, tick: number): Progress | undefined {
