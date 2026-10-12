@@ -1178,6 +1178,16 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AffordanceParam'
+    Interrupt:
+      title: Interrupt
+      description: 'Política de interrupção de uma ação (ADR-0052): `never`, um comando novo é recusado
+        com `busy`; `cancel`, cancela a ação e nada dela acontece; `partial`, interrompe e o cartucho
+        grava o trabalho feito.'
+      type: string
+      enum:
+      - never
+      - cancel
+      - partial
     CmdActionProposeV1:
       title: CmdActionProposeV1
       description: Controlador propõe uma ação para o avatar.
@@ -1435,6 +1445,9 @@ components:
         replaces:
           $ref: '#/components/schemas/ActionId'
           description: Ação em andamento cancelada por esta.
+        interrupt:
+          $ref: '#/components/schemas/Interrupt'
+          description: O que um comando novo do mesmo controlador faz com esta ação em andamento (ADR-0052).
     ActionCompletedV1:
       title: ActionCompletedV1
       description: Ação concluída; observable é só um resumo legível.
@@ -1532,6 +1545,10 @@ components:
         reason:
           $ref: '#/components/schemas/Token'
           description: 'Ex.: cancelled, fainted, blocked, precondition_lost.'
+        elapsed_ticks:
+          type: integer
+          minimum: 0
+          description: Quantos ticks a ação durou antes de parar (ADR-0052).
     ActionRejectedV1:
       title: ActionRejectedV1
       description: Ação recusada, com motivo legível por máquina.
@@ -1951,6 +1968,13 @@ components:
                       $ref: '#/components/schemas/Params'
                     end_tick:
                       $ref: '#/components/schemas/Tick'
+                    applied_tick:
+                      $ref: '#/components/schemas/Tick'
+                      description: Tick em que a ação começou (ADR-0052).
+                    interrupt:
+                      $ref: '#/components/schemas/Interrupt'
+                      description: O que um comando novo do mesmo controlador faz com esta ação em andamento
+                        (ADR-0052).
             containers:
               type: array
               items:
@@ -2911,6 +2935,13 @@ components:
                     $ref: '#/components/schemas/Params'
                   end_tick:
                     $ref: '#/components/schemas/Tick'
+                  applied_tick:
+                    $ref: '#/components/schemas/Tick'
+                    description: Tick em que a ação começou (ADR-0052).
+                  interrupt:
+                    $ref: '#/components/schemas/Interrupt'
+                    description: O que um comando novo do mesmo controlador faz com esta ação em andamento
+                      (ADR-0052).
             needs:
               type: object
               additionalProperties:
@@ -2920,6 +2951,22 @@ components:
               type: object
               additionalProperties:
                 type: boolean
+            sleep:
+              type: object
+              description: 'O sono em andamento, por avatar: quando começou e o tick previsto para acordar
+                (ADR-0052). Só com `sleep.started.v2`.'
+              additionalProperties:
+                type: object
+                title: ObserverSleep
+                additionalProperties: false
+                required:
+                - since_tick
+                - wake_at_tick
+                properties:
+                  since_tick:
+                    $ref: '#/components/schemas/Tick'
+                  wake_at_tick:
+                    $ref: '#/components/schemas/Tick'
             controllers:
               type: object
               additionalProperties:

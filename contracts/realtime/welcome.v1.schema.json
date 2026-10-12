@@ -299,6 +299,14 @@
               },
               "end_tick": {
                 "$ref": "contracts://common/defs.v1#/$defs/tick"
+              },
+              "applied_tick": {
+                "$ref": "contracts://common/defs.v1#/$defs/tick",
+                "description": "Tick em que a ação começou (ADR-0052)."
+              },
+              "interrupt": {
+                "$ref": "contracts://common/defs.v1#/$defs/interrupt",
+                "description": "O que um comando novo do mesmo controlador faz com esta ação em andamento (ADR-0052)."
               }
             }
           }
@@ -320,6 +328,30 @@
           },
           "additionalProperties": {
             "type": "boolean"
+          }
+        },
+        "sleep": {
+          "type": "object",
+          "description": "O sono em andamento, por avatar: quando começou e o tick previsto para acordar (ADR-0052). Só com `sleep.started.v2`.",
+          "propertyNames": {
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "title": "ObserverSleep",
+            "additionalProperties": false,
+            "required": [
+              "since_tick",
+              "wake_at_tick"
+            ],
+            "properties": {
+              "since_tick": {
+                "$ref": "contracts://common/defs.v1#/$defs/tick"
+              },
+              "wake_at_tick": {
+                "$ref": "contracts://common/defs.v1#/$defs/tick"
+              }
+            }
           }
         },
         "controllers": {

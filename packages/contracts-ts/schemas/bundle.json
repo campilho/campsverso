@@ -255,6 +255,16 @@
         }
       }
     },
+    "Interrupt": {
+      "title": "Interrupt",
+      "description": "Política de interrupção de uma ação (ADR-0052): `never`, um comando novo é recusado com `busy`; `cancel`, cancela a ação e nada dela acontece; `partial`, interrompe e o cartucho grava o trabalho feito.",
+      "type": "string",
+      "enum": [
+        "never",
+        "cancel",
+        "partial"
+      ]
+    },
     "CmdActionProposeV1": {
       "title": "CmdActionProposeV1",
       "description": "Controlador propõe uma ação para o avatar.",
@@ -591,6 +601,10 @@
         "replaces": {
           "$ref": "#/$defs/ActionId",
           "description": "Ação em andamento cancelada por esta."
+        },
+        "interrupt": {
+          "$ref": "#/$defs/Interrupt",
+          "description": "O que um comando novo do mesmo controlador faz com esta ação em andamento (ADR-0052)."
         }
       }
     },
@@ -723,6 +737,11 @@
         "reason": {
           "$ref": "#/$defs/Token",
           "description": "Ex.: cancelled, fainted, blocked, precondition_lost."
+        },
+        "elapsed_ticks": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Quantos ticks a ação durou antes de parar (ADR-0052)."
         }
       }
     },
@@ -1272,6 +1291,14 @@
                     },
                     "end_tick": {
                       "$ref": "#/$defs/Tick"
+                    },
+                    "applied_tick": {
+                      "$ref": "#/$defs/Tick",
+                      "description": "Tick em que a ação começou (ADR-0052)."
+                    },
+                    "interrupt": {
+                      "$ref": "#/$defs/Interrupt",
+                      "description": "O que um comando novo do mesmo controlador faz com esta ação em andamento (ADR-0052)."
                     }
                   }
                 }
@@ -2538,6 +2565,14 @@
                   },
                   "end_tick": {
                     "$ref": "#/$defs/Tick"
+                  },
+                  "applied_tick": {
+                    "$ref": "#/$defs/Tick",
+                    "description": "Tick em que a ação começou (ADR-0052)."
+                  },
+                  "interrupt": {
+                    "$ref": "#/$defs/Interrupt",
+                    "description": "O que um comando novo do mesmo controlador faz com esta ação em andamento (ADR-0052)."
                   }
                 }
               }
@@ -2553,6 +2588,27 @@
               "type": "object",
               "additionalProperties": {
                 "type": "boolean"
+              }
+            },
+            "sleep": {
+              "type": "object",
+              "description": "O sono em andamento, por avatar: quando começou e o tick previsto para acordar (ADR-0052). Só com `sleep.started.v2`.",
+              "additionalProperties": {
+                "type": "object",
+                "title": "ObserverSleep",
+                "additionalProperties": false,
+                "required": [
+                  "since_tick",
+                  "wake_at_tick"
+                ],
+                "properties": {
+                  "since_tick": {
+                    "$ref": "#/$defs/Tick"
+                  },
+                  "wake_at_tick": {
+                    "$ref": "#/$defs/Tick"
+                  }
+                }
               }
             },
             "controllers": {

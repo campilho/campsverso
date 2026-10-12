@@ -26,6 +26,16 @@ Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão 
 - **`ObserverState` ganha `pulse`,** um campo opcional e compatível: o tick do último pulso e se o kernel está vivo.
 - **As ferramentas tratam `realtime` e `live` como mensagens sem envelope.** O AsyncAPI ganha o canal do pulso.
 
+## Não publicado (M6)
+
+- **Política de interrupção das ações** (ADR-0052), só com campos opcionais:
+  - `common/defs.v1` ganha `interrupt`: `never`, `cancel` ou `partial`;
+  - `action.accepted.v1` ganha `interrupt`, a política da ação aceita;
+  - `action.failed.v1` ganha `elapsed_ticks`, quanto a ação durou antes de parar;
+  - a ação em andamento ganha `applied_tick` e `interrupt` na foto da percepção (`perception.delivered.v1`) e no `ObserverState`;
+  - o `ObserverState` ganha `sleep`: o início do sono e o tick previsto para acordar, por avatar.
+- Exemplo inválido novo: uma política fora das três.
+
 ## v0.1: 2026-10-11
 
 Primeira versão, gerada a partir do [catálogo da v0.1](../docs/arquitetura/catalogo-eventos-v0.1.md) (ADR-0029).

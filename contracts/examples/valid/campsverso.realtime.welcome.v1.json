@@ -98,7 +98,9 @@
         "params": {
           "near": "well"
         },
-        "end_tick": 22
+        "applied_tick": 15,
+        "end_tick": 22,
+        "interrupt": "cancel"
       }
     },
     "needs": {

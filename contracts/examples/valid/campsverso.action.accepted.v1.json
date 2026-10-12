@@ -21,6 +21,7 @@
       "target": "plot-e-01"
     },
     "applied_tick": 64,
-    "duration_ticks": 2
+    "duration_ticks": 2,
+    "interrupt": "never"
   }
 }

@@ -155,6 +155,14 @@
                 },
                 "end_tick": {
                   "$ref": "contracts://common/defs.v1#/$defs/tick"
+                },
+                "applied_tick": {
+                  "$ref": "contracts://common/defs.v1#/$defs/tick",
+                  "description": "Tick em que a ação começou (ADR-0052)."
+                },
+                "interrupt": {
+                  "$ref": "contracts://common/defs.v1#/$defs/interrupt",
+                  "description": "O que um comando novo do mesmo controlador faz com esta ação em andamento (ADR-0052)."
                 }
               }
             }

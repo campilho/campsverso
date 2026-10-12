@@ -78,6 +78,13 @@ export type ClockMode = "continuous" | "max";
  * via the `definition` "Scalar".
  */
 export type Scalar = string | number | boolean | null;
+/**
+ * Política de interrupção de uma ação (ADR-0052): `never`, um comando novo é recusado com `busy`; `cancel`, cancela a ação e nada dela acontece; `partial`, interrompe e o cartucho grava o trabalho feito.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "Interrupt".
+ */
+export type Interrupt = "never" | "cancel" | "partial";
 
 export interface ContractsBundle {}
 /**
@@ -308,6 +315,7 @@ export interface ActionAcceptedV1 {
    */
   duration_ticks: number;
   replaces?: ActionId;
+  interrupt?: Interrupt;
 }
 /**
  * Ação concluída; observable é só um resumo legível.
@@ -362,6 +370,10 @@ export interface ActionFailedV1 {
   avatar_id: EntityId;
   action: Token;
   reason: Token;
+  /**
+   * Quantos ticks a ação durou antes de parar (ADR-0052).
+   */
+  elapsed_ticks?: number;
 }
 /**
  * Ação recusada, com motivo legível por máquina.
@@ -599,6 +611,8 @@ export interface ViewAction {
   action: Token;
   params: Params;
   end_tick: Tick;
+  applied_tick?: Tick;
+  interrupt?: Interrupt;
 }
 export interface ViewContainer {
   container_id: EntityId;
@@ -1077,6 +1091,12 @@ export interface ObserverState {
     [k: string]: boolean | undefined;
   };
   /**
+   * O sono em andamento, por avatar: quando começou e o tick previsto para acordar (ADR-0052). Só com `sleep.started.v2`.
+   */
+  sleep?: {
+    [k: string]: ObserverSleep | undefined;
+  };
+  /**
    * Quem controla cada avatar.
    */
   controllers: {
@@ -1142,6 +1162,12 @@ export interface ObserverAction {
   action: Token;
   params: Params;
   end_tick: Tick;
+  applied_tick?: Tick;
+  interrupt?: Interrupt;
+}
+export interface ObserverSleep {
+  since_tick: Tick;
+  wake_at_tick: Tick;
 }
 /**
  * Último pedido de decisão do avatar.

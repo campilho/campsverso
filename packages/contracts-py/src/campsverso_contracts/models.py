@@ -346,6 +346,12 @@ class ActionAcceptedV1(BaseModel):
     """
     Ação em andamento cancelada por esta.
     """
+    interrupt: Annotated[Literal["never", "cancel", "partial"] | None, Field(title="Interrupt")] = (
+        None
+    )
+    """
+    O que um comando novo do mesmo controlador faz com esta ação em andamento (ADR-0052).
+    """
 
 
 class ObservableChange(BaseModel):
@@ -455,6 +461,10 @@ class ActionFailedV1(BaseModel):
     reason: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
     """
     Ex.: cancelled, fainted, blocked, precondition_lost.
+    """
+    elapsed_ticks: Annotated[int | None, Field(ge=0)] = None
+    """
+    Quantos ticks a ação durou antes de parar (ADR-0052).
     """
 
 
@@ -848,6 +858,16 @@ class ViewAction(BaseModel):
     end_tick: Annotated[int, Field(ge=0, title="Tick")]
     """
     Tick do kernel (1 minuto simulado na fazenda).
+    """
+    applied_tick: Annotated[int | None, Field(ge=0, title="Tick")] = None
+    """
+    Tick em que a ação começou (ADR-0052).
+    """
+    interrupt: Annotated[Literal["never", "cancel", "partial"] | None, Field(title="Interrupt")] = (
+        None
+    )
+    """
+    O que um comando novo do mesmo controlador faz com esta ação em andamento (ADR-0052).
     """
 
 
@@ -1788,6 +1808,30 @@ class ObserverAction(BaseModel):
     """
     Tick do kernel (1 minuto simulado na fazenda).
     """
+    applied_tick: Annotated[int | None, Field(ge=0, title="Tick")] = None
+    """
+    Tick em que a ação começou (ADR-0052).
+    """
+    interrupt: Annotated[Literal["never", "cancel", "partial"] | None, Field(title="Interrupt")] = (
+        None
+    )
+    """
+    O que um comando novo do mesmo controlador faz com esta ação em andamento (ADR-0052).
+    """
+
+
+class ObserverSleep(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    since_tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+    wake_at_tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
 
 
 class ObserverDecision(BaseModel):
@@ -1860,6 +1904,10 @@ class ObserverState(BaseModel):
     Último valor exato recebido de cada necessidade, por avatar.
     """
     asleep: dict[str, bool]
+    sleep: dict[str, ObserverSleep] | None = None
+    """
+    O sono em andamento, por avatar: quando começou e o tick previsto para acordar (ADR-0052). Só com `sleep.started.v2`.
+    """
     controllers: dict[str, ControllerRef]
     """
     Quem controla cada avatar.

@@ -28,6 +28,11 @@
     "reason": {
       "$ref": "contracts://common/defs.v1#/$defs/token",
       "description": "Ex.: cancelled, fainted, blocked, precondition_lost."
+    },
+    "elapsed_ticks": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Quantos ticks a ação durou antes de parar (ADR-0052)."
     }
   }
 }

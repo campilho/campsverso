@@ -260,6 +260,16 @@
           }
         }
       }
+    },
+    "interrupt": {
+      "title": "Interrupt",
+      "description": "Política de interrupção de uma ação (ADR-0052): `never`, um comando novo é recusado com `busy`; `cancel`, cancela a ação e nada dela acontece; `partial`, interrompe e o cartucho grava o trabalho feito.",
+      "type": "string",
+      "enum": [
+        "never",
+        "cancel",
+        "partial"
+      ]
     }
   }
 }

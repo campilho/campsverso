@@ -41,6 +41,10 @@
     "replaces": {
       "$ref": "contracts://common/defs.v1#/$defs/action_id",
       "description": "Ação em andamento cancelada por esta."
+    },
+    "interrupt": {
+      "$ref": "contracts://common/defs.v1#/$defs/interrupt",
+      "description": "O que um comando novo do mesmo controlador faz com esta ação em andamento (ADR-0052)."
     }
   }
 }

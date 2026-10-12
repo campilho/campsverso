@@ -1,0 +1,31 @@
+{
+  "expect_error": "payload_schema",
+  "description": "Política de interrupção fora das três da ADR-0052.",
+  "event": {
+    "specversion": "1.0",
+    "id": "01a12d2b-6c28-770d-a08e-31fe73e76077",
+    "source": "/kernel/farm-camps-01",
+    "type": "campsverso.action.accepted.v1",
+    "time": "2026-10-11T22:00:00Z",
+    "datacontenttype": "application/json",
+    "dataschema": "contracts://events/action/accepted.v1",
+    "worldid": "farm-camps-01",
+    "cartridge": "farm_camps",
+    "tick": 64,
+    "simtime": "2026-03-02T07:04:00-03:00",
+    "seq": 19,
+    "provenance": "simulated",
+    "visibility": "world",
+    "data": {
+      "action_id": "act-000042",
+      "avatar_id": "camps",
+      "action": "water",
+      "params": {
+        "target": "plot-e-01"
+      },
+      "applied_tick": 64,
+      "duration_ticks": 2,
+      "interrupt": "pause"
+    }
+  }
+}
