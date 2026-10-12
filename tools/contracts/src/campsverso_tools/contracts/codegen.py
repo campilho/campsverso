@@ -55,9 +55,13 @@ VALIDATION_ONLY = frozenset({"propertyNames"})
 
 
 def _defs_titles(contracts: Contracts) -> dict[str, str]:
+    """Título de cada alvo de $ref: as definições comuns (pela chave) e os arquivos inteiros
+    (pelo $id, como as mensagens realtime que carregam envelopes)."""
     common = next(f for f in contracts.files if f.kind == "common")
     defs: JsonObject = common.content["$defs"]
-    return {key: str(value["title"]) for key, value in defs.items()}
+    titles = {key: str(value["title"]) for key, value in defs.items()}
+    titles.update({f.schema_id: f.title for f in contracts.files})
+    return titles
 
 
 def _rewrite(node: Any, titles: dict[str, str], prefix: str) -> Any:
@@ -68,7 +72,8 @@ def _rewrite(node: Any, titles: dict[str, str], prefix: str) -> Any:
         return node
     schema: JsonObject = node  # pyright: ignore[reportUnknownVariableType]
     if "$ref" in schema:
-        target = titles[str(schema["$ref"]).rsplit("/", 1)[1]]
+        ref = str(schema["$ref"])
+        target = titles[ref.rsplit("/", 1)[1] if "#" in ref else ref]
         rewritten: JsonObject = {"$ref": f"{prefix}{target}"}
         if "description" in schema:
             rewritten["description"] = schema["description"]
@@ -89,7 +94,7 @@ def _bundle_defs(contracts: Contracts, prefix: str) -> JsonObject:
     for value in common.content["$defs"].values():
         defs[str(value["title"])] = _rewrite(value, titles, prefix)
     for f in contracts.files:
-        if f.kind in ("envelope", "event", "command"):
+        if f.kind in ("envelope", "event", "command", "realtime"):
             defs[f.title] = _rewrite(f.content, titles, prefix)
     return defs
 
@@ -232,6 +237,7 @@ def _asyncapi(contracts: Contracts) -> str:
         channels[title] = {
             "address": address,
             "title": f.event_type,
+            "servers": [{"$ref": "#/servers/local"}],
             "parameters": parameters,
             "messages": {title: {"$ref": f"#/components/messages/{title}"}},
         }
@@ -250,6 +256,7 @@ def _asyncapi(contracts: Contracts) -> str:
             "messages": [{"$ref": f"#/channels/{title}/messages/{title}"}],
             "x-producer": f.content["x-producer"],
         }
+    _realtime(contracts, channels, operations, messages)
     document: JsonObject = {
         "asyncapi": "3.1.0",
         "info": {
@@ -267,7 +274,13 @@ def _asyncapi(contracts: Contracts) -> str:
                 "host": "localhost:4222",
                 "protocol": "nats",
                 "description": "NATS JetStream local (ADR-0024).",
-            }
+            },
+            "gateway": {
+                "host": "127.0.0.1:8765",
+                "pathname": "/ws",
+                "protocol": "ws",
+                "description": "WebSocket do gateway para a UI, só local na v0.1 (ADR-0050).",
+            },
         },
         "channels": channels,
         "operations": operations,
@@ -282,6 +295,40 @@ def _asyncapi(contracts: Contracts) -> str:
     }
     body = yaml.safe_dump(document, allow_unicode=True, sort_keys=False, width=100)
     return f"# {HEADER}\n{body}"
+
+
+REALTIME_SENT_BY_UI = frozenset({"campsverso.realtime.command.v1"})
+
+
+def _realtime(
+    contracts: Contracts, channels: JsonObject, operations: JsonObject, messages: JsonObject
+) -> None:
+    """Um canal WebSocket com as mensagens do gateway, do ponto de vista do gateway (ADR-0050)."""
+    files = sorted(contracts.by_message.values(), key=lambda f: str(f.message_type))
+    if not files:
+        return
+    channels["Realtime"] = {
+        "address": "/ws",
+        "title": "WebSocket gateway ↔ UI",
+        "description": "A visão vem na query string: /ws?view=player ou /ws?view=operator.",
+        "servers": [{"$ref": "#/servers/gateway"}],
+        "messages": {f.title: {"$ref": f"#/components/messages/{f.title}"} for f in files},
+    }
+    for f in files:
+        messages[f.title] = {
+            "name": f.message_type,
+            "title": f.title,
+            "summary": f.content.get("description", ""),
+            "contentType": "application/json",
+            "payload": {"$ref": f"#/components/schemas/{f.title}"},
+        }
+        action = "receive" if f.message_type in REALTIME_SENT_BY_UI else "send"
+        operations[f"{action}{f.title}"] = {
+            "action": action,
+            "channel": {"$ref": "#/channels/Realtime"},
+            "messages": [{"$ref": f"#/channels/Realtime/messages/{f.title}"}],
+            "x-producer": "ui" if action == "receive" else "gateway",
+        }
 
 
 # ---------------------------------------------------------------- saída

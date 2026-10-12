@@ -1,6 +1,6 @@
 # GERADO por tools/contracts a partir de contracts/: não editar à mão.
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, RootModel
 from typing import Annotated, Any, Literal
 from typing_extensions import TypeAliasType
 
@@ -9,6 +9,13 @@ class ContractsBundle(BaseModel):
     model_config = ConfigDict(
         extra="ignore",
     )
+
+
+class Token(RootModel[str]):
+    root: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
 
 
 class Position(BaseModel):
@@ -1491,4 +1498,295 @@ class WorldWeatherChangedV1(BaseModel):
     day: Annotated[int, Field(ge=1, title="Day")]
     """
     Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+
+
+class RealtimeCommandV1(BaseModel):
+    """
+    Pedido da UI para o gateway publicar um comando. O gateway monta o envelope e o valida contra o contrato do comando (ADR-0050).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    type: Literal["campsverso.realtime.command.v1"]
+    request_id: Annotated[str, Field(max_length=64, min_length=1)]
+    """
+    Escolhido pela UI; volta no reply.
+    """
+    command: Annotated[
+        str, Field(pattern="^campsverso\\.cmd\\.[a-z0-9_]+(\\.[a-z0-9_]+)+\\.v[0-9]+$")
+    ]
+    data: dict[str, Any]
+    """
+    O payload do comando, como no contrato dele.
+    """
+
+
+class RealtimeError(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    code: Literal["not_allowed", "invalid_command", "unavailable", "invalid_message"]
+    message: Annotated[str, Field(max_length=500, min_length=1)]
+
+
+class RealtimeReplyV1(BaseModel):
+    """
+    Resposta do gateway a um command: publicado ou recusado. Quem aceita ou recusa o comando no mundo é o kernel, com um evento (ADR-0050).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    type: Literal["campsverso.realtime.reply.v1"]
+    request_id: Annotated[str, Field(max_length=64, min_length=1)]
+    ok: bool
+    command_id: Annotated[
+        str | None,
+        Field(
+            pattern="^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            title="Uuid7",
+        ),
+    ] = None
+    """
+    Id do envelope publicado, quando ok.
+    """
+    error: Annotated[RealtimeError | None, Field(title="RealtimeError")] = None
+
+
+class RealtimeUpdateV1(BaseModel):
+    """
+    O que mudou desde a última mensagem: um merge patch do estado (RFC 7386) e os eventos do intervalo, filtrados pela visão (ADR-0050).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    type: Literal["campsverso.realtime.update.v1"]
+    patch: dict[str, Any]
+    """
+    Merge patch (RFC 7386) sobre o ObserverState; null apaga a chave.
+    """
+    events: Annotated[list[EnvelopeV1], Field(max_length=5000)]
+
+
+class Command(RootModel[str]):
+    root: Annotated[str, Field(pattern="^campsverso\\.cmd\\.[a-z0-9_]+(\\.[a-z0-9_]+)+\\.v[0-9]+$")]
+
+
+class ObserverMap(BaseModel):
+    """
+    O mapa do cartucho; o arquivo fica no gateway em /content/maps/<id>.tmj (ADR-0050).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    id: Annotated[str, Field(max_length=64, min_length=1, pattern="^[a-z0-9_-]+$")]
+    width: Annotated[int, Field(ge=1)]
+    height: Annotated[int, Field(ge=1)]
+
+
+class ObserverSession(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    cartridge_version: Annotated[
+        str,
+        Field(
+            pattern="^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+            title="Semver",
+        ),
+    ]
+    tick_seconds: Annotated[int, Field(ge=1)]
+    map: Annotated[ObserverMap | None, Field(title="ObserverMap")] = None
+    """
+    O mapa do cartucho; o arquivo fica no gateway em /content/maps/<id>.tmj (ADR-0050).
+    """
+
+
+class ObserverClock(BaseModel):
+    """
+    Vazio até o session.started; a pausa é estado, não modo (ADR-0026).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    mode: Annotated[Literal["continuous", "max"] | None, Field(title="ClockMode")] = None
+    """
+    Modos do relógio na v0.1; a pausa é um estado à parte (ADR-0026).
+    """
+    scale: Annotated[float | None, Field(gt=0.0)] = None
+    paused: bool | None = None
+
+
+class ObserverEntity(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    kind: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Tipo definido pelo cartucho; cada renderer escolhe como desenhar.
+    """
+    position: Position | None = None
+    """
+    Onde está, ou onde vai estar ao fim do trajeto em `motion`.
+    """
+    container_id: Annotated[
+        str | None,
+        Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId"),
+    ] = None
+    """
+    Dentro de outra entidade (inventário), sem posição.
+    """
+    display_name: Annotated[str | None, Field(max_length=64, min_length=1)] = None
+    attributes: dict[str, str | float | bool | None]
+
+
+ContainersAdditionalProperty = TypeAliasType(
+    "ContainersAdditionalProperty", Annotated[int, Field(ge=1)]
+)
+
+
+class ObserverMotion(BaseModel):
+    """
+    Trajeto em andamento: tile a tile, a partir de depart_tick, a tiles_per_tick.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    path: Annotated[list[Position], Field(min_length=1)]
+    depart_tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+    tiles_per_tick: Annotated[float, Field(gt=0.0)]
+
+
+class ObserverAction(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    action_id: Annotated[str, Field(pattern="^act-[0-9]{6,}$", title="ActionId")]
+    """
+    Id de ação: contador determinístico do kernel.
+    """
+    action: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    params: dict[str, Any]
+    end_tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+
+
+class ObserverDecision(BaseModel):
+    """
+    Último pedido de decisão do avatar.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    reason: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+
+
+class ObserverState(BaseModel):
+    """
+    O mundo como se vê de fora, montado só com eventos publicados (ADR-0050). Genérico e sem nada de desenho: posições em tiles, trajetos em ticks, o que é do cartucho chega como atributo. Não carrega null: atributo nulo é atributo ausente, porque no merge patch null apaga.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    cartridge: Annotated[
+        str | None, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")
+    ] = None
+    """
+    Cartucho do mundo, como no envelope.
+    """
+    tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+    sim_time: AwareDatetime | None = None
+    """
+    Hora simulada do tick mais recente.
+    """
+    day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+    phase: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Fase do dia; `desconhecida` antes do primeiro evento de fase.
+    """
+    session: Annotated[ObserverSession | None, Field(title="ObserverSession")] = None
+    clock: Annotated[ObserverClock, Field(title="ObserverClock")]
+    """
+    Vazio até o session.started; a pausa é estado, não modo (ADR-0026).
+    """
+    weather: dict[str, Token]
+    """
+    Condição do clima por dia (a chave é o número do dia).
+    """
+    entities: dict[str, ObserverEntity]
+    containers: dict[str, dict[str, ContainersAdditionalProperty]]
+    motion: dict[str, ObserverMotion]
+    actions: dict[str, ObserverAction]
+    needs: dict[str, dict[str, NeedsAdditionalProperty]]
+    """
+    Último valor exato recebido de cada necessidade, por avatar.
+    """
+    asleep: dict[str, bool]
+    controllers: dict[str, ControllerRef]
+    """
+    Quem controla cada avatar.
+    """
+    decisions: dict[str, ObserverDecision]
+
+
+class RealtimeWelcomeV1(BaseModel):
+    """
+    Primeira mensagem do gateway para a UI: o estado do mundo e a linha do tempo recente (ADR-0050).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    type: Literal["campsverso.realtime.welcome.v1"]
+    worldid: Annotated[str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$")]
+    view: Literal["player", "operator"]
+    """
+    player: world e agent do avatar; operator: também internal e observer.
+    """
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O avatar que esta conexão acompanha.
+    """
+    commands: list[Command]
+    """
+    Tipos de comando que esta conexão pode mandar.
+    """
+    state: Annotated[ObserverState, Field(title="ObserverState")]
+    """
+    O mundo como se vê de fora, montado só com eventos publicados (ADR-0050). Genérico e sem nada de desenho: posições em tiles, trajetos em ticks, o que é do cartucho chega como atributo. Não carrega null: atributo nulo é atributo ausente, porque no merge patch null apaga.
+    """
+    events: Annotated[list[EnvelopeV1], Field(max_length=5000)]
+    """
+    As entradas mais recentes da linha do tempo, da mais antiga para a mais nova, já filtradas pela visão.
     """

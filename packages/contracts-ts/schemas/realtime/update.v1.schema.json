@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://realtime/update.v1",
+  "title": "RealtimeUpdateV1",
+  "description": "O que mudou desde a última mensagem: um merge patch do estado (RFC 7386) e os eventos do intervalo, filtrados pela visão (ADR-0050).",
+  "x-message": "campsverso.realtime.update.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "type",
+    "patch",
+    "events"
+  ],
+  "properties": {
+    "type": {
+      "const": "campsverso.realtime.update.v1"
+    },
+    "patch": {
+      "type": "object",
+      "description": "Merge patch (RFC 7386) sobre o ObserverState; null apaga a chave."
+    },
+    "events": {
+      "type": "array",
+      "maxItems": 5000,
+      "items": {
+        "$ref": "contracts://envelope/envelope.v1"
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "type": "campsverso.realtime.reply.v1",
+  "request_id": "ui-8",
+  "ok": false,
+  "error": {
+    "code": "not_allowed",
+    "message": "a visão player não manda comandos"
+  }
+}

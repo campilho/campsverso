@@ -1,0 +1,7 @@
+{
+  "expect_error": "unknown_message",
+  "description": "Mensagem do WebSocket de um tipo que não está em contracts/realtime.",
+  "message": {
+    "type": "campsverso.realtime.goodbye.v1"
+  }
+}

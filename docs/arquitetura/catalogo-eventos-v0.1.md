@@ -216,7 +216,31 @@ Só os eventos que carregam significado que os genéricos não carregam (ADR-002
 | `campsverso.cmd.clock.step.v1` | operador | `ticks: int` (1–1440) | tempo §13 |
 | `campsverso.cmd.rules.toggle.v1` | operador | `rule` · `enabled: bool` · `params?: attributes` · `reason: string` · `experiment_id?: string` | ADR-0015 |
 
-**Total:** 38 eventos (35 genéricos e 3 do cartucho) e 9 comandos, mais o envelope e o arquivo de tipos comuns.
+**Total:** 38 eventos (35 genéricos e 3 do cartucho) e 9 comandos, mais o envelope e o arquivo de tipos comuns. Depois vieram os eventos de sono v2 (M2) e as mensagens do WebSocket (M4).
+
+### 3.11 WebSocket entre gateway e UI (`contracts/realtime`, ADR-0050)
+
+Estas mensagens não passam pelo NATS nem levam envelope. São o protocolo da UI com o gateway, em `ws://127.0.0.1:8765/ws?view=player|operator`.
+
+| Mensagem | Sentido | Campos |
+|---|---|---|
+| `campsverso.realtime.welcome.v1` | gateway → UI, ao conectar | `worldid` · `view: player\|operator` · `avatar_id` · `commands: [tipo de comando]` · `state: ObserverState` · `events: [envelope]` (linha do tempo recente) |
+| `campsverso.realtime.update.v1` | gateway → UI, a cada 100 ms com novidade | `patch` (merge patch, RFC 7386, sobre o `state`) · `events: [envelope]` |
+| `campsverso.realtime.command.v1` | UI → gateway | `request_id` · `command` (tipo `campsverso.cmd.*`) · `data` (o payload do comando) |
+| `campsverso.realtime.reply.v1` | gateway → UI | `request_id` · `ok` · `command_id?` · `error?: {code: not_allowed\|invalid_command\|unavailable\|invalid_message, message}` |
+
+- **`ObserverState`** tem o mesmo modelo de mundo da projeção comum (`libs/world-view`):
+  - tick, hora simulada, dia e fase;
+  - sessão (versão do cartucho, `tick_seconds`, mapa);
+  - relógio (modo, escala, pausa);
+  - clima por dia;
+  - entidades (tipo, posição, contêiner, nome, atributos);
+  - itens por contêiner;
+  - trajetos e ações em andamento;
+  - necessidades, sono, controlador e o último pedido de decisão de cada avatar.
+- **Nada de desenho:** qualquer renderer (canvas, Phaser, 3D) usa o mesmo estado.
+- **O estado não tem `null`,** porque no merge patch `null` apaga a chave. Atributo nulo é atributo ausente.
+- **`reply` só diz se o gateway publicou o comando.** Quem aceita ou recusa o comando no mundo é o kernel, com um evento (`clock.paused`, `world.command.rejected`…).
 
 ---
 

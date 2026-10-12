@@ -16,10 +16,17 @@ servers:
     host: localhost:4222
     protocol: nats
     description: NATS JetStream local (ADR-0024).
+  gateway:
+    host: 127.0.0.1:8765
+    pathname: /ws
+    protocol: ws
+    description: WebSocket do gateway para a UI, só local na v0.1 (ADR-0050).
 channels:
   ActionAcceptedV1:
     address: campsverso.{worldid}.world.action.accepted.v1
     title: campsverso.action.accepted.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -29,6 +36,8 @@ channels:
   ActionCompletedV1:
     address: campsverso.{worldid}.world.action.completed.v1
     title: campsverso.action.completed.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -38,6 +47,8 @@ channels:
   ActionEffectsExplainedV1:
     address: campsverso.{worldid}.internal.action.effects_explained.v1
     title: campsverso.action.effects_explained.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -47,6 +58,8 @@ channels:
   ActionFailedV1:
     address: campsverso.{worldid}.world.action.failed.v1
     title: campsverso.action.failed.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -56,6 +69,8 @@ channels:
   ActionRejectedV1:
     address: campsverso.{worldid}.agent.{avatar_id}.action.rejected.v1
     title: campsverso.action.rejected.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -67,6 +82,8 @@ channels:
   AvatarDecisionRequestedV1:
     address: campsverso.{worldid}.agent.{avatar_id}.avatar.decision_requested.v1
     title: campsverso.avatar.decision_requested.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -78,6 +95,8 @@ channels:
   AvatarFaintedV1:
     address: campsverso.{worldid}.world.avatar.fainted.v1
     title: campsverso.avatar.fainted.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -87,6 +106,8 @@ channels:
   AvatarPossessedV1:
     address: campsverso.{worldid}.world.avatar.possessed.v1
     title: campsverso.avatar.possessed.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -96,6 +117,8 @@ channels:
   AvatarReleasedV1:
     address: campsverso.{worldid}.world.avatar.released.v1
     title: campsverso.avatar.released.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -105,6 +128,8 @@ channels:
   AvatarSleepEndedV1:
     address: campsverso.{worldid}.world.avatar.sleep.ended.v1
     title: campsverso.avatar.sleep.ended.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -114,6 +139,8 @@ channels:
   AvatarSleepEndedV2:
     address: campsverso.{worldid}.world.avatar.sleep.ended.v2
     title: campsverso.avatar.sleep.ended.v2
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -123,6 +150,8 @@ channels:
   AvatarSleepStartedV1:
     address: campsverso.{worldid}.world.avatar.sleep.started.v1
     title: campsverso.avatar.sleep.started.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -132,6 +161,8 @@ channels:
   AvatarSleepStartedV2:
     address: campsverso.{worldid}.world.avatar.sleep.started.v2
     title: campsverso.avatar.sleep.started.v2
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -141,6 +172,8 @@ channels:
   CmdActionProposeV1:
     address: campsverso.{worldid}.cmd.action.propose.v1
     title: campsverso.cmd.action.propose.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -150,6 +183,8 @@ channels:
   CmdAvatarPossessV1:
     address: campsverso.{worldid}.cmd.avatar.possess.v1
     title: campsverso.cmd.avatar.possess.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -159,6 +194,8 @@ channels:
   CmdAvatarReleaseV1:
     address: campsverso.{worldid}.cmd.avatar.release.v1
     title: campsverso.cmd.avatar.release.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -168,6 +205,8 @@ channels:
   CmdClockPauseV1:
     address: campsverso.{worldid}.cmd.clock.pause.v1
     title: campsverso.cmd.clock.pause.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -177,6 +216,8 @@ channels:
   CmdClockResumeV1:
     address: campsverso.{worldid}.cmd.clock.resume.v1
     title: campsverso.cmd.clock.resume.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -186,6 +227,8 @@ channels:
   CmdClockSetModeV1:
     address: campsverso.{worldid}.cmd.clock.set_mode.v1
     title: campsverso.cmd.clock.set_mode.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -195,6 +238,8 @@ channels:
   CmdClockSetScaleV1:
     address: campsverso.{worldid}.cmd.clock.set_scale.v1
     title: campsverso.cmd.clock.set_scale.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -204,6 +249,8 @@ channels:
   CmdClockStepV1:
     address: campsverso.{worldid}.cmd.clock.step.v1
     title: campsverso.cmd.clock.step.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -213,6 +260,8 @@ channels:
   CmdRulesToggleV1:
     address: campsverso.{worldid}.cmd.rules.toggle.v1
     title: campsverso.cmd.rules.toggle.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -222,6 +271,8 @@ channels:
   FarmBuyerPaidV1:
     address: campsverso.{worldid}.world.farm.buyer.paid.v1
     title: campsverso.farm.buyer.paid.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -231,6 +282,8 @@ channels:
   FarmCropMaturedV1:
     address: campsverso.{worldid}.world.farm.crop.matured.v1
     title: campsverso.farm.crop.matured.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -240,6 +293,8 @@ channels:
   FarmCropWitheredV1:
     address: campsverso.{worldid}.world.farm.crop.withered.v1
     title: campsverso.farm.crop.withered.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -249,6 +304,8 @@ channels:
   PerceptionDeliveredV1:
     address: campsverso.{worldid}.agent.{avatar_id}.perception.delivered.v1
     title: campsverso.perception.delivered.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -260,6 +317,8 @@ channels:
   RulesEffectAppliedV1:
     address: campsverso.{worldid}.internal.rules.effect_applied.v1
     title: campsverso.rules.effect_applied.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -269,6 +328,8 @@ channels:
   RulesLoadedV1:
     address: campsverso.{worldid}.internal.rules.loaded.v1
     title: campsverso.rules.loaded.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -278,6 +339,8 @@ channels:
   RulesToggledV1:
     address: campsverso.{worldid}.internal.rules.toggled.v1
     title: campsverso.rules.toggled.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -287,6 +350,8 @@ channels:
   WorldClockJumpedV1:
     address: campsverso.{worldid}.internal.world.clock.jumped.v1
     title: campsverso.world.clock.jumped.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -296,6 +361,8 @@ channels:
   WorldClockModeChangedV1:
     address: campsverso.{worldid}.world.world.clock.mode_changed.v1
     title: campsverso.world.clock.mode_changed.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -305,6 +372,8 @@ channels:
   WorldClockPausedV1:
     address: campsverso.{worldid}.world.world.clock.paused.v1
     title: campsverso.world.clock.paused.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -314,6 +383,8 @@ channels:
   WorldClockPhaseChangedV1:
     address: campsverso.{worldid}.world.world.clock.phase_changed.v1
     title: campsverso.world.clock.phase_changed.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -323,6 +394,8 @@ channels:
   WorldClockResumedV1:
     address: campsverso.{worldid}.world.world.clock.resumed.v1
     title: campsverso.world.clock.resumed.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -332,6 +405,8 @@ channels:
   WorldClockScaleChangedV1:
     address: campsverso.{worldid}.world.world.clock.scale_changed.v1
     title: campsverso.world.clock.scale_changed.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -341,6 +416,8 @@ channels:
   WorldClockSteppedV1:
     address: campsverso.{worldid}.world.world.clock.stepped.v1
     title: campsverso.world.clock.stepped.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -350,6 +427,8 @@ channels:
   WorldCommandRejectedV1:
     address: campsverso.{worldid}.observer.world.command.rejected.v1
     title: campsverso.world.command.rejected.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -359,6 +438,8 @@ channels:
   WorldEntityMoveInterruptedV1:
     address: campsverso.{worldid}.world.world.entity.move_interrupted.v1
     title: campsverso.world.entity.move_interrupted.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -368,6 +449,8 @@ channels:
   WorldEntityMovedV1:
     address: campsverso.{worldid}.world.world.entity.moved.v1
     title: campsverso.world.entity.moved.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -377,6 +460,8 @@ channels:
   WorldEntitySpawnedV1:
     address: campsverso.{worldid}.world.world.entity.spawned.v1
     title: campsverso.world.entity.spawned.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -386,6 +471,8 @@ channels:
   WorldEntityStateChangedV1:
     address: campsverso.{worldid}.world.world.entity.state_changed.v1
     title: campsverso.world.entity.state_changed.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -395,6 +482,8 @@ channels:
   WorldItemConsumedV1:
     address: campsverso.{worldid}.world.world.item.consumed.v1
     title: campsverso.world.item.consumed.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -404,6 +493,8 @@ channels:
   WorldItemCreatedV1:
     address: campsverso.{worldid}.world.world.item.created.v1
     title: campsverso.world.item.created.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -413,6 +504,8 @@ channels:
   WorldItemTransferredV1:
     address: campsverso.{worldid}.world.world.item.transferred.v1
     title: campsverso.world.item.transferred.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -422,6 +515,8 @@ channels:
   WorldNeedChangedV1:
     address: campsverso.{worldid}.agent.{avatar_id}.world.need.changed.v1
     title: campsverso.world.need.changed.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -433,6 +528,8 @@ channels:
   WorldNeedThresholdCrossedV1:
     address: campsverso.{worldid}.agent.{avatar_id}.world.need.threshold_crossed.v1
     title: campsverso.world.need.threshold_crossed.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -444,6 +541,8 @@ channels:
   WorldSessionStartedV1:
     address: campsverso.{worldid}.world.world.session.started.v1
     title: campsverso.world.session.started.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -453,6 +552,8 @@ channels:
   WorldSnapshotCreatedV1:
     address: campsverso.{worldid}.internal.world.snapshot.created.v1
     title: campsverso.world.snapshot.created.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
@@ -462,12 +563,29 @@ channels:
   WorldWeatherChangedV1:
     address: campsverso.{worldid}.world.world.weather.changed.v1
     title: campsverso.world.weather.changed.v1
+    servers:
+    - $ref: '#/servers/local'
     parameters:
       worldid:
         $ref: '#/components/parameters/worldid'
     messages:
       WorldWeatherChangedV1:
         $ref: '#/components/messages/WorldWeatherChangedV1'
+  Realtime:
+    address: /ws
+    title: WebSocket gateway ↔ UI
+    description: 'A visão vem na query string: /ws?view=player ou /ws?view=operator.'
+    servers:
+    - $ref: '#/servers/gateway'
+    messages:
+      RealtimeCommandV1:
+        $ref: '#/components/messages/RealtimeCommandV1'
+      RealtimeReplyV1:
+        $ref: '#/components/messages/RealtimeReplyV1'
+      RealtimeUpdateV1:
+        $ref: '#/components/messages/RealtimeUpdateV1'
+      RealtimeWelcomeV1:
+        $ref: '#/components/messages/RealtimeWelcomeV1'
 operations:
   sendActionAcceptedV1:
     action: send
@@ -812,6 +930,34 @@ operations:
     messages:
     - $ref: '#/channels/WorldWeatherChangedV1/messages/WorldWeatherChangedV1'
     x-producer: kernel
+  receiveRealtimeCommandV1:
+    action: receive
+    channel:
+      $ref: '#/channels/Realtime'
+    messages:
+    - $ref: '#/channels/Realtime/messages/RealtimeCommandV1'
+    x-producer: ui
+  sendRealtimeReplyV1:
+    action: send
+    channel:
+      $ref: '#/channels/Realtime'
+    messages:
+    - $ref: '#/channels/Realtime/messages/RealtimeReplyV1'
+    x-producer: gateway
+  sendRealtimeUpdateV1:
+    action: send
+    channel:
+      $ref: '#/channels/Realtime'
+    messages:
+    - $ref: '#/channels/Realtime/messages/RealtimeUpdateV1'
+    x-producer: gateway
+  sendRealtimeWelcomeV1:
+    action: send
+    channel:
+      $ref: '#/channels/Realtime'
+    messages:
+    - $ref: '#/channels/Realtime/messages/RealtimeWelcomeV1'
+    x-producer: gateway
 components:
   schemas:
     Uuid7:
@@ -2321,6 +2467,327 @@ components:
           description: 'Ex.: sun, rain.'
         day:
           $ref: '#/components/schemas/Day'
+    RealtimeCommandV1:
+      title: RealtimeCommandV1
+      description: Pedido da UI para o gateway publicar um comando. O gateway monta o envelope e o valida
+        contra o contrato do comando (ADR-0050).
+      type: object
+      additionalProperties: false
+      required:
+      - type
+      - request_id
+      - command
+      - data
+      properties:
+        type:
+          const: campsverso.realtime.command.v1
+        request_id:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Escolhido pela UI; volta no reply.
+        command:
+          type: string
+          pattern: ^campsverso\.cmd\.[a-z0-9_]+(\.[a-z0-9_]+)+\.v[0-9]+$
+        data:
+          $ref: '#/components/schemas/Params'
+          description: O payload do comando, como no contrato dele.
+    RealtimeReplyV1:
+      title: RealtimeReplyV1
+      description: 'Resposta do gateway a um command: publicado ou recusado. Quem aceita ou recusa o comando
+        no mundo é o kernel, com um evento (ADR-0050).'
+      type: object
+      additionalProperties: false
+      required:
+      - type
+      - request_id
+      - ok
+      properties:
+        type:
+          const: campsverso.realtime.reply.v1
+        request_id:
+          type: string
+          minLength: 1
+          maxLength: 64
+        ok:
+          type: boolean
+        command_id:
+          $ref: '#/components/schemas/Uuid7'
+          description: Id do envelope publicado, quando ok.
+        error:
+          type: object
+          title: RealtimeError
+          additionalProperties: false
+          required:
+          - code
+          - message
+          properties:
+            code:
+              enum:
+              - not_allowed
+              - invalid_command
+              - unavailable
+              - invalid_message
+            message:
+              type: string
+              minLength: 1
+              maxLength: 500
+    RealtimeUpdateV1:
+      title: RealtimeUpdateV1
+      description: 'O que mudou desde a última mensagem: um merge patch do estado (RFC 7386) e os eventos
+        do intervalo, filtrados pela visão (ADR-0050).'
+      type: object
+      additionalProperties: false
+      required:
+      - type
+      - patch
+      - events
+      properties:
+        type:
+          const: campsverso.realtime.update.v1
+        patch:
+          type: object
+          description: Merge patch (RFC 7386) sobre o ObserverState; null apaga a chave.
+        events:
+          type: array
+          maxItems: 5000
+          items:
+            $ref: '#/components/schemas/EnvelopeV1'
+    RealtimeWelcomeV1:
+      title: RealtimeWelcomeV1
+      description: 'Primeira mensagem do gateway para a UI: o estado do mundo e a linha do tempo recente
+        (ADR-0050).'
+      type: object
+      additionalProperties: false
+      required:
+      - type
+      - worldid
+      - view
+      - avatar_id
+      - commands
+      - state
+      - events
+      properties:
+        type:
+          const: campsverso.realtime.welcome.v1
+        worldid:
+          type: string
+          pattern: ^[a-z0-9]+(-[a-z0-9]+)*$
+          maxLength: 64
+        view:
+          enum:
+          - player
+          - operator
+          description: 'player: world e agent do avatar; operator: também internal e observer.'
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: O avatar que esta conexão acompanha.
+        commands:
+          type: array
+          uniqueItems: true
+          description: Tipos de comando que esta conexão pode mandar.
+          items:
+            type: string
+            pattern: ^campsverso\.cmd\.[a-z0-9_]+(\.[a-z0-9_]+)+\.v[0-9]+$
+        state:
+          type: object
+          title: ObserverState
+          description: 'O mundo como se vê de fora, montado só com eventos publicados (ADR-0050). Genérico
+            e sem nada de desenho: posições em tiles, trajetos em ticks, o que é do cartucho chega como
+            atributo. Não carrega null: atributo nulo é atributo ausente, porque no merge patch null apaga.'
+          additionalProperties: false
+          required:
+          - tick
+          - day
+          - phase
+          - clock
+          - weather
+          - entities
+          - containers
+          - motion
+          - actions
+          - needs
+          - asleep
+          - controllers
+          - decisions
+          properties:
+            cartridge:
+              $ref: '#/components/schemas/Token'
+              description: Cartucho do mundo, como no envelope.
+            tick:
+              $ref: '#/components/schemas/Tick'
+            sim_time:
+              type: string
+              format: date-time
+              description: Hora simulada do tick mais recente.
+            day:
+              $ref: '#/components/schemas/Day'
+            phase:
+              $ref: '#/components/schemas/Token'
+              description: Fase do dia; `desconhecida` antes do primeiro evento de fase.
+            session:
+              type: object
+              title: ObserverSession
+              additionalProperties: false
+              required:
+              - cartridge_version
+              - tick_seconds
+              properties:
+                cartridge_version:
+                  $ref: '#/components/schemas/Semver'
+                tick_seconds:
+                  type: integer
+                  minimum: 1
+                map:
+                  type: object
+                  title: ObserverMap
+                  additionalProperties: false
+                  description: O mapa do cartucho; o arquivo fica no gateway em /content/maps/<id>.tmj
+                    (ADR-0050).
+                  required:
+                  - id
+                  - width
+                  - height
+                  properties:
+                    id:
+                      type: string
+                      minLength: 1
+                      maxLength: 64
+                      pattern: ^[a-z0-9_-]+$
+                    width:
+                      type: integer
+                      minimum: 1
+                    height:
+                      type: integer
+                      minimum: 1
+            clock:
+              type: object
+              title: ObserverClock
+              additionalProperties: false
+              description: Vazio até o session.started; a pausa é estado, não modo (ADR-0026).
+              properties:
+                mode:
+                  $ref: '#/components/schemas/ClockMode'
+                scale:
+                  type: number
+                  exclusiveMinimum: 0
+                paused:
+                  type: boolean
+            weather:
+              type: object
+              description: Condição do clima por dia (a chave é o número do dia).
+              additionalProperties:
+                $ref: '#/components/schemas/Token'
+            entities:
+              type: object
+              additionalProperties:
+                type: object
+                title: ObserverEntity
+                additionalProperties: false
+                required:
+                - kind
+                - attributes
+                properties:
+                  kind:
+                    $ref: '#/components/schemas/Token'
+                    description: Tipo definido pelo cartucho; cada renderer escolhe como desenhar.
+                  position:
+                    $ref: '#/components/schemas/Position'
+                    description: Onde está, ou onde vai estar ao fim do trajeto em `motion`.
+                  container_id:
+                    $ref: '#/components/schemas/EntityId'
+                    description: Dentro de outra entidade (inventário), sem posição.
+                  display_name:
+                    type: string
+                    minLength: 1
+                    maxLength: 64
+                  attributes:
+                    $ref: '#/components/schemas/Attributes'
+            containers:
+              type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: integer
+                  minimum: 1
+            motion:
+              type: object
+              additionalProperties:
+                type: object
+                title: ObserverMotion
+                additionalProperties: false
+                description: 'Trajeto em andamento: tile a tile, a partir de depart_tick, a tiles_per_tick.'
+                required:
+                - path
+                - depart_tick
+                - tiles_per_tick
+                properties:
+                  path:
+                    type: array
+                    minItems: 1
+                    items:
+                      $ref: '#/components/schemas/Position'
+                  depart_tick:
+                    $ref: '#/components/schemas/Tick'
+                  tiles_per_tick:
+                    type: number
+                    exclusiveMinimum: 0
+            actions:
+              type: object
+              additionalProperties:
+                type: object
+                title: ObserverAction
+                additionalProperties: false
+                required:
+                - action_id
+                - action
+                - params
+                - end_tick
+                properties:
+                  action_id:
+                    $ref: '#/components/schemas/ActionId'
+                  action:
+                    $ref: '#/components/schemas/Token'
+                  params:
+                    $ref: '#/components/schemas/Params'
+                  end_tick:
+                    $ref: '#/components/schemas/Tick'
+            needs:
+              type: object
+              additionalProperties:
+                $ref: '#/components/schemas/Needs'
+              description: Último valor exato recebido de cada necessidade, por avatar.
+            asleep:
+              type: object
+              additionalProperties:
+                type: boolean
+            controllers:
+              type: object
+              additionalProperties:
+                $ref: '#/components/schemas/ControllerRef'
+              description: Quem controla cada avatar.
+            decisions:
+              type: object
+              additionalProperties:
+                type: object
+                title: ObserverDecision
+                additionalProperties: false
+                description: Último pedido de decisão do avatar.
+                required:
+                - reason
+                - tick
+                properties:
+                  reason:
+                    $ref: '#/components/schemas/Token'
+                  tick:
+                    $ref: '#/components/schemas/Tick'
+        events:
+          type: array
+          maxItems: 5000
+          items:
+            $ref: '#/components/schemas/EnvelopeV1'
+          description: As entradas mais recentes da linha do tempo, da mais antiga para a mais nova, já
+            filtradas pela visão.
   messages:
     ActionAcceptedV1:
       name: campsverso.action.accepted.v1
@@ -2765,6 +3232,37 @@ components:
         $ref: '#/components/schemas/WorldWeatherChangedV1'
       x-visibility: world
       x-producer: kernel
+    RealtimeCommandV1:
+      name: campsverso.realtime.command.v1
+      title: RealtimeCommandV1
+      summary: Pedido da UI para o gateway publicar um comando. O gateway monta o envelope e o valida
+        contra o contrato do comando (ADR-0050).
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/RealtimeCommandV1'
+    RealtimeReplyV1:
+      name: campsverso.realtime.reply.v1
+      title: RealtimeReplyV1
+      summary: 'Resposta do gateway a um command: publicado ou recusado. Quem aceita ou recusa o comando
+        no mundo é o kernel, com um evento (ADR-0050).'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/RealtimeReplyV1'
+    RealtimeUpdateV1:
+      name: campsverso.realtime.update.v1
+      title: RealtimeUpdateV1
+      summary: 'O que mudou desde a última mensagem: um merge patch do estado (RFC 7386) e os eventos
+        do intervalo, filtrados pela visão (ADR-0050).'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/RealtimeUpdateV1'
+    RealtimeWelcomeV1:
+      name: campsverso.realtime.welcome.v1
+      title: RealtimeWelcomeV1
+      summary: 'Primeira mensagem do gateway para a UI: o estado do mundo e a linha do tempo recente (ADR-0050).'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/RealtimeWelcomeV1'
   parameters:
     worldid:
       description: 'Instância do mundo, ex.: farm-camps-01.'

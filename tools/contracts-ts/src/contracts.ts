@@ -35,7 +35,8 @@ export interface TypeInfo {
   readonly dataschema: string;
 }
 
-const SCHEMA_DIRS = ["common", "envelope", "events", "commands"];
+const SCHEMA_DIRS = ["common", "envelope", "events", "commands", "realtime"];
+const REALTIME = "campsverso.realtime.";
 
 export function readJson(path: string): JsonObject {
   return JSON.parse(readFileSync(path, "utf8")) as JsonObject;
@@ -76,11 +77,12 @@ export class EventValidator {
   private readonly envelope: ValidateFunction;
   private readonly payloads = new Map<string, ValidateFunction>();
   private readonly types = new Map<string, TypeInfo>();
+  private readonly messages = new Map<string, ValidateFunction>();
 
   constructor(schemas: SchemaFile[] = loadSchemas()) {
     const ajv = new Ajv2020({ allErrors: true, strict: true, allowUnionTypes: true });
     addFormats(ajv);
-    for (const keyword of ["x-type", "x-visibility", "x-producer"]) {
+    for (const keyword of ["x-type", "x-visibility", "x-producer", "x-message"]) {
       ajv.addKeyword({ keyword, schemaType: "string" });
     }
     for (const schema of schemas) {
@@ -91,6 +93,31 @@ export class EventValidator {
       this.types.set(info.name, info);
       this.payloads.set(info.name, ajv.getSchema(info.dataschema) ?? fail(info.dataschema));
     }
+    for (const schema of schemas.filter((s) => typeof s.content["x-message"] === "string")) {
+      const id = String(schema.content.$id);
+      this.messages.set(String(schema.content["x-message"]), ajv.getSchema(id) ?? fail(id));
+    }
+  }
+
+  /** Nomes das mensagens do WebSocket entre gateway e UI (contracts/realtime, ADR-0050). */
+  messageNames(): string[] {
+    return [...this.messages.keys()].sort();
+  }
+
+  /** Mensagem do WebSocket: valida o documento inteiro pelo schema do seu `type`. */
+  validateMessage(message: JsonObject): Problem[] {
+    const name = typeof message.type === "string" ? message.type : "";
+    const validate = this.messages.get(name);
+    if (validate === undefined) {
+      return [{ code: "unknown_message", message: `mensagem sem schema em contracts/: ${name}` }];
+    }
+    return validate(message) ? [] : describe(validate.errors).map((m) => ({ code: "message_schema", message: m }));
+  }
+
+  /** Evento, comando ou mensagem do WebSocket, conforme o prefixo do `type`. */
+  validateAny(document: JsonObject): Problem[] {
+    const type = typeof document.type === "string" ? document.type : "";
+    return type.startsWith(REALTIME) ? this.validateMessage(document) : this.validate(document);
   }
 
   validate(event: JsonObject): Problem[] {
@@ -137,7 +164,7 @@ export function checkExamples(contractsDir: string = CONTRACTS_DIR): Problem[] {
   const validDir = join(contractsDir, "examples", "valid");
   for (const name of readdirSync(validDir).filter((n) => n.endsWith(".json")).sort()) {
     const event = readJson(join(validDir, name));
-    const found = validator.validate(event);
+    const found = validator.validateAny(event);
     for (const p of found) {
       problems.push({ code: "valid_example_fails", message: `valid/${name}: [${p.code}] ${p.message}` });
     }
@@ -145,9 +172,9 @@ export function checkExamples(contractsDir: string = CONTRACTS_DIR): Problem[] {
       covered.add(String(event.type));
     }
   }
-  for (const info of typeInfos(schemas)) {
-    if (!covered.has(info.name)) {
-      problems.push({ code: "missing_example", message: `${info.name} não tem exemplo em examples/valid/` });
+  for (const name of [...typeInfos(schemas).map((i) => i.name), ...validator.messageNames()]) {
+    if (!covered.has(name)) {
+      problems.push({ code: "missing_example", message: `${name} não tem exemplo em examples/valid/` });
     }
   }
 
@@ -155,7 +182,8 @@ export function checkExamples(contractsDir: string = CONTRACTS_DIR): Problem[] {
   for (const name of readdirSync(invalidDir).filter((n) => n.endsWith(".json")).sort()) {
     const document = readJson(join(invalidDir, name));
     const expected = String(document.expect_error);
-    const codes = new Set(validator.validate(document.event as JsonObject).map((p) => p.code));
+    const target = (document.event ?? document.message) as JsonObject;
+    const codes = new Set(validator.validateAny(target).map((p) => p.code));
     if (codes.size === 0) {
       problems.push({ code: "invalid_example_passes", message: `invalid/${name}: deveria falhar (${expected})` });
     } else if (!codes.has(expected)) {

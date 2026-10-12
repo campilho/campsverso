@@ -890,3 +890,185 @@ export interface WorldWeatherChangedV1 {
   condition: Token;
   day: Day;
 }
+/**
+ * Pedido da UI para o gateway publicar um comando. O gateway monta o envelope e o valida contra o contrato do comando (ADR-0050).
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "RealtimeCommandV1".
+ */
+export interface RealtimeCommandV1 {
+  type: "campsverso.realtime.command.v1";
+  /**
+   * Escolhido pela UI; volta no reply.
+   */
+  request_id: string;
+  command: string;
+  data: Params;
+}
+/**
+ * Resposta do gateway a um command: publicado ou recusado. Quem aceita ou recusa o comando no mundo é o kernel, com um evento (ADR-0050).
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "RealtimeReplyV1".
+ */
+export interface RealtimeReplyV1 {
+  type: "campsverso.realtime.reply.v1";
+  request_id: string;
+  ok: boolean;
+  command_id?: Uuid7;
+  error?: RealtimeError;
+}
+export interface RealtimeError {
+  code: "not_allowed" | "invalid_command" | "unavailable" | "invalid_message";
+  message: string;
+}
+/**
+ * O que mudou desde a última mensagem: um merge patch do estado (RFC 7386) e os eventos do intervalo, filtrados pela visão (ADR-0050).
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "RealtimeUpdateV1".
+ */
+export interface RealtimeUpdateV1 {
+  type: "campsverso.realtime.update.v1";
+  /**
+   * Merge patch (RFC 7386) sobre o ObserverState; null apaga a chave.
+   */
+  patch: {};
+  /**
+   * @maxItems 5000
+   */
+  events: EnvelopeV1[];
+}
+/**
+ * Primeira mensagem do gateway para a UI: o estado do mundo e a linha do tempo recente (ADR-0050).
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "RealtimeWelcomeV1".
+ */
+export interface RealtimeWelcomeV1 {
+  type: "campsverso.realtime.welcome.v1";
+  worldid: string;
+  /**
+   * player: world e agent do avatar; operator: também internal e observer.
+   */
+  view: "player" | "operator";
+  avatar_id: EntityId;
+  /**
+   * Tipos de comando que esta conexão pode mandar.
+   */
+  commands: string[];
+  state: ObserverState;
+  /**
+   * As entradas mais recentes da linha do tempo, da mais antiga para a mais nova, já filtradas pela visão.
+   *
+   * @maxItems 5000
+   */
+  events: EnvelopeV1[];
+}
+/**
+ * O mundo como se vê de fora, montado só com eventos publicados (ADR-0050). Genérico e sem nada de desenho: posições em tiles, trajetos em ticks, o que é do cartucho chega como atributo. Não carrega null: atributo nulo é atributo ausente, porque no merge patch null apaga.
+ */
+export interface ObserverState {
+  cartridge?: Token;
+  tick: Tick;
+  /**
+   * Hora simulada do tick mais recente.
+   */
+  sim_time?: string;
+  day: Day;
+  phase: Token;
+  session?: ObserverSession;
+  clock: ObserverClock;
+  /**
+   * Condição do clima por dia (a chave é o número do dia).
+   */
+  weather: {
+    [k: string]: Token | undefined;
+  };
+  entities: {
+    [k: string]: ObserverEntity | undefined;
+  };
+  containers: {
+    [k: string]:
+      | {
+          [k: string]: number | undefined;
+        }
+      | undefined;
+  };
+  motion: {
+    [k: string]: ObserverMotion | undefined;
+  };
+  actions: {
+    [k: string]: ObserverAction | undefined;
+  };
+  /**
+   * Último valor exato recebido de cada necessidade, por avatar.
+   */
+  needs: {
+    [k: string]: Needs | undefined;
+  };
+  asleep: {
+    [k: string]: boolean | undefined;
+  };
+  /**
+   * Quem controla cada avatar.
+   */
+  controllers: {
+    [k: string]: ControllerRef | undefined;
+  };
+  decisions: {
+    [k: string]: ObserverDecision | undefined;
+  };
+}
+export interface ObserverSession {
+  cartridge_version: Semver;
+  tick_seconds: number;
+  map?: ObserverMap;
+}
+/**
+ * O mapa do cartucho; o arquivo fica no gateway em /content/maps/<id>.tmj (ADR-0050).
+ */
+export interface ObserverMap {
+  id: string;
+  width: number;
+  height: number;
+}
+/**
+ * Vazio até o session.started; a pausa é estado, não modo (ADR-0026).
+ */
+export interface ObserverClock {
+  mode?: ClockMode;
+  scale?: number;
+  paused?: boolean;
+}
+export interface ObserverEntity {
+  kind: Token;
+  position?: Position;
+  container_id?: EntityId;
+  display_name?: string;
+  attributes: Attributes;
+}
+/**
+ * Trajeto em andamento: tile a tile, a partir de depart_tick, a tiles_per_tick.
+ */
+export interface ObserverMotion {
+  /**
+   * @minItems 1
+   */
+  path: [Position, ...Position[]];
+  depart_tick: Tick;
+  tiles_per_tick: number;
+}
+export interface ObserverAction {
+  action_id: ActionId;
+  action: Token;
+  params: Params;
+  end_tick: Tick;
+}
+/**
+ * Último pedido de decisão do avatar.
+ */
+export interface ObserverDecision {
+  reason: Token;
+  tick: Tick;
+}

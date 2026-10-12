@@ -2000,6 +2000,424 @@
           "$ref": "#/$defs/Day"
         }
       }
+    },
+    "RealtimeCommandV1": {
+      "title": "RealtimeCommandV1",
+      "description": "Pedido da UI para o gateway publicar um comando. O gateway monta o envelope e o valida contra o contrato do comando (ADR-0050).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "request_id",
+        "command",
+        "data"
+      ],
+      "properties": {
+        "type": {
+          "const": "campsverso.realtime.command.v1"
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Escolhido pela UI; volta no reply."
+        },
+        "command": {
+          "type": "string",
+          "pattern": "^campsverso\\.cmd\\.[a-z0-9_]+(\\.[a-z0-9_]+)+\\.v[0-9]+$"
+        },
+        "data": {
+          "$ref": "#/$defs/Params",
+          "description": "O payload do comando, como no contrato dele."
+        }
+      }
+    },
+    "RealtimeReplyV1": {
+      "title": "RealtimeReplyV1",
+      "description": "Resposta do gateway a um command: publicado ou recusado. Quem aceita ou recusa o comando no mundo é o kernel, com um evento (ADR-0050).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "request_id",
+        "ok"
+      ],
+      "properties": {
+        "type": {
+          "const": "campsverso.realtime.reply.v1"
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "command_id": {
+          "$ref": "#/$defs/Uuid7",
+          "description": "Id do envelope publicado, quando ok."
+        },
+        "error": {
+          "type": "object",
+          "title": "RealtimeError",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "enum": [
+                "not_allowed",
+                "invalid_command",
+                "unavailable",
+                "invalid_message"
+              ]
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            }
+          }
+        }
+      }
+    },
+    "RealtimeUpdateV1": {
+      "title": "RealtimeUpdateV1",
+      "description": "O que mudou desde a última mensagem: um merge patch do estado (RFC 7386) e os eventos do intervalo, filtrados pela visão (ADR-0050).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "patch",
+        "events"
+      ],
+      "properties": {
+        "type": {
+          "const": "campsverso.realtime.update.v1"
+        },
+        "patch": {
+          "type": "object",
+          "description": "Merge patch (RFC 7386) sobre o ObserverState; null apaga a chave."
+        },
+        "events": {
+          "type": "array",
+          "maxItems": 5000,
+          "items": {
+            "$ref": "#/$defs/EnvelopeV1"
+          }
+        }
+      }
+    },
+    "RealtimeWelcomeV1": {
+      "title": "RealtimeWelcomeV1",
+      "description": "Primeira mensagem do gateway para a UI: o estado do mundo e a linha do tempo recente (ADR-0050).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "worldid",
+        "view",
+        "avatar_id",
+        "commands",
+        "state",
+        "events"
+      ],
+      "properties": {
+        "type": {
+          "const": "campsverso.realtime.welcome.v1"
+        },
+        "worldid": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 64
+        },
+        "view": {
+          "enum": [
+            "player",
+            "operator"
+          ],
+          "description": "player: world e agent do avatar; operator: também internal e observer."
+        },
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "O avatar que esta conexão acompanha."
+        },
+        "commands": {
+          "type": "array",
+          "uniqueItems": true,
+          "description": "Tipos de comando que esta conexão pode mandar.",
+          "items": {
+            "type": "string",
+            "pattern": "^campsverso\\.cmd\\.[a-z0-9_]+(\\.[a-z0-9_]+)+\\.v[0-9]+$"
+          }
+        },
+        "state": {
+          "type": "object",
+          "title": "ObserverState",
+          "description": "O mundo como se vê de fora, montado só com eventos publicados (ADR-0050). Genérico e sem nada de desenho: posições em tiles, trajetos em ticks, o que é do cartucho chega como atributo. Não carrega null: atributo nulo é atributo ausente, porque no merge patch null apaga.",
+          "additionalProperties": false,
+          "required": [
+            "tick",
+            "day",
+            "phase",
+            "clock",
+            "weather",
+            "entities",
+            "containers",
+            "motion",
+            "actions",
+            "needs",
+            "asleep",
+            "controllers",
+            "decisions"
+          ],
+          "properties": {
+            "cartridge": {
+              "$ref": "#/$defs/Token",
+              "description": "Cartucho do mundo, como no envelope."
+            },
+            "tick": {
+              "$ref": "#/$defs/Tick"
+            },
+            "sim_time": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Hora simulada do tick mais recente."
+            },
+            "day": {
+              "$ref": "#/$defs/Day"
+            },
+            "phase": {
+              "$ref": "#/$defs/Token",
+              "description": "Fase do dia; `desconhecida` antes do primeiro evento de fase."
+            },
+            "session": {
+              "type": "object",
+              "title": "ObserverSession",
+              "additionalProperties": false,
+              "required": [
+                "cartridge_version",
+                "tick_seconds"
+              ],
+              "properties": {
+                "cartridge_version": {
+                  "$ref": "#/$defs/Semver"
+                },
+                "tick_seconds": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "map": {
+                  "type": "object",
+                  "title": "ObserverMap",
+                  "additionalProperties": false,
+                  "description": "O mapa do cartucho; o arquivo fica no gateway em /content/maps/<id>.tmj (ADR-0050).",
+                  "required": [
+                    "id",
+                    "width",
+                    "height"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9_-]+$"
+                    },
+                    "width": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "height": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  }
+                }
+              }
+            },
+            "clock": {
+              "type": "object",
+              "title": "ObserverClock",
+              "additionalProperties": false,
+              "description": "Vazio até o session.started; a pausa é estado, não modo (ADR-0026).",
+              "properties": {
+                "mode": {
+                  "$ref": "#/$defs/ClockMode"
+                },
+                "scale": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "paused": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "weather": {
+              "type": "object",
+              "description": "Condição do clima por dia (a chave é o número do dia).",
+              "additionalProperties": {
+                "$ref": "#/$defs/Token"
+              }
+            },
+            "entities": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "title": "ObserverEntity",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "attributes"
+                ],
+                "properties": {
+                  "kind": {
+                    "$ref": "#/$defs/Token",
+                    "description": "Tipo definido pelo cartucho; cada renderer escolhe como desenhar."
+                  },
+                  "position": {
+                    "$ref": "#/$defs/Position",
+                    "description": "Onde está, ou onde vai estar ao fim do trajeto em `motion`."
+                  },
+                  "container_id": {
+                    "$ref": "#/$defs/EntityId",
+                    "description": "Dentro de outra entidade (inventário), sem posição."
+                  },
+                  "display_name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "attributes": {
+                    "$ref": "#/$defs/Attributes"
+                  }
+                }
+              }
+            },
+            "containers": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "motion": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "title": "ObserverMotion",
+                "additionalProperties": false,
+                "description": "Trajeto em andamento: tile a tile, a partir de depart_tick, a tiles_per_tick.",
+                "required": [
+                  "path",
+                  "depart_tick",
+                  "tiles_per_tick"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "$ref": "#/$defs/Position"
+                    }
+                  },
+                  "depart_tick": {
+                    "$ref": "#/$defs/Tick"
+                  },
+                  "tiles_per_tick": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  }
+                }
+              }
+            },
+            "actions": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "title": "ObserverAction",
+                "additionalProperties": false,
+                "required": [
+                  "action_id",
+                  "action",
+                  "params",
+                  "end_tick"
+                ],
+                "properties": {
+                  "action_id": {
+                    "$ref": "#/$defs/ActionId"
+                  },
+                  "action": {
+                    "$ref": "#/$defs/Token"
+                  },
+                  "params": {
+                    "$ref": "#/$defs/Params"
+                  },
+                  "end_tick": {
+                    "$ref": "#/$defs/Tick"
+                  }
+                }
+              }
+            },
+            "needs": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/Needs"
+              },
+              "description": "Último valor exato recebido de cada necessidade, por avatar."
+            },
+            "asleep": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "boolean"
+              }
+            },
+            "controllers": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/ControllerRef"
+              },
+              "description": "Quem controla cada avatar."
+            },
+            "decisions": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "title": "ObserverDecision",
+                "additionalProperties": false,
+                "description": "Último pedido de decisão do avatar.",
+                "required": [
+                  "reason",
+                  "tick"
+                ],
+                "properties": {
+                  "reason": {
+                    "$ref": "#/$defs/Token"
+                  },
+                  "tick": {
+                    "$ref": "#/$defs/Tick"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "events": {
+          "type": "array",
+          "maxItems": 5000,
+          "items": {
+            "$ref": "#/$defs/EnvelopeV1"
+          },
+          "description": "As entradas mais recentes da linha do tempo, da mais antiga para a mais nova, já filtradas pela visão."
+        }
+      }
     }
   }
 }

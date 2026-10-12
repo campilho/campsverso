@@ -1,0 +1,180 @@
+{
+  "type": "campsverso.realtime.welcome.v1",
+  "worldid": "farm-camps-01",
+  "view": "operator",
+  "avatar_id": "camps",
+  "commands": [
+    "campsverso.cmd.clock.pause.v1",
+    "campsverso.cmd.clock.resume.v1",
+    "campsverso.cmd.clock.step.v1"
+  ],
+  "state": {
+    "cartridge": "farm_camps",
+    "tick": 64,
+    "sim_time": "2026-03-02T07:04:00-03:00",
+    "day": 1,
+    "phase": "amanhecer",
+    "session": {
+      "cartridge_version": "0.1.0",
+      "tick_seconds": 60,
+      "map": {
+        "id": "farm-camps",
+        "width": 32,
+        "height": 18
+      }
+    },
+    "clock": {
+      "mode": "continuous",
+      "scale": 72,
+      "paused": true
+    },
+    "weather": {
+      "1": "sun"
+    },
+    "entities": {
+      "camps": {
+        "kind": "avatar",
+        "position": {
+          "x": 16,
+          "y": 13
+        },
+        "display_name": "Camps",
+        "attributes": {}
+      },
+      "plot-e-01": {
+        "kind": "plot",
+        "position": {
+          "x": 24,
+          "y": 9
+        },
+        "attributes": {
+          "crop": "rabanete",
+          "stage": "semente",
+          "watered_today": false
+        }
+      },
+      "watering-can": {
+        "kind": "watering_can",
+        "container_id": "camps",
+        "attributes": {
+          "charges": 9
+        }
+      }
+    },
+    "containers": {
+      "camps": {
+        "moeda": 100,
+        "semente_rabanete": 9
+      },
+      "chest": {
+        "rabanete": 5
+      }
+    },
+    "motion": {
+      "camps": {
+        "path": [
+          {
+            "x": 4,
+            "y": 6
+          },
+          {
+            "x": 4,
+            "y": 7
+          }
+        ],
+        "depart_tick": 15,
+        "tiles_per_tick": 3
+      }
+    },
+    "actions": {
+      "camps": {
+        "action_id": "act-000007",
+        "action": "move",
+        "params": {
+          "near": "well"
+        },
+        "end_tick": 22
+      }
+    },
+    "needs": {
+      "camps": {
+        "fome": 3.2,
+        "energia": 96
+      }
+    },
+    "asleep": {
+      "camps": false
+    },
+    "controllers": {
+      "camps": {
+        "type": "script",
+        "id": "script/farmer-v1"
+      }
+    },
+    "decisions": {
+      "camps": {
+        "reason": "action_completed",
+        "tick": 14
+      }
+    }
+  },
+  "events": [
+    {
+      "specversion": "1.0",
+      "id": "01a12d2b-6c22-71c2-ac26-ccccd4ebb18c",
+      "source": "/kernel/farm-camps-01",
+      "type": "campsverso.world.entity.moved.v1",
+      "time": "2026-10-11T22:00:00Z",
+      "datacontenttype": "application/json",
+      "dataschema": "contracts://events/world/entity.moved.v1",
+      "worldid": "farm-camps-01",
+      "cartridge": "farm_camps",
+      "tick": 64,
+      "simtime": "2026-03-02T07:04:00-03:00",
+      "seq": 10,
+      "provenance": "simulated",
+      "visibility": "world",
+      "data": {
+        "entity_id": "camps",
+        "action_id": "act-000007",
+        "origin": {
+          "x": 4,
+          "y": 6
+        },
+        "waypoints": [
+          {
+            "x": 4,
+            "y": 13
+          },
+          {
+            "x": 16,
+            "y": 13
+          }
+        ],
+        "depart_tick": 15,
+        "arrival_tick": 22,
+        "tiles_per_tick": 3
+      }
+    },
+    {
+      "specversion": "1.0",
+      "id": "01a12d2b-6c1d-7670-9f5b-49c93d5575ea",
+      "source": "/kernel/farm-camps-01",
+      "type": "campsverso.world.clock.paused.v1",
+      "time": "2026-10-11T22:00:00Z",
+      "datacontenttype": "application/json",
+      "dataschema": "contracts://events/world/clock.paused.v1",
+      "worldid": "farm-camps-01",
+      "cartridge": "farm_camps",
+      "tick": 64,
+      "simtime": "2026-03-02T07:04:00-03:00",
+      "seq": 5,
+      "provenance": "simulated",
+      "visibility": "world",
+      "data": {
+        "reason": "debug",
+        "by": "human/operator"
+      }
+    }
+  ]
+}

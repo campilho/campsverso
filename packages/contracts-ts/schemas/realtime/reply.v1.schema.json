@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://realtime/reply.v1",
+  "title": "RealtimeReplyV1",
+  "description": "Resposta do gateway a um command: publicado ou recusado. Quem aceita ou recusa o comando no mundo é o kernel, com um evento (ADR-0050).",
+  "x-message": "campsverso.realtime.reply.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "type",
+    "request_id",
+    "ok"
+  ],
+  "properties": {
+    "type": {
+      "const": "campsverso.realtime.reply.v1"
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "command_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/uuid7",
+      "description": "Id do envelope publicado, quando ok."
+    },
+    "error": {
+      "type": "object",
+      "title": "RealtimeError",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "enum": [
+            "not_allowed",
+            "invalid_command",
+            "unavailable",
+            "invalid_message"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      }
+    }
+  }
+}

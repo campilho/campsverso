@@ -1,0 +1,341 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://realtime/welcome.v1",
+  "title": "RealtimeWelcomeV1",
+  "description": "Primeira mensagem do gateway para a UI: o estado do mundo e a linha do tempo recente (ADR-0050).",
+  "x-message": "campsverso.realtime.welcome.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "type",
+    "worldid",
+    "view",
+    "avatar_id",
+    "commands",
+    "state",
+    "events"
+  ],
+  "properties": {
+    "type": {
+      "const": "campsverso.realtime.welcome.v1"
+    },
+    "worldid": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "view": {
+      "enum": [
+        "player",
+        "operator"
+      ],
+      "description": "player: world e agent do avatar; operator: também internal e observer."
+    },
+    "avatar_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "O avatar que esta conexão acompanha."
+    },
+    "commands": {
+      "type": "array",
+      "uniqueItems": true,
+      "description": "Tipos de comando que esta conexão pode mandar.",
+      "items": {
+        "type": "string",
+        "pattern": "^campsverso\\.cmd\\.[a-z0-9_]+(\\.[a-z0-9_]+)+\\.v[0-9]+$"
+      }
+    },
+    "state": {
+      "type": "object",
+      "title": "ObserverState",
+      "description": "O mundo como se vê de fora, montado só com eventos publicados (ADR-0050). Genérico e sem nada de desenho: posições em tiles, trajetos em ticks, o que é do cartucho chega como atributo. Não carrega null: atributo nulo é atributo ausente, porque no merge patch null apaga.",
+      "additionalProperties": false,
+      "required": [
+        "tick",
+        "day",
+        "phase",
+        "clock",
+        "weather",
+        "entities",
+        "containers",
+        "motion",
+        "actions",
+        "needs",
+        "asleep",
+        "controllers",
+        "decisions"
+      ],
+      "properties": {
+        "cartridge": {
+          "$ref": "contracts://common/defs.v1#/$defs/token",
+          "description": "Cartucho do mundo, como no envelope."
+        },
+        "tick": {
+          "$ref": "contracts://common/defs.v1#/$defs/tick"
+        },
+        "sim_time": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Hora simulada do tick mais recente."
+        },
+        "day": {
+          "$ref": "contracts://common/defs.v1#/$defs/day"
+        },
+        "phase": {
+          "$ref": "contracts://common/defs.v1#/$defs/token",
+          "description": "Fase do dia; `desconhecida` antes do primeiro evento de fase."
+        },
+        "session": {
+          "type": "object",
+          "title": "ObserverSession",
+          "additionalProperties": false,
+          "required": [
+            "cartridge_version",
+            "tick_seconds"
+          ],
+          "properties": {
+            "cartridge_version": {
+              "$ref": "contracts://common/defs.v1#/$defs/semver"
+            },
+            "tick_seconds": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "map": {
+              "type": "object",
+              "title": "ObserverMap",
+              "additionalProperties": false,
+              "description": "O mapa do cartucho; o arquivo fica no gateway em /content/maps/<id>.tmj (ADR-0050).",
+              "required": [
+                "id",
+                "width",
+                "height"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9_-]+$"
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            }
+          }
+        },
+        "clock": {
+          "type": "object",
+          "title": "ObserverClock",
+          "additionalProperties": false,
+          "description": "Vazio até o session.started; a pausa é estado, não modo (ADR-0026).",
+          "properties": {
+            "mode": {
+              "$ref": "contracts://common/defs.v1#/$defs/clock_mode"
+            },
+            "scale": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "paused": {
+              "type": "boolean"
+            }
+          }
+        },
+        "weather": {
+          "type": "object",
+          "description": "Condição do clima por dia (a chave é o número do dia).",
+          "propertyNames": {
+            "pattern": "^[1-9][0-9]*$"
+          },
+          "additionalProperties": {
+            "$ref": "contracts://common/defs.v1#/$defs/token"
+          }
+        },
+        "entities": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "title": "ObserverEntity",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "attributes"
+            ],
+            "properties": {
+              "kind": {
+                "$ref": "contracts://common/defs.v1#/$defs/token",
+                "description": "Tipo definido pelo cartucho; cada renderer escolhe como desenhar."
+              },
+              "position": {
+                "$ref": "contracts://common/defs.v1#/$defs/position",
+                "description": "Onde está, ou onde vai estar ao fim do trajeto em `motion`."
+              },
+              "container_id": {
+                "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+                "description": "Dentro de outra entidade (inventário), sem posição."
+              },
+              "display_name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "attributes": {
+                "$ref": "contracts://common/defs.v1#/$defs/attributes"
+              }
+            }
+          }
+        },
+        "containers": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "propertyNames": {
+              "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$"
+            },
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "motion": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "title": "ObserverMotion",
+            "additionalProperties": false,
+            "description": "Trajeto em andamento: tile a tile, a partir de depart_tick, a tiles_per_tick.",
+            "required": [
+              "path",
+              "depart_tick",
+              "tiles_per_tick"
+            ],
+            "properties": {
+              "path": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "contracts://common/defs.v1#/$defs/position"
+                }
+              },
+              "depart_tick": {
+                "$ref": "contracts://common/defs.v1#/$defs/tick"
+              },
+              "tiles_per_tick": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            }
+          }
+        },
+        "actions": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "title": "ObserverAction",
+            "additionalProperties": false,
+            "required": [
+              "action_id",
+              "action",
+              "params",
+              "end_tick"
+            ],
+            "properties": {
+              "action_id": {
+                "$ref": "contracts://common/defs.v1#/$defs/action_id"
+              },
+              "action": {
+                "$ref": "contracts://common/defs.v1#/$defs/token"
+              },
+              "params": {
+                "$ref": "contracts://common/defs.v1#/$defs/params"
+              },
+              "end_tick": {
+                "$ref": "contracts://common/defs.v1#/$defs/tick"
+              }
+            }
+          }
+        },
+        "needs": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "additionalProperties": {
+            "$ref": "contracts://common/defs.v1#/$defs/needs"
+          },
+          "description": "Último valor exato recebido de cada necessidade, por avatar."
+        },
+        "asleep": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "additionalProperties": {
+            "type": "boolean"
+          }
+        },
+        "controllers": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "additionalProperties": {
+            "$ref": "contracts://common/defs.v1#/$defs/controller_ref"
+          },
+          "description": "Quem controla cada avatar."
+        },
+        "decisions": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "title": "ObserverDecision",
+            "additionalProperties": false,
+            "description": "Último pedido de decisão do avatar.",
+            "required": [
+              "reason",
+              "tick"
+            ],
+            "properties": {
+              "reason": {
+                "$ref": "contracts://common/defs.v1#/$defs/token"
+              },
+              "tick": {
+                "$ref": "contracts://common/defs.v1#/$defs/tick"
+              }
+            }
+          }
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "maxItems": 5000,
+      "items": {
+        "$ref": "contracts://envelope/envelope.v1"
+      },
+      "description": "As entradas mais recentes da linha do tempo, da mais antiga para a mais nova, já filtradas pela visão."
+    }
+  }
+}

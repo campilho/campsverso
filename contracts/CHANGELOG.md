@@ -13,6 +13,13 @@ Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão 
 
 - `campsverso.perception.delivered.v1` ganha o campo opcional `decision` (`reason` e `controller`): o pedido que a foto responde. Com ele, o controlador age só com este evento (ADR-0048).
 
+## Não publicado (M4)
+
+- **Mensagens do WebSocket** entre gateway e UI, em `contracts/realtime/` (ADR-0050): `welcome`, `update`, `command` e `reply`, com o tipo `campsverso.realtime.<nome>.v1` no campo `type`.
+  - O estado (`ObserverState`) é genérico, sem nada de desenho, e não carrega `null`.
+  - As ferramentas validam as mensagens nos dois validadores, com os códigos `message_schema` e `unknown_message`, e geram os tipos Python e TypeScript.
+- O `asyncapi.yaml` ganha o servidor `gateway` (`ws`), o canal `Realtime` e a indicação do servidor em cada canal NATS.
+
 ## v0.1: 2026-10-11
 
 Primeira versão, gerada a partir do [catálogo da v0.1](../docs/arquitetura/catalogo-eventos-v0.1.md) (ADR-0029).

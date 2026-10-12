@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 type JsonObject = dict[str, Any]
-type Kind = Literal["common", "envelope", "event", "command"]
+type Kind = Literal["common", "envelope", "event", "command", "realtime"]
 
 VISIBILITIES = ("world", "agent", "observer", "internal")
 ID_PREFIX = "contracts://"
@@ -17,6 +17,7 @@ _KIND_BY_DIR: dict[str, Kind] = {
     "envelope": "envelope",
     "events": "event",
     "commands": "command",
+    "realtime": "realtime",  # mensagens do WebSocket entre gateway e UI (ADR-0050)
 }
 
 
@@ -59,6 +60,19 @@ class SchemaFile:
         return f"{prefix}{domain}.{name}"
 
     @property
+    def message_type(self) -> str | None:
+        value = self.content.get("x-message")
+        return str(value) if value is not None else None
+
+    @property
+    def expected_message(self) -> str | None:
+        """realtime/<nome>.vN vira campsverso.realtime.<nome>.vN."""
+        if self.kind != "realtime":
+            return None
+        parts = self.path.as_posix().removesuffix(SUFFIX).split("/")
+        return f"campsverso.realtime.{parts[1]}" if len(parts) == 2 else None
+
+    @property
     def visibility(self) -> str | None:
         value = self.content.get("x-visibility")
         return str(value) if value is not None else None
@@ -74,6 +88,10 @@ class Contracts:
     @cached_property
     def by_type(self) -> dict[str, SchemaFile]:
         return {f.event_type: f for f in self.files if f.event_type is not None}
+
+    @cached_property
+    def by_message(self) -> dict[str, SchemaFile]:
+        return {f.message_type: f for f in self.files if f.message_type is not None}
 
     @cached_property
     def envelope(self) -> SchemaFile:

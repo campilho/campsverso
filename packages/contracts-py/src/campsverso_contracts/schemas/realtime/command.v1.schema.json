@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://realtime/command.v1",
+  "title": "RealtimeCommandV1",
+  "description": "Pedido da UI para o gateway publicar um comando. O gateway monta o envelope e o valida contra o contrato do comando (ADR-0050).",
+  "x-message": "campsverso.realtime.command.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "type",
+    "request_id",
+    "command",
+    "data"
+  ],
+  "properties": {
+    "type": {
+      "const": "campsverso.realtime.command.v1"
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "Escolhido pela UI; volta no reply."
+    },
+    "command": {
+      "type": "string",
+      "pattern": "^campsverso\\.cmd\\.[a-z0-9_]+(\\.[a-z0-9_]+)+\\.v[0-9]+$"
+    },
+    "data": {
+      "$ref": "contracts://common/defs.v1#/$defs/params",
+      "description": "O payload do comando, como no contrato dele."
+    }
+  }
+}

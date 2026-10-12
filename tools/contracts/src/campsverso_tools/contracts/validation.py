@@ -33,12 +33,35 @@ def _describe(error: ValidationError) -> str:
     return f"{location}: {error.message}"
 
 
+def _registry(contracts: Contracts) -> Registry[Any]:
+    resources: list[tuple[str, Resource[Any]]] = [
+        (f.schema_id, DRAFT202012.create_resource(f.content)) for f in contracts.files
+    ]
+    return Registry[Any]().with_resources(resources)
+
+
+class MessageValidator:
+    """Mensagens do WebSocket entre gateway e UI (contracts/realtime, ADR-0050)."""
+
+    def __init__(self, contracts: Contracts) -> None:
+        registry = _registry(contracts)
+        checker = Draft202012Validator.FORMAT_CHECKER
+        self._messages = {
+            name: Draft202012Validator(f.content, registry=registry, format_checker=checker)
+            for name, f in contracts.by_message.items()
+        }
+
+    def validate(self, message: JsonObject) -> list[Problem]:
+        name = str(message.get("type", ""))
+        validator = self._messages.get(name)
+        if validator is None:
+            return [Problem("unknown_message", f"mensagem sem schema em contracts/: {name}")]
+        return sorted(Problem("message_schema", _describe(e)) for e in _errors(validator, message))
+
+
 class EventValidator:
     def __init__(self, contracts: Contracts) -> None:
-        resources: list[tuple[str, Resource[Any]]] = [
-            (f.schema_id, DRAFT202012.create_resource(f.content)) for f in contracts.files
-        ]
-        registry: Registry[Any] = Registry[Any]().with_resources(resources)
+        registry = _registry(contracts)
         checker = Draft202012Validator.FORMAT_CHECKER
         self._types = contracts.by_type
         self._envelope = Draft202012Validator(

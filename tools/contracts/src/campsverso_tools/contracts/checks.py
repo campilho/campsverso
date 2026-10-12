@@ -10,7 +10,7 @@ from typing import Any
 from jsonschema import Draft202012Validator, SchemaError
 
 from campsverso_tools.contracts.catalog import VISIBILITIES, Contracts, JsonObject, SchemaFile
-from campsverso_tools.contracts.validation import EventValidator, Problem
+from campsverso_tools.contracts.validation import EventValidator, MessageValidator, Problem
 
 SNAKE_CASE = re.compile(r"^[a-z][a-z0-9]*(_[a-z0-9]+)*$")
 PASCAL_CASE = re.compile(r"^[A-Z][A-Za-z0-9]*$")
@@ -18,6 +18,7 @@ TYPE_NAME = re.compile(r"^campsverso\.(cmd\.)?([a-z0-9_]+)\.[a-z0-9_]+(\.[a-z0-9
 # Palavras reservadas do Python não viram nome de campo, nem o par `to` (ADR-0030):
 # os modelos Pydantic gerados precisariam de apelidos.
 RESERVED = frozenset(keyword.kwlist) | {"to"}
+REALTIME = "campsverso.realtime."
 PRODUCERS = frozenset({"kernel", "perception", "controller", "operator"})
 
 
@@ -52,6 +53,8 @@ def _check_file(f: SchemaFile, contracts: Contracts) -> list[Problem]:
 
     if f.kind in ("event", "command"):
         problems.extend(_check_type(f, contracts))
+    if f.kind == "realtime":
+        problems.extend(_check_message(f))
 
     for node_path, node in _nodes(f.content, f.title):
         properties: JsonObject = node.get("properties", {})
@@ -110,6 +113,26 @@ def _check_type(f: SchemaFile, contracts: Contracts) -> list[Problem]:
     return problems
 
 
+def _check_message(f: SchemaFile) -> list[Problem]:
+    """Mensagens do WebSocket: o nome vem da pasta, e o campo `type` o repete (ADR-0050)."""
+    where = f.path.as_posix()
+    problems: list[Problem] = []
+    if f.message_type is None or f.message_type != f.expected_message:
+        problems.append(
+            Problem(
+                "message_name",
+                f"{where}: x-message {f.message_type!r}, esperado {f.expected_message!r}",
+            )
+        )
+    properties: JsonObject = f.content.get("properties", {})
+    declared: JsonObject = properties.get("type", {})
+    if declared.get("const") != f.message_type or "type" not in f.content.get("required", []):
+        problems.append(
+            Problem("message_name", f"{where}: precisa de `type` obrigatório com const = x-message")
+        )
+    return problems
+
+
 def check_conventions(contracts: Contracts) -> list[Problem]:
     problems: list[Problem] = []
     for f in contracts.files:
@@ -137,8 +160,18 @@ def check_conventions(contracts: Contracts) -> list[Problem]:
 
 
 def check_examples(contracts: Contracts) -> list[Problem]:
-    """Válidos passam e cobrem todos os tipos; cada inválido falha com o código esperado."""
-    validator = EventValidator(contracts)
+    """Válidos passam e cobrem todos os tipos; cada inválido falha com o código esperado.
+
+    Eventos e comandos são envelopes; mensagens `campsverso.realtime.*` são validadas como mensagens
+    do WebSocket (ADR-0050). Um exemplo inválido traz o documento em `event` ou em `message`.
+    """
+    events = EventValidator(contracts)
+    messages = MessageValidator(contracts)
+
+    def validate(document: JsonObject) -> list[Problem]:
+        is_message = str(document.get("type", "")).startswith(REALTIME)
+        return (messages if is_message else events).validate(document)
+
     problems: list[Problem] = []
     covered: set[str] = set()
 
@@ -152,21 +185,21 @@ def check_examples(contracts: Contracts) -> list[Problem]:
                     f"valid/{path.name}: o nome precisa ser <tipo>.json ou <tipo>--<variação>.json",
                 )
             )
-        found = validator.validate(event)
+        found = validate(event)
         problems.extend(Problem("valid_example_fails", f"valid/{path.name}: {p}") for p in found)
         if not found:
             covered.add(event_type)
 
     problems.extend(
         Problem("missing_example", f"{name} não tem exemplo em examples/valid/")
-        for name in sorted(contracts.by_type)
+        for name in sorted([*contracts.by_type, *contracts.by_message])
         if name not in covered
     )
 
     for path in sorted((contracts.examples_dir / "invalid").glob("*.json")):
         document: JsonObject = json.loads(path.read_text(encoding="utf-8"))
         expected = str(document["expect_error"])
-        codes = {p.code for p in validator.validate(document["event"])}
+        codes = {p.code for p in validate(document.get("event") or document["message"])}
         if not codes:
             problems.append(
                 Problem(

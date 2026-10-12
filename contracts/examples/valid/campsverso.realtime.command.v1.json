@@ -1,0 +1,8 @@
+{
+  "type": "campsverso.realtime.command.v1",
+  "request_id": "ui-7",
+  "command": "campsverso.cmd.clock.step.v1",
+  "data": {
+    "ticks": 10
+  }
+}
