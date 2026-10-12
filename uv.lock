@@ -93,6 +93,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "honcho" },
     { name = "hypothesis" },
     { name = "import-linter" },
     { name = "pyright" },
@@ -123,6 +124,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "honcho", specifier = ">=2" },
     { name = "hypothesis", specifier = ">=6" },
     { name = "import-linter", specifier = ">=2" },
     { name = "pyright", specifier = ">=1.1.414" },
@@ -141,6 +143,7 @@ dependencies = [
     { name = "campsverso-contracts" },
     { name = "campsverso-ports" },
     { name = "jsonschema" },
+    { name = "nats-py" },
     { name = "pyyaml" },
     { name = "referencing" },
     { name = "rfc3339-validator" },
@@ -151,6 +154,7 @@ requires-dist = [
     { name = "campsverso-contracts", editable = "packages/contracts-py" },
     { name = "campsverso-ports", editable = "libs/ports" },
     { name = "jsonschema", specifier = ">=4.25" },
+    { name = "nats-py", specifier = ">=2.16" },
     { name = "pyyaml", specifier = ">=6" },
     { name = "referencing", specifier = ">=0.36" },
     { name = "rfc3339-validator", specifier = ">=0.1.4" },
@@ -161,12 +165,14 @@ name = "campsverso-archiver"
 version = "0.1.0.dev0"
 source = { editable = "services/archiver" }
 dependencies = [
+    { name = "campsverso-adapters" },
     { name = "campsverso-contracts" },
     { name = "campsverso-ports" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "campsverso-adapters", editable = "libs/adapters" },
     { name = "campsverso-contracts", editable = "packages/contracts-py" },
     { name = "campsverso-ports", editable = "libs/ports" },
 ]
@@ -275,6 +281,7 @@ name = "campsverso-kernel"
 version = "0.1.0.dev0"
 source = { editable = "services/kernel" }
 dependencies = [
+    { name = "campsverso-adapters" },
     { name = "campsverso-cartridge-api" },
     { name = "campsverso-contracts" },
     { name = "campsverso-ports" },
@@ -282,6 +289,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "campsverso-adapters", editable = "libs/adapters" },
     { name = "campsverso-cartridge-api", editable = "libs/cartridge-api" },
     { name = "campsverso-contracts", editable = "packages/contracts-py" },
     { name = "campsverso-ports", editable = "libs/ports" },
@@ -448,6 +456,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/20/64/79161f05c900f7f7f1b0acd22a730b1be9f96680dd44efeef90aa45e6998/grimp-3.17-cp315-cp315t-win32.whl", hash = "sha256:a7235ccffb0350647ae2b01969f552a9859fea7027032f6cfed110801269a439", size = 1873249, upload-time = "2026-09-04T11:29:27.094Z" },
     { url = "https://files.pythonhosted.org/packages/94/b7/6f9cdeba2c1263fb91b791ddd5e924d6c91c2485f4f16b56698802fdd540/grimp-3.17-cp315-cp315t-win_amd64.whl", hash = "sha256:473d0e0c016ca429b9ec17f34d276db454ba4d467e3c915a46279d86ab004716", size = 2000579, upload-time = "2026-09-04T11:29:15.961Z" },
     { url = "https://files.pythonhosted.org/packages/ac/16/8ae9028f046bf8f48cc13f6de2de40adbcbf38fa79a3a5f265753b248da0/grimp-3.17-cp315-cp315t-win_arm64.whl", hash = "sha256:478aa0b696e5dd79373943e75b998fbb4ef3d146f24fe3569fa9d106ce84991b", size = 1921829, upload-time = "2026-09-04T11:29:04.403Z" },
+]
+
+[[package]]
+name = "honcho"
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/65/c8/d860888358bf5c8a6e7d78d1b508b59b0e255afd5655f243b8f65166dafd/honcho-2.0.0.tar.gz", hash = "sha256:af3815c03c634bf67d50f114253ea9fef72ecff26e4fd06b29234789ac5b8b2e", size = 45618, upload-time = "2024-10-06T14:26:53.871Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/48/1c/25631fc359955569e63f5446dbb7022c320edf9846cbe892ee5113433a7e/honcho-2.0.0-py3-none-any.whl", hash = "sha256:56dcd04fc72d362a4befb9303b1a1a812cba5da283526fbc6509be122918ddf3", size = 22093, upload-time = "2024-10-06T14:26:52.181Z" },
 ]
 
 [[package]]
@@ -712,6 +732,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/a2/6e/371856a3fb9d31ca8dac321cda606860fa4548858c0cc45d9d1d4ca2628b/mypy_extensions-1.1.0.tar.gz", hash = "sha256:52e68efc3284861e772bbcd66823fde5ae21fd2fdb51c62a211403730b916558", size = 6343, upload-time = "2025-04-22T14:54:24.164Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/79/7b/2c79738432f5c924bef5071f933bcc9efd0473bac3b4aa584a6f7c1c8df8/mypy_extensions-1.1.0-py3-none-any.whl", hash = "sha256:1be4cccdb0f2482337c4743e60421de3a356cd97508abadd57d47403e94f5505", size = 4963, upload-time = "2025-04-22T14:54:22.983Z" },
+]
+
+[[package]]
+name = "nats-py"
+version = "2.16.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/2c/c8/739b72c9201081e48000884d476231873ac82f7247c43b33823eaf3c0bfb/nats_py-2.16.0.tar.gz", hash = "sha256:1d137ed7afc9b59033b3199324c6237df2016a5091935871344a787eba6b72fc", size = 79731, upload-time = "2026-09-16T07:47:21.843Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/48/a3/16cec37172144d3362d7551bb823a098b2b2903281fc095dfe4480b8c2fd/nats_py-2.16.0-py3-none-any.whl", hash = "sha256:aeb1ff123966c05833d26c7df7e1d54c1c6d32b612428b21677a2e921f1fecae", size = 93578, upload-time = "2026-09-16T07:47:20.799Z" },
 ]
 
 [[package]]

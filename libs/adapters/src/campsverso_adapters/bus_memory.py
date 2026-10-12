@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from campsverso_ports import Envelope, Handler
+from campsverso_ports import BatchHandler, Envelope, Handler
 
 
 def subject_matches(pattern: str, subject: str) -> bool:
@@ -43,6 +43,14 @@ class InMemoryBus:
         subscription = _Subscription(self, pattern, handler)
         self._subscriptions.append(subscription)
         return subscription
+
+    async def consume(self, pattern: str, durable: str, handler: BatchHandler) -> _Subscription:
+        """Sem durabilidade em memória: entrega cada mensagem como um lote de uma."""
+
+        async def one(subject: str, envelope: Envelope) -> None:
+            await handler([(subject, envelope)])
+
+        return await self.subscribe(pattern, one)
 
     def remove(self, subscription: _Subscription) -> None:
         self._subscriptions.remove(subscription)

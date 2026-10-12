@@ -1,0 +1,23 @@
+# Ambiente local (CLAUDE.md, "Stack"; plano do M2 §3). Caminhos relativos à raiz do repositório.
+
+data_dir: data  # data/<mundo>/world.sqlite e data/<mundo>/snapshots/
+validate_events: true  # todo evento publicado passa pelo contrato antes de sair (critério A2)
+
+nats:
+  url: nats://127.0.0.1:4222
+  duplicate_window: 2m  # republicar o mesmo id dentro da janela não duplica
+  # Retenção por stream (D3; ADR-0017): a janela quente. A memória longa é o arquivo JSONL.
+  streams:
+    WORLD: {subjects: ["campsverso.*.world.>"], max_age: 30d, max_bytes: 1GiB}
+    AGENT: {subjects: ["campsverso.*.agent.>"], max_age: 14d, max_bytes: 1GiB}
+    OBSERVER: {subjects: ["campsverso.*.observer.>"], max_age: 30d, max_bytes: 1GiB}
+    INTERNAL: {subjects: ["campsverso.*.internal.>"], max_age: 90d, max_bytes: 1GiB}
+    COMMANDS: {subjects: ["campsverso.*.cmd.>"], max_age: 30d, max_bytes: 256MiB}
+
+snapshots:
+  full_every_ticks: 60  # um snapshot completo por hora simulada (decisão 3)
+  keep_full: 168  # os mais recentes que ficam (7 dias simulados); o inicial nunca sai
+
+archive:
+  dir: data/archive  # data/archive/<mundo>/<AAAA-MM-DD>.jsonl (ADR-0043)
+  compress_after_days: 7  # dias simulados; comprimir nunca apaga conteúdo (decisão 4)

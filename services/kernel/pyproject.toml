@@ -8,6 +8,7 @@ dependencies = [
   "campsverso-contracts",
   "campsverso-ports",
   "campsverso-cartridge-api",
+  "campsverso-adapters",  # só o main.py (raiz de composição) importa
 ]
 
 [build-system]
