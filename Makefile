@@ -22,7 +22,7 @@ NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR
 
 .DEFAULT_GOAL := help
 .PHONY: help setup contracts check lint fmt types test arch contracts-check compat \
-        up stop run ui soak replay metrics tools secrets
+        up stop run ui ui-build sandbox soak replay metrics tools secrets
 
 help: ## lista os alvos
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-16s %s\n", $$1, $$2}'
@@ -90,11 +90,17 @@ stop: ## derruba o NATS que o make up subiu
 	  echo "NATS não está no ar"; \
 	fi
 
-run: up ## sobe kernel, percepção, script, arquivador e gateway com o honcho (Procfile); Ctrl+C derruba todos
+run: up ui-build ## sobe os cinco processos com o honcho (Procfile); UI em http://127.0.0.1:8765/?view=operator
 	$(PY) honcho start -f Procfile
 
-ui: ## sobe a UI em modo desenvolvimento (marco M4)
-	@echo "make ui: ainda não implementado (marco M4)"; exit 1
+ui-build: ## compila a UI em apps/ui/dist, que o gateway serve
+	$(PNPM) -s --filter @campsverso/ui build
+
+ui: ## UI em modo desenvolvimento (Vite em http://127.0.0.1:5173), ligada ao gateway de make run ou sandbox
+	$(PNPM) --filter @campsverso/ui dev
+
+sandbox: tools ui-build ## mundo descartável com tudo ligado, em data/sandbox/<data-hora>; Ctrl+C para parar
+	$(PY) python -m campsverso_testkit.sandbox --out data/sandbox/$$(date +%Y%m%d-%H%M%S)
 
 DAYS ?= 30
 ARCHIVE ?= data/archive/farm-camps-01

@@ -27,3 +27,4 @@ gateway:  # o WebSocket da UI (ADR-0050); só local, sem login
   port: 8765
   maps:  # id do mapa (o do session.started) -> arquivo Tiled do cartucho
     farm_camps: cartridges/farm_camps/sim/src/campsverso_farm_camps_sim/data/map.tmj
+  ui_dir: apps/ui/dist  # a UI compilada (make ui-build); sem ela, só pelo Vite (make ui)
