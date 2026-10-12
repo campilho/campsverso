@@ -133,7 +133,7 @@ Notação dos payloads (`data`): `campo: tipo`; `?` marca campo opcional.
 
 | Ação | Parâmetros |
 |---|---|
-| `move` | `{ target: position }` |
+| `move` | `{ target: position }` ou `{ near: entity_id }` (o kernel escolhe o tile livre mais próximo ao lado; ADR-0047) |
 | `plant` | `{ target: plot_id, crop }` |
 | `water`, `harvest`, `clear` | `{ target: plot_id }` |
 | `refill` | `{ target: well_id }` |
