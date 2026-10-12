@@ -27,6 +27,33 @@
     "as_of_tick": {
       "$ref": "contracts://common/defs.v1#/$defs/tick"
     },
+    "decision": {
+      "type": "object",
+      "title": "PerceptionDecision",
+      "description": "O pedido de decisão que esta foto responde: o motivo e quem deve responder. Basta este evento para o controlador agir (ADR-0048).",
+      "additionalProperties": false,
+      "required": [
+        "reason",
+        "controller"
+      ],
+      "properties": {
+        "reason": {
+          "enum": [
+            "session_started",
+            "possessed",
+            "action_completed",
+            "action_rejected",
+            "action_interrupted",
+            "phase_changed",
+            "need_threshold",
+            "woke_up"
+          ]
+        },
+        "controller": {
+          "$ref": "contracts://common/defs.v1#/$defs/controller_ref"
+        }
+      }
+    },
     "view": {
       "type": "object",
       "title": "PerceptionView",

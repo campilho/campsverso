@@ -1,7 +1,7 @@
 """Decorador de EventBus que valida cada envelope antes de publicar (critério A2)."""
 
 from campsverso_adapters.contract_validation import ContractValidator, Problem
-from campsverso_ports import BatchHandler, Envelope, EventBus, Handler, Subscription
+from campsverso_ports import BatchHandler, Consumer, Envelope, EventBus, Handler, Subscription
 
 
 class ContractViolationError(Exception):
@@ -27,5 +27,5 @@ class ValidatingBus:
     async def subscribe(self, pattern: str, handler: Handler) -> Subscription:
         return await self._inner.subscribe(pattern, handler)
 
-    async def consume(self, pattern: str, durable: str, handler: BatchHandler) -> Subscription:
+    async def consume(self, pattern: str, durable: str, handler: BatchHandler) -> Consumer:
         return await self._inner.consume(pattern, durable, handler)

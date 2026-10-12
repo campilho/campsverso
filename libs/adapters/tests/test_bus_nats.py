@@ -127,3 +127,15 @@ def test_streams_do_ambiente_local() -> None:
 def test_caminho_do_repo() -> None:
     assert (REPO / "Makefile").exists()
     assert isinstance(REPO, Path)
+
+
+async def test_consumidor_ocioso_continua_vivo(nats: NatsServer) -> None:
+    """Um stream vazio por vários segundos não pode matar o laço de consumo."""
+    kernel = await _connect(nats, "kernel", manage=True)
+    archiver, seen = await _connect(nats, "archiver"), Collector()
+    await archiver.consume("campsverso.*.observer.>", "teste-ocioso", seen)
+    await asyncio.sleep(3)  # três fetches sem nada
+    await kernel.publish("campsverso.w.observer.teste.v1", _event("tarde", 0))
+    await seen.until(1)
+    await kernel.close()
+    await archiver.close()

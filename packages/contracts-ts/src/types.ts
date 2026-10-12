@@ -511,7 +511,23 @@ export interface PerceptionDeliveredV1 {
   avatar_id: EntityId;
   kind: "snapshot";
   as_of_tick: Tick;
+  decision?: PerceptionDecision;
   view: PerceptionView;
+}
+/**
+ * O pedido de decisão que esta foto responde: o motivo e quem deve responder. Basta este evento para o controlador agir (ADR-0048).
+ */
+export interface PerceptionDecision {
+  reason:
+    | "session_started"
+    | "possessed"
+    | "action_completed"
+    | "action_rejected"
+    | "action_interrupted"
+    | "phase_changed"
+    | "need_threshold"
+    | "woke_up";
+  controller: ControllerRef;
 }
 /**
  * Visão genérica: o que é da fazenda chega como atributo de entidade (ADR-0025).

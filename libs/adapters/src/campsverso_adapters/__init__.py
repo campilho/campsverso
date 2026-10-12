@@ -1,6 +1,6 @@
 """Adaptadores das portas. Único lugar, além dos main.py, com SDKs externos (princípio 3)."""
 
-from campsverso_adapters.archive_jsonl import JsonlArchive
+from campsverso_adapters.archive_jsonl import JsonlArchive, read_world_archive
 from campsverso_adapters.blobs import DiskBlobStore, MemoryBlobStore
 from campsverso_adapters.bus_memory import InMemoryBus, subject_matches
 from campsverso_adapters.bus_nats import NatsBus, StreamSpec
@@ -36,5 +36,6 @@ __all__ = [
     "YamlFlags",
     "load_env",
     "load_world",
+    "read_world_archive",
     "subject_matches",
 ]

@@ -20,6 +20,16 @@ class Subscription(Protocol):
     async def unsubscribe(self) -> None: ...
 
 
+class Consumer(Subscription, Protocol):
+    async def caught_up(self) -> None:
+        """Volta quando tudo o que já estava no stream foi entregue ao handler e confirmado.
+
+        Serve para ler dois streams em ordem: antes de reagir a um evento de um deles, alcança
+        o outro (a percepção alcança `world` antes de montar a foto de um pedido de decisão).
+        """
+        ...
+
+
 class EventBus(Protocol):
     """Publicar e assinar por assunto. Padrões de assinatura seguem o NATS.
 
@@ -34,7 +44,7 @@ class EventBus(Protocol):
         """Assinatura efêmera: só recebe o que for publicado enquanto estiver ativa."""
         ...
 
-    async def consume(self, pattern: str, durable: str, handler: BatchHandler) -> Subscription:
+    async def consume(self, pattern: str, durable: str, handler: BatchHandler) -> Consumer:
         """Consumidor durável: entrega em ordem o que chegou desde a última confirmação.
 
         Cada lote só é confirmado depois que o handler termina sem erro; o que não foi

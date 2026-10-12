@@ -721,6 +721,27 @@ class FarmCropWitheredV1(BaseModel):
     """
 
 
+class PerceptionDecision(BaseModel):
+    """
+    O pedido de decisão que esta foto responde: o motivo e quem deve responder. Basta este evento para o controlador agir (ADR-0048).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    reason: Literal[
+        "session_started",
+        "possessed",
+        "action_completed",
+        "action_rejected",
+        "action_interrupted",
+        "phase_changed",
+        "need_threshold",
+        "woke_up",
+    ]
+    controller: ControllerRef
+
+
 class ViewClock(BaseModel):
     model_config = ConfigDict(
         extra="ignore",
@@ -860,6 +881,10 @@ class PerceptionDeliveredV1(BaseModel):
     as_of_tick: Annotated[int, Field(ge=0, title="Tick")]
     """
     Tick do kernel (1 minuto simulado na fazenda).
+    """
+    decision: Annotated[PerceptionDecision | None, Field(title="PerceptionDecision")] = None
+    """
+    O pedido de decisão que esta foto responde: o motivo e quem deve responder. Basta este evento para o controlador agir (ADR-0048).
     """
     view: Annotated[PerceptionView, Field(title="PerceptionView")]
     """

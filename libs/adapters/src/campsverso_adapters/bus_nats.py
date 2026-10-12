@@ -33,6 +33,7 @@ from campsverso_ports import (
 )
 
 _UNAVAILABLE = (
+    TimeoutError,  # o nats-py às vezes deixa escapar o TimeoutError do asyncio, não o dele
     nats.errors.TimeoutError,
     nats.errors.NoRespondersError,
     nats.errors.ConnectionClosedError,
@@ -82,9 +83,19 @@ class _PullConsumer:
     """Laço de fetch de um consumidor durável. O fetch do nats-py pode engolir o cancelamento,
     então o laço também olha a marca `stopped`."""
 
-    def __init__(self) -> None:
+    def __init__(self, js: JetStreamContext, stream: str, durable: str) -> None:
         self.stopped = False
         self.task: asyncio.Task[None] | None = None
+        self._js = js
+        self._stream = stream
+        self._durable = durable
+
+    async def caught_up(self) -> None:
+        while True:
+            info = await self._js.consumer_info(self._stream, self._durable)
+            if not info.num_pending and not info.num_ack_pending:
+                return
+            await asyncio.sleep(0.001)
 
     async def unsubscribe(self) -> None:
         self.stopped = True
@@ -225,6 +236,15 @@ class NatsBus:
 
     async def consume(self, pattern: str, durable: str, handler: BatchHandler) -> _PullConsumer:
         stream = self._stream_for(pattern)
+        for _ in range(120):  # no primeiro `make run`, quem cria os streams pode subir depois
+            try:
+                await self._js.stream_info(stream)
+            except nats.js.errors.NotFoundError:
+                await asyncio.sleep(0.5)
+                continue
+            except Exception:  # sem permissão de consultar: o pull_subscribe dirá o que houver
+                pass
+            break
         try:
             sub = await self._js.pull_subscribe(
                 pattern,
@@ -246,16 +266,18 @@ class NatsBus:
                 raise PermissionDeniedError(f"{self._user}: {self._errors[-1]}") from error
             raise BusUnavailableError(f"consumidor {durable} em {stream}: {error!r}") from error
 
-        consumer = _PullConsumer()
+        consumer = _PullConsumer(self._js, stream, durable)
 
         async def pump() -> None:
             try:
                 while not consumer.stopped and not self._nc.is_closed:
                     try:
                         msgs = await sub.fetch(batch=100, timeout=1)
-                    except nats.errors.TimeoutError:
+                    except TimeoutError:  # inclui o do nats-py: nada novo no stream
                         continue
-                    except _UNAVAILABLE:
+                    except Exception as error:  # conexão caindo ou voltando: tenta de novo
+                        if self._telemetry is not None and not self._closing:
+                            self._telemetry.warning("nats.fetch_failed", error=repr(error))
                         await asyncio.sleep(0.5)
                         continue
                     if consumer.stopped:

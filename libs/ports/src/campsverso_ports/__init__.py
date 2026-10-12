@@ -5,6 +5,7 @@ from campsverso_ports.blobs import BlobStore
 from campsverso_ports.bus import (
     BatchHandler,
     BusUnavailableError,
+    Consumer,
     Envelope,
     EventBus,
     Handler,
@@ -31,6 +32,7 @@ __all__ = [
     "BlobStore",
     "BusUnavailableError",
     "Commit",
+    "Consumer",
     "Envelope",
     "EnvelopeValidator",
     "EventArchive",

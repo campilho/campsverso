@@ -17,6 +17,13 @@
     "avatar_id": "camps",
     "kind": "snapshot",
     "as_of_tick": 500,
+    "decision": {
+      "reason": "action_completed",
+      "controller": {
+        "type": "script",
+        "id": "script/farmer-v1"
+      }
+    },
     "view": {
       "clock": {
         "tick": 500,

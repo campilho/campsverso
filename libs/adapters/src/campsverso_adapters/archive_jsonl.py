@@ -10,10 +10,10 @@ import gzip
 import json
 import os
 from collections import OrderedDict
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from datetime import date, timedelta
 from pathlib import Path
-from typing import BinaryIO
+from typing import Any, BinaryIO
 
 from campsverso_ports import Envelope, Telemetry
 
@@ -26,6 +26,14 @@ def _line(envelope: Envelope) -> bytes:
 
 def _gz(path: Path) -> Path:
     return path.with_name(path.name + ".gz")
+
+
+def read_world_archive(folder: Path) -> Iterator[dict[str, Any]]:
+    """Tudo o que foi arquivado de um mundo, dia a dia, inclusive os dias comprimidos."""
+    for path in sorted(folder.glob("*.jsonl*")):
+        data = gzip.decompress(path.read_bytes()) if path.suffix == ".gz" else path.read_bytes()
+        for line in data.splitlines():
+            yield json.loads(line)
 
 
 class JsonlArchive:

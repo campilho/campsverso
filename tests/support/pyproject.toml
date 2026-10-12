@@ -9,6 +9,11 @@ dependencies = [
   "campsverso-ports",
   "campsverso-adapters",
   "campsverso-kernel",
+  "campsverso-cartridge-api",
+  "campsverso-perception",
+  "campsverso-controller-runner",
+  "campsverso-tools",
+  "pyyaml>=6",
 ]
 
 [build-system]

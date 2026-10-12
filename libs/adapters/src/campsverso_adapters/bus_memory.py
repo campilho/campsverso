@@ -25,6 +25,9 @@ class _Subscription:
     async def unsubscribe(self) -> None:
         self.bus.remove(self)
 
+    async def caught_up(self) -> None:
+        """A entrega em memória é síncrona: quem publicou já foi entregue."""
+
 
 class InMemoryBus:
     """Entrega síncrona, na ordem de publicação, a cada assinatura que casa com o assunto."""

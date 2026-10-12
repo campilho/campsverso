@@ -31,7 +31,7 @@ from campsverso_adapters import (
 from campsverso_kernel import KernelService, open_world
 from campsverso_kernel.main import prepare
 from campsverso_ports import Envelope
-from campsverso_testkit.hashing import canonical_hash
+from campsverso_testkit.hashing import canonical, canonical_hash
 from campsverso_testkit.nats_server import REPO, NatsServer
 
 ENV = REPO / "config" / "env" / "local.yaml"
@@ -163,7 +163,9 @@ async def test_a7_kill_9_no_kernel_no_meio_do_dia(nats: NatsServer, tmp_path: Pa
         kernel.wait()
         killed_at = watcher.tick()
         kernel = _kernel(nats, tmp_path)
-        await watcher.until(lambda: watcher.seq() >= last)
+        # Cada stream tem o seu consumidor: espera todos os seq até o último, não só o maior.
+        wanted = set(range(last + 1))
+        await watcher.until(lambda: wanted <= {int(e["seq"]) for e in watcher.events})
     finally:
         _stop(kernel)
         await bus.close()
@@ -172,8 +174,15 @@ async def test_a7_kill_9_no_kernel_no_meio_do_dia(nats: NatsServer, tmp_path: Pa
     assert '"event": "kernel.recovered"' in log
     assert 0 < killed_at < DAY
     seqs = sorted(int(e["seq"]) for e in watcher.events)
-    assert seqs == list(range(len(seqs)))  # seq contínua: sem lacunas nem duplicatas
+    assert len(seqs) == len(set(seqs))  # nenhuma duplicata, nem depois do trecho comparado
+    assert [s for s in seqs if s <= last] == list(range(last + 1))  # seq contínua, sem lacunas
     prefix = sorted((e for e in watcher.events if int(e["seq"]) <= last), key=lambda e: e["seq"])
+    differences = [
+        (a, b)
+        for a, b in zip(map(canonical, prefix), map(canonical, reference), strict=True)
+        if a != b
+    ]
+    assert differences == [], f"primeira diferença (com queda, sem queda): {differences[0]}"
     assert canonical_hash(prefix) == canonical_hash(reference)  # igual a uma execução sem queda
 
 

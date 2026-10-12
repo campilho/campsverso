@@ -65,6 +65,7 @@ class WorldSettings:
     scale: float | None  # None: a escala padrão do cartucho
     paused: bool
     rules_file: Path | None  # None: o arquivo de regras do cartucho
+    controllers: dict[str, tuple[str, str]]  # avatar -> (tipo, id) no começo; vazio: o do cartucho
 
 
 def _read(path: Path) -> Mapping[str, Any]:
@@ -121,4 +122,10 @@ def load_world(path: Path, root: Path | None = None) -> WorldSettings:
         scale=None if clock.get("scale") is None else float(clock["scale"]),
         paused=bool(clock.get("paused", False)),
         rules_file=None if rules is None else (root or Path.cwd()) / str(rules),
+        controllers={
+            str(avatar): (str(ref["type"]), str(ref["id"]))
+            for avatar, ref in cast(
+                Mapping[str, Mapping[str, Any]], doc.get("controllers") or {}
+            ).items()
+        },
     )

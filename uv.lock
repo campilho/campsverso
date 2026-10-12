@@ -204,12 +204,14 @@ name = "campsverso-controller-runner"
 version = "0.1.0.dev0"
 source = { editable = "services/controller-runner" }
 dependencies = [
+    { name = "campsverso-adapters" },
     { name = "campsverso-contracts" },
     { name = "campsverso-ports" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "campsverso-adapters", editable = "libs/adapters" },
     { name = "campsverso-contracts", editable = "packages/contracts-py" },
     { name = "campsverso-ports", editable = "libs/ports" },
 ]
@@ -239,10 +241,14 @@ version = "0.1.0.dev0"
 source = { editable = "cartridges/farm/script" }
 dependencies = [
     { name = "campsverso-contracts" },
+    { name = "pyyaml" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "campsverso-contracts", editable = "packages/contracts-py" }]
+requires-dist = [
+    { name = "campsverso-contracts", editable = "packages/contracts-py" },
+    { name = "pyyaml", specifier = ">=6" },
+]
 
 [[package]]
 name = "campsverso-farm-sim"
@@ -300,12 +306,14 @@ name = "campsverso-perception"
 version = "0.1.0.dev0"
 source = { editable = "services/perception" }
 dependencies = [
+    { name = "campsverso-adapters" },
     { name = "campsverso-contracts" },
     { name = "campsverso-ports" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "campsverso-adapters", editable = "libs/adapters" },
     { name = "campsverso-contracts", editable = "packages/contracts-py" },
     { name = "campsverso-ports", editable = "libs/ports" },
 ]
@@ -327,17 +335,27 @@ version = "0.1.0.dev0"
 source = { editable = "tests/support" }
 dependencies = [
     { name = "campsverso-adapters" },
+    { name = "campsverso-cartridge-api" },
     { name = "campsverso-contracts" },
+    { name = "campsverso-controller-runner" },
     { name = "campsverso-kernel" },
+    { name = "campsverso-perception" },
     { name = "campsverso-ports" },
+    { name = "campsverso-tools" },
+    { name = "pyyaml" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "campsverso-adapters", editable = "libs/adapters" },
+    { name = "campsverso-cartridge-api", editable = "libs/cartridge-api" },
     { name = "campsverso-contracts", editable = "packages/contracts-py" },
+    { name = "campsverso-controller-runner", editable = "services/controller-runner" },
     { name = "campsverso-kernel", editable = "services/kernel" },
+    { name = "campsverso-perception", editable = "services/perception" },
     { name = "campsverso-ports", editable = "libs/ports" },
+    { name = "campsverso-tools", editable = "tools/contracts" },
+    { name = "pyyaml", specifier = ">=6" },
 ]
 
 [[package]]

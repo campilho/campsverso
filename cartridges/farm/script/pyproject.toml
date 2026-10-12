@@ -6,7 +6,11 @@ requires-python = ">=3.14"
 license = "MIT"
 dependencies = [
   "campsverso-contracts",
+  "pyyaml>=6",
 ]
+
+[project.entry-points."campsverso.controllers"]
+farmer = "campsverso_farm_script:controller"
 
 [build-system]
 requires = ["uv_build>=0.13,<0.14"]
