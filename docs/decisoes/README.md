@@ -54,6 +54,8 @@ A numeração deste diretório continua a partir de **0011**, para não colidir 
 | [0046](0046-kernel-recusa-comandos-fora-do-contrato.md) | O kernel valida comandos contra o contrato no caminho determinístico; inválidos viram `invalid_command` | M2 | ADR-0013; A2 |
 | [0047](0047-decisoes-do-plano-do-m3.md) | Decisões do M3: `move {near}`, percepção durável, soak de 2 dias no check e 30 à mão, `make replay` pelo kernel, lockstep sem prazo, `make metrics`, sem salto de tempo; futuro: enxergar o mapa num raio N | M3 | plano do M3 |
 | [0048](0048-ciclo-de-decisao-do-m3.md) | Ciclo de decisão do M3: a foto traz o pedido (`decision`), lockstep pela dívida de decisão, replay com agenda (`at_tick`), ids derivados, `caught_up`, controlador inicial por mundo, hash sem o sha256 do snapshot | M3 | catálogo §3.7; ADR-0021, 0028, 0047 |
+| [0049](0049-cochilo-dormir-a-qualquer-hora.md) | Dormir a qualquer hora: à noite até as 06:00; de dia, cochilo até a energia encher (no máximo até as 06:00); `not_tired` com energia cheia | M4 | bíblia §7, §8, §11; ADR-0041 |
+| [0050](0050-decisoes-do-plano-do-m4.md) | Decisões do M4: contrato `realtime`, projeção no gateway com merge patch (genérica, sem desenho), mapa do cartucho pelo gateway, visões filtradas no gateway em 127.0.0.1, métricas no M7, `make sandbox`, sem Playwright | M4 | plano do M4; ADR-0022, 0025 |
 
 ## Modelo
 
