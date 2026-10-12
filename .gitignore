@@ -12,6 +12,8 @@ build/
 # Node / TypeScript
 node_modules/
 *.tsbuildinfo
+test-results/
+playwright-report/
 
 # Ferramentas baixadas localmente pelo Makefile (ex.: nats-server)
 .tools/

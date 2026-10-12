@@ -22,7 +22,7 @@ NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR
 
 .DEFAULT_GOAL := help
 .PHONY: help setup contracts check lint fmt types test arch contracts-check compat \
-        up stop run ui ui-build sandbox soak replay metrics mapa-visual sessoes tools secrets
+        up stop run ui ui-build sandbox soak replay metrics ui-e2e mapa-visual sessoes tools secrets
 
 help: ## lista os alvos
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-16s %s\n", $$1, $$2}'
@@ -115,6 +115,9 @@ replay: ## reexecuta um dia gravado do mundo e compara com o arquivo: make repla
 
 metrics: ## métricas da bíblia §13 a partir do arquivo: make metrics [ARCHIVE=pasta do mundo]
 	$(PY) python -m campsverso_tools.metrics $(ARCHIVE)
+
+ui-e2e: tools ui-build ## fumaça da tela no navegador (Playwright), com um sandbox próprio na porta 8799
+	pnpm --filter @campsverso/ui exec playwright test
 
 mapa-visual: ## regrava o mapa visual da fazenda a partir do mapa lógico (ADR-0053)
 	$(PY) python -m campsverso_tools.visual_map

@@ -17,7 +17,7 @@ jobs:
   check:
     name: make check
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       # Actions fixadas pelo hash do commit (etiquetas podem ser movidas); a versão fica no comentário.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -45,3 +45,21 @@ jobs:
             tail -n 80 make-check.log | python3 -c 'import sys; t = sys.stdin.read().replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"); print("::error title=make check falhou::" + t)'
             exit 1
           }
+
+      # Fumaça da tela num navegador de verdade (ADR-0053): o Chromium do Playwright e as bibliotecas
+      # que ele pede no Linux. Na máquina local, o teste usa o Chrome já instalado.
+      - name: Navegador do Playwright
+        run: pnpm --filter @campsverso/ui exec playwright install --with-deps chromium
+
+      - name: make ui-e2e
+        run: make ui-e2e
+
+      - name: Telas do teste de fumaça
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: telas-ui-e2e
+          path: |
+            apps/ui/test-results/
+            apps/ui/playwright-report/
+          if-no-files-found: ignore
