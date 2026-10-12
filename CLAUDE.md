@@ -37,7 +37,7 @@ Se dois documentos conflitarem, ou se faltar uma decisão: **pare e pergunte**. 
 | Barramento | NATS JetStream (`nats-py`); `InMemoryBus` para testes |
 | Estado | SQLite (estado + outbox); snapshots em disco; arquivo JSONL |
 | Contratos | JSON Schema 2020-12 (fonte da verdade) + AsyncAPI 3.1 (gerado); codegen com `datamodel-code-generator` (Python) e `json-schema-to-typescript` (TS); validação com `jsonschema` e `ajv` com os mesmos códigos de erro (ADR-0033) |
-| Frontend | TypeScript 6.0 estrito, `pnpm` 12, Node 24 fixado no projeto, Vite, Phaser (versão estável atual), Vitest (ADR-0032) |
+| Frontend | TypeScript 6.0 estrito, `pnpm` 12, Node 24 fixado no projeto, Vite, Phaser 4 (ADR-0053), Vitest (ADR-0032) |
 | Qualidade | `ruff`, `pyright` em modo estrito, `pytest` + `hypothesis`, `import-linter`; `eslint`, `dependency-cruiser` |
 | CI | GitHub Actions roda `make setup` e `make check` a cada push e pull request (ADR-0035) |
 | Infra local | `nats-server` como binário em `.tools/` (ADR-0024; containers antes da AWS); `make` como ponto de entrada |
@@ -70,8 +70,10 @@ campsverso/
     farm/                     # gênero: mecânicas genéricas de fazenda
       sim/                    # itens, culturas, ações, sistemas, regras (carregado pelo kernel)
       script/                 # fazendeiro-script; depende só dos contratos (carregado pelo controller-runner)
+      art/                    # arte LPC do gênero e o manifesto art.json, com CREDITS.csv (ADR-0053)
     farm_camps/               # cenário da v0.1: estende farm
       sim/                    # mapa (Tiled), avatar camps, ajustes de números, R-001
+      art/                    # o Camps (sprite LPC), o mapa visual e o manifesto do cenário
   apps/
     ui/                       # Vite + Phaser
   tools/
@@ -120,6 +122,7 @@ make ui           # a UI em modo desenvolvimento (Vite), com proxy para o gatewa
 make soak DAYS=30 # resistência em modo máximo, com processos e NATS próprios (SEM_REGRA=1)
 make replay DAY=N # reexecuta um dia a partir do snapshot e do diário e compara com o arquivo
 make metrics      # métricas da bíblia §13 a partir do arquivo (ARCHIVE=pasta do mundo)
+make mapa-visual  # regrava o mapa visual da fazenda a partir do mapa lógico (ADR-0053)
 make sessoes      # tempo e tokens do Claude Code por turno e por marco em docs/custos (MARCO=M5)
 ```
 
