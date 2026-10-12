@@ -1,4 +1,5 @@
-/** Painel do operador: relógio, controlador, decisão atual e linha do tempo (escopo §6; ADR-0050).
+/** Painel do operador: relógio, controlador, decisão atual, métricas do dia e linha do tempo (escopo §6;
+ * ADR-0050, ADR-0054).
  *
  * Os botões só pedem: quem aceita ou recusa é o kernel, e a resposta volta como evento. Desabilitar
  * "Avançar" fora da pausa é conforto (ADR-0026), não regra.
@@ -6,6 +7,7 @@
 import type { EnvelopeV1, ObserverState, RealtimeReplyV1 } from "@campsverso/contracts";
 
 import { button, el } from "../dom.ts";
+import { metricTable } from "../metrics.ts";
 import { matches, shortType, summarize, type TimelineFilter, type Visibility } from "../timeline.ts";
 
 const CMD = "campsverso.cmd.clock.";
@@ -18,10 +20,11 @@ export class OperatorPanel {
   private filter: TimelineFilter = { visibilities: new Set(VISIBILITIES), text: "" };
   private readonly controls = el("section", { className: "card" });
   private readonly decision = el("section", { className: "card" });
+  private readonly metrics = el("section", { className: "card metrics" });
   private readonly filters = el("div", { className: "filters" });
   private readonly list = el("ol", { className: "timeline" });
   /** O que cada parte mostrou da última vez: refazer o DOM sem mudança engoliria cliques. */
-  private readonly shown = { controls: "", decision: "", timeline: "" };
+  private readonly shown = { controls: "", decision: "", metrics: "", timeline: "" };
 
   private readonly send: Send;
   private readonly onFilter: () => void;
@@ -34,6 +37,7 @@ export class OperatorPanel {
       el("h2", {}, "Painel do operador"),
       this.controls,
       this.decision,
+      this.metrics,
       el("section", { className: "card grow" }, el("h3", {}, "Linha do tempo"), this.filters, this.list),
     );
   }
@@ -75,7 +79,26 @@ export class OperatorPanel {
   ): void {
     this.renderControls(state, commands, reply);
     this.renderDecision(state, avatarId);
+    this.renderMetrics(state);
     this.renderTimeline(timeline);
+  }
+
+  private renderMetrics(state: ObserverState): void {
+    const table = metricTable(state);
+    const key = JSON.stringify(table ?? null);
+    if (key === this.shown.metrics) {
+      return;
+    }
+    this.shown.metrics = key;
+    this.metrics.hidden = table === undefined;
+    if (table === undefined) {
+      return;
+    }
+    const head = el("tr", {}, el("th", {}, ""), el("th", {}, "hoje"), el("th", {}, "ontem"), el("th", {}, table.weekLabel));
+    const rows = table.rows.map((row) =>
+      el("tr", {}, el("th", {}, row.label), el("td", {}, row.today), el("td", {}, row.yesterday), el("td", {}, row.week)),
+    );
+    this.metrics.replaceChildren(el("h3", {}, "Métricas do dia"), el("table", {}, el("thead", {}, head), el("tbody", {}, ...rows)));
   }
 
   private renderControls(state: ObserverState, commands: readonly string[], reply: RealtimeReplyV1 | undefined): void {

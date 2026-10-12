@@ -11,6 +11,17 @@ from collections.abc import Mapping
 from typing import Any, cast
 
 UNKNOWN_PHASE = "desconhecida"
+METRIC_DAYS = 8  # hoje e os 7 anteriores (ADR-0054)
+
+
+def _lookup(data: Mapping[str, Any], path: str) -> Any:
+    """Um campo do evento por caminho com ponto (`params.target`); ausente vira None."""
+    node: Any = data
+    for key in path.split("."):
+        if not isinstance(node, Mapping):
+            return None
+        node = cast(Mapping[str, Any], node).get(key)
+    return node
 
 
 def _position(raw: Any) -> dict[str, int]:
@@ -68,6 +79,9 @@ class Projection:
         self.decisions: dict[str, dict[str, Any]] = {  # último pedido de decisão por avatar
             k: dict(v) for k, v in raw.get("decisions", {}).items()
         }
+        self.metrics: dict[str, dict[str, Any]] = {  # dia -> id -> valor (ADR-0054)
+            k: dict(v) for k, v in raw.get("metrics", {}).items()
+        }
         self._event_tick = self.tick  # o tick do evento sendo aplicado
 
     def export(self) -> dict[str, Any]:
@@ -90,6 +104,7 @@ class Projection:
             "clock": self.clock,
             "controllers": self.controllers,
             "decisions": self.decisions,
+            "metrics": self.metrics,
         }
 
     # ------------------------------------------------------------- eventos
@@ -108,9 +123,15 @@ class Projection:
         if isinstance(tick, int) and tick >= self.tick:
             self.tick, self.simtime = tick, cast(str | None, envelope.get("simtime"))
         name = str(envelope["type"]).removeprefix("campsverso.").rsplit(".", 1)[0]
+        data = cast(Mapping[str, Any], envelope["data"])
+        if str(envelope["type"]) == "campsverso.world.session.started.v1":
+            self._on_world_session_started(data)  # o catálogo precisa estar lá antes de contar
+        else:
+            self._count(str(envelope["type"]), data)  # antes: o grupo é o da entidade agora
         handler = getattr(self, "_on_" + name.replace(".", "_"), None)
-        if handler is not None:
-            handler(cast(Mapping[str, Any], envelope["data"]))
+        if handler is not None and name != "world.session.started":
+            handler(data)
+        self._sample()
 
     def _on_world_entity_spawned(self, data: Mapping[str, Any]) -> None:
         entity: dict[str, Any] = {
@@ -234,6 +255,8 @@ class Projection:
             self.session["map"] = dict(data["map"])
         if data.get("affordances"):
             self.session["affordances"] = [dict(a) for a in data["affordances"]]  # ADR-0051
+        if data.get("metrics"):
+            self.session["metrics"] = [dict(m) for m in data["metrics"]]  # ADR-0054
         self.clock = {
             "mode": data["mode"],
             "scale": float(data["scale"]),
@@ -261,3 +284,66 @@ class Projection:
         path = cast(list[dict[str, int]], motion["path"])
         steps = math.floor((tick - motion["depart_tick"]) * motion["tiles_per_tick"] + 1e-9)
         return path[max(0, min(len(path) - 1, steps))]
+
+    # ------------------------------------------------------------- métricas do dia (ADR-0054)
+
+    def _catalog(self) -> list[Mapping[str, Any]]:
+        return list((self.session or {}).get("metrics", []))
+
+    def _metric_day(self) -> str:
+        """O dia simulado do evento: o tick dividido pelos ticks de um dia, a partir do dia 1."""
+        tick_seconds = int((self.session or {}).get("tick_seconds", 60))
+        return str(self._event_tick // max(1, 86400 // tick_seconds) + 1)
+
+    def _day_values(self, day: str) -> dict[str, Any]:
+        values = self.metrics.setdefault(day, {})
+        newest = max(int(d) for d in self.metrics)
+        for old in [d for d in self.metrics if int(d) <= newest - METRIC_DAYS]:
+            del self.metrics[old]
+        return values
+
+    def _count(self, kind: str, data: Mapping[str, Any]) -> None:
+        for metric in self._catalog():
+            if metric["kind"] == "count" and metric.get("event") == kind:
+                where = cast(Mapping[str, Any], metric.get("where") or {})
+                if all(_lookup(data, path) == value for path, value in where.items()):
+                    values = self._day_values(self._metric_day())
+                    by = cast(Mapping[str, Any] | None, metric.get("by"))
+                    if by is None:
+                        values[metric["id"]] = values.get(metric["id"], 0) + 1
+                    else:
+                        group = self._group(_lookup(data, str(by["field"])), by.get("attribute"))
+                        counts = values.setdefault(metric["id"], {})
+                        counts[group] = counts.get(group, 0) + 1
+            elif metric["kind"] == "max_need":
+                need = str(metric.get("need"))
+                peak = None
+                if kind == "campsverso.world.need.changed.v1" and data.get("need") == need:
+                    peak = float(data["value"])
+                elif kind == "campsverso.avatar.decision_requested.v1":
+                    value = cast(Mapping[str, Any], data.get("needs") or {}).get(need)
+                    peak = None if value is None else float(value)
+                if peak is not None:
+                    values = self._day_values(self._metric_day())
+                    values[metric["id"]] = max(float(values.get(metric["id"], 0.0)), peak)
+
+    def _group(self, value: Any, attribute: Any) -> str:
+        if attribute is None:
+            return str(value)
+        entity = self.entities.get(str(value))
+        group = None if entity is None else entity["attributes"].get(str(attribute))
+        return "?" if group is None else str(group)
+
+    def _sample(self) -> None:
+        """Itens com os avatares: o último valor do dia é o do fim do dia."""
+        items = [m for m in self._catalog() if m["kind"] == "item"]
+        if not items or self.session is None:
+            return
+        day = self._metric_day()
+        if self.metrics and int(day) < max(int(d) for d in self.metrics):
+            return  # evento atrasado de outro stream: não reescreve um dia que já passou
+        avatars = [i for i, e in self.entities.items() if e["kind"] == "avatar"]
+        values = self._day_values(day)
+        for metric in items:
+            item = str(metric.get("item"))
+            values[metric["id"]] = sum(self.containers.get(a, {}).get(item, 0) for a in avatars)

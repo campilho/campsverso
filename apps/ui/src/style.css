@@ -523,3 +523,31 @@ dialog.credits .urls {
   font-size: 11px;
   word-break: break-all;
 }
+
+/* ---------------------------------------------------------------- M7: métricas do dia (ADR-0054) */
+
+.metrics table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.metrics th,
+.metrics td {
+  padding: 3px 6px;
+  text-align: right;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--line);
+}
+
+.metrics tbody th {
+  text-align: left;
+  font-weight: normal;
+  color: var(--muted);
+}
+
+.metrics thead th {
+  color: var(--muted);
+  font-weight: normal;
+}

@@ -209,3 +209,142 @@ def test_acao_com_inicio_e_politica_e_sono_com_hora_de_acordar() -> None:
         ev(4, 80, "avatar.sleep.ended.v2", avatar_id="camps", cause="voluntary", energy=100.0),
     )
     assert (p.sleep, p.asleep) == ({}, {"camps": False})
+
+
+CATALOG = [
+    {
+        "id": "colheitas",
+        "label": "Colheitas",
+        "kind": "count",
+        "event": "campsverso.action.completed.v1",
+        "where": {"action": "harvest"},
+        "by": {"field": "params.target", "attribute": "group"},
+    },
+    {
+        "id": "recusas",
+        "label": "Recusas",
+        "kind": "count",
+        "event": "campsverso.action.rejected.v1",
+        "by": {"field": "reason"},
+    },
+    {
+        "id": "desmaios",
+        "label": "Desmaios",
+        "kind": "count",
+        "event": "campsverso.avatar.fainted.v1",
+    },
+    {"id": "pico_fome", "label": "Pico de fome", "kind": "max_need", "need": "fome"},
+    {"id": "moedas", "label": "Moedas", "kind": "item", "item": "moeda"},
+]
+
+
+def _farm() -> Projection:
+    p = Projection()
+    p.apply(
+        "world",
+        ev(
+            0,
+            0,
+            "world.session.started.v1",
+            cartridge_version="0.2.0",
+            seed=7,
+            tick_seconds=60,
+            mode="max",
+            paused=False,
+            scale=72,
+            metrics=CATALOG,
+        ),
+    )
+    p.apply("world", ev(1, 0, "world.entity.spawned.v1", entity_id="camps", kind="avatar"))
+    for seq, (plot, group) in enumerate((("plot-w-01", "oeste"), ("plot-e-01", "leste")), start=2):
+        p.apply(
+            "world",
+            ev(
+                seq,
+                0,
+                "world.entity.spawned.v1",
+                entity_id=plot,
+                kind="plot",
+                attributes={"group": group},
+            ),
+        )
+    p.apply(
+        "world",
+        ev(
+            4,
+            0,
+            "world.item.created.v1",
+            item="moeda",
+            qty=100,
+            container_id="camps",
+            reason="initial",
+        ),
+    )
+    return p
+
+
+def test_metricas_do_dia_pelo_catalogo_do_cartucho() -> None:
+    """A projeção conta sem saber o que é fazenda: tudo vem do catálogo (ADR-0054)."""
+    p = _farm()
+    assert p.session is not None
+    assert [m["id"] for m in p.session["metrics"]] == [m["id"] for m in CATALOG]
+    harvest = {"action": "harvest", "avatar_id": "camps", "action_id": "a", "duration_ticks": 3}
+    p.apply("world", ev(5, 100, "action.completed.v1", **harvest, params={"target": "plot-e-01"}))
+    p.apply("world", ev(6, 110, "action.completed.v1", **harvest, params={"target": "plot-e-01"}))
+    p.apply("world", ev(7, 120, "action.completed.v1", **harvest, params={"target": "plot-w-01"}))
+    p.apply(
+        "world", ev(8, 130, "action.completed.v1", **(harvest | {"action": "plant"}), params={})
+    )
+    for seq, reason in enumerate(("busy", "busy", "not_adjacent"), start=9):
+        p.apply(
+            "world",
+            ev(
+                seq,
+                140,
+                "action.rejected.v1",
+                avatar_id="camps",
+                action="x",
+                params={},
+                reason=reason,
+            ),
+        )
+    p.apply(
+        "agent", ev(0, 150, "world.need.changed.v1", avatar_id="camps", need="fome", value=41.5)
+    )
+    p.apply(
+        "agent", ev(1, 160, "world.need.changed.v1", avatar_id="camps", need="fome", value=38.0)
+    )
+    p.apply(
+        "world",
+        ev(
+            12,
+            170,
+            "world.item.consumed.v1",
+            item="moeda",
+            qty=40,
+            container_id="camps",
+            reason="buy",
+        ),
+    )
+    assert p.metrics["1"] == {
+        "moedas": 60,
+        "colheitas": {"leste": 2, "oeste": 1},
+        "recusas": {"busy": 2, "not_adjacent": 1},
+        "pico_fome": 41.5,
+    }
+    # Dia 2 começa no tick 1440; só os últimos 8 dias ficam.
+    p.apply("world", ev(13, 1440, "avatar.fainted.v1", avatar_id="camps", reason="exhausted"))
+    assert p.metrics["2"] == {"desmaios": 1, "moedas": 60}
+    for day in range(3, 12):
+        p.apply(
+            "world",
+            ev(
+                11 + day,
+                (day - 1) * 1440,
+                "avatar.fainted.v1",
+                avatar_id="camps",
+                reason="exhausted",
+            ),
+        )
+    assert sorted(p.metrics, key=int) == [str(d) for d in range(4, 12)]
+    assert Projection(json.loads(json.dumps(p.export()))).metrics == p.metrics
