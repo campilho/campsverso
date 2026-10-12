@@ -129,17 +129,19 @@ async def test_gateway_le_os_quatro_streams_do_avatar(nats: NatsServer) -> None:
     await gateway.close()
 
 
-async def test_gateway_so_publica_comandos_do_relogio(nats: NatsServer) -> None:
+async def test_gateway_so_publica_relogio_e_comandos_do_humano(nats: NatsServer) -> None:
     await (await _connect(nats, "kernel", manage=True)).close()
     gateway = await _connect(nats, "gateway")
     await gateway.publish("campsverso.w.cmd.clock.pause.v1", _event(_ID, 0))
-    with pytest.raises(PermissionDeniedError):
-        await gateway.publish("campsverso.w.cmd.action.propose.v1", _event(_ID2, 1))
+    await gateway.publish("campsverso.w.cmd.action.propose.v1", _event(_ID2, 1))
+    with pytest.raises(PermissionDeniedError):  # regras ocultas: nunca pela UI
+        await gateway.publish("campsverso.w.cmd.rules.toggle.v1", _event(_ID3, 2))
     await gateway.close()
 
 
 _ID = "01a12d2b-6c1d-7670-9f5b-49c93d5575ea"
 _ID2 = "01a12d2b-6c1d-7670-9f5b-49c93d5575eb"
+_ID3 = "01a12d2b-6c1d-7670-9f5b-49c93d5575ec"
 
 
 async def _ignore(_: str, __: Envelope) -> None:

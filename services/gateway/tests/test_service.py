@@ -8,7 +8,14 @@ from typing import Any
 import pytest
 
 from campsverso_adapters import MemoryBlobStore, MemoryClient, MemoryRealtime, MemoryTelemetry
-from campsverso_gateway.service import GatewayService
+from campsverso_gateway.service import (
+    HUMAN_ID,
+    PLAY_COMMANDS,
+    POSSESS,
+    PROPOSE,
+    RELEASE,
+    GatewayService,
+)
 from campsverso_gateway.state import apply_merge_patch, observer_state
 from campsverso_testkit.farm import WORLD
 from campsverso_testkit.pipeline import DAY, Pipeline
@@ -84,7 +91,7 @@ async def test_welcome_traz_o_estado_e_o_mapa(rig: Rig) -> None:
     assert state["clock"] == {"mode": "max", "scale": 72.0, "paused": False}
     assert state["entities"]["bed"]["kind"] == "bed"
     assert state["controllers"]["camps"] == {"type": "script", "id": "script/farmer-v1"}
-    assert welcome["commands"] == []
+    assert welcome["commands"] == list(PLAY_COMMANDS)  # joga, mas não mexe no relógio
     assert "world.session.started.v1" in _types(welcome)
     assert "perception.delivered.v1" not in _types(welcome)  # as fotos ficam com os controladores
 
@@ -194,3 +201,43 @@ async def test_pulso_do_kernel_e_sem_sinal(rig: Rig) -> None:
     rig.gateway.flush()
     assert (await operator.receive_until("update"))["patch"] == {"pulse": {"alive": False}}
     assert rig.pipeline.inner.announced[-1][1] is pulse  # nada do pulso em `published`
+
+
+async def _ask(client: MemoryClient, command: str, data: Mapping[str, Any]) -> Mapping[str, Any]:
+    await client.send(
+        {
+            "type": "campsverso.realtime.command.v1",
+            "request_id": command[-24:],
+            "command": command,
+            "data": dict(data),
+        }
+    )
+    return await client.receive_until("reply")
+
+
+async def test_jogador_assume_joga_e_devolve(rig: Rig) -> None:
+    """A9 pelo gateway (ADR-0051): o humano é sempre o mesmo, e quem diz isso é o gateway."""
+    pipeline = rig.pipeline
+    rig.gateway.flush()
+    player, _ = await rig.connect("player")
+    operator, _ = await rig.connect("operator")
+    mode = {"mode": "continuous", "reason": "jogar"}
+    assert (await _ask(operator, "campsverso.cmd.clock.set_mode.v1", mode))["ok"]
+    await pipeline.kernel.run_ticks(1)
+    fake = {"avatar_id": "camps", "controller": {"type": "script", "id": "script/farmer-v1"}}
+    assert (await _ask(player, POSSESS, fake))["ok"]  # a UI não escolhe quem é
+    await pipeline.kernel.run_ticks(1)
+    possessed = pipeline.of_type("avatar.possessed.v1")[-1]
+    assert possessed["controller"] == {"type": "human", "id": HUMAN_ID}
+    move = {"avatar_id": "camps", "action": "move", "params": {"near": "well"}}
+    assert (await _ask(player, PROPOSE, move))["ok"]
+    await pipeline.kernel.run_ticks(1)
+    assert pipeline.of_type("action.accepted.v1")[-1]["action"] == "move"
+    sent = [
+        e for e in pipeline.envelopes if e["type"] == PROPOSE and e["source"] == f"/gateway/{WORLD}"
+    ]
+    assert (sent[-1]["controllerid"], sent[-1]["actor"]) == (HUMAN_ID, "human/jogador")
+    assert (await _ask(player, RELEASE, {"avatar_id": "camps"}))["ok"]
+    await pipeline.kernel.run_ticks(1)
+    released = pipeline.of_type("avatar.released.v1")[-1]
+    assert released["controller"] == {"type": "script", "id": "script/farmer-v1"}

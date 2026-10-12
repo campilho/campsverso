@@ -44,12 +44,22 @@ UPDATE = "campsverso.realtime.update.v1"
 COMMAND = "campsverso.realtime.command.v1"
 REPLY = "campsverso.realtime.reply.v1"
 
-# No M4, só o operador manda comandos, e só os do relógio (ADR-0050). O M5 abre a posse e as ações.
+# O relógio é só do operador (ADR-0050); jogar, assumir e devolver valem nas duas visões (ADR-0051).
 CLOCK_COMMANDS = tuple(
     f"campsverso.cmd.clock.{verb}.v1"
     for verb in ("pause", "resume", "step", "set_scale", "set_mode")
 )
-COMMANDS: Mapping[View, tuple[str, ...]] = {"player": (), "operator": CLOCK_COMMANDS}
+PROPOSE = "campsverso.cmd.action.propose.v1"
+POSSESS = "campsverso.cmd.avatar.possess.v1"
+RELEASE = "campsverso.cmd.avatar.release.v1"
+PLAY_COMMANDS = (PROPOSE, POSSESS, RELEASE)
+COMMANDS: Mapping[View, tuple[str, ...]] = {
+    "player": PLAY_COMMANDS,
+    "operator": (*CLOCK_COMMANDS, *PLAY_COMMANDS),
+}
+# Quem joga pelo browser. Na v0.1 é sempre a mesma pessoa, nas duas visões (ADR-0051).
+HUMAN_ID = "human/camps-browser"
+ACTORS: Mapping[View, str] = {"player": "human/jogador", "operator": "human/operador"}
 VISIBLE: Mapping[View, frozenset[str]] = {
     "player": frozenset({"world", "agent"}),
     "operator": frozenset({"world", "agent", "internal", "observer"}),
@@ -304,7 +314,7 @@ class GatewayService:
             return self._reply(request_id, "invalid_message", "`data` precisa ser um objeto")
         if command not in COMMANDS[view]:
             return self._reply(request_id, "not_allowed", f"a visão {view} não manda {command}")
-        envelope = self._envelope(command, dict(cast(Mapping[str, Any], data)))
+        envelope = self._envelope(view, command, dict(cast(Mapping[str, Any], data)))
         problems = self._validator.validate(envelope)
         if problems:
             text = "; ".join(str(p) for p in problems)
@@ -318,9 +328,12 @@ class GatewayService:
         self._telemetry.info("gateway.command", command=command, id=envelope["id"])
         return {"type": REPLY, "request_id": request_id, "ok": True, "command_id": envelope["id"]}
 
-    def _envelope(self, command: str, data: dict[str, Any]) -> dict[str, Any]:
+    def _envelope(self, view: View, command: str, data: dict[str, Any]) -> dict[str, Any]:
+        """O envelope completo. Quem é o humano é o gateway que diz, nunca a UI (ADR-0051)."""
         info = CONTRACT_TYPES[command]
-        return {
+        if command == POSSESS:
+            data = {**data, "controller": {"type": "human", "id": HUMAN_ID}}
+        envelope: dict[str, Any] = {
             "specversion": "1.0",
             "id": self._ids.new_id(),
             "source": f"/gateway/{self._worldid}",
@@ -331,8 +344,11 @@ class GatewayService:
             "worldid": self._worldid,
             "cartridge": self.projection.cartridge or self._cartridge,
             "seq": self._out_seq,
-            "actor": "human/operador",
+            "actor": ACTORS[view],
             "provenance": "simulated",
             "visibility": info.visibility,
             "data": data,
         }
+        if command == PROPOSE:
+            envelope |= {"controller": "human", "controllerid": HUMAN_ID}
+        return envelope
