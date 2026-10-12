@@ -197,11 +197,12 @@ def test_acao_com_inicio_e_politica_e_sono_com_hora_de_acordar() -> None:
             "avatar.sleep.started.v2",
             avatar_id="camps",
             cause="voluntary",
+            bed_id="bed",
             position={"x": 3, "y": 4},
             wake_at_tick=80,
         ),
     )
-    assert p.sleep == {"camps": {"since_tick": 20, "wake_at_tick": 80}}
+    assert p.sleep == {"camps": {"since_tick": 20, "wake_at_tick": 80, "bed_id": "bed"}}
     assert Projection(json.loads(json.dumps(p.export()))).sleep == p.sleep
     p.apply(
         "world",

@@ -1832,6 +1832,13 @@ class ObserverSleep(BaseModel):
     """
     Tick do kernel (1 minuto simulado na fazenda).
     """
+    bed_id: Annotated[
+        str | None,
+        Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId"),
+    ] = None
+    """
+    A cama em que dorme; ausente quando dorme onde está.
+    """
 
 
 class ObserverDecision(BaseModel):
@@ -1906,7 +1913,7 @@ class ObserverState(BaseModel):
     asleep: dict[str, bool]
     sleep: dict[str, ObserverSleep] | None = None
     """
-    O sono em andamento, por avatar: quando começou e o tick previsto para acordar (ADR-0052). Só com `sleep.started.v2`.
+    O sono em andamento, por avatar: quando começou, o tick previsto para acordar e a cama, se houver (ADR-0052). Só com `sleep.started.v2`.
     """
     controllers: dict[str, ControllerRef]
     """

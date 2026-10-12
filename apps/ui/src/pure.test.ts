@@ -1,7 +1,7 @@
 import type { EnvelopeV1, ObserverMotion, ObserverState } from "@campsverso/contracts";
 import { describe, expect, it } from "vitest";
 
-import { positionAt } from "./motion.ts";
+import { MotionClock, positionAt, smoothedAt } from "./motion.ts";
 import { applyMergePatch } from "./patch.ts";
 import { entityColor, tileColor } from "./render/skin.ts";
 import { DisplayClock, MAX_AHEAD, clockText, isLive } from "./simclock.ts";
@@ -241,5 +241,36 @@ describe("linha do tempo", () => {
 
   it("cor do canteiro vem do estágio", () => {
     expect(entityColor("plot", { stage: "madura" })).not.toBe(entityColor("plot", { stage: "semente" }));
+  });
+});
+
+describe("caminhada que chega atrasada à tela", () => {
+  // 6 tiles a 3 por tick: parte no tick 10 e chega no 12.
+  const walk: ObserverMotion = {
+    path: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }, { x: 4, y: 0 }, { x: 5, y: 0 }, { x: 6, y: 0 }],
+    depart_tick: 10,
+    tiles_per_tick: 3,
+  };
+
+  it("começa da origem quando foi vista no meio do primeiro tick, sem pular tiles", () => {
+    expect(positionAt(walk, 10.8).x).toBeCloseTo(2.4); // o desenho cru pularia 2,4 tiles
+    expect(smoothedAt(walk, 10.8, 10.8)).toEqual({ x: 0, y: 0 });
+    const a = smoothedAt(walk, 11.2, 10.8).x;
+    const b = smoothedAt(walk, 11.6, 10.8).x;
+    expect(a).toBeGreaterThan(0);
+    expect(b).toBeGreaterThan(a);
+    expect(smoothedAt(walk, 12, 10.8)).toEqual({ x: 6, y: 0 }); // chega junto com o kernel
+  });
+
+  it("aberta já na segunda metade do caminho, segue o kernel sem voltar à origem", () => {
+    expect(smoothedAt(walk, 11.5, 11.5)).toEqual(positionAt(walk, 11.5));
+  });
+
+  it("a memória guarda o tick em que cada trajeto foi visto", () => {
+    const clock = new MotionClock();
+    expect(clock.at("camps", walk, 10.5)).toEqual({ x: 0, y: 0 });
+    expect(clock.at("camps", walk, 12)).toEqual({ x: 6, y: 0 });
+    const next = { ...walk, depart_tick: 20 };
+    expect(clock.at("camps", next, 20)).toEqual({ x: 0, y: 0 });
   });
 });

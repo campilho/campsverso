@@ -4,7 +4,7 @@
  */
 import type { ObserverState } from "@campsverso/contracts";
 
-import { positionAt, type Point } from "../motion.ts";
+import { motionClock, type Point } from "../motion.ts";
 import { progressOf } from "../progress.ts";
 import { tileAt, type TileGrid } from "../tiled.ts";
 import { tileUnder, type WorldRenderer } from "./renderer.ts";
@@ -124,7 +124,7 @@ export class MapCanvas implements WorldRenderer {
         continue;
       }
       const motion = state.motion[id];
-      const at: Point | undefined = motion === undefined ? entity.position : positionAt(motion, tick);
+      const at: Point | undefined = motion === undefined ? entity.position : motionClock.at(id, motion, tick);
       if (at === undefined) {
         continue;
       }

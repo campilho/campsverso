@@ -12,7 +12,7 @@ import type { EnvelopeV1, ObserverState } from "@campsverso/contracts";
 import { loadArt, type LoadedArt } from "./art/load.ts";
 import { Connection, type View } from "./connection.ts";
 import { button, el } from "./dom.ts";
-import { positionAt } from "./motion.ts";
+import { motionClock } from "./motion.ts";
 import { CreditsDialog } from "./panels/credits.ts";
 import { renderHud } from "./panels/hud.ts";
 import { ActionMenu } from "./panels/menu.ts";
@@ -199,7 +199,7 @@ function renderControl(state: ObserverState): void {
 /** Onde o avatar aparece na tela agora (o trajeto interpolado, arredondado ao tile). */
 function avatarTile(state: ObserverState): { x: number; y: number } | undefined {
   const motion = state.motion[avatarId()];
-  const at = motion === undefined ? state.entities[avatarId()]?.position : positionAt(motion, shownTick);
+  const at = motion === undefined ? state.entities[avatarId()]?.position : motionClock.at(avatarId(), motion, shownTick);
   return at === undefined ? undefined : { x: Math.round(at.x), y: Math.round(at.y) };
 }
 

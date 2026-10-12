@@ -57,7 +57,7 @@ class Projection:
             k: dict(v) for k, v in raw.get("needs", {}).items()
         }
         self.asleep: dict[str, bool] = dict(raw.get("asleep", {}))
-        self.sleep: dict[str, dict[str, int]] = {  # início e fim previsto do sono (ADR-0052)
+        self.sleep: dict[str, dict[str, Any]] = {  # início, fim previsto e cama (ADR-0052)
             k: dict(v) for k, v in raw.get("sleep", {}).items()
         }
         self.session: dict[str, Any] | None = raw.get("session")  # do session.started
@@ -199,6 +199,8 @@ class Projection:
                 "since_tick": self._event_tick,
                 "wake_at_tick": int(data["wake_at_tick"]),
             }
+            if data.get("bed_id") is not None:
+                self.sleep[avatar_id]["bed_id"] = str(data["bed_id"])
 
     def _on_avatar_sleep_ended(self, data: Mapping[str, Any]) -> None:
         avatar_id = str(data["avatar_id"])

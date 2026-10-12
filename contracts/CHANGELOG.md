@@ -33,7 +33,7 @@ Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão 
   - `action.accepted.v1` ganha `interrupt`, a política da ação aceita;
   - `action.failed.v1` ganha `elapsed_ticks`, quanto a ação durou antes de parar;
   - a ação em andamento ganha `applied_tick` e `interrupt` na foto da percepção (`perception.delivered.v1`) e no `ObserverState`;
-  - o `ObserverState` ganha `sleep`: o início do sono e o tick previsto para acordar, por avatar.
+  - o `ObserverState` ganha `sleep`: o início do sono, o tick previsto para acordar e a cama, se houver, por avatar.
 - Exemplo inválido novo: uma política fora das três.
 
 ## v0.1: 2026-10-11

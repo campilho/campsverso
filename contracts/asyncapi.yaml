@@ -2953,8 +2953,8 @@ components:
                 type: boolean
             sleep:
               type: object
-              description: 'O sono em andamento, por avatar: quando começou e o tick previsto para acordar
-                (ADR-0052). Só com `sleep.started.v2`.'
+              description: 'O sono em andamento, por avatar: quando começou, o tick previsto para acordar
+                e a cama, se houver (ADR-0052). Só com `sleep.started.v2`.'
               additionalProperties:
                 type: object
                 title: ObserverSleep
@@ -2967,6 +2967,9 @@ components:
                     $ref: '#/components/schemas/Tick'
                   wake_at_tick:
                     $ref: '#/components/schemas/Tick'
+                  bed_id:
+                    $ref: '#/components/schemas/EntityId'
+                    description: A cama em que dorme; ausente quando dorme onde está.
             controllers:
               type: object
               additionalProperties:

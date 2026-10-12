@@ -1091,7 +1091,7 @@ export interface ObserverState {
     [k: string]: boolean | undefined;
   };
   /**
-   * O sono em andamento, por avatar: quando começou e o tick previsto para acordar (ADR-0052). Só com `sleep.started.v2`.
+   * O sono em andamento, por avatar: quando começou, o tick previsto para acordar e a cama, se houver (ADR-0052). Só com `sleep.started.v2`.
    */
   sleep?: {
     [k: string]: ObserverSleep | undefined;
@@ -1168,6 +1168,7 @@ export interface ObserverAction {
 export interface ObserverSleep {
   since_tick: Tick;
   wake_at_tick: Tick;
+  bed_id?: EntityId;
 }
 /**
  * Último pedido de decisão do avatar.

@@ -23,7 +23,7 @@ import {
   type Resolved,
 } from "../art/manifest.ts";
 import { el } from "../dom.ts";
-import { positionAt, type Point } from "../motion.ts";
+import { motionClock, type Point } from "../motion.ts";
 import { progressOf } from "../progress.ts";
 import { tileAt, type TileGrid } from "../tiled.ts";
 import { tileUnder, type WorldRenderer } from "./renderer.ts";
@@ -37,6 +37,13 @@ const FEET = 2; // os pés do LPC ficam um pouco acima da borda do quadro
 interface Frame {
   readonly state: ObserverState;
   readonly tick: number;
+}
+
+/** A cama em que o avatar dorme, como está desenhada: o centro e o topo da imagem. */
+interface Bed {
+  readonly cx: number;
+  readonly top: number;
+  readonly y: number;
 }
 
 /** Profundidade pela linha do chão: quem está mais embaixo na tela fica na frente. */
@@ -123,7 +130,16 @@ class AvatarView {
     this.bar = scene.add.graphics().setDepth(60);
   }
 
-  show(scene: Phaser.Scene, look: Resolved, art: AvatarArt | undefined, frame: Frame, id: string, at: Point, time: number): void {
+  show(
+    scene: Phaser.Scene,
+    look: Resolved,
+    art: AvatarArt | undefined,
+    frame: Frame,
+    id: string,
+    at: Point,
+    time: number,
+    bed?: Bed,
+  ): void {
     const { state, tick } = frame;
     const cx = at.x * TILE + TILE / 2;
     const depth = depthAt(at.y) + 0.5;
@@ -146,12 +162,26 @@ class AvatarView {
       this.animation = name;
       this.since = time;
     }
-    const drawn = sheet !== undefined && animation !== undefined;
+    const inBed = asleep && bed !== undefined && sheet !== undefined ? art?.in_bed : undefined;
+    const drawn = sheet !== undefined && (animation !== undefined || inBed !== undefined);
     this.body.setVisible(!drawn).setPosition(cx, at.y * TILE + TILE / 2).setDepth(depth);
     this.body.setFillStyle(colorNumber(look.color ?? "#f5f5f5"));
     this.initial.setVisible(!drawn).setPosition(cx, at.y * TILE + TILE / 2 + 1).setDepth(depth + 0.01);
-    this.sprite.setVisible(drawn).setPosition(cx, (at.y + 1) * TILE + FEET).setDepth(depth);
-    if (sheet !== undefined && animation !== undefined) {
+    this.sprite.setVisible(drawn);
+    if (inBed !== undefined && bed !== undefined && sheet !== undefined) {
+      // Na cama: só a cabeça no travesseiro; a coberta é a da própria cama.
+      const { x, y, width, height, scale, dy } = inBed;
+      this.sprite
+        .setTexture(sheet, inBed.frame)
+        .setOrigin(0, 0)
+        .setScale(scale)
+        .setCrop(x, y, width, height)
+        .setPosition(bed.cx - (width * scale) / 2 - x * scale, bed.top + dy - y * scale)
+        .setDepth(depthAt(bed.y) + 0.6);
+    } else {
+      this.sprite.setCrop().setOrigin(0.5, 1).setScale(1).setPosition(cx, (at.y + 1) * TILE + FEET).setDepth(depth);
+    }
+    if (inBed === undefined && sheet !== undefined && animation !== undefined) {
       // O relógio acelerado acelera as ações; pausado, tudo para.
       const pace = state.clock.paused === true ? 0 : Math.min(3, Math.max(0.5, (state.clock.scale ?? 72) / 72));
       const step =
@@ -162,13 +192,15 @@ class AvatarView {
     }
 
     const progress = progressOf(state, id, tick);
-    const top = drawn ? (at.y + 1) * TILE - 50 : at.y * TILE - 4;
-    this.tag.setVisible(progress !== undefined).setText(progress?.label ?? "").setPosition(cx, top - 3);
+    const above = inBed !== undefined && bed !== undefined ? { cx: bed.cx, top: bed.top - 2 } : undefined;
+    const tx = above?.cx ?? cx;
+    const top = above?.top ?? (drawn ? (at.y + 1) * TILE - 50 : at.y * TILE - 4);
+    this.tag.setVisible(progress !== undefined).setText(progress?.label ?? "").setPosition(tx, top - 3);
     this.bar.clear();
     if (progress?.fraction !== undefined) {
       const width = TILE - 4;
-      this.bar.fillStyle(0x141414, 0.8).fillRect(cx - width / 2 - 1, top - 1, width + 2, 6);
-      this.bar.fillStyle(0x7bd88f, 1).fillRect(cx - width / 2, top, width * progress.fraction, 4);
+      this.bar.fillStyle(0x141414, 0.8).fillRect(tx - width / 2 - 1, top - 1, width + 2, 6);
+      this.bar.fillStyle(0x7bd88f, 1).fillRect(tx - width / 2, top, width * progress.fraction, 4);
     }
   }
 
@@ -305,7 +337,7 @@ class WorldScene extends Phaser.Scene {
         continue;
       }
       const motion = state.motion[id];
-      const at: Point | undefined = motion === undefined ? entity.position : positionAt(motion, tick);
+      const at: Point | undefined = motion === undefined ? entity.position : motionClock.at(id, motion, tick);
       if (at === undefined) {
         continue;
       }
@@ -316,7 +348,7 @@ class WorldScene extends Phaser.Scene {
         this.avatars.set(id, view);
       }
       const art = this.art.avatars?.[id] ?? this.art.avatars?.["*"];
-      view.show(this, lookOf(this.art, "avatar", entity.attributes), art, frame, id, at, time);
+      view.show(this, lookOf(this.art, "avatar", entity.attributes), art, frame, id, at, time, this.bedOf(state, id));
     }
     for (const [id, view] of this.avatars) {
       if (!seen.has(id)) {
@@ -324,6 +356,22 @@ class WorldScene extends Phaser.Scene {
         this.avatars.delete(id);
       }
     }
+  }
+
+  /** A cama do sono em andamento, onde está desenhada (o avatar dorme ao lado dela no mundo). */
+  private bedOf(state: ObserverState, id: string): Bed | undefined {
+    const bedId = state.sleep?.[id]?.bed_id;
+    const bed = bedId === undefined ? undefined : state.entities[bedId];
+    if (bed?.position === undefined) {
+      return undefined;
+    }
+    const look = lookOf(this.art, bed.kind, bed.attributes);
+    const height =
+      look.sheet !== undefined && this.textures.exists(look.sheet)
+        ? this.textures.getFrame(look.sheet, look.frame ?? 0).height * (look.scale ?? 1)
+        : TILE;
+    const bottom = (bed.position.y + 1) * TILE;
+    return { cx: bed.position.x * TILE + TILE / 2, top: bottom - height, y: bed.position.y };
   }
 
   /** Gotas caindo em diagonal; a posição sai do tempo da tela, não do mundo (é só enfeite). */
@@ -341,6 +389,14 @@ class WorldScene extends Phaser.Scene {
   }
 }
 
+/** WebGL quando a máquina tem; senão, o Canvas (o Phaser no modo AUTO aborta se o WebGL falhar depois
+ * de parecer disponível, como num Chromium sem GPU). */
+function rendererType(): number {
+  const probe = document.createElement("canvas");
+  const gl = probe.getContext("webgl2") ?? probe.getContext("webgl");
+  return gl === null ? Phaser.CANVAS : Phaser.WEBGL;
+}
+
 export class PhaserRenderer implements WorldRenderer {
   readonly element: HTMLElement;
   private readonly scene = new WorldScene();
@@ -350,7 +406,7 @@ export class PhaserRenderer implements WorldRenderer {
   constructor() {
     this.element = el("div", { className: "phaser" });
     this.game = new Phaser.Game({
-      type: Phaser.AUTO,
+      type: rendererType(),
       parent: this.element,
       width: this.size.width * TILE,
       height: this.size.height * TILE,

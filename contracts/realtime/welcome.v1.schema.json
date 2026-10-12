@@ -332,7 +332,7 @@
         },
         "sleep": {
           "type": "object",
-          "description": "O sono em andamento, por avatar: quando começou e o tick previsto para acordar (ADR-0052). Só com `sleep.started.v2`.",
+          "description": "O sono em andamento, por avatar: quando começou, o tick previsto para acordar e a cama, se houver (ADR-0052). Só com `sleep.started.v2`.",
           "propertyNames": {
             "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
           },
@@ -350,6 +350,10 @@
               },
               "wake_at_tick": {
                 "$ref": "contracts://common/defs.v1#/$defs/tick"
+              },
+              "bed_id": {
+                "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+                "description": "A cama em que dorme; ausente quando dorme onde está."
               }
             }
           }

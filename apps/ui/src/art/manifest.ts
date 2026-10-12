@@ -63,6 +63,16 @@ export interface AvatarArt {
   readonly asleep?: string;
   /** Um recorte de um quadro da folha, para o HUD. */
   readonly portrait?: { readonly frame: number; readonly x: number; readonly y: number; readonly size: number };
+  /** Dormindo numa cama: só a cabeça (um recorte de um quadro) no travesseiro, `dy` abaixo do topo da cama. */
+  readonly in_bed?: {
+    readonly frame: number;
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+    readonly scale: number;
+    readonly dy: number;
+  };
 }
 
 export interface ArtManifest {
