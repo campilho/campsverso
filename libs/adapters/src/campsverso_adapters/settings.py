@@ -47,6 +47,7 @@ class GatewaySettings:
     port: int = 8765
     maps: dict[str, Path] = field(default_factory=dict[str, Path])  # id do mapa -> arquivo Tiled
     ui_dir: Path | None = None  # UI compilada; sem ela, a UI roda pelo Vite (make ui)
+    art: tuple[tuple[str, Path], ...] = ()  # camadas de arte, do gênero ao cenário (ADR-0053)
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,6 +94,7 @@ def load_env(path: Path, root: Path | None = None) -> EnvSettings:
     gateway = cast(Mapping[str, Any], doc.get("gateway") or {})
     kernel = cast(Mapping[str, Any], doc.get("kernel") or {})
     maps = cast(Mapping[str, str], gateway.get("maps") or {})
+    art = cast(list[Mapping[str, str]], gateway.get("art") or [])
     return EnvSettings(
         data_dir=base / str(doc["data_dir"]),
         archive_dir=base / str(archive["dir"]),
@@ -118,6 +120,7 @@ def load_env(path: Path, root: Path | None = None) -> EnvSettings:
             port=int(gateway.get("port", 8765)),
             maps={str(k): base / str(v) for k, v in maps.items()},
             ui_dir=base / str(gateway["ui_dir"]) if gateway.get("ui_dir") else None,
+            art=tuple((str(layer["name"]), base / str(layer["dir"])) for layer in art),
         ),
         pulse_seconds=float(kernel.get("pulse_seconds", 1.0)),
     )

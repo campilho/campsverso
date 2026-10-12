@@ -2,6 +2,8 @@
 
 - `/ws?view=player|operator`: uma conexão por UI; mensagens JSON de `contracts/realtime`.
 - `/content/maps/<id>.tmj`: o mapa do cartucho, pelo id que vem no `session.started`.
+- `/content/art/index.json` e `/content/art/<camada>/<arquivo>`: a arte dos cartuchos, em camadas
+  do gênero ao cenário (ADR-0053). A tela junta os manifestos na ordem do índice.
 - `/`: a UI compilada, quando há uma pasta para ela (fora do modo de desenvolvimento).
 
 Só escuta no endereço dado (127.0.0.1 na v0.1): não há login.
@@ -9,7 +11,7 @@ Só escuta no endereço dado (127.0.0.1 na v0.1): não há login.
 
 import contextlib
 import json
-from collections.abc import AsyncIterator, Mapping
+from collections.abc import AsyncIterator, Mapping, Sequence
 from pathlib import Path
 from typing import cast
 
@@ -63,10 +65,12 @@ class FastApiRealtime:
         port: int,
         maps: Mapping[str, Path] | None = None,
         ui_dir: Path | None = None,
+        art: Sequence[tuple[str, Path]] = (),
     ) -> None:
         self.host, self.port = host, port
         self._maps = dict(maps or {})
         self._ui_dir = ui_dir
+        self._art = [(name, folder.resolve()) for name, folder in art]
         self._server: uvicorn.Server | None = None
 
     def app(self, handler: ConnectionHandler) -> FastAPI:
@@ -90,6 +94,20 @@ class FastApiRealtime:
             if path is None or not path.is_file():
                 raise HTTPException(status_code=404, detail=f"mapa {name!r} desconhecido")
             return FileResponse(path, media_type="application/json")
+
+        @app.get("/content/art/index.json")
+        async def art_index() -> dict[str, list[str]]:  # pyright: ignore[reportUnusedFunction]
+            return {"layers": [name for name, folder in self._art if folder.is_dir()]}
+
+        @app.get("/content/art/{layer}/{path:path}")
+        async def art_file(layer: str, path: str) -> FileResponse:  # pyright: ignore[reportUnusedFunction]
+            folder = dict(self._art).get(layer)
+            target = None if folder is None else (folder / path).resolve()
+            if target is None or folder is None or not target.is_relative_to(folder):
+                raise HTTPException(status_code=404, detail=f"arte {layer}/{path} desconhecida")
+            if not target.is_file():
+                raise HTTPException(status_code=404, detail=f"arte {layer}/{path} desconhecida")
+            return FileResponse(target)
 
         @app.get("/health")
         async def health() -> dict[str, bool]:  # pyright: ignore[reportUnusedFunction]

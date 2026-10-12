@@ -31,7 +31,18 @@ async def _echo(connection: RealtimeConnection) -> None:
 async def server(tmp_path: Path) -> AsyncIterator[str]:
     tmj = tmp_path / "map.tmj"
     tmj.write_text('{"type": "map"}', encoding="utf-8")
-    realtime = FastApiRealtime("127.0.0.1", _free_port(), maps={"farm_camps": tmj})
+    genre, scenario = tmp_path / "farm-art", tmp_path / "camps-art"
+    (genre / "tiles").mkdir(parents=True)
+    (genre / "tiles" / "grass.png").write_bytes(b"png")
+    scenario.mkdir()
+    (scenario / "art.json").write_text('{"version": 1}', encoding="utf-8")
+    (tmp_path / "segredo.txt").write_text("fora da arte", encoding="utf-8")
+    realtime = FastApiRealtime(
+        "127.0.0.1",
+        _free_port(),
+        maps={"farm_camps": tmj},
+        art=(("farm", genre), ("farm_camps", scenario), ("sem_pasta", tmp_path / "nada")),
+    )
     task = asyncio.create_task(realtime.serve(_echo))
     async with asyncio.timeout(10):
         while not realtime.started:
@@ -67,3 +78,23 @@ async def test_mapa_do_cartucho_e_saude(server: str) -> None:
     assert await asyncio.to_thread(get, "/content/maps/farm_camps.tmj") == (200, '{"type": "map"}')
     assert (await asyncio.to_thread(get, "/content/maps/outro.tmj"))[0] == 404
     assert await asyncio.to_thread(get, "/health") == (200, '{"ok":true}')
+
+
+async def test_arte_em_camadas_sem_sair_da_pasta(server: str) -> None:
+    def get(path: str) -> tuple[int, str]:
+        try:
+            with urllib.request.urlopen(f"http://{server}{path}", timeout=5) as response:
+                return response.status, response.read().decode()
+        except urllib.error.HTTPError as error:
+            return error.code, ""
+
+    index = await asyncio.to_thread(get, "/content/art/index.json")
+    assert index == (200, '{"layers":["farm","farm_camps"]}')
+    assert await asyncio.to_thread(get, "/content/art/farm/tiles/grass.png") == (200, "png")
+    assert await asyncio.to_thread(get, "/content/art/farm_camps/art.json") == (
+        200,
+        '{"version": 1}',
+    )
+    assert (await asyncio.to_thread(get, "/content/art/farm/art.json"))[0] == 404
+    assert (await asyncio.to_thread(get, "/content/art/farm/..%2Fsegredo.txt"))[0] == 404
+    assert (await asyncio.to_thread(get, "/content/art/outra/art.json"))[0] == 404
