@@ -6,6 +6,7 @@ from typing import Any, cast
 
 from campsverso_cartridge_api import (
     ActionSpec,
+    AffordanceDef,
     AvatarDef,
     CartridgeManifest,
     ClockDef,
@@ -42,6 +43,7 @@ class WorldDefinition:
     avatars: Mapping[str, AvatarDef]
     initial_items: tuple[tuple[str, str, int], ...]
     stages: tuple[str, ...] = DEFAULT_STAGES
+    affordances: tuple[AffordanceDef, ...] = ()  # catálogo de ações para quem joga (ADR-0051)
 
     @property
     def top(self) -> CartridgeManifest:
@@ -82,6 +84,7 @@ class DefinitionBuilder:
     needs: dict[str, NeedDef] = field(default_factory=dict[str, NeedDef])
     thresholds: list[ThresholdDef] = field(default_factory=list[ThresholdDef])
     actions: dict[str, ActionSpec] = field(default_factory=dict[str, ActionSpec])
+    affordances: list[AffordanceDef] = field(default_factory=list[AffordanceDef])
     systems: dict[str, SystemSpec] = field(default_factory=dict[str, SystemSpec])
     rule_impls: dict[str, RuleImpl] = field(default_factory=dict[str, RuleImpl])
     tiled: Mapping[str, Any] | None = None
@@ -125,6 +128,9 @@ class DefinitionBuilder:
             self.rule_impls, impl.name, impl, override=override, what="implementação de regra"
         )
 
+    def add_affordance(self, affordance: AffordanceDef) -> None:
+        self.affordances.append(affordance)
+
     def set_map(self, tiled: Mapping[str, Any]) -> None:
         self.tiled = tiled
 
@@ -136,6 +142,14 @@ class DefinitionBuilder:
 
     def add_items(self, container_id: str, item: str, qty: int) -> None:
         self.initial_items.append((container_id, item, qty))
+
+    def _affordances(self) -> tuple[AffordanceDef, ...]:
+        for affordance in self.affordances:
+            if affordance.action not in self.actions and affordance.action not in KERNEL_ACTIONS:
+                raise DefinitionError(
+                    f"o catálogo cita a ação {affordance.action!r}, que não existe"
+                )
+        return tuple(self.affordances)
 
     def build(self, chain: Sequence[CartridgeManifest]) -> WorldDefinition:
         if self.clock is None:
@@ -164,6 +178,7 @@ class DefinitionBuilder:
             needs=dict(self.needs),
             thresholds=tuple(self.thresholds),
             actions=dict(self.actions),
+            affordances=self._affordances(),
             systems=dict(self.systems),
             rule_impls=dict(self.rule_impls),
             grid=grid,

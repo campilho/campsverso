@@ -57,6 +57,56 @@ NeedsAdditionalProperty = TypeAliasType(
 )
 
 
+class Choice(RootModel[str]):
+    root: Annotated[str, Field(max_length=64, min_length=1)]
+
+
+class AffordanceParam(BaseModel):
+    """
+    Um parâmetro que quem joga escolhe (ADR-0051). Sem `choices`, é um número inteiro.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    name: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    O nome do parâmetro na ação (crop, item, qty…).
+    """
+    label: Annotated[str, Field(max_length=64, min_length=1)]
+    choices: list[Choice] | None = None
+    source: Literal["any", "inventory", "target"]
+    """
+    Onde as escolhas valem: a lista toda, o que o avatar tem ou o que a entidade clicada guarda.
+    """
+    minimum: int | None = None
+    default: int | None = None
+
+
+class Affordance(BaseModel):
+    """
+    Uma ação no menu de um tipo de entidade, ou do próprio avatar (`self`). O menu só sugere; quem decide é o kernel (ADR-0051).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    action: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    label: Annotated[str, Field(max_length=64, min_length=1)]
+    on: Annotated[list[Token], Field(min_length=1)]
+    """
+    Tipos de entidade em que a ação aparece; `self` é o próprio avatar.
+    """
+    target: bool
+    """
+    A entidade clicada vai no parâmetro `target`.
+    """
+    params: list[AffordanceParam] | None = None
+
+
 class CmdActionProposeV1(BaseModel):
     """
     Controlador propõe uma ação para o avatar.
@@ -1466,6 +1516,10 @@ class WorldSessionStartedV1(BaseModel):
     Verdadeiro quando o mundo foi retomado a partir de snapshot.
     """
     map: Annotated[SessionMap, Field(title="SessionMap")]
+    affordances: list[Affordance] | None = None
+    """
+    Catálogo de ações que o cartucho oferece a quem joga (ADR-0051). O menu só sugere; quem decide é o kernel.
+    """
 
 
 class WorldSnapshotCreatedV1(BaseModel):
@@ -1634,6 +1688,10 @@ class ObserverSession(BaseModel):
     map: Annotated[ObserverMap | None, Field(title="ObserverMap")] = None
     """
     O mapa do cartucho; o arquivo fica no gateway em /content/maps/<id>.tmj (ADR-0050).
+    """
+    affordances: list[Affordance] | None = None
+    """
+    O catálogo de ações do session.started, para montar os menus (ADR-0051).
     """
 
 

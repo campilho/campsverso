@@ -70,3 +70,36 @@ class SpawnDef:
 class AvatarDef:
     entity_id: str
     default_controller: ControllerRef
+
+
+type ChoiceSource = Literal["any", "inventory", "target"]
+
+
+@dataclass(frozen=True, slots=True)
+class AffordanceParam:
+    """Um parâmetro que quem joga escolhe (ADR-0051). Sem `choices`, é um número inteiro.
+
+    `source` diz onde as escolhas valem: `any` (a lista toda), `inventory` (só o que o avatar tem)
+    ou `target` (só o que a entidade clicada guarda). É sugestão para o menu; o kernel decide.
+    """
+
+    name: str
+    label: str
+    choices: tuple[str, ...] = ()
+    source: ChoiceSource = "any"
+    minimum: int | None = None
+    default: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class AffordanceDef:
+    """Uma ação no menu de um tipo de entidade, ou do próprio avatar (`self`) (ADR-0051).
+
+    Com `target`, a entidade clicada vai no parâmetro `target` da ação.
+    """
+
+    action: str
+    label: str
+    on: tuple[str, ...]
+    target: bool = True
+    params: tuple[AffordanceParam, ...] = ()

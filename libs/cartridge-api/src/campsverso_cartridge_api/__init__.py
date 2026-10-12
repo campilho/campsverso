@@ -2,7 +2,10 @@
 
 from campsverso_cartridge_api.cartridge import Cartridge, CartridgeManifest, WorldBuilder
 from campsverso_cartridge_api.definitions import (
+    AffordanceDef,
+    AffordanceParam,
     AvatarDef,
+    ChoiceSource,
     ClockDef,
     ItemDef,
     KindDef,
@@ -39,10 +42,13 @@ __all__ = [
     "Accepted",
     "ActionContext",
     "ActionSpec",
+    "AffordanceDef",
+    "AffordanceParam",
     "Attributes",
     "AvatarDef",
     "Cartridge",
     "CartridgeManifest",
+    "ChoiceSource",
     "ClockDef",
     "ControllerRef",
     "ControllerType",

@@ -134,6 +134,44 @@ export interface Params {
   [k: string]: unknown | undefined;
 }
 /**
+ * Um parâmetro que quem joga escolhe (ADR-0051). Sem `choices`, é um número inteiro.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "AffordanceParam".
+ */
+export interface AffordanceParam {
+  name: Token;
+  label: string;
+  choices?: string[];
+  /**
+   * Onde as escolhas valem: a lista toda, o que o avatar tem ou o que a entidade clicada guarda.
+   */
+  source: "any" | "inventory" | "target";
+  minimum?: number;
+  default?: number;
+}
+/**
+ * Uma ação no menu de um tipo de entidade, ou do próprio avatar (`self`). O menu só sugere; quem decide é o kernel (ADR-0051).
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "Affordance".
+ */
+export interface Affordance {
+  action: Token;
+  label: string;
+  /**
+   * Tipos de entidade em que a ação aparece; `self` é o próprio avatar.
+   *
+   * @minItems 1
+   */
+  on: [Token, ...Token[]];
+  /**
+   * A entidade clicada vai no parâmetro `target`.
+   */
+  target: boolean;
+  params?: AffordanceParam[];
+}
+/**
  * Controlador propõe uma ação para o avatar.
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
@@ -861,6 +899,10 @@ export interface WorldSessionStartedV1 {
    */
   resumed: boolean;
   map: SessionMap;
+  /**
+   * Catálogo de ações que o cartucho oferece a quem joga (ADR-0051). O menu só sugere; quem decide é o kernel.
+   */
+  affordances?: Affordance[];
 }
 export interface SessionMap {
   id: string;
@@ -1048,6 +1090,10 @@ export interface ObserverSession {
   cartridge_version: Semver;
   tick_seconds: number;
   map?: ObserverMap;
+  /**
+   * O catálogo de ações do session.started, para montar os menus (ADR-0051).
+   */
+  affordances?: Affordance[];
 }
 /**
  * O mapa do cartucho; o arquivo fica no gateway em /content/maps/<id>.tmj (ADR-0050).

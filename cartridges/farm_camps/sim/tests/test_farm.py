@@ -292,3 +292,43 @@ def test_clima_sorteado_as_5_para_o_dia_seguinte_com_chuva_de_cerca_de_20_por_ce
     assert sorted(days) == list(range(1, 42))
     rain = sum(1 for c in days.values() if c == "rain") / len(days)
     assert 0.05 < rain < 0.40
+
+
+# Os parâmetros que cada ação lê (bíblia §8; ações do gênero e do kernel).
+ACTION_PARAMS: dict[str, set[str]] = {
+    "plant": {"target", "crop"},
+    "water": {"target"},
+    "harvest": {"target"},
+    "clear": {"target"},
+    "refill": {"target"},
+    "deposit": {"target", "item", "qty"},
+    "withdraw": {"target", "item", "qty"},
+    "sell": {"target", "item", "qty"},
+    "buy": {"target", "item", "qty"},
+    "sleep": {"target"},
+    "eat": {"item"},
+    "wait": {"ticks"},
+}
+
+
+def test_catalogo_de_acoes_bate_com_as_acoes_e_sai_no_session_started() -> None:
+    """O menu de quem joga (ADR-0051) só cita ações que existem, com parâmetros que elas leem."""
+    farmer = _farmer()
+    definition = farmer.core.definition
+    kinds = {e.kind for e in farmer.core.world.entities()}
+    assert definition.affordances
+    for a in definition.affordances:
+        assert a.action in definition.actions or a.action in {"move", "wait"}
+        names = {p.name for p in a.params} | ({"target"} if a.target else set[str]())
+        assert names <= ACTION_PARAMS[a.action], a
+        assert set(a.on) <= kinds | {"self"}, a
+        for p in a.params:
+            assert all(c in definition.items or c in section_crops(farmer) for c in p.choices), p
+    (started,) = of_type(farmer.facts, "world.session.started")
+    catalog = {(a["action"], a["label"]) for a in started["affordances"]}
+    assert ("plant", "Plantar") in catalog
+    assert ("sleep", "Dormir aqui") in catalog
+
+
+def section_crops(farmer: Farmer) -> set[str]:
+    return set(farmer.core.world.data("farm")["crops"])

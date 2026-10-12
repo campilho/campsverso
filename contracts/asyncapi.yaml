@@ -1112,6 +1112,72 @@ components:
         este schema.
       type: object
       additionalProperties: {}
+    AffordanceParam:
+      title: AffordanceParam
+      description: Um parâmetro que quem joga escolhe (ADR-0051). Sem `choices`, é um número inteiro.
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - label
+      - source
+      properties:
+        name:
+          $ref: '#/components/schemas/Token'
+          description: O nome do parâmetro na ação (crop, item, qty…).
+        label:
+          type: string
+          minLength: 1
+          maxLength: 64
+        choices:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 64
+          uniqueItems: true
+        source:
+          enum:
+          - any
+          - inventory
+          - target
+          description: 'Onde as escolhas valem: a lista toda, o que o avatar tem ou o que a entidade clicada
+            guarda.'
+        minimum:
+          type: integer
+        default:
+          type: integer
+    Affordance:
+      title: Affordance
+      description: Uma ação no menu de um tipo de entidade, ou do próprio avatar (`self`). O menu só sugere;
+        quem decide é o kernel (ADR-0051).
+      type: object
+      additionalProperties: false
+      required:
+      - action
+      - label
+      - 'on'
+      - target
+      properties:
+        action:
+          $ref: '#/components/schemas/Token'
+        label:
+          type: string
+          minLength: 1
+          maxLength: 64
+        'on':
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/Token'
+          description: Tipos de entidade em que a ação aparece; `self` é o próprio avatar.
+        target:
+          type: boolean
+          description: A entidade clicada vai no parâmetro `target`.
+        params:
+          type: array
+          items:
+            $ref: '#/components/schemas/AffordanceParam'
     CmdActionProposeV1:
       title: CmdActionProposeV1
       description: Controlador propõe uma ação para o avatar.
@@ -2443,6 +2509,12 @@ components:
             height:
               type: integer
               minimum: 1
+        affordances:
+          type: array
+          items:
+            $ref: '#/components/schemas/Affordance'
+          description: Catálogo de ações que o cartucho oferece a quem joga (ADR-0051). O menu só sugere;
+            quem decide é o kernel.
     WorldSnapshotCreatedV1:
       title: WorldSnapshotCreatedV1
       description: Snapshot persistido no BlobStore.
@@ -2725,6 +2797,11 @@ components:
                     height:
                       type: integer
                       minimum: 1
+                affordances:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Affordance'
+                  description: O catálogo de ações do session.started, para montar os menus (ADR-0051).
             clock:
               type: object
               title: ObserverClock

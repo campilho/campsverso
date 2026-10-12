@@ -215,6 +215,31 @@ class KernelCore:
 
     # ------------------------------------------------------------- sessão
 
+    def _affordances(self) -> dict[str, Any]:
+        """O catálogo de ações do cartucho, para quem joga (ADR-0051); ausente se não houver."""
+        catalog: list[dict[str, Any]] = []
+        for a in self.definition.affordances:
+            entry: dict[str, Any] = {
+                "action": a.action,
+                "label": a.label,
+                "on": list(a.on),
+                "target": a.target,
+            }
+            params: list[dict[str, Any]] = []
+            for p in a.params:
+                param: dict[str, Any] = {"name": p.name, "label": p.label, "source": p.source}
+                if p.choices:
+                    param["choices"] = list(p.choices)
+                if p.minimum is not None:
+                    param["minimum"] = p.minimum
+                if p.default is not None:
+                    param["default"] = p.default
+                params.append(param)
+            if params:
+                entry["params"] = params
+            catalog.append(entry)
+        return {"affordances": catalog} if catalog else {}
+
     def start(self) -> None:
         world = self.world
         grid = self.definition.grid
@@ -229,6 +254,7 @@ class KernelCore:
                 "scale": self.scale,
                 "resumed": False,
                 "map": {"id": grid.map_id, "width": grid.width, "height": grid.height},
+                **self._affordances(),
             },
         )
         world.emit_fact(

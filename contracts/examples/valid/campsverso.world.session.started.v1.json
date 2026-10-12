@@ -25,6 +25,35 @@
       "id": "farm_camps",
       "width": 32,
       "height": 18
-    }
+    },
+    "affordances": [
+      {
+        "action": "water",
+        "label": "Regar",
+        "on": [
+          "plot"
+        ],
+        "target": true
+      },
+      {
+        "action": "eat",
+        "label": "Comer",
+        "on": [
+          "self"
+        ],
+        "target": false,
+        "params": [
+          {
+            "name": "item",
+            "label": "Comida",
+            "choices": [
+              "rabanete",
+              "batata"
+            ],
+            "source": "inventory"
+          }
+        ]
+      }
+    ]
   }
 }

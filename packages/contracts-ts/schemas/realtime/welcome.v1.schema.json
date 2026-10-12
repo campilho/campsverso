@@ -126,6 +126,13 @@
                   "minimum": 1
                 }
               }
+            },
+            "affordances": {
+              "type": "array",
+              "items": {
+                "$ref": "contracts://common/defs.v1#/$defs/affordance"
+              },
+              "description": "O catálogo de ações do session.started, para montar os menus (ADR-0051)."
             }
           }
         },

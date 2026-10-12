@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from campsverso_cartridge_api.definitions import (
+    AffordanceDef,
     AvatarDef,
     ClockDef,
     ItemDef,
@@ -46,6 +47,10 @@ class WorldBuilder(Protocol):
     def add_system(self, spec: SystemSpec, *, override: bool = False) -> None: ...
 
     def add_rule_impl(self, impl: RuleImpl, *, override: bool = False) -> None: ...
+
+    def add_affordance(self, affordance: AffordanceDef) -> None:
+        """Uma entrada do catálogo de ações para quem joga (ADR-0051); a ação precisa existir."""
+        ...
 
     def set_map(self, tiled: Mapping[str, Any]) -> None:
         """Mapa no formato JSON do Tiled; objetos nomeados viram entidades."""

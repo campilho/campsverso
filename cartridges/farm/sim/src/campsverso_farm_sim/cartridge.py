@@ -2,9 +2,11 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from campsverso_cartridge_api import (
+    AffordanceDef,
+    AffordanceParam,
     CartridgeManifest,
     ClockDef,
     ItemDef,
@@ -32,6 +34,42 @@ def _kinds(data: dict[str, Any]) -> tuple[KindDef, ...]:
         KindDef("kiosk", blocking=True, attributes={"open": False}),
         KindDef("door"),
         KindDef("watering_can", attributes={"charges": capacity, "capacity": capacity}),
+    )
+
+
+def _choices(raw: Any, data: dict[str, Any]) -> tuple[str, ...]:
+    """Escolhas de um parâmetro: lista, `crops` ou `{category: [...]}` (ADR-0051)."""
+    if raw is None:
+        return ()
+    if raw == "crops":
+        return tuple(data["crops"])
+    if isinstance(raw, dict):
+        wanted = cast(dict[str, list[str]], raw)["category"]
+        return tuple(i for i, info in data["items"].items() if info["category"] in wanted)
+    return tuple(str(c) for c in cast(list[Any], raw))
+
+
+def affordances(data: dict[str, Any]) -> tuple[AffordanceDef, ...]:
+    """O catálogo de ações do `farm.yaml`, com as escolhas resolvidas pelos dados do gênero."""
+    return tuple(
+        AffordanceDef(
+            action=str(entry["action"]),
+            label=str(entry["label"]),
+            on=tuple(entry["kinds"]),  # `on` no contrato; no YAML 1.1, `on` vira booleano
+            target=bool(entry.get("target", True)),
+            params=tuple(
+                AffordanceParam(
+                    name=str(p["name"]),
+                    label=str(p["label"]),
+                    choices=_choices(p.get("choices"), data),
+                    source=p.get("source", "any"),
+                    minimum=p.get("minimum"),
+                    default=p.get("default"),
+                )
+                for p in entry.get("params", [])
+            ),
+        )
+        for entry in data.get("affordances", [])
     )
 
 
@@ -79,6 +117,8 @@ class FarmCartridge:
         for system in build_systems(data):
             world.add_system(system)
         world.add_rule_impl(WaterProximityBonus())
+        for affordance in affordances(data):
+            world.add_affordance(affordance)
 
     def rules_file(self) -> Path | None:
         return None  # o gênero não liga nenhuma regra; o cenário decide (ADR-0039)

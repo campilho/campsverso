@@ -214,6 +214,8 @@ class Projection:
         }
         if data.get("map") is not None:
             self.session["map"] = dict(data["map"])
+        if data.get("affordances"):
+            self.session["affordances"] = [dict(a) for a in data["affordances"]]  # ADR-0051
         self.clock = {
             "mode": data["mode"],
             "scale": float(data["scale"]),
