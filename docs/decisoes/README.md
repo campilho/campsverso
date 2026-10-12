@@ -46,6 +46,7 @@ A numeração deste diretório continua a partir de **0011**, para não colidir 
 | [0038](0038-decisoes-do-kernel-para-o-m1.md) | Kernel do M1: necessidades inteiras, modelo e A* próprios, calendário 2026-10-10, RNG próprio, núcleo + serviço | M1 | ADR-0025 |
 | [0039](0039-decisoes-do-cartucho-farm-para-o-m1.md) | Fazenda do M1: estágios, ids dos objetos, limiares 80/20/0, regra genérica de água, chuva, venda | M1 | bíblia §4, §6, §7, §10 |
 | [0040](0040-kits-de-teste.md) | Kits de teste: laboratório genérico no kernel; Fazenda do Camps em `campsverso_testkit`, fora do sistema | M1 | ADR-0011, ADR-0025 |
+| [0041](0041-sono-em-qualquer-lugar.md) | **Proposta:** dormir em qualquer lugar; a cama (e análogos) turbina a recuperação; sono ruim 5/h | antes do M2 | bíblia §7, §8; ADR-0039 |
 
 ## Modelo
 

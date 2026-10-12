@@ -82,6 +82,8 @@ campsverso/
   data/                       # gitignored: sqlite, snapshots, archive
   docs/
     arquitetura/  decisoes/  diario/
+    planos/                   # plano de cada marco, aprovado antes do código
+    design/                   # referências visuais (Claude Design)
   tests/
     e2e/                      # resistência, determinismo, replay, recuperação
     support/                  # campsverso_testkit: mundos e roteiros para testes (ADR-0040)
