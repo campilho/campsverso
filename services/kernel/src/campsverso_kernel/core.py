@@ -28,7 +28,7 @@ from campsverso_kernel.definition import WorldDefinition
 from campsverso_kernel.facts import Fact, FactLog
 from campsverso_kernel.rng import RngStreams
 from campsverso_kernel.rules import RulesEngine
-from campsverso_kernel.space import corners, find_path
+from campsverso_kernel.space import corners, find_path, nearest
 from campsverso_kernel.world import (
     Avatar,
     RunningAction,
@@ -90,6 +90,7 @@ class KernelCore:
         self.paused = False
         self.tiles_per_tick = definition.tiles_per_minute / self.calendar.ticks_per_minute
         self._queue: deque[Mapping[str, Any]] = deque()
+        self._scheduled: list[tuple[int, Mapping[str, Any]]] = []  # (at_tick, comando) do replay
         self._action_counter = 0
         self._triggered: list[tuple[SystemSpec, OnThreshold, str]] = []
         self._phases = {parse_hhmm(hhmm): name for name, hhmm in definition.clock.phases}
@@ -164,6 +165,7 @@ class KernelCore:
             "scale": self.scale,
             "paused": self.paused,
             "queue": [plain(command) for command in self._queue],
+            "scheduled": [[tick, plain(command)] for tick, command in self._scheduled],
             "action_counter": self._action_counter,
             "triggered": [
                 {
@@ -184,6 +186,9 @@ class KernelCore:
         self.scale = float(state["scale"])
         self.paused = bool(state["paused"])
         self._queue = deque(cast(list[Mapping[str, Any]], state["queue"]))
+        self._scheduled = [
+            (int(tick), cast(Mapping[str, Any], command)) for tick, command in state["scheduled"]
+        ]
         self._action_counter = int(state["action_counter"])
         self._triggered = []
         for raw in cast(list[Mapping[str, Any]], state["triggered"]):
@@ -242,11 +247,30 @@ class KernelCore:
 
     # ------------------------------------------------------------- comandos
 
+    @property
+    def lockstep_blocked(self) -> bool:
+        """No modo máximo, o relógio espera o controlador que deve uma decisão (escopo §5)."""
+        return self.mode == "max" and any(
+            a.awaiting and a.controller.type in LOCKSTEP_CONTROLLERS
+            for a in self.world.avatar_map.values()
+        )
+
     def submit(self, command: Mapping[str, Any]) -> None:
-        """Propostas de ação esperam a etapa `commands`; controle vale já (ADR-0037)."""
+        """Propostas de ação esperam a etapa `commands`; controle vale já (ADR-0037).
+
+        Uma proposta com `at_tick` no futuro (controlador replay) espera esse tick.
+        """
         command_type = str(command.get("type", ""))
         if command_type == PROPOSE:
-            self._queue.append(command)
+            data = cast(Mapping[str, Any], command.get("data") or {})
+            avatar = self.world.avatar_map.get(str(data.get("avatar_id")))
+            if avatar is not None and command.get("controllerid") == avatar.controller.id:
+                avatar.awaiting = False
+            at_tick = data.get("at_tick")
+            if isinstance(at_tick, int) and at_tick > self.tick:
+                self._scheduled.append((at_tick, command))
+            else:
+                self._queue.append(command)
             return
         handler = self._control.get(command_type)
         if handler is None:
@@ -363,6 +387,7 @@ class KernelCore:
         if self.mode == "max" and controller.type not in LOCKSTEP_CONTROLLERS:
             return "mode_not_allowed:no modo max só script ou replay assumem o avatar"
         previous, avatar.controller = avatar.controller, controller
+        avatar.awaiting = False
         self.world.emit_fact(
             "campsverso.avatar.possessed.v1",
             {
@@ -383,6 +408,7 @@ class KernelCore:
         if avatar.controller == avatar.default_controller:
             return "no_change"
         previous, avatar.controller = avatar.controller, avatar.default_controller
+        avatar.awaiting = False
         self.world.emit_fact(
             "campsverso.avatar.released.v1",
             {
@@ -508,8 +534,21 @@ class KernelCore:
                 self._complete(avatar)
 
     def _stage_commands(self) -> None:
+        due = [command for tick, command in self._scheduled if tick == self.tick]
+        self._scheduled = [
+            (tick, command) for tick, command in self._scheduled if tick != self.tick
+        ]
+        self._queue.extendleft(reversed(due))
         while self._queue:
             self._propose(self._queue.popleft())
+
+    def _has_scheduled(self, avatar: Avatar) -> bool:
+        return any(
+            command.get("controllerid") == avatar.controller.id
+            and cast(Mapping[str, Any], command.get("data") or {}).get("avatar_id")
+            == avatar.avatar_id
+            for _, command in self._scheduled
+        )
 
     def _stage_decisions(self) -> None:
         for avatar_id, avatar in sorted(self.world.avatar_map.items()):
@@ -530,6 +569,8 @@ class KernelCore:
                     correlation=None,
                     opens_correlation=True,
                 )
+                # Quem já mandou uma proposta agendada (replay) não deve nada ao relógio.
+                avatar.awaiting = not self._has_scheduled(avatar)
             avatar.pending.clear()
 
     # ------------------------------------------------------------- ações
@@ -569,8 +610,12 @@ class KernelCore:
 
         if command.get("controllerid") != avatar.controller.id:
             return reject("not_in_control")
-        if data.get("at_tick") is not None:
-            return reject("unsupported", "at_tick chega com o controlador replay (M3)")
+        at_tick = data.get("at_tick")
+        if at_tick is not None:
+            if avatar.controller.type != "replay" or self.mode != "max":
+                return reject("unsupported", "at_tick só vale do controlador replay no modo máximo")
+            if at_tick != self.tick:  # chegou depois do tick pedido
+                return reject("too_late", f"at_tick {at_tick}, tick atual {self.tick}")
         if avatar.asleep:
             return reject("busy", "o avatar está dormindo")
         if avatar.action is not None and not self._cancellable(avatar.action):
@@ -644,20 +689,40 @@ class KernelCore:
     def _validate_move(
         self, avatar: Avatar, params: Mapping[str, Any]
     ) -> tuple[Validation, Trajectory | None]:
-        raw = params.get("target")
-        if not isinstance(raw, Mapping):
-            return Rejection("invalid_params", "move exige target {x, y}"), None
-        target_raw = cast(Mapping[str, Any], raw)
-        x, y = target_raw.get("x"), target_raw.get("y")
-        if not isinstance(x, int) or not isinstance(y, int):
-            return Rejection("invalid_params", "move exige target {x, y}"), None
-        target = Position(x, y)
+        """`{target: {x, y}}` ou `{near: entity_id}`: o tile livre mais perto ao lado (ADR-0047)."""
         origin = self.world.position_of(avatar.avatar_id)
         assert origin is not None
-        if target == origin:
-            return Rejection("already_there"), None
-        if not self.world.walkable(target):
-            return Rejection("not_passable"), None
+        raw, near = params.get("target"), params.get("near")
+        if (raw is None) == (near is None):
+            return Rejection("invalid_params", "move exige target {x, y} ou near"), None
+        if near is not None:
+            entity = self.world.entity_map.get(near) if isinstance(near, str) else None
+            spot = None if entity is None else self.world.position_of(entity.entity_id)
+            if spot is None:
+                return Rejection("invalid_params", f"{near!r} não é uma entidade no mapa"), None
+            if origin.chebyshev(spot) <= 1:
+                return Rejection("already_there"), None
+            around = (
+                Position(spot.x + dx, spot.y + dy)
+                for dy in (-1, 0, 1)
+                for dx in (-1, 0, 1)
+                if (dx, dy) != (0, 0)
+            )
+            target = nearest(origin, around, self.world.walkable)
+            if target is None:
+                return Rejection("unreachable"), None
+        else:
+            if not isinstance(raw, Mapping):
+                return Rejection("invalid_params", "move exige target {x, y}"), None
+            target_raw = cast(Mapping[str, Any], raw)
+            x, y = target_raw.get("x"), target_raw.get("y")
+            if not isinstance(x, int) or not isinstance(y, int):
+                return Rejection("invalid_params", "move exige target {x, y}"), None
+            target = Position(x, y)
+            if target == origin:
+                return Rejection("already_there"), None
+            if not self.world.walkable(target):
+                return Rejection("not_passable"), None
         path = find_path(origin, target, self.world.walkable)
         if path is None:
             return Rejection("unreachable"), None
@@ -702,12 +767,14 @@ class KernelCore:
         world = self.world
         if self._queue or self._triggered or any(a.pending for a in world.avatar_map.values()):
             return now
+        candidates_scheduled = [tick for tick, _ in self._scheduled if tick >= now]
         minutes = (
             {minute for _, minute in self._daily} | set(self._phases) | set(range(0, 1440, 60))
         )
         if self.calendar.is_minute_start(now) and self.calendar.minute_of_day(now) in minutes:
             return now
         candidates = [now + self.calendar.ticks_until(now, minute) for minute in minutes]
+        candidates += candidates_scheduled
         for avatar_id, avatar in world.avatar_map.items():
             if avatar.action is not None:
                 candidates.append(avatar.action.end_tick)

@@ -1,7 +1,8 @@
 """Espaço: grade de tiles a partir de um mapa do Tiled e caminhos A* determinísticos."""
 
 import heapq
-from collections.abc import Callable, Mapping, Sequence
+from collections import deque
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, cast
 
@@ -125,6 +126,30 @@ def find_path(
                 heapq.heappush(
                     frontier, (new_cost + estimate(neighbor), new_cost, neighbor.y, neighbor.x)
                 )
+    return None
+
+
+def nearest(
+    start: Position, goals: Iterable[Position], walkable: Callable[[Position], bool]
+) -> Position | None:
+    """O objetivo alcançável mais perto pelo caminho; empate pelo menor (y, x) (ADR-0047)."""
+    targets = {g for g in goals if walkable(g)}
+    if not targets:
+        return None
+    seen = {start}
+    layer = [start]
+    while layer:
+        reached = sorted((p for p in layer if p in targets), key=lambda p: (p.y, p.x))
+        if reached:
+            return reached[0]
+        following: deque[Position] = deque()
+        for current in layer:
+            for step in _STEPS:
+                neighbor = Position(current.x + step.x, current.y + step.y)
+                if neighbor not in seen and walkable(neighbor):
+                    seen.add(neighbor)
+                    following.append(neighbor)
+        layer = list(following)
     return None
 
 

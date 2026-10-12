@@ -101,6 +101,7 @@ class Avatar:
     wake_needs: dict[str, float] = field(default_factory=dict[str, float])
     sleep_rates: dict[str, int] = field(default_factory=dict[str, int])  # unidades por tick
     pending: list[str] = field(default_factory=list[str])
+    awaiting: bool = False  # pediu decisão e o controlador ainda não respondeu (lockstep)
 
     @property
     def idle(self) -> bool:
@@ -754,6 +755,7 @@ def _avatar_data(a: Avatar) -> dict[str, Any]:
         "wake_needs": dict(a.wake_needs),
         "sleep_rates": dict(a.sleep_rates),
         "pending": list(a.pending),
+        "awaiting": a.awaiting,
     }
 
 
@@ -770,6 +772,7 @@ def _avatar_from(raw: Mapping[str, Any]) -> Avatar:
         wake_needs=dict(raw["wake_needs"]),
         sleep_rates=dict(raw["sleep_rates"]),
         pending=list(raw["pending"]),
+        awaiting=bool(raw["awaiting"]),
     )
 
 

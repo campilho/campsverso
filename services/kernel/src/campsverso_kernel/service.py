@@ -6,6 +6,7 @@ publicador lê o outbox em ordem de seq e publica. Se o barramento cair, o mundo
 cresce; quando ele volta, o publicador alcança. Republicar não duplica: o id do evento vai junto.
 """
 
+import asyncio
 from collections import OrderedDict
 from collections.abc import Mapping, Sequence
 from typing import Any
@@ -67,6 +68,7 @@ class KernelService:
         self._publishing = False
         self._retry_at = 0.0
         self.failure: BaseException | None = None  # erro do consumidor de comandos
+        self.commands_arrived = asyncio.Event()  # acorda o relógio parado no lockstep
 
     @property
     def core(self) -> KernelCore:
@@ -112,6 +114,7 @@ class KernelService:
         try:
             for _, envelope in batch:
                 self.submit(envelope)
+            self.commands_arrived.set()
             await self.publish_pending()
         except Exception as error:
             self.failure = error
@@ -128,10 +131,14 @@ class KernelService:
         self._commit(inputs=[row])
         return True
 
-    async def run_ticks(self, ticks: int) -> None:
-        for _ in range(ticks):
+    async def run_ticks(self, ticks: int) -> int:
+        """Roda até `ticks` ticks; no modo máximo, para quando o lockstep espera um controlador."""
+        for done in range(ticks):
+            if self.core.lockstep_blocked:
+                return done
             self._commit(snapshot=self.engine.step())
             await self.publish_pending()
+        return ticks
 
     # ------------------------------------------------------------- outbox
 
