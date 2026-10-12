@@ -2,6 +2,7 @@
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from typing import Literal
 
 from campsverso_cartridge_api.model import Attributes, ControllerRef, Direction, Position, Scalar
 
@@ -13,6 +14,7 @@ class ClockDef:
     tick_seconds: int
     day_starts_at: str  # "HH:MM": virada do dia (dia agrícola na fazenda)
     phases: tuple[tuple[str, str], ...]  # (nome, "HH:MM")
+    default_scale: float = 1.0  # segundos simulados por segundo real no modo contínuo
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,6 +41,9 @@ class NeedDef:
     need: str
     initial: float
     rates_per_hour: Mapping[str, float] = field(default_factory=dict[str, float])
+    role: Literal["energy"] | None = (
+        None  # qual necessidade os eventos de sono reportam como energia
+    )
 
 
 @dataclass(frozen=True, slots=True)
