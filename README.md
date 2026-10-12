@@ -23,7 +23,19 @@ Projeto pessoal de aprendizado, construído em público com a ajuda do Claude Co
 | M6: renderer Phaser (arte LPC, mapa visual, o Camps animado, retrato e créditos) | concluído |
 | M7: fechamento (métricas da bíblia no painel do operador, critérios de aceite da v0.1) | concluído |
 
-## Como funciona
+## Próximo: v0.2, a possessão
+
+A pergunta da v0.2: **um LLM consegue viver na fazenda, prosperar e descobrir sozinho a regra oculta do rio?** E como ele se compara ao fazendeiro-script, a um humano e a outros modelos, no mesmo mundo e com as mesmas métricas? O plano completo está em [v0.2-macro.md](docs/planos/v0.2-macro.md).
+
+| Marco | Entrega |
+|---|---|
+| M8: mundo pronto para o LLM | o agente enxerga o mapa, percepção por deltas, fome e vigília com custo |
+| M9: porta de modelo e orçamento | `ModelPort`, eventos das chamadas, teto de custo que pausa o mundo, respostas gravadas para testes |
+| M10: o controlador LLM | o Camps decide pela percepção e pelo catálogo de ações, com um cartão de identidade |
+| M11: memória baseline | registrar, lembrar e refletir; crenças com confiança e origem |
+| M12: a arena | humano × script × dois modelos, lado a lado, com o custo por dia simulado |
+| M13: fechamento | critérios de aceite, diário e a tag `v0.2.0` |
+
 
 ```mermaid
 flowchart LR
