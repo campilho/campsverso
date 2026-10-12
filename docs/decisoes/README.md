@@ -56,6 +56,7 @@ A numeração deste diretório continua a partir de **0011**, para não colidir 
 | [0048](0048-ciclo-de-decisao-do-m3.md) | Ciclo de decisão do M3: a foto traz o pedido (`decision`), lockstep pela dívida de decisão, replay com agenda (`at_tick`), ids derivados, `caught_up`, controlador inicial por mundo, hash sem o sha256 do snapshot | M3 | catálogo §3.7; ADR-0021, 0028, 0047 |
 | [0049](0049-cochilo-dormir-a-qualquer-hora.md) | Dormir a qualquer hora: à noite até as 06:00; de dia, cochilo até a energia encher (no máximo até as 06:00); `not_tired` com energia cheia | M4 | bíblia §7, §8, §11; ADR-0041 |
 | [0050](0050-decisoes-do-plano-do-m4.md) | Decisões do M4: contrato `realtime`, projeção no gateway com merge patch (genérica, sem desenho), mapa do cartucho pelo gateway, visões filtradas no gateway em 127.0.0.1, métricas no M7, `make sandbox`, sem Playwright | M4 | plano do M4; ADR-0022, 0025 |
+| [0051](0051-decisoes-do-plano-do-m5.md) | Decisões do M5: catálogo de ações do cartucho no `session.started`, as duas visões jogam, "Assumir" passa o mundo ao contínuo, clique esquerdo anda e direito abre o menu, sem devolução automática, pulso de 1 s, custos em `docs/custos/` | M5 | plano do M5; ADR-0022, 0050 |
 
 ## Modelo
 

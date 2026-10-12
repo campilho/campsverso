@@ -15,3 +15,5 @@ Ideias e pendências que ainda não têm marco. Cada uma vira plano, ou ADR, qua
 | **Renderer 3D** (three.js ou análogo), sobre o mesmo contrato `realtime` do canvas e do Phaser | ADR-0050 | depois do M6 |
 | **Visitantes com login.** Separar as visões jogador e operador por credencial, e não só por conexão | ADR-0022, ADR-0050 | antes de abrir para fora de `127.0.0.1` |
 | **Playwright.** Testes automáticos da tela num navegador de verdade | ADR-0050 | no M6 |
+| **Ações padrão do mundo.** Ações que todo mundo tem (andar, esperar, talvez dormir), declaradas pelo kernel. Hoje, cada cartucho declara o próprio catálogo | ADR-0051 | quando houver um segundo cartucho |
+| **Teclado e arrastar.** Atalhos de teclado para as ações e arrastar no mapa. No M5, só o mouse, com os cliques esquerdo e direito | ADR-0051 | depois do M6 |
