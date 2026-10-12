@@ -14,6 +14,7 @@ import { renderHud } from "./panels/hud.ts";
 import { ActionMenu } from "./panels/menu.ts";
 import { OperatorPanel } from "./panels/operator.ts";
 import { inControl, menuFor, proposal, thingAt, walkTo } from "./play.ts";
+import { busyText } from "./progress.ts";
 import { MapCanvas } from "./render/canvas.ts";
 import { DisplayClock, clockText, isLive } from "./simclock.ts";
 import { Store } from "./store.ts";
@@ -89,6 +90,10 @@ function explain(event: EnvelopeV1): string | undefined {
   const data = event.data as Record<string, unknown>;
   const detail = typeof data.detail === "string" ? `: ${data.detail}` : "";
   if (event.type === "campsverso.action.rejected.v1" && data.avatar_id === avatarId()) {
+    const state = store.state;
+    if (data.reason === "busy" && state !== undefined) {
+      return busyText(state, avatarId(), shownTick); // ADR-0052: o trabalho não se cancela
+    }
     return `O kernel recusou ${String(data.action)} (${String(data.reason)}${detail}).`;
   }
   if (event.type === "campsverso.world.command.rejected.v1") {

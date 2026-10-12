@@ -5,6 +5,7 @@
 import type { ObserverState } from "@campsverso/contracts";
 
 import { positionAt, type Point } from "../motion.ts";
+import { progressOf } from "../progress.ts";
 import { tileAt, type TileGrid } from "../tiled.ts";
 import { entityColor, entityLabel, isNight, tileColor } from "./skin.ts";
 
@@ -133,9 +134,12 @@ export class MapCanvas {
       ctx.stroke();
       ctx.lineWidth = 1;
       this.label(id.slice(0, 1).toUpperCase(), cx, cy + 4, "#1b1b1b", "bold 12px");
-      const above = state.asleep[id] === true ? "Zz" : state.actions[id]?.action;
-      if (above !== undefined) {
-        this.tag(above, cx, at.y * TILE - 4);
+      const progress = progressOf(state, id, tick);
+      if (progress !== undefined) {
+        this.tag(progress.label, cx, at.y * TILE - 8);
+        if (progress.fraction !== undefined) {
+          this.bar(progress.fraction, cx, at.y * TILE - 4);
+        }
       }
     }
   }
@@ -149,6 +153,16 @@ export class MapCanvas {
     ctx.textAlign = "center";
     ctx.fillStyle = color;
     ctx.fillText(text, x, y);
+  }
+
+  /** A barra de progresso da ação ou do sono (ADR-0052), logo abaixo do rótulo. */
+  private bar(fraction: number, x: number, y: number): void {
+    const ctx = this.context;
+    const width = TILE - 4;
+    ctx.fillStyle = "rgba(20, 20, 20, 0.8)";
+    ctx.fillRect(x - width / 2 - 1, y - 1, width + 2, 6);
+    ctx.fillStyle = "#7bd88f";
+    ctx.fillRect(x - width / 2, y, width * fraction, 4);
   }
 
   private tag(text: string, x: number, y: number): void {
