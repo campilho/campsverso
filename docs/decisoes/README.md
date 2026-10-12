@@ -59,6 +59,7 @@ A numeração deste diretório continua a partir de **0011**, para não colidir 
 | [0051](0051-decisoes-do-plano-do-m5.md) | Decisões do M5: catálogo de ações do cartucho no `session.started`, as duas visões jogam, "Assumir" passa o mundo ao contínuo, clique esquerdo anda e direito abre o menu, sem devolução automática, pulso de 1 s, custos em `docs/custos/` | M5 | plano do M5; ADR-0022, 0050 |
 | [0052](0052-politica-de-interrupcao-das-acoes.md) | Política de interrupção de cada ação (`never`, `cancel`, `partial`), declarada pelo cartucho; `busy` para quem trabalha; gancho para guardar o trabalho feito; fila e despertador no futuro | M6 | bíblia §8; ADR-0038, 0051 |
 | [0053](0053-decisoes-do-plano-do-m6.md) | Decisões do M6: Phaser 4.2.1, arte no cartucho em camadas com manifesto, LPC com créditos, mapa visual num arquivo à parte, noite e chuva simples, `?render=debug`, retrato recortado, Playwright de fumaça no CI | M6 | plano do M6; ADR-0031, 0050 |
+| [0054](0054-decisoes-do-plano-do-m7.md) | Decisões do M7: catálogo de métricas declarado pelo cartucho (`count`, `max_need`, `item`) e contado pela projeção comum, painel com hoje, ontem e 7 dias, `docs/aceite-v0.1.md` com soaks de 30 dias, mundo oficial pelo usuário, README com Mermaid, tag `v0.1.0` | M7 | plano do M7; ADR-0047, 0051 |
 
 ## Modelo
 
