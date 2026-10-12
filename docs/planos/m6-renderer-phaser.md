@@ -1,6 +1,6 @@
 # Plano do M6 — Renderer Phaser
 
-**Status:** aprovado em 12/out/2026 (ADR-0052 e ADR-0053).
+**Status:** implementado em 12/out/2026 e jogado pelo usuário (ADR-0052 e ADR-0053). O que mudou está na seção 10.
 **Escopo** (escopo §7): mapa Tiled da bíblia, tiles LPC, sprite LPC do Camps, animações de andar, agir e dormir, retrato no HUD.
 **Pronto quando:** a mesma partida do M5, agora com visual de jogo.
 
@@ -123,3 +123,28 @@ Tudo em LPC (Liberated Pixel Cup), em 32 px, o mesmo tamanho dos tiles do mapa.
 | 6 | Canvas de depuração | **Continua em `?render=debug`** |
 | 7 | Retrato no HUD | **Cabeça recortada do sprite;** depois o usuário troca por um retrato próprio de fazendeiro |
 | 8 | Playwright | **Teste de fumaça, principalmente pelo CI.** Localmente usa o Chrome instalado, e no dia a dia eu confiro a tela no navegador embutido do app |
+
+## 10. Como ficou
+
+| Item | Resultado |
+|---|---|
+| **Interrupção** | plantar durante um plantio é recusado com `busy` ("Camps está ocupado: plantar, faltam 3 min"), conferido no navegador e num teste da fazenda; o `partial` está no kernel, testado com uma ação de laboratório (cavar 4 palmos e continuar de onde parou) |
+| **Arte** | só os recortes usados, cerca de 100 KB de imagens: 43 tiles de terreno, 6 objetos, 3 culturas em 5 estágios e o Camps em 13 linhas de animação; `CREDITS.csv` por pasta e os textos de atribuição originais |
+| **Mapa visual** | gerado do mapa lógico por `make mapa-visual`; testes conferem que o arquivo está em dia e que cada tile combina com o tipo lógico |
+| **Phaser 4.2.1** | mapa em camadas, objetos e culturas por atributo, o Camps andando nas 4 direções, agindo, regando e dormindo na cama; retrato no HUD; noite e chuva; créditos na tela; `?render=debug` com o canvas antigo |
+| **Playwright** | `make ui-e2e`, 3 testes em cerca de 12 s na máquina local (Chrome instalado); no CI, com o Chromium do Playwright e as telas como artefato |
+| **Pronto quando** | o usuário jogou a partida com o visual novo e pediu quatro ajustes visuais, todos feitos (abaixo) |
+
+**O que mudou em relação ao plano:**
+
+- **O Camps veio do gerador, com outra roupa.** Camisa vermelha, chapéu bordô, calça azul, botas e o regador na mão. A bíblia §2 foi atualizada para o sprite.
+- **A política de interrupção vem na validação.** Em vez de um campo fixo na ação, o `Accepted` devolvido pelo cartucho traz `interrupt`, lido do `farm.yaml` já juntado com o cenário. Assim um cenário pode trocar a política.
+- **Não há poço LPC nos pacotes.** O poço é uma bomba d'água com bacia.
+- **Os canteiros usam a terra arada inteira.** As bordas do pacote têm grama dentro do tile, e as sementes apareciam em cima da grama.
+- **Ajustes depois da partida do usuário:**
+  - o HUD virou uma grade de lugares fixos, e o aviso de recusa flutua sobre o mapa;
+  - a caminhada começa da origem e alcança o kernel até a chegada (o trajeto chega à tela uma fração de tick atrasado, e a 3 tiles por tick isso virava um pulo);
+  - dormindo, o Camps aparece na cama, com a cabeça no travesseiro (o sono passou a trazer a cama, `bed_id`);
+  - as paredes da casa são uma faixa fina de pedra, com assoalho contínuo.
+- **O CI estava verde por engano** desde a noite de 11/out: o `.gitignore` ignorava toda pasta `data/` (os dados dos cartuchos nunca foram publicados), e o `make check | tee` sem `pipefail` escondia a falha. Corrigido com `/data/` no `.gitignore`, os dados no git e `shell: bash` no job, conferido num clone limpo.
+- **Sem WebGL, o Phaser usa o Canvas.** No modo AUTO ele abortava quando o WebGL parecia disponível e falhava depois.

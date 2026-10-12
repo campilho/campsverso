@@ -19,8 +19,9 @@ Projeto pessoal de aprendizado, construído em público com a ajuda do Claude Co
 | M2: durabilidade (NATS, outbox, arquivo JSONL, snapshots, retomada) | concluído |
 | M3: controladores headless (percepção, fazendeiro-script, replay, modo máximo) | concluído |
 | M4: UI de depuração (gateway WebSocket, canvas, visões jogador/operador, controles do relógio) | concluído |
-| M5: controlador humano (clicar para mover, menu de ações, assumir e devolver a posse) | em teste |
-| M6: renderer Phaser (mapa, tiles e sprites, animações) | próximo |
+| M5: controlador humano (clicar para mover, menu de ações, assumir e devolver a posse) | concluído |
+| M6: renderer Phaser (arte LPC, mapa visual, o Camps animado, retrato e créditos) | concluído |
+| M7: fechamento (métricas da bíblia no painel do operador, critérios de aceite da v0.1) | próximo |
 
 ## Como começar
 
@@ -33,8 +34,10 @@ make sandbox # um mundo descartável com tudo ligado; a UI fica em http://127.0.
 make run     # o mundo oficial: NATS, kernel, percepção, fazendeiro-script, arquivador e gateway
 make stop    # derruba o NATS
 make ui      # a UI em modo desenvolvimento (Vite), ligada ao gateway do run ou do sandbox
+make ui-e2e  # fumaça da tela num navegador de verdade (Playwright), com um sandbox próprio
+make mapa-visual    # regrava o mapa visual da fazenda a partir do mapa lógico
 make soak DAYS=30   # 30 dias simulados em modo máximo, com processos e NATS próprios
-make sessoes MARCO=M5   # tempo e tokens do Claude Code por marco, em docs/custos/
+make sessoes MARCO=M6   # tempo e tokens do Claude Code por marco, em docs/custos/
 make metrics        # métricas do mundo a partir do arquivo de eventos
 make help    # todos os alvos
 ```
@@ -42,6 +45,8 @@ make help    # todos os alvos
 O `make run` gera as senhas locais do NATS em `.env`, fora do git. O mundo fica em `data/farm-camps-01/` (estado e snapshots) e o histórico de eventos em `data/archive/`. A UI abre em `http://127.0.0.1:8765/?view=player` (jogador) ou `?view=operator` (operador, com relógio e linha do tempo). O `make sandbox` faz o mesmo numa pasta própria em `data/sandbox/`, sem tocar no mundo oficial.
 
 Para jogar, clique em "Assumir o Camps". O clique esquerdo anda; o clique direito abre o menu de ações da coisa clicada, ou o do próprio Camps. "Devolver ao script" devolve o controle ao fazendeiro-script.
+
+O mapa é desenhado pelo [Phaser](https://phaser.io/) com pixel art do [Liberated Pixel Cup](https://lpc.opengameart.org/). O link "canvas de depuração" volta ao desenho simples, com ids e rótulos, e o link "créditos" lista os autores de cada peça de arte.
 
 ## Documentação
 
@@ -53,4 +58,4 @@ Para jogar, clique em "Assumir o Camps". O clique esquerdo anda; o clique direit
 
 ## Licença
 
-[MIT](LICENSE)
+O código é [MIT](LICENSE). A arte em `cartridges/*/art/` é CC-BY-SA 3.0 ou GPL 3.0, como as originais do LPC, e exige crédito a cada autor: veja o `CREDITS.csv` de cada pasta.
