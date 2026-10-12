@@ -1,6 +1,6 @@
 # Plano do M2 — Durabilidade
 
-**Status:** decisões respondidas em 11/out/2026; **aguardando o OK final do usuário para começar** (o item 5 da seção 5 ainda espera confirmação).
+**Status:** todas as decisões aprovadas em 11/out/2026; **aguardando o OK do usuário para começar a implementação.**
 **Escopo** (escopo §7): adaptador NATS, outbox, arquivador JSONL, snapshots, retomada após queda.
 **Pronto quando:** `kill -9` no kernel no meio de um dia → reinício sem lacunas nem duplicatas de `seq`.
 
@@ -94,7 +94,7 @@ O incremental escolhido é o menor possível: **as entradas, não o estado.** É
 | 2 | Credenciais do NATS: nada no repositório | **aprovada** |
 | 3 | Snapshot completo a cada hora simulada, configurável | **aprovada** |
 | 4 | JSONL por mundo e por dia; retenção: comprimir após 7 dias, armazenamento frio depois, apagar só manualmente | **aprovada**, com a política da seção 2 |
-| 5 | Como subir os processos juntos (abaixo) | **aguarda confirmação** |
+| 5 | Subir os processos juntos com `honcho` + `Procfile` (abaixo) | **aprovada** |
 | 6 | Baixar o `nats-server` 2.14.x do GitHub oficial da NATS | **aprovada** (o download acontece só quando o M2 começar) |
 
 ### O que é a decisão 5
@@ -103,7 +103,7 @@ O sistema é feito de **processos separados**: o kernel e o arquivador agora; a 
 
 | Opção | Como é | Prós | Contras |
 |---|---|---|---|
-| **honcho + Procfile** (recomendada agora) | O `Procfile` tem uma linha por processo (`kernel: uv run python -m campsverso_kernel.main`). O `honcho`, uma ferramenta pequena em Python (versão do Foreman, do Ruby), sobe todos, mostra os logs com o nome de cada um em cores, e Ctrl+C derruba todos | entra como dependência de desenvolvimento pelo `uv`; nada global para instalar; funciona igual no Mac e no Linux | é mais uma ferramenta |
+| **honcho + Procfile** (escolhida) | O `Procfile` tem uma linha por processo (`kernel: uv run python -m campsverso_kernel.main`). O `honcho`, uma ferramenta pequena em Python (versão do Foreman, do Ruby), sobe todos, mostra os logs com o nome de cada um em cores, e Ctrl+C derruba todos | entra como dependência de desenvolvimento pelo `uv`; nada global para instalar; funciona igual no Mac e no Linux | é mais uma ferramenta |
 | Script bash | um script sobe cada processo em segundo plano e derruba todos ao sair | nenhuma dependência | frágil: processos órfãos, logs misturados, código para manter |
 | `docker compose` | um container por processo | é o caminho da AWS (ADR-0024) | exige Docker, que não está instalado; fica para antes da AWS |
 
