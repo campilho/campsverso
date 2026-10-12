@@ -17,7 +17,8 @@ Projeto pessoal de aprendizado, construído em público com a ajuda do Claude Co
 | M0: fundação (monorepo, contratos, codegen, CI) | concluído |
 | M1: kernel sem barramento (modelo de mundo, relógio, ações, regras, cartuchos farm e farm_camps) | concluído |
 | M2: durabilidade (NATS, outbox, arquivo JSONL, snapshots, retomada) | concluído |
-| M3: controladores headless (percepção, fazendeiro-script, replay, modo máximo) | próximo |
+| M3: controladores headless (percepção, fazendeiro-script, replay, modo máximo) | concluído |
+| M4: UI de depuração (gateway WebSocket, canvas, visões jogador/operador, controles do relógio) | próximo |
 
 ## Como começar
 
@@ -26,8 +27,10 @@ Requisitos: [uv](https://docs.astral.sh/uv/) e [pnpm](https://pnpm.io/). O uv in
 ```bash
 make setup   # dependências Python e TypeScript, e o nats-server com versão fixa
 make check   # lint, tipos, testes, arquitetura e contratos
-make run     # sobe o NATS, o kernel e o arquivador (Ctrl+C derruba os processos)
+make run     # sobe o NATS, o kernel, a percepção, o fazendeiro-script e o arquivador
 make stop    # derruba o NATS
+make soak DAYS=30   # 30 dias simulados em modo máximo, com processos e NATS próprios
+make metrics        # métricas do mundo a partir do arquivo de eventos
 make help    # todos os alvos
 ```
 

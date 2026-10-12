@@ -111,10 +111,11 @@ make tools        # baixa o nats-server com versão e sha256 fixados (.tools/)
 make secrets      # gera em .env (fora do git) as senhas do NATS que faltam
 make up           # sobe o NATS em segundo plano
 make stop         # derruba o NATS
-make run          # sobe o NATS e os processos do Procfile (honcho): kernel e arquivador
+make run          # sobe o NATS e o Procfile (honcho): kernel, percepção, script e arquivador
 make ui           # sobe a UI em modo desenvolvimento
-make soak DAYS=30 # resistência em modo máximo com o script
-make replay DAY=N # reexecuta um dia a partir do arquivo e compara hashes
+make soak DAYS=30 # resistência em modo máximo, com processos e NATS próprios (SEM_REGRA=1)
+make replay DAY=N # reexecuta um dia a partir do snapshot e do diário e compara com o arquivo
+make metrics      # métricas da bíblia §13 a partir do arquivo (ARCHIVE=pasta do mundo)
 ```
 
 Os alvos de marcos futuros já existem e avisam "ainda não implementado (marco Mx)". `make check` inclui `make contracts-check` (validação nos dois validadores e codegen sem diferenças) e `make compat` (compatibilidade com `COMPAT_BASE`, padrão `HEAD`).

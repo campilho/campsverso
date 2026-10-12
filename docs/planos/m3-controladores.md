@@ -1,6 +1,6 @@
 # Plano do M3 — Controladores headless
 
-**Status:** aprovado em 11/out/2026 (ADR-0047); em implementação.
+**Status:** **concluído** em 11/out/2026 (noite). O que mudou na implementação está na seção 8.
 **Escopo** (escopo §7): percepção, `decision_requested`, controller-runner com script e replay, posse, modo máximo.
 **Pronto quando:** 30 dias simulados com o fazendeiro-script, sem intervenção; os testes de determinismo e de replay passam.
 **Critérios de aceite cobertos:** A3 (resistência), A4 (determinismo), A5 (replay), A9 (posse), A10 (economia sustentável) e uma prévia do A11 (evidência da regra oculta).
@@ -87,3 +87,17 @@ kernel ──decision_requested (agent.camps)──► percepção ──percept
 - `make soak`, A3, A4, A9 e A10;
 - `Procfile` com os quatro processos;
 - ADRs e diário.
+
+## 8. Como ficou (11/out/2026)
+
+Os critérios da seção 5 passam no `make check`; o soak de 30 dias rodou à mão.
+
+| Item | Resultado |
+|---|---|
+| A3 + A10 | `make soak DAYS=30`: **27 s** reais com os quatro processos e o NATS; nenhuma recusa, desmaio ou planta murcha; 100 → **1.175** moedas no dia 30 |
+| A11 (prévia) | com a R-001, o rabanete amadurece em 2 dias no leste e 3 no oeste (116 × 80 colheitas); sem ela, 3 e 3, e o dia 30 fecha com 710 moedas |
+| A4 | o mesmo hash em duas execuções, em memória e com processos |
+| A5 | `--replay-day N` reproduz o dia: o dia 15 do soak, a partir do snapshot inicial, deu os mesmos 474 fatos |
+| A9 | humano assume (só fora do modo máximo), o script é recusado com `not_in_control`, a posse volta e o script retoma |
+| Mudança de contrato | `perception.delivered.v1` ganhou o campo opcional `decision` (ADR-0048) |
+| Defeitos achados | script respondendo fora da vez; consumidor ocioso morrendo em silêncio; corrida no teste A7 (ADR-0048) |
