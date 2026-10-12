@@ -1,0 +1,204 @@
+/** O manifesto de arte dos cartuchos (ADR-0053): como desenhar cada tile, cada `kind` e o avatar.
+ *
+ * Cada camada (do gênero ao cenário) traz o seu `art.json`; a tela junta na ordem do índice, e a
+ * camada de cima cobre a de baixo. O renderer não sabe o que é uma fazenda: ele só procura aqui.
+ * O que o manifesto não conhece ganha uma cor estável derivada do nome.
+ */
+
+export type Scalar = string | number | boolean | null;
+
+/** Uma imagem em quadros iguais. O caminho é relativo à camada no arquivo e absoluto depois de lido. */
+export interface SheetDef {
+  readonly image: string;
+  readonly frame_width: number;
+  readonly frame_height: number;
+}
+
+/** A aparência de uma coisa: um quadro de uma folha, ou uma cor (a arte provisória). */
+export interface Look {
+  readonly color?: string;
+  /** Texto curto desenhado por cima; `{atributo}` vira o valor do atributo. */
+  readonly label?: string;
+  readonly sheet?: string;
+  readonly frame?: number;
+  /** Cor que tinge o quadro (a planta murcha é a madura escurecida). */
+  readonly tint?: string;
+  /** Um ponto de cor no canto (o canteiro regado). */
+  readonly badge?: string;
+}
+
+export interface Variant {
+  readonly when: Readonly<Record<string, Scalar>>;
+  readonly look: Look;
+}
+
+export interface KindArt extends Look {
+  /** A primeira variante cujos atributos batem cobre a aparência base. */
+  readonly variants?: readonly Variant[];
+  /** Todas as que batem se somam por cima (badges, rótulos). */
+  readonly overlays?: readonly Variant[];
+}
+
+export interface Animation {
+  readonly sheet: string;
+  /** Uma linha de quadros por direção, na ordem `up`, `left`, `down`, `right` (padrão LPC). */
+  readonly row: number;
+  readonly frames: number;
+  /** Só uma direção (o `hurt` do LPC, deitado). */
+  readonly single?: boolean;
+  /** Quadro parado quando a animação acaba (deitado = o último). */
+  readonly hold?: number;
+}
+
+export interface AvatarArt {
+  readonly animations?: Readonly<Record<string, Animation>>;
+  /** Ação → animação; `*` vale para as que não estão na lista. */
+  readonly actions?: Readonly<Record<string, string>>;
+  readonly idle?: string;
+  readonly asleep?: string;
+  readonly portrait?: { readonly sheet: string; readonly frame: number; readonly x: number; readonly y: number; readonly size: number };
+}
+
+export interface ArtManifest {
+  readonly version: 1;
+  readonly tile_size?: number;
+  readonly sheets?: Readonly<Record<string, SheetDef>>;
+  readonly tiles?: Readonly<Record<string, Look>>;
+  readonly kinds?: Readonly<Record<string, KindArt>>;
+  /** Quanto escurecer em cada fase do dia (0 a 1). */
+  readonly phases?: Readonly<Record<string, { readonly shade: number }>>;
+  /** Efeito de cada condição do clima. */
+  readonly weather?: Readonly<Record<string, { readonly effect: "rain" }>>;
+  /** O mapa visual (Tiled), desenhado no lugar das cores dos tiles. */
+  readonly visual_map?: string;
+  readonly avatars?: Readonly<Record<string, AvatarArt>>;
+}
+
+export const EMPTY: ArtManifest = { version: 1 };
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function deepMerge(base: unknown, over: unknown): unknown {
+  if (!isObject(base) || !isObject(over)) {
+    return over === undefined ? base : over;
+  }
+  const result: Record<string, unknown> = { ...base };
+  for (const [key, value] of Object.entries(over)) {
+    result[key] = deepMerge(base[key], value);
+  }
+  return result;
+}
+
+/** Os caminhos de uma camada viram endereços do gateway (`/content/art/<camada>/...`). */
+export function rooted(manifest: ArtManifest, root: string): ArtManifest {
+  const sheets = Object.fromEntries(
+    Object.entries(manifest.sheets ?? {}).map(([name, sheet]) => [name, { ...sheet, image: `${root}/${sheet.image}` }]),
+  );
+  return {
+    ...manifest,
+    ...(manifest.sheets === undefined ? {} : { sheets }),
+    ...(manifest.visual_map === undefined ? {} : { visual_map: `${root}/${manifest.visual_map}` }),
+  };
+}
+
+/** Junta as camadas na ordem: a de cima cobre a de baixo; listas são trocadas, não somadas. */
+export function mergeManifests(layers: readonly ArtManifest[]): ArtManifest {
+  return layers.reduce<ArtManifest>((all, layer) => deepMerge(all, layer) as ArtManifest, EMPTY);
+}
+
+function matches(when: Readonly<Record<string, Scalar>>, attributes: Readonly<Record<string, unknown>>): boolean {
+  return Object.entries(when).every(([key, value]) => (attributes[key] ?? null) === value);
+}
+
+function fill(label: string | undefined, attributes: Readonly<Record<string, unknown>>): string | undefined {
+  return label?.replace(/\{(\w+)\}/g, (_, key: string) => {
+    const value = attributes[key];
+    return typeof value === "string" || typeof value === "number" ? String(value) : "";
+  });
+}
+
+export function hashColor(name: string): string {
+  let hash = 0;
+  for (const char of name) {
+    hash = (hash * 31 + char.charCodeAt(0)) % 360;
+  }
+  return `hsl(${String(hash)} 45% 55%)`;
+}
+
+export interface Resolved extends Look {
+  readonly badges: readonly string[];
+}
+
+/** A aparência de uma entidade agora: base, variante que bate e sobreposições. */
+export function lookOf(manifest: ArtManifest, kind: string, attributes: Readonly<Record<string, unknown>>): Resolved {
+  const art = manifest.kinds?.[kind];
+  if (art === undefined) {
+    return { color: hashColor(kind), label: kind.replace(/_/g, " ").slice(0, 5), badges: [] };
+  }
+  const { variants, overlays, ...base } = art;
+  const variant = variants?.find((v) => matches(v.when, attributes));
+  let look: Look = variant === undefined ? base : { ...base, ...variant.look };
+  const badges: string[] = [];
+  for (const overlay of overlays ?? []) {
+    if (matches(overlay.when, attributes)) {
+      const { badge, ...others } = overlay.look;
+      if (badge !== undefined) {
+        badges.push(badge);
+      }
+      look = { ...look, ...others };
+    }
+  }
+  const label = fill(look.label, attributes);
+  return { ...look, ...(label === undefined ? {} : { label }), badges };
+}
+
+export function tileLook(manifest: ArtManifest, type: string): Look {
+  return manifest.tiles?.[type] ?? { color: type === "" ? "#000000" : hashColor(type) };
+}
+
+export function shadeOf(manifest: ArtManifest, phase: string): number {
+  return Math.min(1, Math.max(0, manifest.phases?.[phase]?.shade ?? 0));
+}
+
+export function weatherEffect(manifest: ArtManifest, condition: string | undefined): "rain" | undefined {
+  return condition === undefined ? undefined : manifest.weather?.[condition]?.effect;
+}
+
+/** Qual animação do avatar mostrar: dormindo, numa ação, ou parado. */
+export function animationFor(art: AvatarArt | undefined, action: string | undefined, asleep: boolean): string | undefined {
+  if (art === undefined) {
+    return undefined;
+  }
+  if (asleep) {
+    return art.asleep;
+  }
+  if (action === undefined) {
+    return art.idle;
+  }
+  return art.actions?.[action] ?? art.actions?.["*"] ?? art.idle;
+}
+
+/** `#rrggbb` ou `hsl(h s% l%)` como número 0xRRGGBB, que é como o Phaser recebe cores. */
+export function colorNumber(css: string): number {
+  const hex = /^#([0-9a-f]{6})$/i.exec(css);
+  if (hex?.[1] !== undefined) {
+    return Number.parseInt(hex[1], 16);
+  }
+  const hsl = /^hsl\((\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)%\s+(\d+(?:\.\d+)?)%\)$/.exec(css);
+  if (hsl === null) {
+    return 0xff00ff; // cor que chama atenção: o manifesto tem um erro
+  }
+  const h = Number(hsl[1]) / 360;
+  const s = Number(hsl[2]) / 100;
+  const l = Number(hsl[3]) / 100;
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  const channel = (t: number): number => {
+    const k = ((t % 1) + 1) % 1;
+    const v = k < 1 / 6 ? p + (q - p) * 6 * k : k < 1 / 2 ? q : k < 2 / 3 ? p + (q - p) * (2 / 3 - k) * 6 : p;
+    return Math.round(v * 255);
+  };
+  return (channel(h + 1 / 3) << 16) | (channel(h) << 8) | channel(h - 1 / 3);
+}

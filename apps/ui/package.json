@@ -16,6 +16,7 @@
     "vitest": "^5.0.3"
   },
   "dependencies": {
-    "@campsverso/contracts": "workspace:*"
+    "@campsverso/contracts": "workspace:*",
+    "phaser": "4.2.1"
   }
 }

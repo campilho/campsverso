@@ -1,12 +1,15 @@
-/** UI de depuração do Campsverso (M4 e M5; ADR-0050, ADR-0051): o mundo pelo gateway, num canvas.
+/** A UI do Campsverso (M4 a M6; ADR-0050, ADR-0051, ADR-0053): o mundo pelo gateway.
  *
  * `?view=player` (padrão) mostra o mapa e o HUD; `?view=operator` acrescenta o painel do operador.
  * Nas duas visões dá para assumir o Camps e jogar: o clique esquerdo anda, o direito abre o menu.
+ * O mapa é desenhado pelo Phaser com a arte dos cartuchos; `?render=debug` volta ao canvas de
+ * depuração, com ids e rótulos.
  */
 import "./style.css";
 
 import type { EnvelopeV1, ObserverState } from "@campsverso/contracts";
 
+import { loadArt } from "./art/load.ts";
 import { Connection, type View } from "./connection.ts";
 import { button, el } from "./dom.ts";
 import { positionAt } from "./motion.ts";
@@ -16,6 +19,8 @@ import { OperatorPanel } from "./panels/operator.ts";
 import { inControl, menuFor, proposal, thingAt, walkTo } from "./play.ts";
 import { busyText } from "./progress.ts";
 import { MapCanvas } from "./render/canvas.ts";
+import { PhaserRenderer } from "./render/phaser.ts";
+import type { WorldRenderer } from "./render/renderer.ts";
 import { DisplayClock, clockText, isLive } from "./simclock.ts";
 import { Store } from "./store.ts";
 import { parseTiledMap } from "./tiled.ts";
@@ -27,12 +32,14 @@ const POSSESS = "campsverso.cmd.avatar.possess.v1";
 const RELEASE = "campsverso.cmd.avatar.release.v1";
 const SET_MODE = "campsverso.cmd.clock.set_mode.v1";
 
-const view: View = new URLSearchParams(location.search).get("view") === "operator" ? "operator" : "player";
+const query = new URLSearchParams(location.search);
+const view: View = query.get("view") === "operator" ? "operator" : "player";
+const debug = query.get("render") === "debug";
 const store = new Store();
 const scheme = location.protocol === "https:" ? "wss" : "ws";
 const connection = new Connection(`${scheme}://${location.host}/ws?view=${view}`, store);
 
-const canvas = el("canvas");
+const map: WorldRenderer = debug ? new MapCanvas(el("canvas")) : new PhaserRenderer();
 const hud = el("div", { className: "hud" });
 const control = el("div", { className: "control" });
 const notice = el("div", { className: "notice" });
@@ -45,8 +52,10 @@ const header = el(
   el("span", { className: "view" }, view === "operator" ? "visão do operador" : "visão do jogador"),
 );
 const switchLink = el("a", {}, `abrir a visão ${other === "operator" ? "do operador" : "do jogador"}`);
-switchLink.href = `?view=${other}`;
-header.append(switchLink);
+switchLink.href = `?view=${other}${debug ? "&render=debug" : ""}`;
+const renderLink = el("a", {}, debug ? "visual de jogo" : "canvas de depuração");
+renderLink.href = `?view=${view}${debug ? "" : "&render=debug"}`;
+header.append(el("nav", {}, renderLink, switchLink));
 const app = document.querySelector<HTMLElement>("#app");
 if (app === null) {
   throw new Error("#app não existe no index.html");
@@ -54,10 +63,9 @@ if (app === null) {
 app.className = view;
 app.replaceChildren(
   header,
-  el("main", {}, el("section", { className: "world" }, control, canvas, notice, hud), view === "operator" && aside),
+  el("main", {}, el("section", { className: "world" }, control, map.element, notice, hud), view === "operator" && aside),
 );
 
-const map = new MapCanvas(canvas);
 const menu = new ActionMenu(document.body);
 const panel =
   view === "operator"
@@ -181,7 +189,7 @@ function avatarTile(state: ObserverState): { x: number; y: number } | undefined 
   return at === undefined ? undefined : { x: Math.round(at.x), y: Math.round(at.y) };
 }
 
-canvas.addEventListener("click", (event) => {
+map.element.addEventListener("click", (event) => {
   menu.close();
   const state = store.state;
   const tile = map.tileAt(event.clientX, event.clientY);
@@ -195,7 +203,7 @@ canvas.addEventListener("click", (event) => {
   connection.send(PROPOSE, { ...walkTo(state, avatarId(), tile.x, tile.y) });
 });
 
-canvas.addEventListener("contextmenu", (event) => {
+map.element.addEventListener("contextmenu", (event) => {
   event.preventDefault();
   const state = store.state;
   const tile = map.tileAt(event.clientX, event.clientY);
@@ -251,4 +259,7 @@ function frame(now: number): void {
 
 notice.hidden = true;
 connection.open();
+void loadArt().then((art) => {
+  map.setArt(art);
+});
 requestAnimationFrame(frame);

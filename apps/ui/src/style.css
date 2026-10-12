@@ -41,8 +41,13 @@ header .view {
   color: var(--muted);
 }
 
-header a {
+header nav {
+  display: flex;
+  gap: 16px;
   margin-left: auto;
+}
+
+header a {
   color: var(--muted);
 }
 
@@ -69,6 +74,13 @@ canvas {
   border: 1px solid var(--line);
   border-radius: 4px;
   display: block;
+}
+
+/* O Phaser põe largura e altura no próprio canvas; aqui vale a mesma regra do canvas de
+   depuração: cabe na tela sem perder a proporção (ADR-0053). */
+.phaser canvas {
+  width: auto !important;
+  height: auto !important;
 }
 
 .hud {

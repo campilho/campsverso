@@ -7,11 +7,13 @@ import type { ObserverState } from "@campsverso/contracts";
 import { positionAt, type Point } from "../motion.ts";
 import { progressOf } from "../progress.ts";
 import { tileAt, type TileGrid } from "../tiled.ts";
+import { tileUnder, type WorldRenderer } from "./renderer.ts";
 import { entityColor, entityLabel, isNight, tileColor } from "./skin.ts";
 
 export const TILE = 32;
 
-export class MapCanvas {
+/** O canvas de depuração (`?render=debug`): ignora a arte e mostra ids e rótulos. */
+export class MapCanvas implements WorldRenderer {
   private grid: TileGrid | undefined;
   private readonly canvas: HTMLCanvasElement;
   private readonly context: CanvasRenderingContext2D;
@@ -25,17 +27,20 @@ export class MapCanvas {
     this.context = context;
   }
 
+  get element(): HTMLElement {
+    return this.canvas;
+  }
+
   setGrid(grid: TileGrid): void {
     this.grid = grid;
   }
 
-  /** O tile sob um ponto da tela (coordenadas do evento do mouse), ou nada fora do mapa. */
+  setArt(): void {
+    // a depuração desenha sempre as mesmas cores (skin.ts)
+  }
+
   tileAt(clientX: number, clientY: number): { x: number; y: number } | undefined {
-    const box = this.canvas.getBoundingClientRect();
-    const x = Math.floor(((clientX - box.left) * this.canvas.width) / box.width / TILE);
-    const y = Math.floor(((clientY - box.top) * this.canvas.height) / box.height / TILE);
-    const inside = x >= 0 && y >= 0 && x * TILE < this.canvas.width && y * TILE < this.canvas.height;
-    return inside ? { x, y } : undefined;
+    return tileUnder(this.canvas, TILE, clientX, clientY);
   }
 
   private resize(width: number, height: number): void {
