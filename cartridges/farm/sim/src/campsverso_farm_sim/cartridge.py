@@ -1,0 +1,84 @@
+"""Cartucho farm, o gênero: mecânicas genéricas de fazenda (ADR-0031)."""
+
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+from campsverso_cartridge_api import (
+    CartridgeManifest,
+    ClockDef,
+    ItemDef,
+    KindDef,
+    NeedDef,
+    ThresholdDef,
+    WorldBuilder,
+)
+from campsverso_farm_sim import config
+from campsverso_farm_sim.actions import ALL_ACTIONS, EMPTY_HIDDEN, EMPTY_PLOT
+from campsverso_farm_sim.rules import WaterProximityBonus
+from campsverso_farm_sim.systems import build_systems
+
+
+def _kinds(data: dict[str, Any]) -> tuple[KindDef, ...]:
+    capacity = int(data["watering_can"]["capacity"])
+    return (
+        KindDef("avatar"),
+        KindDef("plot", attributes=EMPTY_PLOT, hidden=EMPTY_HIDDEN),
+        KindDef("bed", blocking=True),
+        KindDef("table", blocking=True),
+        KindDef("chest", blocking=True),
+        KindDef("sell_box", blocking=True),
+        KindDef("well", blocking=True),
+        KindDef("kiosk", blocking=True, attributes={"open": False}),
+        KindDef("door"),
+        KindDef("watering_can", attributes={"charges": capacity, "capacity": capacity}),
+    )
+
+
+@dataclass(frozen=True)
+class FarmCartridge:
+    manifest: CartridgeManifest = field(default_factory=lambda: CartridgeManifest("farm", "0.1.0"))
+
+    def contribute(self, world: WorldBuilder) -> None:
+        data = config.load()
+        clock = data["clock"]
+        world.configure_clock(
+            ClockDef(
+                tick_seconds=int(clock["tick_seconds"]),
+                day_starts_at=str(clock["day_starts_at"]),
+                phases=tuple((name, str(hhmm)) for name, hhmm in clock["phases"].items()),
+                default_scale=float(clock["default_scale"]),
+            )
+        )
+        world.set_tiles_per_minute(float(data["movement"]["tiles_per_minute"]))
+        world.merge_data(config.NAMESPACE, data)
+        for kind in _kinds(data):
+            world.define_kind(kind)
+        for item, info in data["items"].items():
+            world.define_item(ItemDef(item, str(info["category"])))
+        for need, info in data["needs"].items():
+            world.define_need(
+                NeedDef(
+                    need,
+                    float(info["initial"]),
+                    dict(info["rates_per_hour"]),
+                    role=info.get("role"),
+                )
+            )
+        for threshold in data["thresholds"]:
+            world.add_threshold(
+                ThresholdDef(
+                    threshold["need"],
+                    float(threshold["value"]),
+                    threshold["direction"],
+                    bool(threshold["requests_decision"]),
+                )
+            )
+        for action in ALL_ACTIONS:
+            world.add_action(action)
+        for system in build_systems(data):
+            world.add_system(system)
+        world.add_rule_impl(WaterProximityBonus())
+
+    def rules_file(self) -> Path | None:
+        return None  # o gênero não liga nenhuma regra; o cenário decide (ADR-0039)
