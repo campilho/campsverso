@@ -85,10 +85,11 @@ campsverso/
     nats/                     # usuários e permissões por processo (senhas em .env, fora do git)
   data/                       # gitignored: sqlite, snapshots, archive
   docs/
-    arquitetura/  decisoes/  diario/
+    arquitetura/  decisoes/  diario/   # diario/README.md: índice e "a v0.1 em números"
     planos/                   # plano de cada marco, aprovado antes do código; futuro.md: tarefas sem marco
     design/                   # referências visuais (Claude Design)
     custos/                   # tempo e tokens por marco (make sessoes), só números
+    versoes/                  # notas de cada versão (v0.1.0)
   tests/
     e2e/                      # resistência, determinismo, replay, recuperação
     support/                  # campsverso_testkit: mundos e roteiros para testes (ADR-0040)

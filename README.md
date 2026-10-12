@@ -10,7 +10,7 @@ Projeto pessoal de aprendizado, construído em público com a ajuda do Claude Co
 
 ## Status
 
-**v0.1 "Fazenda do Camps"**, em construção. Um avatar, nenhum LLM; controladores humano, script e replay. Detalhes no [escopo da v0.1](docs/arquitetura/escopo-v0.1.md).
+**v0.1.0 "Fazenda do Camps"**, a primeira versão: um avatar, nenhum LLM; controladores humano, script e replay. Os 11 critérios de aceite estão conferidos em [aceite-v0.1.md](docs/aceite-v0.1.md), e os números da construção em [a v0.1 em números](docs/diario/README.md#a-v01-em-números). Detalhes no [escopo da v0.1](docs/arquitetura/escopo-v0.1.md).
 
 | Marco | Situação |
 |---|---|
@@ -21,7 +21,29 @@ Projeto pessoal de aprendizado, construído em público com a ajuda do Claude Co
 | M4: UI de depuração (gateway WebSocket, canvas, visões jogador/operador, controles do relógio) | concluído |
 | M5: controlador humano (clicar para mover, menu de ações, assumir e devolver a posse) | concluído |
 | M6: renderer Phaser (arte LPC, mapa visual, o Camps animado, retrato e créditos) | concluído |
-| M7: fechamento (métricas da bíblia no painel do operador, critérios de aceite da v0.1) | próximo |
+| M7: fechamento (métricas da bíblia no painel do operador, critérios de aceite da v0.1) | concluído |
+
+## Como funciona
+
+```mermaid
+flowchart LR
+    cart["Cartuchos<br/>farm → farm_camps"] -. "dados, ações e regras" .-> kernel
+    kernel["Kernel<br/>o único que escreve o mundo"] -- "eventos" --> nats[("NATS JetStream")]
+    nats -- "comandos" --> kernel
+    nats -- "world e agent" --> percepcao["Percepção"]
+    percepcao -- "a foto de cada avatar" --> nats
+    nats -- "foto" --> runner["Controladores<br/>script e replay"]
+    runner -- "propõe ações" --> nats
+    nats -- "tudo" --> arquivador["Arquivador"] --> arquivo[("Arquivo JSONL")]
+    nats -- "estado e eventos" --> gateway["Gateway"]
+    gateway -- "comandos do humano" --> nats
+    gateway <-->|"WebSocket"| tela["Tela (Phaser)<br/>jogador e operador"]
+```
+
+- **O kernel é o único que escreve o mundo.** Controladores (o humano, o script, o replay e, na v0.2, um LLM) só propõem ações; o kernel valida, aplica e publica os fatos.
+- **Tudo passa pelo barramento como evento,** com um contrato (JSON Schema) para cada tipo. Os serviços não importam o código uns dos outros.
+- **A visibilidade é garantida pelas permissões do NATS.** Os efeitos da regra oculta são eventos `internal`, que os controladores não conseguem assinar.
+- **O cartucho traz o mundo:** culturas, preços, ações, menus, métricas, mapa e arte. O kernel só conhece a física genérica (tempo, espaço, itens, necessidades, ações e regras).
 
 ## Como começar
 

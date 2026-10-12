@@ -1,6 +1,6 @@
 # Plano do M7 — Fechamento da v0.1
 
-**Status:** aprovado em 12/out/2026 (ADR-0054).
+**Status:** implementado em 12/out/2026 (ADR-0054). O que mudou está na seção 7.
 **Escopo** (escopo §7): as métricas da bíblia no painel do operador, o README e o diário de bordo consolidados.
 **Pronto quando:** os critérios de aceite da seção 8 do escopo estiverem conferidos.
 
@@ -68,3 +68,18 @@ A tag `v0.1.0`, com notas de lançamento em `docs/versoes/v0.1.0.md`. O push da 
 3. Projeção, gateway e painel.
 4. Soaks de 30 dias, roteiro do A6 e `docs/aceite-v0.1.md`.
 5. README, diário consolidado, notas da versão, custos e tag.
+
+## 7. Como ficou
+
+| Item | Resultado |
+|---|---|
+| **Métricas** | o `farm.yaml` declara 6 métricas; o kernel confere e publica; a projeção comum conta por dia e guarda 8 dias; o painel mostra hoje, ontem e os últimos 7 dias. Conferido no sandbox a 720×, virando do dia 1 para o 2 |
+| **Grupos** | o `group` (oeste, leste) é uma propriedade dos canteiros no mapa e vira atributo da entidade |
+| **Soaks de 30 dias** | com a regra: 35,3 s, 1.175 moedas, leste 112 colheitas e 2,0 dias para amadurecer contra 72 e 3,0 no oeste; sem a regra: 38,2 s, 750 moedas, 72 e 3,0 dos dois lados |
+| **Aceite** | 11 de 11 critérios, em `docs/aceite-v0.1.md` |
+| **Documentação** | README com o diagrama em Mermaid, `docs/diario/README.md` com o índice e "a v0.1 em números", notas em `docs/versoes/v0.1.0.md` |
+
+**O que mudou em relação ao plano:**
+
+- **O A6 da percepção virou teste automático,** no lugar do roteiro manual: `kill -9` na percepção, o kernel segue, e ela volta sem repetir fotos. Com os testes do gateway e do arquivador, o A6 cobre os três serviços.
+- **A primeira noite do mundo oficial ficou como recomendação,** depois de medir a velocidade: no modo máximo, uma noite de 10 horas seriam cerca de 90 anos simulados e uns 7 GB de arquivo que nunca se apaga.
