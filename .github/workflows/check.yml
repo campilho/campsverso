@@ -38,4 +38,10 @@ jobs:
         env:
           # push: compara com o topo anterior da branch; pull request: com a branch de destino.
           COMPAT_BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
-        run: make check
+        # O log completo só aparece para quem está logado no GitHub. Se falhar, o fim da saída vira
+        # uma anotação de erro, visível na página do commit e pela API pública.
+        run: |
+          make check 2>&1 | tee make-check.log || {
+            tail -n 80 make-check.log | python3 -c 'import sys; t = sys.stdin.read().replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"); print("::error title=make check falhou::" + t)'
+            exit 1
+          }
