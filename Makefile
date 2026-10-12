@@ -10,14 +10,24 @@ PY := $(UV) run --locked
 CONTRACTS := $(PY) python -m campsverso_tools.contracts
 COMPAT_BASE ?= HEAD
 
+# nats-server com versão e sha256 fixados (ADR-0024). Os hashes vêm do SHA256SUMS da release.
+NATS_VERSION := 2.14.8
+NATS_SHA256_darwin-arm64 := e54a183a09ffca0e0d9ae1631ebabfbf466dea0945362ad7ad71dbe8c860d45f
+NATS_SHA256_linux-amd64 := c60504071c86bced5fc1d89410cee2b319a07e01ee64cb14f5934a2238022021
+NATS_DIR := .tools/nats-server-v$(NATS_VERSION)
+NATS_BIN := .tools/bin/nats-server
+NATS_PID := data/nats/nats-server.pid
+NATS_LOG := data/nats/nats-server.log
+NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR
+
 .DEFAULT_GOAL := help
 .PHONY: help setup contracts check lint fmt types test arch contracts-check compat \
-        up run ui soak replay tools
+        up stop run ui soak replay tools secrets
 
 help: ## lista os alvos
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-16s %s\n", $$1, $$2}'
 
-setup: ## instala dependências Python (uv) e TypeScript (pnpm)
+setup: tools ## instala dependências Python (uv), TypeScript (pnpm) e o nats-server
 	$(UV) sync --locked
 	$(PNPM) install --frozen-lockfile
 
@@ -60,11 +70,28 @@ contracts-check: ## valida contratos e exemplos sem escrever nada; falha se o co
 compat: ## mesma versão maior só ganha campos opcionais (compara com COMPAT_BASE, padrão HEAD)
 	$(CONTRACTS) compat --base $(COMPAT_BASE)
 
-up: ## sobe o NATS (marco M2)
-	@echo "make up: ainda não implementado (marco M2)"; exit 1
+up: tools secrets ## sobe o NATS em segundo plano (log em data/nats/nats-server.log)
+	@mkdir -p data/nats
+	@if [ -f $(NATS_PID) ] && kill -0 "$$(cat $(NATS_PID))" 2>/dev/null; then \
+	  echo "NATS já está no ar (pid $$(cat $(NATS_PID)))"; \
+	else \
+	  set -a; . ./.env; set +a; \
+	  nohup $(NATS_BIN) -c config/nats/nats.conf -sd data/nats/jetstream \
+	    -P $(NATS_PID) -l $(NATS_LOG) >/dev/null 2>&1 & \
+	  for _ in $$(seq 50); do grep -q "Server is ready" $(NATS_LOG) 2>/dev/null && break; sleep 0.1; done; \
+	  grep -q "Server is ready" $(NATS_LOG) || { echo "o NATS não subiu; veja $(NATS_LOG)"; exit 1; }; \
+	  echo "NATS no ar em 127.0.0.1:4222 (pid $$(cat $(NATS_PID)))"; \
+	fi
 
-run: ## sobe kernel, percepção, controller-runner, gateway e arquivador (marcos M2 a M4)
-	@echo "make run: ainda não implementado (marcos M2 a M4)"; exit 1
+stop: ## derruba o NATS que o make up subiu
+	@if [ -f $(NATS_PID) ] && kill -0 "$$(cat $(NATS_PID))" 2>/dev/null; then \
+	  $(NATS_BIN) --signal stop=$(NATS_PID) && echo "NATS parado"; \
+	else \
+	  echo "NATS não está no ar"; \
+	fi
+
+run: up ## sobe kernel e arquivador juntos com o honcho (Procfile); Ctrl+C derruba os dois
+	$(PY) honcho start -f Procfile
 
 ui: ## sobe a UI em modo desenvolvimento (marco M4)
 	@echo "make ui: ainda não implementado (marco M4)"; exit 1
@@ -75,5 +102,32 @@ soak: ## resistência em modo máximo com o script: make soak DAYS=30 (marco M3)
 replay: ## reexecuta um dia a partir do arquivo e compara hashes: make replay DAY=N (marco M3)
 	@echo "make replay: ainda não implementado (marco M3)"; exit 1
 
-tools: ## baixa ferramentas locais com versão fixa, como o nats-server (marco M2)
-	@echo "make tools: ainda não implementado (marco M2)"; exit 1
+secrets: ## gera em .env (fora do git) as senhas do NATS que ainda faltam
+	@touch .env && chmod 600 .env
+	@for role in $(NATS_ROLES); do \
+	  grep -q "^NATS_$${role}_PASSWORD=" .env || echo "NATS_$${role}_PASSWORD=$$(openssl rand -hex 24)" >> .env; \
+	done
+
+tools: $(NATS_DIR)/nats-server ## baixa ferramentas locais com versão fixa (nats-server), conferindo o sha256
+
+$(NATS_DIR)/nats-server:
+	@set -euo pipefail; \
+	case "$$(uname -s)-$$(uname -m)" in \
+	  Darwin-arm64) platform=darwin-arm64; expected=$(NATS_SHA256_darwin-arm64) ;; \
+	  Linux-x86_64) platform=linux-amd64; expected=$(NATS_SHA256_linux-amd64) ;; \
+	  *) echo "sem nats-server fixado para $$(uname -s)-$$(uname -m)"; exit 1 ;; \
+	esac; \
+	name=nats-server-v$(NATS_VERSION)-$$platform; \
+	mkdir -p .tools/download .tools/bin; \
+	echo "baixando $$name.tar.gz do GitHub da NATS"; \
+	curl -fsSL -o .tools/download/$$name.tar.gz \
+	  https://github.com/nats-io/nats-server/releases/download/v$(NATS_VERSION)/$$name.tar.gz; \
+	actual=$$( (command -v sha256sum >/dev/null && sha256sum .tools/download/$$name.tar.gz \
+	  || shasum -a 256 .tools/download/$$name.tar.gz) | cut -d' ' -f1); \
+	if [ "$$actual" != "$$expected" ]; then \
+	  echo "sha256 não confere: $$actual (esperado $$expected)"; rm -f .tools/download/$$name.tar.gz; exit 1; \
+	fi; \
+	rm -rf $(NATS_DIR) && mkdir -p $(NATS_DIR); \
+	tar -xzf .tools/download/$$name.tar.gz -C $(NATS_DIR) --strip-components=1; \
+	ln -sf ../nats-server-v$(NATS_VERSION)/nats-server $(NATS_BIN); \
+	echo "nats-server $(NATS_VERSION) em $(NATS_BIN)"
