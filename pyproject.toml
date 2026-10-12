@@ -18,6 +18,7 @@ dependencies = [
   "campsverso-farm-script",
   "campsverso-farm-camps-sim",
   "campsverso-tools",
+  "campsverso-testkit",
 ]
 
 [dependency-groups]
@@ -44,6 +45,7 @@ members = [
   "cartridges/farm/script",
   "cartridges/farm_camps/sim",
   "tools/contracts",
+  "tests/support",
 ]
 
 [tool.uv.sources]
@@ -60,6 +62,7 @@ campsverso-farm-sim = { workspace = true }
 campsverso-farm-script = { workspace = true }
 campsverso-farm-camps-sim = { workspace = true }
 campsverso-tools = { workspace = true }
+campsverso-testkit = { workspace = true }
 
 # ---------------------------------------------------------------- ruff
 [tool.ruff]
@@ -93,7 +96,7 @@ typeCheckingMode = "strict"
 pythonVersion = "3.14"
 venvPath = "."
 venv = ".venv"
-include = ["packages/contracts-py/src", "libs", "services", "cartridges", "tools/contracts"]
+include = ["packages/contracts-py/src", "libs", "services", "cartridges", "tools/contracts", "tests"]
 exclude = ["**/__pycache__", "**/.venv", "**/node_modules"]
 
 # ---------------------------------------------------------------- pytest
@@ -101,7 +104,7 @@ exclude = ["**/__pycache__", "**/.venv", "**/node_modules"]
 addopts = ["--import-mode=importlib", "-q"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-testpaths = ["libs", "services", "cartridges", "tools/contracts"]
+testpaths = ["libs", "services", "cartridges", "tools/contracts", "tests"]
 
 # ---------------------------------------------------------------- import-linter
 # Regras de arquitetura entre pacotes internos (princípios 1 e 8; ADR-0011, ADR-0025, ADR-0031).
@@ -121,6 +124,7 @@ root_packages = [
   "campsverso_farm_script",
   "campsverso_farm_camps_sim",
   "campsverso_tools",
+  "campsverso_testkit",
 ]
 
 [[tool.importlinter.contracts]]
@@ -242,4 +246,4 @@ source_modules = [
   "campsverso_farm_script",
   "campsverso_farm_camps_sim",
 ]
-forbidden_modules = ["campsverso_tools"]
+forbidden_modules = ["campsverso_tools", "campsverso_testkit"]

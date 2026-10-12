@@ -1,0 +1,16 @@
+[project]
+name = "campsverso-testkit"
+version = "0.1.0.dev0"
+description = "Apoio aos testes: mundos montados pela cadeia real e utilidades. Só para testes."
+requires-python = ">=3.14"
+license = "MIT"
+dependencies = [
+  "campsverso-contracts",
+  "campsverso-ports",
+  "campsverso-adapters",
+  "campsverso-kernel",
+]
+
+[build-system]
+requires = ["uv_build>=0.13,<0.14"]
+build-backend = "uv_build"

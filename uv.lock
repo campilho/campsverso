@@ -17,6 +17,7 @@ members = [
     "campsverso-kernel",
     "campsverso-perception",
     "campsverso-ports",
+    "campsverso-testkit",
     "campsverso-tools",
 ]
 
@@ -86,6 +87,7 @@ dependencies = [
     { name = "campsverso-kernel" },
     { name = "campsverso-perception" },
     { name = "campsverso-ports" },
+    { name = "campsverso-testkit" },
     { name = "campsverso-tools" },
 ]
 
@@ -115,6 +117,7 @@ requires-dist = [
     { name = "campsverso-kernel", editable = "services/kernel" },
     { name = "campsverso-perception", editable = "services/perception" },
     { name = "campsverso-ports", editable = "libs/ports" },
+    { name = "campsverso-testkit", editable = "tests/support" },
     { name = "campsverso-tools", editable = "tools/contracts" },
 ]
 
@@ -213,6 +216,7 @@ dependencies = [
     { name = "campsverso-cartridge-api" },
     { name = "campsverso-contracts" },
     { name = "campsverso-farm-sim" },
+    { name = "pyyaml" },
 ]
 
 [package.metadata]
@@ -220,6 +224,7 @@ requires-dist = [
     { name = "campsverso-cartridge-api", editable = "libs/cartridge-api" },
     { name = "campsverso-contracts", editable = "packages/contracts-py" },
     { name = "campsverso-farm-sim", editable = "cartridges/farm/sim" },
+    { name = "pyyaml", specifier = ">=6" },
 ]
 
 [[package]]
@@ -240,12 +245,14 @@ source = { editable = "cartridges/farm/sim" }
 dependencies = [
     { name = "campsverso-cartridge-api" },
     { name = "campsverso-contracts" },
+    { name = "pyyaml" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "campsverso-cartridge-api", editable = "libs/cartridge-api" },
     { name = "campsverso-contracts", editable = "packages/contracts-py" },
+    { name = "pyyaml", specifier = ">=6" },
 ]
 
 [[package]]
@@ -305,6 +312,25 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "campsverso-contracts", editable = "packages/contracts-py" }]
+
+[[package]]
+name = "campsverso-testkit"
+version = "0.1.0.dev0"
+source = { editable = "tests/support" }
+dependencies = [
+    { name = "campsverso-adapters" },
+    { name = "campsverso-contracts" },
+    { name = "campsverso-kernel" },
+    { name = "campsverso-ports" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "campsverso-adapters", editable = "libs/adapters" },
+    { name = "campsverso-contracts", editable = "packages/contracts-py" },
+    { name = "campsverso-kernel", editable = "services/kernel" },
+    { name = "campsverso-ports", editable = "libs/ports" },
+]
 
 [[package]]
 name = "campsverso-tools"
