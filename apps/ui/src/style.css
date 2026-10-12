@@ -59,6 +59,7 @@ main {
 }
 
 .world {
+  position: relative; /* o aviso flutua por cima do pé do mapa */
   flex: 1 1 auto;
   min-width: 0;
 }
@@ -83,10 +84,18 @@ canvas {
   height: auto !important;
 }
 
+/* O HUD é uma grade de lugares fixos: o retrato à esquerda, relógio e avatar ao lado, necessidades
+   e inventário embaixo. Larguras mínimas seguram cada texto no lugar quando ele muda. */
 .hud {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 24px;
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  grid-template-areas:
+    "portrait clock"
+    "portrait avatar"
+    "needs needs"
+    "items items";
+  gap: 6px 12px;
+  align-items: center;
   margin-top: 10px;
   padding: 10px 12px;
   background: var(--panel);
@@ -97,7 +106,63 @@ canvas {
   display: flex;
   gap: 10px;
   align-items: center;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.hud > .portrait {
+  grid-area: portrait;
+}
+
+.hud-clock {
+  grid-area: clock;
+}
+
+.hud-avatar {
+  grid-area: avatar;
+}
+
+.hud-needs {
+  grid-area: needs;
+}
+
+.hud-items {
+  grid-area: items;
   flex-wrap: wrap;
+  white-space: normal;
+}
+
+.hud-time {
+  min-width: 8.5em;
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-phase {
+  min-width: 6.5em;
+}
+
+.hud-weather {
+  min-width: 7em;
+}
+
+.hud-pace {
+  min-width: 3.5em;
+  text-align: center;
+}
+
+.hud-name {
+  min-width: 4em;
+}
+
+.hud-controller {
+  min-width: 14em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hud-doing {
+  min-width: 9em;
 }
 
 .badge {
@@ -158,12 +223,19 @@ canvas {
   color: var(--muted);
 }
 
+/* O aviso aparece por cima do pé do mapa, sem empurrar o HUD para baixo. */
 .notice {
-  margin-top: 8px;
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  z-index: 5;
+  margin-top: -44px;
   padding: 6px 10px;
-  background: rgba(231, 76, 60, 0.18);
+  color: #fff;
+  background: rgba(60, 20, 18, 0.92);
   border-left: 3px solid var(--bad);
   border-radius: 3px;
+  pointer-events: none;
 }
 
 .action-menu {

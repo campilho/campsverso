@@ -40,14 +40,16 @@ export function renderHud(
       const attributes = Object.entries(e?.attributes ?? {}).map(([k, v]) => `${k} ${String(v)}`);
       return `${id}${attributes.length > 0 ? ` (${attributes.join(", ")})` : ""}`;
     });
+  // Cada coisa tem o seu lugar fixo na grade (style.css): o texto muda, a posição não.
   root.replaceChildren(
+    portrait ?? el("div", { className: "portrait" }),
     el(
       "div",
       { className: "hud-clock" },
-      el("strong", {}, `Dia ${String(state.day)} · ${clockText(state, tick)}`),
-      el("span", {}, state.phase),
-      el("span", {}, `clima: ${weather}`),
-      el("span", { className: "badge" }, clockBadge(state)),
+      el("strong", { className: "hud-time" }, `Dia ${String(state.day)} · ${clockText(state, tick)}`),
+      el("span", { className: "hud-phase" }, state.phase),
+      el("span", { className: "hud-weather" }, `clima: ${weather}`),
+      el("span", { className: "badge hud-pace" }, clockBadge(state)),
       status === "open" && state.pulse?.alive === false
         ? el("span", { className: "status closed" }, "kernel sem sinal")
         : el("span", { className: `status ${status}` }, STATUS[status]),
@@ -55,12 +57,15 @@ export function renderHud(
     el(
       "div",
       { className: "hud-avatar" },
-      portrait,
-      el("strong", {}, avatar?.display_name ?? avatarId),
-      el("span", {}, controller === undefined ? "sem controlador" : `${controller.type} · ${controller.id}`),
+      el("strong", { className: "hud-name" }, avatar?.display_name ?? avatarId),
       el(
         "span",
-        {},
+        { className: "hud-controller" },
+        controller === undefined ? "sem controlador" : `${controller.type} · ${controller.id}`,
+      ),
+      el(
+        "span",
+        { className: "hud-doing" },
         state.asleep[avatarId] === true ? "dormindo" : action === undefined ? "parado" : `fazendo: ${action.action}`,
       ),
     ),
