@@ -78,3 +78,17 @@
 8. **A chave no `.env`, digitada pelo usuário,** com `make secrets` preparando a linha. *Recomendação: sim.*
 9. **`make llm-smoke` e `make percepcao CONTAR=1`** como a chamada real do critério e a calibração do fator de tokens. *Recomendação: sim.*
 10. **O CI nunca chama a API:** transporte falso, fitas e um teste `live` pulado por padrão. *Recomendação: sim.*
+
+## 9. Como ficou (18/out/2026)
+
+A ordem do trabalho foi cumprida; falta só a chamada real, que depende da chave na `.env`.
+
+- **Contratos:** quatro tipos `observer` (`llm.call.completed`, `llm.call.failed`, `ops.budget.threshold_reached`, `ops.budget.exceeded`), `llm_usage` em `common/defs.v1`, o produtor `budget`; 54 tipos, 60 exemplos válidos, 17 inválidos; os três testes de contagem (Python, TypeScript, UI) ajustados de uma vez, a lição do M8.
+- **Porta e adaptador:** `ModelPort` em `libs/ports/model.py` (pedido e resposta em blocos da Messages API, `ModelCallError` classificado, hash canônico do pedido sem metadados, `count_tokens`); `AnthropicModel` em `libs/adapters` com o SDK 1.15 (raciocínio adaptativo, `effort`, `tool_choice: auto`, `request-id` do cabeçalho, erros do SDK mapeados); testado sem rede com o `MockTransport` do `httpx2`. O SDK entrou na lista de bibliotecas que só os adaptadores importam.
+- **Fita e decorador:** `RecordingModel` (`live`, `record`, `replay`; `cassette_miss`) e `MeteredModel` (custo pela tabela `models` de `config/env/local.yaml`, `charged: false` ao reproduzir, modelo sem preço recusado antes de gastar), publicando pelo `ValidatingBus` nos testes.
+- **Guarda:** `services/budget` (usuário NATS `budget`, processo no Procfile, teto em `config/worlds/farm-camps-01.yaml`: US$ 0,60 por dia e US$ 10 no total). No pipeline em memória, três chamadas de US$ 0,25 avisam 50 e 80% e, na terceira, publicam `exceeded` e `cmd.clock.pause`, e o kernel para; o livro-caixa volta do arquivo e uma reentrega não conta.
+- **Fumaça e calibração:** `make llm-smoke` (a chamada real, gravada, e a mesma reproduzida da fita, as duas pelo contrato) e `make percepcao CONTAR=20` (o fator real de caracteres por token com `count_tokens`). Testados com uma porta falsa; a chamada real fica registrada abaixo quando rodar.
+
+### A chamada real
+
+Pendente: precisa da chave da API na `.env` (resgate dos créditos da assinatura na Console). Quando rodar, entram aqui tokens, custo, latência e o fator de calibração.

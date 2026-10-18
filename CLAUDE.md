@@ -35,6 +35,7 @@ Se dois documentos conflitarem, ou se faltar uma decisão: **pare e pergunte**. 
 |---|---|
 | Backend | Python 3.14 (ADR-0034), `uv` workspaces, asyncio, Pydantic v2, FastAPI |
 | Barramento | NATS JetStream (`nats-py`); `InMemoryBus` para testes |
+| Modelos | API da Anthropic pelo SDK oficial, só dentro de `libs/adapters` (ADR-0058); respostas gravadas em fitas JSONL para testar sem custo; o CI nunca chama a API |
 | Estado | SQLite (estado + outbox); snapshots em disco; arquivo JSONL |
 | Contratos | JSON Schema 2020-12 (fonte da verdade) + AsyncAPI 3.1 (gerado); codegen com `datamodel-code-generator` (Python) e `json-schema-to-typescript` (TS); validação com `jsonschema` e `ajv` com os mesmos códigos de erro (ADR-0033) |
 | Frontend | TypeScript 6.0 estrito, `pnpm` 12, Node 24 fixado no projeto, Vite, Phaser 4 (ADR-0053), Vitest (ADR-0032) |
@@ -58,7 +59,7 @@ campsverso/
   libs/
     ports/                    # interfaces das portas (Python)
     cartridge-api/            # interfaces que um cartucho implementa (ADR-0011)
-    adapters/                 # nats, inmemory, sqlite, jsonl, blob-local, fastapi (WebSocket)...
+    adapters/                 # nats, inmemory, sqlite, jsonl, blob-local, fastapi (WebSocket), a porta de modelo (Anthropic, fita, medidor)...
     world-view/               # projeção genérica do mundo a partir dos eventos (percepção e gateway; ADR-0050)
   services/
     kernel/                   # relógio, ECS, grid, ações, regras, outbox
@@ -66,6 +67,7 @@ campsverso/
     controller-runner/        # controladores script e replay
     gateway/                  # FastAPI + WebSocket; entrada do controlador humano
     archiver/                 # JetStream -> JSONL
+    budget/                   # guarda de orçamento: soma o custo das chamadas de modelo e pausa o mundo no teto (ADR-0058)
   cartridges/                 # em camadas: gênero → cenário (ADR-0031)
     farm/                     # gênero: mecânicas genéricas de fazenda
       sim/                    # itens, culturas, ações, sistemas, regras (carregado pelo kernel)
@@ -124,7 +126,8 @@ make ui-e2e       # fumaça da tela no navegador (Playwright), com um sandbox pr
 make soak DAYS=30 # resistência em modo máximo, com processos e NATS próprios (SEM_REGRA=1)
 make replay DAY=N # reexecuta um dia a partir do snapshot e do diário e compara com o arquivo
 make metrics      # métricas da bíblia §13 a partir do arquivo (ARCHIVE=pasta do mundo)
-make percepcao    # fotos e deltas da percepção por dia, em bytes e tokens estimados (ADR-0056)
+make percepcao    # fotos e deltas da percepção por dia, em bytes e tokens estimados (ADR-0056); CONTAR=20 calibra com count_tokens
+make llm-smoke    # uma chamada real pela porta de modelo, medida e publicada pelo contrato (ADR-0058); pede ANTHROPIC_API_KEY no .env
 make mapa-visual  # regrava o mapa visual da fazenda a partir do mapa lógico (ADR-0053)
 make sessoes      # tempo e tokens do Claude Code por turno e por marco em docs/custos (MARCO=M5)
 ```
@@ -144,6 +147,7 @@ Os alvos de marcos futuros já existem e avisam "ainda não implementado (marco 
 - Ler `datetime.now()`/`time.time()` dentro de sistemas, regras ou ações do kernel.
 - Escrever estado do mundo fora do kernel, ou decidir regra de jogo na UI.
 - Expor pontos de crescimento, regras ocultas ou eventos `internal` à percepção ou aos controladores.
-- Adicionar LLM, `ModelPort`, memória de agente ou qualquer item marcado "fora" no escopo da v0.1.
+- Chamar um modelo fora da `ModelPort` (ADR-0058), ou deixar o CI chamar a API: os testes usam o transporte falso do SDK e as fitas.
+- Adicionar memória de agente antes do M11, ou qualquer item marcado "fora" no escopo da v0.2.
 - Apagar ou reescrever arquivos em `data/archive/` (são o registro histórico dos experimentos).
 - Publicar evento sem schema, ou criar tipo de evento não declarado em `contracts/`.

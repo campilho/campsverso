@@ -23,7 +23,8 @@ Tempo e tokens do Claude Code em cada marco (ADR-0051).
 | M5 | 2 | 33 | 0 | 0 | 0,0 | 0 |
 | M6 | 6 | 78 | 320 | 327 | 121,4 | 572 |
 | M7 | 6 | 28 | 98 | 91 | 68,2 | 857 |
-| M8 | 16 | 80 | 106 | 361 | 47,6 | 854 |
+| M8 | 16 | 82 | 110 | 365 | 50,3 | 872 |
+| M9 | 4 | 31 | 33 | 144 | 27,0 | 887 |
 
 ## Uso do plano Max
 
@@ -35,3 +36,4 @@ Anotado ao fechar cada marco, como o app mostra: a janela de 5 horas e a semana.
 | 2026-10-12 | fim do M5 (implementação) | 24 | 9 |
 | 2026-10-12 | fim do M6 | 18 | 12 |
 | 2026-10-12 | fim do M7 (v0.1.0) | 24 | 12 |
+| 2026-10-17 | fim do M8 | 49 | 2 |

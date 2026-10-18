@@ -14,6 +14,7 @@ O registro de cada sessão de trabalho: o que foi feito, o que deu errado, as de
 | Data | Entradas |
 |---|---|
 | [17/out/2026](2026-10-17.md) | a ideia do escritório que constrói a si mesmo (14/out), as referências visuais do escritório e do estúdio, ADR-0055; o plano do M8, o passo zero (tick antecipado, 30 tiles por minuto) e o M8 inteiro |
+| [18/out/2026](2026-10-18.md) | o plano do M9 com o item 1 aprofundado (créditos da assinatura, CLIs headless, OpenRouter), ADR-0058, e o M9: porta de modelo, fita, medidor, guarda de orçamento, `make llm-smoke` |
 
 ## A v0.1 em números
 

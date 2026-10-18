@@ -50,6 +50,8 @@ flowchart LR
     nats -- "comandos" --> kernel
     nats -- "world e agent" --> percepcao["Percepção"]
     percepcao -- "a foto ou o delta de cada avatar" --> nats
+    nats -- "chamadas de modelo (observer)" --> guarda["Guarda de orçamento"]
+    guarda -- "pausa o mundo no teto" --> nats
     nats -- "foto" --> runner["Controladores<br/>script e replay"]
     runner -- "propõe ações" --> nats
     nats -- "tudo" --> arquivador["Arquivador"] --> arquivo[("Arquivo JSONL")]
@@ -80,6 +82,7 @@ make soak DAYS=30   # 30 dias simulados em modo máximo, com processos e NATS pr
 make sessoes MARCO=M6   # tempo e tokens do Claude Code por marco, em docs/custos/
 make metrics        # métricas do mundo a partir do arquivo de eventos
 make percepcao      # fotos e deltas da percepção por dia, em bytes e tokens estimados (ADR-0056)
+make llm-smoke      # uma chamada real pela porta de modelo, medida e publicada pelo contrato (ADR-0058)
 make help    # todos os alvos
 ```
 
