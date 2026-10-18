@@ -1,4 +1,5 @@
-"""Serviço de percepção: uma foto do mundo visível a cada pedido de decisão (ADR-0028, ADR-0047).
+"""Serviço de percepção: uma foto ou um delta do mundo visível a cada pedido de decisão (ADR-0028,
+ADR-0047, ADR-0056).
 
 Lê `world` e `agent` com consumidores duráveis. A projeção vai para um arquivo, com o último seq
 aplicado de cada stream, antes de cada confirmação: se o processo cair, volta do arquivo e o
@@ -8,6 +9,7 @@ tudo o que o kernel publicou antes do pedido já esteja na projeção.
 
 import json
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from typing import Any
 
 from campsverso_contracts import CONTRACT_TYPES, subject
@@ -23,7 +25,18 @@ from campsverso_ports import (
 )
 
 DELIVERED = "campsverso.perception.delivered.v1"
+UPDATED = "campsverso.perception.updated.v1"
 DECISION = "campsverso.avatar.decision_requested.v1"
+
+
+@dataclass(frozen=True, slots=True)
+class PerceptionPolicy:
+    """Quem recebe foto ou delta (ADR-0056). Script e replay recebem sempre a foto: a linha de
+    base e o replay das sessões antigas não mudam. Quem pede deltas recebe a foto na primeira
+    decisão, ao assumir a posse e a cada `snapshot_every` deltas."""
+
+    deltas_for: frozenset[str] = frozenset({"llm"})
+    snapshot_every: int = 20
 
 
 class PerceptionService:
@@ -35,8 +48,10 @@ class PerceptionService:
         clock: WallClock,
         ids: IdGenerator,
         telemetry: Telemetry,
+        policy: PerceptionPolicy | None = None,
     ) -> None:
         self._worldid = worldid
+        self._policy = policy or PerceptionPolicy()
         self._ids = ids
         self._bus = bus
         self._blobs = blobs
@@ -86,7 +101,9 @@ class PerceptionService:
     async def _on_agent(self, batch: Sequence[tuple[str, Envelope]]) -> None:
         try:
             for _, envelope in batch:
-                if envelope["type"] == DELIVERED or self.projection.seen("agent", envelope):
+                if envelope["type"] in (DELIVERED, UPDATED) or self.projection.seen(
+                    "agent", envelope
+                ):
                     continue
                 if envelope["type"] == DECISION:
                     assert self._world is not None
@@ -100,16 +117,35 @@ class PerceptionService:
             raise
 
     async def _deliver(self, decision: Mapping[str, Any]) -> None:
-        avatar_id = str(decision["data"]["avatar_id"])
+        data = decision["data"]
+        avatar_id, reason = str(data["avatar_id"]), str(data["reason"])
+        controller = dict(data["controller"])
         projection = self.projection
+        policy = self._policy
+        snapshot = str(controller["type"]) not in policy.deltas_for or projection.wants_snapshot(
+            avatar_id, str(controller["id"]), reason, policy.snapshot_every
+        )
+        event_type = DELIVERED if snapshot else UPDATED
+        payload: dict[str, Any]
+        if snapshot:
+            payload = {
+                "avatar_id": avatar_id,
+                "kind": "snapshot",
+                "as_of_tick": projection.tick,
+                "view": projection.view(avatar_id),
+            }
+        else:
+            payload = projection.delta(avatar_id)
+        # O pedido que a entrega responde: o controlador age só com este evento (ADR-0048).
+        payload["decision"] = {"reason": reason, "controller": controller}
         projection.out_seq += 1
-        info = CONTRACT_TYPES[DELIVERED]
+        info = CONTRACT_TYPES[event_type]
         envelope: dict[str, Any] = {
             "specversion": "1.0",
-            # Mesmo pedido, mesma foto: reenviada depois de uma queda, o JetStream deduplica.
+            # Mesmo pedido, mesma entrega: reenviada depois de uma queda, o JetStream deduplica.
             "id": self._ids.derive(str(decision["id"]), "perception"),
             "source": f"/perception/{self._worldid}",
-            "type": DELIVERED,
+            "type": event_type,
             "time": self._clock.now().isoformat(timespec="milliseconds").replace("+00:00", "Z"),
             "datacontenttype": "application/json",
             "dataschema": info.dataschema,
@@ -123,19 +159,10 @@ class PerceptionService:
             "visibility": info.visibility,
             "subject": f"avatar/{avatar_id}",
             "causationid": decision["id"],
-            "data": {
-                "avatar_id": avatar_id,
-                "kind": "snapshot",
-                "as_of_tick": projection.tick,
-                # O pedido que a foto responde: o controlador age só com este evento (ADR-0048).
-                "decision": {
-                    "reason": decision["data"]["reason"],
-                    "controller": dict(decision["data"]["controller"]),
-                },
-                "view": projection.view(avatar_id),
-            },
+            "data": payload,
         }
         if decision.get("correlationid"):
             envelope["correlationid"] = decision["correlationid"]
-        await self._bus.publish(subject(DELIVERED, self._worldid, avatar_id), envelope)
+        await self._bus.publish(subject(event_type, self._worldid, avatar_id), envelope)
+        projection.deliver(avatar_id, str(controller["id"]), snapshot=snapshot)
         self.delivered += 1

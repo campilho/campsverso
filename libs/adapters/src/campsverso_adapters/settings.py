@@ -51,6 +51,12 @@ class GatewaySettings:
 
 
 @dataclass(frozen=True, slots=True)
+class PerceptionSettings:
+    deltas_for: tuple[str, ...] = ("llm",)  # tipos de controlador que recebem deltas (ADR-0056)
+    snapshot_every: int = 20  # uma foto a cada N deltas
+
+
+@dataclass(frozen=True, slots=True)
 class EnvSettings:
     data_dir: Path
     archive_dir: Path
@@ -61,6 +67,7 @@ class EnvSettings:
     archive_compress_after_days: int
     gateway: GatewaySettings = field(default_factory=GatewaySettings)
     pulse_seconds: float = 1.0  # pulso do kernel (ADR-0051); 0 desliga
+    perception: PerceptionSettings = field(default_factory=PerceptionSettings)
 
 
 type ClockMode = Literal["continuous", "max"]
@@ -93,6 +100,7 @@ def load_env(path: Path, root: Path | None = None) -> EnvSettings:
     archive = cast(Mapping[str, Any], doc["archive"])
     gateway = cast(Mapping[str, Any], doc.get("gateway") or {})
     kernel = cast(Mapping[str, Any], doc.get("kernel") or {})
+    perception = cast(Mapping[str, Any], doc.get("perception") or {})
     maps = cast(Mapping[str, str], gateway.get("maps") or {})
     art = cast(list[Mapping[str, str]], gateway.get("art") or [])
     return EnvSettings(
@@ -123,6 +131,10 @@ def load_env(path: Path, root: Path | None = None) -> EnvSettings:
             art=tuple((str(layer["name"]), base / str(layer["dir"])) for layer in art),
         ),
         pulse_seconds=float(kernel.get("pulse_seconds", 1.0)),
+        perception=PerceptionSettings(
+            deltas_for=tuple(str(t) for t in perception.get("deltas_for", ["llm"])),
+            snapshot_every=int(perception.get("snapshot_every", 20)),
+        ),
     )
 
 

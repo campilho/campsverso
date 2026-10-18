@@ -25,7 +25,7 @@ from campsverso_adapters import (
     load_env,
     load_world,
 )
-from campsverso_perception.service import PerceptionService
+from campsverso_perception.service import PerceptionPolicy, PerceptionService
 from campsverso_ports import EventBus
 
 
@@ -62,6 +62,7 @@ async def run(args: argparse.Namespace) -> int:
         SystemWallClock(),
         Uuid7Ids(),
         telemetry,
+        PerceptionPolicy(frozenset(env.perception.deltas_for), env.perception.snapshot_every),
     )
     stop = asyncio.Event()
     for signum in (signal.SIGINT, signal.SIGTERM):

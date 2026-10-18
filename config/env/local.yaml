@@ -17,6 +17,10 @@ nats:
 kernel:
   pulse_seconds: 1  # pulso do kernel em tempo real (ADR-0051); 5 ou 10 se pesar; 0 desliga
 
+perception:  # foto ou delta por tipo de controlador (ADR-0056)
+  deltas_for: [llm]  # script e replay recebem sempre a foto
+  snapshot_every: 20  # uma foto a cada N deltas; a primeira decisão e a posse sempre recebem foto
+
 snapshots:
   full_every_ticks: 60  # um snapshot completo por hora simulada (decisão 3)
   keep_full: 168  # os mais recentes que ficam (7 dias simulados); o inicial nunca sai

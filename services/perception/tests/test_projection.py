@@ -158,3 +158,120 @@ def test_reentrega_e_ignorada_e_estado_vai_e_volta_em_json() -> None:
     assert p.seen("world", again)
     copy = Projection(json.loads(json.dumps(p.export())))
     assert copy.view("camps") == p.view("camps")
+
+
+def session(radius: int | None) -> dict[str, Any]:
+    """Um mundo 5 x 3 com terreno: parede em volta, chão no meio e água no canto (ADR-0056)."""
+    legend = {
+        "F": {"kind": "floor", "properties": {"passable": True, "water": False}},
+        "W": {"kind": "wall", "properties": {"passable": False, "water": False}},
+        "A": {"kind": "water", "properties": {"passable": False, "water": True}},
+    }
+    return ev(
+        10,
+        0,
+        "world.session.started.v1",
+        cartridge_version="0.1.0",
+        seed=7,
+        tick_seconds=60,
+        mode="continuous",
+        paused=False,
+        scale=72,
+        resumed=False,
+        map={
+            "id": "lab",
+            "width": 5,
+            "height": 3,
+            "rows": ["WWWWW", "WFFFA", "WWWWW"],
+            "legend": legend,
+        },
+        perception={"radius": radius},
+    )
+
+
+def test_terreno_na_foto_inteiro_sem_raio_e_recortado_com_raio() -> None:
+    p = world()
+    p.apply("world", session(None))
+    view = p.view("camps")
+    assert view["map"]["origin"] == {"x": 0, "y": 0}
+    assert view["map"]["rows"] == ["WWWWW", "WFFFA", "WWWWW"]
+    assert sorted(view["map"]["legend"]) == ["A", "F", "W"]
+    assert {e["entity_id"] for e in view["entities"]} == {"camps", "can", "plot-a"}
+
+    p.apply("world", session(1))  # o avatar está em (1, 1): enxerga de (0, 0) a (2, 2)
+    view = p.view("camps")
+    assert view["map"] == {
+        "origin": {"x": 0, "y": 0},
+        "rows": ["WWW", "WFF", "WWW"],
+        "legend": {
+            "F": {"kind": "floor", "properties": {"passable": True, "water": False}},
+            "W": {"kind": "wall", "properties": {"passable": False, "water": False}},
+        },
+    }
+    # O canteiro em (5, 1) ficou fora; o regador, que está com o avatar, continua visível.
+    assert {e["entity_id"] for e in view["entities"]} == {"camps", "can"}
+    assert [c["container_id"] for c in view["containers"]] == ["camps"]
+
+
+def test_delta_leva_o_que_mudou_e_o_que_aconteceu_desde_a_ultima_entrega() -> None:
+    p = world()
+    p.apply("world", session(None))
+    assert p.wants_snapshot("camps", "llm/um", "action_completed", 20)  # nunca recebeu nada
+    p.deliver("camps", "llm/um", snapshot=True)
+    assert p.pending == {"camps": []}
+    p.apply(
+        "world",
+        ev(11, 7, "world.entity.state_changed.v1", entity_id="plot-a", changes={"stage": "broto"}),
+    )
+    p.apply(
+        "world",
+        ev(
+            12,
+            8,
+            "world.item.transferred.v1",
+            item="moeda",
+            qty=30,
+            from_container="camps",
+            to_container="kiosk",
+            reason="buy",
+        ),
+    )
+    p.apply(
+        "agent",
+        ev(
+            13,
+            8,
+            "world.need.changed.v1",
+            avatar_id="camps",
+            need="fome",
+            previous_value=0,
+            value=3,
+        ),
+    )
+    delta = p.delta("camps")
+    assert (delta["since_tick"], delta["as_of_tick"]) == (0, 8)
+    assert [e["entity_id"] for e in delta["entities"]] == ["plot-a"]
+    assert delta["entities"][0]["attributes"] == {"crop": None, "stage": "broto"}
+    assert delta["containers"] == [
+        {"container_id": "camps", "items": [{"item": "moeda", "qty": 70}]},
+        {"container_id": "kiosk", "items": [{"item": "moeda", "qty": 30}]},
+    ]
+    assert [(e["tick"], e["type"]) for e in delta["events"]] == [
+        (7, "campsverso.world.entity.state_changed.v1"),
+        (8, "campsverso.world.item.transferred.v1"),
+        (8, "campsverso.world.need.changed.v1"),
+    ]
+    assert "weather" not in delta
+    assert "gone" not in delta
+
+    assert not p.wants_snapshot("camps", "llm/um", "action_completed", 20)
+    p.deliver("camps", "llm/um", snapshot=False)
+    assert p.delivered["camps"]["deltas"] == 1
+    assert p.pending["camps"] == []
+    assert p.wants_snapshot("camps", "llm/um", "possessed", 20)  # a posse pede foto
+    assert p.wants_snapshot("camps", "llm/dois", "action_completed", 20)  # trocou o controlador
+    assert p.wants_snapshot("camps", "llm/um", "action_completed", 1)  # chegou ao limite de deltas
+
+    copy = Projection(json.loads(json.dumps(p.export())))
+    assert copy.delivered == p.delivered
+    assert copy.delta("camps") == p.delta("camps")
