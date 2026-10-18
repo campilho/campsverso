@@ -13,6 +13,7 @@ from typing import Any, Literal, cast
 import yaml
 
 from campsverso_adapters.bus_nats import StreamSpec
+from campsverso_adapters.model_metered import ModelPrices
 
 _DURATION = re.compile(r"^(\d+)([smhd])$")
 _SIZE = re.compile(r"^(\d+)(B|KiB|MiB|GiB|TiB)$")
@@ -68,6 +69,7 @@ class EnvSettings:
     gateway: GatewaySettings = field(default_factory=GatewaySettings)
     pulse_seconds: float = 1.0  # pulso do kernel (ADR-0051); 0 desliga
     perception: PerceptionSettings = field(default_factory=PerceptionSettings)
+    models: Mapping[str, ModelPrices] = field(default_factory=dict[str, ModelPrices])  # ADR-0058
 
 
 type ClockMode = Literal["continuous", "max"]
@@ -101,6 +103,7 @@ def load_env(path: Path, root: Path | None = None) -> EnvSettings:
     gateway = cast(Mapping[str, Any], doc.get("gateway") or {})
     kernel = cast(Mapping[str, Any], doc.get("kernel") or {})
     perception = cast(Mapping[str, Any], doc.get("perception") or {})
+    models = cast(Mapping[str, Mapping[str, Any]], doc.get("models") or {})
     maps = cast(Mapping[str, str], gateway.get("maps") or {})
     art = cast(list[Mapping[str, str]], gateway.get("art") or [])
     return EnvSettings(
@@ -135,6 +138,15 @@ def load_env(path: Path, root: Path | None = None) -> EnvSettings:
             deltas_for=tuple(str(t) for t in perception.get("deltas_for", ["llm"])),
             snapshot_every=int(perception.get("snapshot_every", 20)),
         ),
+        models={
+            str(name): ModelPrices(
+                input_per_mtok=float(p["input_per_mtok"]),
+                output_per_mtok=float(p["output_per_mtok"]),
+                cache_read_per_mtok=float(p["cache_read_per_mtok"]),
+                cache_write_per_mtok=float(p["cache_write_per_mtok"]),
+            )
+            for name, p in models.items()
+        },
     )
 
 
