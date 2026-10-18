@@ -91,7 +91,7 @@ Notação dos payloads (`data`): `campo: tipo`; `?` marca campo opcional.
 
 | Tipo | Vis. | Payload | Origem |
 |---|---|---|---|
-| `campsverso.world.session.started.v1` | world | `cartridge_version: string` · `seed: int` · `tick_seconds: int` · `mode: continuous\|max` · `paused: bool` · `scale: number` · `resumed: bool` (reinício a partir de snapshot) · `map: { id, width, height }` | contratos §7 |
+| `campsverso.world.session.started.v1` | world | `cartridge_version: string` · `seed: int` · `tick_seconds: int` · `mode: continuous\|max` · `paused: bool` · `scale: number` · `resumed: bool` (reinício a partir de snapshot) · `map: { id, width, height, rows?, legend? }` (o terreno inteiro, uma vez; ADR-0056) · `perception?: { radius }` (o raio declarado pelo cartucho; `null` é o mapa inteiro) | contratos §7; ADR-0056 |
 | `campsverso.world.clock.phase_changed.v1` | world | `phase: string` (`amanhecer`, `meio_dia`, `entardecer`, `noite`, `madrugada`) · `day: int` | contratos §7; bíblia §3 |
 | `campsverso.world.clock.mode_changed.v1` | world | `previous_mode`, `mode: continuous\|max` · `reason: string` · `by: string` | tempo §12; ADR-0026 |
 | `campsverso.world.clock.scale_changed.v1` | world | `previous_scale`, `scale: number > 0` · `reason: operator\|experiment\|budget\|human` · `by: string` | tempo §12 |

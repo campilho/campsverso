@@ -33,6 +33,13 @@ class WorldBuilder(Protocol):
 
     def set_tiles_per_minute(self, speed: float) -> None: ...
 
+    def set_perception_radius(self, radius: int | None) -> None:
+        """Até onde um avatar enxerga, em tiles (distância de Chebyshev; ADR-0056).
+
+        None é o mapa inteiro.
+        """
+        ...
+
     def merge_data(self, namespace: str, data: Mapping[str, Any]) -> None: ...
 
     def define_kind(self, kind: KindDef, *, override: bool = False) -> None: ...

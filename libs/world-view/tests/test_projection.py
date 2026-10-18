@@ -387,3 +387,53 @@ def test_metricas_nao_dependem_da_ordem_entre_os_streams() -> None:
         "agent", ev(0, 30, "world.need.changed.v1", avatar_id="camps", need="fome", value=3.65)
     )
     assert p.metrics == in_order.metrics == {"1": {"moedas": 100, "pico_fome": 3.65}}
+
+
+def test_sessao_guarda_o_terreno_e_a_percepcao() -> None:
+    """ADR-0056: o terreno e o raio chegam no session.started e ficam na sessão."""
+    p = Projection()
+    legend = {
+        "F": {"kind": "floor", "properties": {"passable": True}},
+        "W": {"kind": "wall", "properties": {"passable": False}},
+    }
+    p.apply(
+        "world",
+        ev(
+            0,
+            0,
+            "world.session.started.v1",
+            cartridge_version="0.1.0",
+            seed=7,
+            tick_seconds=60,
+            mode="continuous",
+            paused=False,
+            scale=72,
+            map={"id": "lab", "width": 2, "height": 1, "rows": ["FW"], "legend": legend},
+            perception={"radius": None},
+        ),
+    )
+    session = p.session
+    assert session is not None
+    assert session["map"]["rows"] == ["FW"]
+    assert session["map"]["legend"] == legend
+    assert (
+        "perception" not in session
+    )  # raio nulo (o mapa inteiro) é ausência: o estado não carrega null
+    p.apply(
+        "world",
+        ev(
+            1,
+            0,
+            "world.session.started.v1",
+            cartridge_version="0.1.0",
+            seed=7,
+            tick_seconds=60,
+            mode="continuous",
+            paused=False,
+            scale=72,
+            map={"id": "lab", "width": 2, "height": 1},
+            perception={"radius": 3},
+        ),
+    )
+    assert p.session is not None
+    assert p.session["perception"] == {"radius": 3}

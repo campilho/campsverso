@@ -146,13 +146,13 @@ Moedas também são um item (`moeda`). Isso mantém a economia dentro da mesma p
 
 | Necessidade | Escala | Dinâmica | Efeito |
 |---|---|---|---|
-| Fome | 0 (saciado) → 100 | +3 por hora acordado, +1 por hora dormindo | a partir de 80, as ações gastam o **dobro** de energia |
-| Energia | 0 → 100 | gasta por ação (tabela 8); dormir recupera 12,5 por hora na cama e 5 por hora no chão | em 0, o avatar **desmaia** |
+| Fome | 0 (saciado) → 100 | +3 por hora acordado, +1 por hora dormindo | a partir de 80, as ações gastam o **dobro** de energia; em 100, perde **4 de energia por hora** acordado, até comer (ADR-0056). A fome não mata |
+| Energia | 0 → 100 | gasta por ação (tabela 8) e **1 por hora acordado** (ADR-0056); dormir recupera 12,5 por hora na cama e 5 por hora no chão | em 0, o avatar **desmaia** |
 
 **Sono** (ADR-0041, ADR-0049):
 - Dorme-se em qualquer lugar e a qualquer hora.
 - **À noite** (das 20:00 às 06:00), dorme-se até as 06:00.
-- **De dia**, é um cochilo: acorda quando a energia chega a 100, ou às 06:00, o que vier antes. Com a energia já em 100, não há cochilo (`not_tired`).
+- **De dia**, é um cochilo: acorda quando a energia chega a 100, ou às 06:00, o que vier antes. Faltando menos de um minuto de sono para encher (a energia nunca fica em 100 exatos acordado, ADR-0056), não há cochilo (`not_tired`).
 - **Na cama** (ou análogo, ao lado): energia = mínimo(100, energia + 12,5 × horas dormidas).
 - **No chão**, onde estiver: o sono ruim recupera 5 por hora (8 h dão +40).
 - Se ainda estiver acordado às 02:00, ou se a energia chegar a 0, desmaia onde estiver e acorda às 06:00 **com energia 50**.
@@ -254,7 +254,7 @@ O script **só usa a percepção**, como qualquer controlador. Ele não conhece 
 
 ## 12. Percepção na v0.1
 
-- O controlador recebe o estado de **toda a propriedade** (raio de percepção configurável, mas a fazenda inteira na v0.1), filtrado para eventos `world` e `agent`.
+- O controlador recebe o estado de **toda a propriedade**: o raio de percepção é dado do cartucho (`perception.radius`, ADR-0056), vale para todos os atores e é `null` na fazenda, a propriedade inteira. Com o M8, a foto traz também o terreno (onde se pode pisar, onde há água), como quem joga na tela vê.
 - Expõe: posições, estágios das plantas, se cada canteiro foi regado hoje, clima do dia, inventário, conteúdo do baú, fome, energia, horário e se o quiosque está aberto.
 - **Não expõe:** pontos de crescimento, regras ocultas, eventos `internal`.
 

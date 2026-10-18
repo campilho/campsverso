@@ -15,6 +15,9 @@ clock:
 movement:
   tiles_per_minute: 30  # 1 tile a cada 2 s em tempo real; na tela, o desenho tem teto (ADR-0057)
 
+perception:
+  radius: null  # distância de Chebyshev do que o avatar enxerga; null é a propriedade inteira (ADR-0056)
+
 needs:
   fome: {initial: 0, rates_per_hour: {awake: 3, asleep: 1}}
   energia: {initial: 100, rates_per_hour: {asleep: 5}, role: energy}  # sono ruim, onde estiver (ADR-0041)

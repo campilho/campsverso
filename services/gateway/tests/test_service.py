@@ -87,7 +87,14 @@ async def test_welcome_traz_o_estado_e_o_mapa(rig: Rig) -> None:
     rig.gateway.flush()
     _, welcome = await rig.connect("player")
     state = welcome["state"]
-    assert state["session"]["map"] == {"id": "farm_camps", "width": 32, "height": 18}
+    session_map = state["session"]["map"]
+    assert (session_map["id"], session_map["width"], session_map["height"]) == (
+        "farm_camps",
+        32,
+        18,
+    )
+    assert len(session_map["rows"]) == 18  # o terreno vem no session.started (ADR-0056)
+    assert session_map["legend"]["G"]["kind"] == "grass"
     assert state["clock"] == {"mode": "max", "scale": 72.0, "paused": False}
     assert state["entities"]["bed"]["kind"] == "bed"
     assert state["controllers"]["camps"] == {"type": "script", "id": "script/farmer-v1"}

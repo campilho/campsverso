@@ -263,6 +263,7 @@ class KernelCore:
     def start(self) -> None:
         world = self.world
         grid = self.definition.grid
+        rows, legend = grid.terrain()  # o terreno inteiro, uma vez (ADR-0056)
         world.emit_fact(
             "campsverso.world.session.started.v1",
             {
@@ -273,7 +274,14 @@ class KernelCore:
                 "paused": self.paused,
                 "scale": self.scale,
                 "resumed": False,
-                "map": {"id": grid.map_id, "width": grid.width, "height": grid.height},
+                "map": {
+                    "id": grid.map_id,
+                    "width": grid.width,
+                    "height": grid.height,
+                    "rows": rows,
+                    "legend": legend,
+                },
+                "perception": {"radius": self.definition.perception_radius},
                 **self._affordances(),
                 **self._metrics(),
             },

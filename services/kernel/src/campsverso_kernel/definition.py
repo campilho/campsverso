@@ -47,6 +47,7 @@ class WorldDefinition:
     stages: tuple[str, ...] = DEFAULT_STAGES
     affordances: tuple[AffordanceDef, ...] = ()  # catálogo de ações para quem joga (ADR-0051)
     metrics: tuple[MetricDef, ...] = ()  # métricas do dia para o operador (ADR-0054)
+    perception_radius: int | None = None  # None: o mapa inteiro (ADR-0056)
 
     @property
     def top(self) -> CartridgeManifest:
@@ -81,6 +82,7 @@ class DefinitionBuilder:
     stages: tuple[str, ...] = DEFAULT_STAGES
     clock: ClockDef | None = None
     tiles_per_minute: float = 1.0
+    perception_radius: int | None = None
     data: dict[str, dict[str, Any]] = field(default_factory=dict[str, dict[str, Any]])
     kinds: dict[str, KindDef] = field(default_factory=dict[str, KindDef])
     items: dict[str, ItemDef] = field(default_factory=dict[str, ItemDef])
@@ -103,6 +105,11 @@ class DefinitionBuilder:
         if speed <= 0:
             raise DefinitionError("a velocidade precisa ser positiva")
         self.tiles_per_minute = speed
+
+    def set_perception_radius(self, radius: int | None) -> None:
+        if radius is not None and radius < 0:
+            raise DefinitionError("o raio de percepção não pode ser negativo")
+        self.perception_radius = radius
 
     def merge_data(self, namespace: str, data: Mapping[str, Any]) -> None:
         self.data[namespace] = _deep_merge(self.data.get(namespace, {}), data)
@@ -216,6 +223,7 @@ class DefinitionBuilder:
             avatars=dict(sorted(self.avatars.items())),
             initial_items=tuple(self.initial_items),
             stages=self.stages,
+            perception_radius=self.perception_radius,
         )
 
     def _validate(self, grid: GridMap) -> None:

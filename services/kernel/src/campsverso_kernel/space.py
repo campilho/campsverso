@@ -1,6 +1,7 @@
 """Espaço: grade de tiles a partir de um mapa do Tiled e caminhos A* determinísticos."""
 
 import heapq
+import json
 from collections import deque
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
@@ -84,6 +85,40 @@ class GridMap:
             for x in range(self.width)
             if self.tiles[y][x].get(name) is True
         )
+
+    def terrain(self) -> tuple[list[str], dict[str, dict[str, Any]]]:
+        """O terreno como linhas de um caractere por tile, e a legenda (ADR-0056).
+
+        Cada classe de tile (com as suas propriedades) ganha um código: a primeira letra livre do
+        nome, em maiúscula, ou a próxima do alfabeto. As classes entram em ordem alfabética, então
+        o resultado é determinístico.
+        """
+        keys = [
+            [
+                (self.tile_kinds[y][x], json.dumps(self.tiles[y][x], sort_keys=True, default=str))
+                for x in range(self.width)
+            ]
+            for y in range(self.height)
+        ]
+        codes: dict[tuple[str, str], str] = {}
+        for key in sorted({k for row in keys for k in row}):
+            candidates = [c.upper() for c in key[0] if c.isalpha()] + list(_CODES)
+            free = (c for c in candidates if c not in codes.values())
+            code = next(free, None)
+            if code is None:
+                raise ValueError("terreno com mais classes de tile do que códigos")
+            codes[key] = code
+        rows = ["".join(codes[k] for k in row) for row in keys]
+        legend: dict[str, dict[str, Any]] = {}
+        for y, row in enumerate(keys):
+            for x, key in enumerate(row):
+                legend.setdefault(
+                    codes[key], {"kind": key[0], "properties": dict(self.tiles[y][x])}
+                )
+        return rows, dict(sorted(legend.items()))
+
+
+_CODES = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 
 
 _STEPS = (Position(0, -1), Position(1, 0), Position(0, 1), Position(-1, 0))  # N, L, S, O

@@ -41,7 +41,8 @@ def test_plantar_regar_e_os_custos_de_energia() -> None:
     world = farmer.core.world
     assert world.entity("plot-e-01").attributes["watered_today"] is True
     assert world.entity("watering-can").attributes["charges"] == 9
-    assert world.need("camps", "energia") == 96  # plantar 2 + regar 2
+    # Plantar 2 + regar 2, e 1/60 por tick acordado desde o começo (ADR-0056).
+    assert world.need("camps", "energia") == pytest.approx(96 - farmer.core.tick / 60)
 
 
 def test_plantar_durante_um_plantio_e_recusado_com_busy() -> None:
@@ -83,9 +84,10 @@ def test_fome_alta_dobra_o_custo_de_energia() -> None:
     farmer.walk(23, 9)
     farmer.do("plant", target="plot-e-01", crop="rabanete")
     farmer.core.world.set_need_units("camps", "fome", to_units(85))
-    before = farmer.core.world.need("camps", "energia")
+    before, tick = farmer.core.world.need("camps", "energia"), farmer.core.tick
     farmer.do("water", target="plot-e-01")
-    assert farmer.core.world.need("camps", "energia") == before - 4
+    awake = (farmer.core.tick - tick) / 60  # 1/60 por tick acordado (ADR-0056)
+    assert farmer.core.world.need("camps", "energia") == pytest.approx(before - 4 - awake)
 
 
 def test_recusas_com_motivo_legivel() -> None:
@@ -181,7 +183,9 @@ def test_cochilo_de_dia_na_cama_acorda_com_a_energia_cheia() -> None:
     farmer.walk(4, 3)
     farmer.until("10:00")
     ticks, ended = _nap(farmer, 30, target="bed")
-    assert ticks == 336  # 70 pontos a 12,5/h: 5 h 36 min
+    # 70 pontos a 12,5/h: 5 h 36 min, mais um minuto pelo 1/60 gasto acordado antes de deitar
+    # (ADR-0056): o cochilo arredonda para cima, para acordar cheio.
+    assert ticks == 337
     assert ended.data["energy"] == 100.0
 
 
@@ -189,7 +193,7 @@ def test_cochilo_no_chao_e_mais_longo() -> None:
     farmer = _farmer()
     farmer.walk(12, 9)
     ticks, ended = _nap(farmer, 80)
-    assert ticks == 240  # 20 pontos a 5/h: 4 h
+    assert ticks == 241  # 20 pontos a 5/h: 4 h, mais o minuto acordado antes de deitar (ADR-0056)
     assert ended.data["energy"] == 100.0
 
 
@@ -199,7 +203,8 @@ def test_cochilo_no_fim_da_tarde_vai_no_maximo_ate_as_6() -> None:
     farmer.until("19:00")
     ticks, ended = _nap(farmer, 10)  # encher levaria 18 h no chão
     assert ended.tick % 1440 == 0  # acordou às 06:00, a virada do dia agrícola
-    assert ended.data["energy"] == pytest.approx(10 + 5 * ticks / 60)
+    # 5/h dormindo, menos 1/60 por tick acordado antes de deitar (ADR-0056).
+    assert ended.data["energy"] == pytest.approx(10 - 2 / 60 + 5 * ticks / 60)
     assert of_type(farmer.facts, "avatar.fainted") == []
 
 
@@ -223,7 +228,8 @@ def test_dormir_no_chao_recupera_menos() -> None:
     farmer.until("06:00")
     farmer.run(1)
     (ended,) = of_type(farmer.facts, "avatar.sleep.ended.v2")
-    assert ended["energy"] == pytest.approx(40 + 5 * 539 / 60)  # 5/h das 21:01 às 06:00
+    # 5/h das 21:01 às 06:00, menos 1/60 por tick acordado antes de deitar (ADR-0056).
+    assert ended["energy"] == pytest.approx(40 - 2 / 60 + 5 * 539 / 60)
 
 
 def test_dormir_exige_cama_de_verdade_e_ao_lado() -> None:
@@ -246,6 +252,28 @@ def test_quem_fica_acordado_desmaia_as_2_e_acorda_com_50() -> None:
     farmer.run(1)
     (ended,) = of_type(farmer.facts, "avatar.sleep.ended.v2")
     assert (ended["cause"], ended["energy"]) == ("faint", 50.0)
+
+
+def test_ficar_acordado_custa_um_de_energia_por_hora() -> None:
+    """ADR-0056: parado o dia inteiro deixa de ser de graça."""
+    farmer = _farmer()
+    before = farmer.core.world.need("camps", "energia")
+    farmer.run(60)
+    assert farmer.core.world.need("camps", "energia") == before - 1
+
+
+def test_passar_fome_drena_energia_de_hora_em_hora_ate_comer() -> None:
+    """ADR-0056: com a fome em 100, 4 de energia por hora acordado, sem morte."""
+    farmer = _farmer()
+    farmer.core.world.set_need_units("camps", "fome", to_units(100))
+    farmer.until("07:05")  # o sistema de hora em hora rodou às 07:00
+    awake = farmer.core.tick / 60  # 1 por hora acordado desde o começo (ADR-0056)
+    assert farmer.core.world.need("camps", "energia") == pytest.approx(100 - awake - 4)
+    farmer.core.world.set_need_units("camps", "fome", to_units(50))  # comeu
+    farmer.until("08:05")
+    awake = farmer.core.tick / 60
+    assert farmer.core.world.need("camps", "energia") == pytest.approx(100 - awake - 4)
+    assert not of_type(farmer.facts, "avatar.fainted")
 
 
 def test_energia_zero_desmaia_na_hora() -> None:
@@ -384,3 +412,16 @@ def test_catalogo_de_metricas_sai_no_session_started() -> None:
 
 def section_crops(farmer: Farmer) -> set[str]:
     return set(farmer.core.world.data("farm")["crops"])
+
+
+def test_terreno_e_raio_saem_no_session_started() -> None:
+    """ADR-0056: o terreno da fazenda com legenda, e o raio nulo (a propriedade inteira)."""
+    farmer = _farmer()
+    (started,) = of_type(farmer.facts, "world.session.started")
+    rows, legend = started["map"]["rows"], started["map"]["legend"]
+    assert len(rows) == 18
+    assert all(len(row) == 32 for row in rows)
+    assert legend["G"] == {"kind": "grass", "properties": {"passable": True, "water": False}}
+    assert legend["R"]["properties"]["water"] is True
+    assert set("".join(rows)) == set(legend)
+    assert started["perception"] == {"radius": None}

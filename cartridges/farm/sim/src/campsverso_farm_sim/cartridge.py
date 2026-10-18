@@ -109,6 +109,8 @@ class FarmCartridge:
             )
         )
         world.set_tiles_per_minute(float(data["movement"]["tiles_per_minute"]))
+        radius = data["perception"]["radius"]
+        world.set_perception_radius(None if radius is None else int(radius))
         world.merge_data(config.NAMESPACE, data)
         for kind in _kinds(data):
             world.define_kind(kind)

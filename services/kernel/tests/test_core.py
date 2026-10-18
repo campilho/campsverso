@@ -40,6 +40,20 @@ def test_inicio_da_sessao_publica_mundo_regras_entidades_e_pede_decisao() -> Non
     assert decision["needs"] == {"energia": 25.0, "fome": 79.05}
 
 
+def test_inicio_da_sessao_publica_o_terreno_e_o_raio() -> None:
+    """ADR-0056: o terreno inteiro, um caractere por tile com legenda, e o raio de percepção."""
+    core = make_core()
+    core.start()
+    (started,) = _only(core.drain(), "world.session.started")
+    assert started["map"]["rows"] == ["WWWWWWW", "WFFFFAW", "WFWWFFW", "WWWWWWW"]
+    assert started["map"]["legend"] == {  # a água perdeu o W para a parede: a próxima letra livre
+        "A": {"kind": "water", "properties": {"passable": False, "water": True}},
+        "F": {"kind": "floor", "properties": {"passable": True, "water": False}},
+        "W": {"kind": "wall", "properties": {"passable": False, "water": False}},
+    }
+    assert started["perception"] == {"radius": None}
+
+
 def test_mover_aceita_publica_trajeto_e_conclui_no_tempo(core: KernelCore) -> None:
     _run(core)
     core.submit(command("move", {"target": {"x": 3, "y": 1}}))
