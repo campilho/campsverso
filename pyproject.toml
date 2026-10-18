@@ -88,6 +88,8 @@ known-first-party = ["campsverso_*"]
 "uvicorn".msg = "SDK externo: só em libs/adapters ou no main.py do serviço (princípio 3)."
 "websockets".msg = "SDK externo: só em libs/adapters ou no main.py do serviço (princípio 3)."
 "sqlite3".msg = "SDK externo: só em libs/adapters ou no main.py do serviço (princípio 3)."
+"anthropic".msg = "SDK externo: só em libs/adapters ou no main.py do serviço (princípio 3)."
+"httpx2".msg = "SDK externo: só em libs/adapters ou no main.py do serviço (princípio 3)."
 
 [tool.ruff.lint.per-file-ignores]
 "libs/adapters/**" = ["TID251"]

@@ -15,6 +15,19 @@ from campsverso_ports.bus import (
 from campsverso_ports.clock import WallClock
 from campsverso_ports.flags import FlagPort, RuleConfig
 from campsverso_ports.ids import IdGenerator
+from campsverso_ports.model import (
+    RETRYABLE_ERRORS,
+    Effort,
+    ErrorKind,
+    ModelCallError,
+    ModelCapabilities,
+    ModelPort,
+    ModelRequest,
+    ModelResponse,
+    ModelUsage,
+    canonical_request,
+    request_sha256,
+)
 from campsverso_ports.realtime import (
     ConnectionClosedError,
     ConnectionHandler,
@@ -36,6 +49,7 @@ from campsverso_ports.telemetry import Telemetry
 from campsverso_ports.validation import EnvelopeValidator
 
 __all__ = [
+    "RETRYABLE_ERRORS",
     "BatchHandler",
     "BlobStore",
     "BusUnavailableError",
@@ -43,8 +57,10 @@ __all__ = [
     "ConnectionClosedError",
     "ConnectionHandler",
     "Consumer",
+    "Effort",
     "Envelope",
     "EnvelopeValidator",
+    "ErrorKind",
     "EventArchive",
     "EventBus",
     "FlagPort",
@@ -53,6 +69,12 @@ __all__ = [
     "InputKind",
     "InputRow",
     "Message",
+    "ModelCallError",
+    "ModelCapabilities",
+    "ModelPort",
+    "ModelRequest",
+    "ModelResponse",
+    "ModelUsage",
     "OutboxRow",
     "PermissionDeniedError",
     "RealtimeConnection",
@@ -65,4 +87,6 @@ __all__ = [
     "View",
     "WallClock",
     "WorldStore",
+    "canonical_request",
+    "request_sha256",
 ]

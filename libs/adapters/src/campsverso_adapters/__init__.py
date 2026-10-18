@@ -9,6 +9,7 @@ from campsverso_adapters.clocks import FakeWallClock, SystemWallClock
 from campsverso_adapters.contract_validation import ContractValidator, Problem
 from campsverso_adapters.flags_yaml import YamlFlags
 from campsverso_adapters.ids import SequentialUuid7Ids, Uuid7Ids
+from campsverso_adapters.model_anthropic import AnthropicModel
 from campsverso_adapters.realtime_memory import MemoryClient, MemoryRealtime
 from campsverso_adapters.settings import (
     EnvSettings,
@@ -21,6 +22,7 @@ from campsverso_adapters.store_sqlite import SqliteWorldStore
 from campsverso_adapters.telemetry import JsonTelemetry, MemoryTelemetry
 
 __all__ = [
+    "AnthropicModel",
     "ContractValidator",
     "ContractViolationError",
     "DiskBlobStore",
