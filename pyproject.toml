@@ -10,6 +10,7 @@ dependencies = [
   "campsverso-cartridge-api",
   "campsverso-adapters",
   "campsverso-world-view",
+  "campsverso-mind",
   "campsverso-kernel",
   "campsverso-perception",
   "campsverso-controller-runner",
@@ -19,6 +20,8 @@ dependencies = [
   "campsverso-farm-sim",
   "campsverso-farm-script",
   "campsverso-farm-camps-sim",
+  "campsverso-farm-mind",
+  "campsverso-farm-camps-mind",
   "campsverso-tools",
   "campsverso-testkit",
 ]
@@ -46,7 +49,9 @@ members = [
   "services/*",
   "cartridges/farm/sim",
   "cartridges/farm/script",
+  "cartridges/farm/mind",
   "cartridges/farm_camps/sim",
+  "cartridges/farm_camps/mind",
   "tools/contracts",
   "tests/support",
 ]
@@ -57,6 +62,7 @@ campsverso-ports = { workspace = true }
 campsverso-cartridge-api = { workspace = true }
 campsverso-adapters = { workspace = true }
 campsverso-world-view = { workspace = true }
+campsverso-mind = { workspace = true }
 campsverso-kernel = { workspace = true }
 campsverso-perception = { workspace = true }
 campsverso-controller-runner = { workspace = true }
@@ -66,6 +72,8 @@ campsverso-budget = { workspace = true }
 campsverso-farm-sim = { workspace = true }
 campsverso-farm-script = { workspace = true }
 campsverso-farm-camps-sim = { workspace = true }
+campsverso-farm-mind = { workspace = true }
+campsverso-farm-camps-mind = { workspace = true }
 campsverso-tools = { workspace = true }
 campsverso-testkit = { workspace = true }
 
@@ -124,6 +132,53 @@ root_packages = [
   "campsverso_cartridge_api",
   "campsverso_adapters",
   "campsverso_world_view",
+  "campsverso_mind",
+  "campsverso_kernel",
+  "campsverso_perception",
+  "campsverso_controller_runner",
+  "campsverso_gateway",
+  "campsverso_archiver",
+  "campsverso_budget",
+  "campsverso_farm_sim",
+  "campsverso_farm_script",
+  "campsverso_farm_camps_sim",
+  "campsverso_farm_mind",
+  "campsverso_farm_camps_mind",
+  "campsverso_tools",
+  "campsverso_testkit",
+]
+
+[[tool.importlinter.contracts]]
+name = "A mente só conhece a porta de modelo: nem serviços, nem adaptadores, nem cartuchos (ADR-0059)"
+type = "forbidden"
+source_modules = ["campsverso_mind"]
+forbidden_modules = [
+  "campsverso_cartridge_api",
+  "campsverso_adapters",
+  "campsverso_world_view",
+  "campsverso_kernel",
+  "campsverso_perception",
+  "campsverso_controller_runner",
+  "campsverso_gateway",
+  "campsverso_archiver",
+  "campsverso_budget",
+  "campsverso_farm_sim",
+  "campsverso_farm_script",
+  "campsverso_farm_camps_sim",
+  "campsverso_farm_mind",
+  "campsverso_farm_camps_mind",
+  "campsverso_tools",
+  "campsverso_testkit",
+]
+
+[[tool.importlinter.contracts]]
+name = "As mentes dos cartuchos só conhecem a mente genérica (ADR-0059)"
+type = "forbidden"
+source_modules = ["campsverso_farm_mind", "campsverso_farm_camps_mind"]
+forbidden_modules = [
+  "campsverso_cartridge_api",
+  "campsverso_adapters",
+  "campsverso_world_view",
   "campsverso_kernel",
   "campsverso_perception",
   "campsverso_controller_runner",
@@ -160,7 +215,13 @@ source_modules = [
   "campsverso_archiver",
   "campsverso_budget",
 ]
-forbidden_modules = ["campsverso_farm_sim", "campsverso_farm_script", "campsverso_farm_camps_sim"]
+forbidden_modules = [
+  "campsverso_farm_sim",
+  "campsverso_farm_script",
+  "campsverso_farm_camps_sim",
+  "campsverso_farm_mind",
+  "campsverso_farm_camps_mind",
+]
 
 [[tool.importlinter.contracts]]
 name = "O script do cartucho depende só dos contratos (ADR-0011)"
@@ -197,14 +258,17 @@ forbidden_modules = [
 [[tool.importlinter.contracts]]
 name = "A base não conhece quem a estende (ADR-0031)"
 type = "forbidden"
-source_modules = ["campsverso_farm_sim"]
-forbidden_modules = ["campsverso_farm_camps_sim"]
+source_modules = ["campsverso_farm_sim", "campsverso_farm_mind"]
+forbidden_modules = ["campsverso_farm_camps_sim", "campsverso_farm_camps_mind"]
 
 [[tool.importlinter.contracts]]
 name = "Contratos e interfaces não dependem de implementações"
 type = "forbidden"
 source_modules = ["campsverso_contracts", "campsverso_ports", "campsverso_cartridge_api"]
 forbidden_modules = [
+  "campsverso_mind",
+  "campsverso_farm_mind",
+  "campsverso_farm_camps_mind",
   "campsverso_adapters",
   "campsverso_kernel",
   "campsverso_perception",
@@ -282,6 +346,7 @@ source_modules = [
   "campsverso_cartridge_api",
   "campsverso_adapters",
   "campsverso_world_view",
+  "campsverso_mind",
   "campsverso_kernel",
   "campsverso_perception",
   "campsverso_controller_runner",
@@ -291,5 +356,7 @@ source_modules = [
   "campsverso_farm_sim",
   "campsverso_farm_script",
   "campsverso_farm_camps_sim",
+  "campsverso_farm_mind",
+  "campsverso_farm_camps_mind",
 ]
 forbidden_modules = ["campsverso_tools", "campsverso_testkit"]

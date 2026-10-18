@@ -1,0 +1,13 @@
+[project]
+name = "campsverso-farm-mind"
+version = "0.1.0.dev0"
+description = "O que a mente sabe do gênero farm: as notas do mundo e o catálogo de ferramentas, como dados (ADR-0059)."
+requires-python = ">=3.14"
+license = "MIT"
+dependencies = [
+  "campsverso-mind",
+]
+
+[build-system]
+requires = ["uv_build>=0.13,<0.14"]
+build-backend = "uv_build"

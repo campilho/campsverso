@@ -11,11 +11,14 @@ members = [
     "campsverso-cartridge-api",
     "campsverso-contracts",
     "campsverso-controller-runner",
+    "campsverso-farm-camps-mind",
     "campsverso-farm-camps-sim",
+    "campsverso-farm-mind",
     "campsverso-farm-script",
     "campsverso-farm-sim",
     "campsverso-gateway",
     "campsverso-kernel",
+    "campsverso-mind",
     "campsverso-perception",
     "campsverso-ports",
     "campsverso-testkit",
@@ -124,11 +127,14 @@ dependencies = [
     { name = "campsverso-cartridge-api" },
     { name = "campsverso-contracts" },
     { name = "campsverso-controller-runner" },
+    { name = "campsverso-farm-camps-mind" },
     { name = "campsverso-farm-camps-sim" },
+    { name = "campsverso-farm-mind" },
     { name = "campsverso-farm-script" },
     { name = "campsverso-farm-sim" },
     { name = "campsverso-gateway" },
     { name = "campsverso-kernel" },
+    { name = "campsverso-mind" },
     { name = "campsverso-perception" },
     { name = "campsverso-ports" },
     { name = "campsverso-testkit" },
@@ -157,11 +163,14 @@ requires-dist = [
     { name = "campsverso-cartridge-api", editable = "libs/cartridge-api" },
     { name = "campsverso-contracts", editable = "packages/contracts-py" },
     { name = "campsverso-controller-runner", editable = "services/controller-runner" },
+    { name = "campsverso-farm-camps-mind", editable = "cartridges/farm_camps/mind" },
     { name = "campsverso-farm-camps-sim", editable = "cartridges/farm_camps/sim" },
+    { name = "campsverso-farm-mind", editable = "cartridges/farm/mind" },
     { name = "campsverso-farm-script", editable = "cartridges/farm/script" },
     { name = "campsverso-farm-sim", editable = "cartridges/farm/sim" },
     { name = "campsverso-gateway", editable = "services/gateway" },
     { name = "campsverso-kernel", editable = "services/kernel" },
+    { name = "campsverso-mind", editable = "libs/mind" },
     { name = "campsverso-perception", editable = "services/perception" },
     { name = "campsverso-ports", editable = "libs/ports" },
     { name = "campsverso-testkit", editable = "tests/support" },
@@ -289,6 +298,21 @@ requires-dist = [
 ]
 
 [[package]]
+name = "campsverso-farm-camps-mind"
+version = "0.1.0.dev0"
+source = { editable = "cartridges/farm_camps/mind" }
+dependencies = [
+    { name = "campsverso-farm-mind" },
+    { name = "campsverso-mind" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "campsverso-farm-mind", editable = "cartridges/farm/mind" },
+    { name = "campsverso-mind", editable = "libs/mind" },
+]
+
+[[package]]
 name = "campsverso-farm-camps-sim"
 version = "0.1.0.dev0"
 source = { editable = "cartridges/farm_camps/sim" }
@@ -306,6 +330,17 @@ requires-dist = [
     { name = "campsverso-farm-sim", editable = "cartridges/farm/sim" },
     { name = "pyyaml", specifier = ">=6" },
 ]
+
+[[package]]
+name = "campsverso-farm-mind"
+version = "0.1.0.dev0"
+source = { editable = "cartridges/farm/mind" }
+dependencies = [
+    { name = "campsverso-mind" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "campsverso-mind", editable = "libs/mind" }]
 
 [[package]]
 name = "campsverso-farm-script"
@@ -375,6 +410,21 @@ requires-dist = [
     { name = "campsverso-cartridge-api", editable = "libs/cartridge-api" },
     { name = "campsverso-contracts", editable = "packages/contracts-py" },
     { name = "campsverso-ports", editable = "libs/ports" },
+]
+
+[[package]]
+name = "campsverso-mind"
+version = "0.1.0.dev0"
+source = { editable = "libs/mind" }
+dependencies = [
+    { name = "campsverso-ports" },
+    { name = "pyyaml" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "campsverso-ports", editable = "libs/ports" },
+    { name = "pyyaml", specifier = ">=6" },
 ]
 
 [[package]]

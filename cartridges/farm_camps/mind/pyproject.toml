@@ -1,0 +1,17 @@
+[project]
+name = "campsverso-farm-camps-mind"
+version = "0.1.0.dev0"
+description = "A mente do Camps: o cartão de identidade do cenário farm_camps sobre a mente do gênero farm (ADR-0059)."
+requires-python = ">=3.14"
+license = "MIT"
+dependencies = [
+  "campsverso-mind",
+  "campsverso-farm-mind",
+]
+
+[project.entry-points."campsverso.minds"]
+camps = "campsverso_farm_camps_mind:mind"
+
+[build-system]
+requires = ["uv_build>=0.13,<0.14"]
+build-backend = "uv_build"
