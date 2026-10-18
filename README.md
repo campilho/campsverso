@@ -36,6 +36,10 @@ A pergunta da v0.2: **um LLM consegue viver na fazenda, prosperar e descobrir so
 | M12: a arena | humano × script × dois modelos, lado a lado, com o custo por dia simulado |
 | M13: fechamento | critérios de aceite, diário e a tag `v0.2.0` |
 
+## Depois: v0.3, o escritório que constrói a si mesmo
+
+Em vez de outra fazenda, um escritório de programação com um único dev no começo, cujo trabalho é melhorar o próprio Campsverso: ele recebe tickets de nós, abre PRs, espera o CI, e quando um PR é mesclado o mundo reinicia na versão que ele mesmo escreveu. Depois ele propõe um ajudante. É o primeiro cartucho com efeitos externos; a v0.2 inteira é pré-requisito. A ideia está em [ideia-escritorio-que-se-constroi.md](docs/planos/ideia-escritorio-que-se-constroi.md), a direção na [ADR-0055](docs/decisoes/0055-a-v0-3-e-o-escritorio-que-se-constroi.md) e as telas propostas em [docs/design](docs/design/README.md).
+
 
 ```mermaid
 flowchart LR
@@ -87,6 +91,7 @@ O mapa é desenhado pelo [Phaser](https://phaser.io/) com pixel art do [Liberate
 - [Arquitetura](docs/arquitetura/): escopo, bíblia do mundo, contratos de eventos, gestão do tempo, catálogo de eventos e pesquisa de componentes. A ordem de leitura está no escopo.
 - [Contratos](contracts/): os JSON Schemas de todos os eventos e comandos (fonte da verdade) e o [changelog](contracts/CHANGELOG.md).
 - [Decisões (ADRs)](docs/decisoes/README.md)
+- [Referências visuais](docs/design/README.md): as telas propostas da fazenda, do escritório e do estúdio, e o que cada uma ensinou
 - [Diário de bordo](docs/diario/)
 - [Custos de desenvolvimento](docs/custos/): tempo e tokens do Claude Code por marco
 
