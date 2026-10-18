@@ -13,7 +13,7 @@ from campsverso_cartridge_api import (
     WorldOps,
     WorldView,
 )
-from campsverso_farm_sim.config import ENERGY, section
+from campsverso_farm_sim.config import ENERGY, HUNGER, section
 
 
 @dataclass(frozen=True)
@@ -164,6 +164,20 @@ def faint_exhausted(ctx: SystemContext, ops: WorldOps) -> None:
         _faint(ctx.view, ops, ctx.avatar_id, "exhausted")
 
 
+def starve(ctx: SystemContext, ops: WorldOps) -> None:
+    """De hora em hora: com a fome no teto, quem está acordado perde energia até comer (ADR-0056).
+
+    Soma-se ao dobro de energia por ação acima de 80. Um dia inteiro passando fome termina em
+    desmaio; a fome não mata.
+    """
+    view = ctx.view
+    rule = section(view, "starving")
+    for avatar_id in view.avatars():
+        if view.is_asleep(avatar_id) or view.need(avatar_id, HUNGER) < float(rule["at"]):
+            continue
+        ops.change_need(avatar_id, ENERGY, -float(rule["energy_per_hour"]))
+
+
 def build_systems(data: Mapping[str, Any]) -> tuple[FarmSystem, ...]:
     """Horários vêm dos dados do gênero no momento da montagem do mundo."""
     buyer, kiosk = data["buyer"], data["kiosk"]
@@ -205,5 +219,12 @@ def build_systems(data: Mapping[str, Any]) -> tuple[FarmSystem, ...]:
         ),
         FarmSystem(
             "faint_exhausted", "reactions", 10, (OnThreshold(ENERGY, 0, "down"),), faint_exhausted
+        ),
+        FarmSystem(
+            "starving",
+            "scheduled",
+            40,
+            (DailyAt(tuple(f"{hour:02d}:00" for hour in range(24))),),  # de hora em hora
+            starve,
         ),
     )

@@ -329,7 +329,10 @@ def _sleep_ticks(ctx: ActionContext, bed: EntityView | None) -> int:
         rate = float(section(ctx.view, "sleep", "beds", bed.kind)[ENERGY])
     ticks_per_hour = 3600 / int(section(ctx.view, "clock")["tick_seconds"])
     missing = FULL - ctx.view.need(ctx.avatar_id, ENERGY)
-    return min(until_wake, math.ceil(round(missing * ticks_per_hour / rate, 6)))
+    ticks = round(missing * ticks_per_hour / rate, 6)
+    # Com a energia quase cheia (acordado, ela nunca está em 100 exatos: ADR-0056), menos de um
+    # tick de sono não é cochilo: `not_tired`.
+    return 0 if ticks < 1 else min(until_wake, math.ceil(ticks))
 
 
 @dataclass(frozen=True)

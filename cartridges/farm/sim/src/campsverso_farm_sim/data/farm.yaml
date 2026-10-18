@@ -20,7 +20,9 @@ perception:
 
 needs:
   fome: {initial: 0, rates_per_hour: {awake: 3, asleep: 1}}
-  energia: {initial: 100, rates_per_hour: {asleep: 5}, role: energy}  # sono ruim, onde estiver (ADR-0041)
+  # Acordado custa 1 por hora (ADR-0056): parado o dia inteiro deixa de ser de graça. Dormindo no
+  # chão recupera 5 (ADR-0041); a cama, 12,5 (abaixo, em sleep.beds).
+  energia: {initial: 100, rates_per_hour: {awake: -1, asleep: 5}, role: energy}
 
 thresholds:  # ADR-0039
   - {need: fome, value: 80, direction: up, requests_decision: true}
@@ -28,6 +30,9 @@ thresholds:  # ADR-0039
   - {need: energia, value: 0, direction: down, requests_decision: false}  # desmaio
 
 hunger_doubles_energy_at: 80
+starving:  # fome no teto drena energia de hora em hora, acordado, até comer; sem morte (ADR-0056)
+  at: 100
+  energy_per_hour: 4
 
 items:
   moeda: {category: moeda}

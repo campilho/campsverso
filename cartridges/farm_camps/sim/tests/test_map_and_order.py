@@ -62,13 +62,13 @@ def test_rio_marcado_como_agua_e_canteiros_do_leste_a_ate_4_tiles() -> None:
 
 
 ORDEM = {
-    "02:00": ["scheduled: faint_late_night(10)", "clock: kernel"],
-    "05:00": ["scheduled: weather(10)", "clock: kernel"],
+    "02:00": ["scheduled: faint_late_night(10), starving(40)", "clock: kernel"],
+    "05:00": ["scheduled: weather(10), starving(40)", "clock: kernel"],
     "06:00": [
-        "scheduled: crop_growth(10), buyer_pay(20), new_day(30)",
+        "scheduled: crop_growth(10), buyer_pay(20), new_day(30), starving(40)",
         "clock: kernel, fase:amanhecer",
     ],
-    "22:00": ["scheduled: buyer_collect(10)", "clock: kernel"],
+    "22:00": ["scheduled: buyer_collect(10), starving(40)", "clock: kernel"],
 }
 
 
