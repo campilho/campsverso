@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/perception/updated.v1",
+  "title": "PerceptionUpdatedV1",
+  "description": "O delta da percepção (ADR-0028, ADR-0056): o que mudou desde a última entrega ao avatar e o que aconteceu no meio-tempo. Responde a um pedido de decisão como a foto, para os controladores que pedem deltas; a foto continua em perception.delivered.v1.",
+  "x-type": "campsverso.perception.updated.v1",
+  "x-visibility": "agent",
+  "x-producer": "perception",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "avatar_id",
+    "since_tick",
+    "as_of_tick",
+    "decision",
+    "clock",
+    "self",
+    "events"
+  ],
+  "properties": {
+    "avatar_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "Avatar (o corpo), independente de quem o controla (ADR-0027)."
+    },
+    "since_tick": {
+      "$ref": "contracts://common/defs.v1#/$defs/tick",
+      "description": "O tick da entrega anterior (foto ou delta): este delta cobre o que mudou depois dele."
+    },
+    "as_of_tick": {
+      "$ref": "contracts://common/defs.v1#/$defs/tick"
+    },
+    "decision": {
+      "$ref": "contracts://common/defs.v1#/$defs/decision_request"
+    },
+    "clock": {
+      "$ref": "contracts://common/defs.v1#/$defs/seen_clock",
+      "description": "Sempre presente: o relógio agora."
+    },
+    "weather": {
+      "$ref": "contracts://common/defs.v1#/$defs/seen_weather",
+      "description": "Só quando o clima mudou desde a entrega anterior."
+    },
+    "self": {
+      "$ref": "contracts://common/defs.v1#/$defs/seen_self",
+      "description": "O próprio avatar, inteiro, sempre: é pequeno e é o que mais muda."
+    },
+    "containers": {
+      "type": "array",
+      "items": {
+        "$ref": "contracts://common/defs.v1#/$defs/seen_container"
+      },
+      "description": "Os contêineres cujo conteúdo mudou, inteiros."
+    },
+    "entities": {
+      "type": "array",
+      "items": {
+        "$ref": "contracts://common/defs.v1#/$defs/seen_entity"
+      },
+      "description": "As entidades que apareceram ou mudaram (posição, contêiner ou atributos), com o registro inteiro."
+    },
+    "gone": {
+      "type": "array",
+      "items": {
+        "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+      },
+      "description": "As entidades que deixaram de ser percebidas desde a entrega anterior."
+    },
+    "events": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "$ref": "contracts://common/defs.v1#/$defs/seen_event"
+      },
+      "description": "O que aconteceu desde a entrega anterior, na ordem em que foi publicado: alimenta a memória e a narrativa (M11)."
+    }
+  }
+}

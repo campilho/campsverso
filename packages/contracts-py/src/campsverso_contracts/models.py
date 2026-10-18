@@ -11,6 +11,13 @@ class ContractsBundle(BaseModel):
     )
 
 
+class EntityId(RootModel[str]):
+    root: Annotated[str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+
+
 class Token(RootModel[str]):
     root: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
     """
@@ -157,6 +164,225 @@ class Metric(BaseModel):
     ] = None
     """
     O item (`item`).
+    """
+
+
+class SeenClock(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+    sim_time: AwareDatetime
+    day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+    phase: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+
+
+class SeenWeather(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    condition: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+
+
+class SeenAction(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    action_id: Annotated[str, Field(pattern="^act-[0-9]{6,}$", title="ActionId")]
+    """
+    Id de ação: contador determinístico do kernel.
+    """
+    action: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    params: dict[str, Any]
+    end_tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+    applied_tick: Annotated[int | None, Field(ge=0, title="Tick")] = None
+    """
+    Tick em que a ação começou (ADR-0052).
+    """
+    interrupt: Annotated[Literal["never", "cancel", "partial"] | None, Field(title="Interrupt")] = (
+        None
+    )
+    """
+    O que um comando novo do mesmo controlador faz com esta ação em andamento (ADR-0052).
+    """
+
+
+class SeenSelf(BaseModel):
+    """
+    O próprio avatar: posição, necessidades, se dorme e a ação em curso.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    entity_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    position: Position
+    needs: dict[str, NeedsAdditionalProperty]
+    asleep: bool
+    action: SeenAction | None = None
+
+
+class SeenContainer(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    container_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    items: list[ItemStack]
+
+
+class SeenEntity(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    entity_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    kind: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    position: Position | None = None
+    container_id: Annotated[
+        str | None,
+        Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId"),
+    ] = None
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    attributes: dict[str, str | float | bool | None]
+
+
+class DecisionRequest(BaseModel):
+    """
+    O pedido de decisão que a entrega da percepção responde: o motivo e quem deve responder (ADR-0048).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    reason: Literal[
+        "session_started",
+        "possessed",
+        "action_completed",
+        "action_rejected",
+        "action_interrupted",
+        "phase_changed",
+        "need_threshold",
+        "woke_up",
+    ]
+    controller: ControllerRef
+
+
+class SeenEvent(BaseModel):
+    """
+    Um evento que o avatar percebeu desde a última entrega: o tick, o tipo e o payload, como foram publicados.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+    type: Annotated[
+        str,
+        Field(
+            max_length=128,
+            pattern="^campsverso\\.[a-z0-9_]+(\\.[a-z0-9_]+)*\\.v[0-9]+$",
+        ),
+    ]
+    data: dict[str, Any]
+
+
+class TerrainTile(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    kind: Annotated[str, Field(max_length=64, pattern="^[a-z0-9_]*$")]
+    """
+    A classe do tile no tileset (grass, river…); vazia quando o tile não tem classe.
+    """
+    properties: dict[str, str | float | bool | None]
+    """
+    As propriedades do tile no tileset, como passable e water.
+    """
+
+
+class TerrainLegend(RootModel[dict[str, TerrainTile]]):
+    """
+    Legenda do terreno: o que cada caractere das linhas significa (ADR-0056).
+    """
+
+    root: Annotated[dict[str, TerrainTile], Field(min_length=1)]
+
+
+class TerrainRow(RootModel[str]):
+    root: Annotated[str, Field(max_length=1024, min_length=1)]
+
+
+class TerrainWindow(BaseModel):
+    """
+    O terreno ao alcance do avatar: as linhas a partir de origin (o canto superior esquerdo da janela), com a legenda.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    origin: Position
+    rows: Annotated[list[TerrainRow], Field(max_length=1024, min_length=1, title="TerrainRows")]
+    """
+    O terreno, uma string por linha e um caractere por tile, de cima para baixo e da esquerda para a direita (ADR-0056).
+    """
+    legend: TerrainLegend
+
+
+class PerceptionConfig(BaseModel):
+    """
+    O que o cartucho declara sobre a percepção (ADR-0056).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    radius: Annotated[int | None, Field(ge=0)]
+    """
+    Distância de Chebyshev, em tiles, do que um avatar enxerga; null é o mapa inteiro.
     """
 
 
@@ -991,6 +1217,10 @@ class PerceptionView(BaseModel):
     self: Annotated[ViewSelf, Field(title="ViewSelf")]
     containers: list[ViewContainer]
     entities: list[ViewEntity]
+    map: TerrainWindow | None = None
+    """
+    O terreno ao alcance do avatar, recortado ao raio (ADR-0056). Só na foto; o delta nunca o repete.
+    """
 
 
 class PerceptionDeliveredV1(BaseModel):
@@ -1019,6 +1249,59 @@ class PerceptionDeliveredV1(BaseModel):
     view: Annotated[PerceptionView, Field(title="PerceptionView")]
     """
     Visão genérica: o que é da fazenda chega como atributo de entidade (ADR-0025).
+    """
+
+
+class PerceptionUpdatedV1(BaseModel):
+    """
+    O delta da percepção (ADR-0028, ADR-0056): o que mudou desde a última entrega ao avatar e o que aconteceu no meio-tempo. Responde a um pedido de decisão como a foto, para os controladores que pedem deltas; a foto continua em perception.delivered.v1.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Avatar (o corpo), independente de quem o controla (ADR-0027).
+    """
+    since_tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    O tick da entrega anterior (foto ou delta): este delta cobre o que mudou depois dele.
+    """
+    as_of_tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+    decision: DecisionRequest
+    clock: SeenClock
+    """
+    Sempre presente: o relógio agora.
+    """
+    weather: SeenWeather | None = None
+    """
+    Só quando o clima mudou desde a entrega anterior.
+    """
+    self: SeenSelf
+    """
+    O próprio avatar, inteiro, sempre: é pequeno e é o que mais muda.
+    """
+    containers: list[SeenContainer] | None = None
+    """
+    Os contêineres cujo conteúdo mudou, inteiros.
+    """
+    entities: list[SeenEntity] | None = None
+    """
+    As entidades que apareceram ou mudaram (posição, contêiner ou atributos), com o registro inteiro.
+    """
+    gone: list[EntityId] | None = None
+    """
+    As entidades que deixaram de ser percebidas desde a entrega anterior.
+    """
+    events: Annotated[list[SeenEvent], Field(max_length=1000)]
+    """
+    O que aconteceu desde a entrega anterior, na ordem em que foi publicado: alimenta a memória e a narrativa (M11).
     """
 
 
@@ -1550,6 +1833,14 @@ class SessionMap(BaseModel):
     id: Annotated[str, Field(max_length=64, min_length=1, pattern="^[a-z0-9_-]+$")]
     width: Annotated[int, Field(ge=1)]
     height: Annotated[int, Field(ge=1)]
+    rows: Annotated[
+        list[TerrainRow] | None,
+        Field(max_length=1024, min_length=1, title="TerrainRows"),
+    ] = None
+    """
+    O terreno do mapa inteiro, publicado uma vez (ADR-0056): quem decide passa a enxergar onde pode pisar.
+    """
+    legend: TerrainLegend | None = None
 
 
 class WorldSessionStartedV1(BaseModel):
@@ -1596,6 +1887,10 @@ class WorldSessionStartedV1(BaseModel):
     metrics: Annotated[list[Metric] | None, Field(max_length=64)] = None
     """
     Catálogo de métricas do dia que o cartucho declara (ADR-0054).
+    """
+    perception: PerceptionConfig | None = None
+    """
+    O raio de percepção declarado pelo cartucho; vale para todos os atores (ADR-0056).
     """
 
 
@@ -1748,6 +2043,14 @@ class ObserverMap(BaseModel):
     id: Annotated[str, Field(max_length=64, min_length=1, pattern="^[a-z0-9_-]+$")]
     width: Annotated[int, Field(ge=1)]
     height: Annotated[int, Field(ge=1)]
+    rows: Annotated[
+        list[TerrainRow] | None,
+        Field(max_length=1024, min_length=1, title="TerrainRows"),
+    ] = None
+    """
+    O terreno, como o kernel publicou no session.started (ADR-0056).
+    """
+    legend: TerrainLegend | None = None
 
 
 class ObserverSession(BaseModel):
@@ -1774,6 +2077,7 @@ class ObserverSession(BaseModel):
     """
     O catálogo de métricas do session.started (ADR-0054).
     """
+    perception: PerceptionConfig | None = None
 
 
 class ObserverClock(BaseModel):

@@ -2,6 +2,16 @@
 
 Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão maior, só entram campos opcionais novos; mudança incompatível vira um tipo novo (`.v2`). A checagem `make compat` confere isso a cada commit.
 
+## Não publicado (M8)
+
+- **O mundo pronto para o LLM** (ADR-0056), só com campos opcionais e um tipo novo:
+  - `common/defs.v1` ganha o terreno (`terrain_rows`, `terrain_legend`, `terrain_tile`, `terrain_window`), a configuração da percepção (`perception_config`, com `radius`) e as peças de uma entrega de percepção reaproveitáveis (`seen_clock`, `seen_weather`, `seen_self`, `seen_action`, `seen_container`, `seen_entity`, `seen_event`, `decision_request`);
+  - `world.session.started.v1`: o `map` ganha `rows` e `legend` (o terreno inteiro, uma vez) e o evento ganha `perception` (o raio declarado pelo cartucho; `null` é o mapa inteiro);
+  - `perception.delivered.v1`: a `view` ganha `map`, o terreno ao alcance do avatar, recortado ao raio;
+  - **evento novo `campsverso.perception.updated.v1`**, o delta: `since_tick`, `as_of_tick`, `decision`, `clock`, `self` inteiro, `weather` se mudou, `containers` e `entities` que mudaram (inteiros), `gone` e `events` (o que aconteceu desde a entrega anterior). É um tipo próprio porque acrescentar `delta` ao enum `kind` da foto seria incompatível (`make compat`);
+  - o `ObserverState` ganha `session.map.rows`, `session.map.legend` e `session.perception`.
+- As peças `seen_*` duplicam a forma da `view` da foto, que continua inline por compatibilidade; uma `delivered.v2`, quando vier, passa a referenciá-las.
+
 ## Não publicado (M2)
 
 - **Eventos novos** `campsverso.avatar.sleep.started.v2` e `campsverso.avatar.sleep.ended.v2` (ADR-0041, ADR-0042):

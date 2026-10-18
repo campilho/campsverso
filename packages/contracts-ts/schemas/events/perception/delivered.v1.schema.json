@@ -220,6 +220,10 @@
               }
             }
           }
+        },
+        "map": {
+          "$ref": "contracts://common/defs.v1#/$defs/terrain_window",
+          "description": "O terreno ao alcance do avatar, recortado ao raio (ADR-0056). Só na foto; o delta nunca o repete."
         }
       }
     }

@@ -168,6 +168,12 @@ export const CONTRACT_TYPES = {
     producer: "perception",
     dataschema: "contracts://events/perception/delivered.v1",
   },
+  "campsverso.perception.updated.v1": {
+    kind: "event",
+    visibility: "agent",
+    producer: "perception",
+    dataschema: "contracts://events/perception/updated.v1",
+  },
   "campsverso.rules.effect_applied.v1": {
     kind: "event",
     visibility: "internal",
@@ -337,6 +343,7 @@ export interface PayloadByType {
   "campsverso.farm.crop.matured.v1": T.FarmCropMaturedV1;
   "campsverso.farm.crop.withered.v1": T.FarmCropWitheredV1;
   "campsverso.perception.delivered.v1": T.PerceptionDeliveredV1;
+  "campsverso.perception.updated.v1": T.PerceptionUpdatedV1;
   "campsverso.rules.effect_applied.v1": T.RulesEffectAppliedV1;
   "campsverso.rules.loaded.v1": T.RulesLoadedV1;
   "campsverso.rules.toggled.v1": T.RulesToggledV1;

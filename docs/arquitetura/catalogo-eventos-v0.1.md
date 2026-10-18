@@ -56,6 +56,10 @@ Cada schema declara a visibilidade do seu tipo (`"x-visibility": "internal"`). O
 | `item_stack` | `{ item: item_id, qty: int ≥ 1 }` | `{ "item": "rabanete", "qty": 5 }` |
 | `controller_ref` | `{ type: human\|script\|replay\|llm\|mcp\|supervised, id: string }` | `{ "type": "script", "id": "script/farmer-v1" }` |
 | `attributes` | objeto com valores escalares (string, número, booleano, nulo); chaves em `snake_case` | `{ "stage": "broto", "watered_today": true }` |
+| `terrain_rows` · `terrain_legend` | o terreno como linhas de um caractere por tile, e a legenda: caractere → `{ kind, properties }` do tileset (ADR-0056) | `["TTTT", "TGGR"]` · `{ "G": { "kind": "grass", "properties": { "passable": true, "water": false } } }` |
+| `terrain_window` | `{ origin: position, rows, legend }`, o terreno ao alcance do avatar | janela a partir de `{ "x": 0, "y": 0 }` |
+| `perception_config` | `{ radius: int ≥ 0 \| null }`, o raio de percepção do cartucho; `null` é o mapa inteiro | `{ "radius": null }` |
+| `seen_*` · `decision_request` · `seen_event` | as peças de uma entrega de percepção: relógio, clima, o próprio avatar, contêiner, entidade, o pedido de decisão e um evento percebido `{ tick, type, data }` | usadas pelo delta (3.7) |
 
 **Idioma dos valores:**
 - conteúdo do cartucho em português: itens, culturas, estágios, necessidades, fases do dia;
@@ -166,6 +170,7 @@ Notação dos payloads (`data`): `campo: tipo`; `?` marca campo opcional.
 | Tipo | Vis. | Payload | Origem |
 |---|---|---|---|
 | `campsverso.perception.delivered.v1` | agent | `avatar_id` · `kind: snapshot` · `as_of_tick: int` · `decision?: { reason, controller }` · `view` (abaixo) | §14.4; ADR-0025, ADR-0028, ADR-0048 |
+| `campsverso.perception.updated.v1` | agent | o delta (ADR-0056): `avatar_id` · `since_tick` · `as_of_tick` · `decision` · `clock` · `weather?` (só se mudou) · `self` (inteiro) · `containers?` e `entities?` (os que mudaram, inteiros) · `gone?: [entity_id]` · `events: [{ tick, type, data }]` | ADR-0028, ADR-0056 |
 
 Estrutura de `view`, inteiramente genérica (sem nada específico da fazenda):
 
@@ -174,6 +179,9 @@ Estrutura de `view`, inteiramente genérica (sem nada específico da fazenda):
 - `self: { entity_id, position, needs, asleep: bool, action?: { action_id, action, params, end_tick, applied_tick?, interrupt? } }` (os dois últimos desde a ADR-0052)
 - `containers: [{ container_id, items: [item_stack] }]`
 - `entities: [{ entity_id, kind, position?, container_id?, attributes }]`
+- `map?: { origin, rows, legend }`, o terreno ao alcance do avatar, recortado ao raio que o cartucho declara (ADR-0056). Só na foto; o delta nunca o repete.
+
+**Foto ou delta** (ADR-0056): os dois respondem a um `avatar.decision_requested`. Quem recebe o quê é política da percepção, por tipo de controlador: `script` e `replay` recebem sempre a foto; `llm` recebe a foto na primeira decisão da sessão, ao assumir a posse e a cada N deltas (N configurável, 20 por padrão), e deltas no resto. Aplicar os deltas sobre a foto reconstrói a foto seguinte. O delta é um tipo próprio porque acrescentar `delta` ao enum `kind` da foto seria incompatível (`make compat`).
 
 ### 3.8 Cartucho `farm`, o gênero (produtor: kernel, executando código do cartucho)
 
@@ -283,6 +291,12 @@ Cada um precisa ser recusado **pelos dois validadores** (Python `jsonschema` e T
 | 7 | `cartridge` com maiúscula | ADR-0012 |
 | 8 | `item.created` com `qty: 0` | regras de payload |
 | 9 | Tipo sem schema declarado em `contracts/` | "nunca publicar evento sem schema" |
+| 10 | `dataschema` de outro tipo | o envelope aponta para o schema certo |
+| 11 | Mensagem `realtime` com visão desconhecida | ADR-0050 |
+| 12 | Mensagem `realtime` sem schema | ADR-0050 |
+| 13 | Política de interrupção fora de `never`, `cancel`, `partial` | ADR-0052 |
+| 14 | Legenda do terreno com chave de dois caracteres | um caractere por tile (ADR-0056) |
+| 15 | Delta da percepção com evento sem `type` | quem lê precisa saber o que aconteceu (ADR-0056) |
 
 Além disso, qualquer arquivo inválido colocado em `examples/valid/` quebra o `make check` (critério do M0).
 

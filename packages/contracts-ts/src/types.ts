@@ -85,6 +85,16 @@ export type Scalar = string | number | boolean | null;
  * via the `definition` "Interrupt".
  */
 export type Interrupt = "never" | "cancel" | "partial";
+/**
+ * O terreno, uma string por linha e um caractere por tile, de cima para baixo e da esquerda para a direita (ADR-0056).
+ *
+ * @minItems 1
+ * @maxItems 1024
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "TerrainRows".
+ */
+export type TerrainRows = [string, ...string[]];
 
 export interface ContractsBundle {}
 /**
@@ -205,6 +215,142 @@ export interface Metric {
 export interface MetricGroup {
   field: string;
   attribute?: Token;
+}
+/**
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "SeenClock".
+ */
+export interface SeenClock {
+  tick: Tick;
+  sim_time: string;
+  day: Day;
+  phase: Token;
+}
+/**
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "SeenWeather".
+ */
+export interface SeenWeather {
+  condition: Token;
+  day: Day;
+}
+/**
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "SeenAction".
+ */
+export interface SeenAction {
+  action_id: ActionId;
+  action: Token;
+  params: Params;
+  end_tick: Tick;
+  applied_tick?: Tick;
+  interrupt?: Interrupt;
+}
+/**
+ * O próprio avatar: posição, necessidades, se dorme e a ação em curso.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "SeenSelf".
+ */
+export interface SeenSelf {
+  entity_id: EntityId;
+  position: Position;
+  needs: Needs;
+  asleep: boolean;
+  action?: SeenAction;
+}
+/**
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "SeenContainer".
+ */
+export interface SeenContainer {
+  container_id: EntityId;
+  items: ItemStack[];
+}
+/**
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "SeenEntity".
+ */
+export interface SeenEntity {
+  entity_id: EntityId;
+  kind: Token;
+  position?: Position;
+  container_id?: EntityId;
+  attributes: Attributes;
+}
+/**
+ * O pedido de decisão que a entrega da percepção responde: o motivo e quem deve responder (ADR-0048).
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "DecisionRequest".
+ */
+export interface DecisionRequest {
+  reason:
+    | "session_started"
+    | "possessed"
+    | "action_completed"
+    | "action_rejected"
+    | "action_interrupted"
+    | "phase_changed"
+    | "need_threshold"
+    | "woke_up";
+  controller: ControllerRef;
+}
+/**
+ * Um evento que o avatar percebeu desde a última entrega: o tick, o tipo e o payload, como foram publicados.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "SeenEvent".
+ */
+export interface SeenEvent {
+  tick: Tick;
+  type: string;
+  data: {
+    [k: string]: unknown | undefined;
+  };
+}
+/**
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "TerrainTile".
+ */
+export interface TerrainTile {
+  /**
+   * A classe do tile no tileset (grass, river…); vazia quando o tile não tem classe.
+   */
+  kind: string;
+  properties: Attributes;
+}
+/**
+ * Legenda do terreno: o que cada caractere das linhas significa (ADR-0056).
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "TerrainLegend".
+ */
+export interface TerrainLegend {
+  [k: string]: TerrainTile | undefined;
+}
+/**
+ * O terreno ao alcance do avatar: as linhas a partir de origin (o canto superior esquerdo da janela), com a legenda.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "TerrainWindow".
+ */
+export interface TerrainWindow {
+  origin: Position;
+  rows: TerrainRows;
+  legend: TerrainLegend;
+}
+/**
+ * O que o cartucho declara sobre a percepção (ADR-0056).
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "PerceptionConfig".
+ */
+export interface PerceptionConfig {
+  /**
+   * Distância de Chebyshev, em tiles, do que um avatar enxerga; null é o mapa inteiro.
+   */
+  radius: number | null;
 }
 /**
  * Controlador propõe uma ação para o avatar.
@@ -616,6 +762,7 @@ export interface PerceptionView {
   self: ViewSelf;
   containers: ViewContainer[];
   entities: ViewEntity[];
+  map?: TerrainWindow;
 }
 export interface ViewClock {
   tick: Tick;
@@ -652,6 +799,39 @@ export interface ViewEntity {
   position?: Position;
   container_id?: EntityId;
   attributes: Attributes;
+}
+/**
+ * O delta da percepção (ADR-0028, ADR-0056): o que mudou desde a última entrega ao avatar e o que aconteceu no meio-tempo. Responde a um pedido de decisão como a foto, para os controladores que pedem deltas; a foto continua em perception.delivered.v1.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "PerceptionUpdatedV1".
+ */
+export interface PerceptionUpdatedV1 {
+  avatar_id: EntityId;
+  since_tick: Tick;
+  as_of_tick: Tick;
+  decision: DecisionRequest;
+  clock: SeenClock;
+  weather?: SeenWeather;
+  self: SeenSelf;
+  /**
+   * Os contêineres cujo conteúdo mudou, inteiros.
+   */
+  containers?: SeenContainer[];
+  /**
+   * As entidades que apareceram ou mudaram (posição, contêiner ou atributos), com o registro inteiro.
+   */
+  entities?: SeenEntity[];
+  /**
+   * As entidades que deixaram de ser percebidas desde a entrega anterior.
+   */
+  gone?: EntityId[];
+  /**
+   * O que aconteceu desde a entrega anterior, na ordem em que foi publicado: alimenta a memória e a narrativa (M11).
+   *
+   * @maxItems 1000
+   */
+  events: SeenEvent[];
 }
 /**
  * Efeito numérico de uma regra sobre uma entidade.
@@ -951,11 +1131,14 @@ export interface WorldSessionStartedV1 {
    * @maxItems 64
    */
   metrics?: Metric[];
+  perception?: PerceptionConfig;
 }
 export interface SessionMap {
   id: string;
   width: number;
   height: number;
+  rows?: TerrainRows;
+  legend?: TerrainLegend;
 }
 /**
  * Snapshot persistido no BlobStore.
@@ -1158,6 +1341,7 @@ export interface ObserverSession {
    * O catálogo de métricas do session.started (ADR-0054).
    */
   metrics?: Metric[];
+  perception?: PerceptionConfig;
 }
 /**
  * O mapa do cartucho; o arquivo fica no gateway em /content/maps/<id>.tmj (ADR-0050).
@@ -1166,6 +1350,8 @@ export interface ObserverMap {
   id: string;
   width: number;
   height: number;
+  rows?: TerrainRows;
+  legend?: TerrainLegend;
 }
 /**
  * Vazio até o session.started; a pausa é estado, não modo (ADR-0026).

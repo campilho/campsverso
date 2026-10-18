@@ -124,6 +124,13 @@
                 "height": {
                   "type": "integer",
                   "minimum": 1
+                },
+                "rows": {
+                  "$ref": "contracts://common/defs.v1#/$defs/terrain_rows",
+                  "description": "O terreno, como o kernel publicou no session.started (ADR-0056)."
+                },
+                "legend": {
+                  "$ref": "contracts://common/defs.v1#/$defs/terrain_legend"
                 }
               }
             },
@@ -140,6 +147,9 @@
                 "$ref": "contracts://common/defs.v1#/$defs/metric"
               },
               "description": "O catálogo de métricas do session.started (ADR-0054)."
+            },
+            "perception": {
+              "$ref": "contracts://common/defs.v1#/$defs/perception_config"
             }
           }
         },

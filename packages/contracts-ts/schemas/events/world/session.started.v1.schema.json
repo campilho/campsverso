@@ -70,6 +70,13 @@
         "height": {
           "type": "integer",
           "minimum": 1
+        },
+        "rows": {
+          "$ref": "contracts://common/defs.v1#/$defs/terrain_rows",
+          "description": "O terreno do mapa inteiro, publicado uma vez (ADR-0056): quem decide passa a enxergar onde pode pisar."
+        },
+        "legend": {
+          "$ref": "contracts://common/defs.v1#/$defs/terrain_legend"
         }
       }
     },
@@ -87,6 +94,10 @@
         "$ref": "contracts://common/defs.v1#/$defs/metric"
       },
       "description": "Catálogo de métricas do dia que o cartucho declara (ADR-0054)."
+    },
+    "perception": {
+      "$ref": "contracts://common/defs.v1#/$defs/perception_config",
+      "description": "O raio de percepção declarado pelo cartucho; vale para todos os atores (ADR-0056)."
     }
   }
 }

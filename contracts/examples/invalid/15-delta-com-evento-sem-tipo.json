@@ -1,0 +1,120 @@
+{
+  "expect_error": "payload_schema",
+  "description": "Delta da percepção com um evento sem `type`: quem lê precisa saber o que aconteceu.",
+  "event": {
+    "specversion": "1.0",
+    "id": "01a12d2b-6c31-7a10-8f00-0e6802771b22",
+    "source": "/perception/farm-camps-01",
+    "type": "campsverso.perception.updated.v1",
+    "time": "2026-10-11T22:00:00Z",
+    "datacontenttype": "application/json",
+    "dataschema": "contracts://events/perception/updated.v1",
+    "worldid": "farm-camps-01",
+    "cartridge": "farm_camps",
+    "tick": 70,
+    "simtime": "2026-03-02T07:10:00-03:00",
+    "seq": 40,
+    "provenance": "simulated",
+    "visibility": "agent",
+    "data": {
+      "avatar_id": "camps",
+      "since_tick": 500,
+      "as_of_tick": 506,
+      "decision": {
+        "reason": "action_completed",
+        "controller": {
+          "type": "llm",
+          "id": "llm/haiku"
+        }
+      },
+      "clock": {
+        "tick": 506,
+        "sim_time": "2026-03-02T14:26:00-03:00",
+        "day": 1,
+        "phase": "meio_dia"
+      },
+      "self": {
+        "entity_id": "camps",
+        "position": {
+          "x": 23,
+          "y": 9
+        },
+        "needs": {
+          "fome": 62.3,
+          "energia": 38
+        },
+        "asleep": false
+      },
+      "containers": [],
+      "entities": [
+        {
+          "entity_id": "plot-e-01",
+          "kind": "plot",
+          "position": {
+            "x": 24,
+            "y": 9
+          },
+          "attributes": {
+            "crop": "rabanete",
+            "stage": "madura",
+            "watered_today": true
+          }
+        },
+        {
+          "entity_id": "watering-can",
+          "kind": "watering_can",
+          "container_id": "camps",
+          "attributes": {
+            "charges": 3,
+            "capacity": 10
+          }
+        }
+      ],
+      "gone": [],
+      "events": [
+        {
+          "tick": 503,
+          "data": {
+            "entity_id": "camps",
+            "action_id": "act-000043",
+            "origin": {
+              "x": 12,
+              "y": 9
+            },
+            "waypoints": [
+              {
+                "x": 23,
+                "y": 9
+              }
+            ],
+            "depart_tick": 503,
+            "arrival_tick": 504,
+            "tiles_per_tick": 30
+          }
+        },
+        {
+          "tick": 506,
+          "type": "campsverso.action.completed.v1",
+          "data": {
+            "action_id": "act-000044",
+            "avatar_id": "camps",
+            "action": "water",
+            "params": {
+              "target": "plot-e-01"
+            },
+            "duration_ticks": 2,
+            "observable": [
+              {
+                "entity_id": "plot-e-01",
+                "property": "watered_today",
+                "before": false,
+                "after": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "subject": "avatar/camps"
+  }
+}

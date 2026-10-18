@@ -340,6 +340,296 @@
           "description": "O item (`item`)."
         }
       }
+    },
+    "seen_clock": {
+      "title": "SeenClock",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tick",
+        "sim_time",
+        "day",
+        "phase"
+      ],
+      "properties": {
+        "tick": {
+          "$ref": "#/$defs/tick"
+        },
+        "sim_time": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "day": {
+          "$ref": "#/$defs/day"
+        },
+        "phase": {
+          "$ref": "#/$defs/token"
+        }
+      }
+    },
+    "seen_weather": {
+      "title": "SeenWeather",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "condition",
+        "day"
+      ],
+      "properties": {
+        "condition": {
+          "$ref": "#/$defs/token"
+        },
+        "day": {
+          "$ref": "#/$defs/day"
+        }
+      }
+    },
+    "seen_action": {
+      "title": "SeenAction",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id",
+        "action",
+        "params",
+        "end_tick"
+      ],
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/action_id"
+        },
+        "action": {
+          "$ref": "#/$defs/token"
+        },
+        "params": {
+          "$ref": "#/$defs/params"
+        },
+        "end_tick": {
+          "$ref": "#/$defs/tick"
+        },
+        "applied_tick": {
+          "$ref": "#/$defs/tick",
+          "description": "Tick em que a ação começou (ADR-0052)."
+        },
+        "interrupt": {
+          "$ref": "#/$defs/interrupt",
+          "description": "O que um comando novo do mesmo controlador faz com esta ação em andamento (ADR-0052)."
+        }
+      }
+    },
+    "seen_self": {
+      "title": "SeenSelf",
+      "description": "O próprio avatar: posição, necessidades, se dorme e a ação em curso.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entity_id",
+        "position",
+        "needs",
+        "asleep"
+      ],
+      "properties": {
+        "entity_id": {
+          "$ref": "#/$defs/entity_id"
+        },
+        "position": {
+          "$ref": "#/$defs/position"
+        },
+        "needs": {
+          "$ref": "#/$defs/needs"
+        },
+        "asleep": {
+          "type": "boolean"
+        },
+        "action": {
+          "$ref": "#/$defs/seen_action"
+        }
+      }
+    },
+    "seen_container": {
+      "title": "SeenContainer",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "container_id",
+        "items"
+      ],
+      "properties": {
+        "container_id": {
+          "$ref": "#/$defs/entity_id"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/item_stack"
+          }
+        }
+      }
+    },
+    "seen_entity": {
+      "title": "SeenEntity",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entity_id",
+        "kind",
+        "attributes"
+      ],
+      "properties": {
+        "entity_id": {
+          "$ref": "#/$defs/entity_id"
+        },
+        "kind": {
+          "$ref": "#/$defs/token"
+        },
+        "position": {
+          "$ref": "#/$defs/position"
+        },
+        "container_id": {
+          "$ref": "#/$defs/entity_id"
+        },
+        "attributes": {
+          "$ref": "#/$defs/attributes"
+        }
+      }
+    },
+    "decision_request": {
+      "title": "DecisionRequest",
+      "description": "O pedido de decisão que a entrega da percepção responde: o motivo e quem deve responder (ADR-0048).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reason",
+        "controller"
+      ],
+      "properties": {
+        "reason": {
+          "enum": [
+            "session_started",
+            "possessed",
+            "action_completed",
+            "action_rejected",
+            "action_interrupted",
+            "phase_changed",
+            "need_threshold",
+            "woke_up"
+          ]
+        },
+        "controller": {
+          "$ref": "#/$defs/controller_ref"
+        }
+      }
+    },
+    "seen_event": {
+      "title": "SeenEvent",
+      "description": "Um evento que o avatar percebeu desde a última entrega: o tick, o tipo e o payload, como foram publicados.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tick",
+        "type",
+        "data"
+      ],
+      "properties": {
+        "tick": {
+          "$ref": "#/$defs/tick"
+        },
+        "type": {
+          "type": "string",
+          "pattern": "^campsverso\\.[a-z0-9_]+(\\.[a-z0-9_]+)*\\.v[0-9]+$",
+          "maxLength": 128
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": {}
+        }
+      }
+    },
+    "terrain_tile": {
+      "title": "TerrainTile",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "properties"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]*$",
+          "maxLength": 64,
+          "description": "A classe do tile no tileset (grass, river…); vazia quando o tile não tem classe."
+        },
+        "properties": {
+          "$ref": "#/$defs/attributes",
+          "description": "As propriedades do tile no tileset, como passable e water."
+        }
+      }
+    },
+    "terrain_legend": {
+      "title": "TerrainLegend",
+      "description": "Legenda do terreno: o que cada caractere das linhas significa (ADR-0056).",
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^.$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/terrain_tile"
+      }
+    },
+    "terrain_rows": {
+      "title": "TerrainRows",
+      "description": "O terreno, uma string por linha e um caractere por tile, de cima para baixo e da esquerda para a direita (ADR-0056).",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1024,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024
+      }
+    },
+    "terrain_window": {
+      "title": "TerrainWindow",
+      "description": "O terreno ao alcance do avatar: as linhas a partir de origin (o canto superior esquerdo da janela), com a legenda.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "origin",
+        "rows",
+        "legend"
+      ],
+      "properties": {
+        "origin": {
+          "$ref": "#/$defs/position"
+        },
+        "rows": {
+          "$ref": "#/$defs/terrain_rows"
+        },
+        "legend": {
+          "$ref": "#/$defs/terrain_legend"
+        }
+      }
+    },
+    "perception_config": {
+      "title": "PerceptionConfig",
+      "description": "O que o cartucho declara sobre a percepção (ADR-0056).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "radius"
+      ],
+      "properties": {
+        "radius": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Distância de Chebyshev, em tiles, do que um avatar enxerga; null é o mapa inteiro."
+        }
+      }
     }
   }
 }

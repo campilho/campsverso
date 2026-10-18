@@ -24,7 +24,92 @@
     "map": {
       "id": "farm_camps",
       "width": 32,
-      "height": 18
+      "height": 18,
+      "rows": [
+        "TTTTTTTTTTTTTTTTTTTTTTTTTTTTRRRR",
+        "TGGGGGGGGGGGGGGGGGGGGGGGGGGGRRRR",
+        "TGWWWWWGGGGGGGGGGGGGGGGGGGGGRRRR",
+        "TGWFFFWGGGGGGGGGGGGGGGGGGGGGRRRR",
+        "TGWFFFWGGGGGGGGGGGGGGGGGGGGGRRRR",
+        "TGWWDWWGGGGGGGGGGGGGGGGGGGGGRRRR",
+        "TGGGPGGGGGGGGGGGGGGGGGGGGGGGRRRR",
+        "TGGGPGGGGGGGGGGGGGGGGGGGGGGGRRRR",
+        "TGGGPGGGGGGGGGGGGGGGGGGGGGGGRRRR",
+        "TGGGPGGGSSSSGGGGGGGGGGGGSSSSRRRR",
+        "TGGGPGGGSSSSGGGGGGGGGGGGSSSSRRRR",
+        "TGGGPGGGGGGGGGGGGGGGGGGGGGGGRRRR",
+        "TGGGPGGGGGGGGGGGGGGGGGGGGGGGRRRR",
+        "TGGGPPPPPPPPPPPPPPPPPPPPPPPPRRRR",
+        "TGGGGGGGGGGGGGGPGGGGGGGGGGGGRRRR",
+        "TGGGGGGGGGGGGGGPGGGGGGGGGGGGRRRR",
+        "TGGGGGGGGGGGGGGPGGGGGGGGGGGGRRRR",
+        "TTTTTTTTTTTTTTTEETTTTTTTTTTTRRRR"
+      ],
+      "legend": {
+        "D": {
+          "kind": "door",
+          "properties": {
+            "passable": true,
+            "water": false
+          }
+        },
+        "E": {
+          "kind": "entrance",
+          "properties": {
+            "passable": true,
+            "water": false
+          }
+        },
+        "F": {
+          "kind": "floor",
+          "properties": {
+            "passable": true,
+            "water": false
+          }
+        },
+        "G": {
+          "kind": "grass",
+          "properties": {
+            "passable": true,
+            "water": false
+          }
+        },
+        "P": {
+          "kind": "path",
+          "properties": {
+            "passable": true,
+            "water": false
+          }
+        },
+        "R": {
+          "kind": "river",
+          "properties": {
+            "passable": false,
+            "water": true
+          }
+        },
+        "S": {
+          "kind": "soil",
+          "properties": {
+            "passable": true,
+            "water": false
+          }
+        },
+        "T": {
+          "kind": "tree",
+          "properties": {
+            "passable": false,
+            "water": false
+          }
+        },
+        "W": {
+          "kind": "wall",
+          "properties": {
+            "passable": false,
+            "water": false
+          }
+        }
+      }
     },
     "affordances": [
       {
@@ -81,6 +166,9 @@
         "kind": "item",
         "item": "moeda"
       }
-    ]
+    ],
+    "perception": {
+      "radius": null
+    }
   }
 }

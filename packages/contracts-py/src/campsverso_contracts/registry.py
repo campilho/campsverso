@@ -236,6 +236,14 @@ CONTRACT_TYPES: Final[dict[str, ContractType]] = {
             models.PerceptionDeliveredV1,
         ),
         ContractType(
+            "campsverso.perception.updated.v1",
+            "event",
+            "agent",
+            "perception",
+            "contracts://events/perception/updated.v1",
+            models.PerceptionUpdatedV1,
+        ),
+        ContractType(
             "campsverso.rules.effect_applied.v1",
             "event",
             "internal",

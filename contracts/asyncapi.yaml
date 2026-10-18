@@ -314,6 +314,19 @@ channels:
     messages:
       PerceptionDeliveredV1:
         $ref: '#/components/messages/PerceptionDeliveredV1'
+  PerceptionUpdatedV1:
+    address: campsverso.{worldid}.agent.{avatar_id}.perception.updated.v1
+    title: campsverso.perception.updated.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+      avatar_id:
+        $ref: '#/components/parameters/avatar_id'
+    messages:
+      PerceptionUpdatedV1:
+        $ref: '#/components/messages/PerceptionUpdatedV1'
   RulesEffectAppliedV1:
     address: campsverso.{worldid}.internal.rules.effect_applied.v1
     title: campsverso.rules.effect_applied.v1
@@ -781,6 +794,13 @@ operations:
     messages:
     - $ref: '#/channels/PerceptionDeliveredV1/messages/PerceptionDeliveredV1'
     x-producer: perception
+  sendPerceptionUpdatedV1:
+    action: send
+    channel:
+      $ref: '#/channels/PerceptionUpdatedV1'
+    messages:
+    - $ref: '#/channels/PerceptionUpdatedV1/messages/PerceptionUpdatedV1'
+    x-producer: perception
   sendRulesEffectAppliedV1:
     action: send
     channel:
@@ -1240,6 +1260,222 @@ components:
         item:
           $ref: '#/components/schemas/ItemId'
           description: O item (`item`).
+    SeenClock:
+      title: SeenClock
+      type: object
+      additionalProperties: false
+      required:
+      - tick
+      - sim_time
+      - day
+      - phase
+      properties:
+        tick:
+          $ref: '#/components/schemas/Tick'
+        sim_time:
+          type: string
+          format: date-time
+        day:
+          $ref: '#/components/schemas/Day'
+        phase:
+          $ref: '#/components/schemas/Token'
+    SeenWeather:
+      title: SeenWeather
+      type: object
+      additionalProperties: false
+      required:
+      - condition
+      - day
+      properties:
+        condition:
+          $ref: '#/components/schemas/Token'
+        day:
+          $ref: '#/components/schemas/Day'
+    SeenAction:
+      title: SeenAction
+      type: object
+      additionalProperties: false
+      required:
+      - action_id
+      - action
+      - params
+      - end_tick
+      properties:
+        action_id:
+          $ref: '#/components/schemas/ActionId'
+        action:
+          $ref: '#/components/schemas/Token'
+        params:
+          $ref: '#/components/schemas/Params'
+        end_tick:
+          $ref: '#/components/schemas/Tick'
+        applied_tick:
+          $ref: '#/components/schemas/Tick'
+          description: Tick em que a ação começou (ADR-0052).
+        interrupt:
+          $ref: '#/components/schemas/Interrupt'
+          description: O que um comando novo do mesmo controlador faz com esta ação em andamento (ADR-0052).
+    SeenSelf:
+      title: SeenSelf
+      description: 'O próprio avatar: posição, necessidades, se dorme e a ação em curso.'
+      type: object
+      additionalProperties: false
+      required:
+      - entity_id
+      - position
+      - needs
+      - asleep
+      properties:
+        entity_id:
+          $ref: '#/components/schemas/EntityId'
+        position:
+          $ref: '#/components/schemas/Position'
+        needs:
+          $ref: '#/components/schemas/Needs'
+        asleep:
+          type: boolean
+        action:
+          $ref: '#/components/schemas/SeenAction'
+    SeenContainer:
+      title: SeenContainer
+      type: object
+      additionalProperties: false
+      required:
+      - container_id
+      - items
+      properties:
+        container_id:
+          $ref: '#/components/schemas/EntityId'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ItemStack'
+    SeenEntity:
+      title: SeenEntity
+      type: object
+      additionalProperties: false
+      required:
+      - entity_id
+      - kind
+      - attributes
+      properties:
+        entity_id:
+          $ref: '#/components/schemas/EntityId'
+        kind:
+          $ref: '#/components/schemas/Token'
+        position:
+          $ref: '#/components/schemas/Position'
+        container_id:
+          $ref: '#/components/schemas/EntityId'
+        attributes:
+          $ref: '#/components/schemas/Attributes'
+    DecisionRequest:
+      title: DecisionRequest
+      description: 'O pedido de decisão que a entrega da percepção responde: o motivo e quem deve responder
+        (ADR-0048).'
+      type: object
+      additionalProperties: false
+      required:
+      - reason
+      - controller
+      properties:
+        reason:
+          enum:
+          - session_started
+          - possessed
+          - action_completed
+          - action_rejected
+          - action_interrupted
+          - phase_changed
+          - need_threshold
+          - woke_up
+        controller:
+          $ref: '#/components/schemas/ControllerRef'
+    SeenEvent:
+      title: SeenEvent
+      description: 'Um evento que o avatar percebeu desde a última entrega: o tick, o tipo e o payload,
+        como foram publicados.'
+      type: object
+      additionalProperties: false
+      required:
+      - tick
+      - type
+      - data
+      properties:
+        tick:
+          $ref: '#/components/schemas/Tick'
+        type:
+          type: string
+          pattern: ^campsverso\.[a-z0-9_]+(\.[a-z0-9_]+)*\.v[0-9]+$
+          maxLength: 128
+        data:
+          type: object
+          additionalProperties: {}
+    TerrainTile:
+      title: TerrainTile
+      type: object
+      additionalProperties: false
+      required:
+      - kind
+      - properties
+      properties:
+        kind:
+          type: string
+          pattern: ^[a-z0-9_]*$
+          maxLength: 64
+          description: A classe do tile no tileset (grass, river…); vazia quando o tile não tem classe.
+        properties:
+          $ref: '#/components/schemas/Attributes'
+          description: As propriedades do tile no tileset, como passable e water.
+    TerrainLegend:
+      title: TerrainLegend
+      description: 'Legenda do terreno: o que cada caractere das linhas significa (ADR-0056).'
+      type: object
+      minProperties: 1
+      additionalProperties:
+        $ref: '#/components/schemas/TerrainTile'
+    TerrainRows:
+      title: TerrainRows
+      description: O terreno, uma string por linha e um caractere por tile, de cima para baixo e da esquerda
+        para a direita (ADR-0056).
+      type: array
+      minItems: 1
+      maxItems: 1024
+      items:
+        type: string
+        minLength: 1
+        maxLength: 1024
+    TerrainWindow:
+      title: TerrainWindow
+      description: 'O terreno ao alcance do avatar: as linhas a partir de origin (o canto superior esquerdo
+        da janela), com a legenda.'
+      type: object
+      additionalProperties: false
+      required:
+      - origin
+      - rows
+      - legend
+      properties:
+        origin:
+          $ref: '#/components/schemas/Position'
+        rows:
+          $ref: '#/components/schemas/TerrainRows'
+        legend:
+          $ref: '#/components/schemas/TerrainLegend'
+    PerceptionConfig:
+      title: PerceptionConfig
+      description: O que o cartucho declara sobre a percepção (ADR-0056).
+      type: object
+      additionalProperties: false
+      required:
+      - radius
+      properties:
+        radius:
+          type:
+          - integer
+          - 'null'
+          minimum: 0
+          description: Distância de Chebyshev, em tiles, do que um avatar enxerga; null é o mapa inteiro.
     CmdActionProposeV1:
       title: CmdActionProposeV1
       description: Controlador propõe uma ação para o avatar.
@@ -2064,6 +2300,69 @@ components:
                     $ref: '#/components/schemas/EntityId'
                   attributes:
                     $ref: '#/components/schemas/Attributes'
+            map:
+              $ref: '#/components/schemas/TerrainWindow'
+              description: O terreno ao alcance do avatar, recortado ao raio (ADR-0056). Só na foto; o
+                delta nunca o repete.
+    PerceptionUpdatedV1:
+      title: PerceptionUpdatedV1
+      description: 'O delta da percepção (ADR-0028, ADR-0056): o que mudou desde a última entrega ao avatar
+        e o que aconteceu no meio-tempo. Responde a um pedido de decisão como a foto, para os controladores
+        que pedem deltas; a foto continua em perception.delivered.v1.'
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - since_tick
+      - as_of_tick
+      - decision
+      - clock
+      - self
+      - events
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: Avatar (o corpo), independente de quem o controla (ADR-0027).
+        since_tick:
+          $ref: '#/components/schemas/Tick'
+          description: 'O tick da entrega anterior (foto ou delta): este delta cobre o que mudou depois
+            dele.'
+        as_of_tick:
+          $ref: '#/components/schemas/Tick'
+        decision:
+          $ref: '#/components/schemas/DecisionRequest'
+        clock:
+          $ref: '#/components/schemas/SeenClock'
+          description: 'Sempre presente: o relógio agora.'
+        weather:
+          $ref: '#/components/schemas/SeenWeather'
+          description: Só quando o clima mudou desde a entrega anterior.
+        self:
+          $ref: '#/components/schemas/SeenSelf'
+          description: 'O próprio avatar, inteiro, sempre: é pequeno e é o que mais muda.'
+        containers:
+          type: array
+          items:
+            $ref: '#/components/schemas/SeenContainer'
+          description: Os contêineres cujo conteúdo mudou, inteiros.
+        entities:
+          type: array
+          items:
+            $ref: '#/components/schemas/SeenEntity'
+          description: As entidades que apareceram ou mudaram (posição, contêiner ou atributos), com o
+            registro inteiro.
+        gone:
+          type: array
+          items:
+            $ref: '#/components/schemas/EntityId'
+          description: As entidades que deixaram de ser percebidas desde a entrega anterior.
+        events:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/SeenEvent'
+          description: 'O que aconteceu desde a entrega anterior, na ordem em que foi publicado: alimenta
+            a memória e a narrativa (M11).'
     RulesEffectAppliedV1:
       title: RulesEffectAppliedV1
       description: Efeito numérico de uma regra sobre uma entidade.
@@ -2585,6 +2884,12 @@ components:
             height:
               type: integer
               minimum: 1
+            rows:
+              $ref: '#/components/schemas/TerrainRows'
+              description: 'O terreno do mapa inteiro, publicado uma vez (ADR-0056): quem decide passa
+                a enxergar onde pode pisar.'
+            legend:
+              $ref: '#/components/schemas/TerrainLegend'
         affordances:
           type: array
           items:
@@ -2597,6 +2902,9 @@ components:
           items:
             $ref: '#/components/schemas/Metric'
           description: Catálogo de métricas do dia que o cartucho declara (ADR-0054).
+        perception:
+          $ref: '#/components/schemas/PerceptionConfig'
+          description: O raio de percepção declarado pelo cartucho; vale para todos os atores (ADR-0056).
     WorldSnapshotCreatedV1:
       title: WorldSnapshotCreatedV1
       description: Snapshot persistido no BlobStore.
@@ -2879,6 +3187,11 @@ components:
                     height:
                       type: integer
                       minimum: 1
+                    rows:
+                      $ref: '#/components/schemas/TerrainRows'
+                      description: O terreno, como o kernel publicou no session.started (ADR-0056).
+                    legend:
+                      $ref: '#/components/schemas/TerrainLegend'
                 affordances:
                   type: array
                   items:
@@ -2889,6 +3202,8 @@ components:
                   items:
                     $ref: '#/components/schemas/Metric'
                   description: O catálogo de métricas do session.started (ADR-0054).
+                perception:
+                  $ref: '#/components/schemas/PerceptionConfig'
             clock:
               type: object
               title: ObserverClock
@@ -3308,6 +3623,17 @@ components:
       contentType: application/json
       payload:
         $ref: '#/components/schemas/PerceptionDeliveredV1'
+      x-visibility: agent
+      x-producer: perception
+    PerceptionUpdatedV1:
+      name: campsverso.perception.updated.v1
+      title: PerceptionUpdatedV1
+      summary: 'O delta da percepção (ADR-0028, ADR-0056): o que mudou desde a última entrega ao avatar
+        e o que aconteceu no meio-tempo. Responde a um pedido de decisão como a foto, para os controladores
+        que pedem deltas; a foto continua em perception.delivered.v1.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/PerceptionUpdatedV1'
       x-visibility: agent
       x-producer: perception
     RulesEffectAppliedV1:
