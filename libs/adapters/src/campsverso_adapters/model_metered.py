@@ -123,6 +123,9 @@ class MeteredModel:
         await self._publish(COMPLETED, request, response.latency_ms, data)
         return response
 
+    async def count_tokens(self, request: ModelRequest) -> int:
+        return await self._inner.count_tokens(request)  # contar não custa nem vira evento
+
     async def _publish(
         self, event_type: str, request: ModelRequest, latency_ms: int, extra: Mapping[str, Any]
     ) -> None:

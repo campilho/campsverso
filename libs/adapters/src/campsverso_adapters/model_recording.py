@@ -76,6 +76,13 @@ class RecordingModel:
             self._append(key, request, response)
         return response
 
+    async def count_tokens(self, request: ModelRequest) -> int:
+        if self._inner is None:
+            raise ModelCallError(
+                "cassette_miss", "a fita não conta tokens; precisa da porta por baixo"
+            )
+        return await self._inner.count_tokens(request)
+
     def _append(self, key: str, request: ModelRequest, response: ModelResponse) -> None:
         entry: dict[str, Any] = {
             "sha256": key,

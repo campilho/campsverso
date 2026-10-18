@@ -13,13 +13,15 @@ meio-tempo. Compara duas políticas: só fotos, e uma foto a cada N deltas.
 """
 
 import argparse
+import asyncio
 import json
 import sys
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from campsverso_ports import ModelPort, ModelRequest
 from campsverso_tools.metrics import read_archive
 from campsverso_world_view import diff_views
 
@@ -30,8 +32,12 @@ DELTA = "campsverso.perception.updated.v1"
 NOT_PERCEIVED = ("campsverso.perception.", "campsverso.avatar.decision_requested.")
 
 
+def _text(payload: Mapping[str, Any]) -> str:
+    return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+
+
 def _size(payload: Mapping[str, Any]) -> int:
-    return len(json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode())
+    return len(_text(payload).encode())
 
 
 def tokens(size: int) -> int:
@@ -43,6 +49,8 @@ class Delivery:
     tick: int
     snapshot: int  # bytes da foto (a entregue, ou a última conhecida quando chegou um delta)
     delta: int | None  # bytes do delta, real ou estimado; None na primeira entrega do avatar
+    snapshot_text: str | None = None  # o JSON, para a calibração com count_tokens
+    delta_text: str | None = None
 
 
 @dataclass
@@ -140,6 +148,7 @@ def compute(envelopes: Iterable[Mapping[str, Any]], every: int = 20) -> Report:
         size = _size(payload)
         previous = last_view.get(avatar)
         estimated: int | None = None
+        delta_text: str | None = None
         if previous is not None:
             delta = {
                 "avatar_id": avatar,
@@ -152,10 +161,38 @@ def compute(envelopes: Iterable[Mapping[str, Any]], every: int = 20) -> Report:
                 **diff_views(previous[1], view),
             }
             estimated = _size(delta)
-        day.deliveries.append(Delivery(tick, size, estimated))
+            delta_text = _text(delta)
+        day.deliveries.append(Delivery(tick, size, estimated, _text(payload), delta_text))
         last_view[avatar] = (tick, view, size)
         pending[avatar] = []
     return Report([days[d] for d in sorted(days)], every)
+
+
+async def calibrate(report: Report, port: ModelPort, *, model: str, samples: int) -> dict[str, Any]:
+    """Conta com o tokenizador do provedor uma amostra de fotos e deltas guardados no relatório e
+    devolve o fator real de caracteres por token (ADR-0058). Contar não custa nem vira evento."""
+    chars = {"snapshot": 0, "delta": 0}
+    tokens = {"snapshot": 0, "delta": 0}
+    counted = {"snapshot": 0, "delta": 0}
+    for day in report.days:
+        for delivery in day.deliveries:
+            for kind, text in (
+                ("snapshot", delivery.snapshot_text),
+                ("delta", delivery.delta_text),
+            ):
+                if text is None or counted[kind] >= samples:
+                    continue
+                request = ModelRequest(model=model, messages=[{"role": "user", "content": text}])
+                tokens[kind] += await port.count_tokens(request)
+                chars[kind] += len(text)
+                counted[kind] += 1
+    factors = {k: round(chars[k] / tokens[k], 2) for k in chars if tokens[k]}
+    return {
+        "model": model,
+        "samples": counted,
+        "chars_per_token": factors,
+        "assumed": CHARS_PER_TOKEN,
+    }
 
 
 def _table(report: Report) -> str:
@@ -187,12 +224,40 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--every", type=int, default=20, help="uma foto a cada N deltas")
     parser.add_argument("--json", action="store_true", help="saída em JSON")
+    parser.add_argument(
+        "--contar",
+        type=int,
+        default=0,
+        metavar="N",
+        help="conta N fotos e N deltas com o tokenizador da Anthropic (pede ANTHROPIC_API_KEY)",
+    )
+    parser.add_argument("--model", default="claude-haiku-5-5", help="modelo do tokenizador")
     args = parser.parse_args(argv)
     report = compute(read_archive(args.archive), int(args.every))
+    calibration: dict[str, Any] | None = None
+    if int(args.contar) > 0:
+        from campsverso_adapters import AnthropicModel, SystemWallClock  # raiz de composição
+
+        port = AnthropicModel(clock=SystemWallClock())
+        calibration = asyncio.run(
+            calibrate(report, port, model=str(args.model), samples=int(args.contar))
+        )
     if args.json:
         print(
             json.dumps(
-                {"days": [asdict(d) for d in report.days], "totals": report.totals()},
+                {
+                    "days": [
+                        {
+                            "day": d.day,
+                            "deliveries": [
+                                {"tick": x.tick, "snapshot": x.snapshot, "delta": x.delta}
+                                for x in d.deliveries
+                            ],
+                        }
+                        for d in report.days
+                    ],
+                    "totals": report.totals(),
+                },
                 ensure_ascii=False,
                 indent=2,
             )
@@ -200,6 +265,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         print(_table(report))
         print(json.dumps(report.totals(), ensure_ascii=False))
+    if calibration is not None:
+        print(json.dumps({"calibration": calibration}, ensure_ascii=False))
     return 0
 
 

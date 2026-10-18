@@ -98,3 +98,23 @@ class AnthropicModel:
             latency_ms=latency_ms,
             request_id=raw.headers.get("request-id"),
         )
+
+    async def count_tokens(self, request: ModelRequest) -> int:
+        params: dict[str, Any] = {
+            "model": request.model,
+            "messages": [dict(m) for m in request.messages],
+        }
+        if request.system is not None:
+            params["system"] = (
+                request.system if isinstance(request.system, str) else list(request.system)
+            )
+        if request.tools:
+            params["tools"] = [dict(t) for t in request.tools]
+        try:
+            counted = await self._client.messages.count_tokens(**params)
+        except anthropic.APIStatusError as error:
+            kind = "auth" if error.status_code in (401, 403) else "bad_request"
+            raise ModelCallError(kind, error.message) from error
+        except anthropic.APIConnectionError as error:
+            raise ModelCallError("connection", str(error)) from error
+        return int(counted.input_tokens)

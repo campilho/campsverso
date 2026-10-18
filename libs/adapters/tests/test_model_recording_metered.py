@@ -41,6 +41,9 @@ class FakeModel:
     def capabilities(self) -> ModelCapabilities:
         return ModelCapabilities()
 
+    async def count_tokens(self, request: ModelRequest) -> int:
+        return 7
+
     async def complete(self, request: ModelRequest) -> ModelResponse:
         self.calls += 1
         if self.failure is not None:

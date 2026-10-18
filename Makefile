@@ -117,8 +117,11 @@ replay: ## reexecuta um dia gravado do mundo e compara com o arquivo: make repla
 metrics: ## métricas da bíblia §13 a partir do arquivo: make metrics [ARCHIVE=pasta do mundo]
 	$(PY) python -m campsverso_tools.metrics $(ARCHIVE)
 
-percepcao: ## tokens da percepção por dia a partir do arquivo (ADR-0056): make percepcao [ARCHIVE=pasta] [EVERY=20]
-	$(PY) python -m campsverso_tools.perception_budget $(ARCHIVE) --every $(EVERY)
+percepcao: ## tokens da percepção por dia a partir do arquivo (ADR-0056): make percepcao [ARCHIVE=pasta] [EVERY=20] [CONTAR=20]
+	$(if $(CONTAR),uv run --locked --env-file .env,$(PY)) python -m campsverso_tools.perception_budget $(ARCHIVE) --every $(EVERY) $(if $(CONTAR),--contar $(CONTAR),)
+
+llm-smoke: ## uma chamada real pela porta de modelo, medida e publicada pelo contrato (ADR-0058): make llm-smoke [MODEL=claude-haiku-5-5]
+	uv run --locked --env-file .env python -m campsverso_tools.llm_smoke --model $(or $(MODEL),claude-haiku-5-5)
 
 ui-e2e: tools ui-build ## fumaça da tela no navegador (Playwright), com um sandbox próprio na porta 8799
 	pnpm --filter @campsverso/ui exec playwright test
@@ -134,6 +137,7 @@ secrets: ## gera em .env (fora do git) as senhas do NATS que ainda faltam
 	@for role in $(NATS_ROLES); do \
 	  grep -q "^NATS_$${role}_PASSWORD=" .env || echo "NATS_$${role}_PASSWORD=$$(openssl rand -hex 24)" >> .env; \
 	done
+	@grep -q "ANTHROPIC_API_KEY=" .env || { echo "# ANTHROPIC_API_KEY=cole-aqui-a-chave-da-console (ADR-0058; só o make llm-smoke e o CONTAR=1 usam)" >> .env; echo "aviso: ANTHROPIC_API_KEY ausente em .env; o make llm-smoke precisa dela"; }
 
 tools: $(NATS_DIR)/nats-server ## baixa ferramentas locais com versão fixa (nats-server), conferindo o sha256
 

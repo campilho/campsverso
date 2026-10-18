@@ -441,6 +441,7 @@ name = "campsverso-tools"
 version = "0.1.0.dev0"
 source = { editable = "tools/contracts" }
 dependencies = [
+    { name = "campsverso-adapters" },
     { name = "campsverso-world-view" },
     { name = "datamodel-code-generator" },
     { name = "jsonschema" },
@@ -451,6 +452,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "campsverso-adapters", editable = "libs/adapters" },
     { name = "campsverso-world-view", editable = "libs/world-view" },
     { name = "datamodel-code-generator", specifier = ">=0.83" },
     { name = "jsonschema", specifier = ">=4.25" },

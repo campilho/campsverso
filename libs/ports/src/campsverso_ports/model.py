@@ -118,3 +118,7 @@ class ModelPort(Protocol):
     async def complete(self, request: ModelRequest) -> ModelResponse:
         """Uma chamada. Levanta ModelCallError classificado quando não há resposta."""
         ...
+
+    async def count_tokens(self, request: ModelRequest) -> int:
+        """Quantos tokens de entrada o pedido tem, pelo tokenizador do provedor; não gera evento."""
+        ...

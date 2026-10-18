@@ -2,7 +2,8 @@
 
 from typing import Any
 
-from campsverso_tools.perception_budget import CHARS_PER_TOKEN, compute
+from campsverso_ports import ModelCapabilities, ModelRequest, ModelResponse
+from campsverso_tools.perception_budget import CHARS_PER_TOKEN, calibrate, compute
 
 
 def _view(stage: str, coins: int) -> dict[str, Any]:
@@ -73,3 +74,31 @@ def test_sem_deltas_a_politica_de_fotos_e_igual_a_so_fotos() -> None:
     report = compute(archive, every=0)  # a cada 0 deltas: toda entrega é foto
     totals = report.totals()
     assert totals["tokens_per_day_snapshots_only"] == totals["tokens_per_day_with_deltas"]
+
+
+class CountingModel:
+    """Uma porta que só conta: 4 caracteres por token, sem rede."""
+
+    provider = "fake"
+
+    def capabilities(self) -> ModelCapabilities:
+        return ModelCapabilities()
+
+    async def count_tokens(self, request: ModelRequest) -> int:
+        return len(str(request.messages[0]["content"])) // 4
+
+    async def complete(self, request: ModelRequest) -> ModelResponse:
+        raise NotImplementedError
+
+
+async def test_calibracao_mede_o_fator_de_caracteres_por_token() -> None:
+    archive = [
+        _snapshot(0, 10, _view("semente", 100)),
+        _snapshot(1, 20, _view("broto", 100)),
+        _snapshot(2, 30, _view("broto", 90)),
+    ]
+    report = compute(archive, every=20)
+    calibration = await calibrate(report, CountingModel(), model="claude-haiku-5-5", samples=2)
+    assert calibration["samples"] == {"snapshot": 2, "delta": 2}
+    assert 3.9 <= calibration["chars_per_token"]["snapshot"] <= 4.1
+    assert calibration["assumed"] == CHARS_PER_TOKEN
