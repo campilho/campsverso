@@ -6,3 +6,4 @@ perception: uv run --locked python -m campsverso_perception.main --env config/en
 controller: uv run --locked python -m campsverso_controller_runner.main --env config/env/local.yaml --world config/worlds/farm-camps-01.yaml --controller farmer
 archiver: uv run --locked python -m campsverso_archiver.main --env config/env/local.yaml
 gateway: uv run --locked python -m campsverso_gateway.main --env config/env/local.yaml --world config/worlds/farm-camps-01.yaml
+budget: uv run --locked python -m campsverso_budget.main --env config/env/local.yaml --world config/worlds/farm-camps-01.yaml

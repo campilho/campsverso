@@ -15,6 +15,7 @@ dependencies = [
   "campsverso-controller-runner",
   "campsverso-gateway",
   "campsverso-archiver",
+  "campsverso-budget",
   "campsverso-farm-sim",
   "campsverso-farm-script",
   "campsverso-farm-camps-sim",
@@ -61,6 +62,7 @@ campsverso-perception = { workspace = true }
 campsverso-controller-runner = { workspace = true }
 campsverso-gateway = { workspace = true }
 campsverso-archiver = { workspace = true }
+campsverso-budget = { workspace = true }
 campsverso-farm-sim = { workspace = true }
 campsverso-farm-script = { workspace = true }
 campsverso-farm-camps-sim = { workspace = true }
@@ -127,6 +129,7 @@ root_packages = [
   "campsverso_controller_runner",
   "campsverso_gateway",
   "campsverso_archiver",
+  "campsverso_budget",
   "campsverso_farm_sim",
   "campsverso_farm_script",
   "campsverso_farm_camps_sim",
@@ -143,6 +146,7 @@ modules = [
   "campsverso_controller_runner",
   "campsverso_gateway",
   "campsverso_archiver",
+  "campsverso_budget",
 ]
 
 [[tool.importlinter.contracts]]
@@ -154,6 +158,7 @@ source_modules = [
   "campsverso_controller_runner",
   "campsverso_gateway",
   "campsverso_archiver",
+  "campsverso_budget",
 ]
 forbidden_modules = ["campsverso_farm_sim", "campsverso_farm_script", "campsverso_farm_camps_sim"]
 
@@ -170,6 +175,7 @@ forbidden_modules = [
   "campsverso_controller_runner",
   "campsverso_gateway",
   "campsverso_archiver",
+  "campsverso_budget",
   "campsverso_farm_sim",
   "campsverso_farm_camps_sim",
 ]
@@ -185,6 +191,7 @@ forbidden_modules = [
   "campsverso_controller_runner",
   "campsverso_gateway",
   "campsverso_archiver",
+  "campsverso_budget",
 ]
 
 [[tool.importlinter.contracts]]
@@ -204,6 +211,7 @@ forbidden_modules = [
   "campsverso_controller_runner",
   "campsverso_gateway",
   "campsverso_archiver",
+  "campsverso_budget",
   "campsverso_farm_sim",
   "campsverso_farm_script",
   "campsverso_farm_camps_sim",
@@ -223,6 +231,7 @@ forbidden_modules = [
   "campsverso_controller_runner",
   "campsverso_gateway",
   "campsverso_archiver",
+  "campsverso_budget",
   "campsverso_farm_sim",
   "campsverso_farm_script",
   "campsverso_farm_camps_sim",
@@ -245,6 +254,7 @@ source_modules = [
   "campsverso_controller_runner",
   "campsverso_gateway",
   "campsverso_archiver",
+  "campsverso_budget",
 ]
 forbidden_modules = ["campsverso_adapters"]
 ignore_imports = [
@@ -257,7 +267,9 @@ ignore_imports = [
   "campsverso_gateway.main -> campsverso_adapters",
   "campsverso_gateway.main -> campsverso_adapters.**",
   "campsverso_archiver.main -> campsverso_adapters",
+  "campsverso_budget.main -> campsverso_adapters",
   "campsverso_archiver.main -> campsverso_adapters.**",
+  "campsverso_budget.main -> campsverso_adapters.**",
 ]
 unmatched_ignore_imports_alerting = "none"
 
@@ -275,6 +287,7 @@ source_modules = [
   "campsverso_controller_runner",
   "campsverso_gateway",
   "campsverso_archiver",
+  "campsverso_budget",
   "campsverso_farm_sim",
   "campsverso_farm_script",
   "campsverso_farm_camps_sim",

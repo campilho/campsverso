@@ -14,6 +14,7 @@ from campsverso_adapters.model_metered import MeteredModel, ModelPrices, cost_us
 from campsverso_adapters.model_recording import RecordingMode, RecordingModel
 from campsverso_adapters.realtime_memory import MemoryClient, MemoryRealtime
 from campsverso_adapters.settings import (
+    BudgetSettings,
     EnvSettings,
     GatewaySettings,
     WorldSettings,
@@ -25,6 +26,7 @@ from campsverso_adapters.telemetry import JsonTelemetry, MemoryTelemetry
 
 __all__ = [
     "AnthropicModel",
+    "BudgetSettings",
     "ContractValidator",
     "ContractViolationError",
     "DiskBlobStore",

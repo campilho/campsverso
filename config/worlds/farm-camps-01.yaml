@@ -14,6 +14,10 @@ clock:  # estado inicial do relógio; depois, só por comandos
 
 rules_file: null  # null: o arquivo de regras do cartucho (cartridges/farm_camps/.../rules.yaml)
 
+budget:  # tetos de gasto com modelos (ADR-0058); ao chegar a 100%, a guarda pausa o mundo
+  usd_per_sim_day: 0.60
+  usd_total: 10.00
+
 # Quem controla cada avatar quando o mundo começa. Vazio: o controlador padrão do cartucho
 # (o fazendeiro-script). Ex.: para reexecutar uma sessão gravada num mundo novo,
 #   controllers: {camps: {type: replay, id: replay/sessao}}

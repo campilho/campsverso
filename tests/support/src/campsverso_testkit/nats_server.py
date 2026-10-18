@@ -17,7 +17,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[4]
 NATS_BIN = REPO / ".tools" / "bin" / "nats-server"
 NATS_CONF = REPO / "config" / "nats" / "nats.conf"
-ROLES = ("kernel", "archiver", "perception", "controller", "gateway", "operator")
+ROLES = ("kernel", "archiver", "perception", "controller", "gateway", "operator", "budget")
 
 
 @dataclass(frozen=True)

@@ -76,6 +76,12 @@ type ClockMode = Literal["continuous", "max"]
 
 
 @dataclass(frozen=True, slots=True)
+class BudgetSettings:
+    usd_per_sim_day: float  # teto por dia simulado (ADR-0058)
+    usd_total: float  # teto do mundo inteiro
+
+
+@dataclass(frozen=True, slots=True)
 class WorldSettings:
     worldid: str
     cartridge: str
@@ -86,6 +92,7 @@ class WorldSettings:
     paused: bool
     rules_file: Path | None  # None: o arquivo de regras do cartucho
     controllers: dict[str, tuple[str, str]]  # avatar -> (tipo, id) no começo; vazio: o do cartucho
+    budget: BudgetSettings | None = None  # tetos de gasto com modelos (ADR-0058)
 
 
 def _read(path: Path) -> Mapping[str, Any]:
@@ -158,6 +165,7 @@ def load_world(path: Path, root: Path | None = None) -> WorldSettings:
     if mode not in ("continuous", "max"):
         raise ValueError(f"modo de relógio inválido: {mode!r}")
     start = datetime.fromisoformat(str(doc["start"]))
+    budget = cast(Mapping[str, Any] | None, doc.get("budget"))
     if start.tzinfo is None:
         raise ValueError("start precisa de fuso horário (ex.: 2026-10-10T06:00:00-03:00)")
     return WorldSettings(
@@ -175,4 +183,9 @@ def load_world(path: Path, root: Path | None = None) -> WorldSettings:
                 Mapping[str, Mapping[str, Any]], doc.get("controllers") or {}
             ).items()
         },
+        budget=None
+        if budget is None
+        else BudgetSettings(
+            usd_per_sim_day=float(budget["usd_per_sim_day"]), usd_total=float(budget["usd_total"])
+        ),
     )
