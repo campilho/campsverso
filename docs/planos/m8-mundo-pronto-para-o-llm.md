@@ -14,6 +14,10 @@
 - **Regra de hora em hora sem mexer no kernel:** o gatilho `DailyAt` aceita uma lista de horários; um sistema do gênero com as 24 horas cheias roda de hora em hora, determinístico.
 - **Python 3.15.0** está instalado na máquina e o `datamodel-code-generator` 0.85 roda nele. Das dependências compiladas, só o PyYAML 6.0.3 ainda não tem wheel para o 3.15 (compila do fonte). O gatilho da ADR-0034 ("todas com suporte oficial") ainda não fechou.
 
+## 0. Passo zero: o relógio a 1× (ADR-0057)
+
+Antes dos contratos, dois ajustes que saíram do teste de jogo a 1×, aprovados em 17/out: o **tick antecipado** no modo contínuo (uma proposta no meio do tick roda o próximo tick na hora, descontado do tempo real; o replay não muda) e **andar a 30 tiles por minuto**, com um teto de 12 tiles por segundo no desenho da tela. O teste de fumaça do navegador passa a pausar e avançar tick a tick para ver a caminhada.
+
 ## 1. Enxergar o mapa (decisões 1 e 2)
 
 - **O kernel publica o terreno no `session.started`**, em campos opcionais do `map`: `rows` (uma string por linha, um caractere por tile) e `legend` (código → nome do tile e propriedades do tileset: `passable`, `water`…). Vem do mesmo lugar de onde a R-001 lê a água. Compatível: só campos novos no v1.
