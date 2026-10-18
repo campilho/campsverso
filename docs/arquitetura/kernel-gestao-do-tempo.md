@@ -66,6 +66,8 @@ O loop acumula o tempo real decorrido, multiplica pela escala e executa quantos 
 
 ---
 
+**Tick antecipado (ADR-0057, 17/out/2026).** No modo contínuo, uma proposta de ação que chega no meio de um tick roda o próximo tick na hora, e o acumulador desconta esse tick do tempo real que ainda vai passar. A sequência de ticks e o diário não mudam (o replay é idêntico); só a cadência real desloca em menos de um tick. Só um antecipado por vez: com a dívida em aberto, o comando seguinte espera o ritmo normal. Sem isso, a 1× um clique esperava até um minuto pelo próximo tick.
+
 ## 4. Salto de tempo: simulação de eventos discretos
 
 O kernel combina **ticks** (quando há atividade) com uma **fila de eventos futuros** ordenada por tempo simulado (planta amadurece às 14h; fome cruza o limiar às 11h40). Se não há nada agendado entre agora e o próximo evento **e nenhum agente está pensando ou agindo**, o kernel salta direto para ele.

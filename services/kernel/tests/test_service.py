@@ -121,3 +121,43 @@ async def test_pulso_no_ritmo_configurado_e_fora_do_historico() -> None:
     assert pulses[-1]["tick"] == service.core.tick
     assert {p["pulse_seconds"] for p in pulses} == {1.0}
     assert all(".live." not in subject for subject, _ in inner.published)
+
+
+async def test_tick_antecipado_no_modo_continuo() -> None:
+    """ADR-0057: uma proposta no meio do minuto roda o próximo tick na hora; a seguinte espera."""
+    inner = InMemoryBus()
+    bus = ValidatingBus(inner)
+    clock = FakeWallClock()
+    engine = Engine(make_core(), run_version("lab", 60, {"lab": LabCartridge()}))
+    service = KernelService(
+        engine,
+        bus,
+        clock,
+        SequentialUuid7Ids(),
+        SqliteWorldStore(":memory:"),
+        MemoryBlobStore(),
+        MemoryTelemetry(),
+    )
+    await service.start()
+    assert service.core.mode == "continuous"
+    assert not service.core.paused
+    stop = asyncio.Event()
+    running = asyncio.create_task(ClockLoop(service, clock).run(stop))
+    await asyncio.sleep(0.1)
+    before = service.core.tick
+    subject = "campsverso.lab-01.cmd.action.propose.v1"
+    await bus.publish(subject, _command("move", {"target": {"x": 3, "y": 1}}))
+    await asyncio.sleep(0.2)
+    assert service.core.tick == before + 1  # o relógio de parede não andou: tick antecipado
+    await bus.publish(subject, _command("move", {"target": {"x": 4, "y": 1}}))
+    await asyncio.sleep(0.2)
+    assert service.core.tick == before + 1  # dívida em aberto: a segunda espera o ritmo normal
+    seconds = engine.core.calendar.tick_seconds / service.core.scale
+    clock.advance(seconds)  # um tick de relógio: só paga a dívida
+    await asyncio.sleep(0.2)
+    assert service.core.tick == before + 1
+    clock.advance(seconds)
+    await asyncio.sleep(0.2)
+    assert service.core.tick == before + 2  # dois ticks de relógio, dois ticks: nenhum a mais
+    stop.set()
+    await running

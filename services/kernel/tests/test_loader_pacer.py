@@ -103,3 +103,14 @@ def test_metricas_em_camadas_e_conferidas_na_carga() -> None:
         layer = MetricLayer(CartridgeManifest("top", "1.0.0", ("lab",)), (metric,))
         with pytest.raises(DefinitionError, match=problem):
             build_world("top", {"lab": LabCartridge(), "top": layer})
+
+
+def test_tick_antecipado_desconta_do_tempo_real_e_so_um_por_vez() -> None:
+    """ADR-0057: o antecipado não cria tick a mais; com a dívida em aberto, o próximo espera."""
+    pacer = RealTimePacer(60, 1.0)
+    assert pacer.ticks_for(10) == 0
+    assert pacer.advance_early() is True
+    assert pacer.advance_early() is False  # dívida em aberto
+    assert pacer.ticks_for(50) == 0  # completaria o primeiro tick: ele já rodou antes da hora
+    assert pacer.ticks_for(60) == 1  # o segundo vem na hora normal
+    assert pacer.advance_early() is True  # dívida paga: pode antecipar de novo

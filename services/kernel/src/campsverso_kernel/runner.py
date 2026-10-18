@@ -1,4 +1,4 @@
-"""Ritmo do relógio (tempo §3, §5): contínuo com acumulador, máximo e pausado.
+"""Ritmo do relógio (tempo §3, §5): contínuo com acumulador e tick antecipado, máximo e pausado.
 
 Mede o tempo real pela porta WallClock e decide quantos ticks rodar; o núcleo nunca vê o relógio
 de parede (princípio 4). O lockstep do modo máximo chega com os controladores, no M3.
@@ -86,6 +86,18 @@ class ClockLoop:
                 continue
             pacer.scale = core.scale
             ticks = pacer.ticks_for(elapsed)
+            # Tick antecipado (ADR-0057): uma proposta no meio do tick roda o próximo tick agora, e
+            # o acumulador desconta. A sequência de ticks é a mesma; só a cadência real desloca.
+            early = (
+                ticks == 0
+                and service.commands_arrived.is_set()
+                and core.has_pending_proposals
+                and pacer.advance_early()
+            )
+            service.commands_arrived.clear()
             if ticks:
                 await service.run_ticks(min(ticks, _MAX_BEHIND))
-            await _wait(stop, min(_IDLE_SECONDS, tick_seconds / core.scale))
+            elif early:
+                await service.run_ticks(1)
+            idle = min(_IDLE_SECONDS, tick_seconds / core.scale)
+            await _wait_any((stop, service.commands_arrived), idle)

@@ -307,6 +307,11 @@ class KernelCore:
     # ------------------------------------------------------------- comandos
 
     @property
+    def has_pending_proposals(self) -> bool:
+        """Há proposta esperando a etapa `commands` do próximo tick (ADR-0057)."""
+        return bool(self._queue)
+
+    @property
     def lockstep_blocked(self) -> bool:
         """No modo máximo, o relógio espera o controlador que deve uma decisão (escopo §5)."""
         return self.mode == "max" and any(
