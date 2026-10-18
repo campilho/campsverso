@@ -61,6 +61,7 @@ A numeração deste diretório continua a partir de **0011**, para não colidir 
 | [0053](0053-decisoes-do-plano-do-m6.md) | Decisões do M6: Phaser 4.2.1, arte no cartucho em camadas com manifesto, LPC com créditos, mapa visual num arquivo à parte, noite e chuva simples, `?render=debug`, retrato recortado, Playwright de fumaça no CI | M6 | plano do M6; ADR-0031, 0050 |
 | [0054](0054-decisoes-do-plano-do-m7.md) | Decisões do M7: catálogo de métricas declarado pelo cartucho (`count`, `max_need`, `item`) e contado pela projeção comum, painel com hoje, ontem e 7 dias, `docs/aceite-v0.1.md` com soaks de 30 dias, mundo oficial pelo usuário, README com Mermaid, tag `v0.1.0` | M7 | plano do M7; ADR-0047, 0051 |
 | [0055](0055-a-v0-3-e-o-escritorio-que-se-constroi.md) | A v0.3 é o escritório que constrói a si mesmo: primeiro cartucho com efeitos externos, a v0.2 inalterada como pré-requisito, "a mente no mundo, as mãos na oficina", portão humano, governança, dev generalista e revisor; o estúdio vem depois | v0.3 | ideia do escritório; escopo §2; ADR-0025, 0031, 0052, 0054 |
+| [0056](0056-decisoes-do-plano-do-m8.md) | Decisões do M8: terreno e raio de percepção no `session.started`, `view.map` na foto, delta como tipo novo `perception.updated.v1` com `events`, política por tipo de controlador (foto a cada 20 deltas para o LLM), acordado −1/h e fome em 100 drenando 4/h como dados do cartucho, tokens estimados por bytes ÷ 3,5, Python 3.14 | M8 | plano do M8; ADR-0028, 0034, 0047 |
 
 ## Modelo
 
