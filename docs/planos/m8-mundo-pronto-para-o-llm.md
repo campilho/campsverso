@@ -74,3 +74,30 @@ Ficar no **3.14**. O PyYAML ainda não tem wheel para o 3.15, que é exatamente 
 7. **Fome em 100 drena 4 de energia por hora, sem morte.** *Sim, configurável no cartucho (gênero, com override do cenário), não no mundo.*
 8. **Tokens estimados por bytes ÷ 3,5, com `make percepcao`;** a contagem real fica para o M9. *Sim.* Em outras palavras: queremos saber quanto a percepção custaria por dia antes de ligar um modelo; o número exato depende do tokenizador do provedor, que só o M9 consulta; até lá, uma estimativa por tamanho de texto basta para comparar as políticas e dimensionar o orçamento, e o M9 calibra o fator.
 9. **Python 3.14 continua;** revisitar no M13. *Sim.*
+
+## 8. Como ficou (17/out/2026, noite)
+
+A ordem do trabalho foi cumprida como planejada, com o passo zero antes (ADR-0057). Os dois critérios de pronto fecharam: o script sobrevive 30 dias com as regras novas, e a foto e o delta têm o tamanho medido por um comando.
+
+- **Contratos:** `session.started.map` ganhou `rows` e `legend`, e o evento ganhou `perception`; `delivered.view` ganhou `map`; nasceu `perception.updated.v1`, o delta, com `since_tick`, `self` inteiro, o que mudou e `events`. As peças de uma entrega (`seen_*`, `decision_request`, `seen_event`) e o terreno (`terrain_*`) estão em `common/defs.v1`. 50 tipos, 56 exemplos válidos, 15 inválidos; `make compat` limpo.
+- **Kernel:** `GridMap.terrain()` dá um código por classe de tile (a primeira letra livre do nome: na fazenda, G grama, R rio, T árvore, S terra) e a legenda com as propriedades do tileset; o `session.started` publica o terreno inteiro uma vez e o raio que o cartucho declarou (`perception.radius`, `null` na fazenda).
+- **Percepção:** a foto traz `map` recortado ao raio e deixa de fora entidades e contêineres além dele; o delta compara a visão de agora com a entregue (`diff_views`, em `libs/world-view`) e leva os eventos do meio-tempo; a política por tipo de controlador fica em `config/env/local.yaml` (`deltas_for: [llm]`, `snapshot_every: 20`), e script e replay continuam só com fotos. O estado por avatar (a última visão e a fila de eventos) vai para o arquivo da projeção, então depois de uma queda a primeira entrega é uma foto. O `ObserverState` não carrega `null`: o raio nulo aparece como ausência de `session.perception`.
+- **Gênero farm:** `energia.awake: -1` e o sistema `starving` de hora em hora (`DailyAt` com as 24 horas; `starving.at: 100`, `energy_per_hour: 4`), ambos dados do gênero com override do cenário. Um efeito colateral honesto: acordado, a energia nunca fica em 100 exatos, então um cochilo com menos de um tick a recuperar passou a ser `not_tired`, e os cochilos duram um minuto a mais (arredondam para cima, para acordar cheio).
+- **`make percepcao`:** lê um arquivo e estima, por dia, bytes e tokens (bytes ÷ 3,5) de fotos e deltas; com um arquivo só de fotos, o delta é estimado como a percepção o faria: a diferença entre fotos seguidas mais os eventos do meio-tempo.
+
+### Números
+
+| | Mundo oficial (12 dias, fotos sem o terreno) | Soak de 30 dias com a regra | Soak de 30 dias sem a regra |
+|---|---|---|---|
+| entregas | 1.149 | 2.970 | 2.841 |
+| foto média | 3,8 KB | 5,1 KB (com o terreno) | 5,0 KB |
+| delta médio, estimado | 1,1 KB | 1,2 KB | 1,1 KB |
+| tokens por dia, só fotos | 105 mil | 140 mil | 132 mil |
+| tokens por dia, foto a cada 20 deltas | 35 mil | 37 mil | 35 mil |
+
+Os soaks de 30 dias com as regras novas: **com a regra**, 33,0 s (1,07 s por dia), 1.175 moedas, colheitas leste 112 e oeste 72, amadurecimento em 2,0 e 3,0 dias, pico de fome 78,9, nenhum desmaio; **sem a regra**, 31,5 s, 750 moedas, 72 e 72, 3,0 e 3,0, pico de fome 100, nenhum desmaio. São os mesmos 1.175 e 750 do M7: o dia do script é limitado pelas plantas, não pelo tempo, então andar dez vezes mais rápido e gastar 1 de energia por hora acordado não mudaram a economia. Sem a regra a fome chega a 100 e drena energia, e o script sobrevive sem desmaiar, porque come ao colher.
+
+### O que fica
+
+- O soak com um controlador de teste `llm` ficou de fora: exigiria um tipo novo no controller-runner, que é o M10. O delta foi exercitado pelos testes do serviço (foto, deltas, foto a cada N, posse, troca de controlador) e estimado sobre os arquivos.
+- A contagem de tokens de verdade e a calibração do fator 3,5 ficam para a `ModelPort` (M9).

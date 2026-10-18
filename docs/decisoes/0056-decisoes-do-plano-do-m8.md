@@ -23,3 +23,4 @@ As decisões do plano, aprovadas pelo usuário em 17/out/2026:
 - A percepção passa a guardar, por avatar, a última visão entregue; depois de uma queda, a primeira entrega é uma foto.
 - O script e o replay não mudam de comportamento; os soaks de 30 dias mostram o efeito das regras novas na linha de base (moedas, pico de fome, desmaios).
 - A necessidade "sono", correr e andar gastando energia continuam no `futuro.md`.
+- Como ficou (17/out): o `ObserverState` não carrega `null`, então o raio nulo aparece como ausência de `session.perception`; acordado, a energia nunca fica em 100 exatos, então um cochilo com menos de um tick a recuperar é `not_tired` e os cochilos arredondam para cima. A linha de base não mudou: 1.175 moedas com a regra e 750 sem ela, em 30 dias. Medido: 5,1 KB por foto com o terreno, 140 mil tokens por dia só com fotos e 37 mil com uma foto a cada 20 deltas (estimativa por bytes ÷ 3,5).

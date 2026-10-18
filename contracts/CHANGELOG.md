@@ -9,7 +9,7 @@ Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão 
   - `world.session.started.v1`: o `map` ganha `rows` e `legend` (o terreno inteiro, uma vez) e o evento ganha `perception` (o raio declarado pelo cartucho; `null` é o mapa inteiro);
   - `perception.delivered.v1`: a `view` ganha `map`, o terreno ao alcance do avatar, recortado ao raio;
   - **evento novo `campsverso.perception.updated.v1`**, o delta: `since_tick`, `as_of_tick`, `decision`, `clock`, `self` inteiro, `weather` se mudou, `containers` e `entities` que mudaram (inteiros), `gone` e `events` (o que aconteceu desde a entrega anterior). É um tipo próprio porque acrescentar `delta` ao enum `kind` da foto seria incompatível (`make compat`);
-  - o `ObserverState` ganha `session.map.rows`, `session.map.legend` e `session.perception`.
+  - o `ObserverState` ganha `session.map.rows`, `session.map.legend` e `session.perception`; como o estado não carrega `null`, o raio nulo (o mapa inteiro) aparece como ausência de `perception`.
 - As peças `seen_*` duplicam a forma da `view` da foto, que continua inline por compatibilidade; uma `delivered.v2`, quando vier, passa a referenciá-las.
 
 ## Não publicado (M2)
