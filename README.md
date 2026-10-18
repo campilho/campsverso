@@ -38,6 +38,10 @@ A pergunta da v0.2: **um LLM consegue viver na fazenda, prosperar e descobrir so
 
 **M8 concluído em 17/out/2026** ([plano](docs/planos/m8-mundo-pronto-para-o-llm.md), ADR-0056 e ADR-0057): o terreno e o raio no `session.started`, a foto com mapa, o delta `perception.updated.v1`, acordado custa energia e a fome no teto drena, e `make percepcao` mede o custo em tokens.
 
+**M9 concluído em 18/out/2026** ([plano](docs/planos/m9-porta-de-modelo-e-orcamento.md), ADR-0058): a `ModelPort` com o adaptador da API da Anthropic, a fita que grava e reproduz respostas, o medidor que publica cada chamada como evento com tokens e custo, e a guarda de orçamento que pausa o mundo no teto. A primeira chamada real custou US$ 0,000124; a calibração mostrou 2,1 caracteres por token no JSON da percepção.
+
+**M10 em curso** ([plano](docs/planos/m10-controlador-llm.md), ADR-0059): a mente, uma biblioteca genérica que conversa com o modelo pela porta, com o cartão de identidade e o catálogo de ações como dados do cartucho.
+
 ## Depois: v0.3, o escritório que constrói a si mesmo
 
 Em vez de outra fazenda, um escritório de programação com um único dev no começo, cujo trabalho é melhorar o próprio Campsverso: ele recebe tickets de nós, abre PRs, espera o CI, e quando um PR é mesclado o mundo reinicia na versão que ele mesmo escreveu. Depois ele propõe um ajudante. É o primeiro cartucho com efeitos externos; a v0.2 inteira é pré-requisito. A ideia está em [ideia-escritorio-que-se-constroi.md](docs/planos/ideia-escritorio-que-se-constroi.md), a direção na [ADR-0055](docs/decisoes/0055-a-v0-3-e-o-escritorio-que-se-constroi.md) e as telas propostas em [docs/design](docs/design/README.md).
@@ -52,8 +56,9 @@ flowchart LR
     percepcao -- "a foto ou o delta de cada avatar" --> nats
     nats -- "chamadas de modelo (observer)" --> guarda["Guarda de orçamento"]
     guarda -- "pausa o mundo no teto" --> nats
-    nats -- "foto" --> runner["Controladores<br/>script e replay"]
+    nats -- "foto ou delta" --> runner["Controladores<br/>script, replay e a mente (LLM)"]
     runner -- "propõe ações" --> nats
+    runner -- "pela ModelPort, medida e gravada" --> api[("API da Anthropic")]
     nats -- "tudo" --> arquivador["Arquivador"] --> arquivo[("Arquivo JSONL")]
     nats -- "estado e eventos" --> gateway["Gateway"]
     gateway -- "comandos do humano" --> nats
@@ -73,7 +78,7 @@ Requisitos: [uv](https://docs.astral.sh/uv/) e [pnpm](https://pnpm.io/). O uv in
 make setup   # dependências Python e TypeScript, e o nats-server com versão fixa
 make check   # lint, tipos, testes, arquitetura e contratos
 make sandbox # um mundo descartável com tudo ligado; a UI fica em http://127.0.0.1:8765/?view=operator
-make run     # o mundo oficial: NATS, kernel, percepção, fazendeiro-script, arquivador e gateway
+make run     # o mundo oficial: NATS, kernel, percepção, fazendeiro-script, arquivador, gateway e guarda de orçamento
 make stop    # derruba o NATS
 make ui      # a UI em modo desenvolvimento (Vite), ligada ao gateway do run ou do sandbox
 make ui-e2e  # fumaça da tela num navegador de verdade (Playwright), com um sandbox próprio
@@ -83,10 +88,11 @@ make sessoes MARCO=M6   # tempo e tokens do Claude Code por marco, em docs/custo
 make metrics        # métricas do mundo a partir do arquivo de eventos
 make percepcao      # fotos e deltas da percepção por dia, em bytes e tokens estimados (ADR-0056)
 make llm-smoke      # uma chamada real pela porta de modelo, medida e publicada pelo contrato (ADR-0058)
+make fita DIAS=1    # grava em processo a fita de teste do controlador LLM, chamando a API (ADR-0059)
 make help    # todos os alvos
 ```
 
-O `make run` gera as senhas locais do NATS em `.env`, fora do git. O mundo fica em `data/farm-camps-01/` (estado e snapshots) e o histórico de eventos em `data/archive/`. A UI abre em `http://127.0.0.1:8765/?view=player` (jogador) ou `?view=operator` (operador, com relógio e linha do tempo). O `make sandbox` faz o mesmo numa pasta própria em `data/sandbox/`, sem tocar no mundo oficial.
+O `make run` gera as senhas locais do NATS em `.env`, fora do git. O mundo fica em `data/farm-camps-01/` (estado e snapshots) e o histórico de eventos em `data/archive/`. A UI abre em `http://127.0.0.1:8765/?view=player` (jogador) ou `?view=operator` (operador, com relógio e linha do tempo). O `make sandbox` faz o mesmo numa pasta própria em `data/sandbox/`, sem tocar no mundo oficial; com `MENTE=camps`, a mente assume o Camps (precisa de `ANTHROPIC_API_KEY` no `.env`).
 
 Para jogar, clique em "Assumir o Camps". O clique esquerdo anda; o clique direito abre o menu de ações da coisa clicada, ou o do próprio Camps. "Devolver ao script" devolve o controle ao fazendeiro-script.
 

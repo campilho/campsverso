@@ -1,6 +1,6 @@
 # CLAUDE.md — Campsverso
 
-Campsverso é uma plataforma de simulação orientada a eventos para agentes de IA autônomos que vivem em mundos 2D. Cada mundo é um **cartucho** (fazenda, estúdio, startup…) rodando sobre um **kernel** genérico. A versão atual é a **v0.1 "Fazenda do Camps"**: um avatar, nenhum LLM, controladores humano, script e replay.
+Campsverso é uma plataforma de simulação orientada a eventos para agentes de IA autônomos que vivem em mundos 2D. Cada mundo é um **cartucho** (fazenda, estúdio, startup…) rodando sobre um **kernel** genérico. A versão publicada é a **v0.1.0 "Fazenda do Camps"**: um avatar, nenhum LLM, controladores humano, script e replay. A **v0.2, a possessão** (`docs/planos/v0.2-macro.md`), está em construção: o M8 e o M9 estão feitos e o M10, o controlador LLM, em curso (ADR-0059).
 
 O projeto também é material de aprendizado e de publicações. Clareza, testes e registro das decisões importam tanto quanto o código.
 
@@ -61,6 +61,7 @@ campsverso/
     cartridge-api/            # interfaces que um cartucho implementa (ADR-0011)
     adapters/                 # nats, inmemory, sqlite, jsonl, blob-local, fastapi (WebSocket), a porta de modelo (Anthropic, fita, medidor)...
     world-view/               # projeção genérica do mundo a partir dos eventos (percepção e gateway; ADR-0050)
+    mind/                     # a mente genérica do controlador LLM: janela de conversa, ferramentas do catálogo, proposta (ADR-0059)
   services/
     kernel/                   # relógio, ECS, grid, ações, regras, outbox
     perception/               # filtro de percepção
@@ -72,10 +73,12 @@ campsverso/
     farm/                     # gênero: mecânicas genéricas de fazenda
       sim/                    # itens, culturas, ações, sistemas, regras (carregado pelo kernel)
       script/                 # fazendeiro-script; depende só dos contratos (carregado pelo controller-runner)
+      mind/                   # o que a mente sabe da fazenda: notas do mundo e descrições das ferramentas (ADR-0059)
       art/                    # arte LPC do gênero e o manifesto art.json, com CREDITS.csv (ADR-0053)
     farm_camps/               # cenário da v0.1: estende farm
       sim/                    # mapa (Tiled), avatar camps, ajustes de números, R-001
       art/                    # o Camps (sprite LPC), o mapa visual e o manifesto do cenário
+      mind/                   # o cartão de identidade do Camps; entry point campsverso.minds (ADR-0059)
   apps/
     ui/                       # Vite + Phaser
   tools/
@@ -95,6 +98,7 @@ campsverso/
   tests/
     e2e/                      # resistência, determinismo, replay, recuperação
     support/                  # campsverso_testkit: mundos e roteiros para testes (ADR-0040)
+    fixtures/llm/           # fitas de teste do controlador LLM, magras: hash do pedido e resposta (ADR-0059)
 ```
 
 ## Convenções
@@ -119,7 +123,7 @@ make secrets      # gera em .env (fora do git) as senhas do NATS que faltam
 make up           # sobe o NATS em segundo plano
 make stop         # derruba o NATS
 make run          # sobe o NATS e o Procfile (honcho): kernel, percepção, script, arquivador e gateway
-make sandbox      # mundo descartável com tudo ligado, em data/sandbox/<data-hora> (não toca no oficial)
+make sandbox      # mundo descartável com tudo ligado, em data/sandbox/<data-hora> (não toca no oficial); MENTE=camps põe o LLM no Camps (ADR-0059)
 make ui-build     # compila a UI em apps/ui/dist; o gateway a serve em http://127.0.0.1:8765
 make ui           # a UI em modo desenvolvimento (Vite), com proxy para o gateway
 make ui-e2e       # fumaça da tela no navegador (Playwright), com um sandbox próprio (porta 8799)
@@ -128,6 +132,7 @@ make replay DAY=N # reexecuta um dia a partir do snapshot e do diário e compara
 make metrics      # métricas da bíblia §13 a partir do arquivo (ARCHIVE=pasta do mundo)
 make percepcao    # fotos e deltas da percepção por dia, em bytes e tokens estimados (ADR-0056); CONTAR=20 calibra com count_tokens
 make llm-smoke    # uma chamada real pela porta de modelo, medida e publicada pelo contrato (ADR-0058); pede ANTHROPIC_API_KEY no .env
+make fita DIAS=1  # grava em processo a fita de teste do controlador LLM, chamando a API (ADR-0059); o CI só a reproduz
 make mapa-visual  # regrava o mapa visual da fazenda a partir do mapa lógico (ADR-0053)
 make sessoes      # tempo e tokens do Claude Code por turno e por marco em docs/custos (MARCO=M5)
 ```
@@ -148,6 +153,7 @@ Os alvos de marcos futuros já existem e avisam "ainda não implementado (marco 
 - Escrever estado do mundo fora do kernel, ou decidir regra de jogo na UI.
 - Expor pontos de crescimento, regras ocultas ou eventos `internal` à percepção ou aos controladores.
 - Chamar um modelo fora da `ModelPort` (ADR-0058), ou deixar o CI chamar a API: os testes usam o transporte falso do SDK e as fitas.
+- Escrever a regra oculta, ou uma dica dela, no cartão de identidade ou nas notas da mente (princípio 5): o LLM só vê os efeitos.
 - Adicionar memória de agente antes do M11, ou qualquer item marcado "fora" no escopo da v0.2.
 - Apagar ou reescrever arquivos em `data/archive/` (são o registro histórico dos experimentos).
 - Publicar evento sem schema, ou criar tipo de evento não declarado em `contracts/`.

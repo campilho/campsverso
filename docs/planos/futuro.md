@@ -33,3 +33,9 @@ Ideias e pendências que ainda não têm marco. Cada uma vira plano, ou ADR, qua
 | **`cmd.ops.budget.set`.** Subir ou baixar o teto com o mundo vivo, pelo operador; hoje é editar o arquivo do mundo e reiniciar a guarda | plano do M9 (18/out) | quando a arena pedir |
 | **Guarda caída pausa o mundo.** O `ops.heartbeat` dos contratos: sem sinal da guarda, o kernel pausa por segurança | plano do M9 (18/out) | antes de rodar sem ninguém olhando |
 | **OpenRouter como segundo adaptador.** Uma chave para Claude, GPT, Gemini e os demais, com `usage.cost` em toda resposta | ADR-0058 | no M12, a arena |
+| **A chave `chave-campsverso` expira em 31/12/2026.** Se o projeto ainda chamar a API, renovar a validade ou criar outra na Console e trocar no `.env` | criação da chave (18/out) | no fim de dezembro de 2026 |
+| **Prompt de sistema em inglês.** Medir uma vez a diferença de tokens e, se valer, manter a parte fixa (notas e descrições das ferramentas) em inglês com o cartão e as intenções em português | decisão 6 do M10 (18/out) | depois do M10, com os números da §9 |
+| **Lockstep com o controlador `llm`.** O modo máximo esperando o modelo, para comparações justas e gravações determinísticas fora do pipeline em memória; toca o princípio 7 e pede ADR | decisão 8 do M10 (18/out) | no plano da arena (M12) |
+| **A mente retomar a posse sozinha.** Depois de devolver o avatar ao script por falhas seguidas do modelo, voltar a assumir quando a porta responder de novo (uma sondagem custa uma chamada) | decisão 9 do M10 (18/out) | se o fallback acontecer com frequência |
+| **Tradutor da foto para prosa.** O JSON da percepção tokeniza a 2 caracteres por token; uma narração em português pode custar menos tokens e ler melhor, ao preço de uma segunda fonte de verdade | calibração do M9 (18/out) | se os tokens por dia do M10 pesarem |
+| **Custo do dia no painel do operador,** a partir dos `llm.call.*` e dos `ops.budget.*` | decisão 12 do M10 (18/out) | no M12 |
