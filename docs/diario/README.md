@@ -9,6 +9,12 @@ O registro de cada sessão de trabalho: o que foi feito, o que deu errado, as de
 | [11/out/2026](2026-10-11.md) | preparação (documentos e as 12 primeiras decisões), M0 fundação, M1 kernel sem barramento, M2 durabilidade, M3 controladores headless |
 | [12/out/2026](2026-10-12.md) | revisão do M3, M4 UI de depuração, o relógio da tela, M5 controlador humano, M6 renderer Phaser, M7 fechamento |
 
+## Entre a v0.1 e a v0.2
+
+| Data | Entradas |
+|---|---|
+| [17/out/2026](2026-10-17.md) | a ideia do escritório que constrói a si mesmo (14/out), as referências visuais do escritório e do estúdio, ADR-0055 |
+
 ## A v0.1 em números
 
 Do primeiro commit (11/out/2026, 12h15) à tag `v0.1.0` (12/out/2026), em dois dias de trabalho com o Claude Code.
