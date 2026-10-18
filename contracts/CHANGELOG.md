@@ -2,6 +2,13 @@
 
 Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão maior, só entram campos opcionais novos; mudança incompatível vira um tipo novo (`.v2`). A checagem `make compat` confere isso a cada commit.
 
+## Não publicado (M9)
+
+- **Porta de modelo e orçamento** (ADR-0058): quatro tipos novos, todos com visibilidade `observer`, e nenhum tipo mudado:
+  - `common/defs.v1` ganha `llm_usage` (tokens de entrada, saída, lidos do cache e gravados no cache);
+  - `campsverso.llm.call.completed.v1` e `campsverso.llm.call.failed.v1` (produtor `controller`, publicados pelo decorador da porta): quem chamou, `purpose`, `provider`, `model`, `prompt_sha256` (nunca o prompt), `latency_ms`; a concluída leva `usage`, `cost_usd`, `charged` (falso quando veio da fita), `stop_reason` e `effort`; a falha leva `error`, `message` e `retryable`;
+  - `campsverso.ops.budget.threshold_reached.v1` e `campsverso.ops.budget.exceeded.v1` (produtor novo `budget`, a guarda de orçamento): `scope` (`day` ou `total`), `day`, `spent_usd`, `limit_usd`, e `threshold_pct` (50, 80, 100) ou `paused`. Eram `internal` no documento de contratos; o orçamento é assunto do operador.
+
 ## Não publicado (M8)
 
 - **O mundo pronto para o LLM** (ADR-0056), só com campos opcionais e um tipo novo:

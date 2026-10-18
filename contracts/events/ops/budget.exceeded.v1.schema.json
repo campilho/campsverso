@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/ops/budget.exceeded.v1",
+  "title": "OpsBudgetExceededV1",
+  "description": "O gasto com modelos estourou um teto e a guarda pediu a pausa do mundo (ADR-0058). Só o operador retoma.",
+  "x-type": "campsverso.ops.budget.exceeded.v1",
+  "x-visibility": "observer",
+  "x-producer": "budget",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "scope",
+    "spent_usd",
+    "limit_usd",
+    "paused"
+  ],
+  "properties": {
+    "scope": {
+      "enum": [
+        "day",
+        "total"
+      ],
+      "description": "O teto do dia simulado ou o do mundo inteiro."
+    },
+    "day": {
+      "$ref": "contracts://common/defs.v1#/$defs/day",
+      "description": "O dia simulado, quando o escopo é day."
+    },
+    "spent_usd": {
+      "type": "number",
+      "minimum": 0
+    },
+    "limit_usd": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "paused": {
+      "type": "boolean",
+      "description": "Verdadeiro quando a guarda publicou cmd.clock.pause com reason budget."
+    }
+  }
+}

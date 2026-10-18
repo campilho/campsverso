@@ -301,6 +301,50 @@ channels:
     messages:
       FarmCropWitheredV1:
         $ref: '#/components/messages/FarmCropWitheredV1'
+  LlmCallCompletedV1:
+    address: campsverso.{worldid}.observer.llm.call.completed.v1
+    title: campsverso.llm.call.completed.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      LlmCallCompletedV1:
+        $ref: '#/components/messages/LlmCallCompletedV1'
+  LlmCallFailedV1:
+    address: campsverso.{worldid}.observer.llm.call.failed.v1
+    title: campsverso.llm.call.failed.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      LlmCallFailedV1:
+        $ref: '#/components/messages/LlmCallFailedV1'
+  OpsBudgetExceededV1:
+    address: campsverso.{worldid}.observer.ops.budget.exceeded.v1
+    title: campsverso.ops.budget.exceeded.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      OpsBudgetExceededV1:
+        $ref: '#/components/messages/OpsBudgetExceededV1'
+  OpsBudgetThresholdReachedV1:
+    address: campsverso.{worldid}.observer.ops.budget.threshold_reached.v1
+    title: campsverso.ops.budget.threshold_reached.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      OpsBudgetThresholdReachedV1:
+        $ref: '#/components/messages/OpsBudgetThresholdReachedV1'
   PerceptionDeliveredV1:
     address: campsverso.{worldid}.agent.{avatar_id}.perception.delivered.v1
     title: campsverso.perception.delivered.v1
@@ -787,6 +831,34 @@ operations:
     messages:
     - $ref: '#/channels/FarmCropWitheredV1/messages/FarmCropWitheredV1'
     x-producer: kernel
+  sendLlmCallCompletedV1:
+    action: send
+    channel:
+      $ref: '#/channels/LlmCallCompletedV1'
+    messages:
+    - $ref: '#/channels/LlmCallCompletedV1/messages/LlmCallCompletedV1'
+    x-producer: controller
+  sendLlmCallFailedV1:
+    action: send
+    channel:
+      $ref: '#/channels/LlmCallFailedV1'
+    messages:
+    - $ref: '#/channels/LlmCallFailedV1/messages/LlmCallFailedV1'
+    x-producer: controller
+  sendOpsBudgetExceededV1:
+    action: send
+    channel:
+      $ref: '#/channels/OpsBudgetExceededV1'
+    messages:
+    - $ref: '#/channels/OpsBudgetExceededV1/messages/OpsBudgetExceededV1'
+    x-producer: budget
+  sendOpsBudgetThresholdReachedV1:
+    action: send
+    channel:
+      $ref: '#/channels/OpsBudgetThresholdReachedV1'
+    messages:
+    - $ref: '#/channels/OpsBudgetThresholdReachedV1/messages/OpsBudgetThresholdReachedV1'
+    x-producer: budget
   sendPerceptionDeliveredV1:
     action: send
     channel:
@@ -1476,6 +1548,28 @@ components:
           - 'null'
           minimum: 0
           description: Distância de Chebyshev, em tiles, do que um avatar enxerga; null é o mapa inteiro.
+    LlmUsage:
+      title: LlmUsage
+      description: 'Tokens de uma chamada de modelo, como o provedor os contou (ADR-0058): entrada, saída,
+        lidos do cache e gravados no cache.'
+      type: object
+      additionalProperties: false
+      required:
+      - input_tokens
+      - output_tokens
+      properties:
+        input_tokens:
+          type: integer
+          minimum: 0
+        output_tokens:
+          type: integer
+          minimum: 0
+        cache_read_input_tokens:
+          type: integer
+          minimum: 0
+        cache_creation_input_tokens:
+          type: integer
+          minimum: 0
     CmdActionProposeV1:
       title: CmdActionProposeV1
       description: Controlador propõe uma ação para o avatar.
@@ -2136,6 +2230,184 @@ components:
           type: integer
           minimum: 1
           description: Viradas seguidas sem rega.
+    LlmCallCompletedV1:
+      title: LlmCallCompletedV1
+      description: 'Uma chamada de modelo terminou (ADR-0058): quem chamou, qual modelo, tokens, custo
+        e latência. Nunca leva o prompt nem a resposta. Publicado pelo decorador da porta, não pelo adaptador.'
+      type: object
+      additionalProperties: false
+      required:
+      - controller
+      - purpose
+      - provider
+      - model
+      - prompt_sha256
+      - latency_ms
+      - usage
+      - cost_usd
+      - charged
+      - stop_reason
+      properties:
+        controller:
+          $ref: '#/components/schemas/ControllerRef'
+          description: Quem fez a chamada.
+        purpose:
+          $ref: '#/components/schemas/Token'
+          description: 'Para que a chamada serviu: decision, reflection, probe…'
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: O avatar em nome de quem se decidiu, quando houver.
+        provider:
+          $ref: '#/components/schemas/Token'
+          description: 'O provedor do adaptador: anthropic, openrouter…'
+        model:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9._:/-]*$
+          maxLength: 128
+        prompt_sha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+          description: 'Hash do pedido canônico: identifica a chamada e a linha da fita, sem levar o prompt.'
+        latency_ms:
+          type: integer
+          minimum: 0
+        request_id:
+          type: string
+          maxLength: 128
+          description: O id do pedido no provedor, para suporte.
+        usage:
+          $ref: '#/components/schemas/LlmUsage'
+        cost_usd:
+          type: number
+          minimum: 0
+          description: Custo nominal pela tabela de preços do ambiente.
+        charged:
+          type: boolean
+          description: 'Falso quando a resposta veio da fita: ninguém pagou, e a guarda não conta.'
+        stop_reason:
+          $ref: '#/components/schemas/Token'
+          description: 'Como o modelo parou: end_turn, tool_use, max_tokens, refusal…'
+        effort:
+          enum:
+          - low
+          - medium
+          - high
+          - xhigh
+          - max
+    LlmCallFailedV1:
+      title: LlmCallFailedV1
+      description: 'Uma chamada de modelo falhou (ADR-0058): o erro classificado, se vale repetir, e a
+        latência até a falha.'
+      type: object
+      additionalProperties: false
+      required:
+      - controller
+      - purpose
+      - provider
+      - model
+      - prompt_sha256
+      - latency_ms
+      - error
+      - message
+      - retryable
+      properties:
+        controller:
+          $ref: '#/components/schemas/ControllerRef'
+          description: Quem fez a chamada.
+        purpose:
+          $ref: '#/components/schemas/Token'
+          description: 'Para que a chamada serviu: decision, reflection, probe…'
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: O avatar em nome de quem se decidiu, quando houver.
+        provider:
+          $ref: '#/components/schemas/Token'
+          description: 'O provedor do adaptador: anthropic, openrouter…'
+        model:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9._:/-]*$
+          maxLength: 128
+        prompt_sha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+          description: 'Hash do pedido canônico: identifica a chamada e a linha da fita, sem levar o prompt.'
+        latency_ms:
+          type: integer
+          minimum: 0
+        error:
+          enum:
+          - rate_limit
+          - timeout
+          - connection
+          - auth
+          - bad_request
+          - server
+          - cassette_miss
+        message:
+          type: string
+          maxLength: 1000
+        retryable:
+          type: boolean
+    OpsBudgetExceededV1:
+      title: OpsBudgetExceededV1
+      description: O gasto com modelos estourou um teto e a guarda pediu a pausa do mundo (ADR-0058).
+        Só o operador retoma.
+      type: object
+      additionalProperties: false
+      required:
+      - scope
+      - spent_usd
+      - limit_usd
+      - paused
+      properties:
+        scope:
+          enum:
+          - day
+          - total
+          description: O teto do dia simulado ou o do mundo inteiro.
+        day:
+          $ref: '#/components/schemas/Day'
+          description: O dia simulado, quando o escopo é day.
+        spent_usd:
+          type: number
+          minimum: 0
+        limit_usd:
+          type: number
+          exclusiveMinimum: 0
+        paused:
+          type: boolean
+          description: Verdadeiro quando a guarda publicou cmd.clock.pause com reason budget.
+    OpsBudgetThresholdReachedV1:
+      title: OpsBudgetThresholdReachedV1
+      description: O gasto com modelos passou de 50, 80 ou 100% de um teto (ADR-0058). Publicado pela
+        guarda de orçamento.
+      type: object
+      additionalProperties: false
+      required:
+      - scope
+      - threshold_pct
+      - spent_usd
+      - limit_usd
+      properties:
+        scope:
+          enum:
+          - day
+          - total
+          description: O teto do dia simulado ou o do mundo inteiro.
+        day:
+          $ref: '#/components/schemas/Day'
+          description: O dia simulado, quando o escopo é day.
+        spent_usd:
+          type: number
+          minimum: 0
+        limit_usd:
+          type: number
+          exclusiveMinimum: 0
+        threshold_pct:
+          enum:
+          - 50
+          - 80
+          - 100
     PerceptionDeliveredV1:
       title: PerceptionDeliveredV1
       description: Instantâneo do que o avatar percebe, a cada pedido de decisão (ADR-0028).
@@ -3616,6 +3888,46 @@ components:
         $ref: '#/components/schemas/FarmCropWitheredV1'
       x-visibility: world
       x-producer: kernel
+    LlmCallCompletedV1:
+      name: campsverso.llm.call.completed.v1
+      title: LlmCallCompletedV1
+      summary: 'Uma chamada de modelo terminou (ADR-0058): quem chamou, qual modelo, tokens, custo e latência.
+        Nunca leva o prompt nem a resposta. Publicado pelo decorador da porta, não pelo adaptador.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/LlmCallCompletedV1'
+      x-visibility: observer
+      x-producer: controller
+    LlmCallFailedV1:
+      name: campsverso.llm.call.failed.v1
+      title: LlmCallFailedV1
+      summary: 'Uma chamada de modelo falhou (ADR-0058): o erro classificado, se vale repetir, e a latência
+        até a falha.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/LlmCallFailedV1'
+      x-visibility: observer
+      x-producer: controller
+    OpsBudgetExceededV1:
+      name: campsverso.ops.budget.exceeded.v1
+      title: OpsBudgetExceededV1
+      summary: O gasto com modelos estourou um teto e a guarda pediu a pausa do mundo (ADR-0058). Só o
+        operador retoma.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/OpsBudgetExceededV1'
+      x-visibility: observer
+      x-producer: budget
+    OpsBudgetThresholdReachedV1:
+      name: campsverso.ops.budget.threshold_reached.v1
+      title: OpsBudgetThresholdReachedV1
+      summary: O gasto com modelos passou de 50, 80 ou 100% de um teto (ADR-0058). Publicado pela guarda
+        de orçamento.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/OpsBudgetThresholdReachedV1'
+      x-visibility: observer
+      x-producer: budget
     PerceptionDeliveredV1:
       name: campsverso.perception.delivered.v1
       title: PerceptionDeliveredV1

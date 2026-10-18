@@ -24,7 +24,7 @@ TYPE_NAME = re.compile(r"^campsverso\.(cmd\.)?([a-z0-9_]+)\.[a-z0-9_]+(\.[a-z0-9
 # Palavras reservadas do Python não viram nome de campo, nem o par `to` (ADR-0030):
 # os modelos Pydantic gerados precisariam de apelidos.
 RESERVED = frozenset(keyword.kwlist) | {"to"}
-PRODUCERS = frozenset({"kernel", "perception", "controller", "operator"})
+PRODUCERS = frozenset({"kernel", "perception", "controller", "operator", "budget"})
 
 
 def _nodes(node: Any, path: str) -> Iterator[tuple[str, JsonObject]]:

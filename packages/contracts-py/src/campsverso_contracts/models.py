@@ -386,6 +386,20 @@ class PerceptionConfig(BaseModel):
     """
 
 
+class LlmUsage(BaseModel):
+    """
+    Tokens de uma chamada de modelo, como o provedor os contou (ADR-0058): entrada, saída, lidos do cache e gravados no cache.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    input_tokens: Annotated[int, Field(ge=0)]
+    output_tokens: Annotated[int, Field(ge=0)]
+    cache_read_input_tokens: Annotated[int | None, Field(ge=0)] = None
+    cache_creation_input_tokens: Annotated[int | None, Field(ge=0)] = None
+
+
 class CmdActionProposeV1(BaseModel):
     """
     Controlador propõe uma ação para o avatar.
@@ -1065,6 +1079,150 @@ class FarmCropWitheredV1(BaseModel):
     """
     Viradas seguidas sem rega.
     """
+
+
+class LlmCallCompletedV1(BaseModel):
+    """
+    Uma chamada de modelo terminou (ADR-0058): quem chamou, qual modelo, tokens, custo e latência. Nunca leva o prompt nem a resposta. Publicado pelo decorador da porta, não pelo adaptador.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    controller: ControllerRef
+    """
+    Quem fez a chamada.
+    """
+    purpose: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Para que a chamada serviu: decision, reflection, probe…
+    """
+    avatar_id: Annotated[
+        str | None,
+        Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId"),
+    ] = None
+    """
+    O avatar em nome de quem se decidiu, quando houver.
+    """
+    provider: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    O provedor do adaptador: anthropic, openrouter…
+    """
+    model: Annotated[str, Field(max_length=128, pattern="^[a-z0-9][a-z0-9._:/-]*$")]
+    prompt_sha256: Annotated[str, Field(pattern="^[0-9a-f]{64}$")]
+    """
+    Hash do pedido canônico: identifica a chamada e a linha da fita, sem levar o prompt.
+    """
+    latency_ms: Annotated[int, Field(ge=0)]
+    request_id: Annotated[str | None, Field(max_length=128)] = None
+    """
+    O id do pedido no provedor, para suporte.
+    """
+    usage: LlmUsage
+    cost_usd: Annotated[float, Field(ge=0.0)]
+    """
+    Custo nominal pela tabela de preços do ambiente.
+    """
+    charged: bool
+    """
+    Falso quando a resposta veio da fita: ninguém pagou, e a guarda não conta.
+    """
+    stop_reason: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Como o modelo parou: end_turn, tool_use, max_tokens, refusal…
+    """
+    effort: Literal["low", "medium", "high", "xhigh", "max"] | None = None
+
+
+class LlmCallFailedV1(BaseModel):
+    """
+    Uma chamada de modelo falhou (ADR-0058): o erro classificado, se vale repetir, e a latência até a falha.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    controller: ControllerRef
+    """
+    Quem fez a chamada.
+    """
+    purpose: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Para que a chamada serviu: decision, reflection, probe…
+    """
+    avatar_id: Annotated[
+        str | None,
+        Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId"),
+    ] = None
+    """
+    O avatar em nome de quem se decidiu, quando houver.
+    """
+    provider: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    O provedor do adaptador: anthropic, openrouter…
+    """
+    model: Annotated[str, Field(max_length=128, pattern="^[a-z0-9][a-z0-9._:/-]*$")]
+    prompt_sha256: Annotated[str, Field(pattern="^[0-9a-f]{64}$")]
+    """
+    Hash do pedido canônico: identifica a chamada e a linha da fita, sem levar o prompt.
+    """
+    latency_ms: Annotated[int, Field(ge=0)]
+    error: Literal[
+        "rate_limit",
+        "timeout",
+        "connection",
+        "auth",
+        "bad_request",
+        "server",
+        "cassette_miss",
+    ]
+    message: Annotated[str, Field(max_length=1000)]
+    retryable: bool
+
+
+class OpsBudgetExceededV1(BaseModel):
+    """
+    O gasto com modelos estourou um teto e a guarda pediu a pausa do mundo (ADR-0058). Só o operador retoma.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    scope: Literal["day", "total"]
+    """
+    O teto do dia simulado ou o do mundo inteiro.
+    """
+    day: Annotated[int | None, Field(ge=1, title="Day")] = None
+    """
+    O dia simulado, quando o escopo é day.
+    """
+    spent_usd: Annotated[float, Field(ge=0.0)]
+    limit_usd: Annotated[float, Field(gt=0.0)]
+    paused: bool
+    """
+    Verdadeiro quando a guarda publicou cmd.clock.pause com reason budget.
+    """
+
+
+class OpsBudgetThresholdReachedV1(BaseModel):
+    """
+    O gasto com modelos passou de 50, 80 ou 100% de um teto (ADR-0058). Publicado pela guarda de orçamento.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    scope: Literal["day", "total"]
+    """
+    O teto do dia simulado ou o do mundo inteiro.
+    """
+    day: Annotated[int | None, Field(ge=1, title="Day")] = None
+    """
+    O dia simulado, quando o escopo é day.
+    """
+    spent_usd: Annotated[float, Field(ge=0.0)]
+    limit_usd: Annotated[float, Field(gt=0.0)]
+    threshold_pct: Literal[50, 80, 100]
 
 
 class PerceptionDecision(BaseModel):

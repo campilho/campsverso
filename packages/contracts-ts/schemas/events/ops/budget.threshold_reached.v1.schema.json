@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/ops/budget.threshold_reached.v1",
+  "title": "OpsBudgetThresholdReachedV1",
+  "description": "O gasto com modelos passou de 50, 80 ou 100% de um teto (ADR-0058). Publicado pela guarda de orçamento.",
+  "x-type": "campsverso.ops.budget.threshold_reached.v1",
+  "x-visibility": "observer",
+  "x-producer": "budget",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "scope",
+    "threshold_pct",
+    "spent_usd",
+    "limit_usd"
+  ],
+  "properties": {
+    "scope": {
+      "enum": [
+        "day",
+        "total"
+      ],
+      "description": "O teto do dia simulado ou o do mundo inteiro."
+    },
+    "day": {
+      "$ref": "contracts://common/defs.v1#/$defs/day",
+      "description": "O dia simulado, quando o escopo é day."
+    },
+    "spent_usd": {
+      "type": "number",
+      "minimum": 0
+    },
+    "limit_usd": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "threshold_pct": {
+      "enum": [
+        50,
+        80,
+        100
+      ]
+    }
+  }
+}

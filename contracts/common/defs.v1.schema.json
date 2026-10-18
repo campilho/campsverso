@@ -630,6 +630,34 @@
           "description": "Distância de Chebyshev, em tiles, do que um avatar enxerga; null é o mapa inteiro."
         }
       }
+    },
+    "llm_usage": {
+      "title": "LlmUsage",
+      "description": "Tokens de uma chamada de modelo, como o provedor os contou (ADR-0058): entrada, saída, lidos do cache e gravados no cache.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "input_tokens",
+        "output_tokens"
+      ],
+      "properties": {
+        "input_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "output_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cache_read_input_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cache_creation_input_tokens": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
     }
   }
 }

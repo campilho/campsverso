@@ -1,0 +1,24 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c37-7e50-9d00-4e6802771b64",
+  "source": "/budget/farm-camps-01",
+  "type": "campsverso.ops.budget.exceeded.v1",
+  "time": "2026-10-18T03:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/ops/budget.exceeded.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 506,
+  "simtime": "2026-03-02T14:26:00-03:00",
+  "seq": 44,
+  "provenance": "simulated",
+  "visibility": "observer",
+  "actor": "system/budget",
+  "data": {
+    "scope": "day",
+    "day": 1,
+    "spent_usd": 0.61,
+    "limit_usd": 0.6,
+    "paused": true
+  }
+}

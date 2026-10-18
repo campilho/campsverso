@@ -619,6 +619,34 @@
         }
       }
     },
+    "LlmUsage": {
+      "title": "LlmUsage",
+      "description": "Tokens de uma chamada de modelo, como o provedor os contou (ADR-0058): entrada, saída, lidos do cache e gravados no cache.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "input_tokens",
+        "output_tokens"
+      ],
+      "properties": {
+        "input_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "output_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cache_read_input_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cache_creation_input_tokens": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
     "CmdActionProposeV1": {
       "title": "CmdActionProposeV1",
       "description": "Controlador propõe uma ação para o avatar.",
@@ -1490,6 +1518,230 @@
           "type": "integer",
           "minimum": 1,
           "description": "Viradas seguidas sem rega."
+        }
+      }
+    },
+    "LlmCallCompletedV1": {
+      "title": "LlmCallCompletedV1",
+      "description": "Uma chamada de modelo terminou (ADR-0058): quem chamou, qual modelo, tokens, custo e latência. Nunca leva o prompt nem a resposta. Publicado pelo decorador da porta, não pelo adaptador.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "controller",
+        "purpose",
+        "provider",
+        "model",
+        "prompt_sha256",
+        "latency_ms",
+        "usage",
+        "cost_usd",
+        "charged",
+        "stop_reason"
+      ],
+      "properties": {
+        "controller": {
+          "$ref": "#/$defs/ControllerRef",
+          "description": "Quem fez a chamada."
+        },
+        "purpose": {
+          "$ref": "#/$defs/Token",
+          "description": "Para que a chamada serviu: decision, reflection, probe…"
+        },
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "O avatar em nome de quem se decidiu, quando houver."
+        },
+        "provider": {
+          "$ref": "#/$defs/Token",
+          "description": "O provedor do adaptador: anthropic, openrouter…"
+        },
+        "model": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._:/-]*$",
+          "maxLength": 128
+        },
+        "prompt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Hash do pedido canônico: identifica a chamada e a linha da fita, sem levar o prompt."
+        },
+        "latency_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "request_id": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "O id do pedido no provedor, para suporte."
+        },
+        "usage": {
+          "$ref": "#/$defs/LlmUsage"
+        },
+        "cost_usd": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Custo nominal pela tabela de preços do ambiente."
+        },
+        "charged": {
+          "type": "boolean",
+          "description": "Falso quando a resposta veio da fita: ninguém pagou, e a guarda não conta."
+        },
+        "stop_reason": {
+          "$ref": "#/$defs/Token",
+          "description": "Como o modelo parou: end_turn, tool_use, max_tokens, refusal…"
+        },
+        "effort": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ]
+        }
+      }
+    },
+    "LlmCallFailedV1": {
+      "title": "LlmCallFailedV1",
+      "description": "Uma chamada de modelo falhou (ADR-0058): o erro classificado, se vale repetir, e a latência até a falha.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "controller",
+        "purpose",
+        "provider",
+        "model",
+        "prompt_sha256",
+        "latency_ms",
+        "error",
+        "message",
+        "retryable"
+      ],
+      "properties": {
+        "controller": {
+          "$ref": "#/$defs/ControllerRef",
+          "description": "Quem fez a chamada."
+        },
+        "purpose": {
+          "$ref": "#/$defs/Token",
+          "description": "Para que a chamada serviu: decision, reflection, probe…"
+        },
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "O avatar em nome de quem se decidiu, quando houver."
+        },
+        "provider": {
+          "$ref": "#/$defs/Token",
+          "description": "O provedor do adaptador: anthropic, openrouter…"
+        },
+        "model": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._:/-]*$",
+          "maxLength": 128
+        },
+        "prompt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Hash do pedido canônico: identifica a chamada e a linha da fita, sem levar o prompt."
+        },
+        "latency_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "error": {
+          "enum": [
+            "rate_limit",
+            "timeout",
+            "connection",
+            "auth",
+            "bad_request",
+            "server",
+            "cassette_miss"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "retryable": {
+          "type": "boolean"
+        }
+      }
+    },
+    "OpsBudgetExceededV1": {
+      "title": "OpsBudgetExceededV1",
+      "description": "O gasto com modelos estourou um teto e a guarda pediu a pausa do mundo (ADR-0058). Só o operador retoma.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "spent_usd",
+        "limit_usd",
+        "paused"
+      ],
+      "properties": {
+        "scope": {
+          "enum": [
+            "day",
+            "total"
+          ],
+          "description": "O teto do dia simulado ou o do mundo inteiro."
+        },
+        "day": {
+          "$ref": "#/$defs/Day",
+          "description": "O dia simulado, quando o escopo é day."
+        },
+        "spent_usd": {
+          "type": "number",
+          "minimum": 0
+        },
+        "limit_usd": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "paused": {
+          "type": "boolean",
+          "description": "Verdadeiro quando a guarda publicou cmd.clock.pause com reason budget."
+        }
+      }
+    },
+    "OpsBudgetThresholdReachedV1": {
+      "title": "OpsBudgetThresholdReachedV1",
+      "description": "O gasto com modelos passou de 50, 80 ou 100% de um teto (ADR-0058). Publicado pela guarda de orçamento.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "threshold_pct",
+        "spent_usd",
+        "limit_usd"
+      ],
+      "properties": {
+        "scope": {
+          "enum": [
+            "day",
+            "total"
+          ],
+          "description": "O teto do dia simulado ou o do mundo inteiro."
+        },
+        "day": {
+          "$ref": "#/$defs/Day",
+          "description": "O dia simulado, quando o escopo é day."
+        },
+        "spent_usd": {
+          "type": "number",
+          "minimum": 0
+        },
+        "limit_usd": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "threshold_pct": {
+          "enum": [
+            50,
+            80,
+            100
+          ]
         }
       }
     },

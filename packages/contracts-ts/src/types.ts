@@ -353,6 +353,18 @@ export interface PerceptionConfig {
   radius: number | null;
 }
 /**
+ * Tokens de uma chamada de modelo, como o provedor os contou (ADR-0058): entrada, saída, lidos do cache e gravados no cache.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "LlmUsage".
+ */
+export interface LlmUsage {
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_input_tokens?: number;
+  cache_creation_input_tokens?: number;
+}
+/**
  * Controlador propõe uma ação para o avatar.
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
@@ -724,6 +736,96 @@ export interface FarmCropWitheredV1 {
    * Viradas seguidas sem rega.
    */
   dry_days: number;
+}
+/**
+ * Uma chamada de modelo terminou (ADR-0058): quem chamou, qual modelo, tokens, custo e latência. Nunca leva o prompt nem a resposta. Publicado pelo decorador da porta, não pelo adaptador.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "LlmCallCompletedV1".
+ */
+export interface LlmCallCompletedV1 {
+  controller: ControllerRef;
+  purpose: Token;
+  avatar_id?: EntityId;
+  provider: Token;
+  model: string;
+  /**
+   * Hash do pedido canônico: identifica a chamada e a linha da fita, sem levar o prompt.
+   */
+  prompt_sha256: string;
+  latency_ms: number;
+  /**
+   * O id do pedido no provedor, para suporte.
+   */
+  request_id?: string;
+  usage: LlmUsage;
+  /**
+   * Custo nominal pela tabela de preços do ambiente.
+   */
+  cost_usd: number;
+  /**
+   * Falso quando a resposta veio da fita: ninguém pagou, e a guarda não conta.
+   */
+  charged: boolean;
+  stop_reason: Token;
+  effort?: "low" | "medium" | "high" | "xhigh" | "max";
+}
+/**
+ * Uma chamada de modelo falhou (ADR-0058): o erro classificado, se vale repetir, e a latência até a falha.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "LlmCallFailedV1".
+ */
+export interface LlmCallFailedV1 {
+  controller: ControllerRef;
+  purpose: Token;
+  avatar_id?: EntityId;
+  provider: Token;
+  model: string;
+  /**
+   * Hash do pedido canônico: identifica a chamada e a linha da fita, sem levar o prompt.
+   */
+  prompt_sha256: string;
+  latency_ms: number;
+  error:
+    "rate_limit" | "timeout" | "connection" | "auth" | "bad_request" | "server" | "cassette_miss";
+  message: string;
+  retryable: boolean;
+}
+/**
+ * O gasto com modelos estourou um teto e a guarda pediu a pausa do mundo (ADR-0058). Só o operador retoma.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "OpsBudgetExceededV1".
+ */
+export interface OpsBudgetExceededV1 {
+  /**
+   * O teto do dia simulado ou o do mundo inteiro.
+   */
+  scope: "day" | "total";
+  day?: Day;
+  spent_usd: number;
+  limit_usd: number;
+  /**
+   * Verdadeiro quando a guarda publicou cmd.clock.pause com reason budget.
+   */
+  paused: boolean;
+}
+/**
+ * O gasto com modelos passou de 50, 80 ou 100% de um teto (ADR-0058). Publicado pela guarda de orçamento.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "OpsBudgetThresholdReachedV1".
+ */
+export interface OpsBudgetThresholdReachedV1 {
+  /**
+   * O teto do dia simulado ou o do mundo inteiro.
+   */
+  scope: "day" | "total";
+  day?: Day;
+  spent_usd: number;
+  limit_usd: number;
+  threshold_pct: 50 | 80 | 100;
 }
 /**
  * Instantâneo do que o avatar percebe, a cada pedido de decisão (ADR-0028).

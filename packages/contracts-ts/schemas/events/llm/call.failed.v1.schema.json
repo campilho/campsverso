@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/llm/call.failed.v1",
+  "title": "LlmCallFailedV1",
+  "description": "Uma chamada de modelo falhou (ADR-0058): o erro classificado, se vale repetir, e a latência até a falha.",
+  "x-type": "campsverso.llm.call.failed.v1",
+  "x-visibility": "observer",
+  "x-producer": "controller",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "controller",
+    "purpose",
+    "provider",
+    "model",
+    "prompt_sha256",
+    "latency_ms",
+    "error",
+    "message",
+    "retryable"
+  ],
+  "properties": {
+    "controller": {
+      "$ref": "contracts://common/defs.v1#/$defs/controller_ref",
+      "description": "Quem fez a chamada."
+    },
+    "purpose": {
+      "$ref": "contracts://common/defs.v1#/$defs/token",
+      "description": "Para que a chamada serviu: decision, reflection, probe…"
+    },
+    "avatar_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "O avatar em nome de quem se decidiu, quando houver."
+    },
+    "provider": {
+      "$ref": "contracts://common/defs.v1#/$defs/token",
+      "description": "O provedor do adaptador: anthropic, openrouter…"
+    },
+    "model": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._:/-]*$",
+      "maxLength": 128
+    },
+    "prompt_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Hash do pedido canônico: identifica a chamada e a linha da fita, sem levar o prompt."
+    },
+    "latency_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "error": {
+      "enum": [
+        "rate_limit",
+        "timeout",
+        "connection",
+        "auth",
+        "bad_request",
+        "server",
+        "cassette_miss"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "maxLength": 1000
+    },
+    "retryable": {
+      "type": "boolean"
+    }
+  }
+}

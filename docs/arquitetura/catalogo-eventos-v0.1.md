@@ -60,6 +60,7 @@ Cada schema declara a visibilidade do seu tipo (`"x-visibility": "internal"`). O
 | `terrain_window` | `{ origin: position, rows, legend }`, o terreno ao alcance do avatar | janela a partir de `{ "x": 0, "y": 0 }` |
 | `perception_config` | `{ radius: int ≥ 0 \| null }`, o raio de percepção do cartucho; `null` é o mapa inteiro | `{ "radius": null }` |
 | `seen_*` · `decision_request` · `seen_event` | as peças de uma entrega de percepção: relógio, clima, o próprio avatar, contêiner, entidade, o pedido de decisão e um evento percebido `{ tick, type, data }` | usadas pelo delta (3.7) |
+| `llm_usage` | `{ input_tokens, output_tokens, cache_read_input_tokens?, cache_creation_input_tokens? }`, os tokens de uma chamada de modelo como o provedor os contou (ADR-0058) | `{ "input_tokens": 1040, "output_tokens": 86 }` |
 
 **Idioma dos valores:**
 - conteúdo do cartucho em português: itens, culturas, estágios, necessidades, fases do dia;
@@ -264,6 +265,19 @@ O pulso sai a cada `kernel.pulse_seconds` de tempo real. Não entra no arquivo J
 
 ---
 
+### 3.13 Modelo e orçamento (produtores: controlador e guarda de orçamento; ADR-0058)
+
+Todos com visibilidade `observer`: chegam ao operador e ao arquivo, nunca aos agentes. Nenhum leva o prompt nem a resposta: só o hash do pedido canônico.
+
+| Tipo | Vis. | Payload | Origem |
+|---|---|---|---|
+| `campsverso.llm.call.completed.v1` | observer | `controller` · `purpose` · `avatar_id?` · `provider` · `model` · `request_id?` · `prompt_sha256` · `latency_ms` · `usage: llm_usage` · `cost_usd` · `charged` (falso quando veio da fita) · `stop_reason` · `effort?` | contratos §8.5 e §12.1 |
+| `campsverso.llm.call.failed.v1` | observer | o mesmo cabeçalho · `error: rate_limit\|timeout\|connection\|auth\|bad_request\|server\|cassette_miss` · `message` · `retryable` | ADR-0058 |
+| `campsverso.ops.budget.threshold_reached.v1` | observer | `scope: day\|total` · `day?` · `threshold_pct: 50\|80\|100` · `spent_usd` · `limit_usd` | contratos §8 (era `internal`) |
+| `campsverso.ops.budget.exceeded.v1` | observer | `scope` · `day?` · `spent_usd` · `limit_usd` · `paused` (a guarda publicou `cmd.clock.pause` com `reason: budget`) | contratos §8 (era `internal`) |
+
+Quem publica os de chamada é o decorador da porta (`MeteredModel`), não o adaptador do provedor; quem publica os de orçamento é a guarda, um serviço próprio.
+
 ## 4. Do catálogo geral, fora da v0.1
 
 Não ganham schema agora. Entram quando a versão que os usa chegar:
@@ -297,6 +311,8 @@ Cada um precisa ser recusado **pelos dois validadores** (Python `jsonschema` e T
 | 13 | Política de interrupção fora de `never`, `cancel`, `partial` | ADR-0052 |
 | 14 | Legenda do terreno com chave de dois caracteres | um caractere por tile (ADR-0056) |
 | 15 | Delta da percepção com evento sem `type` | quem lê precisa saber o que aconteceu (ADR-0056) |
+| 16 | Chamada de modelo com custo negativo | a guarda soma, nunca subtrai (ADR-0058) |
+| 17 | Teto de orçamento com escopo fora de `day` e `total` | ADR-0058 |
 
 Além disso, qualquer arquivo inválido colocado em `examples/valid/` quebra o `make check` (critério do M0).
 

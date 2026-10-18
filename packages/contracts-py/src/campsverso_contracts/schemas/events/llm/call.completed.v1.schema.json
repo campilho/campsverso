@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/llm/call.completed.v1",
+  "title": "LlmCallCompletedV1",
+  "description": "Uma chamada de modelo terminou (ADR-0058): quem chamou, qual modelo, tokens, custo e latência. Nunca leva o prompt nem a resposta. Publicado pelo decorador da porta, não pelo adaptador.",
+  "x-type": "campsverso.llm.call.completed.v1",
+  "x-visibility": "observer",
+  "x-producer": "controller",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "controller",
+    "purpose",
+    "provider",
+    "model",
+    "prompt_sha256",
+    "latency_ms",
+    "usage",
+    "cost_usd",
+    "charged",
+    "stop_reason"
+  ],
+  "properties": {
+    "controller": {
+      "$ref": "contracts://common/defs.v1#/$defs/controller_ref",
+      "description": "Quem fez a chamada."
+    },
+    "purpose": {
+      "$ref": "contracts://common/defs.v1#/$defs/token",
+      "description": "Para que a chamada serviu: decision, reflection, probe…"
+    },
+    "avatar_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "O avatar em nome de quem se decidiu, quando houver."
+    },
+    "provider": {
+      "$ref": "contracts://common/defs.v1#/$defs/token",
+      "description": "O provedor do adaptador: anthropic, openrouter…"
+    },
+    "model": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._:/-]*$",
+      "maxLength": 128
+    },
+    "prompt_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Hash do pedido canônico: identifica a chamada e a linha da fita, sem levar o prompt."
+    },
+    "latency_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "request_id": {
+      "type": "string",
+      "maxLength": 128,
+      "description": "O id do pedido no provedor, para suporte."
+    },
+    "usage": {
+      "$ref": "contracts://common/defs.v1#/$defs/llm_usage"
+    },
+    "cost_usd": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Custo nominal pela tabela de preços do ambiente."
+    },
+    "charged": {
+      "type": "boolean",
+      "description": "Falso quando a resposta veio da fita: ninguém pagou, e a guarda não conta."
+    },
+    "stop_reason": {
+      "$ref": "contracts://common/defs.v1#/$defs/token",
+      "description": "Como o modelo parou: end_turn, tool_use, max_tokens, refusal…"
+    },
+    "effort": {
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ]
+    }
+  }
+}

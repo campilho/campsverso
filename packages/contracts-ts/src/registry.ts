@@ -162,6 +162,30 @@ export const CONTRACT_TYPES = {
     producer: "kernel",
     dataschema: "contracts://events/farm/crop.withered.v1",
   },
+  "campsverso.llm.call.completed.v1": {
+    kind: "event",
+    visibility: "observer",
+    producer: "controller",
+    dataschema: "contracts://events/llm/call.completed.v1",
+  },
+  "campsverso.llm.call.failed.v1": {
+    kind: "event",
+    visibility: "observer",
+    producer: "controller",
+    dataschema: "contracts://events/llm/call.failed.v1",
+  },
+  "campsverso.ops.budget.exceeded.v1": {
+    kind: "event",
+    visibility: "observer",
+    producer: "budget",
+    dataschema: "contracts://events/ops/budget.exceeded.v1",
+  },
+  "campsverso.ops.budget.threshold_reached.v1": {
+    kind: "event",
+    visibility: "observer",
+    producer: "budget",
+    dataschema: "contracts://events/ops/budget.threshold_reached.v1",
+  },
   "campsverso.perception.delivered.v1": {
     kind: "event",
     visibility: "agent",
@@ -342,6 +366,10 @@ export interface PayloadByType {
   "campsverso.farm.buyer.paid.v1": T.FarmBuyerPaidV1;
   "campsverso.farm.crop.matured.v1": T.FarmCropMaturedV1;
   "campsverso.farm.crop.withered.v1": T.FarmCropWitheredV1;
+  "campsverso.llm.call.completed.v1": T.LlmCallCompletedV1;
+  "campsverso.llm.call.failed.v1": T.LlmCallFailedV1;
+  "campsverso.ops.budget.exceeded.v1": T.OpsBudgetExceededV1;
+  "campsverso.ops.budget.threshold_reached.v1": T.OpsBudgetThresholdReachedV1;
   "campsverso.perception.delivered.v1": T.PerceptionDeliveredV1;
   "campsverso.perception.updated.v1": T.PerceptionUpdatedV1;
   "campsverso.rules.effect_applied.v1": T.RulesEffectAppliedV1;

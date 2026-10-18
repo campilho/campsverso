@@ -1,0 +1,32 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c35-7c30-9b00-2e6802771b42",
+  "source": "/controller-runner/llm/haiku",
+  "type": "campsverso.llm.call.failed.v1",
+  "time": "2026-10-18T03:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/llm/call.failed.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 506,
+  "simtime": "2026-03-02T14:26:00-03:00",
+  "seq": 42,
+  "provenance": "simulated",
+  "visibility": "observer",
+  "actor": "system/controller-runner",
+  "data": {
+    "controller": {
+      "type": "llm",
+      "id": "llm/haiku"
+    },
+    "purpose": "decision",
+    "avatar_id": "camps",
+    "provider": "anthropic",
+    "model": "claude-haiku-5-5",
+    "prompt_sha256": "a7e2a7e2a7e2a7e2a7e2a7e2a7e2a7e2a7e2a7e2a7e2a7e2a7e2a7e2a7e2a7e2",
+    "latency_ms": 30012,
+    "error": "timeout",
+    "message": "a chamada passou de 30 s",
+    "retryable": true
+  }
+}

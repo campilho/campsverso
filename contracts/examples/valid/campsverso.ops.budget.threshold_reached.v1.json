@@ -1,0 +1,24 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c36-7d40-8c00-3e6802771b53",
+  "source": "/budget/farm-camps-01",
+  "type": "campsverso.ops.budget.threshold_reached.v1",
+  "time": "2026-10-18T03:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/ops/budget.threshold_reached.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 506,
+  "simtime": "2026-03-02T14:26:00-03:00",
+  "seq": 43,
+  "provenance": "simulated",
+  "visibility": "observer",
+  "actor": "system/budget",
+  "data": {
+    "scope": "day",
+    "day": 1,
+    "threshold_pct": 80,
+    "spent_usd": 0.49,
+    "limit_usd": 0.6
+  }
+}
