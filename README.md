@@ -36,6 +36,8 @@ A pergunta da v0.2: **um LLM consegue viver na fazenda, prosperar e descobrir so
 | M12: a arena | humano × script × dois modelos, lado a lado, com o custo por dia simulado |
 | M13: fechamento | critérios de aceite, diário e a tag `v0.2.0` |
 
+**M8 concluído em 17/out/2026** ([plano](docs/planos/m8-mundo-pronto-para-o-llm.md), ADR-0056 e ADR-0057): o terreno e o raio no `session.started`, a foto com mapa, o delta `perception.updated.v1`, acordado custa energia e a fome no teto drena, e `make percepcao` mede o custo em tokens.
+
 ## Depois: v0.3, o escritório que constrói a si mesmo
 
 Em vez de outra fazenda, um escritório de programação com um único dev no começo, cujo trabalho é melhorar o próprio Campsverso: ele recebe tickets de nós, abre PRs, espera o CI, e quando um PR é mesclado o mundo reinicia na versão que ele mesmo escreveu. Depois ele propõe um ajudante. É o primeiro cartucho com efeitos externos; a v0.2 inteira é pré-requisito. A ideia está em [ideia-escritorio-que-se-constroi.md](docs/planos/ideia-escritorio-que-se-constroi.md), a direção na [ADR-0055](docs/decisoes/0055-a-v0-3-e-o-escritorio-que-se-constroi.md) e as telas propostas em [docs/design](docs/design/README.md).
@@ -47,7 +49,7 @@ flowchart LR
     kernel["Kernel<br/>o único que escreve o mundo"] -- "eventos" --> nats[("NATS JetStream")]
     nats -- "comandos" --> kernel
     nats -- "world e agent" --> percepcao["Percepção"]
-    percepcao -- "a foto de cada avatar" --> nats
+    percepcao -- "a foto ou o delta de cada avatar" --> nats
     nats -- "foto" --> runner["Controladores<br/>script e replay"]
     runner -- "propõe ações" --> nats
     nats -- "tudo" --> arquivador["Arquivador"] --> arquivo[("Arquivo JSONL")]
@@ -77,6 +79,7 @@ make mapa-visual    # regrava o mapa visual da fazenda a partir do mapa lógico
 make soak DAYS=30   # 30 dias simulados em modo máximo, com processos e NATS próprios
 make sessoes MARCO=M6   # tempo e tokens do Claude Code por marco, em docs/custos/
 make metrics        # métricas do mundo a partir do arquivo de eventos
+make percepcao      # fotos e deltas da percepção por dia, em bytes e tokens estimados (ADR-0056)
 make help    # todos os alvos
 ```
 

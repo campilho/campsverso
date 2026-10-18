@@ -104,6 +104,7 @@ sandbox: tools ui-build ## mundo descartável com tudo ligado, em data/sandbox/<
 
 DAYS ?= 30
 ARCHIVE ?= data/archive/farm-camps-01
+EVERY ?= 20
 
 soak: tools ## resistência com processos e NATS próprios: make soak DAYS=30 (SEM_REGRA=1 desliga a R-001)
 	$(PY) python -m campsverso_testkit.soak --days $(DAYS) \
@@ -115,6 +116,9 @@ replay: ## reexecuta um dia gravado do mundo e compara com o arquivo: make repla
 
 metrics: ## métricas da bíblia §13 a partir do arquivo: make metrics [ARCHIVE=pasta do mundo]
 	$(PY) python -m campsverso_tools.metrics $(ARCHIVE)
+
+percepcao: ## tokens da percepção por dia a partir do arquivo (ADR-0056): make percepcao [ARCHIVE=pasta] [EVERY=20]
+	$(PY) python -m campsverso_tools.perception_budget $(ARCHIVE) --every $(EVERY)
 
 ui-e2e: tools ui-build ## fumaça da tela no navegador (Playwright), com um sandbox próprio na porta 8799
 	pnpm --filter @campsverso/ui exec playwright test

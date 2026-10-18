@@ -124,6 +124,7 @@ make ui-e2e       # fumaça da tela no navegador (Playwright), com um sandbox pr
 make soak DAYS=30 # resistência em modo máximo, com processos e NATS próprios (SEM_REGRA=1)
 make replay DAY=N # reexecuta um dia a partir do snapshot e do diário e compara com o arquivo
 make metrics      # métricas da bíblia §13 a partir do arquivo (ARCHIVE=pasta do mundo)
+make percepcao    # fotos e deltas da percepção por dia, em bytes e tokens estimados (ADR-0056)
 make mapa-visual  # regrava o mapa visual da fazenda a partir do mapa lógico (ADR-0053)
 make sessoes      # tempo e tokens do Claude Code por turno e por marco em docs/custos (MARCO=M5)
 ```
