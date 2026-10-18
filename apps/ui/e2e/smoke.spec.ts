@@ -29,11 +29,18 @@ test("o operador vê o mapa desenhado, assume o Camps, anda e devolve", async ({
   await expect(page.getByRole("button", { name: "Devolver ao script" })).toBeVisible();
   await expect(hud).toContainText("parado", { timeout: 45_000 }); // o que o script deixou em andamento termina
 
+  // Com o relógio pausado, cada passo é um tick: a caminhada (1 minuto, a 30 tiles por minuto,
+  // ADR-0057) fica visível entre um passo e outro, em vez de passar em menos de um segundo a 72×.
+  await page.getByRole("button", { name: "Pausar" }).click();
+  await expect(page.getByRole("button", { name: "Retomar" })).toBeVisible();
   const target = await tile(page, 15, 12);
   await page.mouse.click(target.x, target.y);
+  await page.getByRole("button", { name: "+1", exact: true }).click();
   await expect(hud).toContainText("fazendo: move", { timeout: 10_000 });
   await page.screenshot({ path: `${SHOTS}/andando.png` });
-  await expect(hud).toContainText("parado", { timeout: 30_000 });
+  await page.getByRole("button", { name: "+1", exact: true }).click();
+  await expect(hud).toContainText("parado", { timeout: 10_000 });
+  await page.getByRole("button", { name: "Retomar" }).click();
 
   await page.getByRole("button", { name: "Devolver ao script" }).click();
   await expect(page.getByRole("button", { name: "Assumir o Camps" })).toBeVisible();

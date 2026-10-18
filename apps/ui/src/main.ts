@@ -199,7 +199,7 @@ function renderControl(state: ObserverState): void {
 /** Onde o avatar aparece na tela agora (o trajeto interpolado, arredondado ao tile). */
 function avatarTile(state: ObserverState): { x: number; y: number } | undefined {
   const motion = state.motion[avatarId()];
-  const at = motion === undefined ? state.entities[avatarId()]?.position : motionClock.at(avatarId(), motion, shownTick);
+  const at = motionClock.at(avatarId(), motion, state.entities[avatarId()]?.position, shownTick, performance.now());
   return at === undefined ? undefined : { x: Math.round(at.x), y: Math.round(at.y) };
 }
 

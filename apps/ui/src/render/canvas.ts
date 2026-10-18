@@ -124,7 +124,7 @@ export class MapCanvas implements WorldRenderer {
         continue;
       }
       const motion = state.motion[id];
-      const at: Point | undefined = motion === undefined ? entity.position : motionClock.at(id, motion, tick);
+      const at: Point | undefined = motionClock.at(id, motion, entity.position, tick, performance.now());
       if (at === undefined) {
         continue;
       }

@@ -59,7 +59,9 @@ def test_no_meio_de_um_trajeto() -> None:
             },
         }
     )
-    farmer.run(3)
+    # A 30 tiles por minuto (ADR-0057) qualquer trajeto cabe num tick: depois do primeiro passo a
+    # caminhada está em curso, com a trajetória no estado, e termina no passo seguinte.
+    farmer.run(1)
     assert farmer.core.world.avatar_map["camps"].action is not None
     _same_future(farmer.core)
 

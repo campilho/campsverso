@@ -167,7 +167,7 @@ Todas as ações são propostas por **qualquer controlador** via `campsverso.cmd
 
 | Ação | Alvo | Pré-condições | Duração (ticks) | Energia | Efeito |
 |---|---|---|---|---|---|
-| `move` | tile | destino passável e alcançável | distância ÷ 3 tiles/min (arredondado para cima) | 0 | trajeto calculado pelo kernel |
+| `move` | tile | destino passável e alcançável | distância ÷ 30 tiles/min, arredondado para cima: na fazenda, 1 minuto para qualquer trajeto (ADR-0057) | 0 | trajeto calculado pelo kernel |
 | `plant` | canteiro | canteiro vazio; semente da cultura no inventário | 5 | 2 | semente consumida; planta em `semente` |
 | `water` | canteiro | regador com carga; canteiro com planta | 2 | 2 | regador −1; canteiro regado hoje |
 | `refill` | poço | adjacente | 3 | 1 | regador = 10 |

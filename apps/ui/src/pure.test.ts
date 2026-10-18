@@ -1,7 +1,7 @@
 import type { EnvelopeV1, ObserverMotion, ObserverState } from "@campsverso/contracts";
 import { describe, expect, it } from "vitest";
 
-import { MotionClock, positionAt, smoothedAt } from "./motion.ts";
+import { MAX_TILES_PER_SECOND, MotionClock, positionAt, smoothedAt } from "./motion.ts";
 import { applyMergePatch } from "./patch.ts";
 import { entityColor, tileColor } from "./render/skin.ts";
 import { DisplayClock, MAX_AHEAD, clockText, isLive } from "./simclock.ts";
@@ -268,9 +268,36 @@ describe("caminhada que chega atrasada à tela", () => {
 
   it("a memória guarda o tick em que cada trajeto foi visto", () => {
     const clock = new MotionClock();
-    expect(clock.at("camps", walk, 10.5)).toEqual({ x: 0, y: 0 });
-    expect(clock.at("camps", walk, 12)).toEqual({ x: 6, y: 0 });
+    expect(clock.at("camps", walk, undefined, 10.5, 0)).toEqual({ x: 0, y: 0 });
+    expect(clock.at("camps", walk, undefined, 12, 10_000)).toEqual({ x: 6, y: 0 });
     const next = { ...walk, depart_tick: 20 };
-    expect(clock.at("camps", next, 20)).toEqual({ x: 0, y: 0 });
+    expect(clock.at("camps", next, undefined, 20, 20_000)).toEqual({ x: 0, y: 0 });
+  });
+
+  it("um trajeto lento segue o kernel: o teto de velocidade não entra", () => {
+    const clock = new MotionClock();
+    expect(clock.at("camps", walk, undefined, 10, 0)).toEqual({ x: 0, y: 0 });
+    expect(clock.at("camps", walk, undefined, 11, 100_000)).toEqual(positionAt(walk, 11));
+  });
+});
+
+describe("teto de velocidade do desenho (ADR-0057)", () => {
+  // 30 tiles num tick: a 72×, 36 tiles por segundo; a tela anda no máximo MAX_TILES_PER_SECOND.
+  const dash: ObserverMotion = {
+    path: [{ x: 0, y: 0 }, ...Array.from({ length: 30 }, (_, i) => ({ x: i + 1, y: 0 }))],
+    depart_tick: 10,
+    tiles_per_tick: 30,
+  };
+
+  it("fica para trás do kernel e alcança no ritmo do teto, mesmo depois de o trajeto acabar", () => {
+    const clock = new MotionClock();
+    expect(clock.at("camps", dash, undefined, 10, 0)).toEqual({ x: 0, y: 0 });
+    // Meio segundo depois o kernel já chegou (tick 11); a tela andou 6 tiles.
+    expect(clock.at("camps", dash, undefined, 11, 500)).toEqual({ x: MAX_TILES_PER_SECOND / 2, y: 0 });
+    // O trajeto sumiu do estado (chegou): a tela termina a caminhada até o destino.
+    expect(clock.at("camps", undefined, { x: 30, y: 0 }, 11.5, 1_000)).toEqual({ x: MAX_TILES_PER_SECOND, y: 0 });
+    expect(clock.at("camps", undefined, { x: 30, y: 0 }, 13, 5_000)).toEqual({ x: 30, y: 0 });
+    // Parada em outro lugar, que não é o fim do trajeto: vai direto.
+    expect(clock.at("camps", undefined, { x: 2, y: 2 }, 14, 5_100)).toEqual({ x: 2, y: 2 });
   });
 });
