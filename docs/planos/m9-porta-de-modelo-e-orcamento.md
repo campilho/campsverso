@@ -89,6 +89,20 @@ A ordem do trabalho foi cumprida; falta só a chamada real, que depende da chave
 - **Guarda:** `services/budget` (usuário NATS `budget`, processo no Procfile, teto em `config/worlds/farm-camps-01.yaml`: US$ 0,60 por dia e US$ 10 no total). No pipeline em memória, três chamadas de US$ 0,25 avisam 50 e 80% e, na terceira, publicam `exceeded` e `cmd.clock.pause`, e o kernel para; o livro-caixa volta do arquivo e uma reentrega não conta.
 - **Fumaça e calibração:** `make llm-smoke` (a chamada real, gravada, e a mesma reproduzida da fita, as duas pelo contrato) e `make percepcao CONTAR=20` (o fator real de caracteres por token com `count_tokens`). Testados com uma porta falsa; a chamada real fica registrada abaixo quando rodar.
 
-### A chamada real
+### A chamada real (18/out/2026, 20:20)
 
-Pendente: precisa da chave da API na `.env` (resgate dos créditos da assinatura na Console). Quando rodar, entram aqui tokens, custo, latência e o fator de calibração.
+Os créditos da assinatura foram resgatados na Console (organização "Camps's Individual Org", US$ 100 por mês; o nível tem teto de gasto de US$ 500 por mês), a chave `chave-campsverso` (válida até 31/12/2026, escopo do espaço de trabalho padrão) entrou no `.env`, e o `make llm-smoke` fez a primeira chamada real do Campsverso, pela porta inteira: adaptador, fita em `record` e medidor publicando pelo contrato num barramento em memória.
+
+| Medida | Valor |
+|---|---|
+| Modelo, esforço | `claude-haiku-5-5`, `low` |
+| Tokens de entrada / saída | 532 / 142 (sem cache: o pedido é curto demais para o mínimo cacheável) |
+| Custo | US$ 0,000124 |
+| Latência | 5.168 ms |
+| `request_id` | `req_011CgAZQGX9YHXVQS9MAwbB4` |
+| `stop_reason` | `tool_use`: `harvest`, "Os rabanetes do canteiro leste estão maduros, então é hora de colher." |
+| Segunda chamada | da fita, `charged: false`, mesmo hash |
+
+O bloco `thinking` voltou com o texto vazio e só a assinatura: em `effort: low` o raciocínio quase não aparece, mas o bloco precisa voltar na conversa.
+
+**Calibração (`make percepcao CONTAR=20`, 12 dias do mundo oficial):** 2,07 caracteres por token na foto e 2,05 no delta, contra os 3,5 assumidos no M8. O JSON da percepção, com ids como `plot-e-03`, números e nomes em português, tokeniza denso. Os tokens reais são **1,7×** os estimados: a foto média (3.829 bytes) são uns 1.850 tokens, um delta (~1.150 bytes) uns 560, e um dia simulado custa uns **60 mil tokens de percepção com deltas** (178 mil só com fotos), não 35 mil. O fator padrão do `make percepcao` passou a 2,1; a tabela de custos do plano do M10 foi refeita com ele. O Haiku continua cabendo no teto de US$ 0,60 por dia com folga; o Sonnet já não cabe sem teto próprio.

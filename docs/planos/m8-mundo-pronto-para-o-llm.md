@@ -95,6 +95,8 @@ A ordem do trabalho foi cumprida como planejada, com o passo zero antes (ADR-005
 | tokens por dia, só fotos | 105 mil | 140 mil | 132 mil |
 | tokens por dia, foto a cada 20 deltas | 35 mil | 37 mil | 35 mil |
 
+**Calibração (M9, 18/out):** o fator real é 2,1 caracteres por token (2,07 na foto, 2,05 no delta), não 3,5. Os tokens desta tabela valem multiplicados por 1,7: uns 60 mil por dia com deltas e 178 mil só com fotos. A conclusão não muda: o delta é o que torna o M10 pagável.
+
 Os soaks de 30 dias com as regras novas: **com a regra**, 33,0 s (1,07 s por dia), 1.175 moedas, colheitas leste 112 e oeste 72, amadurecimento em 2,0 e 3,0 dias, pico de fome 78,9, nenhum desmaio; **sem a regra**, 31,5 s, 750 moedas, 72 e 72, 3,0 e 3,0, pico de fome 100, nenhum desmaio. São os mesmos 1.175 e 750 do M7: o dia do script é limitado pelas plantas, não pelo tempo, então andar dez vezes mais rápido e gastar 1 de energia por hora acordado não mudaram a economia. Sem a regra a fome chega a 100 e drena energia, e o script sobrevive sem desmaiar, porque come ao colher.
 
 ### O que fica
