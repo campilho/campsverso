@@ -1,5 +1,5 @@
-/** Painel do operador: relógio, controlador, decisão atual, métricas do dia e linha do tempo (escopo §6;
- * ADR-0050, ADR-0054).
+/** Painel do operador: relógio, controlador, decisão atual, o caderno do avatar, métricas do dia e
+ * linha do tempo (escopo §6; ADR-0050, ADR-0054, ADR-0060).
  *
  * Os botões só pedem: quem aceita ou recusa é o kernel, e a resposta volta como evento. Desabilitar
  * "Avançar" fora da pausa é conforto (ADR-0026), não regra.
@@ -8,6 +8,7 @@ import type { EnvelopeV1, ObserverState, RealtimeReplyV1 } from "@campsverso/con
 
 import { button, el } from "../dom.ts";
 import { metricTable } from "../metrics.ts";
+import { clockText } from "../simclock.ts";
 import { matches, shortType, summarize, type TimelineFilter, type Visibility } from "../timeline.ts";
 
 const CMD = "campsverso.cmd.clock.";
@@ -20,11 +21,12 @@ export class OperatorPanel {
   private filter: TimelineFilter = { visibilities: new Set(VISIBILITIES), text: "" };
   private readonly controls = el("section", { className: "card" });
   private readonly decision = el("section", { className: "card" });
+  private readonly notebook = el("section", { className: "card notebook" });
   private readonly metrics = el("section", { className: "card metrics" });
   private readonly filters = el("div", { className: "filters" });
   private readonly list = el("ol", { className: "timeline" });
   /** O que cada parte mostrou da última vez: refazer o DOM sem mudança engoliria cliques. */
-  private readonly shown = { controls: "", decision: "", metrics: "", timeline: "" };
+  private readonly shown = { controls: "", decision: "", notebook: "", metrics: "", timeline: "" };
 
   private readonly send: Send;
   private readonly onFilter: () => void;
@@ -37,6 +39,7 @@ export class OperatorPanel {
       el("h2", {}, "Painel do operador"),
       this.controls,
       this.decision,
+      this.notebook,
       this.metrics,
       el("section", { className: "card grow" }, el("h3", {}, "Linha do tempo"), this.filters, this.list),
     );
@@ -79,6 +82,7 @@ export class OperatorPanel {
   ): void {
     this.renderControls(state, commands, reply);
     this.renderDecision(state, avatarId);
+    this.renderNotebook(state, avatarId);
     this.renderMetrics(state);
     this.renderTimeline(timeline);
   }
@@ -174,8 +178,36 @@ export class OperatorPanel {
         { className: "mono" },
         action === undefined
           ? "nenhuma ação em andamento"
-          : `${action.action} ${JSON.stringify(action.params)} até o tick ${String(action.end_tick)}`,
+          : `${action.action} ${JSON.stringify(action.params)} até o tick ${String(action.end_tick)}${action.intent === undefined ? "" : ` · ${action.intent}`}`,
       ),
+    );
+  }
+
+  /** O caderno do avatar (ADR-0060): o que a mente anotou, acredita e resumiu da última noite. */
+  private renderNotebook(state: ObserverState, avatarId: string): void {
+    const book = state.memory?.[avatarId];
+    const key = JSON.stringify(book ?? null);
+    if (key === this.shown.notebook) {
+      return;
+    }
+    this.shown.notebook = key;
+    if (book === undefined) {
+      this.notebook.replaceChildren(el("h3", {}, "Caderno"), el("p", { className: "hint" }, "vazio: só a mente escreve nele"));
+      return;
+    }
+    const beliefs = book.beliefs.map((b) => el("li", {}, el("b", {}, b.confidence.toFixed(2)), ` ${b.statement}`));
+    const notes = [...book.notes]
+      .reverse()
+      .slice(0, 10)
+      .map((n) => el("li", {}, el("span", { className: "tick" }, clockText(state, n.tick)), ` ${n.text}`));
+    this.notebook.replaceChildren(
+      el("h3", {}, "Caderno"),
+      ...(book.summary === undefined ? [] : [el("p", {}, el("b", {}, `Dia ${String(book.day ?? "?")}, ao dormir: `), book.summary)]),
+      ...(book.plan === undefined ? [] : [el("p", {}, el("b", {}, "Plano: "), book.plan)]),
+      el("h4", {}, "Crenças"),
+      beliefs.length > 0 ? el("ul", {}, ...beliefs) : el("p", { className: "hint" }, "nenhuma ainda"),
+      el("h4", {}, "Anotações"),
+      notes.length > 0 ? el("ul", {}, ...notes) : el("p", { className: "hint" }, "nenhuma ainda"),
     );
   }
 

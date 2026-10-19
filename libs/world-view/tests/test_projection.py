@@ -439,3 +439,111 @@ def test_sessao_guarda_o_terreno_e_a_percepcao() -> None:
     )
     assert p.session is not None
     assert p.session["perception"] == {"radius": 3}
+
+
+def test_o_caderno_do_avatar_vem_dos_eventos_de_memoria() -> None:
+    """ADR-0060: anotações, crenças por confiança e a última reflexão, do stream observer."""
+    p = started()
+    p.apply(
+        "observer", ev(10, 100, "memory.noted.v1", avatar_id="camps", day=1, text="o poço é longe")
+    )
+    p.apply(
+        "observer",
+        ev(
+            11,
+            900,
+            "memory.belief.formed.v1",
+            avatar_id="camps",
+            belief_id="bel-0001",
+            statement="O quiosque fecha às 18:00.",
+            confidence=0.7,
+            evidence=["18:23 closed"],
+            source={"kind": "observation"},
+        ),
+    )
+    p.apply(
+        "observer",
+        ev(
+            12,
+            900,
+            "memory.belief.formed.v1",
+            avatar_id="camps",
+            belief_id="bel-0002",
+            statement="Chuva rega.",
+            confidence=0.9,
+            evidence=[],
+            source={"kind": "observation"},
+        ),
+    )
+    p.apply(
+        "observer",
+        ev(
+            13,
+            900,
+            "memory.reflected.v1",
+            avatar_id="camps",
+            day=1,
+            summary="Plantei.",
+            plan="Regar.",
+            beliefs={"formed": 2, "updated": 0, "retracted": 0, "total": 2},
+        ),
+    )
+    assert p.memory["camps"] == {
+        "notes": [{"tick": 100, "text": "o poço é longe"}],
+        "beliefs": [
+            {"belief_id": "bel-0002", "statement": "Chuva rega.", "confidence": 0.9},
+            {"belief_id": "bel-0001", "statement": "O quiosque fecha às 18:00.", "confidence": 0.7},
+        ],
+        "day": 1,
+        "summary": "Plantei.",
+        "plan": "Regar.",
+    }
+    p.apply(
+        "observer",
+        ev(
+            14,
+            2340,
+            "memory.belief.updated.v1",
+            avatar_id="camps",
+            belief_id="bel-0001",
+            statement="O quiosque fecha às 18:00: comprar de manhã.",
+            confidence={"before": 0.7, "after": 0.95},
+            evidence=[],
+            source={"kind": "observation"},
+        ),
+    )
+    p.apply(
+        "observer",
+        ev(
+            15,
+            2340,
+            "memory.belief.retracted.v1",
+            avatar_id="camps",
+            belief_id="bel-0002",
+            statement="Chuva rega.",
+        ),
+    )
+    p.apply(
+        "observer",
+        ev(
+            16,
+            2340,
+            "memory.reflected.v1",
+            avatar_id="camps",
+            day=2,
+            summary="Choveu.",
+            beliefs={"formed": 0, "updated": 1, "retracted": 1, "total": 1},
+        ),
+    )
+    book = p.memory["camps"]
+    assert book["beliefs"] == [
+        {
+            "belief_id": "bel-0001",
+            "statement": "O quiosque fecha às 18:00: comprar de manhã.",
+            "confidence": 0.95,
+        }
+    ]
+    assert (book["day"], book["summary"]) == (2, "Choveu.")
+    assert "plan" not in book  # a reflexão sem plano apaga o de ontem
+    again = Projection(json.loads(json.dumps(p.export())))
+    assert again.memory == p.memory

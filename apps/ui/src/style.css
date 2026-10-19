@@ -308,6 +308,18 @@ aside h2 {
   flex-direction: column;
 }
 
+.card h4 {
+  margin: 0.6em 0 0.2em;
+  font-size: 0.85em;
+  opacity: 0.8;
+}
+.notebook ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.notebook li {
+  margin: 0.15em 0;
+}
 .card h3 {
   margin: 0 0 6px;
   font-size: 13px;

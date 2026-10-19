@@ -10,6 +10,8 @@ import math
 from collections.abc import Mapping
 from typing import Any, cast
 
+NOTES_KEPT = 20  # anotações do caderno que a tela guarda (ADR-0060)
+BELIEFS_KEPT = 50
 UNKNOWN_PHASE = "desconhecida"
 METRIC_DAYS = 8  # hoje e os 7 anteriores (ADR-0054)
 
@@ -88,6 +90,11 @@ class Projection:
         self.peaks: dict[str, dict[str, float]] = {
             k: dict(v) for k, v in raw.get("peaks", {}).items()
         }
+        # O caderno de cada avatar (ADR-0060): crenças, anotações e a última reflexão, dos
+        # eventos memory.* (observer). Só quem lê o stream observer o preenche (o gateway).
+        self.memory: dict[str, dict[str, Any]] = {
+            k: dict(v) for k, v in raw.get("memory", {}).items()
+        }
         self._event_tick = self.tick  # o tick do evento sendo aplicado
 
     def export(self) -> dict[str, Any]:
@@ -108,6 +115,7 @@ class Projection:
             "sleep": self.sleep,
             "session": self.session,
             "clock": self.clock,
+            "memory": self.memory,
             "controllers": self.controllers,
             "decisions": self.decisions,
             "metrics": self.metrics,
@@ -376,3 +384,51 @@ class Projection:
         for metric in items:
             item = str(metric.get("item"))
             values[metric["id"]] = sum(self.containers.get(a, {}).get(item, 0) for a in avatars)
+
+    # ------------------------------------------------------------- o caderno (ADR-0060)
+
+    def _notebook(self, avatar_id: str) -> dict[str, Any]:
+        return self.memory.setdefault(avatar_id, {"beliefs": [], "notes": []})
+
+    def _on_memory_noted(self, data: Mapping[str, Any]) -> None:
+        notes = cast(list[dict[str, Any]], self._notebook(str(data["avatar_id"]))["notes"])
+        notes.append({"tick": self._event_tick, "text": str(data["text"])})
+        del notes[:-NOTES_KEPT]
+
+    def _on_memory_reflected(self, data: Mapping[str, Any]) -> None:
+        book = self._notebook(str(data["avatar_id"]))
+        book["day"] = int(data["day"])
+        book["summary"] = str(data["summary"])
+        if data.get("plan"):
+            book["plan"] = str(data["plan"])
+        else:
+            book.pop("plan", None)
+
+    def _on_memory_belief_formed(self, data: Mapping[str, Any]) -> None:
+        self._belief(data, float(data["confidence"]))
+
+    def _on_memory_belief_updated(self, data: Mapping[str, Any]) -> None:
+        after = cast(Mapping[str, Any], data["confidence"])["after"]
+        self._belief(data, float(after))
+
+    def _on_memory_belief_retracted(self, data: Mapping[str, Any]) -> None:
+        book = self._notebook(str(data["avatar_id"]))
+        beliefs = cast(list[dict[str, Any]], book["beliefs"])
+        book["beliefs"] = [b for b in beliefs if b["belief_id"] != data["belief_id"]]
+
+    def _belief(self, data: Mapping[str, Any], confidence: float) -> None:
+        book = self._notebook(str(data["avatar_id"]))
+        beliefs = [
+            b
+            for b in cast(list[dict[str, Any]], book["beliefs"])
+            if b["belief_id"] != data["belief_id"]
+        ]
+        beliefs.append(
+            {
+                "belief_id": str(data["belief_id"]),
+                "statement": str(data["statement"]),
+                "confidence": confidence,
+            }
+        )
+        beliefs.sort(key=lambda b: (-float(b["confidence"]), str(b["belief_id"])))
+        book["beliefs"] = beliefs[:BELIEFS_KEPT]

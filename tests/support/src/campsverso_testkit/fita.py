@@ -64,6 +64,13 @@ def summary(pipeline: Pipeline) -> dict[str, Any]:
         "tokens": dict(usage),
         "latency_ms_median": int(statistics.median(latencies)) if latencies else 0,
         "no_tool": pipeline.mind.no_tool,
+        "reflections": pipeline.mind.reflections,
+        "notes": len(pipeline.of_type("memory.noted.v1")),
+        "beliefs": {
+            "formed": len(pipeline.of_type("memory.belief.formed.v1")),
+            "updated": len(pipeline.of_type("memory.belief.updated.v1")),
+            "retracted": len(pipeline.of_type("memory.belief.retracted.v1")),
+        },
         "snapshots": len(pipeline.of_type("perception.delivered.v1")),
         "deltas": len(pipeline.of_type("perception.updated.v1")),
         "actions": dict(sorted(Counter(str(a["action"]) for a in done).items())),

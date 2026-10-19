@@ -66,7 +66,9 @@ VISIBLE: Mapping[View, frozenset[str]] = {
 }
 # As fotos da percepção são para os controladores: pesadas e sem uso na tela.
 SKIPPED = frozenset({"campsverso.perception.delivered.v1"})
-PROJECTED = ("world", "agent")
+# O observer entra pela memória (ADR-0060): os eventos memory.* montam o caderno do avatar; os
+# outros tipos do stream não têm handler na projeção e passam.
+PROJECTED = ("world", "agent", "observer")
 QUEUE_LIMIT = 2000  # mensagens esperando uma UI lenta; acima disso, a conexão cai
 PULSE = "campsverso.live.kernel.v1"
 COMMAND_REJECTED = "campsverso.world.command.rejected.v1"

@@ -46,6 +46,7 @@ def observer_state(
             "controllers": p.controllers,
             "decisions": p.decisions,
             "metrics": p.metrics,
+            "memory": p.memory,
         }
     )
 
