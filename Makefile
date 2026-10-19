@@ -18,11 +18,11 @@ NATS_DIR := .tools/nats-server-v$(NATS_VERSION)
 NATS_BIN := .tools/bin/nats-server
 NATS_PID := data/nats/nats-server.pid
 NATS_LOG := data/nats/nats-server.log
-NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR BUDGET
+NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR BUDGET MIND
 
 .DEFAULT_GOAL := help
 .PHONY: help setup contracts check lint fmt types test arch contracts-check compat \
-        up stop run ui ui-build sandbox soak replay metrics ui-e2e mapa-visual sessoes tools secrets
+        up stop run ui ui-build sandbox soak replay metrics ui-e2e mapa-visual sessoes tools secrets fita
 
 help: ## lista os alvos
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-16s %s\n", $$1, $$2}'
@@ -99,8 +99,13 @@ ui-build: ## compila a UI em apps/ui/dist, que o gateway serve
 ui: ## UI em modo desenvolvimento (Vite em http://127.0.0.1:5173), ligada ao gateway de make run ou sandbox
 	$(PNPM) --filter @campsverso/ui dev
 
-sandbox: tools ui-build ## mundo descartável com tudo ligado, em data/sandbox/<data-hora>; Ctrl+C para parar
-	$(PY) python -m campsverso_testkit.sandbox --out data/sandbox/$$(date +%Y%m%d-%H%M%S)
+sandbox: tools ui-build ## mundo descartável com tudo ligado, em data/sandbox/<data-hora>; MENTE=camps põe o LLM no Camps (ADR-0059); Ctrl+C para parar
+	$(if $(MENTE),uv run --locked --env-file .env,$(PY)) python -m campsverso_testkit.sandbox --out data/sandbox/$$(date +%Y%m%d-%H%M%S) $(if $(MENTE),--mind $(MENTE),)
+
+DIAS ?= 1
+
+fita: ## grava em processo a fita de teste do controlador LLM, chamando a API (ADR-0059): make fita DIAS=1
+	uv run --locked --env-file .env python -m campsverso_testkit.fita --days $(DIAS)
 
 DAYS ?= 30
 ARCHIVE ?= data/archive/farm-camps-01
@@ -137,7 +142,7 @@ secrets: ## gera em .env (fora do git) as senhas do NATS que ainda faltam
 	@for role in $(NATS_ROLES); do \
 	  grep -q "^NATS_$${role}_PASSWORD=" .env || echo "NATS_$${role}_PASSWORD=$$(openssl rand -hex 24)" >> .env; \
 	done
-	@grep -q "ANTHROPIC_API_KEY=" .env || { echo "# ANTHROPIC_API_KEY=cole-aqui-a-chave-da-console (ADR-0058; só o make llm-smoke e o CONTAR=1 usam)" >> .env; echo "aviso: ANTHROPIC_API_KEY ausente em .env; o make llm-smoke precisa dela"; }
+	@grep -q "ANTHROPIC_API_KEY=" .env || { echo "# ANTHROPIC_API_KEY=cole-aqui-a-chave-da-console (ADR-0058; o make llm-smoke, o CONTAR=20, o make fita e o sandbox com MENTE usam)" >> .env; echo "aviso: ANTHROPIC_API_KEY ausente em .env; o make llm-smoke precisa dela"; }
 
 tools: $(NATS_DIR)/nats-server ## baixa ferramentas locais com versão fixa (nats-server), conferindo o sha256
 

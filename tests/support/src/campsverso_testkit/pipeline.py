@@ -3,6 +3,11 @@
 Tudo passa pelo barramento em memória com validação de contrato, como passaria pelo NATS: os
 serviços não se conhecem, só trocam envelopes. Serve aos testes rápidos do M3; os processos de
 verdade ficam para os testes com NATS e para o `make soak`.
+
+Com `controller="llm"` entra a mente (ADR-0059) sobre uma porta de modelo dada pelo teste (uma
+porta falsa, ou a fita em `replay`), medida pelo `MeteredModel`, e opcionalmente a guarda de
+orçamento. O relógio fica no modo contínuo, porque o máximo é só de script e replay (princípio 7);
+em memória não faz diferença: o barramento entrega e espera a resposta antes do próximo tick.
 """
 
 from collections.abc import Sequence
@@ -14,22 +19,38 @@ from campsverso_adapters import (
     InMemoryBus,
     MemoryBlobStore,
     MemoryTelemetry,
+    MeteredModel,
     SequentialUuid7Ids,
     SqliteWorldStore,
     ValidatingBus,
+    load_env,
 )
+from campsverso_budget.ledger import BudgetLimits
+from campsverso_budget.service import BudgetService
 from campsverso_cartridge_api import ControllerRef
 from campsverso_controller_runner.replay import Recorded, ReplayRunner
-from campsverso_controller_runner.runner import ControllerRunner, load_controller
+from campsverso_controller_runner.runner import (
+    ControllerRunner,
+    SimTime,
+    load_controller,
+    load_mind,
+)
 from campsverso_kernel.engine import Engine
 from campsverso_kernel.service import KernelService
 from campsverso_kernel.version import run_version
+from campsverso_mind import LlmController
 from campsverso_perception.service import PerceptionService
-from campsverso_ports import Envelope
+from campsverso_ports import Envelope, ModelPort
 from campsverso_testkit.farm import WORLD, make_core
+from campsverso_testkit.nats_server import REPO
 
 DAY = 1440
 REPLAY_ID = "replay/teste"
+LLM_ID = "llm/camps"
+MODEL = "claude-haiku-5-5"
+ENV = REPO / "config" / "env" / "local.yaml"
+
+type ControllerKind = Literal["script", "replay", "none", "llm"]
 
 
 class DeadlockError(Exception):
@@ -41,9 +62,12 @@ class Pipeline:
         self,
         seed: int = 20261010,
         *,
-        controller: Literal["script", "replay", "none"] = "script",
+        controller: ControllerKind = "script",
         recording: Sequence[Recorded] = (),
         river_bonus: bool = True,
+        port: ModelPort | None = None,
+        mind: str = "camps",
+        budget: BudgetLimits | None = None,
     ) -> None:
         self.inner = InMemoryBus()
         self.bus = ValidatingBus(self.inner)
@@ -54,7 +78,11 @@ class Pipeline:
         core = make_core(seed, river_bonus=river_bonus)
         if controller == "replay":
             core.configure_controllers({"camps": ControllerRef("replay", REPLAY_ID)})
-        core.configure_clock("max", None, False)
+        if controller == "llm":
+            core.configure_controllers({"camps": ControllerRef("llm", LLM_ID)})
+            core.configure_clock("continuous", None, False)
+        else:
+            core.configure_clock("max", None, False)
         self.validator = validator
         self.version = run_version("farm_camps", 60)
         self.store, self.blobs = SqliteWorldStore(":memory:"), MemoryBlobStore()
@@ -67,6 +95,8 @@ class Pipeline:
             WORLD, self.bus, MemoryBlobStore(), self.clock, self.ids, self.telemetry
         )
         self.runner: ControllerRunner | ReplayRunner | None = None
+        self.mind: LlmController | None = None
+        self.guard: BudgetService | None = None
         if controller == "script":
             self.runner = ControllerRunner(
                 WORLD,
@@ -81,8 +111,48 @@ class Pipeline:
             self.runner = ReplayRunner(
                 WORLD, "camps", REPLAY_ID, recording, self.bus, self.ids, self.clock, self.telemetry
             )
+        elif controller == "llm":
+            if port is None:
+                raise ValueError("o controlador llm precisa de uma porta de modelo (port=...)")
+            sim_time = SimTime()
+            metered = MeteredModel(
+                port,
+                bus=self.bus,
+                worldid=WORLD,
+                cartridge="farm_camps",
+                controller={"type": "llm", "id": LLM_ID},
+                prices=load_env(ENV).models,
+                clock=self.clock,
+                ids=self.ids,
+                sim_clock=sim_time,
+            )
+            self.mind = LlmController(
+                load_mind(mind),
+                metered,
+                controller_id=LLM_ID,
+                avatar_id="camps",
+                model=MODEL,
+                telemetry=self.telemetry,
+            )
+            self.runner = ControllerRunner(
+                WORLD,
+                "camps",
+                self.mind,
+                self.bus,
+                self.ids,
+                self.clock,
+                self.telemetry,
+                cartridge="farm_camps",
+                sim_time=sim_time,
+            )
+        if budget is not None:
+            self.guard = BudgetService(
+                WORLD, budget, self.bus, MemoryBlobStore(), self.clock, self.ids, self.telemetry
+            )
 
     async def start(self) -> None:
+        if self.guard is not None:
+            await self.guard.start()
         await self.perception.start()
         if self.runner is not None:
             await self.runner.start()

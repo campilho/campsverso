@@ -14,6 +14,11 @@ import yaml
 
 from campsverso_adapters.bus_nats import StreamSpec
 from campsverso_adapters.model_metered import ModelPrices
+from campsverso_adapters.model_recording import RecordingMode
+from campsverso_ports import Effort
+
+EFFORTS = ("low", "medium", "high", "xhigh", "max")
+RECORDING_MODES = ("live", "record", "replay")
 
 _DURATION = re.compile(r"^(\d+)([smhd])$")
 _SIZE = re.compile(r"^(\d+)(B|KiB|MiB|GiB|TiB)$")
@@ -82,6 +87,19 @@ class BudgetSettings:
 
 
 @dataclass(frozen=True, slots=True)
+class MindSettings:
+    """O controlador LLM de um avatar (ADR-0059), lido na partida do processo `mind`."""
+
+    id: str  # o controllerid, ex.: llm/camps
+    mind: str  # a mente, pelo entry point campsverso.minds
+    model: str  # precisa de preço na tabela `models` do ambiente (ADR-0058)
+    effort: Effort | None
+    max_tokens: int
+    cassette_path: Path
+    cassette_mode: RecordingMode
+
+
+@dataclass(frozen=True, slots=True)
 class WorldSettings:
     worldid: str
     cartridge: str
@@ -93,6 +111,7 @@ class WorldSettings:
     rules_file: Path | None  # None: o arquivo de regras do cartucho
     controllers: dict[str, tuple[str, str]]  # avatar -> (tipo, id) no começo; vazio: o do cartucho
     budget: BudgetSettings | None = None  # tetos de gasto com modelos (ADR-0058)
+    minds: Mapping[str, MindSettings] = field(default_factory=dict[str, MindSettings])  # ADR-0059
 
 
 def _read(path: Path) -> Mapping[str, Any]:
@@ -157,6 +176,25 @@ def load_env(path: Path, root: Path | None = None) -> EnvSettings:
     )
 
 
+def _mind(avatar: str, raw: Mapping[str, Any], base: Path) -> MindSettings:
+    effort = cast(Effort | None, raw.get("effort", "low"))
+    if effort is not None and effort not in EFFORTS:
+        raise ValueError(f"minds.{avatar}.effort inválido: {effort!r} (use {EFFORTS})")
+    cassette = cast(Mapping[str, Any], raw.get("cassette") or {})
+    mode = cast(RecordingMode, str(cassette.get("mode", "live")))
+    if mode not in RECORDING_MODES:
+        raise ValueError(f"minds.{avatar}.cassette.mode inválido: {mode!r} (use {RECORDING_MODES})")
+    return MindSettings(
+        id=str(raw.get("id") or f"llm/{avatar}"),
+        mind=str(raw["mind"]),
+        model=str(raw["model"]),
+        effort=effort,
+        max_tokens=int(raw.get("max_tokens", 1024)),
+        cassette_path=base / str(cassette.get("path") or f"data/llm/{avatar}.jsonl"),
+        cassette_mode=mode,
+    )
+
+
 def load_world(path: Path, root: Path | None = None) -> WorldSettings:
     doc = _read(path)
     clock = cast(Mapping[str, Any], doc.get("clock") or {})
@@ -188,4 +226,8 @@ def load_world(path: Path, root: Path | None = None) -> WorldSettings:
         else BudgetSettings(
             usd_per_sim_day=float(budget["usd_per_sim_day"]), usd_total=float(budget["usd_total"])
         ),
+        minds={
+            str(avatar): _mind(str(avatar), raw, root or Path.cwd())
+            for avatar, raw in cast(Mapping[str, Mapping[str, Any]], doc.get("minds") or {}).items()
+        },
     )

@@ -7,3 +7,6 @@ controller: uv run --locked python -m campsverso_controller_runner.main --env co
 archiver: uv run --locked python -m campsverso_archiver.main --env config/env/local.yaml
 gateway: uv run --locked python -m campsverso_gateway.main --env config/env/local.yaml --world config/worlds/farm-camps-01.yaml
 budget: uv run --locked python -m campsverso_budget.main --env config/env/local.yaml --world config/worlds/farm-camps-01.yaml
+# A mente (ADR-0059) fica desligada no mundo oficial, que segue com o script; para ver o LLM no Camps, use
+# `make sandbox MENTE=camps`. Para ligá-la aqui, descomente a linha (e tenha ANTHROPIC_API_KEY no .env):
+# mind: uv run --locked python -m campsverso_controller_runner.main --env config/env/local.yaml --world config/worlds/farm-camps-01.yaml --mind camps

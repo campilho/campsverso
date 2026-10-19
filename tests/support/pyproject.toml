@@ -12,6 +12,8 @@ dependencies = [
   "campsverso-cartridge-api",
   "campsverso-perception",
   "campsverso-controller-runner",
+  "campsverso-mind",
+  "campsverso-budget",
   "campsverso-tools",
   "pyyaml>=6",
 ]

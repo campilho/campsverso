@@ -1,12 +1,13 @@
 [project]
 name = "campsverso-controller-runner"
 version = "0.1.0.dev0"
-description = "Executa controladores headless (script e replay)."
+description = "Executa controladores headless: script, replay e a mente (LLM)."
 requires-python = ">=3.14"
 license = "MIT"
 dependencies = [
   "campsverso-contracts",
   "campsverso-ports",
+  "campsverso-mind",  # a mente, o controlador LLM (ADR-0059)
   "campsverso-adapters",  # só o main.py (raiz de composição) importa
 ]
 

@@ -18,6 +18,16 @@ budget:  # tetos de gasto com modelos (ADR-0058); ao chegar a 100%, a guarda pau
   usd_per_sim_day: 0.60
   usd_total: 10.00
 
+minds:  # controladores LLM, um por avatar (ADR-0059); o processo `mind` assume o avatar ao subir
+  camps:
+    id: llm/camps
+    mind: camps  # entry point do grupo campsverso.minds (cartridges/farm_camps/mind)
+    model: claude-haiku-5-5  # precisa de preço em config/env/local.yaml (ADR-0058)
+    effort: low  # decisões curtas e frequentes; a reflexão do M11 sobe
+    max_tokens: 1024
+    cassette: {path: data/llm/farm-camps-01.jsonl, mode: record}  # live | record | replay
+    # Lidos na partida do processo: trocar modelo, esforço ou fita é reiniciar o `mind`, entre partidas.
+
 # Quem controla cada avatar quando o mundo começa. Vazio: o controlador padrão do cartucho
 # (o fazendeiro-script). Ex.: para reexecutar uma sessão gravada num mundo novo,
 #   controllers: {camps: {type: replay, id: replay/sessao}}

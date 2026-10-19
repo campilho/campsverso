@@ -33,6 +33,18 @@ def test_mundo_da_fazenda() -> None:
         False,
         None,
     )
+    assert world.budget is not None
+    assert (world.budget.usd_per_sim_day, world.budget.usd_total) == (0.6, 10.0)
+    camps = world.minds["camps"]  # ADR-0059
+    assert (camps.id, camps.mind, camps.model, camps.effort, camps.max_tokens) == (
+        "llm/camps",
+        "camps",
+        "claude-haiku-5-5",
+        "low",
+        1024,
+    )
+    assert camps.cassette_path == REPO / "data" / "llm" / "farm-camps-01.jsonl"
+    assert camps.cassette_mode == "record"
 
 
 def test_unidades() -> None:
