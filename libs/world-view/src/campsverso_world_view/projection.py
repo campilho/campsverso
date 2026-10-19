@@ -211,6 +211,8 @@ class Projection:
         }
         if "interrupt" in data:  # ADR-0052; ausente nos arquivos antigos
             action["interrupt"] = data["interrupt"]
+        if data.get("intent"):  # ADR-0059; o script e o humano nem sempre declaram
+            action["intent"] = str(data["intent"])
         self.actions[str(data["avatar_id"])] = action
 
     def _finish(self, data: Mapping[str, Any]) -> None:

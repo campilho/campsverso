@@ -725,6 +725,9 @@ class KernelCore:
         }
         if replaced is not None:
             accepted["replaces"] = replaced
+        intent = data.get("intent")
+        if intent:  # a intenção declarada vai no fato, para a tela e a linha do tempo (ADR-0059)
+            accepted["intent"] = str(intent)[:500]
         world.emit_fact(
             "campsverso.action.accepted.v1", accepted, caused_by=command_id, correlation=correlation
         )

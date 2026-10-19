@@ -6,6 +6,7 @@ import { applyMergePatch } from "./patch.ts";
 import { entityColor, tileColor } from "./render/skin.ts";
 import { DisplayClock, MAX_AHEAD, clockText, isLive } from "./simclock.ts";
 import { Store } from "./store.ts";
+import { doingText } from "./panels/hud.ts";
 import { matches, shortType, summarize } from "./timeline.ts";
 import { parseTiledMap, tileAt } from "./tiled.ts";
 
@@ -237,6 +238,21 @@ describe("linha do tempo", () => {
     expect(summarize(rejected)).toBe("avatar_id=camps · action=sleep · reason=not_tired");
     expect(matches(rejected, { visibilities: new Set(["world"]), text: "" })).toBe(false);
     expect(matches(rejected, { visibilities: new Set(["agent"]), text: "REJ" })).toBe(true);
+  });
+
+  it("a intenção declarada vem logo depois da ação (ADR-0059)", () => {
+    const accepted = event("campsverso.action.accepted.v1", "world", {
+      action_id: "act-1",
+      avatar_id: "camps",
+      action: "plant",
+      params: { target: "plot-w-02" },
+      applied_tick: 10,
+      duration_ticks: 5,
+      intent: "Plantar rabanete no plot-w-02.",
+    });
+    expect(summarize(accepted)).toBe("avatar_id=camps · action=plant · intent=Plantar rabanete no plot-w-02. · action_id=act-1");
+    expect(doingText("plant")).toBe("fazendo: plant");
+    expect(doingText("plant", "Plantar rabanete no plot-w-02.")).toBe("fazendo: plant · Plantar rabanete no plot-w-02.");
   });
 
   it("cor do canteiro vem do estágio", () => {

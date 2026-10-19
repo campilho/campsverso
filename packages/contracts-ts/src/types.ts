@@ -502,6 +502,10 @@ export interface ActionAcceptedV1 {
   duration_ticks: number;
   replaces?: ActionId;
   interrupt?: Interrupt;
+  /**
+   * A intenção declarada na proposta (cmd.action.propose), copiada pelo kernel; a tela e a linha do tempo a mostram (ADR-0059).
+   */
+  intent?: string;
 }
 /**
  * Ação concluída; observable é só um resumo legível.
@@ -1496,6 +1500,10 @@ export interface ObserverAction {
   end_tick: Tick;
   applied_tick?: Tick;
   interrupt?: Interrupt;
+  /**
+   * A intenção declarada na proposta aceita, quando o controlador a deu (ADR-0059).
+   */
+  intent?: string;
 }
 export interface ObserverSleep {
   since_tick: Tick;

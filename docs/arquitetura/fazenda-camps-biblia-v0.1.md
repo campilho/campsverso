@@ -28,7 +28,7 @@ Uma pequena fazenda genérica, sem lore, onde um único avatar planta, rega, col
 | Controlador inicial | `script` |
 | Aparência (sprite LPC) | homem adulto; chapéu bordô de aba larga; cabelo castanho-claro curto, com topete; barba castanho-clara; sobrancelhas grossas; camisa vermelha de manga comprida, abotoada; calça azul com a barra dobrada; botas de couro; regador na mão. Montado no gerador de personagens LPC (`cartridges/farm_camps/art/camps.png`, ADR-0053) |
 | Retrato (HUD/diálogos) | na v0.1, a cabeça recortada do próprio sprite; depois, um retrato próprio de fazendeiro em pixel art |
-| Personalidade | **nenhuma na v0.1** (cartão de identidade fica para a v0.2) |
+| Personalidade | o cartão de identidade em `cartridges/farm_camps/mind/data/camps.md` (ADR-0059): metódico e curioso, quer comer todo dia, dormir na cama e ver as moedas crescerem; sabe que nem tudo sobre a terra está escrito. Só o controlador LLM o lê; o script continua sem personalidade |
 
 ---
 

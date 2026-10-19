@@ -2,6 +2,12 @@
 
 Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão maior, só entram campos opcionais novos; mudança incompatível vira um tipo novo (`.v2`). A checagem `make compat` confere isso a cada commit.
 
+## Não publicado (M10)
+
+- **O controlador LLM** (ADR-0059), só com campos opcionais e nenhum tipo novo:
+  - `campsverso.action.accepted.v1` ganha `intent`, a intenção declarada na proposta (`cmd.action.propose`), copiada pelo kernel; é o que a tela e a linha do tempo mostram ("llm/camps: colher o canteiro leste");
+  - o `ObserverState` do `realtime` ganha `intent` na ação corrente de cada avatar (`actions.<avatar>.intent`).
+
 ## Não publicado (M9)
 
 - **Porta de modelo e orçamento** (ADR-0058): quatro tipos novos, todos com visibilidade `observer`, e nenhum tipo mudado:

@@ -14,7 +14,8 @@ export function shortType(type: string): string {
   return type.replace(/^campsverso\./, "").replace(/\.v\d+$/, "");
 }
 
-const FIRST = ["avatar_id", "entity_id", "action", "reason", "item", "qty", "plot_id", "rule", "phase", "need", "value"];
+// `intent` logo depois da ação: é o que o LLM disse que pretendia (ADR-0059).
+const FIRST = ["avatar_id", "entity_id", "action", "intent", "reason", "item", "qty", "plot_id", "rule", "phase", "need", "value"];
 
 function scalar(value: unknown): string | undefined {
   if (typeof value === "string") {

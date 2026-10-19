@@ -25,7 +25,9 @@ from campsverso_ports import ModelPort, ModelRequest
 from campsverso_tools.metrics import read_archive
 from campsverso_world_view import diff_views
 
-CHARS_PER_TOKEN = 2.1  # calibrado em 18/out/2026 com count_tokens (Haiku 5.5): 2,07 foto, 2,05 delta
+CHARS_PER_TOKEN = (
+    2.1  # calibrado em 18/out/2026 com count_tokens (Haiku 5.5): 2,07 foto, 2,05 delta
+)
 SNAPSHOT = "campsverso.perception.delivered.v1"
 DELTA = "campsverso.perception.updated.v1"
 # O que não entra em "o que aconteceu": as próprias entregas e o pedido que elas respondem.

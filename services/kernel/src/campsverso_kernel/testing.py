@@ -271,13 +271,19 @@ def make_core(rules: tuple[RuleConfig, ...] = RULES) -> KernelCore:
 
 
 def command(
-    action: str, params: Mapping[str, Any] | None = None, controller: str = SCRIPT.id
+    action: str,
+    params: Mapping[str, Any] | None = None,
+    controller: str = SCRIPT.id,
+    intent: str | None = None,
 ) -> dict[str, Any]:
+    data: dict[str, Any] = {"avatar_id": "ana", "action": action, "params": dict(params or {})}
+    if intent is not None:
+        data["intent"] = intent
     return {
         "id": f"cmd-{action}",
         "type": "campsverso.cmd.action.propose.v1",
         "controllerid": controller,
-        "data": {"avatar_id": "ana", "action": action, "params": dict(params or {})},
+        "data": data,
     }
 
 

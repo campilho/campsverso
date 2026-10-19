@@ -22,6 +22,7 @@
     },
     "applied_tick": 64,
     "duration_ticks": 2,
-    "interrupt": "never"
+    "interrupt": "never",
+    "intent": "regar o canteiro plot-e-01 antes do sol esquentar"
   }
 }

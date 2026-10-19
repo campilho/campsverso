@@ -324,6 +324,12 @@
               "interrupt": {
                 "$ref": "contracts://common/defs.v1#/$defs/interrupt",
                 "description": "O que um comando novo do mesmo controlador faz com esta ação em andamento (ADR-0052)."
+              },
+              "intent": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500,
+                "description": "A intenção declarada na proposta aceita, quando o controlador a deu (ADR-0059)."
               }
             }
           }

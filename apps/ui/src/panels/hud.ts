@@ -18,6 +18,11 @@ function needBar(name: string, value: number): HTMLElement {
   return el("div", { className: "need" }, el("label", {}, name), bar, el("b", {}, value.toFixed(0)));
 }
 
+/** "fazendo: plant" e, quando o controlador declarou, a intenção: o que o LLM pretende (ADR-0059). */
+export function doingText(action: string, intent?: string): string {
+  return intent === undefined ? `fazendo: ${action}` : `fazendo: ${action} · ${intent}`;
+}
+
 export function renderHud(
   root: HTMLElement,
   state: ObserverState,
@@ -66,7 +71,7 @@ export function renderHud(
       el(
         "span",
         { className: "hud-doing" },
-        state.asleep[avatarId] === true ? "dormindo" : action === undefined ? "parado" : `fazendo: ${action.action}`,
+        state.asleep[avatarId] === true ? "dormindo" : action === undefined ? "parado" : doingText(action.action, action.intent),
       ),
     ),
     el("div", { className: "hud-needs" }, ...needs.map(([name, value]) => needBar(name, value))),

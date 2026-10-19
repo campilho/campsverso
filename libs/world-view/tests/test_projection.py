@@ -179,6 +179,7 @@ def test_acao_com_inicio_e_politica_e_sono_com_hora_de_acordar() -> None:
             applied_tick=10,
             duration_ticks=5,
             interrupt="never",
+            intent="plantar rabanete perto da casa",
         ),
     )
     assert p.actions["camps"] == {
@@ -188,6 +189,7 @@ def test_acao_com_inicio_e_politica_e_sono_com_hora_de_acordar() -> None:
         "applied_tick": 10,
         "end_tick": 15,
         "interrupt": "never",
+        "intent": "plantar rabanete perto da casa",  # ADR-0059
     }
     p.apply(
         "world",

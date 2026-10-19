@@ -56,12 +56,13 @@ def test_inicio_da_sessao_publica_o_terreno_e_o_raio() -> None:
 
 def test_mover_aceita_publica_trajeto_e_conclui_no_tempo(core: KernelCore) -> None:
     _run(core)
-    core.submit(command("move", {"target": {"x": 3, "y": 1}}))
+    core.submit(command("move", {"target": {"x": 3, "y": 1}}, intent="ir ao poço"))
     facts = _run(core)
     (accepted,) = _only(facts, "action.accepted")
     (moved,) = _only(facts, "world.entity.moved")
     assert accepted["duration_ticks"] == 2
     assert accepted["interrupt"] == "cancel"  # andar se cancela (ADR-0052)
+    assert accepted["intent"] == "ir ao poço"  # a intenção da proposta vai no fato (ADR-0059)
     assert moved["waypoints"] == [{"x": 3, "y": 1}]
     assert moved["arrival_tick"] == moved["depart_tick"] + 2
     later = _run(core, 2)

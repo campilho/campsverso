@@ -51,3 +51,54 @@ def test_dia_incompleto_fica_fora_dos_totais() -> None:
     totals = report.totals()
     assert (totals["days"], totals["partial_day"]) == (1, 2)
     assert (totals["coins_end"], totals["faints"]) == (100, 0)
+
+
+def call(seq: int, tick: int, cost: float, *, charged: bool = True) -> dict[str, Any]:
+    return {
+        "source": "/controller-runner/llm/camps",
+        "seq": seq,
+        "tick": tick,
+        "type": "campsverso.llm.call.completed.v1",
+        "time": f"2026-10-12T02:00:{seq:02d}Z",
+        "data": {
+            "latency_ms": 1000 + seq,
+            "cost_usd": cost,
+            "charged": charged,
+            "usage": {"input_tokens": 100, "output_tokens": 10, "cache_read_input_tokens": 900},
+        },
+    }
+
+
+def test_metricas_do_modelo_por_dia() -> None:
+    """ADR-0059: chamadas, custo cobrado, tokens e latência por dia, a partir dos llm.call.*."""
+    envelopes: list[dict[str, Any]] = [
+        ev(0, 0, "world.session.started.v1", tick_seconds=60),
+        ev(1, 2880, "world.clock.phase_changed.v1"),
+        call(0, 10, 0.001),
+        call(1, 20, 0.002, charged=False),  # da fita: entra nos tokens, não no custo
+        call(2, 1500, 0.004),
+        {
+            "source": "/controller-runner/llm/camps",
+            "seq": 3,
+            "tick": 1510,
+            "type": "campsverso.llm.call.failed.v1",
+            "time": "2026-10-12T02:00:03Z",
+            "data": {"error": "timeout"},
+        },
+    ]
+    report = compute(envelopes)
+    day1, day2 = report.days[:2]
+    assert (day1.calls, day1.cost_usd, day1.calls_failed) == (2, 0.001, 0)
+    assert day1.tokens == {
+        "input_tokens": 200,
+        "output_tokens": 20,
+        "cache_read_input_tokens": 1800,
+    }
+    assert (day2.calls, day2.calls_failed, day2.cost_usd) == (1, 1, 0.004)
+    llm = report.totals()["llm"]
+    assert llm["calls"] == 3
+    assert llm["calls_failed"] == 1
+    assert llm["cost_usd"] == 0.005
+    assert llm["cost_usd_per_day"] == 0.0025
+    assert llm["latency_ms_median"] == 1001
+    assert "llm" not in compute(envelopes[:2]).totals()  # o script não tem modelo

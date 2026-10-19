@@ -100,7 +100,8 @@
         },
         "applied_tick": 15,
         "end_tick": 22,
-        "interrupt": "cancel"
+        "interrupt": "cancel",
+        "intent": "ir ao poço encher o regador"
       }
     },
     "needs": {

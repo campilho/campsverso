@@ -645,6 +645,10 @@ class ActionAcceptedV1(BaseModel):
     """
     O que um comando novo do mesmo controlador faz com esta ação em andamento (ADR-0052).
     """
+    intent: Annotated[str | None, Field(max_length=500, min_length=1)] = None
+    """
+    A intenção declarada na proposta (cmd.action.propose), copiada pelo kernel; a tela e a linha do tempo a mostram (ADR-0059).
+    """
 
 
 class ObservableChange(BaseModel):
@@ -2340,6 +2344,10 @@ class ObserverAction(BaseModel):
     )
     """
     O que um comando novo do mesmo controlador faz com esta ação em andamento (ADR-0052).
+    """
+    intent: Annotated[str | None, Field(max_length=500, min_length=1)] = None
+    """
+    A intenção declarada na proposta aceita, quando o controlador a deu (ADR-0059).
     """
 
 
