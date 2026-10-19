@@ -66,9 +66,10 @@ VISIBLE: Mapping[View, frozenset[str]] = {
 }
 # As fotos da percepção são para os controladores: pesadas e sem uso na tela.
 SKIPPED = frozenset({"campsverso.perception.delivered.v1"})
-# O observer entra pela memória (ADR-0060): os eventos memory.* montam o caderno do avatar; os
-# outros tipos do stream não têm handler na projeção e passam.
-PROJECTED = ("world", "agent", "observer")
+PROJECTED = ("world", "agent")
+# Do observer, só o caderno entra na projeção (ADR-0060): o stream mistura fontes com `seq`
+# próprios, então a deduplicação continua por fonte, e os outros tipos nem têm handler.
+NOTEBOOK = "campsverso.memory."
 QUEUE_LIMIT = 2000  # mensagens esperando uma UI lenta; acima disso, a conexão cai
 PULSE = "campsverso.live.kernel.v1"
 COMMAND_REJECTED = "campsverso.world.command.rejected.v1"
@@ -207,6 +208,8 @@ class GatewayService:
                     self.projection.apply(stream, envelope)
                 else:
                     self._seen[str(envelope["source"])] = int(envelope["seq"])
+                    if str(envelope["type"]).startswith(NOTEBOOK):
+                        self.projection.apply(stream, envelope)
                 self._pending.append(envelope)
             self._save()
         except Exception as error:

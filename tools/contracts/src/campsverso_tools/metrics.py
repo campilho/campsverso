@@ -197,7 +197,7 @@ def compute(envelopes: Iterable[Mapping[str, Any]], avatar: str = AVATAR) -> Rep
     return Report([days[d] for d in sorted(days)])
 
 
-def _table(report: Report) -> str:
+def table(report: Report) -> str:
     with_llm = any(d.calls or d.calls_failed for d in report.days)
     header = "dia  moedas  colheitas(o/l)  maduras-em(o/l)  fome-máx  desmaios  recusas  s-reais"
     lines = [header + ("  chamadas  US$-dia  ms-med" if with_llm else "")]
@@ -240,7 +240,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
         )
     else:
-        print(_table(report))
+        print(table(report))
         print(json.dumps(report.totals(), ensure_ascii=False))
     return 0
 

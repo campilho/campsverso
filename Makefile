@@ -22,7 +22,7 @@ NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR BUDGET MIND
 
 .DEFAULT_GOAL := help
 .PHONY: help setup contracts check lint fmt types test arch contracts-check compat \
-        up stop run ui ui-build sandbox soak replay metrics ui-e2e mapa-visual sessoes tools secrets fita
+        up stop run ui ui-build sandbox soak replay metrics ui-e2e mapa-visual sessoes tools secrets fita corrida
 
 help: ## lista os alvos
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-16s %s\n", $$1, $$2}'
@@ -106,6 +106,9 @@ DIAS ?= 1
 
 fita: ## grava em processo a fita de teste do controlador LLM, chamando a API (ADR-0059): make fita DIAS=1
 	uv run --locked --env-file .env python -m campsverso_testkit.fita --days $(DIAS)
+
+corrida: ## N dias em processo com a mente sobre a API, com ou sem memória (ADR-0060): make corrida DIAS=7 [SEM_MEMORIA=1]
+	uv run --locked --env-file .env python -m campsverso_testkit.corrida --days $(DIAS) $(if $(SEM_MEMORIA),--sem-memoria,)
 
 DAYS ?= 30
 ARCHIVE ?= data/archive/farm-camps-01
