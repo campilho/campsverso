@@ -284,6 +284,10 @@ canvas {
 
 aside.operator {
   flex: 0 0 420px;
+  /* Sem isto, um item flex não encolhe abaixo do conteúdo mínimo: uma linha longa de recusas
+     (com o LLM há vários motivos) alargava o painel e espremia o mapa. */
+  min-width: 0;
+  max-width: 420px;
   max-height: calc(100vh - 80px);
   display: flex;
   flex-direction: column;
@@ -551,6 +555,12 @@ dialog.credits .urls {
   text-align: right;
   white-space: nowrap;
   border-bottom: 1px solid var(--line);
+}
+
+.metrics td {
+  /* Os textos (recusas por motivo, colheitas por grupo) quebram linha; os números não precisam. */
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .metrics tbody th {
