@@ -23,24 +23,28 @@ Projeto pessoal de aprendizado, construído em público com a ajuda do Claude Co
 | M6: renderer Phaser (arte LPC, mapa visual, o Camps animado, retrato e créditos) | concluído |
 | M7: fechamento (métricas da bíblia no painel do operador, critérios de aceite da v0.1) | concluído |
 
-## Próximo: v0.2, a possessão
+## Em construção: v0.2, a possessão
 
 A pergunta da v0.2: **um LLM consegue viver na fazenda, prosperar e descobrir sozinho a regra oculta do rio?** E como ele se compara ao fazendeiro-script, a um humano e a outros modelos, no mesmo mundo e com as mesmas métricas? O plano completo está em [v0.2-macro.md](docs/planos/v0.2-macro.md).
 
-| Marco | Entrega |
-|---|---|
-| M8: mundo pronto para o LLM | o agente enxerga o mapa, percepção por deltas, fome e vigília com custo |
-| M9: porta de modelo e orçamento | `ModelPort`, eventos das chamadas, teto de custo que pausa o mundo, respostas gravadas para testes |
-| M10: o controlador LLM | o Camps decide pela percepção e pelo catálogo de ações, com um cartão de identidade |
-| M11: memória baseline | registrar, lembrar e refletir; crenças com confiança e origem |
-| M12: a arena | humano × script × dois modelos, lado a lado, com o custo por dia simulado |
-| M13: fechamento | critérios de aceite, diário e a tag `v0.2.0` |
+| Marco | Entrega | Situação |
+|---|---|---|
+| M8: mundo pronto para o LLM | o agente enxerga o mapa, percepção por deltas, fome e vigília com custo | concluído em 17/out/2026 |
+| M9: porta de modelo e orçamento | `ModelPort`, eventos das chamadas, teto de custo que pausa o mundo, respostas gravadas para testes | concluído em 18/out/2026 |
+| M10: o controlador LLM | o Camps decide pela percepção e pelo catálogo de ações, com um cartão de identidade | concluído em 18/out/2026 |
+| M11: memória baseline | registrar, lembrar e refletir; crenças com confiança e origem | concluído em 19/out/2026 |
+| M12: a arena | script × Haiku sem memória × Haiku com memória, 30 dias, lado a lado, com o custo por dia simulado e quem descobriu o leste | em curso |
+| M13: fechamento | critérios de aceite, diário e a tag `v0.2.0` | a fazer |
 
 **M8 concluído em 17/out/2026** ([plano](docs/planos/m8-mundo-pronto-para-o-llm.md), ADR-0056 e ADR-0057): o terreno e o raio no `session.started`, a foto com mapa, o delta `perception.updated.v1`, acordado custa energia e a fome no teto drena, e `make percepcao` mede o custo em tokens.
 
 **M9 concluído em 18/out/2026** ([plano](docs/planos/m9-porta-de-modelo-e-orcamento.md), ADR-0058): a `ModelPort` com o adaptador da API da Anthropic, a fita que grava e reproduz respostas, o medidor que publica cada chamada como evento com tokens e custo, e a guarda de orçamento que pausa o mundo no teto. A primeira chamada real custou US$ 0,000124; a calibração mostrou 2,1 caracteres por token no JSON da percepção.
 
-**M10 em curso** ([plano](docs/planos/m10-controlador-llm.md), ADR-0059): a mente, uma biblioteca genérica que conversa com o modelo pela porta, com o cartão de identidade e o catálogo de ações como dados do cartucho.
+**M10 concluído em 18/out/2026** ([plano](docs/planos/m10-controlador-llm.md), ADR-0059): a mente, uma biblioteca genérica que conversa com o modelo pela porta, com o cartão de identidade e o catálogo de ações como dados do cartucho; uma ferramenta estrita por ação, a janela de conversa que segue a percepção, e a possessão por comando. O Camps viveu 7 dias a 72× no Haiku 5.5 por US$ 0,14, sem desmaiar e sem intervenção.
+
+**M11 concluído em 19/out/2026** ([plano](docs/planos/m11-memoria-baseline.md), ADR-0060): a `MemoryPort` com episódios, anotações, crenças e reflexão; o adaptador SQLite por avatar; o bloco de memória na abertura de cada janela; a reflexão ao dormir como ferramenta estrita; cinco eventos `memory.*` e o caderno no painel do operador. Em 7 dias com a mesma seed, a mente com memória colheu 22 contra 16 sem memória, mediu que o leste amadurece em 2 dias e passou a plantar lá.
+
+**M12 em curso** ([plano](docs/planos/m12-arena.md), ADR-0061): a arena em processo, `make arena` e `make arena-report`, com o relatório em `docs/arena/`.
 
 ## Depois: v0.3, o escritório que constrói a si mesmo
 
@@ -89,6 +93,9 @@ make metrics        # métricas do mundo a partir do arquivo de eventos
 make percepcao      # fotos e deltas da percepção por dia, em bytes e tokens estimados (ADR-0056)
 make llm-smoke      # uma chamada real pela porta de modelo, medida e publicada pelo contrato (ADR-0058)
 make fita DIAS=2    # grava em processo a fita de teste do controlador LLM, chamando a API (ADR-0059)
+make corrida DIAS=7 # N dias em processo com a mente sobre a API, com ou sem memória (ADR-0060)
+make arena DIAS=30  # as corridas da arena: script × Haiku sem memória × Haiku com memória, em data/arena/ (ADR-0061)
+make arena-report   # o relatório da arena em docs/arena/
 make help    # todos os alvos
 ```
 
