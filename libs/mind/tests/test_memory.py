@@ -482,6 +482,21 @@ def test_a_reflexao_vira_crencas_e_eventos_na_ordem() -> None:
     assert events[0]["data"]["beliefs"] == {"formed": 1, "updated": 1, "retracted": 0, "total": 2}
 
 
+def test_a_reflexao_cortada_no_max_tokens_nao_se_guarda() -> None:
+    mem = memory()
+    clock = Clock(900, 1, "2026-10-10T21:00:00-03:00")
+    request = mem.reflect_request("x", clock, 1, "m")
+    cut = response(
+        {"type": "thinking", "thinking": "", "signature": "s"},
+        {"type": "tool_use", "id": "toolu_r", "name": REFLECT, "input": {}},
+        stop="max_tokens",
+    )
+    assert mem.apply_reflection(request, cut, clock, 1) is None
+    assert not mem.port.has_reflection(1)  # a manhã seguinte tenta de novo
+    assert mem.drain_events() == []
+    assert MemorySettings().reflection_max_tokens == 8192
+
+
 def test_um_dia_sem_reflexao_fica_pendente_para_a_manha() -> None:
     mem = memory()
     assert (

@@ -11,7 +11,9 @@ INTENT_MAX = 500  # o contrato de cmd.action.propose limita o intent a 500 carac
 INTENT_DESCRIPTION = "O que você pretende com esta ação, em uma frase, em português."
 NOTE = "note"  # o caderno (ADR-0060): entra em toda ferramenta quando há memória
 NOTE_DESCRIPTION = (
-    'Algo que vale lembrar amanhã (uma observação, um número, uma dúvida), ou "" se nada.'
+    "Para o caderno: só o que a próxima foto não vai mostrar (uma conclusão, uma dúvida, um "
+    "plano, um número que você quer comparar depois). Fome, energia, moedas, cargas e o que "
+    'está em cada canteiro já estão na foto: não anote. Na maioria das decisões, "".'
 )
 
 

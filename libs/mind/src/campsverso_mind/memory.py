@@ -81,7 +81,7 @@ class MemorySettings:
     block_salient: int = 10
     reflection_model: str | None = None  # None: o modelo das decisões
     reflection_effort: Effort | None = "medium"
-    reflection_max_tokens: int = 2048
+    reflection_max_tokens: int = 8192  # o raciocínio adaptativo gasta daqui; 2 mil não bastam
     reflection_episodes: int = 200  # linhas do dia que a reflexão lê, as mais recentes
 
 
@@ -407,6 +407,8 @@ class Memory:
         if chosen is None:
             return None
         given = cast(Mapping[str, Any], chosen.get("input") or {})
+        if response.stop_reason == "max_tokens" or not str(given.get("summary", "")).strip():
+            return None  # cortada no meio: nada se guarda, e a manhã tenta de novo
         revisions: list[BeliefRevision] = []
         for raw in cast(Sequence[Mapping[str, Any]], given.get("beliefs") or ()):
             statement = " ".join(str(raw.get("statement", "")).split())[:500]
