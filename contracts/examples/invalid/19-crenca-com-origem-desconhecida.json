@@ -1,0 +1,33 @@
+{
+  "expect_error": "payload_schema",
+  "description": "Crença com origem fora de observation e told.",
+  "event": {
+    "specversion": "1.0",
+    "id": "01a12d2b-6c40-7c16-8a00-1e6802771b76",
+    "source": "/controller-runner/llm/camps",
+    "type": "campsverso.memory.belief.formed.v1",
+    "time": "2026-10-18T23:40:00Z",
+    "datacontenttype": "application/json",
+    "dataschema": "contracts://events/memory/belief.formed.v1",
+    "worldid": "farm-camps-01",
+    "cartridge": "farm_camps",
+    "tick": 2043,
+    "simtime": "2026-10-11T16:03:00-03:00",
+    "seq": 126,
+    "provenance": "simulated",
+    "visibility": "observer",
+    "actor": "llm/camps",
+    "data": {
+      "avatar_id": "camps",
+      "belief_id": "bel-0005",
+      "statement": "O rio fala comigo.",
+      "confidence": 0.3,
+      "evidence": [
+        "tick 2: um sonho"
+      ],
+      "source": {
+        "kind": "dream"
+      }
+    }
+  }
+}

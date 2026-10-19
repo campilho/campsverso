@@ -15,11 +15,11 @@ def test_exemplos_do_repositorio_validam_e_cobrem_todos_os_tipos(
     assert checks.check_examples(contracts) == []
 
 
-def test_catalogo_tem_45_eventos_e_9_comandos(contracts: catalog.Contracts) -> None:
-    """Os 38 da v0.1, os dois de sono v2 (ADR-0042), o delta da percepção (ADR-0056) e os quatro de
-    modelo e orçamento (ADR-0058)."""
+def test_catalogo_tem_50_eventos_e_9_comandos(contracts: catalog.Contracts) -> None:
+    """Os 38 da v0.1, os dois de sono v2 (ADR-0042), o delta da percepção (ADR-0056), os quatro de
+    modelo e orçamento (ADR-0058) e os cinco de memória (ADR-0060)."""
     kinds = [f.kind for f in contracts.by_type.values()]
-    assert kinds.count("event") == 45
+    assert kinds.count("event") == 50
     assert kinds.count("command") == 9
 
 

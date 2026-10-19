@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/memory/noted.v1",
+  "title": "MemoryNotedV1",
+  "description": "O agente anotou algo no caderno (ADR-0060): o parâmetro `note` de uma ferramenta, com o tick do envelope. Publicado pela mente; é o que o operador vê no caderno.",
+  "x-type": "campsverso.memory.noted.v1",
+  "x-visibility": "observer",
+  "x-producer": "controller",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "avatar_id",
+    "day",
+    "text"
+  ],
+  "properties": {
+    "avatar_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "O avatar cuja memória é esta."
+    },
+    "day": {
+      "$ref": "contracts://common/defs.v1#/$defs/day"
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    }
+  }
+}

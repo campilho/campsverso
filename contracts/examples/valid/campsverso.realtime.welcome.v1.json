@@ -134,6 +134,26 @@
         "pico_fome": 42.5,
         "moedas": 120
       }
+    },
+    "memory": {
+      "camps": {
+        "day": 1,
+        "summary": "Plantei os oito canteiros do oeste e dormi na cama.",
+        "plan": "Regar de manhã e comprar sementes.",
+        "beliefs": [
+          {
+            "belief_id": "bel-0001",
+            "statement": "O quiosque fecha às 18:00.",
+            "confidence": 0.9
+          }
+        ],
+        "notes": [
+          {
+            "tick": 610,
+            "text": "O regador enche só no poço."
+          }
+        ]
+      }
     }
   },
   "events": [

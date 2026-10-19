@@ -1,0 +1,33 @@
+{
+  "expect_error": "payload_schema",
+  "description": "Crença com confiança fora de 0 a 1.",
+  "event": {
+    "specversion": "1.0",
+    "id": "01a12d2b-6c40-7c15-8a00-1e6802771b75",
+    "source": "/controller-runner/llm/camps",
+    "type": "campsverso.memory.belief.formed.v1",
+    "time": "2026-10-18T23:40:00Z",
+    "datacontenttype": "application/json",
+    "dataschema": "contracts://events/memory/belief.formed.v1",
+    "worldid": "farm-camps-01",
+    "cartridge": "farm_camps",
+    "tick": 2043,
+    "simtime": "2026-10-11T16:03:00-03:00",
+    "seq": 125,
+    "provenance": "simulated",
+    "visibility": "observer",
+    "actor": "llm/camps",
+    "data": {
+      "avatar_id": "camps",
+      "belief_id": "bel-0004",
+      "statement": "Tudo é possível.",
+      "confidence": 1.2,
+      "evidence": [
+        "tick 1: nada"
+      ],
+      "source": {
+        "kind": "observation"
+      }
+    }
+  }
+}

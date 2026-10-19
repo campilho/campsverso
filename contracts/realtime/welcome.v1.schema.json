@@ -391,6 +391,84 @@
           },
           "description": "Quem controla cada avatar."
         },
+        "memory": {
+          "type": "object",
+          "description": "O caderno de cada avatar com controlador LLM (ADR-0060): as crenças atuais, as últimas anotações e a última reflexão, projetados dos eventos memory.*.",
+          "propertyNames": {
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "title": "ObserverMemory",
+            "additionalProperties": false,
+            "required": [
+              "beliefs",
+              "notes"
+            ],
+            "properties": {
+              "day": {
+                "$ref": "contracts://common/defs.v1#/$defs/day",
+                "description": "O dia da última reflexão."
+              },
+              "summary": {
+                "type": "string",
+                "maxLength": 2000
+              },
+              "plan": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "beliefs": {
+                "type": "array",
+                "maxItems": 50,
+                "items": {
+                  "type": "object",
+                  "title": "ObserverBelief",
+                  "additionalProperties": false,
+                  "required": [
+                    "belief_id",
+                    "statement",
+                    "confidence"
+                  ],
+                  "properties": {
+                    "belief_id": {
+                      "$ref": "contracts://common/defs.v1#/$defs/belief_id"
+                    },
+                    "statement": {
+                      "type": "string",
+                      "maxLength": 500
+                    },
+                    "confidence": {
+                      "$ref": "contracts://common/defs.v1#/$defs/confidence"
+                    }
+                  }
+                }
+              },
+              "notes": {
+                "type": "array",
+                "maxItems": 50,
+                "items": {
+                  "type": "object",
+                  "title": "ObserverNote",
+                  "additionalProperties": false,
+                  "required": [
+                    "tick",
+                    "text"
+                  ],
+                  "properties": {
+                    "tick": {
+                      "$ref": "contracts://common/defs.v1#/$defs/tick"
+                    },
+                    "text": {
+                      "type": "string",
+                      "maxLength": 500
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "decisions": {
           "type": "object",
           "propertyNames": {

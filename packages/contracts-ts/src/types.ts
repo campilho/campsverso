@@ -95,6 +95,190 @@ export type Interrupt = "never" | "cancel" | "partial";
  * via the `definition` "TerrainRows".
  */
 export type TerrainRows = [string, ...string[]];
+/**
+ * Id de uma crença do agente (ADR-0060): bel-0001.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "BeliefId".
+ */
+export type BeliefId = string;
+/**
+ * Quanto o agente acredita, de 0 a 1 (ADR-0060).
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "Confidence".
+ */
+export type Confidence = number;
+/**
+ * Evidências de uma crença: ticks e fatos de uma linha, do que o agente percebeu; nunca o `internal`.
+ *
+ * @maxItems 20
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "BeliefEvidence".
+ */
+export type BeliefEvidence =
+  | []
+  | [string]
+  | [string, string]
+  | [string, string, string]
+  | [string, string, string, string]
+  | [string, string, string, string, string]
+  | [string, string, string, string, string, string]
+  | [string, string, string, string, string, string, string]
+  | [string, string, string, string, string, string, string, string]
+  | [string, string, string, string, string, string, string, string, string]
+  | [string, string, string, string, string, string, string, string, string, string]
+  | [string, string, string, string, string, string, string, string, string, string, string]
+  | [string, string, string, string, string, string, string, string, string, string, string, string]
+  | [
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+    ]
+  | [
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+    ]
+  | [
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+    ]
+  | [
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+    ]
+  | [
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+    ]
+  | [
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+    ]
+  | [
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+    ]
+  | [
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+    ];
 
 export interface ContractsBundle {}
 /**
@@ -363,6 +547,19 @@ export interface LlmUsage {
   output_tokens: number;
   cache_read_input_tokens?: number;
   cache_creation_input_tokens?: number;
+}
+/**
+ * De onde a crença veio (contratos §8.4): do que o agente observou, ou de quem lhe contou (`by`).
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "BeliefSource".
+ */
+export interface BeliefSource {
+  kind: "observation" | "told";
+  /**
+   * Quem contou, quando `kind` é `told`.
+   */
+  by?: string;
 }
 /**
  * Controlador propõe uma ação para o avatar.
@@ -795,6 +992,105 @@ export interface LlmCallFailedV1 {
     "rate_limit" | "timeout" | "connection" | "auth" | "bad_request" | "server" | "cassette_miss";
   message: string;
   retryable: boolean;
+}
+/**
+ * Uma crença nova (ADR-0060; contratos §8.4): o que o agente passou a acreditar, com quanta confiança, por que evidências e de que origem.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "MemoryBeliefFormedV1".
+ */
+export interface MemoryBeliefFormedV1 {
+  avatar_id: EntityId;
+  belief_id: BeliefId;
+  /**
+   * A crença, em uma frase.
+   */
+  statement: string;
+  confidence: Confidence;
+  evidence: BeliefEvidence;
+  source: BeliefSource;
+  /**
+   * Por que a reflexão fez isso.
+   */
+  reason?: string;
+}
+/**
+ * O agente abandonou uma crença (ADR-0060; contratos §8.4).
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "MemoryBeliefRetractedV1".
+ */
+export interface MemoryBeliefRetractedV1 {
+  avatar_id: EntityId;
+  belief_id: BeliefId;
+  /**
+   * A crença, em uma frase.
+   */
+  statement: string;
+  /**
+   * Por que a reflexão fez isso.
+   */
+  reason?: string;
+}
+/**
+ * A confiança de uma crença mudou, ou o enunciado foi refinado (ADR-0060; contratos §8.4), com a evidência que pesou.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "MemoryBeliefUpdatedV1".
+ */
+export interface MemoryBeliefUpdatedV1 {
+  avatar_id: EntityId;
+  belief_id: BeliefId;
+  /**
+   * A crença, em uma frase.
+   */
+  statement: string;
+  confidence: {
+    before: Confidence;
+    after: Confidence;
+  };
+  evidence: BeliefEvidence;
+  source: BeliefSource;
+  /**
+   * Por que a reflexão fez isso.
+   */
+  reason?: string;
+}
+/**
+ * O agente anotou algo no caderno (ADR-0060): o parâmetro `note` de uma ferramenta, com o tick do envelope. Publicado pela mente; é o que o operador vê no caderno.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "MemoryNotedV1".
+ */
+export interface MemoryNotedV1 {
+  avatar_id: EntityId;
+  day: Day;
+  text: string;
+}
+/**
+ * A reflexão de um dia terminou (ADR-0060): o resumo, o plano para amanhã e quantas crenças foram formadas, atualizadas e retiradas. Nunca leva o prompt: só o hash do pedido.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "MemoryReflectedV1".
+ */
+export interface MemoryReflectedV1 {
+  avatar_id: EntityId;
+  day: Day;
+  summary: string;
+  /**
+   * O que o agente pretende amanhã.
+   */
+  plan?: string;
+  beliefs: {
+    formed: number;
+    updated: number;
+    retracted: number;
+    total: number;
+  };
+  /**
+   * Hash do pedido da reflexão, o mesmo do llm.call.completed.
+   */
+  prompt_sha256?: string;
 }
 /**
  * O gasto com modelos estourou um teto e a guarda pediu a pausa do mundo (ADR-0058). Só o operador retoma.
@@ -1425,6 +1721,12 @@ export interface ObserverState {
   controllers: {
     [k: string]: ControllerRef | undefined;
   };
+  /**
+   * O caderno de cada avatar com controlador LLM (ADR-0060): as crenças atuais, as últimas anotações e a última reflexão, projetados dos eventos memory.*.
+   */
+  memory?: {
+    [k: string]: ObserverMemory | undefined;
+  };
   decisions: {
     [k: string]: ObserverDecision | undefined;
   };
@@ -1509,6 +1811,28 @@ export interface ObserverSleep {
   since_tick: Tick;
   wake_at_tick: Tick;
   bed_id?: EntityId;
+}
+export interface ObserverMemory {
+  day?: Day;
+  summary?: string;
+  plan?: string;
+  /**
+   * @maxItems 50
+   */
+  beliefs: ObserverBelief[];
+  /**
+   * @maxItems 50
+   */
+  notes: ObserverNote[];
+}
+export interface ObserverBelief {
+  belief_id: BeliefId;
+  statement: string;
+  confidence: Confidence;
+}
+export interface ObserverNote {
+  tick: Tick;
+  text: string;
 }
 /**
  * Último pedido de decisão do avatar.

@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/memory/belief.formed.v1",
+  "title": "MemoryBeliefFormedV1",
+  "description": "Uma crença nova (ADR-0060; contratos §8.4): o que o agente passou a acreditar, com quanta confiança, por que evidências e de que origem.",
+  "x-type": "campsverso.memory.belief.formed.v1",
+  "x-visibility": "observer",
+  "x-producer": "controller",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "avatar_id",
+    "belief_id",
+    "statement",
+    "confidence",
+    "evidence",
+    "source"
+  ],
+  "properties": {
+    "avatar_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "O avatar cuja memória é esta."
+    },
+    "belief_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/belief_id"
+    },
+    "statement": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "description": "A crença, em uma frase."
+    },
+    "confidence": {
+      "$ref": "contracts://common/defs.v1#/$defs/confidence"
+    },
+    "evidence": {
+      "$ref": "contracts://common/defs.v1#/$defs/belief_evidence"
+    },
+    "source": {
+      "$ref": "contracts://common/defs.v1#/$defs/belief_source"
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "description": "Por que a reflexão fez isso."
+    }
+  }
+}

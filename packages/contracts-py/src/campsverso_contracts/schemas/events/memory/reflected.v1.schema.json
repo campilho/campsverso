@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/memory/reflected.v1",
+  "title": "MemoryReflectedV1",
+  "description": "A reflexão de um dia terminou (ADR-0060): o resumo, o plano para amanhã e quantas crenças foram formadas, atualizadas e retiradas. Nunca leva o prompt: só o hash do pedido.",
+  "x-type": "campsverso.memory.reflected.v1",
+  "x-visibility": "observer",
+  "x-producer": "controller",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "avatar_id",
+    "day",
+    "summary",
+    "beliefs"
+  ],
+  "properties": {
+    "avatar_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "O avatar cuja memória é esta."
+    },
+    "day": {
+      "$ref": "contracts://common/defs.v1#/$defs/day",
+      "description": "O dia refletido."
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "plan": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "description": "O que o agente pretende amanhã."
+    },
+    "beliefs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "formed",
+        "updated",
+        "retracted",
+        "total"
+      ],
+      "properties": {
+        "formed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "updated": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "retracted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "prompt_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Hash do pedido da reflexão, o mesmo do llm.call.completed."
+    }
+  }
+}

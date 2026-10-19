@@ -174,6 +174,36 @@ export const CONTRACT_TYPES = {
     producer: "controller",
     dataschema: "contracts://events/llm/call.failed.v1",
   },
+  "campsverso.memory.belief.formed.v1": {
+    kind: "event",
+    visibility: "observer",
+    producer: "controller",
+    dataschema: "contracts://events/memory/belief.formed.v1",
+  },
+  "campsverso.memory.belief.retracted.v1": {
+    kind: "event",
+    visibility: "observer",
+    producer: "controller",
+    dataschema: "contracts://events/memory/belief.retracted.v1",
+  },
+  "campsverso.memory.belief.updated.v1": {
+    kind: "event",
+    visibility: "observer",
+    producer: "controller",
+    dataschema: "contracts://events/memory/belief.updated.v1",
+  },
+  "campsverso.memory.noted.v1": {
+    kind: "event",
+    visibility: "observer",
+    producer: "controller",
+    dataschema: "contracts://events/memory/noted.v1",
+  },
+  "campsverso.memory.reflected.v1": {
+    kind: "event",
+    visibility: "observer",
+    producer: "controller",
+    dataschema: "contracts://events/memory/reflected.v1",
+  },
   "campsverso.ops.budget.exceeded.v1": {
     kind: "event",
     visibility: "observer",
@@ -368,6 +398,11 @@ export interface PayloadByType {
   "campsverso.farm.crop.withered.v1": T.FarmCropWitheredV1;
   "campsverso.llm.call.completed.v1": T.LlmCallCompletedV1;
   "campsverso.llm.call.failed.v1": T.LlmCallFailedV1;
+  "campsverso.memory.belief.formed.v1": T.MemoryBeliefFormedV1;
+  "campsverso.memory.belief.retracted.v1": T.MemoryBeliefRetractedV1;
+  "campsverso.memory.belief.updated.v1": T.MemoryBeliefUpdatedV1;
+  "campsverso.memory.noted.v1": T.MemoryNotedV1;
+  "campsverso.memory.reflected.v1": T.MemoryReflectedV1;
   "campsverso.ops.budget.exceeded.v1": T.OpsBudgetExceededV1;
   "campsverso.ops.budget.threshold_reached.v1": T.OpsBudgetThresholdReachedV1;
   "campsverso.perception.delivered.v1": T.PerceptionDeliveredV1;

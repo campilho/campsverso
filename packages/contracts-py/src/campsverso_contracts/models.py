@@ -400,6 +400,25 @@ class LlmUsage(BaseModel):
     cache_creation_input_tokens: Annotated[int | None, Field(ge=0)] = None
 
 
+class BeliefSource(BaseModel):
+    """
+    De onde a crença veio (contratos §8.4): do que o agente observou, ou de quem lhe contou (`by`).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    kind: Literal["observation", "told"]
+    by: Annotated[str | None, Field(max_length=128, min_length=1)] = None
+    """
+    Quem contou, quando `kind` é `told`.
+    """
+
+
+class BeliefEvidenceItem(RootModel[str]):
+    root: Annotated[str, Field(max_length=300, min_length=1)]
+
+
 class CmdActionProposeV1(BaseModel):
     """
     Controlador propõe uma ação para o avatar.
@@ -1182,6 +1201,189 @@ class LlmCallFailedV1(BaseModel):
     ]
     message: Annotated[str, Field(max_length=1000)]
     retryable: bool
+
+
+class MemoryBeliefFormedV1(BaseModel):
+    """
+    Uma crença nova (ADR-0060; contratos §8.4): o que o agente passou a acreditar, com quanta confiança, por que evidências e de que origem.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O avatar cuja memória é esta.
+    """
+    belief_id: Annotated[
+        str,
+        Field(max_length=64, pattern="^bel-[0-9a-z]+(-[0-9a-z]+)*$", title="BeliefId"),
+    ]
+    """
+    Id de uma crença do agente (ADR-0060): bel-0001.
+    """
+    statement: Annotated[str, Field(max_length=500, min_length=1)]
+    """
+    A crença, em uma frase.
+    """
+    confidence: Annotated[float, Field(ge=0.0, le=1.0, title="Confidence")]
+    """
+    Quanto o agente acredita, de 0 a 1 (ADR-0060).
+    """
+    evidence: Annotated[list[BeliefEvidenceItem], Field(max_length=20, title="BeliefEvidence")]
+    """
+    Evidências de uma crença: ticks e fatos de uma linha, do que o agente percebeu; nunca o `internal`.
+    """
+    source: BeliefSource
+    reason: Annotated[str | None, Field(max_length=500, min_length=1)] = None
+    """
+    Por que a reflexão fez isso.
+    """
+
+
+class MemoryBeliefRetractedV1(BaseModel):
+    """
+    O agente abandonou uma crença (ADR-0060; contratos §8.4).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O avatar cuja memória é esta.
+    """
+    belief_id: Annotated[
+        str,
+        Field(max_length=64, pattern="^bel-[0-9a-z]+(-[0-9a-z]+)*$", title="BeliefId"),
+    ]
+    """
+    Id de uma crença do agente (ADR-0060): bel-0001.
+    """
+    statement: Annotated[str, Field(max_length=500, min_length=1)]
+    """
+    A crença, em uma frase.
+    """
+    reason: Annotated[str | None, Field(max_length=500, min_length=1)] = None
+    """
+    Por que a reflexão fez isso.
+    """
+
+
+class Confidence1(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    before: Annotated[float, Field(ge=0.0, le=1.0, title="Confidence")]
+    """
+    Quanto o agente acredita, de 0 a 1 (ADR-0060).
+    """
+    after: Annotated[float, Field(ge=0.0, le=1.0, title="Confidence")]
+    """
+    Quanto o agente acredita, de 0 a 1 (ADR-0060).
+    """
+
+
+class MemoryBeliefUpdatedV1(BaseModel):
+    """
+    A confiança de uma crença mudou, ou o enunciado foi refinado (ADR-0060; contratos §8.4), com a evidência que pesou.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O avatar cuja memória é esta.
+    """
+    belief_id: Annotated[
+        str,
+        Field(max_length=64, pattern="^bel-[0-9a-z]+(-[0-9a-z]+)*$", title="BeliefId"),
+    ]
+    """
+    Id de uma crença do agente (ADR-0060): bel-0001.
+    """
+    statement: Annotated[str, Field(max_length=500, min_length=1)]
+    """
+    A crença, em uma frase.
+    """
+    confidence: Confidence1
+    evidence: Annotated[list[BeliefEvidenceItem], Field(max_length=20, title="BeliefEvidence")]
+    """
+    Evidências de uma crença: ticks e fatos de uma linha, do que o agente percebeu; nunca o `internal`.
+    """
+    source: BeliefSource
+    reason: Annotated[str | None, Field(max_length=500, min_length=1)] = None
+    """
+    Por que a reflexão fez isso.
+    """
+
+
+class MemoryNotedV1(BaseModel):
+    """
+    O agente anotou algo no caderno (ADR-0060): o parâmetro `note` de uma ferramenta, com o tick do envelope. Publicado pela mente; é o que o operador vê no caderno.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O avatar cuja memória é esta.
+    """
+    day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+    text: Annotated[str, Field(max_length=500, min_length=1)]
+
+
+class Beliefs(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    formed: Annotated[int, Field(ge=0)]
+    updated: Annotated[int, Field(ge=0)]
+    retracted: Annotated[int, Field(ge=0)]
+    total: Annotated[int, Field(ge=0)]
+
+
+class MemoryReflectedV1(BaseModel):
+    """
+    A reflexão de um dia terminou (ADR-0060): o resumo, o plano para amanhã e quantas crenças foram formadas, atualizadas e retiradas. Nunca leva o prompt: só o hash do pedido.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O avatar cuja memória é esta.
+    """
+    day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    O dia refletido.
+    """
+    summary: Annotated[str, Field(max_length=2000, min_length=1)]
+    plan: Annotated[str | None, Field(max_length=1000, min_length=1)] = None
+    """
+    O que o agente pretende amanhã.
+    """
+    beliefs: Beliefs
+    prompt_sha256: Annotated[str | None, Field(pattern="^[0-9a-f]{64}$")] = None
+    """
+    Hash do pedido da reflexão, o mesmo do llm.call.completed.
+    """
 
 
 class OpsBudgetExceededV1(BaseModel):
@@ -2372,6 +2574,49 @@ class ObserverSleep(BaseModel):
     """
 
 
+class ObserverBelief(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    belief_id: Annotated[
+        str,
+        Field(max_length=64, pattern="^bel-[0-9a-z]+(-[0-9a-z]+)*$", title="BeliefId"),
+    ]
+    """
+    Id de uma crença do agente (ADR-0060): bel-0001.
+    """
+    statement: Annotated[str, Field(max_length=500)]
+    confidence: Annotated[float, Field(ge=0.0, le=1.0, title="Confidence")]
+    """
+    Quanto o agente acredita, de 0 a 1 (ADR-0060).
+    """
+
+
+class ObserverNote(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+    text: Annotated[str, Field(max_length=500)]
+
+
+class ObserverMemory(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    day: Annotated[int | None, Field(ge=1, title="Day")] = None
+    """
+    O dia da última reflexão.
+    """
+    summary: Annotated[str | None, Field(max_length=2000)] = None
+    plan: Annotated[str | None, Field(max_length=1000)] = None
+    beliefs: Annotated[list[ObserverBelief], Field(max_length=50)]
+    notes: Annotated[list[ObserverNote], Field(max_length=50)]
+
+
 class ObserverDecision(BaseModel):
     """
     Último pedido de decisão do avatar.
@@ -2449,6 +2694,10 @@ class ObserverState(BaseModel):
     controllers: dict[str, ControllerRef]
     """
     Quem controla cada avatar.
+    """
+    memory: dict[str, ObserverMemory] | None = None
+    """
+    O caderno de cada avatar com controlador LLM (ADR-0060): as crenças atuais, as últimas anotações e a última reflexão, projetados dos eventos memory.*.
     """
     decisions: dict[str, ObserverDecision]
     metrics: dict[str, dict[str, float | dict[str, float]]] | None = None

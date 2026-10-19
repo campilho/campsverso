@@ -658,6 +658,54 @@
           "minimum": 0
         }
       }
+    },
+    "belief_id": {
+      "title": "BeliefId",
+      "description": "Id de uma crença do agente (ADR-0060): bel-0001.",
+      "type": "string",
+      "pattern": "^bel-[0-9a-z]+(-[0-9a-z]+)*$",
+      "maxLength": 64
+    },
+    "confidence": {
+      "title": "Confidence",
+      "description": "Quanto o agente acredita, de 0 a 1 (ADR-0060).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "belief_source": {
+      "title": "BeliefSource",
+      "description": "De onde a crença veio (contratos §8.4): do que o agente observou, ou de quem lhe contou (`by`).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "observation",
+            "told"
+          ]
+        },
+        "by": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Quem contou, quando `kind` é `told`."
+        }
+      }
+    },
+    "belief_evidence": {
+      "title": "BeliefEvidence",
+      "description": "Evidências de uma crença: ticks e fatos de uma linha, do que o agente percebeu; nunca o `internal`.",
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 300
+      }
     }
   }
 }

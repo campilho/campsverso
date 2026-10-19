@@ -2,6 +2,13 @@
 
 Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão maior, só entram campos opcionais novos; mudança incompatível vira um tipo novo (`.v2`). A checagem `make compat` confere isso a cada commit.
 
+## Não publicado (M11)
+
+- **Memória baseline** (ADR-0060): cinco tipos novos no domínio `memory`, todos `observer`, produtor `controller` (a mente), e nenhum tipo mudado:
+  - `common/defs.v1` ganha `belief_id`, `confidence` (0 a 1), `belief_source` (`observation`, ou `told` com `by`) e `belief_evidence`;
+  - `campsverso.memory.noted.v1` (uma anotação do agente), `campsverso.memory.reflected.v1` (o resumo e o plano de uma reflexão, com as contagens de crenças e o hash do pedido), `campsverso.memory.belief.formed.v1`, `campsverso.memory.belief.updated.v1` (`confidence: {before, after}`) e `campsverso.memory.belief.retracted.v1`, no formato do §8.4 do documento de contratos;
+  - o `ObserverState` do `realtime` ganha `memory`, opcional: o caderno de cada avatar (crenças, anotações, último resumo e plano).
+
 ## Não publicado (M10)
 
 - **O controlador LLM** (ADR-0059), só com campos opcionais e nenhum tipo novo:

@@ -323,6 +323,61 @@ channels:
     messages:
       LlmCallFailedV1:
         $ref: '#/components/messages/LlmCallFailedV1'
+  MemoryBeliefFormedV1:
+    address: campsverso.{worldid}.observer.memory.belief.formed.v1
+    title: campsverso.memory.belief.formed.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      MemoryBeliefFormedV1:
+        $ref: '#/components/messages/MemoryBeliefFormedV1'
+  MemoryBeliefRetractedV1:
+    address: campsverso.{worldid}.observer.memory.belief.retracted.v1
+    title: campsverso.memory.belief.retracted.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      MemoryBeliefRetractedV1:
+        $ref: '#/components/messages/MemoryBeliefRetractedV1'
+  MemoryBeliefUpdatedV1:
+    address: campsverso.{worldid}.observer.memory.belief.updated.v1
+    title: campsverso.memory.belief.updated.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      MemoryBeliefUpdatedV1:
+        $ref: '#/components/messages/MemoryBeliefUpdatedV1'
+  MemoryNotedV1:
+    address: campsverso.{worldid}.observer.memory.noted.v1
+    title: campsverso.memory.noted.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      MemoryNotedV1:
+        $ref: '#/components/messages/MemoryNotedV1'
+  MemoryReflectedV1:
+    address: campsverso.{worldid}.observer.memory.reflected.v1
+    title: campsverso.memory.reflected.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      MemoryReflectedV1:
+        $ref: '#/components/messages/MemoryReflectedV1'
   OpsBudgetExceededV1:
     address: campsverso.{worldid}.observer.ops.budget.exceeded.v1
     title: campsverso.ops.budget.exceeded.v1
@@ -844,6 +899,41 @@ operations:
       $ref: '#/channels/LlmCallFailedV1'
     messages:
     - $ref: '#/channels/LlmCallFailedV1/messages/LlmCallFailedV1'
+    x-producer: controller
+  sendMemoryBeliefFormedV1:
+    action: send
+    channel:
+      $ref: '#/channels/MemoryBeliefFormedV1'
+    messages:
+    - $ref: '#/channels/MemoryBeliefFormedV1/messages/MemoryBeliefFormedV1'
+    x-producer: controller
+  sendMemoryBeliefRetractedV1:
+    action: send
+    channel:
+      $ref: '#/channels/MemoryBeliefRetractedV1'
+    messages:
+    - $ref: '#/channels/MemoryBeliefRetractedV1/messages/MemoryBeliefRetractedV1'
+    x-producer: controller
+  sendMemoryBeliefUpdatedV1:
+    action: send
+    channel:
+      $ref: '#/channels/MemoryBeliefUpdatedV1'
+    messages:
+    - $ref: '#/channels/MemoryBeliefUpdatedV1/messages/MemoryBeliefUpdatedV1'
+    x-producer: controller
+  sendMemoryNotedV1:
+    action: send
+    channel:
+      $ref: '#/channels/MemoryNotedV1'
+    messages:
+    - $ref: '#/channels/MemoryNotedV1/messages/MemoryNotedV1'
+    x-producer: controller
+  sendMemoryReflectedV1:
+    action: send
+    channel:
+      $ref: '#/channels/MemoryReflectedV1'
+    messages:
+    - $ref: '#/channels/MemoryReflectedV1/messages/MemoryReflectedV1'
     x-producer: controller
   sendOpsBudgetExceededV1:
     action: send
@@ -1570,6 +1660,46 @@ components:
         cache_creation_input_tokens:
           type: integer
           minimum: 0
+    BeliefId:
+      title: BeliefId
+      description: 'Id de uma crença do agente (ADR-0060): bel-0001.'
+      type: string
+      pattern: ^bel-[0-9a-z]+(-[0-9a-z]+)*$
+      maxLength: 64
+    Confidence:
+      title: Confidence
+      description: Quanto o agente acredita, de 0 a 1 (ADR-0060).
+      type: number
+      minimum: 0
+      maximum: 1
+    BeliefSource:
+      title: BeliefSource
+      description: 'De onde a crença veio (contratos §8.4): do que o agente observou, ou de quem lhe contou
+        (`by`).'
+      type: object
+      additionalProperties: false
+      required:
+      - kind
+      properties:
+        kind:
+          enum:
+          - observation
+          - told
+        by:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: Quem contou, quando `kind` é `told`.
+    BeliefEvidence:
+      title: BeliefEvidence
+      description: 'Evidências de uma crença: ticks e fatos de uma linha, do que o agente percebeu; nunca
+        o `internal`.'
+      type: array
+      maxItems: 20
+      items:
+        type: string
+        minLength: 1
+        maxLength: 300
     CmdActionProposeV1:
       title: CmdActionProposeV1
       description: Controlador propõe uma ação para o avatar.
@@ -2354,6 +2484,182 @@ components:
           maxLength: 1000
         retryable:
           type: boolean
+    MemoryBeliefFormedV1:
+      title: MemoryBeliefFormedV1
+      description: 'Uma crença nova (ADR-0060; contratos §8.4): o que o agente passou a acreditar, com
+        quanta confiança, por que evidências e de que origem.'
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - belief_id
+      - statement
+      - confidence
+      - evidence
+      - source
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: O avatar cuja memória é esta.
+        belief_id:
+          $ref: '#/components/schemas/BeliefId'
+        statement:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: A crença, em uma frase.
+        confidence:
+          $ref: '#/components/schemas/Confidence'
+        evidence:
+          $ref: '#/components/schemas/BeliefEvidence'
+        source:
+          $ref: '#/components/schemas/BeliefSource'
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Por que a reflexão fez isso.
+    MemoryBeliefRetractedV1:
+      title: MemoryBeliefRetractedV1
+      description: O agente abandonou uma crença (ADR-0060; contratos §8.4).
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - belief_id
+      - statement
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: O avatar cuja memória é esta.
+        belief_id:
+          $ref: '#/components/schemas/BeliefId'
+        statement:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: A crença, em uma frase.
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Por que a reflexão fez isso.
+    MemoryBeliefUpdatedV1:
+      title: MemoryBeliefUpdatedV1
+      description: A confiança de uma crença mudou, ou o enunciado foi refinado (ADR-0060; contratos §8.4),
+        com a evidência que pesou.
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - belief_id
+      - statement
+      - confidence
+      - evidence
+      - source
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: O avatar cuja memória é esta.
+        belief_id:
+          $ref: '#/components/schemas/BeliefId'
+        statement:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: A crença, em uma frase.
+        confidence:
+          type: object
+          additionalProperties: false
+          required:
+          - before
+          - after
+          properties:
+            before:
+              $ref: '#/components/schemas/Confidence'
+            after:
+              $ref: '#/components/schemas/Confidence'
+        evidence:
+          $ref: '#/components/schemas/BeliefEvidence'
+        source:
+          $ref: '#/components/schemas/BeliefSource'
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Por que a reflexão fez isso.
+    MemoryNotedV1:
+      title: MemoryNotedV1
+      description: 'O agente anotou algo no caderno (ADR-0060): o parâmetro `note` de uma ferramenta,
+        com o tick do envelope. Publicado pela mente; é o que o operador vê no caderno.'
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - day
+      - text
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: O avatar cuja memória é esta.
+        day:
+          $ref: '#/components/schemas/Day'
+        text:
+          type: string
+          minLength: 1
+          maxLength: 500
+    MemoryReflectedV1:
+      title: MemoryReflectedV1
+      description: 'A reflexão de um dia terminou (ADR-0060): o resumo, o plano para amanhã e quantas
+        crenças foram formadas, atualizadas e retiradas. Nunca leva o prompt: só o hash do pedido.'
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - day
+      - summary
+      - beliefs
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: O avatar cuja memória é esta.
+        day:
+          $ref: '#/components/schemas/Day'
+          description: O dia refletido.
+        summary:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        plan:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: O que o agente pretende amanhã.
+        beliefs:
+          type: object
+          additionalProperties: false
+          required:
+          - formed
+          - updated
+          - retracted
+          - total
+          properties:
+            formed:
+              type: integer
+              minimum: 0
+            updated:
+              type: integer
+              minimum: 0
+            retracted:
+              type: integer
+              minimum: 0
+            total:
+              type: integer
+              minimum: 0
+        prompt_sha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+          description: Hash do pedido da reflexão, o mesmo do llm.call.completed.
     OpsBudgetExceededV1:
       title: OpsBudgetExceededV1
       description: O gasto com modelos estourou um teto e a guarda pediu a pausa do mundo (ADR-0058).
@@ -3636,6 +3942,62 @@ components:
               additionalProperties:
                 $ref: '#/components/schemas/ControllerRef'
               description: Quem controla cada avatar.
+            memory:
+              type: object
+              description: 'O caderno de cada avatar com controlador LLM (ADR-0060): as crenças atuais,
+                as últimas anotações e a última reflexão, projetados dos eventos memory.*.'
+              additionalProperties:
+                type: object
+                title: ObserverMemory
+                additionalProperties: false
+                required:
+                - beliefs
+                - notes
+                properties:
+                  day:
+                    $ref: '#/components/schemas/Day'
+                    description: O dia da última reflexão.
+                  summary:
+                    type: string
+                    maxLength: 2000
+                  plan:
+                    type: string
+                    maxLength: 1000
+                  beliefs:
+                    type: array
+                    maxItems: 50
+                    items:
+                      type: object
+                      title: ObserverBelief
+                      additionalProperties: false
+                      required:
+                      - belief_id
+                      - statement
+                      - confidence
+                      properties:
+                        belief_id:
+                          $ref: '#/components/schemas/BeliefId'
+                        statement:
+                          type: string
+                          maxLength: 500
+                        confidence:
+                          $ref: '#/components/schemas/Confidence'
+                  notes:
+                    type: array
+                    maxItems: 50
+                    items:
+                      type: object
+                      title: ObserverNote
+                      additionalProperties: false
+                      required:
+                      - tick
+                      - text
+                      properties:
+                        tick:
+                          $ref: '#/components/schemas/Tick'
+                        text:
+                          type: string
+                          maxLength: 500
             decisions:
               type: object
               additionalProperties:
@@ -3917,6 +4279,55 @@ components:
       contentType: application/json
       payload:
         $ref: '#/components/schemas/LlmCallFailedV1'
+      x-visibility: observer
+      x-producer: controller
+    MemoryBeliefFormedV1:
+      name: campsverso.memory.belief.formed.v1
+      title: MemoryBeliefFormedV1
+      summary: 'Uma crença nova (ADR-0060; contratos §8.4): o que o agente passou a acreditar, com quanta
+        confiança, por que evidências e de que origem.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/MemoryBeliefFormedV1'
+      x-visibility: observer
+      x-producer: controller
+    MemoryBeliefRetractedV1:
+      name: campsverso.memory.belief.retracted.v1
+      title: MemoryBeliefRetractedV1
+      summary: O agente abandonou uma crença (ADR-0060; contratos §8.4).
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/MemoryBeliefRetractedV1'
+      x-visibility: observer
+      x-producer: controller
+    MemoryBeliefUpdatedV1:
+      name: campsverso.memory.belief.updated.v1
+      title: MemoryBeliefUpdatedV1
+      summary: A confiança de uma crença mudou, ou o enunciado foi refinado (ADR-0060; contratos §8.4),
+        com a evidência que pesou.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/MemoryBeliefUpdatedV1'
+      x-visibility: observer
+      x-producer: controller
+    MemoryNotedV1:
+      name: campsverso.memory.noted.v1
+      title: MemoryNotedV1
+      summary: 'O agente anotou algo no caderno (ADR-0060): o parâmetro `note` de uma ferramenta, com
+        o tick do envelope. Publicado pela mente; é o que o operador vê no caderno.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/MemoryNotedV1'
+      x-visibility: observer
+      x-producer: controller
+    MemoryReflectedV1:
+      name: campsverso.memory.reflected.v1
+      title: MemoryReflectedV1
+      summary: 'A reflexão de um dia terminou (ADR-0060): o resumo, o plano para amanhã e quantas crenças
+        foram formadas, atualizadas e retiradas. Nunca leva o prompt: só o hash do pedido.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/MemoryReflectedV1'
       x-visibility: observer
       x-producer: controller
     OpsBudgetExceededV1:

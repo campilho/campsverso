@@ -1,0 +1,22 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c40-7c10-8a00-1e6802771b70",
+  "source": "/controller-runner/llm/camps",
+  "type": "campsverso.memory.noted.v1",
+  "time": "2026-10-18T23:40:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/memory/noted.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 2043,
+  "simtime": "2026-10-11T16:03:00-03:00",
+  "seq": 120,
+  "provenance": "simulated",
+  "visibility": "observer",
+  "actor": "llm/camps",
+  "data": {
+    "avatar_id": "camps",
+    "day": 2,
+    "text": "O plot-e-01 ficou maduro em dois dias; o plot-w-01, plantado no mesmo dia, ainda está crescendo."
+  }
+}

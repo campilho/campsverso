@@ -278,6 +278,18 @@ Todos com visibilidade `observer`: chegam ao operador e ao arquivo, nunca aos ag
 
 Quem publica os de chamada é o decorador da porta (`MeteredModel`), não o adaptador do provedor; quem publica os de orçamento é a guarda, um serviço próprio.
 
+### 3.14 Memória (produtor: a mente, pelo controller-runner; ADR-0060)
+
+Todos com visibilidade `observer`: o caderno do avatar é assunto do operador e do arquivo, nunca dos outros agentes. Os episódios (o que o agente viu, uma linha por evento) não viram evento: já estão no arquivo.
+
+| Tipo | Vis. | Payload | Origem |
+|---|---|---|---|
+| `campsverso.memory.noted.v1` | observer | `avatar_id` · `day` · `text` (o parâmetro `note` de uma ferramenta) | ADR-0060 |
+| `campsverso.memory.reflected.v1` | observer | `avatar_id` · `day` · `summary` · `plan?` · `beliefs: {formed, updated, retracted, total}` · `prompt_sha256?` | ADR-0060; tempo §9.1 |
+| `campsverso.memory.belief.formed.v1` | observer | `avatar_id` · `belief_id` · `statement` · `confidence: 0..1` · `evidence: [string]` · `source: {kind: observation\|told, by?}` · `reason?` | contratos §8.4 |
+| `campsverso.memory.belief.updated.v1` | observer | o mesmo, com `confidence: {before, after}` (o §8.4 dizia `from`/`to`, que a convenção de campos reserva) | contratos §8.4 |
+| `campsverso.memory.belief.retracted.v1` | observer | `avatar_id` · `belief_id` · `statement` · `reason?` | contratos §8.4 |
+
 ## 4. Do catálogo geral, fora da v0.1
 
 Não ganham schema agora. Entram quando a versão que os usa chegar:
@@ -313,6 +325,8 @@ Cada um precisa ser recusado **pelos dois validadores** (Python `jsonschema` e T
 | 15 | Delta da percepção com evento sem `type` | quem lê precisa saber o que aconteceu (ADR-0056) |
 | 16 | Chamada de modelo com custo negativo | a guarda soma, nunca subtrai (ADR-0058) |
 | 17 | Teto de orçamento com escopo fora de `day` e `total` | ADR-0058 |
+| 18 | Crença com confiança fora de 0 a 1 | ADR-0060 |
+| 19 | Crença com origem fora de `observation` e `told` | ADR-0060 |
 
 Além disso, qualquer arquivo inválido colocado em `examples/valid/` quebra o `make check` (critério do M0).
 

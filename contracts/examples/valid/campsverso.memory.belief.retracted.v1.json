@@ -1,0 +1,23 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c40-7c14-8a00-1e6802771b74",
+  "source": "/controller-runner/llm/camps",
+  "type": "campsverso.memory.belief.retracted.v1",
+  "time": "2026-10-18T23:40:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/memory/belief.retracted.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 2043,
+  "simtime": "2026-10-11T16:03:00-03:00",
+  "seq": 124,
+  "provenance": "simulated",
+  "visibility": "observer",
+  "actor": "llm/camps",
+  "data": {
+    "avatar_id": "camps",
+    "belief_id": "bel-0002",
+    "statement": "A chuva não conta como rega.",
+    "reason": "No dia 2 choveu e todos os canteiros apareceram regados."
+  }
+}
