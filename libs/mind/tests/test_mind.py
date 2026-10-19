@@ -438,6 +438,16 @@ async def test_ferramentas_extras_sao_ignoradas() -> None:
     assert results[1]["cache_control"] == {"type": "ephemeral"}
 
 
+def test_os_numeros_vao_com_uma_casa() -> None:
+    window = Window()
+    photo = snapshot()
+    photo["view"]["self"]["needs"] = {"energia": 99.96666666666667, "fome": 0.1}
+    window.observe(photo)
+    (block,) = cast(list[dict[str, Any]], window.request_messages()[0]["content"])
+    assert '"needs":{"energia":100.0,"fome":0.1}' in block["text"]
+    assert '"tick":0' in block["text"]  # inteiros ficam inteiros
+
+
 def test_sem_entrega_pendente_nao_ha_pedido() -> None:
     window = Window()
     assert not window.is_open

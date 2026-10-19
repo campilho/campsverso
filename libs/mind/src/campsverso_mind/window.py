@@ -30,8 +30,19 @@ _REASONS = {
 _IGNORED = "Ignorada: uma ação por vez; só a primeira ferramenta foi proposta."
 
 
+def _trim(value: Any) -> Any:
+    """Os números de ponto flutuante com uma casa: `99.96666666666667` são tokens jogados fora."""
+    if isinstance(value, float):
+        return round(value, 1)
+    if isinstance(value, Mapping):
+        return {str(k): _trim(v) for k, v in cast(Mapping[str, Any], value).items()}
+    if isinstance(value, list | tuple):
+        return [_trim(v) for v in cast(Sequence[Any], value)]
+    return value
+
+
 def _json(value: Any) -> str:
-    return json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    return json.dumps(_trim(value), ensure_ascii=False, separators=(",", ":"), sort_keys=True)
 
 
 def _last(events: Sequence[Mapping[str, Any]], event_type: str) -> Mapping[str, Any] | None:

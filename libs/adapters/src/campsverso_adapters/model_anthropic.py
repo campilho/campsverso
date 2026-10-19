@@ -59,7 +59,8 @@ class AnthropicModel:
             )
         if request.tools:
             params["tools"] = [dict(t) for t in request.tools]
-            params["tool_choice"] = {"type": "auto"}  # o forçado é recusado nos modelos atuais
+            # O forçado é recusado nos modelos atuais; e uma ação por vez (ADR-0059).
+            params["tool_choice"] = {"type": "auto", "disable_parallel_tool_use": True}
         if request.effort is not None:
             params["output_config"] = {"effort": request.effort}
         started = self._clock.monotonic()

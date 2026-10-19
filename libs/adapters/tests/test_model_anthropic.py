@@ -85,7 +85,7 @@ async def test_pedido_vai_no_formato_da_api_e_a_resposta_volta_em_blocos() -> No
     body = seen["body"]
     assert body["model"] == "claude-haiku-5-5"
     assert body["system"] == "Você é o Camps."
-    assert body["tool_choice"] == {"type": "auto"}  # o forçado é recusado nos modelos atuais
+    assert body["tool_choice"] == {"type": "auto", "disable_parallel_tool_use": True}
     assert body["tools"][0]["strict"] is True
     assert body["output_config"] == {"effort": "low"}
     assert body["thinking"] == {"type": "adaptive"}
