@@ -254,6 +254,7 @@ class Memory:
         self.last_proposal: str | None = None
         self.reflect_due: Clock | None = None
         self.attempts: dict[int, int] = {}  # tentativas de reflexão por dia; o teto evita o laço
+        self.fresh = False  # há uma reflexão nova que a próxima entrega precisa mostrar
 
     # ------------------------------------------------------------- registrar
 
@@ -477,6 +478,7 @@ class Memory:
             {"type": "campsverso.memory.reflected.v1", "data": data},
         )
         self.reflect_due = None
+        self.fresh = True
         return reflection
 
     def _belief_event(self, kind: str, belief: Belief, previous: float | None) -> dict[str, Any]:

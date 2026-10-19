@@ -142,7 +142,14 @@ async def test_dois_dias_do_camps_pela_fita() -> None:
     assert cited & seen, f"nenhuma hora citada existe no arquivo: {sorted(cited)[:5]}"
     opening = str(pipeline.mind.window.messages[0]["content"][0]["text"])
     assert opening.startswith("## O que você lembra")
-    assert "ao dormir:" in opening  # a janela abriu com o resumo da última noite
+    # A manhã depois da reflexão recebe o resumo da noite, numa foto ou num delta.
+    texts = [
+        str(block.get("text") or block.get("content") or "")
+        for message in pipeline.mind.window.messages
+        if message["role"] == "user"
+        for block in message["content"]
+    ]
+    assert any("ao dormir:" in text for text in texts)
 
 
 async def test_a_memoria_sobrevive_a_um_reinicio_da_mente(tmp_path: Path) -> None:

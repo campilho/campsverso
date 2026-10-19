@@ -111,7 +111,8 @@ class Window:
 
     def observe(self, delivery: Mapping[str, Any], *, preface: str | None = None) -> None:
         """Uma entrega da percepção: a foto abre uma janela nova (com o prefácio, o que o agente
-        lembra, na frente; ADR-0060); o delta entra no próximo turno."""
+        lembra, na frente; ADR-0060); o delta entra no próximo turno, também com o prefácio quando
+        há um (a manhã depois da reflexão, numa janela que continua)."""
         self.deliveries += 1
         if is_snapshot(delivery):
             self.snapshots += 1
@@ -121,7 +122,8 @@ class Window:
                 opening = f"{preface}\n\n{opening}"
             self.pending, self.pending_error = [opening], False
             return
-        self.pending.append(render_delta(delivery))
+        text = render_delta(delivery)
+        self.pending.append(f"{preface}\n\n{text}" if preface else text)
         decision = cast(Mapping[str, Any], delivery.get("decision") or {})
         if decision.get("reason") == "action_rejected":
             self.pending_error = True

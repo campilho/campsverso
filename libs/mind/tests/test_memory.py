@@ -547,6 +547,7 @@ async def test_a_mente_abre_a_janela_com_o_bloco_e_reflete_depois_de_dormir() ->
             )
         ),
         response(tool_use("wait", ticks=5, intent="esperar", note="")),
+        response(tool_use("wait", ticks=5, intent="esperar", note="")),
     )
     mind = controller(model, memory(), notes)
     proposal = await mind.decide(with_clock(snapshot(), 120))
@@ -581,14 +582,22 @@ async def test_a_mente_abre_a_janela_com_o_bloco_e_reflete_depois_de_dormir() ->
     assert "mind.reflected" in [e for _, e in notes.events]
     await mind.after_proposal()  # já refletiu hoje: nada
     assert len(model.requests) == 3
-    # A manhã seguinte abre com o resumo, o plano e a crença.
-    await mind.decide(
-        with_clock(snapshot(reason="woke_up"), 1500, day=2, sim_time="2026-10-11T07:00:00-03:00")
+    # A manhã seguinte, na mesma janela (um delta), recebe o resumo, o plano e a crença.
+    morning = "2026-10-11T07:00:00-03:00"
+    await mind.decide(with_clock(delta(125, 1500, reason="woke_up"), 1500, day=2, sim_time=morning))
+    (result,) = cast(Sequence[Mapping[str, Any]], model.requests[3].messages[-1]["content"])
+    assert result["type"] == "tool_result"
+    assert result["content"].startswith(
+        "## O que você lembra\nDia 1, ao dormir: Plantei um canteiro."
     )
-    opening = cast(Sequence[Mapping[str, Any]], model.requests[3].messages[0]["content"])[0]["text"]
-    assert "Dia 1, ao dormir: Plantei um canteiro." in opening
-    assert "Plano: Regar." in opening
-    assert "- bel-0001 (0.60): Plantar perto da casa poupa tempo." in opening
+    assert "Plano: Regar." in result["content"]
+    assert "- bel-0001 (0.60): Plantar perto da casa poupa tempo." in result["content"]
+    assert "\n\nVocê acordou.\n" in result["content"]
+    # E uma foto nova abre com o bloco também, sem repetir a reflexão como novidade.
+    await mind.decide(with_clock(snapshot(reason="possessed"), 1560, day=2, sim_time=morning))
+    opening = cast(Sequence[Mapping[str, Any]], model.requests[4].messages[0]["content"])[0]["text"]
+    assert opening.startswith("## O que você lembra\nDia 1, ao dormir: Plantei um canteiro.")
+    assert not mind.memory.fresh  # type: ignore[union-attr]
 
 
 async def test_a_noite_sem_sono_reflete_de_manha_e_a_falha_da_reflexao_nao_derruba() -> None:

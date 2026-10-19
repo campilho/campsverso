@@ -118,8 +118,11 @@ class LlmController:
             pending = self.memory.pending_day(clock)
             if pending is not None and not self.gave_up:
                 await self._reflect(clock, pending)  # a noite passou sem dormir: reflete agora
-            if is_snapshot(delivery):
+            if is_snapshot(delivery) or self.memory.fresh:
+                # A janela abre com o bloco; e a manhã depois da reflexão o recebe mesmo numa
+                # janela que continua, senão o resumo e o plano só chegariam na próxima foto.
                 preface = self.memory.block(clock)
+                self.memory.fresh = False
         self.window.observe(delivery, preface=preface)
         if self.gave_up:
             return None
