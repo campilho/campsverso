@@ -1,6 +1,6 @@
 # CLAUDE.md — Campsverso
 
-Campsverso é uma plataforma de simulação orientada a eventos para agentes de IA autônomos que vivem em mundos 2D. Cada mundo é um **cartucho** (fazenda, estúdio, startup…) rodando sobre um **kernel** genérico. A versão publicada é a **v0.1.0 "Fazenda do Camps"**: um avatar, nenhum LLM, controladores humano, script e replay. A **v0.2, a possessão** (`docs/planos/v0.2-macro.md`), está em construção: o M8 e o M9 estão feitos e o M10, o controlador LLM, em curso (ADR-0059).
+Campsverso é uma plataforma de simulação orientada a eventos para agentes de IA autônomos que vivem em mundos 2D. Cada mundo é um **cartucho** (fazenda, estúdio, startup…) rodando sobre um **kernel** genérico. A versão publicada é a **v0.1.0 "Fazenda do Camps"**: um avatar, nenhum LLM, controladores humano, script e replay. A **v0.2, a possessão** (`docs/planos/v0.2-macro.md`), está em construção: M8, M9 e M10 feitos (o controlador LLM, ADR-0059) e o M11, a memória baseline, em curso (ADR-0060).
 
 O projeto também é material de aprendizado e de publicações. Clareza, testes e registro das decisões importam tanto quanto o código.
 
@@ -59,9 +59,9 @@ campsverso/
   libs/
     ports/                    # interfaces das portas (Python)
     cartridge-api/            # interfaces que um cartucho implementa (ADR-0011)
-    adapters/                 # nats, inmemory, sqlite, jsonl, blob-local, fastapi (WebSocket), a porta de modelo (Anthropic, fita, medidor)...
+    adapters/                 # nats, inmemory, sqlite, jsonl, blob-local, fastapi (WebSocket), a porta de modelo (Anthropic, fita, medidor), a memória em SQLite...
     world-view/               # projeção genérica do mundo a partir dos eventos (percepção e gateway; ADR-0050)
-    mind/                     # a mente genérica do controlador LLM: janela de conversa, ferramentas do catálogo, proposta (ADR-0059)
+    mind/                     # a mente genérica do controlador LLM: janela de conversa, ferramentas do catálogo, proposta (ADR-0059); a memória: episódios, caderno, reflexão (ADR-0060)
   services/
     kernel/                   # relógio, ECS, grid, ações, regras, outbox
     perception/               # filtro de percepção
@@ -132,7 +132,7 @@ make replay DAY=N # reexecuta um dia a partir do snapshot e do diário e compara
 make metrics      # métricas da bíblia §13 a partir do arquivo (ARCHIVE=pasta do mundo)
 make percepcao    # fotos e deltas da percepção por dia, em bytes e tokens estimados (ADR-0056); CONTAR=20 calibra com count_tokens
 make llm-smoke    # uma chamada real pela porta de modelo, medida e publicada pelo contrato (ADR-0058); pede ANTHROPIC_API_KEY no .env
-make fita DIAS=1  # grava em processo a fita de teste do controlador LLM, chamando a API (ADR-0059); o CI só a reproduz
+make fita DIAS=2  # grava em processo a fita de teste do controlador LLM, chamando a API (ADR-0059); o CI só a reproduz
 make mapa-visual  # regrava o mapa visual da fazenda a partir do mapa lógico (ADR-0053)
 make sessoes      # tempo e tokens do Claude Code por turno e por marco em docs/custos (MARCO=M5)
 ```
@@ -154,6 +154,6 @@ Os alvos de marcos futuros já existem e avisam "ainda não implementado (marco 
 - Expor pontos de crescimento, regras ocultas ou eventos `internal` à percepção ou aos controladores.
 - Chamar um modelo fora da `ModelPort` (ADR-0058), ou deixar o CI chamar a API: os testes usam o transporte falso do SDK e as fitas.
 - Escrever a regra oculta, ou uma dica dela, no cartão de identidade ou nas notas da mente (princípio 5): o LLM só vê os efeitos.
-- Adicionar memória de agente antes do M11, ou qualquer item marcado "fora" no escopo da v0.2.
+- Dar à mente mais memória do que a `MemoryPort` (ADR-0060) guarda, ou qualquer item marcado "fora" no escopo da v0.2.
 - Apagar ou reescrever arquivos em `data/archive/` (são o registro histórico dos experimentos).
 - Publicar evento sem schema, ou criar tipo de evento não declarado em `contracts/`.

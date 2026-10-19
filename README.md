@@ -88,7 +88,7 @@ make sessoes MARCO=M6   # tempo e tokens do Claude Code por marco, em docs/custo
 make metrics        # métricas do mundo a partir do arquivo de eventos
 make percepcao      # fotos e deltas da percepção por dia, em bytes e tokens estimados (ADR-0056)
 make llm-smoke      # uma chamada real pela porta de modelo, medida e publicada pelo contrato (ADR-0058)
-make fita DIAS=1    # grava em processo a fita de teste do controlador LLM, chamando a API (ADR-0059)
+make fita DIAS=2    # grava em processo a fita de teste do controlador LLM, chamando a API (ADR-0059)
 make help    # todos os alvos
 ```
 
