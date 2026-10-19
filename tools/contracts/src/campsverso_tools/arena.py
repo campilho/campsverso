@@ -104,6 +104,7 @@ def east_signals(envelopes: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
     partir do dia 4. `discovered` é a heurística: uma crença ativa, confiante (0,7 ou mais) e
     que fala de tempo, de vantagem ou do rio."""
     first_note: dict[str, Any] | None = None
+    first_discovery_note: dict[str, Any] | None = None  # a primeira que nota a vantagem
     first_belief: dict[str, Any] | None = None
     tracks: dict[str, BeliefTrack] = {}
     plantings = {"early": Counter[str](), "late": Counter[str]()}
@@ -114,8 +115,12 @@ def east_signals(envelopes: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
         day = _day(envelope)
         if kind == NOTED:
             text = str(data["text"])
-            if first_note is None and EAST.search(text):
-                first_note = {"day": day, "hour": _hour(envelope), "text": text}
+            if EAST.search(text):
+                note = {"day": day, "hour": _hour(envelope), "text": text}
+                if first_note is None:
+                    first_note = note
+                if first_discovery_note is None and DISCOVERY.search(text):
+                    first_discovery_note = note
         elif kind in (FORMED, UPDATED):
             belief_id, statement = str(data["belief_id"]), str(data["statement"])
             track = tracks.get(belief_id)
@@ -154,6 +159,7 @@ def east_signals(envelopes: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
     best = max(discovery, key=lambda t: t.confidence, default=None)
     return {
         "first_note": first_note,
+        "first_discovery_note": first_discovery_note,
         "first_belief": first_belief,
         "beliefs": [asdict(t) for t in tracks.values()],
         "plantings": _buckets(plantings),
@@ -349,6 +355,12 @@ def _east_rows(runs: Sequence[Run]) -> list[list[str]]:
             return "sem memória"
         return f"dia {note['day']}, {note['hour']}" if note else "nunca"
 
+    def discovery_note(r: Run) -> str:
+        note = r.east.get("first_discovery_note")
+        if not r.has_memory:
+            return "sem memória"
+        return f"dia {note['day']}, {note['hour']}" if note else "nunca"
+
     def first_belief(r: Run) -> str:
         belief = r.east["first_belief"]
         if not r.has_memory:
@@ -375,7 +387,8 @@ def _east_rows(runs: Sequence[Run]) -> list[list[str]]:
         return "não" + control
 
     rows: list[list[str]] = [
-        ["Primeira anotação sobre o leste", *[first_note(r) for r in runs]],
+        ["Primeira anotação que cita o leste", *[first_note(r) for r in runs]],
+        ["Primeira anotação que nota a vantagem do leste", *[discovery_note(r) for r in runs]],
         ["Primeira crença sobre o leste", *[first_belief(r) for r in runs]],
         ["Crenças sobre o leste ao fim", *[at_end(r) for r in runs]],
         [
@@ -406,26 +419,69 @@ def _trajectory(track: Mapping[str, Any], last_day: int) -> str:
     return f'- **{track["belief_id"]}** ({span}): "{track["statement"]}". {steps}.'
 
 
+def _by_day(run: Run) -> dict[int, Any]:
+    return {d.day: d for d in run.report.complete_days}
+
+
+def _series(runs: Sequence[Run], value: Callable[[Any], int]) -> tuple[dict[str, list[int]], int]:
+    """Uma série por corrida, do dia 1 ao último dia completo de todas, com 0 nos dias sem
+    fato (só acontece em testes); e o maior valor, para a escala das barras."""
+    longest = max((d.day for r in runs for d in r.report.complete_days), default=0)
+    series = {
+        r.name: [
+            value(_by_day(r)[day]) if day in _by_day(r) else 0 for day in range(1, longest + 1)
+        ]
+        for r in runs
+    }
+    top = max((max(v) for v in series.values() if v), default=0)
+    return series, top
+
+
+def _chart(series: Mapping[str, Sequence[int]], top: int) -> list[str]:
+    width = max((len(name) for name in series), default=0)
+    return [
+        "```",
+        *[f"{name:<{width}}  {_spark(values, top)}" for name, values in series.items()],
+        "```",
+    ]
+
+
+def _harvests_section(runs: Sequence[Run]) -> list[str]:
+    series, top = _series(runs, lambda d: int(d.harvests.get("leste", 0)))
+    longest = max((len(v) for v in series.values()), default=0)
+    lines = ["## Colheitas por dia", ""]
+    lines.append(f"As colheitas no leste, de 0 a {top} por dia, um caractere por dia:")
+    lines.append("")
+    lines += _chart(series, top)
+    lines += ["", "Oeste / leste, por dia:", ""]
+    rows = [
+        [
+            str(day),
+            *[_pair(_by_day(r)[day].harvests) if day in _by_day(r) else EMPTY for r in runs],
+        ]
+        for day in range(1, longest + 1)
+    ]
+    lines.append(_table(["Dia", *series.keys()], rows))
+    lines.append("")
+    return lines
+
+
 def _coins_section(runs: Sequence[Run]) -> list[str]:
-    coins = {r.name: [d.coins_end for d in r.report.complete_days] for r in runs}
-    top = max((max(v) for v in coins.values() if v), default=0)
-    longest = max((len(v) for v in coins.values()), default=0)
-    width = max(len(name) for name in coins) if coins else 0
+    series, top = _series(runs, lambda d: int(d.coins_end))
+    longest = max((len(v) for v in series.values()), default=0)
     lines = ["## Moedas por dia", ""]
     lines.append(f"A barra vai de 0 a {top} moedas, um caractere por dia.")
     lines.append("")
-    lines.append("```")
-    lines += [f"{name:<{width}}  {_spark(values, top)}" for name, values in coins.items()]
-    lines.append("```")
+    lines += _chart(series, top)
     lines.append("")
     rows = [
         [
             str(day),
-            *[str(values[day - 1]) if day <= len(values) else EMPTY for values in coins.values()],
+            *[str(_by_day(r)[day].coins_end) if day in _by_day(r) else EMPTY for r in runs],
         ]
         for day in range(1, longest + 1)
     ]
-    lines.append(_table(["Dia", *coins.keys()], rows))
+    lines.append(_table(["Dia", *series.keys()], rows))
     lines.append("")
     return lines
 
@@ -497,6 +553,7 @@ def render(runs: Sequence[Run], *, source: str, date: str) -> str:
         ] or ["- nenhuma"]
         lines.append("")
     lines += _coins_section(runs)
+    lines += _harvests_section(runs)
     lines += ["## Os arquivos", ""]
     for r in runs:
         files = ", ".join(f"`{p.name}`" for p in sorted(r.folder.iterdir()) if p.is_file())

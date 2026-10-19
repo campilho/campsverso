@@ -81,6 +81,7 @@ def test_os_sinais_do_leste_vem_da_memoria() -> None:
         "hour": "09:20",  # tick 200: 06:00 mais 200 minutos
         "text": "O plot-e-01 parece crescer mais rápido.",
     }
+    assert east["first_discovery_note"] == east["first_note"]  # "mais rápido" nota a vantagem
     assert (east["first_belief"]["belief_id"], east["first_belief"]["day"]) == ("bel-0002", 1)
     tracks = {b["belief_id"]: b for b in east["beliefs"]}
     assert set(tracks) == {"bel-0002", "bel-0003"}  # bel-0001 não fala do leste
@@ -103,6 +104,7 @@ def test_sem_memoria_so_o_comportamento_conta() -> None:
         ]
     )
     assert (east["first_note"], east["first_belief"], east["beliefs"]) == (None, None, [])
+    assert east["first_discovery_note"] is None
     assert east["discovered"] is False
     assert east["plantings"]["days_1_3"]["east_fraction"] is None
     assert east["plantings"]["from_day_4"]["east_fraction"] == 1.0
@@ -169,12 +171,15 @@ def test_o_relatorio_poe_as_corridas_lado_a_lado(tmp_path: Path) -> None:
     assert "| Métrica | script | haiku-memoria |" in text
     assert "| Moedas ao fim | 120 | 100 |" in text
     assert "| Custo (US$) | - | 0,01 |" in text
-    assert "| Primeira anotação sobre o leste | sem memória | dia 1, 09:20 |" in text
+    assert "| Primeira anotação que cita o leste | sem memória | dia 1, 09:20 |" in text
+    assert "| Primeira anotação que nota a vantagem do leste | sem memória | dia 1, 09:20 |" in text
+    assert "## Colheitas por dia" in text
+    assert "| 4 | - | 1 / 1 |" in text  # o script sintético não tem fato no dia 4
     assert "| Veredito | só pelo comportamento | descobriu (bel-0002) |" in text
     assert "dia 1 formada 0,60 → dia 2 revisada 0,90" in text
     assert "dia 2 a 3, retirada" in text
     assert "## Moedas por dia" in text
-    assert "| 2 | 120 | 100 |" in text
+    assert "| 3 | 120 | 100 |" in text  # o dia 2 não tem fato em nenhuma das duas: fica "-"
     assert "haiku-memoria/` com `archive.jsonl`, `summary.json`" in text
 
 
