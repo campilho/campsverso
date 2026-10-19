@@ -131,9 +131,21 @@ A ordem do trabalho foi cumprida no mesmo dia da aprovação.
 
 Ele plantou e regou os oito canteiros do oeste (o grupo longe do rio: a regra oculta não o favorece), encheu o regador no poço com 2 cargas, pegou rabanetes no baú e comeu, esperou a tarde perto da cama e dormiu às 20:00. A primeira gravação (46 chamadas, US$ 0,0155, uma recusa `not_adjacent` e uma `already_there`) foi descartada quando o `intent` passou a ser ecoado no `action.accepted`: a fita é a foto do prompt.
 
-### Os 7 dias no sandbox
+### Os 7 dias no sandbox (18/out, 21:18 às 23:38)
 
-Em andamento ao fechar esta seção (`make sandbox MENTE=camps`, 72×, Haiku 5.5, `effort: low`, teto de US$ 0,60 por dia): os números entram aqui ao fim.
+`make sandbox MENTE=camps`: a pilha de verdade (NATS, kernel a 72×, percepção, a mente, a guarda de orçamento, o gateway e a tela aberta), Haiku 5.5 em `effort: low`, o mundo sem esperar o modelo. Sete dias completos, sem intervenção, sem aviso da guarda, sem falha de chamada, sem pedido superado e sem devolução ao script. O critério do marco está cumprido.
+
+| Medida | Valor |
+|---|---|
+| Chamadas cobradas | 354 (de 66 no dia 1 a 45 no dia 4), 1,57 s de latência mediana |
+| Custo | US$ 0,14 (US$ 0,020 por dia, contra o teto de 0,60) |
+| Tempo real por dia simulado | 1.151 s, os 72× exatos |
+| Colheitas (oeste / leste) | 8 / 9; dias até amadurecer 3,0 e 3,3 |
+| Moedas ao fim do dia 7 | 10 |
+| Pico de fome, desmaios, murchas | 100 (dos dias 4 a 7, sempre perto de 100), 0, 0 |
+| Recusas | 27: not_adjacent 12, not_ripe 3, already_there 3, invalid_params 2, missing_item 2 |
+
+O Camps sem memória sobrevive, mas mal: planta e rega bem no primeiro dia, vende o que colhe, e passa os dias 4 a 7 com a fome encostada em 100 porque não guarda comida e esquece, a cada foto, o que decidiu de manhã. A corrida de 7 dias em processo com a mesma mente (plano do M11, §9) deu quase o mesmo: 16 colheitas, 5 moedas, fome em 100. É a linha de base que a memória do M11 passa a mover.
 
 ### O prompt em tokens (decisão 6, medido com `count_tokens`)
 
