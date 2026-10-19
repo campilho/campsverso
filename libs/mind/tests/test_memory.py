@@ -221,7 +221,8 @@ def test_o_delta_vira_episodios_com_importancia_por_tabela() -> None:
         ("07:58 plot-e-02 amadureceu em 2 dias", 7, "farm.crop.matured"),
         ("07:59 fase do dia: meio_dia", 2, "world.clock.phase_changed"),
         (
-            '08:00 world.item.transferred {"from_container":"buyer","item":"moeda","qty":25,"to_container":"camps"}',
+            "08:00 world.item.transferred "
+            '{"from_container":"buyer","item":"moeda","qty":25,"to_container":"camps"}',
             1,
             "world.item.transferred",
         ),

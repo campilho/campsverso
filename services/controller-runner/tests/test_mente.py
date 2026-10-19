@@ -24,6 +24,9 @@ class FakeMind:
         self.gave_up = False
         self.give_up_next = False
 
+        self.after = 0
+        self.events: list[dict[str, Any]] = []
+
     def observe(self, delivery: Mapping[str, Any]) -> None:
         self.observed.append(delivery)
 
@@ -33,6 +36,13 @@ class FakeMind:
             self.gave_up = True
             return None
         return {"action": "wait", "params": {"ticks": 3}, "intent": f"decisão {len(self.decided)}"}
+
+    async def after_proposal(self) -> None:
+        self.after += 1
+
+    def drain_events(self) -> list[dict[str, Any]]:
+        events, self.events = self.events, []
+        return events
 
 
 class Script:
@@ -203,3 +213,26 @@ async def test_o_script_so_entende_a_foto_e_a_vez_dos_outros_e_ignorada() -> Non
     assert published(bus, "cmd.action.propose.v1") == []
     await bus.publish(DELIVERED, delivery(ids, "delivered", 2, controller=("script", "script/x")))
     assert [p["data"]["action"] for p in published(bus, "cmd.action.propose.v1")] == ["sleep"]
+
+
+async def test_os_eventos_de_memoria_saem_depois_da_proposta_com_o_relogio_simulado() -> None:
+    bus, mind = InMemoryBus(), FakeMind()
+    made, ids, _ = runner(bus, mind)
+    await made.start()
+    mind.events.append(
+        {
+            "type": "campsverso.memory.noted.v1",
+            "data": {"avatar_id": "camps", "day": 1, "text": "o poço fica longe"},
+        }
+    )
+    await bus.publish(DELIVERED, delivery(ids, "delivered", 0, tick=5))
+    assert mind.after == 1  # a reflexão da noite tem a sua vez depois de a proposta sair
+    (noted,) = published(bus, "observer.memory.noted.v1")
+    assert noted["type"] == "campsverso.memory.noted.v1"
+    assert noted["data"]["text"] == "o poço fica longe"
+    assert noted["tick"] == 5
+    assert noted["simtime"] == "2026-10-10T06:05:00-03:00"
+    assert noted["actor"] == "llm/camps"
+    assert noted["visibility"] == "observer"
+    assert noted["dataschema"] == "contracts://events/memory/noted.v1"
+    assert made.memory_events == 1

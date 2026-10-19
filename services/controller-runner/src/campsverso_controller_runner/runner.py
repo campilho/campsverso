@@ -73,6 +73,14 @@ class AsyncController(Protocol):
         `None` quando a mente desistiu."""
         ...
 
+    async def after_proposal(self) -> None:
+        """Depois de a proposta sair: a reflexão da noite, se for a hora (ADR-0060)."""
+        ...
+
+    def drain_events(self) -> Sequence[Mapping[str, Any]]:
+        """Eventos `observer` que a mente produziu (`{type, data}`), para o runner publicar."""
+        ...
+
 
 class SimTime:
     """O relógio simulado visto pelo runner (a última entrega), para o medidor de chamadas."""
@@ -179,6 +187,7 @@ class ControllerRunner:
         self._out_seq = 0
         self.answered = 0
         self.superseded = 0
+        self.memory_events = 0
         self.possessing = False
         self.released = 0
         self.failure: BaseException | None = None
@@ -280,6 +289,39 @@ class ControllerRunner:
         await self._bus.publish(f"campsverso.{self._worldid}.cmd.action.propose.v1", envelope)
         self._last_proposal_at = self._clock.now()
         self.answered += 1
+        if self._mind is not None:
+            await self._mind.after_proposal()
+            await self._publish_memory(str(perception["cartridge"]))
+
+    async def _publish_memory(self, cartridge: str) -> None:
+        """O que a mente anotou, refletiu e passou a acreditar vai para o operador e o arquivo."""
+        assert self._mind is not None
+        for event in self._mind.drain_events():
+            event_type = str(event["type"])
+            info = CONTRACT_TYPES[event_type]
+            tick, simtime = self.sim_time()
+            envelope: dict[str, Any] = {
+                "specversion": "1.0",
+                "id": self._ids.new_id(),
+                "source": f"/controller-runner/{self.controller.controller_id}",
+                "type": event_type,
+                "time": _iso(self._clock.now()),
+                "datacontenttype": "application/json",
+                "dataschema": info.dataschema,
+                "worldid": self._worldid,
+                "cartridge": cartridge,
+                "tick": tick,
+                "seq": self._out_seq,
+                "actor": self.controller.controller_id,
+                "provenance": "simulated",
+                "visibility": info.visibility,
+                "data": dict(cast(Mapping[str, Any], event["data"])),
+            }
+            if simtime:
+                envelope["simtime"] = simtime
+            self._out_seq += 1
+            await self._bus.publish(subject(event_type, self._worldid), envelope)
+            self.memory_events += 1
 
     async def _decide(
         self, perception: Envelope, data: Mapping[str, Any], decision: Mapping[str, Any]

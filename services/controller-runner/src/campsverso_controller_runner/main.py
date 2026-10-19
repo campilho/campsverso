@@ -26,6 +26,7 @@ from campsverso_adapters import (
     MeteredModel,
     NatsBus,
     RecordingModel,
+    SqliteMemory,
     SystemWallClock,
     Uuid7Ids,
     ValidatingBus,
@@ -40,7 +41,7 @@ from campsverso_controller_runner.runner import (
     load_controller,
     load_mind,
 )
-from campsverso_mind import LlmController
+from campsverso_mind import LlmController, Memory, MemorySettings
 from campsverso_ports import EventBus, ModelPort
 
 
@@ -121,6 +122,23 @@ async def run(args: argparse.Namespace) -> int:
             sim_clock=sim_time,
         )
         port.assert_priced(settings.model)
+        if settings.reflection_model is not None:
+            port.assert_priced(settings.reflection_model)
+        memory: Memory | None = None
+        if settings.memory_enabled:  # o caderno (ADR-0060): um arquivo por avatar, fora do snapshot
+            memory_path = settings.memory_path or (
+                env.data_dir / world.worldid / "memory" / f"{args.avatar}.sqlite"
+            )
+            memory = Memory(
+                SqliteMemory(memory_path),
+                args.avatar,
+                MemorySettings(
+                    reflection_model=settings.reflection_model,
+                    reflection_effort=settings.reflection_effort,
+                    reflection_max_tokens=settings.reflection_max_tokens,
+                ),
+            )
+            telemetry.info("mind.memory", path=str(memory_path))
         controller = LlmController(
             load_mind(args.mind),
             port,
@@ -130,6 +148,7 @@ async def run(args: argparse.Namespace) -> int:
             effort=settings.effort,
             max_tokens=settings.max_tokens,
             telemetry=telemetry,
+            memory=memory,
         )
         runner = ControllerRunner(
             world.worldid,

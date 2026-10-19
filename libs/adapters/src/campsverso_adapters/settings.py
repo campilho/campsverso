@@ -97,6 +97,11 @@ class MindSettings:
     max_tokens: int
     cassette_path: Path
     cassette_mode: RecordingMode
+    memory_enabled: bool = True  # a memória baseline (ADR-0060); False devolve o M10
+    memory_path: Path | None = None  # None: data_dir/<mundo>/memory/<avatar>.sqlite
+    reflection_model: str | None = None  # None: o modelo das decisões
+    reflection_effort: Effort | None = "medium"
+    reflection_max_tokens: int = 2048
 
 
 @dataclass(frozen=True, slots=True)
@@ -184,6 +189,11 @@ def _mind(avatar: str, raw: Mapping[str, Any], base: Path) -> MindSettings:
     mode = cast(RecordingMode, str(cassette.get("mode", "live")))
     if mode not in RECORDING_MODES:
         raise ValueError(f"minds.{avatar}.cassette.mode inválido: {mode!r} (use {RECORDING_MODES})")
+    memory = cast(Mapping[str, Any], raw.get("memory") or {})
+    reflection = cast(Mapping[str, Any], raw.get("reflection") or {})
+    reflection_effort = cast(Effort | None, reflection.get("effort", "medium"))
+    if reflection_effort is not None and reflection_effort not in EFFORTS:
+        raise ValueError(f"minds.{avatar}.reflection.effort inválido: {reflection_effort!r}")
     return MindSettings(
         id=str(raw.get("id") or f"llm/{avatar}"),
         mind=str(raw["mind"]),
@@ -192,6 +202,11 @@ def _mind(avatar: str, raw: Mapping[str, Any], base: Path) -> MindSettings:
         max_tokens=int(raw.get("max_tokens", 1024)),
         cassette_path=base / str(cassette.get("path") or f"data/llm/{avatar}.jsonl"),
         cassette_mode=mode,
+        memory_enabled=bool(memory.get("enabled", True)),
+        memory_path=None if memory.get("path") is None else base / str(memory["path"]),
+        reflection_model=cast(str | None, reflection.get("model")),
+        reflection_effort=reflection_effort,
+        reflection_max_tokens=int(reflection.get("max_tokens", 2048)),
     )
 
 

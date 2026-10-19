@@ -21,6 +21,7 @@ from campsverso_adapters import (
     MemoryTelemetry,
     MeteredModel,
     SequentialUuid7Ids,
+    SqliteMemory,
     SqliteWorldStore,
     ValidatingBus,
     load_env,
@@ -38,9 +39,9 @@ from campsverso_controller_runner.runner import (
 from campsverso_kernel.engine import Engine
 from campsverso_kernel.service import KernelService
 from campsverso_kernel.version import run_version
-from campsverso_mind import LlmController
+from campsverso_mind import LlmController, Memory, MemorySettings
 from campsverso_perception.service import PerceptionService
-from campsverso_ports import Envelope, ModelPort
+from campsverso_ports import Envelope, MemoryPort, ModelPort
 from campsverso_testkit.farm import WORLD, make_core
 from campsverso_testkit.nats_server import REPO
 
@@ -68,7 +69,10 @@ class Pipeline:
         port: ModelPort | None = None,
         mind: str = "camps",
         budget: BudgetLimits | None = None,
+        memory: MemoryPort | bool = True,
     ) -> None:
+        """`memory=True` dá à mente um caderno SQLite em memória (ADR-0060); `False` é o M10;
+        uma porta pronta (um arquivo) serve ao teste de reinício."""
         self.inner = InMemoryBus()
         self.bus = ValidatingBus(self.inner)
         self.ids = SequentialUuid7Ids()
@@ -126,6 +130,14 @@ class Pipeline:
                 ids=self.ids,
                 sim_clock=sim_time,
             )
+            notebook: Memory | None = None
+            store: MemoryPort | None
+            if isinstance(memory, bool):
+                store = SqliteMemory(":memory:") if memory else None
+            else:
+                store = memory
+            if store is not None:
+                notebook = Memory(store, "camps", MemorySettings())
             self.mind = LlmController(
                 load_mind(mind),
                 metered,
@@ -133,6 +145,7 @@ class Pipeline:
                 avatar_id="camps",
                 model=MODEL,
                 telemetry=self.telemetry,
+                memory=notebook,
             )
             self.runner = ControllerRunner(
                 WORLD,
