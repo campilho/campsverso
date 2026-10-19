@@ -108,6 +108,39 @@
 11. **Fita magra de um dia, gravada em processo por `make fita DIAS=1`,** reproduzida no pipeline em memória com a guarda; mudou o prompt, grava de novo; o CI nunca chama a API. *Recomendação: sim.*
 12. **A tela mostra a intenção** (`intent?` no `realtime`) e o `make metrics` ganha as métricas do modelo; custo no painel fica para o M12. *Recomendação: sim.*
 
-## 9. Como ficou
+## 9. Como ficou (18/out/2026)
 
-Fica para o fim do marco: o que o Camps fez no dia 1 da fita e nos 7 dias do sandbox, tokens por chamada e por dia, custo, latência, recusas por motivo, colheitas e moedas contra o script, o fator de calibração e a diferença português × inglês do prompt de sistema.
+A ordem do trabalho foi cumprida no mesmo dia da aprovação.
+
+- **A mente:** `libs/mind` (`Mind`, `ToolDef`, `tool_specs`, `proposal_from`, `Window`, `LlmController`), 16 testes com uma porta falsa; `cartridges/farm/mind` (catálogo de 15 ferramentas e as notas do mundo, conferidos contra o `farm.yaml` e varridos por palavras da regra oculta) e `cartridges/farm_camps/mind` (o cartão, entry point `camps`).
+- **O runner:** `AsyncController`, `perception.>` para a mente (script e replay seguem com a foto, e com o consumidor durável de sempre), pedidos superados por hora de publicação, posse e devolução por comando com `actor`, o fallback ao script quando a mente desiste; `SimTime` alimenta o relógio simulado do medidor. `minds:` no mundo, usuário NATS `mind`, `make sandbox MENTE=camps`, Procfile com a linha comentada.
+- **A fita e os testes:** `make fita DIAS=1` grava em processo e reproduz na hora; `tests/e2e/test_mente.py` tem a tubulação com uma porta falsa e o dia 1 pela fita magra (56 KB, 41 chamadas).
+- **A tela e as métricas:** `intent` opcional em `action.accepted.v1` (copiado da proposta pelo kernel) e no estado `realtime`; o HUD mostra "fazendo: plant · Plantar rabanete no plot-w-02."; a linha do tempo põe a intenção logo depois da ação; `make metrics` ganha chamadas, custo cobrado, tokens e latência mediana por dia, só quando houve modelo.
+
+### O dia 1 do Camps (a fita de teste)
+
+| Medida | Valor |
+|---|---|
+| Chamadas | 41 (2 fotos, 39 deltas) |
+| Custo | US$ 0,0144 |
+| Tokens | 86 de entrada sem cache, 621.928 lidos do cache, 39.539 gravados no cache, 6.409 de saída |
+| Latência mediana | 1.355 ms (de 1,0 a 3,7 s; a primeira chamada, que grava o cache, 14 s na primeira gravação) |
+| Ações concluídas | plant 8, water 8, move 9, wait 13, withdraw 1, eat 1, sleep 1 |
+| Recusas, desmaios, sem ferramenta | 0, 0, 0 |
+| Fim do dia | fome 27,1, energia 100 (dormiu na cama às 20:00) |
+
+Ele plantou e regou os oito canteiros do oeste (o grupo longe do rio: a regra oculta não o favorece), encheu o regador no poço com 2 cargas, pegou rabanetes no baú e comeu, esperou a tarde perto da cama e dormiu às 20:00. A primeira gravação (46 chamadas, US$ 0,0155, uma recusa `not_adjacent` e uma `already_there`) foi descartada quando o `intent` passou a ser ecoado no `action.accepted`: a fita é a foto do prompt.
+
+### Os 7 dias no sandbox
+
+Em andamento ao fechar esta seção (`make sandbox MENTE=camps`, 72×, Haiku 5.5, `effort: low`, teto de US$ 0,60 por dia): os números entram aqui ao fim.
+
+### O prompt em tokens (decisão 6, medido com `count_tokens`)
+
+| Prefixo fixo | Caracteres | Tokens | Caracteres por token |
+|---|---|---|---|
+| Cartão + notas + instruções, em português | 5.352 | 2.388 | 2,24 |
+| O mesmo texto em inglês (só para medir) | 5.415 | 1.939 | 2,79 |
+| As 15 ferramentas (JSON com descrições em português) | 8.393 | 3.642 | 2,30 |
+
+O inglês economizaria 449 tokens (19%) no prompt de sistema. Como o prefixo fixo (6.030 tokens com as ferramentas) é lido do cache a US$ 0,01 por milhão no Haiku, a diferença vale uns US$ 0,0002 por dia simulado: o português fica, e a otimização para o inglês segue no `futuro.md` para quando o modelo for caro ou o cache não valer.
