@@ -112,9 +112,12 @@ corrida: ## N dias em processo com a mente sobre a API, com ou sem memória (ADR
 	uv run --locked --env-file .env python -m campsverso_testkit.corrida --days $(DIAS) $(if $(SEM_MEMORIA),--sem-memoria,)
 
 ARENA_DIAS ?= 30
+# No macOS, o caffeinate segura o Mac acordado enquanto a arena roda (horas de chamadas à API);
+# sem ele, o Mac dorme quando ninguém mexe e as corridas param junto (19/out).
+CAFFEINATE := $(shell command -v caffeinate >/dev/null 2>&1 && echo "caffeinate -i")
 
 arena: ## as corridas da arena em sequência, em data/arena/<data-hora> (ADR-0061): make arena [ARENA_DIAS=30] [SO=haiku-memoria] [PASTA=data/arena/x]
-	uv run --locked --env-file .env python -m campsverso_testkit.arena --days $(ARENA_DIAS) $(foreach s,$(SO),--only $(s)) $(if $(PASTA),--out $(PASTA),)
+	$(CAFFEINATE) uv run --locked --env-file .env python -m campsverso_testkit.arena --days $(ARENA_DIAS) $(foreach s,$(SO),--only $(s)) $(if $(PASTA),--out $(PASTA),)
 
 arena-report: ## o relatório da arena em docs/arena/AAAA-MM-DD.md, da arena mais recente ou de PASTA=data/arena/x
 	$(PY) python -m campsverso_tools.arena $(PASTA)
