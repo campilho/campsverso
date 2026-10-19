@@ -76,12 +76,14 @@ async def test_pedido_vai_no_formato_da_api_e_a_resposta_volta_em_blocos() -> No
     def handler(request: httpx2.Request) -> httpx2.Response:
         seen["url"] = str(request.url)
         seen["body"] = json.loads(request.content)
+        seen["timeout"] = request.extensions.get("timeout")
         return httpx2.Response(200, json=_message(), headers={"request-id": "req_123"})
 
     model = AnthropicModel(_client(handler), clock=FakeWallClock())
     response = await model.complete(_request())
 
     assert seen["url"].endswith("/v1/messages")
+    assert seen["timeout"]["read"] == 30.0  # 512 tokens: o mínimo
     body = seen["body"]
     assert body["model"] == "claude-haiku-5-5"
     assert body["system"] == "Você é o Camps."
@@ -180,3 +182,16 @@ async def test_tempo_esgotado_e_falha_de_conexao() -> None:
     with pytest.raises(ModelCallError) as connection:
         await AnthropicModel(_client(down), clock=FakeWallClock()).complete(_request())
     assert (connection.value.kind, connection.value.retryable) == ("connection", True)
+
+
+def test_o_tempo_limite_cresce_com_o_max_tokens() -> None:
+    """A reflexão com 8 mil tokens de saída leva mais de 30 s (ADR-0060); cada tentativa cortada
+    é cobrada, então o limite acompanha o pedido: um centésimo de segundo por token."""
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(500)
+
+    model = AnthropicModel(_client(handler), clock=FakeWallClock())
+    assert model.timeout_for(_request(max_tokens=512)) == 30.0
+    assert model.timeout_for(_request(max_tokens=8192)) == 81.92
+    assert model.timeout_for(_request(max_tokens=3000)) == 30.0

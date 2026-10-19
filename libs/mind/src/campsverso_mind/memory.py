@@ -233,7 +233,8 @@ você mesmo anotou e as crenças que já tinha. Responda com a ferramenta `refle
 o resumo do dia, o plano para amanhã e a lista inteira de crenças revisada. Uma crença é uma \
 regra que você acha que vale nesta fazenda, tirada do que viu, com a confiança que a evidência \
 sustenta: confirme o que se repetiu, enfraqueça o que não se repetiu, abandone o que o dia \
-desmentiu, e forme crenças novas só com evidência. Cite as horas e os fatos."""
+desmentiu, e forme crenças novas só com evidência. Cite as horas e os fatos. Seja econômico: \
+até 12 crenças, cada uma com até três evidências de uma linha curta, e o resumo em 3 a 5 linhas."""
 
 
 class Memory:

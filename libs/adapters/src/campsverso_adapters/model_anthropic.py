@@ -21,6 +21,7 @@ from campsverso_ports import (
 )
 
 DEFAULT_TIMEOUT_SECONDS = 30.0
+SECONDS_PER_TOKEN = 0.01  # uns 100 tokens por segundo; o Haiku faz 200 e sobra folga
 
 
 class AnthropicModel:
@@ -39,6 +40,12 @@ class AnthropicModel:
             timeout=timeout_seconds, max_retries=max_retries
         )
         self._clock = clock
+        self._timeout_seconds = timeout_seconds
+
+    def timeout_for(self, request: ModelRequest) -> float:
+        """O tempo limite cresce com o que se pede: um centésimo de segundo por token de saída
+        (a reflexão com 8 mil tokens leva mais de 30 s; cada tentativa cortada é cobrada)."""
+        return max(self._timeout_seconds, request.max_tokens * SECONDS_PER_TOKEN)
 
     def capabilities(self) -> ModelCapabilities:
         return ModelCapabilities(
@@ -67,7 +74,9 @@ class AnthropicModel:
         try:
             raw = cast(
                 anthropic.AsyncAPIResponse[Message],
-                await self._client.messages.with_raw_response.create(**params),
+                await self._client.messages.with_raw_response.create(
+                    **params, timeout=self.timeout_for(request)
+                ),
             )
         except anthropic.APITimeoutError as error:
             raise ModelCallError("timeout", str(error)) from error
