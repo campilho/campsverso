@@ -1,0 +1,183 @@
+"""O relatório da arena e os sinais do leste (ADR-0061), com corridas sintéticas."""
+
+import json
+from pathlib import Path
+from typing import Any
+
+from campsverso_tools.arena import beliefs_at_end, east_signals, load_runs, main
+
+
+def ev(tick: int, kind: str, /, **data: Any) -> dict[str, Any]:
+    return {
+        "source": "/kernel/w",
+        "seq": 0,
+        "tick": tick,
+        "type": f"campsverso.{kind}",
+        "time": "2026-10-12T01:00:00Z",
+        "data": data,
+    }
+
+
+def mem(tick: int, kind: str, /, **data: Any) -> dict[str, Any]:
+    return {**ev(tick, kind, avatar_id="camps", **data), "source": "/controller-runner/llm/camps"}
+
+
+def belief(tick: int, kind: str, belief_id: str, statement: str, confidence: Any) -> dict[str, Any]:
+    return mem(
+        tick,
+        f"memory.belief.{kind}.v1",
+        belief_id=belief_id,
+        statement=statement,
+        confidence=confidence,
+        evidence=[],
+        source={"kind": "observation"},
+    )
+
+
+MEMORY_RUN: list[dict[str, Any]] = [
+    ev(0, "world.session.started.v1", tick_seconds=60),
+    ev(0, "world.item.created.v1", item="moeda", qty=100, container_id="camps"),
+    mem(30, "memory.noted.v1", day=1, text="Plantei rabanete no oeste."),
+    mem(200, "memory.noted.v1", day=1, text="O plot-e-01 parece crescer mais rápido."),
+    ev(100, "action.completed.v1", action="plant", params={"target": "plot-w-01"}),
+    ev(110, "action.completed.v1", action="plant", params={"target": "plot-e-01"}),
+    belief(1000, "formed", "bel-0001", "O poço enche o regador até 10.", 0.9),
+    belief(1000, "formed", "bel-0002", "Os canteiros do leste amadurecem em 2 dias.", 0.6),
+    belief(
+        2500,
+        "updated",
+        "bel-0002",
+        "Rabanete no leste amadurece em 2 dias.",
+        {"before": 0.6, "after": 0.9},
+    ),
+    belief(2500, "formed", "bel-0003", "O leste dá azar.", 0.5),
+    ev(2880, "world.clock.phase_changed.v1"),
+    mem(4000, "memory.belief.retracted.v1", belief_id="bel-0003", statement="O leste dá azar."),
+    ev(4400, "action.completed.v1", action="plant", params={"target": "plot-e-02"}),
+    ev(4410, "action.completed.v1", action="harvest", params={"target": "plot-e-01"}),
+    ev(4420, "action.completed.v1", action="harvest", params={"target": "plot-w-01"}),
+    ev(4430, "action.rejected.v1", reason="not_adjacent"),
+    {
+        "source": "/controller-runner/llm/camps",
+        "seq": 9,
+        "tick": 4440,
+        "type": "campsverso.llm.call.completed.v1",
+        "time": "2026-10-12T02:00:00Z",
+        "data": {
+            "latency_ms": 1500,
+            "cost_usd": 0.01,
+            "charged": True,
+            "usage": {"input_tokens": 1},
+        },
+    },
+    ev(5760, "world.clock.phase_changed.v1"),
+]
+
+
+def test_os_sinais_do_leste_vem_da_memoria() -> None:
+    east = east_signals(MEMORY_RUN)
+    assert east["first_note"] == {
+        "day": 1,
+        "hour": "09:20",  # tick 200: 06:00 mais 200 minutos
+        "text": "O plot-e-01 parece crescer mais rápido.",
+    }
+    assert (east["first_belief"]["belief_id"], east["first_belief"]["day"]) == ("bel-0002", 1)
+    tracks = {b["belief_id"]: b for b in east["beliefs"]}
+    assert set(tracks) == {"bel-0002", "bel-0003"}  # bel-0001 não fala do leste
+    assert [s["kind"] for s in tracks["bel-0002"]["steps"]] == ["formada", "revisada"]
+    assert tracks["bel-0002"]["confidence"] == 0.9
+    assert tracks["bel-0002"]["statement"] == "Rabanete no leste amadurece em 2 dias."
+    assert tracks["bel-0003"]["retracted_day"] == 3
+    assert east["plantings"]["days_1_3"] == {"oeste": 1, "leste": 1, "east_fraction": 0.5}
+    assert east["plantings"]["from_day_4"] == {"oeste": 0, "leste": 1, "east_fraction": 1.0}
+    assert east["harvests"]["from_day_4"]["east_fraction"] == 0.5
+    assert (east["discovered"], east["discovered_by"]) == (True, "bel-0002")
+    assert [b["belief_id"] for b in beliefs_at_end(MEMORY_RUN)] == ["bel-0001", "bel-0002"]
+
+
+def test_sem_memoria_so_o_comportamento_conta() -> None:
+    east = east_signals(
+        [
+            ev(0, "world.session.started.v1", tick_seconds=60),
+            ev(4400, "action.completed.v1", action="plant", params={"target": "plot-e-01"}),
+        ]
+    )
+    assert (east["first_note"], east["first_belief"], east["beliefs"]) == (None, None, [])
+    assert east["discovered"] is False
+    assert east["plantings"]["days_1_3"]["east_fraction"] is None
+    assert east["plantings"]["from_day_4"]["east_fraction"] == 1.0
+
+
+def test_uma_mencao_sem_descoberta_nao_conta() -> None:
+    east = east_signals([belief(1000, "formed", "bel-0001", "Plantei no leste hoje.", 0.9)])
+    assert len(east["beliefs"]) == 1
+    assert east["discovered"] is False
+
+
+def _run(arena: Path, name: str, spec: dict[str, Any], envelopes: list[dict[str, Any]]) -> None:
+    folder = arena / name
+    folder.mkdir(parents=True)
+    summary = {
+        "spec": spec,
+        "days": 2,
+        "calls": 1,
+        "cost_usd": 0.01,
+        "reflections": 1,
+        "notes": 2,
+        "beliefs": {"formed": 3, "updated": 1, "retracted": 1},
+        "real_seconds": 95.0,
+        "aborted_day": None,
+    }
+    (folder / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    (folder / "archive.jsonl").write_text(
+        "".join(json.dumps(e) + "\n" for e in envelopes), encoding="utf-8"
+    )
+
+
+def test_o_relatorio_poe_as_corridas_lado_a_lado(tmp_path: Path) -> None:
+    arena = tmp_path / "20261019-070000"
+    _run(
+        arena,
+        "haiku-memoria",
+        {
+            "name": "haiku-memoria",
+            "controller": "llm",
+            "memory": True,
+            "river_bonus": True,
+            "seed": 1,
+        },
+        MEMORY_RUN,
+    )
+    _run(
+        arena,
+        "script",
+        {"name": "script", "controller": "script", "memory": False, "river_bonus": True, "seed": 1},
+        [
+            ev(0, "world.session.started.v1", tick_seconds=60),
+            ev(0, "world.item.created.v1", item="moeda", qty=100, container_id="camps"),
+            ev(10, "world.item.created.v1", item="moeda", qty=20, container_id="camps"),
+            ev(2880, "world.clock.phase_changed.v1"),
+            ev(5760, "world.clock.phase_changed.v1"),
+        ],
+    )
+    (arena / "vazia").mkdir()  # uma corrida que não terminou não entra
+    assert [r.name for r in load_runs(arena)] == ["script", "haiku-memoria"]
+    out = tmp_path / "relatorio.md"
+    assert main([str(arena), "--out", str(out)]) == 0
+    text = out.read_text(encoding="utf-8")
+    assert text.startswith("# Arena de 2026-10-19")
+    assert "| Métrica | script | haiku-memoria |" in text
+    assert "| Moedas ao fim | 120 | 100 |" in text
+    assert "| Custo (US$) | - | 0,01 |" in text
+    assert "| Primeira anotação sobre o leste | sem memória | dia 1, 09:20 |" in text
+    assert "| Veredito | só pelo comportamento | descobriu (bel-0002) |" in text
+    assert "dia 1 formada 0,60 → dia 2 revisada 0,90" in text
+    assert "dia 2 a 3, retirada" in text
+    assert "## Moedas por dia" in text
+    assert "| 2 | 120 | 100 |" in text
+    assert "haiku-memoria/` com `archive.jsonl`, `summary.json`" in text
+
+
+def test_sem_corridas_avisa(tmp_path: Path) -> None:
+    assert main([str(tmp_path)]) == 2
+    assert main([str(tmp_path / "nao-existe")]) == 2

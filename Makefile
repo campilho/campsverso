@@ -22,7 +22,8 @@ NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR BUDGET MIND
 
 .DEFAULT_GOAL := help
 .PHONY: help setup contracts check lint fmt types test arch contracts-check compat \
-        up stop run ui ui-build sandbox soak replay metrics ui-e2e mapa-visual sessoes tools secrets fita corrida
+        up stop run ui ui-build sandbox soak replay metrics ui-e2e mapa-visual sessoes tools secrets fita corrida \
+        arena arena-report
 
 help: ## lista os alvos
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-16s %s\n", $$1, $$2}'
@@ -109,6 +110,14 @@ fita: ## grava em processo a fita de teste do controlador LLM, chamando a API (A
 
 corrida: ## N dias em processo com a mente sobre a API, com ou sem memória (ADR-0060): make corrida DIAS=7 [SEM_MEMORIA=1]
 	uv run --locked --env-file .env python -m campsverso_testkit.corrida --days $(DIAS) $(if $(SEM_MEMORIA),--sem-memoria,)
+
+ARENA_DIAS ?= 30
+
+arena: ## as corridas da arena em sequência, em data/arena/<data-hora> (ADR-0061): make arena [ARENA_DIAS=30] [SO=haiku-memoria] [PASTA=data/arena/x]
+	uv run --locked --env-file .env python -m campsverso_testkit.arena --days $(ARENA_DIAS) $(foreach s,$(SO),--only $(s)) $(if $(PASTA),--out $(PASTA),)
+
+arena-report: ## o relatório da arena em docs/arena/AAAA-MM-DD.md, da arena mais recente ou de PASTA=data/arena/x
+	$(PY) python -m campsverso_tools.arena $(PASTA)
 
 DAYS ?= 30
 ARCHIVE ?= data/archive/farm-camps-01

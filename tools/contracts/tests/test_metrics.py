@@ -25,6 +25,7 @@ def test_metricas_por_dia() -> None:
         ev(4, 1500, "farm.crop.matured.v1", plot_id="plot-w-01", days=3),
         ev(5, 1510, "action.completed.v1", action="harvest", params={"target": "plot-e-01"}),
         ev(6, 1520, "action.rejected.v1", reason="not_adjacent"),
+        ev(9, 1525, "action.completed.v1", action="plant", params={"target": "plot-w-02"}),
         ev(7, 1530, "avatar.decision_requested.v1", needs={"fome": 72.5}),
         ev(8, 2880, "world.clock.phase_changed.v1"),  # o dia 3 começa: o dia 2 fica completo
         {"source": "/perception/w", "seq": 0, "tick": 1600, "type": "x", "time": "", "data": {}},
@@ -34,6 +35,8 @@ def test_metricas_por_dia() -> None:
     assert (day2.complete, day3.complete) == (True, False)
     assert (day1.day, day1.coins_end) == (1, 70)
     assert day2.harvests == {"leste": 1}
+    assert day2.plantings == {"oeste": 1}  # ADR-0061: os plantios por grupo, para o sinal do leste
+    assert report.totals()["plantings"] == {"oeste": 1}
     assert report.totals()["mean_days_to_mature"] == {"leste": 2.0, "oeste": 3.0}
     assert day2.rejections == {"not_adjacent": 1}
     assert day2.hunger_peak == 72.5

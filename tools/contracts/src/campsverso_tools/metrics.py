@@ -41,6 +41,7 @@ def _group(plot: str) -> str:
 class DayMetrics:
     day: int
     harvests: dict[str, int] = field(default_factory=dict[str, int])
+    plantings: dict[str, int] = field(default_factory=dict[str, int])  # por grupo (ADR-0061)
     matured_days: dict[str, list[int]] = field(default_factory=dict[str, list[int]])
     coins_end: int = 0
     rejections: dict[str, int] = field(default_factory=dict[str, int])
@@ -75,15 +76,18 @@ class Report:
             for group, values in d.matured_days.items():
                 matured.setdefault(group, []).extend(values)
         harvests = Counter[str]()
+        plantings = Counter[str]()
         rejections = Counter[str]()
         for d in days:
             harvests.update(d.harvests)
+            plantings.update(d.plantings)
             rejections.update(d.rejections)
         return {
             "days": len(days),
             "partial_day": partial,
             "coins_end": days[-1].coins_end if days else 0,
             "harvests": dict(sorted(harvests.items())),
+            "plantings": dict(sorted(plantings.items())),
             "mean_days_to_mature": {
                 g: round(sum(v) / len(v), 2) for g, v in sorted(matured.items()) if v
             },
@@ -142,9 +146,10 @@ def compute(envelopes: Iterable[Mapping[str, Any]], avatar: str = AVATAR) -> Rep
         stamp = _seconds(str(envelope["time"]))
         first_time.setdefault(day, stamp)
         last_time[day] = stamp
-        if kind == "campsverso.action.completed.v1" and data["action"] == "harvest":
+        if kind == "campsverso.action.completed.v1" and data["action"] in ("harvest", "plant"):
             group = _group(str(data["params"]["target"]))
-            metrics.harvests[group] = metrics.harvests.get(group, 0) + 1
+            counter = metrics.harvests if data["action"] == "harvest" else metrics.plantings
+            counter[group] = counter.get(group, 0) + 1
         elif kind == "campsverso.farm.crop.matured.v1":
             metrics.matured_days.setdefault(_group(str(data["plot_id"])), []).append(
                 int(data["days"])

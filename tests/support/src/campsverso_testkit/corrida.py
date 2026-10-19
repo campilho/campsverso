@@ -1,4 +1,4 @@
-"""Uma corrida de N dias em processo (ADR-0060; base da arena do M12).
+"""Uma corrida de N dias em processo (ADR-0060; a unidade da arena do M12, ADR-0061).
 
     uv run --env-file .env python -m campsverso_testkit.corrida --days 7 [--sem-memoria]
 
@@ -18,53 +18,16 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 
-from campsverso_adapters import AnthropicModel, RecordingModel, SqliteMemory, SystemWallClock
-from campsverso_testkit.fita import LIMITS, summary
+from campsverso_testkit.arena import Spec, run_spec
 from campsverso_testkit.nats_server import REPO
-from campsverso_testkit.pipeline import Pipeline
-from campsverso_tools.metrics import compute, table
 
 
 async def run(days: int, out: Path, *, memory: bool) -> int:
     if not os.environ.get("ANTHROPIC_API_KEY"):
         print("ANTHROPIC_API_KEY ausente: rode com --env-file .env (ADR-0058)", file=sys.stderr)
         return 2
-    out.mkdir(parents=True, exist_ok=True)
-    clock = SystemWallClock()
-    port = RecordingModel(AnthropicModel(clock=clock), out / "llm.jsonl", "record", clock=clock)
-    notebook = SqliteMemory(out / "memory.sqlite") if memory else False
-    pipeline = Pipeline(controller="llm", port=port, budget=LIMITS, memory=notebook)
-    started = datetime.now(UTC)
-    print(
-        f"corrida de {days} dia(s), memória {'ligada' if memory else 'desligada'}, em {out}",
-        flush=True,
-    )
-    await pipeline.start()
-    for day in range(1, days + 1):
-        await pipeline.run_days(1)
-        partial = summary(pipeline)
-        print(
-            f"dia {day}: {partial['calls']} chamadas, US$ {partial['cost_usd']:.4f}, "
-            f"recusas {sum(partial['rejected'].values())}, desmaios {partial['faints']}, "
-            f"fome {partial['needs'].get('fome', 0):.0f}",
-            flush=True,
-        )
-    report = compute(pipeline.envelopes)
-    result = {
-        **summary(pipeline),
-        "memory": memory,
-        "real_seconds": round((datetime.now(UTC) - started).total_seconds(), 1),
-        "totals": report.totals(),
-    }
-    (out / "summary.json").write_text(
-        json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-    (out / "metrics.txt").write_text(table(report) + "\n", encoding="utf-8")
-    (out / "archive.jsonl").write_text(
-        "".join(json.dumps(e, ensure_ascii=False) + "\n" for e in pipeline.envelopes),
-        encoding="utf-8",
-    )
-    print(table(report), flush=True)
+    result = await run_spec(Spec("corrida", "llm", memory=memory), days, out)
+    print((out / "metrics.txt").read_text(encoding="utf-8"), flush=True)
     print(json.dumps(result["totals"], ensure_ascii=False), flush=True)
     return 0
 

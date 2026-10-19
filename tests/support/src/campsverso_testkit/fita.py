@@ -57,7 +57,7 @@ def summary(pipeline: Pipeline) -> dict[str, Any]:
         for key, value in call["usage"].items():
             usage[str(key)] += int(value)
     latencies = [int(c["latency_ms"]) for c in charged]
-    assert pipeline.mind is not None
+    mind = pipeline.mind  # o script não tem mente: os contadores dela ficam em zero (ADR-0061)
     return {
         "days": pipeline.core.tick // 1440,
         "calls": len(completed),
@@ -67,8 +67,9 @@ def summary(pipeline: Pipeline) -> dict[str, Any]:
         "cost_usd": round(sum(float(c["cost_usd"]) for c in charged), 4),
         "tokens": dict(usage),
         "latency_ms_median": int(statistics.median(latencies)) if latencies else 0,
-        "no_tool": pipeline.mind.no_tool,
-        "reflections": pipeline.mind.reflections,
+        "no_tool": mind.no_tool if mind is not None else 0,
+        "reflections": mind.reflections if mind is not None else 0,
+        "gave_up": mind.gave_up if mind is not None else False,
         "notes": len(pipeline.of_type("memory.noted.v1")),
         "beliefs": {
             "formed": len(pipeline.of_type("memory.belief.formed.v1")),
