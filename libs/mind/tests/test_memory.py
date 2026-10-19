@@ -494,7 +494,7 @@ def test_a_reflexao_cortada_no_max_tokens_nao_se_guarda() -> None:
     assert mem.apply_reflection(request, cut, clock, 1) is None
     assert not mem.port.has_reflection(1)  # a manhã seguinte tenta de novo
     assert mem.drain_events() == []
-    assert MemorySettings().reflection_max_tokens == 8192
+    assert MemorySettings().reflection_max_tokens == 16384
 
 
 def test_um_dia_sem_reflexao_fica_pendente_para_a_manha() -> None:
@@ -608,6 +608,43 @@ async def test_a_noite_sem_sono_reflete_de_manha_e_a_falha_da_reflexao_nao_derru
     assert mind.reflections == 0
     assert mind.failures == 0  # a reflexão não conta como falha da decisão
     assert not mind.memory.port.has_reflection(1)  # type: ignore[union-attr]
+
+
+async def test_a_reflexao_que_falha_nao_e_tentada_a_cada_entrega() -> None:
+    """A corrida de 7 dias do M11 gastou US$ 0,42 num dia porque a reflexão do dia anterior,
+    que falhava, era tentada de novo em toda entrega da manhã seguinte."""
+    cut = response(
+        {"type": "tool_use", "id": "toolu_r", "name": REFLECT, "input": {}}, stop="max_tokens"
+    )
+    model = ScriptedModel(
+        response(tool_use("wait", ticks=60, intent="esperar", note="")),
+        cut,  # a reflexão da noite, cortada
+        response(tool_use("wait", ticks=60, intent="esperar", note="")),
+        cut,  # a da manhã seguinte, cortada de novo
+        response(tool_use("wait", ticks=60, intent="esperar", note="")),
+        response(tool_use("wait", ticks=60, intent="esperar", note="")),
+        response(tool_use("wait", ticks=60, intent="esperar", note="")),
+    )
+    mind = controller(model, memory())
+    await mind.decide(with_clock(snapshot(), 120))
+    await mind.decide(with_clock(delta(120, 180), 180))  # sem dormir: nada a refletir ainda
+    mind.memory.reflect_due = Clock(180, 1, SIM)  # type: ignore[union-attr]
+    await mind.after_proposal()  # a noite: cortada
+    morning = "2026-10-11T07:00:00-03:00"
+    await mind.decide(with_clock(delta(180, 1500, reason="woke_up"), 1500, day=2, sim_time=morning))
+    await mind.decide(with_clock(delta(1500, 1560), 1560, day=2, sim_time=morning))
+    await mind.decide(with_clock(delta(1560, 1620), 1620, day=2, sim_time=morning))
+    assert [r.purpose for r in model.requests] == [
+        "decision",
+        "decision",
+        "reflection",
+        "reflection",
+        "decision",
+        "decision",
+        "decision",
+    ]
+    assert mind.memory.attempts == {1: 2}  # type: ignore[union-attr]
+    assert mind.reflections == 0
 
 
 async def test_sem_memoria_nada_muda() -> None:

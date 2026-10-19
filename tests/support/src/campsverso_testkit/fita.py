@@ -49,18 +49,22 @@ def summary(pipeline: Pipeline) -> dict[str, Any]:
     completed = pipeline.of_type("llm.call.completed.v1")
     failed = pipeline.of_type("llm.call.failed.v1")
     done = pipeline.of_type("action.completed.v1")
+    # Só o que foi cobrado conta: em `record`, um pedido repetido volta da fita de graça, com o
+    # `usage` e a latência da gravação, e somá-los inflaria o custo (o laço da reflexão do M11).
+    charged = [c for c in completed if c["charged"]]
     usage = Counter[str]()
-    for call in completed:
+    for call in charged:
         for key, value in call["usage"].items():
             usage[str(key)] += int(value)
-    latencies = [int(c["latency_ms"]) for c in completed]
+    latencies = [int(c["latency_ms"]) for c in charged]
     assert pipeline.mind is not None
     return {
         "days": pipeline.core.tick // 1440,
         "calls": len(completed),
         "failed": len(failed),
-        "charged": sum(1 for c in completed if c["charged"]),
-        "cost_usd": round(sum(float(c["cost_usd"]) for c in completed), 4),
+        "charged": len(charged),
+        "replayed": len(completed) - len(charged),
+        "cost_usd": round(sum(float(c["cost_usd"]) for c in charged), 4),
         "tokens": dict(usage),
         "latency_ms_median": int(statistics.median(latencies)) if latencies else 0,
         "no_tool": pipeline.mind.no_tool,

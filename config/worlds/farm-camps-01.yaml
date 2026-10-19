@@ -27,7 +27,7 @@ minds:  # controladores LLM, um por avatar (ADR-0059); o processo `mind` assume 
     max_tokens: 1024
     cassette: {path: data/llm/farm-camps-01.jsonl, mode: record}  # live | record | replay
     memory: {enabled: true}  # o caderno (ADR-0060); o arquivo padrão é data/<mundo>/memory/<avatar>.sqlite
-    reflection: {effort: medium, max_tokens: 8192}  # a reflexão da noite (o raciocínio gasta daqui); model: o das decisões
+    reflection: {effort: medium, max_tokens: 16384}  # a reflexão da noite (o raciocínio gasta daqui); model: o das decisões
     # Lidos na partida do processo: trocar modelo, esforço ou fita é reiniciar o `mind`, entre partidas.
 
 # Quem controla cada avatar quando o mundo começa. Vazio: o controlador padrão do cartucho

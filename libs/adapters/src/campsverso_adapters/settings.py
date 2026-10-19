@@ -101,7 +101,7 @@ class MindSettings:
     memory_path: Path | None = None  # None: data_dir/<mundo>/memory/<avatar>.sqlite
     reflection_model: str | None = None  # None: o modelo das decisões
     reflection_effort: Effort | None = "medium"
-    reflection_max_tokens: int = 8192
+    reflection_max_tokens: int = 16384
 
 
 @dataclass(frozen=True, slots=True)
@@ -206,7 +206,7 @@ def _mind(avatar: str, raw: Mapping[str, Any], base: Path) -> MindSettings:
         memory_path=None if memory.get("path") is None else base / str(memory["path"]),
         reflection_model=cast(str | None, reflection.get("model")),
         reflection_effort=reflection_effort,
-        reflection_max_tokens=int(reflection.get("max_tokens", 8192)),
+        reflection_max_tokens=int(reflection.get("max_tokens", 16384)),
     )
 
 

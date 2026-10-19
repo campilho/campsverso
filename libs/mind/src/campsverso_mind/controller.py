@@ -178,6 +178,7 @@ class LlmController:
         if memory.port.has_reflection(day):
             memory.reflect_due = None
             return
+        memory.attempted(day)
         request = memory.reflect_request(self._identity, clock, day, self._model)
         try:
             response = await self._port.complete(request)

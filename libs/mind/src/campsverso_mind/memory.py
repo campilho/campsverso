@@ -30,6 +30,7 @@ NOTE_DESCRIPTION = (
 )
 NOTE_MAX = 500
 REFLECT = "reflect"
+MAX_ATTEMPTS = 2  # reflexões tentadas por dia: a da noite e, se falhar, uma de manhã
 
 # A importância por tabela (decisão 4): sem chamada ao modelo, e a mesma em qualquer execução.
 IMPORTANCE_BY_TYPE: Mapping[str, int] = {
@@ -81,7 +82,9 @@ class MemorySettings:
     block_salient: int = 10
     reflection_model: str | None = None  # None: o modelo das decisões
     reflection_effort: Effort | None = "medium"
-    reflection_max_tokens: int = 8192  # o raciocínio adaptativo gasta daqui; 2 mil não bastam
+    reflection_max_tokens: int = (
+        16384  # o raciocínio adaptativo gasta daqui; 8 mil cortaram uma noite
+    )
     reflection_episodes: int = 200  # linhas do dia que a reflexão lê, as mais recentes
 
 
@@ -250,6 +253,7 @@ class Memory:
         self._events: list[dict[str, Any]] = []
         self.last_proposal: str | None = None
         self.reflect_due: Clock | None = None
+        self.attempts: dict[int, int] = {}  # tentativas de reflexão por dia; o teto evita o laço
 
     # ------------------------------------------------------------- registrar
 
@@ -355,15 +359,23 @@ class Memory:
     # ------------------------------------------------------------- refletir
 
     def pending_day(self, clock: Clock) -> int | None:
-        """Um dia anterior com episódios e sem reflexão: a noite passou sem dormir (desmaio)."""
+        """Um dia anterior com episódios e sem reflexão: a noite passou sem dormir (desmaio).
+        No máximo `MAX_ATTEMPTS` tentativas por dia: uma reflexão que falha de manhã não pode
+        ser tentada de novo a cada entrega, cobrando cada tentativa."""
         previous = clock.day - 1
         if (
             previous < 1
             or self.port.has_reflection(previous)
+            or self.attempts.get(previous, 0) >= MAX_ATTEMPTS
             or not self.port.episodes(previous, limit=1)
         ):
             return None
         return previous
+
+    def attempted(self, day: int) -> int:
+        """Conta uma tentativa de refletir o dia; devolve quantas já foram."""
+        self.attempts[day] = self.attempts.get(day, 0) + 1
+        return self.attempts[day]
 
     def reflect_request(self, system: str, clock: Clock, day: int, model: str) -> ModelRequest:
         s = self.settings
