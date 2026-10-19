@@ -9,6 +9,7 @@ from campsverso_adapters.clocks import FakeWallClock, SystemWallClock
 from campsverso_adapters.contract_validation import ContractValidator, Problem
 from campsverso_adapters.flags_yaml import YamlFlags
 from campsverso_adapters.ids import SequentialUuid7Ids, Uuid7Ids
+from campsverso_adapters.memory_sqlite import SqliteMemory
 from campsverso_adapters.model_anthropic import AnthropicModel
 from campsverso_adapters.model_metered import MeteredModel, ModelPrices, cost_usd
 from campsverso_adapters.model_recording import RecordingMode, RecordingModel
@@ -49,6 +50,7 @@ __all__ = [
     "RecordingMode",
     "RecordingModel",
     "SequentialUuid7Ids",
+    "SqliteMemory",
     "SqliteWorldStore",
     "StreamSpec",
     "SystemWallClock",
