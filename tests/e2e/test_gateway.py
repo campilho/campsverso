@@ -165,7 +165,16 @@ async def test_gateway_visoes_comandos_e_a6(tmp_path: Path, nats: NatsServer) ->
             refused = await _command(ws, "step", {"ticks": 0})
             assert refused["error"]["code"] == "invalid_command"
 
-        await asyncio.sleep(1)  # o mundo pausado não publica mais nada
+        # O mundo pausado não publica mais nada; sob carga, a pausa leva mais de um segundo a
+        # assentar, e a referência montada antes do último tick não bateria com o gateway.
+        quiet = (await gateway.welcome("operator"))["state"]
+        async with asyncio.timeout(30):
+            while True:
+                await asyncio.sleep(1)
+                again = (await gateway.welcome("operator"))["state"]
+                if (again["tick"], again["clock"]) == (quiet["tick"], quiet["clock"]):
+                    break
+                quiet = again
         reference = await _reference(nats, "referencia")
         state = (await gateway.welcome("operator"))["state"]
         pulse = state.pop("pulse")  # o pulso não vem dos streams (ADR-0051)
