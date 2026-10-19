@@ -77,6 +77,55 @@
 11. **O caderno na tela do operador,** projetado dos eventos para o `ObserverState`. *Recomendação: sim.*
 12. **Hindsight avaliado e não adotado no M11:** PostgreSQL, chamadas fora da porta, e a linha de base precisa ser nossa; o que vale é a separação ver/acreditar e a confiança com evidência. Um adaptador Hindsight pela `MemoryPort` fica para a v0.5. *Recomendação: sim.*
 
-## 9. Como ficou
+## 9. Como ficou (18/out/2026)
 
-Fica para o fim do marco: o que a reflexão escreveu nas noites da fita, as crenças do Camps ao fim dos 7 dias (e se alguma fala do leste), recusas por dia com e sem memória, colheitas e moedas contra o M10, o custo das reflexões.
+A ordem do trabalho foi cumprida na mesma noite da aprovação, com os 7 dias do M10 rodando no sandbox ao lado.
+
+- **A porta e o adaptador:** `libs/ports/memory.py` (`Episode`, `Note`, `Belief`, `BeliefRevision`, `Reflection`, `BeliefChange`, `MemoryPort`) e `libs/adapters/memory_sqlite.py` (quatro tabelas, ids sequenciais, a diferença das crenças ao salvar a reflexão), com testes de ida e volta e de reinício.
+- **A mente:** `libs/mind/memory.py` (a tabela de importância, as linhas dos episódios, o bloco de abertura, a ferramenta `reflect`, o pedido e a leitura da reflexão, os eventos); `note` em toda ferramenta; o controlador reflete depois de propor dormir (`after_proposal`) ou na primeira entrega da manhã (`pending_day`); 10 testes novos com uma porta falsa.
+- **O runner, as settings e o pipeline:** os eventos do caderno saem com o usuário `mind` em `observer.memory.>`, com o relógio simulado da última entrega; `minds.<avatar>.memory` e `.reflection` no arquivo do mundo; o pipeline em memória dá um caderno SQLite em memória à mente por padrão e aceita um arquivo para o teste de reinício.
+- **O caderno na tela:** a projeção comum monta `memory` por avatar dos eventos; o gateway projeta só esses eventos do observer (a deduplicação por fonte continua); o painel do operador ganhou a seção "Caderno" (resumo, plano, crenças por confiança, anotações).
+- **As fitas e os testes:** `make fita DIAS=2` (68 chamadas, US$ 0,034) e, em `tests/e2e/test_mente.py`, a tubulação com uma porta falsa, os dois dias pela fita (a reflexão do dia 1 forma crenças com evidências cujas horas existem no arquivo; a janela seguinte abre com o resumo) e o reinício (o arquivo reaberto por uma mente nova abre a janela com o que o Camps aprendeu).
+- **`make corrida DIAS=N`:** N dias em processo, com ou sem memória, para a comparação e para a arena.
+
+### Os dois dias da fita
+
+| Medida | Valor |
+|---|---|
+| Chamadas | 90 (88 decisões e 2 reflexões) |
+| Custo | US$ 0,042 (as reflexões com 3,0 mil e 5,9 mil tokens de saída) |
+| Latência mediana | 1,7 s (as reflexões, 15 s e 29 s) |
+| Anotações | 62 |
+| Crenças | 13 formadas, 6 atualizadas, 1 retirada |
+| Dia 1 | os 16 canteiros plantados (6 sementes compradas por 60 moedas) e regados, dois reabastecimentos, uma refeição, a cama às 20:03 |
+| Dia 2 | o pagamento de 75 moedas às 06:00, o dia inteiro esperando com os canteiros cheios, a fome em 41 ao entardecer |
+
+Crenças da primeira noite, oito: cargas e poço, o quiosque e o preço da semente, a adjacência, as durações, "rabanete regado deve avançar na virada das 06:00; ainda não confirmado" (0,5), "comer rabanete zera a fome" (0,6, com a fome em 11). Na segunda noite: o crescimento confirmado com a evidência **"o rabanete plantado no dia 1 passou para crescendo (leste) e broto (oeste) no dia 2"**, a crença do "zera a fome" **retirada** ("reduz em cerca de 25, de 29 para 5"), a fome a 3 por hora (0,85), o pagamento da caixa às 06:00 (0,9), e "não manter comida no inventário ao fim do dia foi um erro" (0,8). A gravação anterior, descartada, tinha formado a crença explícita "nem todos os canteiros crescem no mesmo ritmo" (0,35). É o efeito da R-001, visto no segundo dia nas duas.
+
+Três correções antes da fita boa: o `max_tokens` da reflexão (2.048 → 8.192, porque o raciocínio adaptativo gasta daí; uma reflexão cortada não se guarda), a descrição do `note` (de 66 anotações em 86 chamadas para 62 em 90) e o tempo limite do adaptador, que passou a crescer com o `max_tokens` (a terceira noite da corrida de 7 dias, com 206 episódios, não cabia em 30 s).
+
+### Os 7 dias, com e sem memória, em processo
+
+`make corrida DIAS=7 SEM_MEMORIA=1` (a mente do M10) e `make corrida DIAS=7` (a do M11), mesma seed, o mundo esperando o modelo, Haiku 5.5 em `effort: low` nas decisões e `medium` nas reflexões. Uma corrida de cada: o modelo é estocástico, e uma corrida anterior com memória (descartada por dois defeitos corrigidos no meio dela) terminou com 95 moedas e 36 colheitas, então as diferenças de moedas e colheitas entre uma corrida e outra são da ordem do ruído; a arena (M12) vai medir com várias seeds. O que é estrutural está nas últimas linhas.
+
+| Medida | Sem memória (M10) | Com memória (M11) |
+|---|---|---|
+| Chamadas cobradas | 336 | 384 |
+| Custo | US$ 0,12 | US$ 0,20 (US$ 0,017 e 0,028 por dia) |
+| Latência mediana | 1,5 s | 1,6 s |
+| Tokens de saída | 61 mil | 130 mil (as 7 reflexões) |
+| Recusas | 31 (0, 3, 7, 9, 9, 2, 1 por dia) | 29 (1, 4, 6, 6, 8, 2, 2) |
+| Recusas por motivo | not_adjacent 15, missing_item 8, already_there 4, invalid_params 3, not_ripe 1 | not_adjacent 20, not_ripe 5, already_there 3, missing_item 1 |
+| Colheitas (oeste / leste) | 8 / 8 | 7 / 15 |
+| Moedas ao fim | 5 | 0 (gastas em sementes de abóbora e batata no dia 7) |
+| Pico de fome, desmaios, murchas | 100, 0, 0 | 100, 0, 0 |
+| Plantios no leste, dias 1 a 3 | 8 de 16 | 7 de 15 |
+| Plantios no leste, dias 4 a 7 | 4 de 8 | 12 de 17 |
+| Reflexões, anotações | 0, 0 | 7, 277 |
+| Crenças formadas / atualizadas / retiradas | 0 | 20 / 44 / 3 |
+
+**O que a memória mudou.** A mente com memória colheu 22 contra 16 e, depois do dia 3, plantou 71% no leste contra 50%: depois de medir que "os canteiros do leste amadurecem em 2 dias", passou a preferi-los, sem nunca enunciar que o leste é diferente do oeste (o `make metrics` mede 2,0 dias no leste e 3,6 no oeste). Ela diversificou (batata e abóbora, que o script nunca planta) e investiu as moedas do dia 7 em sementes caras, o que a tabela de 7 dias não paga. As recusas por dia não caíram (29 contra 31): a memória guarda o motivo, mas a mesma recusa `not_adjacent` continua acontecendo porque o modelo erra a distância, não porque esqueceu a regra; é a linha de base que o M12 e o M13 podem mirar. A fome chegou a 100 nas duas: sem comida guardada, a reflexão anotou o erro ("sem colheita e sem comida guardada, a fome sobe sem limite") e ainda assim o dia 5 foi de fome.
+
+**As crenças ao fim dos 7 dias** (17 vivas, 3 retiradas): a mecânica da fazenda quase inteira com confiança acima de 0,9 (regador e poço, quiosque e preços, fome a 3 por hora e rabanete a 25, a virada das 06:00, a caixa de vendas paga às 06:00, colher rende 1); duas medidas contra o manual ("rabanete amadurece em 2 dias de crescimento regado; o tempo observado é o que vale, mesmo que o manual diga 3", 0,90); uma retirada com a razão certa ("diagonal nem sempre conta como ao lado": "hoje a diagonal funcionou sempre que a distância era 1"); e uma errada e honesta ("regar um canteiro vazio é aceito e marca watered_today, mas não planta nada", 0,80, que veio de um plantio que não aconteceu).
+
+**Quatro correções entre a primeira corrida e a limpa:** o tempo limite do adaptador cresce com o `max_tokens` (a terceira noite não cabia em 30 s, e cada tentativa cortada era cobrada); no máximo duas tentativas de reflexão por dia (a da manhã era tentada de novo a cada entrega; em `record` o pedido repetido voltava da fita de graça, mas o resumo somava o custo nominal); 16 mil tokens para refletir; e a manhã depois da reflexão recebe o bloco de memória mesmo numa janela que continua (o resumo e o plano só chegavam na foto seguinte).
