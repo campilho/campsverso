@@ -109,13 +109,17 @@ class Window:
     def is_open(self) -> bool:
         return bool(self.messages or self.pending)
 
-    def observe(self, delivery: Mapping[str, Any]) -> None:
-        """Uma entrega da percepção: a foto abre uma janela nova; o delta entra no próximo turno."""
+    def observe(self, delivery: Mapping[str, Any], *, preface: str | None = None) -> None:
+        """Uma entrega da percepção: a foto abre uma janela nova (com o prefácio, o que o agente
+        lembra, na frente; ADR-0060); o delta entra no próximo turno."""
         self.deliveries += 1
         if is_snapshot(delivery):
             self.snapshots += 1
             self.messages, self.open_tools = [], []
-            self.pending, self.pending_error = [render_snapshot(delivery)], False
+            opening = render_snapshot(delivery)
+            if preface:
+                opening = f"{preface}\n\n{opening}"
+            self.pending, self.pending_error = [opening], False
             return
         self.pending.append(render_delta(delivery))
         decision = cast(Mapping[str, Any], delivery.get("decision") or {})

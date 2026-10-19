@@ -6,17 +6,24 @@ ação. O que a mente sabe do mundo (o cartão de identidade, as notas e o catá
 """
 
 from campsverso_mind.controller import LlmController
+from campsverso_mind.memory import REFLECT_TOOL, Clock, Memory, MemorySettings, clock_of
 from campsverso_mind.mind import Mind, ParamDef, ToolDef, load_tools
-from campsverso_mind.tools import INTENT, proposal_from, tool_specs
+from campsverso_mind.tools import INTENT, NOTE, proposal_from, tool_specs
 from campsverso_mind.window import Window, reason_text
 
 __all__ = [
     "INTENT",
+    "NOTE",
+    "REFLECT_TOOL",
+    "Clock",
     "LlmController",
+    "Memory",
+    "MemorySettings",
     "Mind",
     "ParamDef",
     "ToolDef",
     "Window",
+    "clock_of",
     "load_tools",
     "proposal_from",
     "reason_text",

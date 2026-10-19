@@ -9,6 +9,10 @@ from campsverso_mind.mind import ParamDef, ToolDef
 INTENT = "intent"
 INTENT_MAX = 500  # o contrato de cmd.action.propose limita o intent a 500 caracteres
 INTENT_DESCRIPTION = "O que você pretende com esta ação, em uma frase, em português."
+NOTE = "note"  # o caderno (ADR-0060): entra em toda ferramenta quando há memória
+NOTE_DESCRIPTION = (
+    'Algo que vale lembrar amanhã (uma observação, um número, uma dúvida), ou "" se nada.'
+)
 
 
 def describe(tool: ToolDef) -> str:
@@ -29,9 +33,13 @@ def _schema(param: ParamDef) -> dict[str, Any]:
     return schema
 
 
-def tool_spec(tool: ToolDef) -> dict[str, Any]:
+def tool_spec(tool: ToolDef, *, with_note: bool = False) -> dict[str, Any]:
     properties = {p.name: _schema(p) for p in tool.params}
     properties[INTENT] = {"type": "string", "description": INTENT_DESCRIPTION}
+    required = [*(p.name for p in tool.params), INTENT]
+    if with_note:
+        properties[NOTE] = {"type": "string", "description": NOTE_DESCRIPTION}
+        required.append(NOTE)
     return {
         "name": tool.name,
         "description": describe(tool),
@@ -39,14 +47,14 @@ def tool_spec(tool: ToolDef) -> dict[str, Any]:
         "input_schema": {
             "type": "object",
             "properties": properties,
-            "required": [*(p.name for p in tool.params), INTENT],
+            "required": required,
             "additionalProperties": False,
         },
     }
 
 
-def tool_specs(tools: Sequence[ToolDef]) -> list[dict[str, Any]]:
-    return [tool_spec(t) for t in tools]
+def tool_specs(tools: Sequence[ToolDef], *, with_note: bool = False) -> list[dict[str, Any]]:
+    return [tool_spec(t, with_note=with_note) for t in tools]
 
 
 def _fill(shape: Any, values: Mapping[str, Any]) -> Any:

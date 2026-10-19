@@ -8,9 +8,10 @@ falha da porta viram `wait`, com o motivo na intenção; na terceira falha segui
 from collections.abc import Mapping
 from typing import Any, cast
 
+from campsverso_mind.memory import Clock, Memory, clock_of
 from campsverso_mind.mind import Mind, ToolDef
-from campsverso_mind.tools import INTENT, intent_text, proposal_from, tool_specs
-from campsverso_mind.window import CACHE, Window
+from campsverso_mind.tools import INTENT, NOTE, intent_text, proposal_from, tool_specs
+from campsverso_mind.window import CACHE, Window, is_snapshot
 from campsverso_ports import Effort, ModelCallError, ModelPort, ModelRequest, Telemetry
 
 INSTRUCTIONS = """\
@@ -53,8 +54,10 @@ class LlmController:
         wait_ticks: int = 15,
         max_failures: int = 3,
         telemetry: Telemetry | None = None,
+        memory: Memory | None = None,
     ) -> None:
         self.mind = mind
+        self.memory = memory
         self._port = port
         self._controller_id = controller_id
         self._avatar = avatar_id
@@ -66,14 +69,16 @@ class LlmController:
         self._telemetry: Telemetry = telemetry if telemetry is not None else _Nobody()
         self.window = Window()
         self._tools: dict[str, ToolDef] = {t.name: t for t in mind.tools}
-        self._specs = tool_specs(mind.tools)
+        self._specs = tool_specs(mind.tools, with_note=memory is not None)
+        self._identity = f"{mind.card.strip()}\n\n{mind.notes.strip()}"
         self._system = [
             {
                 "type": "text",
-                "text": f"{mind.card.strip()}\n\n{mind.notes.strip()}\n\n{INSTRUCTIONS}",
+                "text": f"{self._identity}\n\n{INSTRUCTIONS}",
                 "cache_control": dict(CACHE),
             }
         ]
+        self.reflections = 0
         self.calls = 0  # chamadas respondidas
         self.failures = 0  # falhas seguidas
         self.no_tool = 0  # respostas sem ferramenta
@@ -104,8 +109,18 @@ class LlmController:
         )
 
     async def decide(self, delivery: Mapping[str, Any]) -> dict[str, Any] | None:
-        """A entrega entra na janela e o modelo é chamado; `None` quando a mente desistiu."""
-        self.window.observe(delivery)
+        """A entrega entra na janela (e na memória) e o modelo é chamado; `None` quando a mente
+        desistiu."""
+        clock = clock_of(delivery)
+        preface: str | None = None
+        if self.memory is not None:
+            self.memory.observe(delivery)
+            pending = self.memory.pending_day(clock)
+            if pending is not None and not self.gave_up:
+                await self._reflect(clock, pending)  # a noite passou sem dormir: reflete agora
+            if is_snapshot(delivery):
+                preface = self.memory.block(clock)
+        self.window.observe(delivery, preface=preface)
         if self.gave_up:
             return None
         try:
@@ -118,7 +133,7 @@ class LlmController:
             if self.failures >= self._max_failures:
                 self.gave_up = True
                 self._telemetry.error("mind.gave_up", failures=self.failures)
-            return self._wait(f"sem resposta do modelo ({error.kind})")
+            return self._remember(clock, self._wait(f"sem resposta do modelo ({error.kind})"))
         self.failures = 0
         self.calls += 1
         self.window.answered(response.content)
@@ -127,14 +142,56 @@ class LlmController:
             self.no_tool += 1
             self._telemetry.info("mind.no_tool", stop_reason=response.stop_reason)
             fallback = f"sem ação escolhida ({response.stop_reason})"
-            return self._wait(intent_text(response.text(), fallback))
+            return self._remember(clock, self._wait(intent_text(response.text(), fallback)))
         chosen = tool_uses[0]
         tool = self._tools.get(str(chosen.get("name")))
         if tool is None:
             self.no_tool += 1
             self._telemetry.warning("mind.unknown_tool", name=chosen.get("name"))
-            return self._wait(f"ferramenta desconhecida ({chosen.get('name')})")
-        return proposal_from(tool, cast(Mapping[str, Any], chosen.get("input") or {}))
+            return self._remember(
+                clock, self._wait(f"ferramenta desconhecida ({chosen.get('name')})")
+            )
+        given = cast(Mapping[str, Any], chosen.get("input") or {})
+        return self._remember(clock, proposal_from(tool, given), given.get(NOTE))
+
+    def _remember(
+        self, clock: Clock, proposal: dict[str, Any], note: object = None
+    ) -> dict[str, Any]:
+        if self.memory is not None:
+            self.memory.proposed(clock, proposal, note)
+        return proposal
+
+    async def after_proposal(self) -> None:
+        """Depois de a proposta sair: a reflexão da noite, se a mente acabou de propor dormir."""
+        if self.memory is None or self.memory.reflect_due is None or self.gave_up:
+            return
+        clock = self.memory.reflect_due
+        await self._reflect(clock, clock.day)
+
+    def drain_events(self) -> list[dict[str, Any]]:
+        """Os eventos de memória (anotações, reflexão, crenças) para quem publica."""
+        return [] if self.memory is None else self.memory.drain_events()
+
+    async def _reflect(self, clock: Clock, day: int) -> None:
+        assert self.memory is not None
+        memory = self.memory
+        if memory.port.has_reflection(day):
+            memory.reflect_due = None
+            return
+        request = memory.reflect_request(self._identity, clock, day, self._model)
+        try:
+            response = await self._port.complete(request)
+        except ModelCallError as error:
+            self._telemetry.warning("mind.reflection_failed", kind=error.kind, day=day)
+            memory.reflect_due = None
+            return
+        reflection = memory.apply_reflection(request, response, clock, day)
+        if reflection is None:
+            self._telemetry.warning("mind.reflection_no_tool", day=day)
+            memory.reflect_due = None
+            return
+        self.reflections += 1
+        self._telemetry.info("mind.reflected", day=day, beliefs=len(reflection.beliefs))
 
     def _wait(self, intent: str) -> dict[str, Any]:
         return {"action": "wait", "params": {"ticks": self._wait_ticks}, INTENT: intent}

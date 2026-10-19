@@ -102,7 +102,7 @@ class MemoryPort(Protocol):
     def has_reflection(self, day: int) -> bool: ...
 
     def salient(self, day: int, *, now_tick: int, limit: int) -> list[Episode]:
-        """Os episódios marcantes de um dia: importância vezes recência (a conta do memory stream)."""
+        """Os episódios marcantes de um dia: importância vezes recência (o memory stream)."""
         ...
 
     # ------------------------------------------------------------- refletir
