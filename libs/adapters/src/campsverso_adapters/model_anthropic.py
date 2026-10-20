@@ -42,6 +42,12 @@ class AnthropicModel:
         self._clock = clock
         self._timeout_seconds = timeout_seconds
 
+    async def aclose(self) -> None:
+        """Fecha o cliente HTTP enquanto o laço ainda existe. Quem roda várias corridas no mesmo
+        processo, cada uma no seu `asyncio.run` (a arena, ADR-0061), precisa disto: um cliente
+        recolhido pelo coletor de lixo depois tenta fechar o transporte num laço já fechado."""
+        await self._client.close()
+
     def timeout_for(self, request: ModelRequest) -> float:
         """O tempo limite cresce com o que se pede: um centésimo de segundo por token de saída
         (a reflexão com 8 mil tokens leva mais de 30 s; cada tentativa cortada é cobrada)."""

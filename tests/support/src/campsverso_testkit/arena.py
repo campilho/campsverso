@@ -69,9 +69,11 @@ async def run_spec(spec: Spec, days: int, out: Path) -> dict[str, Any]:
     log = out / "progresso.txt"
     clock = SystemWallClock()
     port: ModelPort | None = None
+    api: AnthropicModel | None = None
     notebook: MemoryPort | bool = False
     if spec.controller == "llm":
-        port = RecordingModel(AnthropicModel(clock=clock), out / "llm.jsonl", "record", clock=clock)
+        api = AnthropicModel(clock=clock)
+        port = RecordingModel(api, out / "llm.jsonl", "record", clock=clock)
         notebook = SqliteMemory(out / "memory.sqlite") if spec.memory else False
     pipeline = Pipeline(
         spec.seed,
@@ -104,6 +106,8 @@ async def run_spec(spec: Spec, days: int, out: Path) -> dict[str, Any]:
             aborted = day
             _say(f"{spec.name}: a mente desistiu no dia {day}; a corrida para aqui", log)
             break
+    if api is not None:
+        await api.aclose()  # antes de o laço desta corrida fechar
     report = compute(pipeline.envelopes)
     result: dict[str, Any] = {
         "spec": asdict(spec),

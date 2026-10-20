@@ -195,3 +195,14 @@ def test_o_tempo_limite_cresce_com_o_max_tokens() -> None:
     assert model.timeout_for(_request(max_tokens=512)) == 30.0
     assert model.timeout_for(_request(max_tokens=8192)) == 81.92
     assert model.timeout_for(_request(max_tokens=3000)) == 30.0
+
+
+async def test_fechar_o_cliente_e_idempotente() -> None:
+    """A arena fecha a porta ao fim de cada corrida (ADR-0061); fechar duas vezes não quebra."""
+
+    def handler(request: httpx2.Request) -> httpx2.Response:  # pragma: no cover - nunca chamado
+        raise AssertionError("não devia chamar a API")
+
+    model = AnthropicModel(_client(handler), clock=FakeWallClock())
+    await model.aclose()
+    await model.aclose()
