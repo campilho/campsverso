@@ -160,7 +160,7 @@ def test_compra_o_regador_grande_quando_sobra_e_sementes_do_estoque_do_dia() -> 
     upgrade = SCRIPT.decide(
         view(
             at=(1, 3),
-            mine={"moeda": 200},
+            mine={"moeda": 300},
             plots=plots,
             kiosk_open=True,
             tools=with_big,
