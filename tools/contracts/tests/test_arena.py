@@ -4,7 +4,13 @@ import json
 from pathlib import Path
 from typing import Any
 
-from campsverso_tools.arena import beliefs_at_end, east_signals, load_runs, main
+from campsverso_tools.arena import (
+    beliefs_at_end,
+    east_signals,
+    load_runs,
+    main,
+    notes_east_advantage,
+)
 
 
 def ev(tick: int, kind: str, /, **data: Any) -> dict[str, Any]:
@@ -88,6 +94,7 @@ def test_os_sinais_do_leste_vem_da_memoria() -> None:
     assert [s["kind"] for s in tracks["bel-0002"]["steps"]] == ["formada", "revisada"]
     assert tracks["bel-0002"]["confidence"] == 0.9
     assert tracks["bel-0002"]["statement"] == "Rabanete no leste amadurece em 2 dias."
+    assert tracks["bel-0002"]["first_statement"] == "Os canteiros do leste amadurecem em 2 dias."
     assert tracks["bel-0003"]["retracted_day"] == 3
     assert east["plantings"]["days_1_3"] == {"oeste": 1, "leste": 1, "east_fraction": 0.5}
     assert east["plantings"]["from_day_4"] == {"oeste": 0, "leste": 1, "east_fraction": 1.0}
@@ -108,6 +115,15 @@ def test_sem_memoria_so_o_comportamento_conta() -> None:
     assert east["discovered"] is False
     assert east["plantings"]["days_1_3"]["east_fraction"] is None
     assert east["plantings"]["from_day_4"]["east_fraction"] == 1.0
+
+
+def test_a_vantagem_tem_de_estar_no_trecho_que_fala_do_leste() -> None:
+    assert notes_east_advantage("O plot-e-01 parece crescer mais rápido.")
+    assert notes_east_advantage("Os canteiros do leste amadurecem em 2 dias; o manual diz 3.")
+    assert not notes_east_advantage(
+        "Plano: batata e abóbora no leste; rabanete para comida rápida."
+    )
+    assert not notes_east_advantage("Rabanete madura em 3 dias no leste.")
 
 
 def test_uma_mencao_sem_descoberta_nao_conta() -> None:
@@ -177,6 +193,7 @@ def test_o_relatorio_poe_as_corridas_lado_a_lado(tmp_path: Path) -> None:
     assert "| 4 | - | 1 / 1 |" in text  # o script sintético não tem fato no dia 4
     assert "| Veredito | só pelo comportamento | descobriu (bel-0002) |" in text
     assert "dia 1 formada 0,60 → dia 2 revisada 0,90" in text
+    assert 'Antes: "Os canteiros do leste amadurecem em 2 dias."' in text
     assert "dia 2 a 3, retirada" in text
     assert "## Moedas por dia" in text
     assert "| 3 | 120 | 100 |" in text  # o dia 2 não tem fato em nenhuma das duas: fica "-"

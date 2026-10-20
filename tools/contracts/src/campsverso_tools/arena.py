@@ -67,6 +67,16 @@ def _hour(envelope: Mapping[str, Any]) -> str:
     return f"{minutes // 60:02d}:{minutes % 60:02d}"
 
 
+SEGMENTS = re.compile(r"[.;:!?\n]")
+
+
+def notes_east_advantage(text: str) -> bool:
+    """Verdadeiro quando o trecho que fala do leste (entre pontos, dois-pontos ou ponto e vírgula)
+    também fala de tempo, de vantagem ou do rio. "Abóbora no leste; rabanete para comida rápida"
+    não conta: o "rápida" é do rabanete."""
+    return any(EAST.search(part) and DISCOVERY.search(part) for part in SEGMENTS.split(text))
+
+
 def _confidence(data: Mapping[str, Any]) -> float:
     value = data["confidence"]
     if isinstance(value, Mapping):
@@ -81,6 +91,7 @@ class BeliefTrack:
     belief_id: str
     statement: str
     first_day: int
+    first_statement: str = ""  # como a crença foi escrita quando falou do leste pela primeira vez
     steps: list[dict[str, Any]] = field(default_factory=list[dict[str, Any]])
     confidence: float = 0.0
     retracted_day: int | None = None
@@ -121,7 +132,7 @@ def east_signals(envelopes: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
                 note = {"day": day, "hour": _hour(envelope), "text": text}
                 if first_note is None:
                     first_note = note
-                if first_discovery_note is None and DISCOVERY.search(text):
+                if first_discovery_note is None and notes_east_advantage(text):
                     first_discovery_note = note
         elif kind in (FORMED, UPDATED):
             belief_id, statement = str(data["belief_id"]), str(data["statement"])
@@ -129,7 +140,7 @@ def east_signals(envelopes: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
             if track is None:
                 if not EAST.search(statement):
                     continue
-                track = tracks[belief_id] = BeliefTrack(belief_id, statement, day)
+                track = tracks[belief_id] = BeliefTrack(belief_id, statement, day, statement)
             confidence = _confidence(data)
             track.statement, track.confidence = statement, confidence
             track.steps.append(
@@ -157,7 +168,7 @@ def east_signals(envelopes: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
             bucket = "late" if day >= FROM_DAY else "early"
             (plantings if data["action"] == "plant" else harvests)[bucket][group] += 1
     active = [t for t in tracks.values() if t.retracted_day is None]
-    discovery = [t for t in active if t.confidence >= 0.7 and DISCOVERY.search(t.statement)]
+    discovery = [t for t in active if t.confidence >= 0.7 and notes_east_advantage(t.statement)]
     best = max(discovery, key=lambda t: t.confidence, default=None)
     return {
         "first_note": first_note,
@@ -418,7 +429,9 @@ def _trajectory(track: Mapping[str, Any], last_day: int) -> str:
         span = f"dia {track['first_day']} a {track['retracted_day']}, retirada"
     else:
         span = f"dia {track['first_day']} a {last_day}, confiança {_n(track['confidence'], 2)}"
-    return f'- **{track["belief_id"]}** ({span}): "{track["statement"]}". {steps}.'
+    first = str(track.get("first_statement") or track["statement"])
+    before = f' Antes: "{first}".' if first != track["statement"] else ""
+    return f'- **{track["belief_id"]}** ({span}): "{track["statement"]}".{before} {steps}.'
 
 
 def _by_day(run: Run) -> dict[int, Any]:
