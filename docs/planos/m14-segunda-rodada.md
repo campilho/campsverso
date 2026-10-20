@@ -1,6 +1,6 @@
 # Plano do M14 — a segunda rodada da arena, na Fazenda Boa Vista
 
-*Proposto em 20/out/2026, depois do fechamento do M13. Aprovado em: (pendente). ADR-0063 registra as decisões.*
+*Proposto em 20/out/2026, depois do fechamento do M13. Aprovado em 20/out/2026 (ADR-0063), com a decisão 1 em aberto quanto aos dias de Sonnet e Opus: a lista nasce com os dois a 30 dias e tetos, e o número de dias se confirma na hora de rodar.*
 
 ## A pergunta
 
@@ -63,6 +63,8 @@ A decisão 14 do M13 ficou para cá por decisão do usuário: sprites LPC para o
 Estimativa: duas sessões de trabalho e uma tarde de máquina. Custo de API: uns US$ 26, com teto por corrida.
 
 ## 7. Decisões
+
+Aprovadas em 20/out/2026 (ADR-0063), todas como recomendado; a 1 com a pergunta do usuário sobre os 30 dias de Sonnet e Opus (uns US$ 60 na rodada, contra uns US$ 26 com 14 e 10 dias), a decidir na hora de rodar com os tetos como seguro; a 8 segue a 1.
 
 1. **As corridas da §1** (script 2, Haiku com memória em quatro seeds, o controle sem a regra, Sonnet 14 dias, Opus 10 dias), todas no `farm-boavista-01` com o mesmo manual, catálogo e memória. *Recomendação: sim; é a ADR-0062 mais o controle, que custa US$ 1 e diz quanto da diferença é a regra.*
 2. **Dias e teto por corrida** (`Spec.days`, `Spec.limits`), com Sonnet a US$ 1,50 por dia e 15 no total e Opus a US$ 2,50 e 15. *Recomendação: sim; o teto é o seguro contra uma saída mais longa do que a estimada, e a corrida que bate nele vale até onde foi.*
