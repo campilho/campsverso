@@ -5,6 +5,7 @@ ordem de id (princípio 4).
 """
 
 import math
+import re
 from collections.abc import Generator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -32,6 +33,7 @@ from campsverso_kernel.rng import RngStreams, SplitMix64
 from campsverso_kernel.rules import Contribution, RulesEngine
 
 SCALE = 120  # unidades por ponto de necessidade (ADR-0038)
+ENTITY_ID = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")  # o `entity_id` dos contratos
 MAX_UNITS = 100 * SCALE
 
 
@@ -300,6 +302,8 @@ class World:
         """WorldOps: uma entidade nova em tempo de execução (ADR-0062)."""
         if entity.entity_id in self.entity_map:
             raise WorldRuleError(f"entidade já existe: {entity.entity_id}")
+        if not ENTITY_ID.fullmatch(entity.entity_id):
+            raise WorldRuleError(f"id de entidade fora do contrato: {entity.entity_id!r}")
         if entity.kind not in self.definition.kinds:
             raise WorldRuleError(f"tipo indefinido: {entity.kind}")
         if entity.container_id is not None and entity.container_id not in self.entity_map:

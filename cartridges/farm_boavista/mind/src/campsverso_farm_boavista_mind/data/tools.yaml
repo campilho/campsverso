@@ -114,7 +114,7 @@ tools:
   - name: deposit
     description: >-
       Guardar no baú ao seu lado itens do seu inventário, ou uma ferramenta pelo id dela (ex.:
-      plow-1, watering_can_large-1); o baú guarda bem.
+      plow-1, watering-can-large-1); o baú guarda bem.
     duration: 1
     energy: 0
     params:

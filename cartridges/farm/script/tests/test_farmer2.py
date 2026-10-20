@@ -134,32 +134,43 @@ def test_vende_so_o_que_passa_de_dois_dias_de_comida_e_so_a_bom_preco() -> None:
 
 
 def test_compra_o_regador_grande_quando_sobra_e_sementes_do_estoque_do_dia() -> None:
-    plots = [plot("plot-01", 1, 3), plot("plot-02", 2, 3)] + [
+    planted = [
         plot(f"plot-{i:02d}", i, 3, crop="rabanete", stage="semente", watered_today=True)
         for i in range(3, 17)
     ]
-    rich = SCRIPT.decide(view(at=(1, 3), mine={"moeda": 200}, plots=plots, kiosk_open=True))
-    assert rich["params"]["item"] == "watering_can_large"
+    plots = [plot("plot-01", 1, 3), plot("plot-02", 2, 3), *planted]  # 14 com rabanete, 2 vazios
+    rich = SCRIPT.decide(view(at=(1, 3), mine={"moeda": 400}, plots=plots, kiosk_open=True))
+    assert rich["params"]["item"] == "watering_can_large"  # 150 + 10 + 160 de sementes: sobra
     with_big = [
         held("spade", "spade"),
         held("watering-can", "watering_can", charges=10, capacity=10),
-        held("watering_can_large-1", "watering_can_large", charges=25, capacity=25),
+        held("watering-can-large-1", "watering_can-large", charges=25, capacity=25),
     ]
-    seeds = SCRIPT.decide(
+    stock = "semente_rabanete, semente_batata, adubo"
+    poor = SCRIPT.decide(
+        view(
+            at=(1, 3), mine={"moeda": 60}, plots=plots, kiosk_open=True, tools=with_big, stock=stock
+        )
+    )
+    assert poor["action"] == "buy"
+    assert (poor["params"]["item"], poor["params"]["qty"]) == (
+        "semente_rabanete",
+        2,
+    )  # pobre: só a base
+    upgrade = SCRIPT.decide(
         view(
             at=(1, 3),
             mine={"moeda": 200},
             plots=plots,
             kiosk_open=True,
             tools=with_big,
-            stock="semente_rabanete, semente_batata, adubo",
+            stock=stock,
         )
     )
-    assert seeds["action"] == "buy"
+    assert upgrade["action"] == "buy"
     assert (
-        seeds["params"]["item"] == "semente_batata"
-    )  # tomate e abóbora não estão no estoque de hoje
-    assert seeds["params"]["qty"] == 2
+        upgrade["params"]["item"] == "semente_batata"
+    )  # com capital e a base plantada, a melhor conta do dia
     closed = SCRIPT.decide(
         view(at=(1, 3), mine={"moeda": 200}, plots=plots, kiosk_open=False, tools=with_big)
     )
@@ -193,3 +204,18 @@ def test_guarda_no_bau_a_comida_que_vence_amanha() -> None:
 def test_dorme_na_cama_a_noite() -> None:
     proposal = SCRIPT.decide(view(at=(1, 0), time="21:40"))
     assert proposal == {"action": "sleep", "params": {"target": "bed"}, "intent": "dormir na cama"}
+
+
+def test_com_o_regador_grande_na_mao_guarda_o_pequeno() -> None:
+    plots = [
+        plot(f"plot-{i:02d}", i, 3, crop="rabanete", stage="semente", watered_today=True)
+        for i in range(16)
+    ]
+    both = [
+        held("spade", "spade"),
+        held("watering-can", "watering_can", charges=10, capacity=10),
+        held("watering-can-large-1", "watering_can_large", charges=25, capacity=25),
+    ]
+    proposal = SCRIPT.decide(view(at=(7, 1), plots=plots, tools=both))
+    assert proposal["action"] == "deposit"
+    assert proposal["params"] == {"target": "chest", "item": "watering-can", "qty": 1}

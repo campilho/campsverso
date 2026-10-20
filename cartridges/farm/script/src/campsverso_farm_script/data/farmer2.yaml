@@ -40,7 +40,14 @@ crops:  # a conta visível: (venda - semente) / dias; o script planta a melhor q
 
 digging: {plots: 16, near: well, radius: 2}  # cava 16 canteiros na grama a até 2 tiles do poço
 sell_floor: 0.8  # vende enquanto o preço do dia for pelo menos 80% da tabela
-coins_reserve: 30
+coins_reserve: 10
+# A base de comida: enquanto é pobre, todos os canteiros ficam com a cultura barata que se come e
+# amadurece rápido; com capital, metade vai para a melhor conta. Sem isso, o script gasta o capital
+# em tomate, come tudo e fica sem semente nem moeda (o soak de 20/out mostrou).
+food_crop: rabanete
+food_plots: 10  # com capital
+upgrade_from: 250  # moedas a partir das quais a melhor conta entra; antes, só a base
+big_can_after_seeds: true  # o regador grande só quando sobra depois das sementes de todos os canteiros
 big_can: {kind: watering_can_large, item: watering_can_large, price: 150}
 small_can: watering_can
 

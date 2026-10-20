@@ -274,11 +274,22 @@ class _Turn:
         return sum(float(foods[f]["hunger"]) * stock.get(f, 0) for f in foods)
 
     def store(self) -> Proposal | None:
-        """Comida que vence amanhã vai para o baú (o manual diz que ele guarda bem), menos uma
-        unidade, para comer."""
+        """Com o regador grande na mão, o pequeno vai para o baú (pesa e não serve); e comida que
+        vence amanhã vai para o baú (o manual diz que ele guarda bem), menos uma unidade, para
+        comer."""
         chest = self.nearest(self.of_kind("chest"))
         if chest is None:
             return None
+        small = self.held(str(self.c["small_can"]))
+        if small is not None and self.held(str(self.c["big_can"]["kind"])) is not None:
+            return self.at(
+                chest,
+                "deposit",
+                "guardar o regador pequeno",
+                target=chest["entity_id"],
+                item=small["entity_id"],
+                qty=1,
+            )
         foods = cast(Mapping[str, Mapping[str, int]], self.c["foods"])
         mine = self.stock.get(self.me_id, {})
         for container in self.view["containers"]:
@@ -332,12 +343,23 @@ class _Turn:
         return None
 
     def buy(self) -> Proposal | None:
+        """Enquanto é pobre, a cultura barata que se come para todos os canteiros; com capital,
+        metade fica com ela e o resto vai para a melhor conta visível que o dinheiro permite,
+        guardando uma reserva. O regador grande só quando sobra depois de semear a fazenda."""
         kiosk = self.nearest(self.of_kind("kiosk"))
         if kiosk is None or not kiosk["attributes"].get("open"):
             return None
         coins, reserve = self.mine("moeda"), int(self.c["coins_reserve"])
+        crops = cast(Mapping[str, Mapping[str, Any]], self.c["crops"])
+        food = str(self.c["food_crop"])
+        food_seed, food_price = str(crops[food]["seed"]), int(crops[food]["price"])
+        all_plots = len(self.of_kind("plot"))
         big = cast(Mapping[str, Any], self.c["big_can"])
-        if self.held(str(big["kind"])) is None and coins >= int(big["price"]) + reserve:
+        seeds_for_all = all_plots * food_price  # o que custa semear a fazenda inteira
+        if (
+            self.held(str(big["kind"])) is None
+            and coins >= int(big["price"]) + reserve + seeds_for_all
+        ):
             return self.at(
                 kiosk,
                 "buy",
@@ -347,13 +369,27 @@ class _Turn:
                 qty=1,
             )
         empty = len(self.plots(None))
-        crops = cast(Mapping[str, Mapping[str, Any]], self.c["crops"])
-        seeds_held = sum(self.mine(str(c["seed"])) for c in crops.values())
-        missing = empty - seeds_held
-        if missing <= 0:
-            return None
         stock = str(kiosk["attributes"].get("estoque_hoje") or "")
         available = stock.split(", ") if stock else []
+        seeds_held = {name: self.mine(str(c["seed"])) for name, c in crops.items()}
+        missing = empty - sum(seeds_held.values())
+        if missing <= 0:
+            return None
+        poor = coins < int(self.c["upgrade_from"])
+        food_plots = all_plots if poor else int(self.c["food_plots"])
+        planted_food = sum(1 for p in self.of_kind("plot") if p["attributes"].get("crop") == food)
+        food_missing = min(missing, food_plots - planted_food - seeds_held[food])
+        if food_missing > 0 and (not available or food_seed in available):
+            qty = min(food_missing, (coins - reserve) // food_price)
+            if qty >= 1:
+                return self.at(
+                    kiosk,
+                    "buy",
+                    f"comprar {qty} {food_seed}",
+                    target=kiosk["entity_id"],
+                    item=food_seed,
+                    qty=qty,
+                )
         for crop in self._best_crops():
             seed, price = str(crops[crop]["seed"]), int(crops[crop]["price"])
             if available and seed not in available:

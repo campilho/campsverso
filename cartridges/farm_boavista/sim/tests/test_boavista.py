@@ -168,18 +168,18 @@ def test_ferramentas_pesam_se_excluem_e_vao_para_o_bau() -> None:
     assert world.weight("camps") == 8.0
     farmer.walk(16, 14)
     facts = farmer.do("buy", item="watering_can_large", qty=1)
-    assert of_type(facts, "world.entity.spawned")[0]["entity_id"] == "watering_can_large-1"
-    assert world.entity("watering_can_large-1").attributes["charges"] == 25
+    assert of_type(facts, "world.entity.spawned")[0]["entity_id"] == "watering-can-large-1"
+    assert world.entity("watering-can-large-1").attributes["charges"] == 25
     assert world.weight("camps") == 17.0
     assert dict(world.items("camps"))["moeda"] == 500 - 300 - 150
     # Arado e regador grande não cabem juntos (21 > 20): para pegar um, guarda-se o outro.
     farmer.walk(7, 5)
     (rejected,) = of_type(farmer.do("withdraw", target="chest", item="plow-1"), "action.rejected")
     assert rejected["reason"] == "too_heavy"
-    farmer.do("deposit", target="chest", item="watering_can_large-1")
+    farmer.do("deposit", target="chest", item="watering-can-large-1")
     assert of_type(farmer.do("withdraw", target="chest", item="plow-1"), "world.entity.stored")
     assert world.weight("camps") == 20.0
-    assert world.entity("watering_can_large-1").container_id == "chest"
+    assert world.entity("watering-can-large-1").container_id == "chest"
 
 
 def test_o_arado_acelera_plantar_e_cavar() -> None:

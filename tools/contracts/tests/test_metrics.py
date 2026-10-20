@@ -105,3 +105,24 @@ def test_metricas_do_modelo_por_dia() -> None:
     assert llm["cost_usd_per_day"] == 0.0025
     assert llm["latency_ms_median"] == 1001
     assert "llm" not in compute(envelopes[:2]).totals()  # o script não tem modelo
+
+
+def test_o_grupo_do_canteiro_cavado_vem_do_atributo() -> None:
+    """ADR-0062: na Boa Vista os canteiros nascem em tempo de execução com `group` no atributo."""
+    envelopes: list[dict[str, Any]] = [
+        ev(0, 0, "world.session.started.v1", tick_seconds=60),
+        ev(
+            1,
+            10,
+            "world.entity.spawned.v1",
+            entity_id="plot-01",
+            kind="plot",
+            attributes={"group": "leste"},
+        ),
+        ev(2, 20, "action.completed.v1", action="plant", params={"target": "plot-01"}),
+        ev(3, 30, "action.completed.v1", action="harvest", params={"target": "plot-01"}),
+        ev(4, 40, "action.completed.v1", action="harvest", params={"target": "plot-x-09"}),
+    ]
+    day = compute(envelopes).days[0]
+    assert day.plantings == {"leste": 1}
+    assert day.harvests == {"leste": 1, "outro": 1}

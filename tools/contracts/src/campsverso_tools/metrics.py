@@ -18,7 +18,7 @@ from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 # Grupos de canteiros da Fazenda do Camps (bíblia §4): o leste fica perto do rio (R-001).
 GROUPS = {"plot-w-": "oeste", "plot-e-": "leste"}
@@ -33,7 +33,11 @@ def read_archive(folder: Path) -> Iterator[dict[str, Any]]:
             yield json.loads(line)
 
 
-def _group(plot: str) -> str:
+def _group(plot: str, groups: Mapping[str, str] | None = None) -> str:
+    """O grupo de um canteiro: o atributo `group` com que ele nasceu (a Boa Vista cava canteiros
+    em tempo de execução, ADR-0062) ou, na fazenda 1, o prefixo do id."""
+    if groups and plot in groups:
+        return groups[plot]
     return next((name for prefix, name in GROUPS.items() if plot.startswith(prefix)), "outro")
 
 
@@ -136,10 +140,16 @@ def compute(envelopes: Iterable[Mapping[str, Any]], avatar: str = AVATAR) -> Rep
     first_time: dict[int, float] = {}
     last_time: dict[int, float] = {}
     coins, last_tick = 0, 0
+    groups: dict[str, str] = {}  # canteiro -> grupo, pelo atributo com que nasceu
     for envelope in kernel:
         kind, data = str(envelope["type"]), envelope["data"]
         if kind == "campsverso.world.session.started.v1":
             ticks_per_day = 86400 // int(data["tick_seconds"])
+        elif kind == "campsverso.world.entity.spawned.v1" and data.get("kind") == "plot":
+            attributes = cast(Mapping[str, Any], data.get("attributes") or {})
+            group = attributes.get("group")
+            if isinstance(group, str):
+                groups[str(data["entity_id"])] = group
         last_tick = max(last_tick, int(envelope["tick"]))
         day = int(envelope["tick"]) // ticks_per_day + 1
         metrics = days.setdefault(day, DayMetrics(day, coins_end=coins))
@@ -147,11 +157,11 @@ def compute(envelopes: Iterable[Mapping[str, Any]], avatar: str = AVATAR) -> Rep
         first_time.setdefault(day, stamp)
         last_time[day] = stamp
         if kind == "campsverso.action.completed.v1" and data["action"] in ("harvest", "plant"):
-            group = _group(str(data["params"]["target"]))
+            group = _group(str(data["params"]["target"]), groups)
             counter = metrics.harvests if data["action"] == "harvest" else metrics.plantings
             counter[group] = counter.get(group, 0) + 1
         elif kind == "campsverso.farm.crop.matured.v1":
-            metrics.matured_days.setdefault(_group(str(data["plot_id"])), []).append(
+            metrics.matured_days.setdefault(_group(str(data["plot_id"]), groups), []).append(
                 int(data["days"])
             )
         elif kind == "campsverso.farm.crop.withered.v1":

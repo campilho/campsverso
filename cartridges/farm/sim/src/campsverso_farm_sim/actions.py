@@ -443,7 +443,8 @@ class Buy(FarmAction):
         if tool is not None:
             ops.consume_item("moeda", int(tool["price"]), ctx.avatar_id, "buy_payment")
             number = len(ctx.view.entities(name)) + 1
-            ops.spawn(SpawnDef(f"{name}-{number}", name, container_id=ctx.avatar_id))
+            entity_id = f"{name.replace('_', '-')}-{number}"  # ids não levam sublinhado
+            ops.spawn(SpawnDef(entity_id, name, container_id=ctx.avatar_id))
             return
         price = int(section(ctx.view, "items", name)["price"])
         ops.consume_item("moeda", price * qty, ctx.avatar_id, "buy_payment")
