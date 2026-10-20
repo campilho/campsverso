@@ -547,3 +547,85 @@ def test_o_caderno_do_avatar_vem_dos_eventos_de_memoria() -> None:
     assert "plan" not in book  # a reflexão sem plano apaga o de ontem
     again = Projection(json.loads(json.dumps(p.export())))
     assert again.memory == p.memory
+
+
+def test_lotes_com_validade_seguem_os_itens() -> None:
+    """ADR-0062: os eventos de item que trazem `expires_day` formam lotes; a validade na foto é
+    a do lote mais antigo, contada do dia corrente; sem `expires_day`, nada de lote."""
+    p = started()
+    p.apply("world", ev(2, 0, "world.clock.phase_changed.v1", phase="amanhecer", day=1))
+    p.apply(
+        "world",
+        ev(
+            3,
+            10,
+            "world.item.created.v1",
+            item="rabanete",
+            qty=2,
+            container_id="camps",
+            reason="harvest",
+            expires_day=5,
+        ),
+    )
+    p.apply(
+        "world",
+        ev(
+            4,
+            11,
+            "world.item.created.v1",
+            item="rabanete",
+            qty=1,
+            container_id="camps",
+            reason="harvest",
+            expires_day=3,
+        ),
+    )
+    p.apply(
+        "world",
+        ev(
+            5,
+            12,
+            "world.item.created.v1",
+            item="moeda",
+            qty=3,
+            container_id="camps",
+            reason="payment",
+        ),
+    )
+    assert p.containers["camps"] == {"rabanete": 3, "moeda": 3}
+    assert p.lots == {"camps": {"rabanete": {"5": 2, "3": 1}}}
+    assert (p.expires_in("camps", "rabanete"), p.expires_in("camps", "moeda")) == (2, None)
+    assert p.stack("camps", "rabanete", 3) == {"item": "rabanete", "qty": 3, "expires_in_days": 2}
+    assert p.stack("camps", "moeda", 3) == {"item": "moeda", "qty": 3}
+    p.apply(
+        "world",
+        ev(
+            6,
+            20,
+            "world.item.transferred.v1",
+            item="rabanete",
+            qty=1,
+            from_container="camps",
+            to_container="chest",
+            reason="deposit",
+            expires_day=3,
+        ),
+    )
+    p.apply(
+        "world",
+        ev(
+            7,
+            30,
+            "world.item.consumed.v1",
+            item="rabanete",
+            qty=1,
+            container_id="camps",
+            reason="eat",
+            expires_day=5,
+        ),
+    )
+    assert p.lots == {"camps": {"rabanete": {"5": 1}}, "chest": {"rabanete": {"3": 1}}}
+    p.apply("world", ev(8, 1440, "world.clock.phase_changed.v1", phase="amanhecer", day=2))
+    assert (p.expires_in("camps", "rabanete"), p.expires_in("chest", "rabanete")) == (3, 1)
+    again = Projection(json.loads(json.dumps(p.export())))
+    assert again.lots == p.lots

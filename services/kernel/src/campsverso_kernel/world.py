@@ -20,6 +20,7 @@ from campsverso_cartridge_api import (
     Position,
     Scalar,
     SleepCause,
+    SpawnDef,
     ThresholdDef,
 )
 from campsverso_contracts import CONTRACT_TYPES
@@ -105,6 +106,8 @@ class Avatar:
     sleep_rates: dict[str, int] = field(default_factory=dict[str, int])  # unidades por tick
     pending: list[str] = field(default_factory=list[str])
     awaiting: bool = False  # pediu decisão e o controlador ainda não respondeu (lockstep)
+    # Modificadores de necessidade (ADR-0062): {need, factor, until_tick, label}, por ordem.
+    modifiers: list[dict[str, Any]] = field(default_factory=list[dict[str, Any]])
 
     @property
     def idle(self) -> bool:
@@ -142,6 +145,9 @@ class World:
         self.tick = 0
         self.entity_map: dict[str, Entity] = {}
         self.containers: dict[str, dict[str, int]] = {}
+        # Lotes dos itens com validade (ADR-0062): contêiner -> item -> [[dia_de_origem, qty]...],
+        # do mais velho ao mais novo; as contagens continuam em `containers`.
+        self.lots: dict[str, dict[str, list[list[int]]]] = {}
         self.needs: dict[str, dict[str, int]] = {}
         self.reported_needs: dict[str, dict[str, int]] = {}
         self.avatar_map: dict[str, Avatar] = {}
@@ -171,12 +177,67 @@ class World:
             for need in self.definition.needs.values()
         }
 
-    def rate(self, avatar_id: str, need: str) -> int:
-        """Unidades por tick agora: o sono em curso pode trocar a taxa `asleep` (ADR-0041)."""
+    def base_rate(self, avatar_id: str, need: str) -> int:
+        """Unidades por tick sem modificadores: o sono em curso pode trocar a taxa `asleep`
+        (ADR-0041)."""
         avatar = self.avatar_map[avatar_id]
         if avatar.asleep and need in avatar.sleep_rates:
             return avatar.sleep_rates[need]
         return self.rates[need].get("asleep" if avatar.asleep else "awake", 0)
+
+    def rate(self, avatar_id: str, need: str, at_tick: int | None = None) -> int:
+        """Unidades por tick no tick dado (o atual, por padrão), com os modificadores ativos
+        (ADR-0062). O produto tem de dar unidades inteiras: com 120 unidades por ponto, 3 por hora
+        são 6 por tick, e um fator 0,5 dá 3."""
+        base = self.base_rate(avatar_id, need)
+        factor = self._factor(avatar_id, need, self.tick if at_tick is None else at_tick)
+        if factor == 1.0 or base == 0:
+            return base
+        exact = base * factor
+        if abs(exact - round(exact)) > 1e-9:
+            raise WorldRuleError(
+                f"modificador {factor} de {need} não dá unidades inteiras por tick"
+            )
+        return round(exact)
+
+    def _factor(self, avatar_id: str, need: str, tick: int) -> float:
+        factor = 1.0
+        for modifier in self.avatar_map[avatar_id].modifiers:
+            if modifier["need"] == need and tick < int(modifier["until_tick"]):
+                factor *= float(modifier["factor"])
+        return factor
+
+    def add_need_modifier(
+        self, avatar_id: str, need: str, factor: float, ticks: int, label: str
+    ) -> None:
+        if need not in self.needs[avatar_id]:
+            raise WorldRuleError(f"necessidade indefinida: {need}")
+        if ticks < 1 or factor < 0:
+            raise WorldRuleError(
+                f"modificador inválido de {need}: fator {factor} por {ticks} ticks"
+            )
+        avatar = self.avatar_map[avatar_id]
+        until = self.tick + ticks
+        avatar.modifiers = [m for m in avatar.modifiers if m["label"] != label]
+        avatar.modifiers.append(
+            {"need": need, "factor": float(factor), "until_tick": until, "label": label}
+        )
+        self.rate(avatar_id, need)  # confere já que o produto dá unidades inteiras
+        self.set_attributes(
+            avatar_id, visible={label: self.calendar.simtime(until).strftime("%H:%M")}
+        )
+
+    def modifier_expiries(self) -> list[int]:
+        """Os ticks em que algum modificador vence: o salto do modo máximo para neles."""
+        return sorted({int(m["until_tick"]) for a in self.avatar_map.values() for m in a.modifiers})
+
+    def _expire_modifiers(self, avatar_id: str, tick: int) -> None:
+        avatar = self.avatar_map[avatar_id]
+        expired = [m for m in avatar.modifiers if int(m["until_tick"]) <= tick]
+        if not expired:
+            return
+        avatar.modifiers = [m for m in avatar.modifiers if int(m["until_tick"]) > tick]
+        self.set_attributes(avatar_id, visible={str(m["label"]): None for m in expired})
 
     def spawn_all(self) -> None:
         """Cria entidades, itens iniciais, necessidades e avatares, publicando os fatos."""
@@ -184,35 +245,8 @@ class World:
             self.definition.spawns.values(), key=lambda s: (s.position is None, s.entity_id)
         )
         for spawn in spawns:
-            kind = self.definition.kinds[spawn.kind]
-            entity = Entity(
-                entity_id=spawn.entity_id,
-                kind=spawn.kind,
-                position=spawn.position,
-                container_id=spawn.container_id,
-                blocking=spawn.blocking or kind.blocking,
-                display_name=spawn.display_name,
-                attributes={**kind.attributes, **spawn.attributes},
-                hidden={**kind.hidden, **spawn.hidden},
-            )
-            self.entity_map[entity.entity_id] = entity
-            data: dict[str, Any] = {
-                "entity_id": entity.entity_id,
-                "kind": entity.kind,
-                "blocking": entity.blocking,
-            }
-            if entity.position is not None:
-                data["position"] = position_data(entity.position)
-            if entity.container_id is not None:
-                data["container_id"] = entity.container_id
-            if entity.display_name is not None:
-                data["display_name"] = entity.display_name
-            if entity.attributes:
-                data["attributes"] = dict(entity.attributes)
-            self.emit_fact("campsverso.world.entity.spawned.v1", data)
-        self.blocked = frozenset(
-            e.position for e in self.entity_map.values() if e.blocking and e.position is not None
-        )
+            self._spawn_entity(spawn)
+        self._reblock()
         for container, item, qty in sorted(self.definition.initial_items):
             self.create_item(item, qty, container, "initial")
         for avatar in self.definition.avatars.values():
@@ -222,6 +256,57 @@ class World:
             units = {n.need: to_units(n.initial) for n in self.definition.needs.values()}
             self.needs[avatar.entity_id] = dict(sorted(units.items()))
             self.reported_needs[avatar.entity_id] = dict(sorted(units.items()))
+
+    def _spawn_entity(self, spawn: SpawnDef) -> Entity:
+        """Cria a entidade com os padrões do tipo e publica `world.entity.spawned`. Um tipo com
+        capacidade mostra `capacity` como atributo visível (ADR-0062)."""
+        kind = self.definition.kinds[spawn.kind]
+        attributes: dict[str, Scalar] = {**kind.attributes, **spawn.attributes}
+        if kind.capacity is not None:
+            attributes.setdefault("capacity", kind.capacity)
+        entity = Entity(
+            entity_id=spawn.entity_id,
+            kind=spawn.kind,
+            position=spawn.position,
+            container_id=spawn.container_id,
+            blocking=spawn.blocking or kind.blocking,
+            display_name=spawn.display_name,
+            attributes=attributes,
+            hidden={**kind.hidden, **spawn.hidden},
+        )
+        self.entity_map[entity.entity_id] = entity
+        data: dict[str, Any] = {
+            "entity_id": entity.entity_id,
+            "kind": entity.kind,
+            "blocking": entity.blocking,
+        }
+        if entity.position is not None:
+            data["position"] = position_data(entity.position)
+        if entity.container_id is not None:
+            data["container_id"] = entity.container_id
+        if entity.display_name is not None:
+            data["display_name"] = entity.display_name
+        if entity.attributes:
+            data["attributes"] = dict(entity.attributes)
+        self.emit_fact("campsverso.world.entity.spawned.v1", self._with_action(data))
+        return entity
+
+    def _reblock(self) -> None:
+        self.blocked = frozenset(
+            e.position for e in self.entity_map.values() if e.blocking and e.position is not None
+        )
+
+    def spawn(self, entity: SpawnDef) -> None:
+        """WorldOps: uma entidade nova em tempo de execução (ADR-0062)."""
+        if entity.entity_id in self.entity_map:
+            raise WorldRuleError(f"entidade já existe: {entity.entity_id}")
+        if entity.kind not in self.definition.kinds:
+            raise WorldRuleError(f"tipo indefinido: {entity.kind}")
+        if entity.container_id is not None and entity.container_id not in self.entity_map:
+            raise WorldRuleError(f"contêiner inexistente: {entity.container_id}")
+        created = self._spawn_entity(entity)
+        if created.blocking and created.position is not None:
+            self._reblock()
 
     # ------------------------------------------------------------- snapshot (M2)
 
@@ -236,6 +321,10 @@ class World:
             "tick": self.tick,
             "entities": [_entity_data(e) for e in self.entity_map.values()],
             "containers": {c: dict(stock) for c, stock in self.containers.items()},
+            "lots": {
+                c: {item: [list(lot) for lot in lots] for item, lots in by_item.items()}
+                for c, by_item in self.lots.items()
+            },
             "needs": {a: dict(units) for a, units in self.needs.items()},
             "reported_needs": {a: dict(units) for a, units in self.reported_needs.items()},
             "avatars": [_avatar_data(a) for a in self.avatar_map.values()],
@@ -263,6 +352,12 @@ class World:
             e["entity_id"]: _entity_from(e) for e in cast(list[dict[str, Any]], state["entities"])
         }
         self.containers = {c: dict(stock) for c, stock in state["containers"].items()}
+        self.lots = {
+            str(c): {
+                str(item): [[int(d), int(q)] for d, q in lots] for item, lots in by_item.items()
+            }
+            for c, by_item in cast(Mapping[str, Any], state.get("lots") or {}).items()
+        }
         self.needs = {a: dict(units) for a, units in state["needs"].items()}
         self.reported_needs = {a: dict(units) for a, units in state["reported_needs"].items()}
         self.avatar_map = {
@@ -422,7 +517,79 @@ class World:
         if container_id not in self.entity_map:
             raise WorldRuleError(f"contêiner inexistente: {container_id}")
 
-    def _take(self, item: str, qty: int, container_id: str) -> None:
+    # --- peso e capacidade (ADR-0062)
+
+    def weight(self, container_id: str) -> float:
+        stock = self.containers.get(container_id, {})
+        return round(
+            sum(qty * float(self.definition.items[item].weight) for item, qty in stock.items()), 3
+        )
+
+    def capacity(self, container_id: str) -> float | None:
+        entity = self.entity_map.get(container_id)
+        if entity is None:
+            return None
+        return self.definition.kinds[entity.kind].capacity
+
+    def fits(self, item: str, qty: int, container_id: str) -> bool:
+        capacity = self.capacity(container_id)
+        if capacity is None:
+            return True
+        extra = qty * float(self.definition.items[item].weight)
+        return self.weight(container_id) + extra <= capacity + 1e-9
+
+    def _ensure_fits(self, item: str, qty: int, container_id: str) -> None:
+        if not self.fits(item, qty, container_id):
+            raise WorldRuleError(
+                f"{container_id} não aguenta {qty} {item} (too_heavy): a ação devia ter recusado"
+            )
+
+    def _weigh(self, container_id: str) -> None:
+        """Quem tem capacidade mostra o peso que carrega como atributo visível."""
+        if self.capacity(container_id) is not None:
+            self.set_attributes(
+                container_id, visible={"weight": round(self.weight(container_id), 1)}
+            )
+
+    # --- lotes e validade (ADR-0062)
+
+    def _shelf_life(self, item: str) -> int | None:
+        return self.definition.items[item].shelf_life_days
+
+    def _add_lot(self, container_id: str, item: str, born_day: int, qty: int) -> None:
+        lots = self.lots.setdefault(container_id, {}).setdefault(item, [])
+        for lot in lots:
+            if lot[0] == born_day:
+                lot[1] += qty
+                return
+        lots.append([born_day, qty])
+        lots.sort(key=lambda lot: lot[0])
+
+    def _take_lots(self, container_id: str, item: str, qty: int) -> list[tuple[int, int]]:
+        """Tira `qty` dos lotes mais velhos primeiro; devolve [(dia_de_origem, qty)]."""
+        lots = self.lots.get(container_id, {}).get(item, [])
+        taken: list[tuple[int, int]] = []
+        left = qty
+        while left > 0:
+            if not lots:
+                raise WorldRuleError(f"{container_id}: lotes de {item} não batem com a contagem")
+            born, available = lots[0]
+            use = min(available, left)
+            taken.append((born, use))
+            left -= use
+            if use == available:
+                lots.pop(0)
+            else:
+                lots[0][1] = available - use
+        if not lots:
+            self.lots[container_id].pop(item, None)
+        return taken
+
+    def _add_stock(self, item: str, qty: int, container_id: str) -> None:
+        stock = self.containers.setdefault(container_id, {})
+        stock[item] = stock.get(item, 0) + qty
+
+    def _take_stock(self, item: str, qty: int, container_id: str) -> None:
         stock = self.containers.get(container_id, {})
         if stock.get(item, 0) < qty:
             raise WorldRuleError(f"{container_id} não tem {qty} {item}")
@@ -430,35 +597,99 @@ class World:
         if stock[item] == 0:
             del stock[item]
 
+    def _expires(self, item: str, born_day: int) -> dict[str, int]:
+        shelf = self._shelf_life(item)
+        return {} if shelf is None else {"expires_day": born_day + shelf}
+
     def create_item(self, item: str, qty: int, container_id: str, reason: str) -> None:
         self._check_item(item, qty, container_id)
-        stock = self.containers.setdefault(container_id, {})
-        stock[item] = stock.get(item, 0) + qty
-        data = {"item": item, "qty": qty, "container_id": container_id, "reason": reason}
+        self._ensure_fits(item, qty, container_id)
+        self._add_stock(item, qty, container_id)
+        data: dict[str, Any] = {
+            "item": item,
+            "qty": qty,
+            "container_id": container_id,
+            "reason": reason,
+        }
+        if self._shelf_life(item) is not None:
+            self._add_lot(container_id, item, self.day, qty)
+            data.update(self._expires(item, self.day))
         self.emit_fact("campsverso.world.item.created.v1", self._with_action(data))
+        self._weigh(container_id)
 
     def transfer_item(
         self, item: str, qty: int, from_container: str, to_container: str, reason: str
     ) -> None:
         self._check_item(item, qty, from_container)
         self._check_item(item, qty, to_container)
-        self._take(item, qty, from_container)
-        stock = self.containers.setdefault(to_container, {})
-        stock[item] = stock.get(item, 0) + qty
-        data = {
-            "item": item,
-            "qty": qty,
-            "from_container": from_container,
-            "to_container": to_container,
-            "reason": reason,
-        }
-        self.emit_fact("campsverso.world.item.transferred.v1", self._with_action(data))
+        self._ensure_fits(item, qty, to_container)
+        self._take_stock(item, qty, from_container)
+        self._add_stock(item, qty, to_container)
+        base = {"item": item, "from_container": from_container, "to_container": to_container}
+        if self._shelf_life(item) is None:
+            self.emit_fact(
+                "campsverso.world.item.transferred.v1",
+                self._with_action({**base, "qty": qty, "reason": reason}),
+            )
+        else:  # um evento por lote: a validade viaja com ele
+            for born, moved in self._take_lots(from_container, item, qty):
+                self._add_lot(to_container, item, born, moved)
+                self.emit_fact(
+                    "campsverso.world.item.transferred.v1",
+                    self._with_action(
+                        {**base, "qty": moved, "reason": reason, **self._expires(item, born)}
+                    ),
+                )
+        self._weigh(from_container)
+        self._weigh(to_container)
 
     def consume_item(self, item: str, qty: int, container_id: str, reason: str) -> None:
         self._check_item(item, qty, container_id)
-        self._take(item, qty, container_id)
-        data = {"item": item, "qty": qty, "container_id": container_id, "reason": reason}
-        self.emit_fact("campsverso.world.item.consumed.v1", self._with_action(data))
+        self._take_stock(item, qty, container_id)
+        base = {"item": item, "container_id": container_id, "reason": reason}
+        if self._shelf_life(item) is None:
+            self.emit_fact(
+                "campsverso.world.item.consumed.v1", self._with_action({**base, "qty": qty})
+            )
+        else:
+            for born, used in self._take_lots(container_id, item, qty):
+                self.emit_fact(
+                    "campsverso.world.item.consumed.v1",
+                    self._with_action({**base, "qty": used, **self._expires(item, born)}),
+                )
+        self._weigh(container_id)
+
+    def spoil(self) -> None:
+        """Na virada do dia: consome os lotes vencidos, com a validade multiplicada pelo fator
+        do contêiner (o baú conserva; ADR-0062). Determinístico: contêineres, itens e lotes em
+        ordem."""
+        today = self.day
+        for container_id in sorted(self.lots):
+            factor = float(
+                self.definition.kinds[self.entity_map[container_id].kind].shelf_life_factor
+            )
+            for item in sorted(self.lots[container_id]):
+                shelf = self._shelf_life(item)
+                if shelf is None:
+                    continue
+                for born, qty in list(self.lots[container_id][item]):
+                    if today - born < shelf * factor - 1e-9:
+                        continue
+                    self._take_stock(item, qty, container_id)
+                    self._take_lots(container_id, item, qty)
+                    self.emit_fact(
+                        "campsverso.world.item.consumed.v1",
+                        {
+                            "item": item,
+                            "qty": qty,
+                            "container_id": container_id,
+                            "reason": "spoiled",
+                            **self._expires(item, born),
+                        },
+                    )
+                self._weigh(container_id)
+            if not self.lots[container_id]:
+                del self.lots[container_id]
 
     # ------------------------------------------------------------- WorldOps: necessidades
 
@@ -492,11 +723,27 @@ class World:
                 self.avatar_map[avatar_id].add_pending("need_threshold")
 
     def integrate_needs(self, ticks: int) -> None:
+        """Avança as necessidades por `ticks` a partir do tick atual, por trechos quando um
+        modificador vence no meio (ADR-0062); os vencidos saem e o atributo visível se apaga."""
+        start, end = self.tick, self.tick + ticks
         for avatar_id in sorted(self.avatar_map):
+            avatar = self.avatar_map[avatar_id]
+            cuts = sorted(
+                {end}
+                | {
+                    int(m["until_tick"])
+                    for m in avatar.modifiers
+                    if start < int(m["until_tick"]) < end
+                }
+            )
             for need in sorted(self.needs[avatar_id]):
-                rate = self.rate(avatar_id, need)
-                if rate:
-                    self.set_need_units(avatar_id, need, self.needs[avatar_id][need] + rate * ticks)
+                units, at = 0, start
+                for cut in cuts:
+                    units += self.rate(avatar_id, need, at) * (cut - at)
+                    at = cut
+                if units:
+                    self.set_need_units(avatar_id, need, self.needs[avatar_id][need] + units)
+            self._expire_modifiers(avatar_id, end)
 
     def report_needs(self) -> None:
         """No máximo um need.changed por hora simulada e por necessidade (contratos §14.3)."""
@@ -777,6 +1024,7 @@ def _avatar_data(a: Avatar) -> dict[str, Any]:
         "sleep_rates": dict(a.sleep_rates),
         "pending": list(a.pending),
         "awaiting": a.awaiting,
+        "modifiers": [dict(m) for m in a.modifiers],
     }
 
 
@@ -794,6 +1042,7 @@ def _avatar_from(raw: Mapping[str, Any]) -> Avatar:
         sleep_rates=dict(raw["sleep_rates"]),
         pending=list(raw["pending"]),
         awaiting=bool(raw["awaiting"]),
+        modifiers=[dict(m) for m in cast(list[Mapping[str, Any]], raw.get("modifiers") or [])],
     )
 
 

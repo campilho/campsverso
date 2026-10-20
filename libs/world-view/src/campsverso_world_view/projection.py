@@ -64,6 +64,12 @@ class Projection:
         self.containers: dict[str, dict[str, int]] = {
             k: dict(v) for k, v in raw.get("containers", {}).items()
         }
+        # Os lotes com validade (ADR-0062): contêiner -> item -> dia em que vence -> qty. Só os
+        # eventos de item que trazem `expires_day` entram aqui; a contagem fica em `containers`.
+        self.lots: dict[str, dict[str, dict[str, int]]] = {
+            c: {item: dict(days) for item, days in by_item.items()}
+            for c, by_item in raw.get("lots", {}).items()
+        }
         self.motion: dict[str, dict[str, Any]] = dict(raw.get("motion", {}))
         self.actions: dict[str, dict[str, Any]] = dict(raw.get("actions", {}))
         self.needs: dict[str, dict[str, float]] = {
@@ -108,6 +114,7 @@ class Projection:
             "weather": self.weather,
             "entities": self.entities,
             "containers": self.containers,
+            "lots": self.lots,
             "motion": self.motion,
             "actions": self.actions,
             "needs": self.needs,
@@ -193,15 +200,51 @@ class Projection:
         if stock[item] <= 0:
             del stock[item]
 
+    def _add_lot(self, container: str, item: str, data: Mapping[str, Any], qty: int) -> None:
+        if "expires_day" not in data:
+            return
+        day = str(int(data["expires_day"]))
+        days = self.lots.setdefault(container, {}).setdefault(item, {})
+        days[day] = days.get(day, 0) + qty
+        if days[day] <= 0:
+            del days[day]
+        if not days:
+            del self.lots[container][item]
+        if not self.lots[container]:
+            del self.lots[container]
+
+    def expires_in(self, container: str, item: str) -> int | None:
+        """Dias até o lote mais antigo do item vencer, pela validade nominal; None sem lotes."""
+        days = self.lots.get(container, {}).get(item)
+        if not days:
+            return None
+        return min(int(day) for day in days) - self.day
+
+    def stack(self, container: str, item: str, qty: int) -> dict[str, Any]:
+        """Um `item_stack` do contrato, com a validade quando o item a tem."""
+        entry: dict[str, Any] = {"item": item, "qty": qty}
+        expires = self.expires_in(container, item)
+        if expires is not None:
+            entry["expires_in_days"] = expires
+        return entry
+
     def _on_world_item_created(self, data: Mapping[str, Any]) -> None:
-        self._add(str(data["container_id"]), str(data["item"]), int(data["qty"]))
+        container, item, qty = str(data["container_id"]), str(data["item"]), int(data["qty"])
+        self._add(container, item, qty)
+        self._add_lot(container, item, data, qty)
 
     def _on_world_item_transferred(self, data: Mapping[str, Any]) -> None:
-        self._add(str(data["from_container"]), str(data["item"]), -int(data["qty"]))
-        self._add(str(data["to_container"]), str(data["item"]), int(data["qty"]))
+        item, qty = str(data["item"]), int(data["qty"])
+        source, target = str(data["from_container"]), str(data["to_container"])
+        self._add(source, item, -qty)
+        self._add(target, item, qty)
+        self._add_lot(source, item, data, -qty)
+        self._add_lot(target, item, data, qty)
 
     def _on_world_item_consumed(self, data: Mapping[str, Any]) -> None:
-        self._add(str(data["container_id"]), str(data["item"]), -int(data["qty"]))
+        container, item, qty = str(data["container_id"]), str(data["item"]), int(data["qty"])
+        self._add(container, item, -qty)
+        self._add_lot(container, item, data, -qty)
 
     def _on_world_weather_changed(self, data: Mapping[str, Any]) -> None:
         self.weather[str(data["day"])] = str(data["condition"])

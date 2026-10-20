@@ -31,6 +31,10 @@
     },
     "action_id": {
       "$ref": "contracts://common/defs.v1#/$defs/action_id"
+    },
+    "expires_day": {
+      "$ref": "contracts://common/defs.v1#/$defs/day",
+      "description": "O dia em que o lote consumido vencia; o motivo `spoiled` é o estrago na virada do dia (ADR-0062)."
     }
   }
 }

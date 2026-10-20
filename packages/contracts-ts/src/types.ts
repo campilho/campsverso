@@ -298,6 +298,10 @@ export interface Position {
 export interface ItemStack {
   item: ItemId;
   qty: number;
+  /**
+   * Dias até o lote mais antigo vencer pela validade nominal, quando o item tem validade (ADR-0062); zero vence hoje, negativo já passou da data e ainda não estragou (o contêiner conserva).
+   */
+  expires_in_days?: number;
 }
 /**
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
@@ -1443,6 +1447,7 @@ export interface WorldItemConsumedV1 {
   container_id: EntityId;
   reason: Token;
   action_id?: ActionId;
+  expires_day?: Day;
 }
 /**
  * Item surgiu num contêiner.
@@ -1456,6 +1461,7 @@ export interface WorldItemCreatedV1 {
   container_id: EntityId;
   reason: Token;
   action_id?: ActionId;
+  expires_day?: Day;
 }
 /**
  * Item passou de um contêiner para outro.
@@ -1470,6 +1476,7 @@ export interface WorldItemTransferredV1 {
   to_container: EntityId;
   reason: Token;
   action_id?: ActionId;
+  expires_day?: Day;
 }
 /**
  * Valor de uma necessidade; no máximo um por hora simulada por necessidade.

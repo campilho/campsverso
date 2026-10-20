@@ -2,6 +2,13 @@
 
 Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão maior, só entram campos opcionais novos; mudança incompatível vira um tipo novo (`.v2`). A checagem `make compat` confere isso a cada commit.
 
+## Não publicado (M13)
+
+- **As primitivas da Fazenda Boa Vista** (ADR-0062), só com campos opcionais e nenhum tipo novo:
+  - `campsverso.world.item.created.v1`, `campsverso.world.item.transferred.v1` e `campsverso.world.item.consumed.v1` ganham `expires_day`, o dia em que o lote vence pela validade nominal do item; com validade, o kernel publica um evento por lote, e o estrago na virada do dia é um `consumed` com motivo `spoiled`;
+  - `common/defs.v1`: `item_stack` ganha `expires_in_days`, os dias até o lote mais antigo vencer (negativo quando passou da data e ainda não estragou: o contêiner conserva); vale na foto da percepção e nos contêineres vistos do delta;
+  - peso e capacidade, e a hora até quando um modificador de necessidade vale, chegam como atributos visíveis das entidades (`weight`, `capacity`, o rótulo do modificador), sem contrato novo; a entidade criada em tempo de execução chega por `world.entity.spawned`, como no início da sessão.
+
 ## Não publicado (M11)
 
 - **Memória baseline** (ADR-0060): cinco tipos novos no domínio `memory`, todos `observer`, produtor `controller` (a mente), e nenhum tipo mudado:

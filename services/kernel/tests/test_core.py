@@ -345,7 +345,7 @@ def test_mesma_seed_e_mesmos_comandos_dao_os_mesmos_fatos() -> None:
 def test_ordem_efetiva_do_tick_e_visivel() -> None:
     core = make_core()
     assert core.describe_order("08:00") == [
-        "scheduled: chime(10)",
+        "scheduled: kernel, chime(10)",  # o kernel estraga o que venceu, antes dos sistemas
         "clock: kernel",
         "needs: kernel",
         "wake: kernel",

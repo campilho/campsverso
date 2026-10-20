@@ -22,6 +22,8 @@ class ItemDef:
     item_id: str
     category: str
     properties: Mapping[str, Scalar] = field(default_factory=dict[str, Scalar])
+    weight: float = 0.0  # por unidade; conta contra a capacidade do contêiner (ADR-0062)
+    shelf_life_days: int | None = None  # com validade, o item vive em lotes e estraga (ADR-0062)
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,6 +34,8 @@ class KindDef:
     blocking: bool = False
     attributes: Attributes = field(default_factory=dict[str, Scalar])
     hidden: Attributes = field(default_factory=dict[str, Scalar])
+    capacity: float | None = None  # peso máximo que guarda; None é sem limite (ADR-0062)
+    shelf_life_factor: float = 1.0  # multiplica a validade do que guarda (o baú conserva; oculto)
 
 
 @dataclass(frozen=True, slots=True)

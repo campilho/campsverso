@@ -143,7 +143,7 @@ class PerceptionState(Projection):
             "containers": [
                 {
                     "container_id": container,
-                    "items": [{"item": i, "qty": q} for i, q in sorted(stock.items())],
+                    "items": [self.stack(container, i, q) for i, q in sorted(stock.items())],
                 }
                 for container, stock in sorted(self.containers.items())
                 if stock and near(container)

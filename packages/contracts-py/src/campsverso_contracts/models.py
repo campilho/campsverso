@@ -46,6 +46,10 @@ class ItemStack(BaseModel):
     Id de item ou cultura; conteúdo do cartucho, em português, sem acento: moeda, semente_rabanete.
     """
     qty: Annotated[int, Field(ge=1)]
+    expires_in_days: int | None = None
+    """
+    Dias até o lote mais antigo vencer pela validade nominal, quando o item tem validade (ADR-0062); zero vence hoje, negativo já passou da data e ainda não estragou (o contêiner conserva).
+    """
 
 
 class ControllerRef(BaseModel):
@@ -2079,6 +2083,10 @@ class WorldItemConsumedV1(BaseModel):
     """
     Id de ação: contador determinístico do kernel.
     """
+    expires_day: Annotated[int | None, Field(ge=1, title="Day")] = None
+    """
+    O dia em que o lote consumido vencia; o motivo `spoiled` é o estrago na virada do dia (ADR-0062).
+    """
 
 
 class WorldItemCreatedV1(BaseModel):
@@ -2107,6 +2115,10 @@ class WorldItemCreatedV1(BaseModel):
     action_id: Annotated[str | None, Field(pattern="^act-[0-9]{6,}$", title="ActionId")] = None
     """
     Id de ação: contador determinístico do kernel.
+    """
+    expires_day: Annotated[int | None, Field(ge=1, title="Day")] = None
+    """
+    O dia em que o lote criado vence pela validade nominal do item, quando o item tem validade (ADR-0062).
     """
 
 
@@ -2142,6 +2154,10 @@ class WorldItemTransferredV1(BaseModel):
     action_id: Annotated[str | None, Field(pattern="^act-[0-9]{6,}$", title="ActionId")] = None
     """
     Id de ação: contador determinístico do kernel.
+    """
+    expires_day: Annotated[int | None, Field(ge=1, title="Day")] = None
+    """
+    O dia em que o lote movido vence pela validade nominal; com validade, o kernel publica um evento por lote (ADR-0062).
     """
 
 

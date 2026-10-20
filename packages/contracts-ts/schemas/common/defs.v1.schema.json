@@ -96,6 +96,10 @@
         "qty": {
           "type": "integer",
           "minimum": 1
+        },
+        "expires_in_days": {
+          "type": "integer",
+          "description": "Dias até o lote mais antigo vencer pela validade nominal, quando o item tem validade (ADR-0062); zero vence hoje, negativo já passou da data e ainda não estragou (o contêiner conserva)."
         }
       }
     },

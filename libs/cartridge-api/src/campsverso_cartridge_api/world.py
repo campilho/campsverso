@@ -7,6 +7,7 @@ genérico publicado pelo kernel (ADR-0025).
 from collections.abc import Mapping, Sequence
 from typing import Any, Literal, Protocol
 
+from campsverso_cartridge_api.definitions import SpawnDef
 from campsverso_cartridge_api.model import Attributes, EntityView, Position
 
 type SleepCause = Literal["voluntary", "faint"]
@@ -54,6 +55,19 @@ class WorldView(Protocol):
 
     def items(self, container_id: str) -> Mapping[str, int]: ...
 
+    def weight(self, container_id: str) -> float:
+        """O peso do que o contêiner guarda (ADR-0062)."""
+        ...
+
+    def capacity(self, container_id: str) -> float | None:
+        """A capacidade do contêiner, pelo tipo dele; None é sem limite."""
+        ...
+
+    def fits(self, item: str, qty: int, container_id: str) -> bool:
+        """Se `qty` de `item` ainda cabe no contêiner. Quem cria ou transfere confere antes e
+        recusa com `too_heavy`; o kernel trata não caber como violação."""
+        ...
+
     def need(self, avatar_id: str, need: str) -> float: ...
 
     def is_asleep(self, avatar_id: str) -> bool: ...
@@ -83,7 +97,20 @@ class WorldOps(Protocol):
 
     def consume_item(self, item: str, qty: int, container_id: str, reason: str) -> None: ...
 
+    def spawn(self, entity: SpawnDef) -> None:
+        """Cria uma entidade em tempo de execução (um canteiro cavado), publicando
+        `world.entity.spawned` como no início da sessão (ADR-0062). O id tem de ser novo."""
+        ...
+
     def change_need(self, avatar_id: str, need: str, delta: float) -> None: ...
+
+    def add_need_modifier(
+        self, avatar_id: str, need: str, factor: float, ticks: int, label: str
+    ) -> None:
+        """Multiplica a taxa de uma necessidade por `factor` durante `ticks` (ADR-0062): o
+        ensopado que segura a fome. `label` é o atributo visível do avatar que mostra até quando
+        (hora do mundo); um modificador novo com o mesmo rótulo substitui o anterior."""
+        ...
 
     def set_weather(self, condition: str, day: int) -> None: ...
 

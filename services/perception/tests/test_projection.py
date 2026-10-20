@@ -275,3 +275,27 @@ def test_delta_leva_o_que_mudou_e_o_que_aconteceu_desde_a_ultima_entrega() -> No
     copy = Projection(json.loads(json.dumps(p.export())))
     assert copy.delivered == p.delivered
     assert copy.delta("camps") == p.delta("camps")
+
+
+def test_a_validade_dos_lotes_chega_na_foto() -> None:
+    """ADR-0062: um item com validade mostra `expires_in_days` na pilha; os outros, não."""
+    p = world()
+    p.apply(
+        "world",
+        ev(
+            6,
+            5,
+            "world.item.created.v1",
+            item="rabanete",
+            qty=2,
+            container_id="camps",
+            reason="harvest",
+            expires_day=4,
+        ),
+    )
+    view = p.view("camps")
+    (camps,) = [c for c in view["containers"] if c["container_id"] == "camps"]
+    assert camps["items"] == [
+        {"item": "moeda", "qty": 100},
+        {"item": "rabanete", "qty": 2, "expires_in_days": 3},
+    ]

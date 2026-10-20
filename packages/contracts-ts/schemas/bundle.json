@@ -96,6 +96,10 @@
         "qty": {
           "type": "integer",
           "minimum": 1
+        },
+        "expires_in_days": {
+          "type": "integer",
+          "description": "Dias até o lote mais antigo vencer pela validade nominal, quando o item tem validade (ADR-0062); zero vence hoje, negativo já passou da data e ainda não estragou (o contêiner conserva)."
         }
       }
     },
@@ -2806,6 +2810,10 @@
         },
         "action_id": {
           "$ref": "#/$defs/ActionId"
+        },
+        "expires_day": {
+          "$ref": "#/$defs/Day",
+          "description": "O dia em que o lote consumido vencia; o motivo `spoiled` é o estrago na virada do dia (ADR-0062)."
         }
       }
     },
@@ -2837,6 +2845,10 @@
         },
         "action_id": {
           "$ref": "#/$defs/ActionId"
+        },
+        "expires_day": {
+          "$ref": "#/$defs/Day",
+          "description": "O dia em que o lote criado vence pela validade nominal do item, quando o item tem validade (ADR-0062)."
         }
       }
     },
@@ -2872,6 +2884,10 @@
         },
         "action_id": {
           "$ref": "#/$defs/ActionId"
+        },
+        "expires_day": {
+          "$ref": "#/$defs/Day",
+          "description": "O dia em que o lote movido vence pela validade nominal; com validade, o kernel publica um evento por lote (ADR-0062)."
         }
       }
     },

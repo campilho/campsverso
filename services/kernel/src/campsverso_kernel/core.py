@@ -97,6 +97,7 @@ class KernelCore:
         self._phases = {parse_hhmm(hhmm): name for name, hhmm in definition.clock.phases}
         self._daily = self._index_daily()
         self._handlers: dict[str, Callable[[], None]] = {
+            "scheduled": self._stage_scheduled,
             "clock": self._stage_clock,
             "needs": self._stage_needs,
             "wake": self._stage_wake,
@@ -575,6 +576,17 @@ class KernelCore:
             with world.context(cause=system.name):
                 system.run(SystemContext(world, trigger, avatar_id), world)
 
+    def _stage_scheduled(self) -> None:
+        """Antes dos sistemas agendados: na virada do dia, o kernel estraga o que venceu
+        (ADR-0062). Nada a fazer sem lotes."""
+        if (
+            self.world.lots
+            and self.calendar.is_minute_start(self.tick)
+            and self.calendar.minute_of_day(self.tick) == self.calendar.day_starts_at
+        ):
+            with self.world.context(cause="spoilage"):
+                self.world.spoil()
+
     def _stage_clock(self) -> None:
         if not self.calendar.is_minute_start(self.tick):
             return
@@ -855,6 +867,7 @@ class KernelCore:
             return now
         candidates = [now + self.calendar.ticks_until(now, minute) for minute in minutes]
         candidates += candidates_scheduled
+        candidates += [tick for tick in world.modifier_expiries() if tick >= now]
         for avatar_id, avatar in world.avatar_map.items():
             if avatar.action is not None:
                 candidates.append(avatar.action.end_tick)

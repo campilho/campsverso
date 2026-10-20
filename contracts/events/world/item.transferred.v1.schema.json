@@ -35,6 +35,10 @@
     },
     "action_id": {
       "$ref": "contracts://common/defs.v1#/$defs/action_id"
+    },
+    "expires_day": {
+      "$ref": "contracts://common/defs.v1#/$defs/day",
+      "description": "O dia em que o lote movido vence pela validade nominal; com validade, o kernel publica um evento por lote (ADR-0062)."
     }
   }
 }

@@ -18,6 +18,7 @@
     "qty": 1,
     "container_id": "camps",
     "reason": "harvest",
-    "action_id": "act-000120"
+    "action_id": "act-000120",
+    "expires_day": 7
   }
 }

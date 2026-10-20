@@ -1238,6 +1238,11 @@ components:
         qty:
           type: integer
           minimum: 1
+        expires_in_days:
+          type: integer
+          description: Dias até o lote mais antigo vencer pela validade nominal, quando o item tem validade
+            (ADR-0062); zero vence hoje, negativo já passou da data e ainda não estragou (o contêiner
+            conserva).
     ControllerType:
       title: ControllerType
       enum:
@@ -3309,6 +3314,10 @@ components:
           description: 'Ex.: eat, plant, buy_payment, buyer_collect.'
         action_id:
           $ref: '#/components/schemas/ActionId'
+        expires_day:
+          $ref: '#/components/schemas/Day'
+          description: O dia em que o lote consumido vencia; o motivo `spoiled` é o estrago na virada
+            do dia (ADR-0062).
     WorldItemCreatedV1:
       title: WorldItemCreatedV1
       description: Item surgiu num contêiner.
@@ -3332,6 +3341,10 @@ components:
           description: 'Ex.: initial, harvest, buy, payment.'
         action_id:
           $ref: '#/components/schemas/ActionId'
+        expires_day:
+          $ref: '#/components/schemas/Day'
+          description: O dia em que o lote criado vence pela validade nominal do item, quando o item tem
+            validade (ADR-0062).
     WorldItemTransferredV1:
       title: WorldItemTransferredV1
       description: Item passou de um contêiner para outro.
@@ -3358,6 +3371,10 @@ components:
           description: 'Ex.: deposit, withdraw, sell.'
         action_id:
           $ref: '#/components/schemas/ActionId'
+        expires_day:
+          $ref: '#/components/schemas/Day'
+          description: O dia em que o lote movido vence pela validade nominal; com validade, o kernel
+            publica um evento por lote (ADR-0062).
     WorldNeedChangedV1:
       title: WorldNeedChangedV1
       description: Valor de uma necessidade; no máximo um por hora simulada por necessidade.
