@@ -147,7 +147,7 @@ percepcao: ## tokens da percepção por dia a partir do arquivo (ADR-0056): make
 llm-smoke: ## uma chamada real pela porta de modelo, medida e publicada pelo contrato (ADR-0058): make llm-smoke [MODEL=claude-haiku-5-5]
 	uv run --locked --env-file .env python -m campsverso_tools.llm_smoke --model $(or $(MODEL),claude-haiku-5-5)
 
-ui-e2e: tools ui-build ## fumaça da tela no navegador (Playwright), com um sandbox próprio na porta 8799
+ui-e2e: tools ui-build ## fumaça da tela no navegador (Playwright), com um sandbox próprio na porta 8799 [MUNDO=farm-boavista-01]
 	pnpm --filter @campsverso/ui exec playwright test
 
 mapa-visual: ## regrava o mapa visual da fazenda a partir do mapa lógico (ADR-0053)

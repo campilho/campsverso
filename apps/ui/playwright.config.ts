@@ -8,6 +8,7 @@
 import { defineConfig } from "@playwright/test";
 
 const PORT = Number(process.env.CAMPSVERSO_E2E_PORT ?? "8799");
+const WORLD = process.env.MUNDO ?? "farm-camps-01"; // MUNDO=farm-boavista-01 abre a fazenda 2 (ADR-0062)
 const ci = process.env.CI !== undefined;
 
 export default defineConfig({
@@ -26,7 +27,7 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   webServer: {
-    command: `uv run --locked python -m campsverso_testkit.sandbox --out data/sandbox/e2e-${String(Date.now())} --port ${String(PORT)}`,
+    command: `uv run --locked python -m campsverso_testkit.sandbox --world config/worlds/${WORLD}.yaml --out data/sandbox/e2e-${String(Date.now())} --port ${String(PORT)}`,
     cwd: "../..",
     url: `http://127.0.0.1:${String(PORT)}/health`,
     timeout: 120_000,
