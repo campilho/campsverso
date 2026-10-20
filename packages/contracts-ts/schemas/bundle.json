@@ -2754,6 +2754,10 @@
         "attributes": {
           "$ref": "#/$defs/Attributes",
           "description": "Estado visível inicial."
+        },
+        "action_id": {
+          "$ref": "#/$defs/ActionId",
+          "description": "A ação que criou a entidade em tempo de execução (um canteiro cavado; ADR-0062); ausente no início da sessão."
         }
       }
     },

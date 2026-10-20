@@ -1422,6 +1422,7 @@ export interface WorldEntitySpawnedV1 {
   blocking: boolean;
   display_name?: string;
   attributes?: Attributes;
+  action_id?: ActionId;
 }
 /**
  * Mudança de atributos visíveis de uma entidade (ADR-0025).

@@ -79,9 +79,11 @@ def test_as_ferramentas_novas_estao_no_catalogo() -> None:
     names = {t.name for t in mind.tools}
     assert {"dig", "fertilize", "cook"} <= names
     buy = next(t for t in mind.tools if t.name == "buy")
-    choices = next(p for p in buy.params if p.name == "item").enum
-    assert choices is not None
-    assert {"semente_tomate", "adubo", "watering_can_large", "plow"} <= set(choices)
+    for word in ("semente_tomate", "adubo", "watering_can_large", "plow"):
+        assert word in buy.description, word  # as opções ficam na descrição: sem enum, a gramática
+    # das ferramentas estritas estouraria o teto da API; as simples nem são estritas.
+    assert sum(not t.strict for t in mind.tools) == 9
+    assert all(t.strict for t in mind.tools if t.name in ("buy", "plant", "cook", "deposit"))
 
 
 def test_duracao_e_energia_vem_do_cartucho() -> None:

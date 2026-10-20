@@ -32,6 +32,9 @@ class ToolDef:
     shape: Mapping[str, Any] | None = None
     duration_ticks: int | None = None
     energy: int | None = None
+    # Estrita: a API garante o schema por gramática. A gramática de todas as ferramentas estritas
+    # juntas tem um teto; um catálogo grande marca as simples como `strict: false` (ADR-0062).
+    strict: bool = True
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,6 +80,7 @@ def tools_from(raw: Sequence[Mapping[str, Any]]) -> tuple[ToolDef, ...]:
                 shape=cast(Mapping[str, Any] | None, item.get("shape")),
                 duration_ticks=(None if item.get("duration") is None else int(item["duration"])),
                 energy=None if item.get("energy") is None else int(item["energy"]),
+                strict=bool(item.get("strict", True)),
             )
         )
     names = [t.name for t in tools]
@@ -87,6 +91,6 @@ def tools_from(raw: Sequence[Mapping[str, Any]]) -> tuple[ToolDef, ...]:
 
 def load_tools(path: Path) -> tuple[ToolDef, ...]:
     """O catálogo de ferramentas de um `tools.yaml` (`tools: [{name, action?, description,
-    params?, shape?, duration?, energy?}]`)."""
+    params?, shape?, duration?, energy?, strict?}]`)."""
     doc = cast(Mapping[str, Any], yaml.safe_load(path.read_text(encoding="utf-8")))
     return tools_from(cast(Sequence[Mapping[str, Any]], doc["tools"]))

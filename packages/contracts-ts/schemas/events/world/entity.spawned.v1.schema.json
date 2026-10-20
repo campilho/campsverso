@@ -39,6 +39,10 @@
     "attributes": {
       "$ref": "contracts://common/defs.v1#/$defs/attributes",
       "description": "Estado visível inicial."
+    },
+    "action_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/action_id",
+      "description": "A ação que criou a entidade em tempo de execução (um canteiro cavado; ADR-0062); ausente no início da sessão."
     }
   }
 }

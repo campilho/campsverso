@@ -1,5 +1,8 @@
 # Estado inicial da Fazenda Boa Vista (bíblia 2, §2). O avatar, o regador e os itens iniciais vêm
 # do cenário farm_camps, que este estende: 100 moedas, 10 sementes de rabanete, o regador cheio,
 # 5 rabanetes no baú. Aqui entra só o que é novo.
+avatar:  # o mesmo Camps, com o fazendeiro-script 2 como controlador padrão (bíblia 2, §11)
+  id: camps
+  default_controller: {type: script, id: script/farmer2-v1}
 tools:
   spade: {kind: spade, holder: camps}  # a pá, uma entidade com peso, no inventário do Camps

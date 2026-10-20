@@ -1,6 +1,8 @@
 # Catálogo de ferramentas da mente na Fazenda Boa Vista (ADR-0062): uma por ação do mundo, com as
 # descrições em português. Duração e energia repetem o `actions` do gênero e do cenário, e um
 # teste confere que batem. Toda ferramenta ganha o campo `intent`, que a mente acrescenta.
+# A API limita a gramática de todas as ferramentas estritas juntas: com 18 ferramentas, as
+# simples (um alvo ou nada) ficam `strict: false`; o kernel valida os parâmetros de qualquer jeito.
 tools:
   - name: move_near
     action: move
@@ -11,7 +13,7 @@ tools:
     params:
       - name: near
         type: string
-        description: "o id da entidade (ex.: plot-03, well, chest, sell-box, kiosk, stove, bed)"
+        description: "o id da entidade (ex.: plot-03, well, stove)"
   - name: move_to
     action: move
     description: >-
@@ -22,6 +24,7 @@ tools:
       - {name: y, type: integer, description: "a linha, de cima para baixo"}
     shape: {target: {x: $x, y: $y}}
   - name: dig
+    strict: false  # a gramática das estritas tem teto; esta é simples
     description: >-
       Cavar um canteiro no tile de grama em que você está, com a pá do seu inventário. O canteiro
       nasce vazio, com um id (plot-01, plot-02...). Até 32 canteiros. Com o arado, leva 5 minutos.
@@ -31,16 +34,17 @@ tools:
   - name: plant
     description: >-
       Plantar uma semente num canteiro vazio ao seu lado. Gasta a semente da cultura, que precisa
-      estar no seu inventário. Com o arado no inventário leva 1 minuto e 1 de energia.
+      estar no seu inventário. Culturas: rabanete, batata, abobora, cenoura, morango, tomate,
+      alho. Com o arado no inventário leva 1 minuto e 1 de energia.
     duration: 5
     energy: 2
     params:
-      - {name: target, type: string, description: "o id do canteiro (kind plot)"}
+      - {name: target, type: string, description: "o id do canteiro"}
       - name: crop
         type: string
-        description: "a cultura"
-        enum: [rabanete, batata, abobora, cenoura, morango, tomate, alho]
+        description: "a cultura (ver a descrição)"
   - name: fertilize
+    strict: false  # a gramática das estritas tem teto; esta é simples
     description: >-
       Adubar um canteiro vazio ao seu lado com 1 adubo do seu inventário, antes de plantar: a
       planta seguinte cresce melhor. O canteiro mostra `adubado` até o plantio.
@@ -49,6 +53,7 @@ tools:
     params:
       - {name: target, type: string, description: "o id do canteiro"}
   - name: water
+    strict: false  # a gramática das estritas tem teto; esta é simples
     description: >-
       Regar o canteiro ao seu lado com um regador, que gasta 1 carga; o canteiro precisa ter
       planta. A chuva rega todos os canteiros de graça.
@@ -57,6 +62,7 @@ tools:
     params:
       - {name: target, type: string, description: "o id do canteiro"}
   - name: refill
+    strict: false  # a gramática das estritas tem teto; esta é simples
     description: >-
       Encher no poço ao seu lado os regadores que você carrega (o comum fica com 10 cargas, o
       grande com 25). Só o poço enche o regador.
@@ -65,6 +71,7 @@ tools:
     params:
       - {name: target, type: string, description: "o id do poço"}
   - name: harvest
+    strict: false  # a gramática das estritas tem teto; esta é simples
     description: >-
       Colher um canteiro ao seu lado com a planta madura: rende 1 unidade da colheita no seu
       inventário (se couber) e deixa o canteiro vazio. Uma madura que fica três dias sem colher
@@ -74,6 +81,7 @@ tools:
     params:
       - {name: target, type: string, description: "o id do canteiro"}
   - name: clear
+    strict: false  # a gramática das estritas tem teto; esta é simples
     description: >-
       Limpar um canteiro ao seu lado com a planta murcha, deixando-o vazio para plantar de novo.
     duration: 3
@@ -88,7 +96,7 @@ tools:
     duration: 10
     energy: 2
     params:
-      - {name: target, type: string, description: "o id do fogão (kind stove)"}
+      - {name: target, type: string, description: "o id do fogão"}
       - name: recipe
         type: string
         description: "a receita"
@@ -102,8 +110,7 @@ tools:
     params:
       - name: item
         type: string
-        description: "a comida"
-        enum: [rabanete, batata, abobora, cenoura, morango, tomate, alho, sopa_de_batata, ensopado, pure_de_abobora]
+        description: "a comida: uma colheita ou um prato"
   - name: deposit
     description: >-
       Guardar no baú ao seu lado itens do seu inventário, ou uma ferramenta pelo id dela (ex.:
@@ -112,8 +119,8 @@ tools:
     energy: 0
     params:
       - {name: target, type: string, description: "o id do baú"}
-      - {name: item, type: string, description: "o item (ex.: rabanete, semente_tomate, adubo) ou o id de uma ferramenta"}
-      - {name: qty, type: integer, description: "quantas unidades, 1 ou mais (1 para uma ferramenta)"}
+      - {name: item, type: string, description: "o item, ou o id de uma ferramenta"}
+      - {name: qty, type: integer, description: "quantas unidades, 1 ou mais"}
   - name: withdraw
     description: >-
       Pegar do baú ao seu lado itens para o seu inventário, ou uma ferramenta pelo id dela. O que
@@ -122,8 +129,8 @@ tools:
     energy: 0
     params:
       - {name: target, type: string, description: "o id do baú"}
-      - {name: item, type: string, description: "o item ou o id de uma ferramenta"}
-      - {name: qty, type: integer, description: "quantas unidades, 1 ou mais (1 para uma ferramenta)"}
+      - {name: item, type: string, description: "o item, ou o id de uma ferramenta"}
+      - {name: qty, type: integer, description: "quantas unidades, 1 ou mais"}
   - name: sell
     description: >-
       Pôr colheitas do seu inventário na caixa de vendas ao seu lado, pelo preço de hoje que a
@@ -136,24 +143,24 @@ tools:
       - name: item
         type: string
         description: "a colheita"
-        enum: [rabanete, batata, abobora, cenoura, morango, tomate, alho]
       - {name: qty, type: integer, description: "quantas unidades, 1 ou mais"}
   - name: buy
     description: >-
-      Comprar no quiosque ao seu lado, aberto das 08:00 às 18:00, com moedas do seu inventário:
-      sementes (rabanete 10, batata 20, abóbora 40, cenoura 15, morango 60, tomate 30, alho 12
-      cada; só as que estão em estoque_hoje), adubo (15), o regador grande (150, 25 cargas, pesa
-      9) e o arado (300, pesa 12; uma ferramenta por vez, e tem de caber).
+      Comprar no quiosque ao seu lado, aberto das 08:00 às 18:00, com moedas do seu inventário.
+      Itens e preços: semente_rabanete 10, semente_batata 20, semente_abobora 40, semente_cenoura
+      15, semente_morango 60, semente_tomate 30, semente_alho 12 (só as sementes em estoque_hoje),
+      adubo 15, watering_can_large 150 (o regador grande, 25 cargas, pesa 9) e plow 300 (o arado,
+      pesa 12). Uma ferramenta por vez, e tem de caber no seu inventário.
     duration: 2
     energy: 0
     params:
       - {name: target, type: string, description: "o id do quiosque"}
       - name: item
         type: string
-        description: "o que comprar"
-        enum: [semente_rabanete, semente_batata, semente_abobora, semente_cenoura, semente_morango, semente_tomate, semente_alho, adubo, watering_can_large, plow]
+        description: "o que comprar (ver a descrição)"
       - {name: qty, type: integer, description: "quantas unidades, 1 ou mais"}
   - name: sleep
+    strict: false  # a gramática das estritas tem teto; esta é simples
     description: >-
       Dormir na cama ao seu lado. À noite (das 20:00 às 06:00) dorme até as 06:00; de dia é um
       cochilo até a energia encher. A cama recupera 12,5 de energia por hora. Não dá para acordar
@@ -161,12 +168,14 @@ tools:
     params:
       - {name: target, type: string, description: "o id da cama"}
   - name: sleep_here
+    strict: false  # a gramática das estritas tem teto; esta é simples
     action: sleep
     description: >-
       Dormir onde está, no chão: recupera só 5 de energia por hora, com as mesmas regras de
       horário da cama. Serve quando a cama está longe e já é tarde.
     shape: {}
   - name: wait
+    strict: false  # a gramática das estritas tem teto; esta é simples
     description: >-
       Esperar parado, sem gastar nada além do tempo; entre 1 e 60 minutos. Serve para deixar uma
       planta crescer, o quiosque abrir ou o dia virar.

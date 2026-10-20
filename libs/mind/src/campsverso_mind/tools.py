@@ -45,7 +45,7 @@ def tool_spec(tool: ToolDef, *, with_note: bool = False) -> dict[str, Any]:
     return {
         "name": tool.name,
         "description": describe(tool),
-        "strict": True,
+        "strict": tool.strict,
         "input_schema": {
             "type": "object",
             "properties": properties,

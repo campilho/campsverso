@@ -13,7 +13,13 @@ from typing import Any, cast
 
 import yaml
 
-from campsverso_cartridge_api import CartridgeManifest, SpawnDef, WorldBuilder
+from campsverso_cartridge_api import (
+    AvatarDef,
+    CartridgeManifest,
+    ControllerRef,
+    SpawnDef,
+    WorldBuilder,
+)
 from campsverso_farm_sim import config
 from campsverso_farm_sim.extensions import contribute_extensions
 
@@ -40,6 +46,12 @@ class FarmBoaVistaCartridge:
         data = overlay()
         world.merge_data(config.NAMESPACE, data)
         contribute_extensions(world, data)
+        avatar = state["avatar"]  # troca o controlador padrão herdado (ADR-0062)
+        controller = avatar["default_controller"]
+        world.add_avatar(
+            AvatarDef(str(avatar["id"]), ControllerRef(controller["type"], controller["id"])),
+            override=True,
+        )
         for entity_id, spawn in state.get("tools", {}).items():  # a pá nasce com o Camps
             world.spawn(SpawnDef(entity_id, str(spawn["kind"]), container_id=str(spawn["holder"])))
 

@@ -2027,6 +2027,10 @@ class WorldEntitySpawnedV1(BaseModel):
     """
     Estado visível inicial.
     """
+    action_id: Annotated[str | None, Field(pattern="^act-[0-9]{6,}$", title="ActionId")] = None
+    """
+    A ação que criou a entidade em tempo de execução (um canteiro cavado; ADR-0062); ausente no início da sessão.
+    """
 
 
 class WorldEntityStateChangedV1(BaseModel):

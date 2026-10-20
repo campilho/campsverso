@@ -50,6 +50,8 @@ class Farmer:
         self.core = core
         self.facts: list[Fact] = []
         self._n = 0
+        # O controlador padrão do avatar neste mundo (o script 2 na Boa Vista): é quem propõe.
+        self.controller_id = core.world.avatar_map["camps"].default_controller.id
 
     def _collect(self) -> None:
         self.facts += self.core.drain()
@@ -74,7 +76,7 @@ class Farmer:
             {
                 "id": f"cmd-{self._n}",
                 "type": "campsverso.cmd.action.propose.v1",
-                "controllerid": SCRIPT_ID,
+                "controllerid": self.controller_id,
                 "data": {"avatar_id": "camps", "action": action, "params": params},
             }
         )
