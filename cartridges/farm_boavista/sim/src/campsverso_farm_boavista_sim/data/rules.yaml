@@ -1,0 +1,11 @@
+# Instâncias de regra do cenário Fazenda do Camps (FlagPort, ADR-0015).
+# A implementação genérica vem do gênero farm; aqui só se liga e se parametriza (ADR-0039).
+rules:
+  river_proximity_bonus:  # R-001 (bíblia §10): oculta
+    impl: water_proximity_bonus
+    version: 1.0.0
+    hidden: true
+    enabled: true
+    params:
+      radius: 4
+      multiplier: 1.5

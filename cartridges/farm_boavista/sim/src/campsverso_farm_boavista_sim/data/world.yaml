@@ -1,0 +1,5 @@
+# Estado inicial da Fazenda Boa Vista (bíblia 2, §2). O avatar, o regador e os itens iniciais vêm
+# do cenário farm_camps, que este estende: 100 moedas, 10 sementes de rabanete, o regador cheio,
+# 5 rabanetes no baú. Aqui entra só o que é novo.
+tools:
+  spade: {kind: spade, holder: camps}  # a pá, uma entidade com peso, no inventário do Camps

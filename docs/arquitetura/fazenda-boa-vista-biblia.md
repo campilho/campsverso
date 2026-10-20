@@ -44,7 +44,7 @@ y00     TTTTTTTTTTTTTTTTTTTTTTTTTTTTRRRR
 y01     T...........................RRRR
 y02     T.CCCCC.....................RRRR
 y03     T.Cb.mC.....................RRRR
-y04     T.CfC.CB....................RRRR
+y04     T.Cf..CB....................RRRR
 y05     T.CCPCC.....................RRRR
 y06     T...=...V...................RRRR
 y07     T...=.......................RRRR
@@ -77,7 +77,7 @@ y17     TTTTTTTTTTTTTTTEETTTTTTTTTTTRRRR
 | `=` | caminho | — | sim |
 | `.` | grama: onde se pode **cavar** | — | sim |
 
-**Canteiros:** não existem no início. `cavar` num tile de grama (`.`) cria um canteiro vazio, passável, com id por sequência (`plot-01`, `plot-02`…); teto de **32** canteiros. A **faixa do rio** (a R-001 vale a até 4 tiles do rio, ou seja, x de 24 a 27) tem 64 tiles de grama; o poço fica a 7 tiles dela e a 13 da casa. O regador só enche no poço, como na v0.1.
+**Canteiros:** não existem no início. `cavar` no tile de grama (`.`) em que o avatar está cria um canteiro vazio, passável, com id por sequência (`plot-01`, `plot-02`…) e o grupo visível `oeste` ou `leste` (x a partir de 16), como na fazenda 1; teto de **32** canteiros. Os tiles de terra dos canteiros antigos viraram grama: o terreno não dá pista. A **faixa do rio** (a R-001 vale a até 4 tiles do rio, ou seja, x de 24 a 27) tem 64 tiles de grama; o poço fica a 7 tiles dela e a 13 da casa. O regador só enche no poço, como na v0.1.
 
 **Interação e movimento:** como na v0.1 (vizinhança de 8 para agir; 4 direções para andar; pathfinding pelo kernel).
 

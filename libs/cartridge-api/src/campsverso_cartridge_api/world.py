@@ -80,6 +80,10 @@ class WorldView(Protocol):
 
     def tiles_with(self, tile_property: str) -> Sequence[Position]: ...
 
+    def tile_kind(self, position: Position) -> str | None:
+        """A classe do tile (grass, path, soil...), ou None fora do mapa (ADR-0062)."""
+        ...
+
     def rng(self, stream: str) -> Rng: ...
 
 

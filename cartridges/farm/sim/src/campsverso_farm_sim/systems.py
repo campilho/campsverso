@@ -2,7 +2,7 @@
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from campsverso_cartridge_api import (
     DailyAt,
@@ -13,7 +13,7 @@ from campsverso_cartridge_api import (
     WorldOps,
     WorldView,
 )
-from campsverso_farm_sim.config import ENERGY, HUNGER, section
+from campsverso_farm_sim.config import ENERGY, HUNGER, optional, section
 
 
 @dataclass(frozen=True)
@@ -51,19 +51,39 @@ def grow_crops(ctx: SystemContext, ops: WorldOps) -> None:
     view = ctx.view
     stages = section(view, "stages")
     base = float(section(view, "growth")["points_per_watered_day"])
+    ripe_limit = stages.get("harvest_withers_after_days")  # a madura murcha sem colher (ADR-0062)
     for plot in view.entities("plot"):
         crop, stage = plot.attributes.get("crop"), plot.attributes.get("stage")
-        if crop is None or stage in ("madura", "murcha"):
+        if crop is None or stage == "murcha":
             continue
+        if stage == "madura":
+            if ripe_limit is None:
+                continue
+            ripe = int(plot.hidden.get("ripe_days") or 0) + 1
+            if ripe < int(ripe_limit):
+                ops.set_attributes(plot.entity_id, hidden={"ripe_days": ripe})
+                continue
+            ops.set_attributes(
+                plot.entity_id, visible={"stage": "murcha"}, hidden={"ripe_days": ripe}
+            )
+            ops.emit(
+                "campsverso.farm.crop.withered.v1",
+                {"plot_id": plot.entity_id, "crop": crop, "day": view.day, "dry_days": 0},
+            )
+            continue
+        info = section(view, "crops", str(crop))
+        needs_water = bool(info.get("needs_water", True))  # o alho cresce sem rega (oculto)
+        dry_limit = int(info.get("wither_after_dry_days", stages["wither_after_dry_days"]))
         points = float(plot.hidden.get("growth_points") or 0.0)
         dry = int(plot.hidden.get("dry_days") or 0)
-        if plot.attributes.get("watered_today"):
+        if plot.attributes.get("watered_today") or not needs_water:
             points += ops.apply_rules("growth_points", plot.entity_id, base)  # regras ocultas aqui
+            points += float(plot.hidden.get("bonus_points") or 0.0)  # o adubo deste plantio
             dry = 0
         else:
             dry += 1
         ops.set_attributes(plot.entity_id, hidden={"growth_points": points, "dry_days": dry})
-        if dry >= int(stages["wither_after_dry_days"]):
+        if dry >= dry_limit:
             ops.set_attributes(plot.entity_id, visible={"stage": "murcha"})
             ops.emit(
                 "campsverso.farm.crop.withered.v1",
@@ -101,12 +121,18 @@ def start_new_day(ctx: SystemContext, ops: WorldOps) -> None:
 
 
 def buyer_collect(ctx: SystemContext, ops: WorldOps) -> None:
-    """Às 22:00 o comprador esvazia a caixa e anota o que deve (ADR-0039)."""
+    """Às 22:00 o comprador esvazia a caixa e anota o que deve (ADR-0039). Com mercado, o valor
+    de cada venda já foi calculado na hora, pelo preço do dia (ADR-0062)."""
+    market = optional(ctx.view, "market")
     for box in ctx.view.entities("sell_box"):
         owed: dict[str, Any] = {}
         for item, qty in ctx.view.items(box.entity_id).items():
             ops.consume_item(item, qty, box.entity_id, "buyer_collect")
             owed[f"owed_{item}"] = int(box.hidden.get(f"owed_{item}") or 0) + qty
+            if market is not None:
+                value = float(box.hidden.get(f"value_{item}") or 0.0)
+                owed[f"due_{item}"] = round(float(box.hidden.get(f"due_{item}") or 0.0) + value, 2)
+                owed[f"value_{item}"] = 0.0
         if owed:
             ops.set_attributes(box.entity_id, hidden=owed)
 
@@ -123,11 +149,24 @@ def buyer_pay(ctx: SystemContext, ops: WorldOps) -> None:
         ]
         if not lines or not isinstance(payee, str):
             continue
+        market = optional(view, "market")
+        cleared: dict[str, Any] = {}
+        total = 0
         for line in lines:
-            line["unit_price"] = int(section(view, "items", str(line["item"]))["sale_price"])
-        total = sum(int(line["qty"]) * int(line["unit_price"]) for line in lines)
-        ops.create_item("moeda", total, payee, "payment")
-        ops.set_attributes(box.entity_id, hidden={f"owed_{line['item']}": 0 for line in lines})
+            item = str(line["item"])
+            base = int(section(view, "items", item)["sale_price"])
+            if market is None:
+                line["unit_price"] = base
+                total += int(line["qty"]) * base
+            else:  # o que cada venda valeu no dia, pelo preço que caía (ADR-0062)
+                value = round(float(box.hidden.get(f"due_{item}") or 0.0))
+                line["unit_price"] = max(1, round(value / int(line["qty"])))
+                total += value
+                cleared[f"due_{item}"] = 0.0
+            cleared[f"owed_{item}"] = 0
+        if total:
+            ops.create_item("moeda", total, payee, "payment")
+        ops.set_attributes(box.entity_id, hidden=cleared)
         ops.emit(
             "campsverso.farm.buyer.paid.v1",
             {"container_id": payee, "items": lines, "total": total, "day": view.day},
@@ -176,6 +215,64 @@ def starve(ctx: SystemContext, ops: WorldOps) -> None:
         if view.is_asleep(avatar_id) or view.need(avatar_id, HUNGER) < float(rule["at"]):
             continue
         ops.change_need(avatar_id, ENERGY, -float(rule["energy_per_hour"]))
+
+
+def kiosk_stock(ctx: SystemContext, ops: WorldOps) -> None:
+    """O estoque de sementes do dia, pelo ciclo do cenário (ADR-0062); o ciclo não é dito."""
+    view = ctx.view
+    cycle = section(view, "kiosk_cycle")
+    today = ((view.day - 1) % int(cycle["days"])) + 1
+    seeds = sorted(
+        str(seed)
+        for seed, days in cast(Mapping[str, Any], cycle["seeds"]).items()
+        if today in cast(list[int], days)
+    )
+    always = sorted(str(item) for item in cast(list[Any], cycle.get("always", [])))
+    stock = ", ".join(seeds + always)
+    for kiosk in view.entities("kiosk"):
+        ops.set_attributes(kiosk.entity_id, visible={"estoque_hoje": stock})
+
+
+def market_reset(ctx: SystemContext, ops: WorldOps) -> None:
+    """Na virada do dia, os preços voltam à tabela e a contagem do dia zera (ADR-0062)."""
+    view = ctx.view
+    items = section(view, "items")
+    for box in view.entities("sell_box"):
+        visible: dict[str, Any] = {}
+        hidden: dict[str, Any] = {}
+        for item, info in sorted(items.items()):
+            if info.get("category") != "colheita":
+                continue
+            visible[f"preco_{item}"] = int(info["sale_price"])
+            hidden[f"sold_{item}"] = 0
+        ops.set_attributes(box.entity_id, visible=visible, hidden=hidden)
+
+
+def build_extension_systems(data: Mapping[str, Any]) -> tuple[FarmSystem, ...]:
+    """Os sistemas que um cenário liga com as suas seções (ADR-0062)."""
+    day_start = str(data.get("clock", {}).get("day_starts_at", "06:00"))
+    systems: list[FarmSystem] = []
+    if "kiosk_cycle" in data:
+        systems.append(
+            FarmSystem(
+                "kiosk_stock",
+                "scheduled",
+                15,
+                (OnSessionStart(), DailyAt((day_start,))),
+                kiosk_stock,
+            )
+        )
+    if "market" in data:
+        systems.append(
+            FarmSystem(
+                "market_reset",
+                "scheduled",
+                25,  # depois do pagamento (20), antes do dia novo (30)
+                (OnSessionStart(), DailyAt((day_start,))),
+                market_reset,
+            )
+        )
+    return tuple(systems)
 
 
 def build_systems(data: Mapping[str, Any]) -> tuple[FarmSystem, ...]:

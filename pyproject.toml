@@ -20,6 +20,7 @@ dependencies = [
   "campsverso-farm-sim",
   "campsverso-farm-script",
   "campsverso-farm-camps-sim",
+  "campsverso-farm-boavista-sim",
   "campsverso-farm-mind",
   "campsverso-farm-camps-mind",
   "campsverso-tools",
@@ -52,6 +53,7 @@ members = [
   "cartridges/farm/mind",
   "cartridges/farm_camps/sim",
   "cartridges/farm_camps/mind",
+  "cartridges/farm_boavista/sim",
   "tools/contracts",
   "tests/support",
 ]
@@ -72,6 +74,7 @@ campsverso-budget = { workspace = true }
 campsverso-farm-sim = { workspace = true }
 campsverso-farm-script = { workspace = true }
 campsverso-farm-camps-sim = { workspace = true }
+campsverso-farm-boavista-sim = { workspace = true }
 campsverso-farm-mind = { workspace = true }
 campsverso-farm-camps-mind = { workspace = true }
 campsverso-tools = { workspace = true }
@@ -142,6 +145,7 @@ root_packages = [
   "campsverso_farm_sim",
   "campsverso_farm_script",
   "campsverso_farm_camps_sim",
+  "campsverso_farm_boavista_sim",
   "campsverso_farm_mind",
   "campsverso_farm_camps_mind",
   "campsverso_tools",
@@ -165,6 +169,7 @@ forbidden_modules = [
   "campsverso_farm_sim",
   "campsverso_farm_script",
   "campsverso_farm_camps_sim",
+  "campsverso_farm_boavista_sim",
   "campsverso_farm_mind",
   "campsverso_farm_camps_mind",
   "campsverso_tools",
@@ -188,6 +193,7 @@ forbidden_modules = [
   "campsverso_farm_sim",
   "campsverso_farm_script",
   "campsverso_farm_camps_sim",
+  "campsverso_farm_boavista_sim",
   "campsverso_tools",
   "campsverso_testkit",
 ]
@@ -219,6 +225,7 @@ forbidden_modules = [
   "campsverso_farm_sim",
   "campsverso_farm_script",
   "campsverso_farm_camps_sim",
+  "campsverso_farm_boavista_sim",
   "campsverso_farm_mind",
   "campsverso_farm_camps_mind",
 ]
@@ -239,12 +246,13 @@ forbidden_modules = [
   "campsverso_budget",
   "campsverso_farm_sim",
   "campsverso_farm_camps_sim",
+  "campsverso_farm_boavista_sim",
 ]
 
 [[tool.importlinter.contracts]]
 name = "Cartuchos mudam o mundo só pela cartridge-api (ADR-0025)"
 type = "forbidden"
-source_modules = ["campsverso_farm_sim", "campsverso_farm_camps_sim"]
+source_modules = ["campsverso_farm_sim", "campsverso_farm_camps_sim", "campsverso_farm_boavista_sim"]
 forbidden_modules = [
   "campsverso_adapters",
   "campsverso_kernel",
@@ -259,7 +267,11 @@ forbidden_modules = [
 name = "A base não conhece quem a estende (ADR-0031)"
 type = "forbidden"
 source_modules = ["campsverso_farm_sim", "campsverso_farm_mind"]
-forbidden_modules = ["campsverso_farm_camps_sim", "campsverso_farm_camps_mind"]
+forbidden_modules = [
+  "campsverso_farm_camps_sim",
+  "campsverso_farm_camps_mind",
+  "campsverso_farm_boavista_sim",
+]
 
 [[tool.importlinter.contracts]]
 name = "Contratos e interfaces não dependem de implementações"
@@ -279,6 +291,7 @@ forbidden_modules = [
   "campsverso_farm_sim",
   "campsverso_farm_script",
   "campsverso_farm_camps_sim",
+  "campsverso_farm_boavista_sim",
   "campsverso_tools",
 ]
 
@@ -299,6 +312,7 @@ forbidden_modules = [
   "campsverso_farm_sim",
   "campsverso_farm_script",
   "campsverso_farm_camps_sim",
+  "campsverso_farm_boavista_sim",
   "campsverso_tools",
   "campsverso_testkit",
 ]
@@ -356,6 +370,7 @@ source_modules = [
   "campsverso_farm_sim",
   "campsverso_farm_script",
   "campsverso_farm_camps_sim",
+  "campsverso_farm_boavista_sim",
   "campsverso_farm_mind",
   "campsverso_farm_camps_mind",
 ]

@@ -27,3 +27,17 @@ def section(view: WorldView, *path: str) -> Mapping[str, Any]:
     for key in path:
         node = node[key]
     return cast(Mapping[str, Any], node)
+
+
+def optional(view: WorldView, *path: str) -> Mapping[str, Any] | None:
+    """Uma seção que só alguns cenários têm (tools, market, recipes...), ou None."""
+    node: Any = farm(view)
+    for key in path:
+        if not isinstance(node, Mapping) or key not in node:
+            return None
+        node = cast(Mapping[str, Any], node)[key]
+    return cast(Mapping[str, Any], node) if isinstance(node, Mapping) else None
+
+
+def ticks_per_hour(view: WorldView) -> int:
+    return 3600 // int(section(view, "clock")["tick_seconds"])

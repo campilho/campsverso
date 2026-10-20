@@ -19,8 +19,8 @@ WORLD = "farm-camps-01"
 SCRIPT_ID = "script/farmer-v1"
 
 
-def rules(*, river_bonus: bool = True) -> tuple[RuleConfig, ...]:
-    path = discover()["farm_camps"].rules_file()
+def rules(*, river_bonus: bool = True, cartridge: str = "farm_camps") -> tuple[RuleConfig, ...]:
+    path = discover()[cartridge].rules_file()
     assert path is not None
     configs = YamlFlags(path).rules()
     return tuple(
@@ -28,10 +28,17 @@ def rules(*, river_bonus: bool = True) -> tuple[RuleConfig, ...]:
     )
 
 
-def make_core(seed: int = 20261010, *, river_bonus: bool = True) -> KernelCore:
-    definition = build_world("farm_camps")
+def make_core(
+    seed: int = 20261010, *, river_bonus: bool = True, cartridge: str = "farm_camps"
+) -> KernelCore:
+    """A Fazenda do Camps por padrão; `cartridge="farm_boavista"` monta a Fazenda Boa Vista."""
+    definition = build_world(cartridge)
+    world = WORLD if cartridge == "farm_camps" else f"{cartridge.replace('_', '-')}-01"
     core = KernelCore(
-        definition, WorldConfig(WORLD, seed, START), rules(river_bonus=river_bonus), "test"
+        definition,
+        WorldConfig(world, seed, START),
+        rules(river_bonus=river_bonus, cartridge=cartridge),
+        "test",
     )
     return core
 
@@ -51,6 +58,11 @@ class Farmer:
         for _ in range(ticks):
             self.core.step()
             self._collect()
+
+    def advance(self, ticks: int, *, jump: bool = True) -> None:
+        """Avança `ticks` (saltando o que não acontece) e recolhe os fatos: as viradas do dia."""
+        self.core.advance(ticks, jump=jump)
+        self._collect()
 
     def until(self, hhmm: str) -> None:
         self.run(self.core.calendar.ticks_until(self.core.tick, int(hhmm[:2]) * 60 + int(hhmm[3:])))

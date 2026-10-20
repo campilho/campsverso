@@ -1,0 +1,49 @@
+[project]
+name = "campsverso-farm-boavista-sim"
+version = "0.1.0.dev0"
+description = "Cartucho farm_boavista (a Fazenda Boa Vista, M13): estende farm_camps (ADR-0062)."
+requires-python = ">=3.14"
+license = "MIT"
+dependencies = [
+  "campsverso-contracts",
+  "campsverso-cartridge-api",
+  "pyyaml>=6",
+  "campsverso-farm-sim",
+  "campsverso-farm-camps-sim",
+]
+
+[project.entry-points."campsverso.cartridges"]
+farm_boavista = "campsverso_farm_boavista_sim:cartridge"
+
+[build-system]
+requires = ["uv_build>=0.13,<0.14"]
+build-backend = "uv_build"
+
+# Determinismo (princípio 4): este pacote roda dentro da simulação.
+# O ruff não mescla esta tabela com a da raiz, então ela repete as proibições de SDK.
+[tool.ruff]
+extend = "../../../pyproject.toml"
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"nats".msg = "SDK externo: só em libs/adapters ou no main.py do serviço (princípio 3)."
+"fastapi".msg = "SDK externo: só em libs/adapters ou no main.py do serviço (princípio 3)."
+"starlette".msg = "SDK externo: só em libs/adapters ou no main.py do serviço (princípio 3)."
+"uvicorn".msg = "SDK externo: só em libs/adapters ou no main.py do serviço (princípio 3)."
+"websockets".msg = "SDK externo: só em libs/adapters ou no main.py do serviço (princípio 3)."
+"sqlite3".msg = "SDK externo: só em libs/adapters ou no main.py do serviço (princípio 3)."
+"time.time".msg = "Relógio de parede proibido na simulação (princípio 4): use o tick."
+"time.time_ns".msg = "Relógio de parede proibido na simulação (princípio 4): use o tick."
+"time.monotonic".msg = "Relógio de parede proibido na simulação (princípio 4): use o tick."
+"time.monotonic_ns".msg = "Relógio de parede proibido na simulação (princípio 4): use o tick."
+"time.perf_counter".msg = "Relógio de parede proibido na simulação (princípio 4): use o tick."
+"time.perf_counter_ns".msg = "Relógio de parede proibido na simulação (princípio 4): use o tick."
+"datetime.datetime.now".msg = "Relógio de parede proibido na simulação (princípio 4): use o tick."
+"datetime.datetime.utcnow".msg = "Relógio de parede proibido na simulação (princípio 4): use o tick."
+"datetime.datetime.today".msg = "Relógio de parede proibido na simulação (princípio 4): use o tick."
+"datetime.date.today".msg = "Relógio de parede proibido na simulação (princípio 4): use o tick."
+"random".msg = "Aleatoriedade fora do RNG nomeado é proibida na simulação (princípio 4)."
+"secrets".msg = "Aleatoriedade fora do RNG nomeado é proibida na simulação (princípio 4)."
+"os.urandom".msg = "Aleatoriedade fora do RNG nomeado é proibida na simulação (princípio 4)."
+"uuid.uuid1".msg = "Aleatoriedade fora do RNG nomeado é proibida na simulação (princípio 4)."
+"uuid.uuid4".msg = "Aleatoriedade fora do RNG nomeado é proibida na simulação (princípio 4)."
+"uuid.uuid7".msg = "Aleatoriedade fora do RNG nomeado é proibida na simulação (princípio 4)."

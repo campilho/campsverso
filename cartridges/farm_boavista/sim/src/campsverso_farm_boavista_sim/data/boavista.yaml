@@ -1,0 +1,127 @@
+# A Fazenda Boa Vista (bíblia 2; ADR-0062): os números e as mecânicas que o cenário liga sobre o
+# gênero farm. Mesclado no namespace `farm` por cima do farm.yaml do gênero; as seções novas
+# (tools, digging, fertilizer, recipes, cooking, market, kiosk_cycle) ligam código do gênero que
+# a fazenda 1 não usa. Regras ocultas aqui dentro (needs_water, wither_after_dry_days por
+# cultura, shelf_life_factor do baú, satiety do ensopado, o tamanho do adubo, o ciclo) nunca vão
+# para o manual da mente: só os efeitos são visíveis.
+
+movement:
+  energy_per_tile: 0.05  # 1 de energia a cada 20 tiles (bíblia 2, §2)
+
+kinds:  # capacidade, fator de validade, peso e atributos por tipo (ADR-0062)
+  avatar: {capacity: 20}
+  chest: {blocking: true, capacity: 100, shelf_life_factor: 2}  # o baú conserva (oculto)
+  stove: {blocking: true}
+  spade: {weight: 3}
+  watering_can: {weight: 4, attributes: {charges: 10, capacity: 10}}
+  watering_can_large: {weight: 9, attributes: {charges: 25, capacity: 25}}
+  plow: {weight: 12}
+
+tools:
+  spade_kind: spade
+  plow_kind: plow
+  watering_cans: [watering_can_large, watering_can]  # o maior primeiro, quando tem carga
+  storable: [spade, watering_can, watering_can_large, plow]  # vão para o baú pelo id
+  for_sale:
+    watering_can_large: {price: 150}
+    plow: {price: 300}
+
+digging:
+  max_plots: 32
+  tile_kind: grass  # onde se pode cavar
+  east_from_x: 16  # o grupo visível do canteiro (oeste/leste), como na fazenda 1
+
+fertilizer:
+  item: adubo
+  bonus_points: 0.5  # por dia regado, no plantio seguinte (o manual diz "faz crescer melhor")
+
+cooking:
+  stove_kind: stove
+
+recipes:
+  sopa_de_batata: {ingredients: {batata: 2}, duration: 10, energy: 2, dish: sopa_de_batata}
+  ensopado: {ingredients: {batata: 1, cenoura: 1, alho: 1}, duration: 20, energy: 2, dish: ensopado}
+  pure_de_abobora: {ingredients: {abobora: 1}, duration: 15, energy: 2, dish: pure_de_abobora}
+
+market:  # cada `step` unidades da mesma colheita vendidas no dia derrubam o preço `drop`, até `floor`
+  step: 5
+  drop: 0.10
+  floor: 0.5
+
+kiosk_cycle:  # dias do ciclo em que cada semente aparece; o resto do quiosque, todo dia
+  days: 6
+  seeds:
+    semente_rabanete: [1, 2, 3, 4, 5, 6]
+    semente_cenoura: [1, 2, 3, 4, 5, 6]
+    semente_batata: [1, 3, 5]
+    semente_alho: [2, 4, 6]
+    semente_tomate: [2, 5]
+    semente_abobora: [1, 4]
+    semente_morango: [3]
+  always: [adubo]
+
+items:
+  moeda: {category: moeda}
+  semente_rabanete: {category: semente, crop: rabanete, price: 10, weight: 0.1}
+  semente_batata: {category: semente, crop: batata, price: 20, weight: 0.1}
+  semente_abobora: {category: semente, crop: abobora, price: 40, weight: 0.1}
+  semente_cenoura: {category: semente, crop: cenoura, price: 15, weight: 0.1}
+  semente_morango: {category: semente, crop: morango, price: 60, weight: 0.1}
+  semente_tomate: {category: semente, crop: tomate, price: 30, weight: 0.1}
+  semente_alho: {category: semente, crop: alho, price: 12, weight: 0.1}
+  rabanete: {category: colheita, sale_price: 25, hunger: 25, weight: 0.5, shelf_life_days: 4}
+  batata: {category: colheita, sale_price: 50, hunger: 35, weight: 0.5, shelf_life_days: 10}
+  abobora: {category: colheita, sale_price: 104, hunger: 50, weight: 2, shelf_life_days: 30}
+  cenoura: {category: colheita, sale_price: 20, hunger: 15, weight: 0.5, shelf_life_days: 6}
+  morango: {category: colheita, sale_price: 90, hunger: 20, weight: 0.5, shelf_life_days: 2}
+  tomate: {category: colheita, sale_price: 70, hunger: 30, weight: 0.5, shelf_life_days: 3}
+  alho: {category: colheita, sale_price: 40, hunger: 10, weight: 0.5, shelf_life_days: 60}
+  adubo: {category: adubo, price: 15, weight: 1}
+  sopa_de_batata: {category: prato, hunger: 90, weight: 0.5, shelf_life_days: 2}
+  ensopado: {category: prato, hunger: 110, weight: 0.5, shelf_life_days: 2, satiety: {factor: 0.5, hours: 8}}
+  pure_de_abobora: {category: prato, hunger: 60, weight: 0.5, shelf_life_days: 2}
+
+crops:
+  rabanete: {seed: semente_rabanete, points_to_mature: 3}
+  batata: {seed: semente_batata, points_to_mature: 5}
+  abobora: {seed: semente_abobora, points_to_mature: 8}
+  cenoura: {seed: semente_cenoura, points_to_mature: 4}
+  morango: {seed: semente_morango, points_to_mature: 6}
+  tomate: {seed: semente_tomate, points_to_mature: 4, wither_after_dry_days: 1}  # oculto
+  alho: {seed: semente_alho, points_to_mature: 7, needs_water: false}  # oculto
+
+stages:
+  harvest_withers_after_days: 3  # a madura murcha depois de 3 dias sem colher (visível)
+
+actions:  # os novos, e as variantes com o arado
+  dig: {duration: 15, energy: 8, interrupt: never, with_plow: {duration: 5, energy: 8}}
+  plant: {duration: 5, energy: 2, interrupt: never, with_plow: {duration: 1, energy: 1}}
+  fertilize: {duration: 3, energy: 1, interrupt: never}
+  cook: {duration: 10, energy: 2, interrupt: never}  # a duração de verdade é a da receita
+
+affordances:  # o que entra no menu além do que o gênero já tem (ADR-0051)
+  - {action: dig, label: Cavar um canteiro aqui, kinds: [self], target: false}
+  - {action: fertilize, label: Adubar, kinds: [plot]}
+  - action: cook
+    label: Cozinhar
+    kinds: [stove]
+    params: [{name: recipe, label: Receita, choices: [sopa_de_batata, ensopado, pure_de_abobora]}]
+  - action: buy
+    label: Comprar
+    kinds: [kiosk]
+    params:
+      - {name: item, label: Item, choices: [semente_rabanete, semente_batata, semente_abobora, semente_cenoura, semente_morango, semente_tomate, semente_alho, adubo, watering_can_large, plow]}
+      - {name: qty, label: Quantidade, minimum: 1, default: 1}
+  - action: eat
+    label: Comer
+    kinds: [self]
+    target: false
+    params: [{name: item, label: Comida, choices: {category: [colheita, prato]}, source: inventory}]
+
+metrics:  # além das do gênero (ADR-0054)
+  - {id: refeicoes, label: Refeições cozinhadas, kind: count, event: campsverso.action.completed.v1,
+     where: {action: cook}, by: {field: params.recipe}}
+  - {id: estragos, label: Itens estragados, kind: count, event: campsverso.world.item.consumed.v1,
+     where: {reason: spoiled}, by: {field: item}}
+  - {id: canteiros, label: Canteiros cavados, kind: count, event: campsverso.action.completed.v1,
+     where: {action: dig}}

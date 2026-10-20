@@ -483,6 +483,10 @@ class World:
     def tiles_with(self, tile_property: str) -> Sequence[Position]:
         return self.definition.grid.tiles_with(tile_property)
 
+    def tile_kind(self, position: Position) -> str | None:
+        grid = self.definition.grid
+        return grid.tile_kinds[position.y][position.x] if grid.in_bounds(position) else None
+
     def rng(self, stream: str) -> SplitMix64:
         return self._rng.get(stream)
 
