@@ -31,6 +31,7 @@ GROUPS = {"plot-w-": "oeste", "plot-e-": "leste"}
 # dela, pela posição. O agente nunca vê isso.
 RIVER_BAND = 4
 GROUP_ORDER = ("oeste", "leste", "rio", "fora")
+RIVER_GROUPS = ("leste", "rio")  # o grupo que a R-001 favorece, em cada mundo
 SALE_FLOOR = 0.8  # vender abaixo de 80% do preço de tabela é inundar a caixa (bíblia 2 §13)
 AVATAR = "camps"
 
@@ -43,12 +44,15 @@ def read_archive(folder: Path) -> Iterator[dict[str, Any]]:
             yield json.loads(line)
 
 
-def _group(plot: str, groups: Mapping[str, str] | None = None) -> str:
+def group_of(plot: str, groups: Mapping[str, str] | None = None) -> str:
     """O grupo de um canteiro: o que `compute` lhe deu quando ele nasceu (o atributo `group`, ou
     a faixa do rio pela posição) ou, na fazenda 1, o prefixo do id."""
     if groups and plot in groups:
         return groups[plot]
     return next((name for prefix, name in GROUPS.items() if plot.startswith(prefix)), "outro")
+
+
+_group = group_of
 
 
 def water_tiles(terrain: Mapping[str, Any]) -> list[tuple[int, int]]:
@@ -68,6 +72,29 @@ def river_group(position: Mapping[str, Any], water: Sequence[tuple[int, int]]) -
     x, y = int(position["x"]), int(position["y"])
     near = any(max(abs(x - wx), abs(y - wy)) <= RIVER_BAND for wx, wy in water)
     return "rio" if near else "fora"
+
+
+def plot_groups(envelopes: Iterable[Mapping[str, Any]]) -> dict[str, str]:
+    """O grupo de cada canteiro de um arquivo, para quem o lê fora de `compute` (a arena): o
+    atributo `group` com que nasceu (fazenda 1) ou a faixa do rio pela posição e pela água do
+    mapa do `session.started` (Boa Vista)."""
+    groups: dict[str, str] = {}
+    water: list[tuple[int, int]] = []
+    for envelope in envelopes:
+        kind = str(envelope.get("type", ""))
+        data = cast(Mapping[str, Any], envelope.get("data") or {})
+        if kind == "campsverso.world.session.started.v1":
+            water = water_tiles(cast(Mapping[str, Any], data.get("map") or {}))
+        elif kind == "campsverso.world.entity.spawned.v1" and data.get("kind") == "plot":
+            attributes = cast(Mapping[str, Any], data.get("attributes") or {})
+            group, position = attributes.get("group"), data.get("position")
+            if isinstance(group, str):
+                groups[str(data["entity_id"])] = group
+            elif isinstance(position, Mapping) and water:
+                groups[str(data["entity_id"])] = river_group(
+                    cast(Mapping[str, Any], position), water
+                )
+    return groups
 
 
 @dataclass

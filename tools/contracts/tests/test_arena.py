@@ -203,3 +203,122 @@ def test_o_relatorio_poe_as_corridas_lado_a_lado(tmp_path: Path) -> None:
 def test_sem_corridas_avisa(tmp_path: Path) -> None:
     assert main([str(tmp_path)]) == 2
     assert main([str(tmp_path / "nao-existe")]) == 2
+
+
+# ----------------------------------------------------------------- a Boa Vista (M14, ADR-0063)
+
+BOAVISTA_MAP = {
+    "rows": ["GGGGGGRR", "GGGGGGRR"],
+    "legend": {
+        "G": {"kind": "grass", "properties": {"water": False}},
+        "R": {"kind": "river", "properties": {"water": True}},
+    },
+}
+
+
+def dug(tick: int, plot_id: str, x: int, y: int) -> dict[str, Any]:
+    return ev(
+        tick,
+        "world.entity.spawned.v1",
+        entity_id=plot_id,
+        kind="plot",
+        position={"x": x, "y": y},
+        attributes={},
+        action_id=f"act-{plot_id}",
+    )
+
+
+def done(tick: int, action: str, **params: Any) -> dict[str, Any]:
+    return ev(tick, "action.completed.v1", action=action, params=params)
+
+
+DAY5 = 4 * 1440
+BOAVISTA_RUN: list[dict[str, Any]] = [
+    ev(0, "world.session.started.v1", tick_seconds=60, map=BOAVISTA_MAP),
+    ev(0, "world.item.created.v1", item="moeda", qty=100, container_id="camps"),
+    dug(30, "plot-01", 1, 0),  # a 5 da água: fora da faixa
+    mem(60, "memory.noted.v1", day=1, text="Cavei um canteiro perto da casa e plantei alho."),
+    done(70, "plant", target="plot-01", crop="alho"),
+    done(80, "water", target="plot-01"),
+    done(90, "fertilize", target="plot-01"),
+    ev(2880, "world.clock.phase_changed.v1"),
+    dug(DAY5 + 100, "plot-02", 2, 1),  # a 4 da água: na faixa do rio
+    mem(
+        DAY5 + 200,
+        "memory.noted.v1",
+        day=5,
+        text="Os canteiros perto do rio parecem amadurecer antes. O alho cresceu sem rega.",
+    ),
+    belief(DAY5 + 300, "formed", "bel-0001", "Canteiros perto do rio amadurecem mais rápido.", 0.8),
+    belief(DAY5 + 310, "formed", "bel-0002", "O tomate murcha com um dia seco.", 0.7),
+    done(DAY5 + 400, "plant", target="plot-02", crop="tomate"),
+    ev(DAY5 + 500, "farm.crop.withered.v1", plot_id="plot-02", crop="tomate", day=5, dry_days=1),
+    done(DAY5 + 600, "cook", target="stove", recipe="ensopado"),
+    done(DAY5 + 610, "deposit", target="chest", item="rabanete", qty=2),
+    done(DAY5 + 700, "harvest", target="plot-01"),
+    ev(8640, "world.clock.phase_changed.v1"),
+]
+
+
+def test_na_boa_vista_os_sinais_sao_do_rio_e_das_outras_regras() -> None:
+    """ADR-0063: o rio pela posição (sem grupo no canteiro), os canteiros cavados na faixa, e
+    cada regra oculta pela primeira anotação, a primeira crença e o comportamento."""
+    east = east_signals(BOAVISTA_RUN)
+    assert (east["river"], east["groups"]) == ("rio", ["rio", "fora"])
+    assert east["digs"]["days_1_3"] == {"rio": 0, "fora": 1, "east_fraction": 0.0}
+    assert east["digs"]["from_day_4"] == {"rio": 1, "fora": 0, "east_fraction": 1.0}
+    assert (east["first_band_dig"]["day"], east["first_band_dig"]["plot"]) == (5, "plot-02")
+    assert east["first_note"]["day"] == 5  # "perto da casa" não é o rio
+    assert east["first_discovery_note"]["day"] == 5  # "perto do rio ... amadurecer antes"
+    assert (east["discovered"], east["discovered_by"]) == (True, "bel-0001")
+    assert east["plantings"]["from_day_4"] == {"rio": 1, "fora": 0, "east_fraction": 1.0}
+    assert east["harvests"]["from_day_4"] == {"rio": 0, "fora": 1, "east_fraction": 0.0}
+    rules = east["rules"]
+    assert rules["alho"]["first_note"]["day"] == 5
+    assert rules["alho"]["first_belief"] is None
+    assert rules["tomate"]["first_note"] is None
+    assert rules["tomate"]["first_belief"]["belief_id"] == "bel-0002"
+    assert all(
+        rules[name] == {"first_note": None, "first_belief": None}
+        for name in ("bau", "ensopado", "adubo")
+    )
+    assert east["behaviour"] == {
+        "alho_planted": 1,
+        "alho_waterings": 1,
+        "deposits": 1,
+        "ensopados": 1,
+        "fertilized": 1,
+        "tomate_planted": 1,
+        "tomate_withered": 1,
+    }
+
+
+def test_o_relatorio_da_boa_vista_fala_do_rio_e_das_linhas_novas(tmp_path: Path) -> None:
+    arena = tmp_path / "20261021-2000"
+    spec = {
+        "name": "sonnet-memoria",
+        "controller": "llm",
+        "memory": True,
+        "river_bonus": True,
+        "seed": 20261019,
+        "cartridge": "farm_boavista",
+        "model": "claude-sonnet-5-5",
+        "days": 30,
+        "limits": {"usd_per_sim_day": 1.5, "usd_total": 25.0},
+    }
+    _run(arena, "sonnet-memoria", spec, BOAVISTA_RUN)
+    out = tmp_path / "relatorio.md"
+    assert main([str(arena), "--out", str(out)]) == 0
+    text = out.read_text(encoding="utf-8")
+    assert "no mesmo mundo (`farm-boavista-01`)" in text
+    assert "| Sonnet 5.5 |" in text
+    assert "| 1,50 · 25 |" in text
+    assert "Colheitas (rio / fora)" in text
+    assert "Canteiros cavados (rio / fora)" in text
+    assert "## Quem descobriu o rio" in text
+    assert "Primeiro canteiro na faixa do rio | dia 5" in text
+    alho = "anotação dia 5; nenhuma crença; plantou 1, regou 1 vez(es)"
+    assert f"Regra oculta: o alho não precisa de rega | {alho}" in text
+    tomate = "nenhuma anotação; crença dia 5 (0,70); plantou 1, murcharam 1"
+    assert f"Regra oculta: o tomate murcha com um dia seco | {tomate}" in text
+    assert "Parou no teto de orçamento | não" in text

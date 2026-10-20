@@ -1,13 +1,17 @@
 """A arena (ADR-0061): as corridas de 30 dias em processo, uma por controlador, lado a lado.
 
-    uv run --env-file .env python -m campsverso_testkit.arena --days 30 [--only NOME] [--out PASTA]
+    uv run --env-file .env python -m campsverso_testkit.arena --days 30 [--rodada boavista]
+        [--only NOME] [--out PASTA]
 
 Sobre o `make corrida` do M11: o pipeline em memória (kernel, percepção, mente, medidor e guarda),
 com o mundo esperando cada resposta por construção. As corridas rodam em sequência, cada uma na
-sua pasta: o script da bíblia §11, o Haiku 5.5 sem memória (M10), o Haiku 5.5 com memória (M11)
-em quatro seeds e o Haiku 5.5 com memória sem a regra R-001, como controle. Uma pasta com
-`summary.json` é uma corrida feita: rodar de novo só completa as que faltam. Depois,
-`make arena-report` escreve o relatório. O CI nunca roda isto.
+sua pasta. A rodada `camps` (M12) é a fazenda 1: o script da bíblia §11, o Haiku 5.5 sem memória
+(M10), o Haiku 5.5 com memória (M11) em quatro seeds e o Haiku 5.5 com memória sem a regra R-001,
+como controle. A rodada `boavista` (M14, ADR-0063) é a Fazenda Boa Vista: o fazendeiro-script 2,
+o Haiku com memória em quatro seeds e sem a regra, o Sonnet e o Opus, cada corrida com os seus
+dias e o seu teto de orçamento. Uma pasta com `summary.json` é uma corrida feita, e uma pasta que
+existe é uma corrida tomada: rodar de novo só completa as que faltam, e dois processos em paralelo
+dividem a rodada sozinhos. Depois, `make arena-report` escreve o relatório. O CI nunca roda isto.
 """
 
 import argparse
@@ -22,14 +26,19 @@ from pathlib import Path
 from typing import Any, Literal
 
 from campsverso_adapters import AnthropicModel, RecordingModel, SqliteMemory, SystemWallClock
+from campsverso_budget.ledger import BudgetLimits
 from campsverso_ports import MemoryPort, ModelPort
 from campsverso_testkit.fita import LIMITS, summary
 from campsverso_testkit.nats_server import REPO
-from campsverso_testkit.pipeline import MODEL, Pipeline
+from campsverso_testkit.pipeline import MODEL, DeadlockError, Pipeline
 from campsverso_tools.arena import east_signals
 from campsverso_tools.metrics import compute, table
 
 SEED = 20261010  # o mesmo dos testes e do mundo oficial
+SEED_BOAVISTA = 20261019  # o do mundo farm-boavista-01
+BOAVISTA = "farm_boavista"
+SONNET = "claude-sonnet-5-5"
+OPUS = "claude-opus-5-5"
 
 
 @dataclass(frozen=True)
@@ -43,6 +52,8 @@ class Spec:
     seed: int = SEED
     cartridge: str = "farm_camps"  # a Fazenda do Camps; farm_boavista é a fazenda 2 (M14)
     model: str = MODEL
+    days: int | None = None  # os dias da corrida (a rodada da Boa Vista); sem isto, os de --days
+    limits: BudgetLimits | None = None  # o teto da corrida; sem isto, o do Haiku (LIMITS)
 
 
 SPECS: tuple[Spec, ...] = (
@@ -56,33 +67,66 @@ SPECS: tuple[Spec, ...] = (
 )
 
 
+def _boavista(name: str, **overrides: Any) -> Spec:
+    """Uma corrida da mente com memória na Boa Vista, por 30 dias, na seed do mundo."""
+    base: dict[str, Any] = {
+        "controller": "llm",
+        "memory": True,
+        "seed": SEED_BOAVISTA,
+        "cartridge": BOAVISTA,
+        "days": 30,
+    }
+    return Spec(name, **(base | overrides))
+
+
+# A segunda rodada (M14, ADR-0063): Sonnet e Opus por 30 dias, com tetos que dizem até onde
+# cabem (uns US$ 0,60 e 0,95 por dia pela conta do plano); ARENA_DIAS limita todos.
+SPECS_BOAVISTA: tuple[Spec, ...] = (
+    Spec("script2", "script", seed=SEED_BOAVISTA, cartridge=BOAVISTA, days=30),
+    _boavista("haiku-memoria"),
+    _boavista("haiku-memoria-s2", seed=SEED_BOAVISTA + 1),
+    _boavista("haiku-memoria-s3", seed=SEED_BOAVISTA + 2),
+    _boavista("haiku-memoria-s4", seed=SEED_BOAVISTA + 3),
+    _boavista("haiku-memoria-sem-regra", river_bonus=False),
+    _boavista("sonnet-memoria", model=SONNET, limits=BudgetLimits(1.50, 25.0)),
+    _boavista("opus-memoria", model=OPUS, limits=BudgetLimits(2.50, 35.0)),
+)
+ROUNDS: dict[str, tuple[Spec, ...]] = {"camps": SPECS, "boavista": SPECS_BOAVISTA}
+
+
 def _say(line: str, log: Path) -> None:
     print(line, flush=True)
     with log.open("a", encoding="utf-8") as handle:
         handle.write(line + "\n")
 
 
-async def run_spec(spec: Spec, days: int, out: Path) -> dict[str, Any]:
+async def run_spec(
+    spec: Spec, days: int, out: Path, *, port: ModelPort | None = None
+) -> dict[str, Any]:
     """Roda uma corrida e grava a pasta dela: `summary.json` (o resumo, o `spec`, os totais da
-    bíblia e os sinais do leste), `metrics.txt`, `archive.jsonl` e, com modelo, `llm.jsonl` (a
-    fita inteira) e `memory.sqlite`. Devolve o resumo. Se a mente desistir (três falhas seguidas),
-    a corrida para no dia em que isso aconteceu, marcado em `aborted_day`."""
+    bíblia e os sinais do leste ou do rio), `metrics.txt`, `archive.jsonl` e, com modelo,
+    `llm.jsonl` (a fita inteira) e `memory.sqlite`. Devolve o resumo. Se a mente desistir (três
+    falhas seguidas), a corrida para no dia em que isso aconteceu, marcado em `aborted_day`; se
+    bater no teto de orçamento, idem, em `budget_day`. `port` troca a API por uma porta falsa
+    (só os testes)."""
     out.mkdir(parents=True, exist_ok=True)
     log = out / "progresso.txt"
     clock = SystemWallClock()
-    port: ModelPort | None = None
     api: AnthropicModel | None = None
     notebook: MemoryPort | bool = False
     if spec.controller == "llm":
-        api = AnthropicModel(clock=clock)
-        port = RecordingModel(api, out / "llm.jsonl", "record", clock=clock)
+        inner: ModelPort = port if port is not None else AnthropicModel(clock=clock)
+        api = inner if isinstance(inner, AnthropicModel) else None
+        port = RecordingModel(inner, out / "llm.jsonl", "record", clock=clock)
         notebook = SqliteMemory(out / "memory.sqlite") if spec.memory else False
+    else:
+        port = None
     pipeline = Pipeline(
         spec.seed,
         controller=spec.controller,
         river_bonus=spec.river_bonus,
         port=port,
-        budget=LIMITS if port is not None else None,
+        budget=(spec.limits or LIMITS) if port is not None else None,
         memory=notebook,
         cartridge=spec.cartridge,
         model=spec.model,
@@ -96,8 +140,21 @@ async def run_spec(spec: Spec, days: int, out: Path) -> dict[str, Any]:
     )
     await pipeline.start()
     aborted: int | None = None
+    budget_day: int | None = None
     for day in range(1, days + 1):
-        await pipeline.run_days(1)
+        try:
+            await pipeline.run_days(1)
+        except DeadlockError:
+            partial = summary(pipeline)
+            if not partial["budget_exceeded"]:
+                raise
+            budget_day = day  # a guarda pausou o mundo no teto (ADR-0058): o dia fica pela metade
+            _say(
+                f"{spec.name}: bateu no teto de orçamento no dia {day} "
+                f"(US$ {partial['cost_usd']:.2f}); a corrida para aqui",
+                log,
+            )
+            break
         partial = summary(pipeline)
         elapsed = (datetime.now(UTC) - started).total_seconds()
         _say(
@@ -110,6 +167,10 @@ async def run_spec(spec: Spec, days: int, out: Path) -> dict[str, Any]:
             aborted = day
             _say(f"{spec.name}: a mente desistiu no dia {day}; a corrida para aqui", log)
             break
+        if partial["budget_exceeded"]:  # o teto chegou no fim do dia, sem travar o relógio
+            budget_day = day
+            _say(f"{spec.name}: bateu no teto de orçamento no dia {day}; a corrida para aqui", log)
+            break
     if api is not None:
         await api.aclose()  # antes de o laço desta corrida fechar
     report = compute(pipeline.envelopes)
@@ -117,6 +178,7 @@ async def run_spec(spec: Spec, days: int, out: Path) -> dict[str, Any]:
         "spec": asdict(spec),
         **summary(pipeline),
         "aborted_day": aborted,
+        "budget_day": budget_day,
         "real_seconds": round((datetime.now(UTC) - started).total_seconds(), 1),
         "totals": report.totals(),
         "east": east_signals(pipeline.envelopes),
@@ -134,11 +196,16 @@ async def run_spec(spec: Spec, days: int, out: Path) -> dict[str, Any]:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="campsverso_testkit.arena")
-    parser.add_argument("--days", type=int, default=30)
+    parser.add_argument("--days", type=int, default=30, help="o teto de dias de cada corrida")
+    parser.add_argument(
+        "--rodada",
+        choices=sorted(ROUNDS),
+        default="camps",
+        help="a lista de corridas: camps (a fazenda 1, M12) ou boavista (a fazenda 2, M14)",
+    )
     parser.add_argument(
         "--only",
         action="append",
-        choices=[s.name for s in SPECS],
         help="só esta corrida (repetível); sem isto, todas, em sequência",
     )
     parser.add_argument(
@@ -146,7 +213,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     only: list[str] = list(args.only or [])
-    specs = [s for s in SPECS if not only or s.name in only]
+    names = [s.name for s in ROUNDS[args.rodada]]
+    if unknown := sorted(set(only) - set(names)):
+        parser.error(f"corrida(s) fora da rodada {args.rodada}: {', '.join(unknown)}")
+    specs = [s for s in ROUNDS[args.rodada] if not only or s.name in only]
     if any(s.controller == "llm" for s in specs) and not os.environ.get("ANTHROPIC_API_KEY"):
         print("ANTHROPIC_API_KEY ausente: rode com --env-file .env (ADR-0058)", file=sys.stderr)
         return 2
@@ -156,13 +226,24 @@ def main(argv: Sequence[str] | None = None) -> int:
         if (folder / "summary.json").exists():
             print(f"{spec.name}: feita, pulando ({folder})", flush=True)
             continue
-        result = asyncio.run(run_spec(spec, args.days, folder))
+        try:
+            folder.mkdir(parents=True, exist_ok=False)  # a reserva: a pasta é de quem a criou
+        except FileExistsError:
+            print(
+                f"{spec.name}: tomada por outro processo, pulando "
+                f"(se foi abandonada, apague {folder} para refazer)",
+                flush=True,
+            )
+            continue
+        days = min(spec.days, args.days) if spec.days else args.days
+        result = asyncio.run(run_spec(spec, days, folder))
         totals = result["totals"]
         print(
             f"{spec.name}: {totals['days']} dias, moedas {totals['coins_end']}, "
             f"colheitas {totals['harvests']}, desmaios {totals['faints']}, "
             f"custo US$ {totals.get('llm', {}).get('cost_usd', 0):.2f}, "
-            f"leste {'descoberto' if result['east']['discovered'] else 'não descoberto'}",
+            f"{result['east']['river']} "
+            f"{'descoberto' if result['east']['discovered'] else 'não descoberto'}",
             flush=True,
         )
     print(f"relatório: make arena-report PASTA={out}", flush=True)

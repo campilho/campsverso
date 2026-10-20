@@ -1,10 +1,22 @@
 """A arena em processo (ADR-0061): a corrida do script, sem API, e a composição das pastas."""
 
+import json
 from pathlib import Path
 
 import pytest
 
-from campsverso_testkit.arena import SEED, SPECS, Spec, main, run_spec
+from campsverso_budget.ledger import BudgetLimits
+from campsverso_ports import ModelCapabilities, ModelRequest, ModelResponse, ModelUsage
+from campsverso_testkit.arena import (
+    ROUNDS,
+    SEED,
+    SEED_BOAVISTA,
+    SPECS,
+    SPECS_BOAVISTA,
+    Spec,
+    main,
+    run_spec,
+)
 
 
 async def test_a_corrida_do_script_grava_a_pasta(tmp_path: Path) -> None:
@@ -18,9 +30,12 @@ async def test_a_corrida_do_script_grava_a_pasta(tmp_path: Path) -> None:
         "seed": SEED,
         "cartridge": "farm_camps",
         "model": "claude-haiku-5-5",
+        "days": None,
+        "limits": None,
     }
     assert result["totals"]["days"] == 2
     assert (result["calls"], result["gave_up"], result["aborted_day"]) == (0, False, None)
+    assert result["budget_day"] is None
     assert "plantings" in result["totals"]
     assert (result["east"]["first_note"], result["east"]["beliefs"]) == (None, [])
     assert {p.name for p in folder.iterdir()} == {
@@ -56,3 +71,110 @@ def test_as_corridas_da_arena() -> None:
         "haiku-memoria",
         "haiku-memoria-sem-regra",
     ]
+
+
+# ----------------------------------------------------------------- a segunda rodada (ADR-0063)
+
+
+def test_as_corridas_da_boa_vista() -> None:
+    """ADR-0063: o script 2, o Haiku com memória em quatro seeds e sem a regra, o Sonnet e o
+    Opus, todos na Boa Vista por 30 dias, cada um com o seu teto."""
+    assert [s.name for s in SPECS_BOAVISTA] == [
+        "script2",
+        "haiku-memoria",
+        "haiku-memoria-s2",
+        "haiku-memoria-s3",
+        "haiku-memoria-s4",
+        "haiku-memoria-sem-regra",
+        "sonnet-memoria",
+        "opus-memoria",
+    ]
+    assert {s.cartridge for s in SPECS_BOAVISTA} == {"farm_boavista"}
+    assert {s.days for s in SPECS_BOAVISTA} == {30}
+    assert all(s.memory for s in SPECS_BOAVISTA if s.controller == "llm")
+    by = {s.name: s for s in SPECS_BOAVISTA}
+    assert (by["sonnet-memoria"].model, by["sonnet-memoria"].limits) == (
+        "claude-sonnet-5-5",
+        BudgetLimits(1.5, 25.0),
+    )
+    assert (by["opus-memoria"].model, by["opus-memoria"].limits) == (
+        "claude-opus-5-5",
+        BudgetLimits(2.5, 35.0),
+    )
+    assert by["haiku-memoria"].limits is None  # o teto do Haiku, o mesmo do M12
+    assert [s.name for s in SPECS_BOAVISTA if s.seed == SEED_BOAVISTA] == [
+        "script2",
+        "haiku-memoria",
+        "haiku-memoria-sem-regra",
+        "sonnet-memoria",
+        "opus-memoria",
+    ]
+    assert ROUNDS == {"camps": SPECS, "boavista": SPECS_BOAVISTA}
+
+
+def test_a_reserva_ao_comecar_e_o_script_2_na_boa_vista(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    out = tmp_path / "arena"
+    (out / "script2").mkdir(parents=True)  # outro processo tomou a corrida
+    args = ["--rodada", "boavista", "--only", "script2", "--days", "1", "--out", str(out)]
+    assert main(args) == 0
+    assert "script2: tomada por outro processo" in capsys.readouterr().out
+    assert not (out / "script2" / "summary.json").exists()
+    (out / "script2").rmdir()  # abandonada: apagar a pasta devolve a corrida
+    assert main(args) == 0
+    summary = json.loads((out / "script2" / "summary.json").read_text(encoding="utf-8"))
+    assert (summary["spec"]["cartridge"], summary["totals"]["days"]) == ("farm_boavista", 1)
+    assert summary["east"]["river"] == "rio"
+    assert summary["totals"]["plots_dug"] == {"fora": 16}  # o script 2 cava ao redor do poço
+
+
+def test_uma_corrida_fora_da_rodada_e_erro(tmp_path: Path) -> None:
+    with pytest.raises(SystemExit):
+        main(["--rodada", "boavista", "--only", "haiku", "--days", "1", "--out", str(tmp_path)])
+
+
+class SpendingPort:
+    """Uma porta que só espera e cobra caro: dez milhões de tokens por pedido."""
+
+    provider = "fake"
+
+    def capabilities(self) -> ModelCapabilities:
+        return ModelCapabilities()
+
+    async def count_tokens(self, request: ModelRequest) -> int:
+        return 1
+
+    async def complete(self, request: ModelRequest) -> ModelResponse:
+        return ModelResponse(
+            content=[
+                {
+                    "type": "tool_use",
+                    "id": "toolu_1",
+                    "name": "wait",
+                    "input": {"ticks": 15, "intent": "esperar"},
+                }
+            ],
+            stop_reason="tool_use",
+            usage=ModelUsage(10_000_000, 40, 0, 0),
+            model=request.model,
+            latency_ms=1,
+        )
+
+
+async def test_a_corrida_para_no_teto_de_orcamento(tmp_path: Path) -> None:
+    """ADR-0063, decisão 2: a guarda pausa o mundo no teto e a corrida para ali, marcada."""
+    spec = Spec(
+        "cara",
+        "llm",
+        memory=True,
+        seed=SEED_BOAVISTA,
+        cartridge="farm_boavista",
+        days=2,
+        limits=BudgetLimits(usd_per_sim_day=0.5, usd_total=0.5),
+    )
+    result = await run_spec(spec, 2, tmp_path / "cara", port=SpendingPort())
+    assert result["budget_day"] == 1
+    assert result["budget_exceeded"] >= 1
+    assert result["spec"]["limits"] == {"usd_per_sim_day": 0.5, "usd_total": 0.5}
+    assert "bateu no teto" in (tmp_path / "cara" / "progresso.txt").read_text(encoding="utf-8")

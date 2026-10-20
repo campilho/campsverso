@@ -120,8 +120,8 @@ ARENA_DIAS ?= 30
 # sem ele, o Mac dorme quando ninguém mexe e as corridas param junto (19/out).
 CAFFEINATE := $(shell command -v caffeinate >/dev/null 2>&1 && echo "caffeinate -i")
 
-arena: ## as corridas da arena em sequência, em data/arena/<data-hora> (ADR-0061): make arena [ARENA_DIAS=30] [SO=haiku-memoria] [PASTA=data/arena/x]
-	$(CAFFEINATE) uv run --locked --env-file .env python -m campsverso_testkit.arena --days $(ARENA_DIAS) $(foreach s,$(SO),--only $(s)) $(if $(PASTA),--out $(PASTA),)
+arena: ## as corridas da arena em sequência, em data/arena/<data-hora> (ADR-0061): make arena [RODADA=boavista] [ARENA_DIAS=30] [SO=haiku-memoria] [PASTA=data/arena/x]
+	$(CAFFEINATE) uv run --locked --env-file .env python -m campsverso_testkit.arena --days $(ARENA_DIAS) $(if $(RODADA),--rodada $(RODADA),) $(foreach s,$(SO),--only $(s)) $(if $(PASTA),--out $(PASTA),)
 
 arena-report: ## o relatório da arena em docs/arena/AAAA-MM-DD.md, da arena mais recente ou de PASTA=data/arena/x
 	$(PY) python -m campsverso_tools.arena $(PASTA)

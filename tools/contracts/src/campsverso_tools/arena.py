@@ -20,7 +20,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, cast
 
-from campsverso_tools.metrics import Report, compute
+from campsverso_tools.metrics import Report, compute, group_of, plot_groups
 
 REPO = Path(__file__).resolve().parents[4]
 ARENAS = REPO / "data" / "arena"
@@ -29,6 +29,43 @@ TICKS_PER_DAY = 1440
 DAY_STARTS_AT = 6 * 60  # o dia simulado começa às 06:00
 FROM_DAY = 4  # a partir de quando o comportamento conta como "depois de ter visto" (ADR-0061)
 EAST = re.compile(r"\bleste\b|\bplot-e-\d+\b", re.IGNORECASE)
+# Na Boa Vista não há "leste" nos ids: a descoberta é falar do rio, da margem ou do lado leste.
+RIVER = re.compile(r"\brio\b|\bmargem\b|\bbeira\b|perto da [áa]gua|\bleste\b", re.IGNORECASE)
+# As outras regras ocultas da Boa Vista (bíblia 2 §10): o assunto e o efeito, no mesmo trecho.
+RULES: dict[str, tuple[re.Pattern[str], re.Pattern[str]]] = {
+    "tomate": (
+        re.compile(r"\btomate", re.IGNORECASE),
+        re.compile(
+            r"murch|\bsec[oa]s?\b|sem (água|rega)|todo (o )?dia|regar sempre|exigente|delicad",
+            re.IGNORECASE,
+        ),
+    ),
+    "alho": (
+        re.compile(r"\balho", re.IGNORECASE),
+        re.compile(
+            r"sem (rega|água)|n[ãa]o precisa|dispensa|n[ãa]o regar|cresce(u)? sem|sozinho",
+            re.IGNORECASE,
+        ),
+    ),
+    "bau": (
+        re.compile(r"\bba[úu]\b", re.IGNORECASE),
+        re.compile(r"conserva|dura(m)? mais|estraga(m)? menos|validade|vence|guard", re.IGNORECASE),
+    ),
+    "ensopado": (
+        re.compile(r"\bensopado", re.IGNORECASE),
+        re.compile(r"sacia|segura a fome|rende|dura|mais tempo|demora|devagar", re.IGNORECASE),
+    ),
+    "adubo": (
+        re.compile(r"\badub", re.IGNORECASE),
+        re.compile(r"cresc|r[áa]pid|mais|melhor|b[ôo]nus|ajuda|vale", re.IGNORECASE),
+    ),
+}
+WORLDS = {"farm_camps": "farm-camps-01", "farm_boavista": "farm-boavista-01"}
+MODEL_NAMES = {
+    "claude-haiku-5-5": "Haiku 5.5",
+    "claude-sonnet-5-5": "Sonnet 5.5",
+    "claude-opus-5-5": "Opus 5.5",
+}
 # O que faz de uma crença (ou anotação) sobre o leste uma descoberta, e não só uma menção: um
 # comparativo de tempo ou de vantagem, ou o rio. "Madura em 3 dias" não conta: é o manual. É uma
 # heurística; a trajetória inteira vai para o relatório, para quem quiser discordar.
@@ -39,13 +76,18 @@ DISCOVERY = re.compile(
 )
 ORDER = (
     "script",
+    "script2",
     "haiku",
     "haiku-memoria",
     "haiku-memoria-s2",
     "haiku-memoria-s3",
     "haiku-memoria-s4",
     "haiku-memoria-sem-regra",
+    "sonnet-memoria",
+    "opus-memoria",
 )
+SPAWNED = "campsverso.world.entity.spawned.v1"
+WITHERED = "campsverso.farm.crop.withered.v1"
 BARS = "▁▂▃▄▅▆▇█"
 EMPTY = "-"  # a célula de quem não tem a medida (o script não tem modelo)
 FORMED = "campsverso.memory.belief.formed.v1"
@@ -70,11 +112,12 @@ def _hour(envelope: Mapping[str, Any]) -> str:
 SEGMENTS = re.compile(r"[.;:!?\n]")
 
 
-def notes_east_advantage(text: str) -> bool:
-    """Verdadeiro quando o trecho que fala do leste (entre pontos, dois-pontos ou ponto e vírgula)
-    também fala de tempo, de vantagem ou do rio. "Abóbora no leste; rabanete para comida rápida"
-    não conta: o "rápida" é do rabanete."""
-    return any(EAST.search(part) and DISCOVERY.search(part) for part in SEGMENTS.split(text))
+def notes_east_advantage(text: str, mention: re.Pattern[str] = EAST) -> bool:
+    """Verdadeiro quando o trecho que fala do lugar (entre pontos, dois-pontos ou ponto e
+    vírgula) também fala de tempo, de vantagem ou do rio. "Abóbora no leste; rabanete para
+    comida rápida" não conta: a rapidez é do rabanete. `mention` é o que conta como falar do
+    lugar: o leste na fazenda 1, o rio na Boa Vista."""
+    return any(mention.search(part) and DISCOVERY.search(part) for part in SEGMENTS.split(text))
 
 
 def _confidence(data: Mapping[str, Any]) -> float:
@@ -97,51 +140,85 @@ class BeliefTrack:
     retracted_day: int | None = None
 
 
-def _buckets(counters: Mapping[str, Counter[str]]) -> dict[str, Any]:
+def _buckets(
+    counters: Mapping[str, Counter[str]], groups: tuple[str, str], river: str
+) -> dict[str, Any]:
     out: dict[str, Any] = {}
     for bucket, name in (("early", f"days_1_{FROM_DAY - 1}"), ("late", f"from_day_{FROM_DAY}")):
         counter = counters[bucket]
         total = sum(counter.values())
         out[name] = {
-            "oeste": counter["oeste"],
-            "leste": counter["leste"],
-            "east_fraction": round(counter["leste"] / total, 2) if total else None,
+            groups[0]: counter[groups[0]],
+            groups[1]: counter[groups[1]],
+            "east_fraction": round(counter[river] / total, 2) if total else None,
         }
     return out
 
 
+def mentions_rule(text: str, subject: re.Pattern[str], effect: re.Pattern[str]) -> bool:
+    """O assunto e o efeito de uma regra oculta no mesmo trecho (bíblia 2 §10)."""
+    return any(subject.search(part) and effect.search(part) for part in SEGMENTS.split(text))
+
+
 def east_signals(envelopes: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
-    """Os sinais do leste de uma corrida, lidos do arquivo dela na ordem em que foi escrito
-    (ADR-0061, decisão 5): a primeira anotação e a primeira crença que falam do leste, a
-    trajetória de cada crença sobre o leste, e os plantios e colheitas por grupo, antes e a
-    partir do dia 4. `discovered` é a heurística: uma crença ativa, confiante (0,7 ou mais) e
-    que fala de tempo, de vantagem ou do rio."""
+    """Os sinais do leste (fazenda 1) ou do rio (Boa Vista) de uma corrida, lidos do arquivo
+    dela na ordem em que foi escrito (ADR-0061, decisão 5): a primeira anotação e a primeira
+    crença que falam do lugar, a trajetória de cada crença sobre ele, e os plantios, colheitas e
+    canteiros cavados por grupo, antes e a partir do dia 4. `discovered` é a heurística: uma
+    crença ativa, confiante (0,7 ou mais) e que fala de tempo, de vantagem ou do rio. Na Boa
+    Vista entram também as outras regras ocultas (`rules`: a primeira anotação e a primeira
+    crença sobre cada uma) e o comportamento que as confirma ou desmente (`behaviour`)."""
+    everything = list(envelopes)
+    plot_group = plot_groups(everything)
+    river = "rio" if "rio" in plot_group.values() or "fora" in plot_group.values() else "leste"
+    groups = ("rio", "fora") if river == "rio" else ("oeste", "leste")
+    mention = RIVER if river == "rio" else EAST
     first_note: dict[str, Any] | None = None
     first_discovery_note: dict[str, Any] | None = None  # a primeira que nota a vantagem
     first_belief: dict[str, Any] | None = None
+    first_band_dig: dict[str, Any] | None = None
     tracks: dict[str, BeliefTrack] = {}
     plantings = {"early": Counter[str](), "late": Counter[str]()}
     harvests = {"early": Counter[str](), "late": Counter[str]()}
-    for envelope in envelopes:
+    digs = {"early": Counter[str](), "late": Counter[str]()}
+    rules: dict[str, dict[str, Any]] = {
+        name: {"first_note": None, "first_belief": None} for name in RULES
+    }
+    behaviour = Counter[str]()
+    crops: dict[str, str] = {}  # o que está plantado em cada canteiro, para ver a rega do alho
+    for envelope in everything:
         kind = str(envelope.get("type", ""))
         data: Mapping[str, Any] = envelope.get("data", {})
         day = _day(envelope)
         if kind == NOTED:
             text = str(data["text"])
-            if EAST.search(text):
+            if mention.search(text):
                 note = {"day": day, "hour": _hour(envelope), "text": text}
                 if first_note is None:
                     first_note = note
-                if first_discovery_note is None and notes_east_advantage(text):
+                if first_discovery_note is None and notes_east_advantage(text, mention):
                     first_discovery_note = note
+            for name, (subject, effect) in RULES.items():
+                if rules[name]["first_note"] is None and mentions_rule(text, subject, effect):
+                    rules[name]["first_note"] = {"day": day, "hour": _hour(envelope), "text": text}
         elif kind in (FORMED, UPDATED):
             belief_id, statement = str(data["belief_id"]), str(data["statement"])
+            confidence = _confidence(data)
+            for name, (subject, effect) in RULES.items():
+                if rules[name]["first_belief"] is None and mentions_rule(
+                    statement, subject, effect
+                ):
+                    rules[name]["first_belief"] = {
+                        "day": day,
+                        "belief_id": belief_id,
+                        "statement": statement,
+                        "confidence": confidence,
+                    }
             track = tracks.get(belief_id)
             if track is None:
-                if not EAST.search(statement):
+                if not mention.search(statement):
                     continue
                 track = tracks[belief_id] = BeliefTrack(belief_id, statement, day, statement)
-            confidence = _confidence(data)
             track.statement, track.confidence = statement, confidence
             track.steps.append(
                 {
@@ -163,20 +240,56 @@ def east_signals(envelopes: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
             if track is not None:
                 track.confidence, track.retracted_day = 0.0, day
                 track.steps.append({"day": day, "kind": "retirada", "confidence": 0.0})
-        elif kind == COMPLETED and data.get("action") in ("plant", "harvest"):
-            group = "leste" if str(data["params"]["target"]).startswith("plot-e-") else "oeste"
+        elif kind == COMPLETED:
+            action = str(data.get("action"))
+            params: Mapping[str, Any] = data.get("params") or {}
+            target = str(params.get("target"))
             bucket = "late" if day >= FROM_DAY else "early"
-            (plantings if data["action"] == "plant" else harvests)[bucket][group] += 1
+            if action in ("plant", "harvest"):
+                group = group_of(target, plot_group)
+                (plantings if action == "plant" else harvests)[bucket][group] += 1
+                if action == "plant":
+                    crop = str(params.get("crop"))
+                    crops[target] = crop
+                    if crop in ("tomate", "alho"):
+                        behaviour[f"{crop}_planted"] += 1
+                else:
+                    crops.pop(target, None)
+            elif action == "water" and crops.get(target) == "alho":
+                behaviour["alho_waterings"] += 1
+            elif action == "clear":
+                crops.pop(target, None)
+            elif action == "deposit":
+                behaviour["deposits"] += 1
+            elif action == "cook":
+                behaviour["ensopados" if params.get("recipe") == "ensopado" else "pratos"] += 1
+            elif action == "fertilize":
+                behaviour["fertilized"] += 1
+        elif kind == SPAWNED and data.get("kind") == "plot" and data.get("action_id"):
+            group = group_of(str(data["entity_id"]), plot_group)
+            digs["late" if day >= FROM_DAY else "early"][group] += 1
+            if group == river and first_band_dig is None:
+                first_band_dig = {"day": day, "hour": _hour(envelope), "plot": data["entity_id"]}
+        elif kind == WITHERED and data.get("crop") == "tomate":
+            behaviour["tomate_withered"] += 1
     active = [t for t in tracks.values() if t.retracted_day is None]
-    discovery = [t for t in active if t.confidence >= 0.7 and notes_east_advantage(t.statement)]
+    discovery = [
+        t for t in active if t.confidence >= 0.7 and notes_east_advantage(t.statement, mention)
+    ]
     best = max(discovery, key=lambda t: t.confidence, default=None)
     return {
+        "river": river,
+        "groups": list(groups),
         "first_note": first_note,
         "first_discovery_note": first_discovery_note,
         "first_belief": first_belief,
         "beliefs": [asdict(t) for t in tracks.values()],
-        "plantings": _buckets(plantings),
-        "harvests": _buckets(harvests),
+        "plantings": _buckets(plantings, groups, river),
+        "harvests": _buckets(harvests, groups, river),
+        "digs": _buckets(digs, groups, river),
+        "first_band_dig": first_band_dig,
+        "rules": rules,
+        "behaviour": dict(sorted(behaviour.items())),
         "discovered": best is not None,
         "discovered_by": best.belief_id if best is not None else None,
     }
@@ -222,6 +335,15 @@ class Run:
     @property
     def has_model(self) -> bool:
         return "llm" in self.report.totals()
+
+    @property
+    def river(self) -> str:
+        """O grupo que a regra favorece: `leste` na fazenda 1, `rio` na Boa Vista."""
+        return str(self.east.get("river", "leste"))
+
+    @property
+    def groups(self) -> tuple[str, str]:
+        return self.report.groups
 
 
 def read_envelopes(path: Path) -> list[dict[str, Any]]:
@@ -278,11 +400,11 @@ def _duration(seconds: float) -> str:
     return f"{whole} s"
 
 
-def _frac(bucket: Mapping[str, Any]) -> str:
-    total = int(bucket["oeste"]) + int(bucket["leste"])
-    if total == 0:
+def _frac(bucket: Mapping[str, Any], groups: tuple[str, str], river: str) -> str:
+    total = int(bucket[groups[0]]) + int(bucket[groups[1]])
+    if not total:
         return EMPTY
-    return f"{round(float(bucket['east_fraction']) * 100)}% ({bucket['leste']} de {total})"
+    return f"{round(float(bucket['east_fraction']) * 100)}% ({bucket[river]} de {total})"
 
 
 def _table(header: Sequence[str], rows: Iterable[Sequence[str]]) -> str:
@@ -297,8 +419,25 @@ def _spark(values: Sequence[int], top: int) -> str:
     return "".join(BARS[min(7, round(v / top * 7))] for v in values)
 
 
-def _pair(mapping: Mapping[str, Any], decimals: int = 0) -> str:
-    return f"{_n(mapping.get('oeste', 0), decimals)} / {_n(mapping.get('leste', 0), decimals)}"
+def _pair(
+    mapping: Mapping[str, Any], decimals: int = 0, groups: tuple[str, str] = ("oeste", "leste")
+) -> str:
+    return f"{_n(mapping.get(groups[0], 0), decimals)} / {_n(mapping.get(groups[1], 0), decimals)}"
+
+
+def _counts(mapping: Mapping[str, Any]) -> str:
+    """`rabanete 148, tomate 6`, do maior para o menor; `-` quando não há nada."""
+    items = sorted(mapping.items(), key=lambda kv: (-int(kv[1]), str(kv[0])))
+    return ", ".join(f"{name} {count}" for name, count in items) or EMPTY
+
+
+def _tools(mapping: Mapping[str, Any]) -> str:
+    """O dia da primeira compra de cada ferramenta: `regador grande dia 25, arado -`."""
+    names = {"watering_can_large": "regador grande", "plow": "arado"}
+    return ", ".join(
+        f"{label} {'dia ' + str(mapping[kind]) if kind in mapping else EMPTY}"
+        for kind, label in names.items()
+    )
 
 
 def _bible_rows(runs: Sequence[Run]) -> list[list[str]]:
@@ -313,16 +452,28 @@ def _bible_rows(runs: Sequence[Run]) -> list[list[str]]:
     def totals(r: Run) -> dict[str, Any]:
         return r.report.totals()
 
+    groups = runs[0].groups if runs else ("oeste", "leste")
+    label = f"{groups[0]} / {groups[1]}"
+    extras = any(r.report.has_extras for r in runs)  # a Boa Vista (bíblia 2 §13)
     row("Dias completos", lambda r: str(totals(r)["days"]))
     row("Moedas ao fim", lambda r: str(totals(r)["coins_end"]))
-    row("Colheitas (oeste / leste)", lambda r: _pair(totals(r)["harvests"]))
-    row("Plantios (oeste / leste)", lambda r: _pair(totals(r)["plantings"]))
+    row(f"Colheitas ({label})", lambda r: _pair(totals(r)["harvests"], groups=groups))
+    row(f"Plantios ({label})", lambda r: _pair(totals(r)["plantings"], groups=groups))
     row(
-        "Dias até amadurecer (oeste / leste)",
-        lambda r: " / ".join(
-            _n(totals(r)["mean_days_to_mature"].get(g), 1) for g in ("oeste", "leste")
-        ),
+        f"Dias até amadurecer ({label})",
+        lambda r: " / ".join(_n(totals(r)["mean_days_to_mature"].get(g), 1) for g in groups),
     )
+    if extras:
+        row(f"Canteiros cavados ({label})", lambda r: _pair(totals(r)["plots_dug"], groups=groups))
+        row("Ferramentas (dia da compra)", lambda r: _tools(totals(r)["tools_bought"]))
+        row("Plantios por cultura", lambda r: _counts(totals(r)["plantings_by_crop"]))
+        row("Refeições (por receita)", lambda r: _counts(totals(r)["cooked"]))
+        row("Estragos (unidades, por item)", lambda r: _counts(totals(r)["spoiled"]))
+        row("Murchas da madura", lambda r: str(totals(r)["withered_ripe"]))
+        row(
+            "Vendas (unidades; abaixo de 80% do preço)",
+            lambda r: f"{totals(r)['sales']} ({totals(r)['sales_below_floor']})",
+        )
     row("Recusas", lambda r: str(sum(totals(r)["rejections"].values())))
     row("Murchas", lambda r: str(totals(r)["withered"]))
     row("Pico de fome", lambda r: _n(totals(r)["hunger_peak"]))
@@ -357,11 +508,49 @@ def _bible_rows(runs: Sequence[Run]) -> list[list[str]]:
             f"sim, no dia {r.summary['aborted_day']}" if r.summary.get("aborted_day") else "não"
         ),
     )
+    row(
+        "Parou no teto de orçamento",
+        lambda r: (
+            f"sim, no dia {r.summary['budget_day']}" if r.summary.get("budget_day") else "não"
+        ),
+    )
     row("Tempo real", lambda r: _duration(float(r.summary.get("real_seconds", 0))))
     return [[label, *cells] for label, cells in rows]
 
 
+def _rule_cell(r: Run, name: str) -> str:
+    """O que a corrida escreveu e fez sobre uma regra oculta da Boa Vista."""
+    rule = cast(Mapping[str, Any], r.east.get("rules", {}).get(name, {}))
+    done = cast(Mapping[str, Any], r.east.get("behaviour", {}))
+    did = {
+        "tomate": (
+            f"plantou {done.get('tomate_planted', 0)}, murcharam {done.get('tomate_withered', 0)}"
+        ),
+        "alho": (
+            f"plantou {done.get('alho_planted', 0)}, regou {done.get('alho_waterings', 0)} vez(es)"
+        ),
+        "bau": f"guardou {done.get('deposits', 0)} vez(es)",
+        "ensopado": f"cozinhou {done.get('ensopados', 0)} ensopado(s)",
+        "adubo": f"adubou {done.get('fertilized', 0)} vez(es)",
+    }[name]
+    if not r.has_memory:
+        return f"sem memória; {did}"
+    note, belief = rule.get("first_note"), rule.get("first_belief")
+    wrote = f"anotação dia {note['day']}" if note else "nenhuma anotação"
+    held = (
+        f"crença dia {belief['day']} ({_n(belief['confidence'], 2)})"
+        if belief
+        else "nenhuma crença"
+    )
+    return f"{wrote}; {held}; {did}"
+
+
 def _east_rows(runs: Sequence[Run]) -> list[list[str]]:
+    river = runs[0].river if runs else "leste"
+    groups = runs[0].groups if runs else ("oeste", "leste")
+    place = "o leste" if river == "leste" else "o rio"
+    where = "no leste" if river == "leste" else "na faixa do rio"
+
     def first_note(r: Run) -> str:
         note = r.east["first_note"]
         if not r.has_memory:
@@ -391,6 +580,13 @@ def _east_rows(runs: Sequence[Run]) -> list[list[str]]:
         top = max(float(b["confidence"]) for b in active)
         return f"{len(active)}, a mais confiante a {_n(top, 2)}"
 
+    def first_dig(r: Run) -> str:
+        dig = r.east.get("first_band_dig")
+        return f"dia {dig['day']}, {dig['hour']} ({dig['plot']})" if dig else "nunca"
+
+    def frac(r: Run, what: str, bucket: str) -> str:
+        return _frac(r.east[what][bucket], groups, river)
+
     def verdict(r: Run) -> str:
         control = " (controle: sem a regra)" if not r.spec.get("river_bonus", True) else ""
         if not r.has_memory:
@@ -399,25 +595,43 @@ def _east_rows(runs: Sequence[Run]) -> list[list[str]]:
             return f"descobriu ({r.east['discovered_by']})" + control
         return "não" + control
 
+    early, late = f"days_1_{FROM_DAY - 1}", f"from_day_{FROM_DAY}"
     rows: list[list[str]] = [
-        ["Primeira anotação que cita o leste", *[first_note(r) for r in runs]],
-        ["Primeira anotação que nota a vantagem do leste", *[discovery_note(r) for r in runs]],
-        ["Primeira crença sobre o leste", *[first_belief(r) for r in runs]],
-        ["Crenças sobre o leste ao fim", *[at_end(r) for r in runs]],
-        [
-            f"Plantios no leste, dias 1 a {FROM_DAY - 1}",
-            *[_frac(r.east["plantings"][f"days_1_{FROM_DAY - 1}"]) for r in runs],
-        ],
-        [
-            f"Plantios no leste, do dia {FROM_DAY}",
-            *[_frac(r.east["plantings"][f"from_day_{FROM_DAY}"]) for r in runs],
-        ],
-        [
-            f"Colheitas no leste, do dia {FROM_DAY}",
-            *[_frac(r.east["harvests"][f"from_day_{FROM_DAY}"]) for r in runs],
-        ],
-        ["Veredito", *[verdict(r) for r in runs]],
+        [f"Primeira anotação que cita {place}", *[first_note(r) for r in runs]],
+        [f"Primeira anotação que nota a vantagem d{place}", *[discovery_note(r) for r in runs]],
+        [f"Primeira crença sobre {place}", *[first_belief(r) for r in runs]],
+        [f"Crenças sobre {place} ao fim", *[at_end(r) for r in runs]],
     ]
+    if river == "rio":
+        rows += [
+            [
+                f"Canteiros cavados {where}, dias 1 a {FROM_DAY - 1}",
+                *[frac(r, "digs", early) for r in runs],
+            ],
+            [
+                f"Canteiros cavados {where}, do dia {FROM_DAY}",
+                *[frac(r, "digs", late) for r in runs],
+            ],
+            [f"Primeiro canteiro {where}", *[first_dig(r) for r in runs]],
+        ]
+    rows += [
+        [
+            f"Plantios {where}, dias 1 a {FROM_DAY - 1}",
+            *[frac(r, "plantings", early) for r in runs],
+        ],
+        [f"Plantios {where}, do dia {FROM_DAY}", *[frac(r, "plantings", late) for r in runs]],
+        [f"Colheitas {where}, do dia {FROM_DAY}", *[frac(r, "harvests", late) for r in runs]],
+    ]
+    if river == "rio":
+        labels = {
+            "tomate": "Regra oculta: o tomate murcha com um dia seco",
+            "alho": "Regra oculta: o alho não precisa de rega",
+            "bau": "Regra oculta: o baú conserva",
+            "ensopado": "Regra oculta: o ensopado sacia por mais tempo",
+            "adubo": "Regra oculta: o adubo e o seu tamanho",
+        }
+        rows += [[label, *[_rule_cell(r, name) for r in runs]] for name, label in labels.items()]
+    rows.append(["Veredito", *[verdict(r) for r in runs]])
     return rows
 
 
@@ -501,35 +715,70 @@ def _coins_section(runs: Sequence[Run]) -> list[str]:
     return lines
 
 
+def _controller_name(spec: Mapping[str, Any]) -> str:
+    if spec.get("controller") != "llm":
+        return str(spec.get("controller"))
+    model = str(spec.get("model", "claude-haiku-5-5"))
+    return MODEL_NAMES.get(model, model)
+
+
+def _limits(spec: Mapping[str, Any]) -> str:
+    limits = spec.get("limits")
+    if not isinstance(limits, Mapping):
+        return EMPTY
+    limits = cast(Mapping[str, Any], limits)
+    return f"{_n(limits.get('usd_per_sim_day'), 2)} · {_n(limits.get('usd_total'), 0)}"
+
+
 def render(runs: Sequence[Run], *, source: str, date: str) -> str:
     """O relatório em Markdown, com as corridas lado a lado."""
     names = [r.name for r in runs]
     days = max((int(r.report.totals()["days"]) for r in runs), default=0)
+    cartridge = str(runs[0].spec.get("cartridge", "farm_camps")) if runs else "farm_camps"
+    world = WORLDS.get(cartridge, cartridge)
+    river = runs[0].river if runs else "leste"
+    place = "o leste" if river == "leste" else "o rio"
+    behaviour = (
+        f"plantios e colheitas no leste a partir do dia {FROM_DAY}"
+        if river == "leste"
+        else (
+            "canteiros cavados na faixa do rio, e plantios e colheitas nela a partir do dia "
+            f"{FROM_DAY}"
+        )
+    )
     lines = [
         f"# Arena de {date}",
         "",
-        f"{len(runs)} corrida(s) de até {days} dias em processo, no mesmo mundo (`farm-camps-01`), "
+        f"{len(runs)} corrida(s) de até {days} dias em processo, no mesmo mundo (`{world}`), "
         "com o mundo esperando o modelo por construção (ADR-0061). Gerado por `make arena-report` "
         f"a partir de `{source}` (fora do git). A tabela da bíblia §13 é o total dos dias "
-        'completos de cada corrida; "descobriu o leste" é lido do dado da memória de quem a '
-        "tem (a primeira anotação e a primeira crença que falam do leste, e a trajetória de cada "
-        "crença) e do comportamento de todos (plantios e colheitas no leste a partir do dia "
-        f"{FROM_DAY}). A corrida sem a regra R-001 é o controle.",
+        f'completos de cada corrida; "descobriu {place}" é lido do dado da memória de quem a '
+        f"tem (a primeira anotação e a primeira crença que falam d{place}, e a trajetória de "
+        f"cada crença) e do comportamento de todos ({behaviour}). A corrida sem a regra R-001 é "
+        "o controle.",
         "",
         "## As corridas",
         "",
         _table(
-            ["Corrida", "Controlador", "Memória", "Regra R-001", "Seed", "Dias", "Tempo real"],
+            [
+                "Corrida",
+                "Controlador",
+                "Memória",
+                "Regra R-001",
+                "Seed",
+                "Dias",
+                "Teto US$ (dia · total)",
+                "Tempo real",
+            ],
             [
                 [
                     r.name,
-                    "Haiku 5.5"
-                    if r.spec.get("controller") == "llm"
-                    else str(r.spec.get("controller")),
+                    _controller_name(r.spec),
                     "sim" if r.has_memory else "não",
                     "ligada" if r.spec.get("river_bonus", True) else "desligada",
                     str(r.spec.get("seed", "?")),
                     str(r.report.totals()["days"]),
+                    _limits(r.spec),
                     _duration(float(r.summary.get("real_seconds", 0))),
                 ]
                 for r in runs
@@ -553,14 +802,14 @@ def render(runs: Sequence[Run], *, source: str, date: str) -> str:
             ],
         )
     )
-    lines += ["", "## Quem descobriu o leste", "", _table(["Sinal", *names], _east_rows(runs)), ""]
+    lines += ["", f"## Quem descobriu {place}", "", _table(["Sinal", *names], _east_rows(runs)), ""]
     for r in runs:
         if not r.has_memory:
             continue
         last_day = int(r.report.totals()["days"])
-        lines += [f"### {r.name}: as crenças sobre o leste", ""]
+        lines += [f"### {r.name}: as crenças sobre {place}", ""]
         tracks = list(r.east["beliefs"])
-        lines += [_trajectory(t, last_day) for t in tracks] or ["Nenhuma crença falou do leste."]
+        lines += [_trajectory(t, last_day) for t in tracks] or [f"Nenhuma crença falou d{place}."]
         lines += ["", f"As crenças mais confiantes ao fim ({len(r.beliefs)} ativas):", ""]
         lines += [
             f'- {_n(b["confidence"], 2)} **{b["belief_id"]}** (dia {b["day"]}): "{b["statement"]}"'
