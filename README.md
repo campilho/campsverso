@@ -34,7 +34,9 @@ A pergunta da v0.2: **um LLM consegue viver na fazenda, prosperar e descobrir so
 | M10: o controlador LLM | o Camps decide pela percepção e pelo catálogo de ações, com um cartão de identidade | concluído em 18/out/2026 |
 | M11: memória baseline | registrar, lembrar e refletir; crenças com confiança e origem | concluído em 19/out/2026 |
 | M12: a arena | script × Haiku sem memória × Haiku com memória, 30 dias, lado a lado, com o custo por dia simulado e quem descobriu o leste | em curso |
-| M13: fechamento | critérios de aceite, diário e a tag `v0.2.0` | a fazer |
+| M13: a fazenda 2, "Fazenda Boa Vista" | um segundo mundo em que as escolhas custam: sete culturas, canteiros cavados, ferramentas com peso, mercado, fogão, validade; o fazendeiro-script 2 | a fazer |
+| M14: a segunda rodada da arena | script 2 × Haiku × Sonnet × Opus na fazenda nova, por menos dias | a fazer |
+| M15: fechamento | critérios de aceite, diário e a tag `v0.2.0` | a fazer |
 
 **M8 concluído em 17/out/2026** ([plano](docs/planos/m8-mundo-pronto-para-o-llm.md), ADR-0056 e ADR-0057): o terreno e o raio no `session.started`, a foto com mapa, o delta `perception.updated.v1`, acordado custa energia e a fome no teto drena, e `make percepcao` mede o custo em tokens.
 
