@@ -69,8 +69,9 @@ def contribute_extensions(world: WorldBuilder, data: Mapping[str, Any]) -> None:
         world.add_system(system)
     for affordance in affordances(dict(data)):
         world.add_affordance(affordance, replace=True)  # o cenário troca a do gênero
+    base_metrics = {str(m["id"]) for m in base.get("metrics", [])}
     for metric in metrics(data):
-        world.add_metric(metric)
+        world.add_metric(metric, override=metric.id in base_metrics)  # o cenário troca a do gênero
     movement = cast(Mapping[str, Any], data.get("movement", {}))
     if movement.get("energy_per_tile"):
         world.set_movement_cost(config.ENERGY, float(movement["energy_per_tile"]))

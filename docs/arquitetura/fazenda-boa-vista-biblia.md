@@ -77,7 +77,7 @@ y17     TTTTTTTTTTTTTTTEETTTTTTTTTTTRRRR
 | `=` | caminho | — | sim |
 | `.` | grama: onde se pode **cavar** | — | sim |
 
-**Canteiros:** não existem no início. `cavar` no tile de grama (`.`) em que o avatar está cria um canteiro vazio, passável, com id por sequência (`plot-01`, `plot-02`…) e o grupo visível `oeste` ou `leste` (x a partir de 16), como na fazenda 1; teto de **32** canteiros. Os tiles de terra dos canteiros antigos viraram grama: o terreno não dá pista. A **faixa do rio** (a R-001 vale a até 4 tiles do rio, ou seja, x de 24 a 27) tem 64 tiles de grama; o poço fica a 7 tiles dela e a 13 da casa. O regador só enche no poço, como na v0.1.
+**Canteiros:** não existem no início. `cavar` num tile de grama (`.`) ao lado do avatar (um dos 8 ao redor, ou o dele; sem alvo, o dele, que é o que o menu do humano manda), como se rega, cria um canteiro vazio, passável, com id por sequência (`plot-01`, `plot-02`…) e **sem grupo nem rótulo**: o terreno não dá pista, nem o nome; teto de **32** canteiros. Os tiles de terra dos canteiros antigos viraram grama. A **faixa do rio** (a R-001 vale a até 4 tiles do rio, ou seja, x de 24 a 27) tem 64 tiles de grama; o poço fica a 7 tiles dela e a 13 da casa. A faixa só existe para o analista, que a calcula pelas posições (§13). O regador só enche no poço, como na v0.1.
 
 **Interação e movimento:** como na v0.1 (vizinhança de 8 para agir; 4 direções para andar; pathfinding pelo kernel).
 
@@ -144,7 +144,7 @@ As da v0.1 continuam (`move`, `water`, `refill`, `harvest`, `clear`, `eat`, `dep
 
 | Ação | Alvo | Pré-condições | Duração (ticks) | Energia | Efeito |
 |---|---|---|---|---|---|
-| **`dig`** (cavar) | tile de grama | pá no inventário; tile adjacente, de grama, livre; menos de 32 canteiros | 15 (**5** com o arado) | 8 | cria um canteiro vazio (`world.entity.spawned`) |
+| **`dig`** (cavar) | tile de grama ao lado (`target: {x, y}`; sem alvo, o próprio) | pá no inventário; tile adjacente (ou o próprio), de grama, livre; menos de 32 canteiros | 15 (**5** com o arado) | 8 | cria um canteiro vazio (`world.entity.spawned`) |
 | `plant` | canteiro | canteiro vazio; semente no inventário | 5 (**1** com o arado) | 2 (**1** com o arado) | semente consumida; planta em `semente`; se adubado, o bônus do adubo |
 | **`fertilize`** (adubar) | canteiro | canteiro vazio e sem adubo; adubo no inventário | 3 | 1 | adubo consumido; canteiro `adubado` até o próximo plantio |
 | `water` | canteiro | um regador com carga no inventário; planta no canteiro | 2 | 2 | regador −1 (o grande, se o tiver); regado hoje |
@@ -190,7 +190,7 @@ Prioridades a cada decisão, na ordem; a primeira aplicável vence; empates por 
 
 1. **Dormir:** energia < 10, ou horário ≥ 21:30 → cama.
 2. **Comer:** fome ≥ 70 → prato pronto no inventário; senão, com 2 batatas, cozinhar a sopa; senão, a colheita de menor valor de venda no inventário; senão, retirar do baú.
-3. **Cavar:** menos de 16 canteiros e pá no inventário → cavar o tile de grama livre mais perto do poço.
+3. **Cavar:** menos de 16 canteiros e pá no inventário → entre os tiles de grama livres a até 2 do poço, cavar um que esteja ao lado (o mais perto do poço); se nenhum estiver, andar até o mais perto do poço.
 4. **Colher:** madura → a mais próxima.
 5. **Limpar:** murcha → limpar.
 6. **Encher:** o regador que carrega está vazio e há planta por regar → poço.

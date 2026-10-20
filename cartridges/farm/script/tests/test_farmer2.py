@@ -18,7 +18,7 @@ def thing(eid: str, kind: str, x: int, y: int, **attrs: Any) -> dict[str, Any]:
 
 
 def plot(pid: str, x: int, y: int, **attrs: Any) -> dict[str, Any]:
-    base: dict[str, Any] = {"crop": None, "stage": None, "watered_today": False, "group": "oeste"}
+    base: dict[str, Any] = {"crop": None, "stage": None, "watered_today": False}
     return thing(pid, "plot", x, y, **(base | attrs))
 
 
@@ -83,13 +83,17 @@ def view(
 
 
 def test_cava_na_grama_mais_perto_do_poco_e_so_com_a_pa() -> None:
-    proposal = SCRIPT.decide(view())
-    assert proposal["action"] == "move"
-    assert proposal["params"] == {
-        "target": {"x": 3, "y": 2}
-    }  # grama colada ao poço; empate por x, y
-    standing = SCRIPT.decide(view(at=(4, 1)))
-    assert standing == {"action": "dig", "params": {}, "intent": "cavar um canteiro"}
+    far = SCRIPT.decide(view(at=(0, 2)))  # nenhuma grama boa ao lado: anda até a melhor
+    assert far["action"] == "move"
+    assert far["params"] == {"target": {"x": 3, "y": 2}}  # grama colada ao poço; empate por x, y
+    beside = SCRIPT.decide(view(at=(4, 1)))  # ao lado do poço: cava o tile bom mais perto dele
+    assert beside == {
+        "action": "dig",
+        "params": {"target": {"x": 3, "y": 2}},
+        "intent": "cavar em 3,2",
+    }
+    nearby = SCRIPT.decide(view())  # de (1, 1), a grama (2, 2) a 2 do poço já está ao lado
+    assert nearby["params"] == {"target": {"x": 2, "y": 2}}
     no_spade = SCRIPT.decide(
         view(at=(4, 1), tools=[held("watering-can", "watering_can", charges=10, capacity=10)])
     )

@@ -48,30 +48,29 @@ def test_estado_inicial_da_boa_vista() -> None:
     assert world.entity("sell-box").attributes["preco_rabanete"] == 25
 
 
-def test_cavar_so_na_grama_com_a_pa_e_so_ate_o_teto() -> None:
+def test_cavar_so_na_grama_ao_lado_com_a_pa_e_so_ate_o_teto() -> None:
     farmer = _farmer()
     farmer.walk(4, 8)  # o caminho
-    (rejected,) = of_type(farmer.do("dig"), "action.rejected")
+    (rejected,) = of_type(farmer.do("dig"), "action.rejected")  # sem alvo: o tile em que está
     assert rejected["reason"] == "not_grass"
-    farmer.walk(5, 8)
-    facts = farmer.do("dig")
+    facts = farmer.do("dig", target={"x": 5, "y": 8})  # a grama ao lado, como se rega
     (spawned,) = of_type(facts, "world.entity.spawned")
     assert (spawned["entity_id"], spawned["kind"], spawned["position"]) == (
         "plot-01",
         "plot",
         {"x": 5, "y": 8},
     )
-    assert spawned["attributes"] == {
-        "crop": None,
-        "stage": None,
-        "watered_today": False,
-        "group": "oeste",
-    }
-    (rejected,) = of_type(farmer.do("dig"), "action.rejected")
+    # Sem grupo nem rótulo: o terreno não dá pista (a faixa do rio é do analista, bíblia 2 §13).
+    assert spawned["attributes"] == {"crop": None, "stage": None, "watered_today": False}
+    (rejected,) = of_type(farmer.do("dig", target={"x": 5, "y": 8}), "action.rejected")
     assert rejected["reason"] == "occupied"
+    (rejected,) = of_type(farmer.do("dig", target={"x": 7, "y": 8}), "action.rejected")
+    assert rejected["reason"] == "not_adjacent"
+    (rejected,) = of_type(farmer.do("dig", target={"x": "5"}), "action.rejected")
+    assert rejected["reason"] == "invalid_params"
     farmer.walk(20, 9)
-    (spawned,) = of_type(farmer.do("dig"), "world.entity.spawned")
-    assert (spawned["entity_id"], spawned["attributes"]["group"]) == ("plot-02", "leste")
+    (spawned,) = of_type(farmer.do("dig"), "world.entity.spawned")  # onde está: o menu do humano
+    assert (spawned["entity_id"], spawned["position"]) == ("plot-02", {"x": 20, "y": 9})
     world = farmer.core.world
     assert [e.entity_id for e in world.entities("plot")] == ["plot-01", "plot-02"]
     # Sem a pá, não se cava.

@@ -28,8 +28,7 @@ tools:
 
 digging:
   max_plots: 32
-  tile_kind: grass  # onde se pode cavar
-  east_from_x: 16  # o grupo visível do canteiro (oeste/leste), como na fazenda 1
+  tile_kind: grass  # onde se pode cavar; o canteiro nasce sem grupo nem rótulo (o terreno não dá pista)
 
 fertilizer:
   item: adubo
@@ -118,7 +117,9 @@ affordances:  # o que entra no menu além do que o gênero já tem (ADR-0051)
     target: false
     params: [{name: item, label: Comida, choices: {category: [colheita, prato]}, source: inventory}]
 
-metrics:  # além das do gênero (ADR-0054)
+metrics:  # além das do gênero (ADR-0054); `colheitas` troca a do gênero: aqui o canteiro não tem grupo
+  - {id: colheitas, label: Colheitas por cultura, kind: count, event: campsverso.world.item.created.v1,
+     where: {reason: harvest}, by: {field: item}}
   - {id: refeicoes, label: Refeições cozinhadas, kind: count, event: campsverso.action.completed.v1,
      where: {action: cook}, by: {field: params.recipe}}
   - {id: estragos, label: Itens estragados, kind: count, event: campsverso.world.item.consumed.v1,

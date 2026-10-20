@@ -26,11 +26,15 @@ tools:
   - name: dig
     strict: false  # a gramática das estritas tem teto; esta é simples
     description: >-
-      Cavar um canteiro no tile de grama em que você está, com a pá do seu inventário. O canteiro
-      nasce vazio, com um id (plot-01, plot-02...). Até 32 canteiros. Com o arado, leva 5 minutos.
+      Cavar um canteiro com a pá do seu inventário num tile de grama ao seu lado (um dos 8 ao
+      redor, ou o seu), pelas coordenadas dele. O canteiro nasce vazio, com um id (plot-01,
+      plot-02...). Até 32 canteiros. Com o arado, leva 5 minutos.
     duration: 15
     energy: 8
-    shape: {}
+    params:
+      - {name: x, type: integer, description: "a coluna do tile, da esquerda para a direita"}
+      - {name: y, type: integer, description: "a linha do tile, de cima para baixo"}
+    shape: {target: {x: $x, y: $y}}
   - name: plant
     description: >-
       Plantar uma semente num canteiro vazio ao seu lado. Gasta a semente da cultura, que precisa

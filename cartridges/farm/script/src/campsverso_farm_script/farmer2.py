@@ -177,7 +177,7 @@ class _Turn:
 
     def dig(self) -> Proposal | None:
         """Cava os canteiros nos tiles de grama mais perto do poço, até o número que o script
-        cuida; sem a pá, não cava."""
+        cuida: um tile bom ao lado, cava; senão anda até o melhor. Sem a pá, não cava."""
         digging = cast(Mapping[str, Any], self.c["digging"])
         if len(self.of_kind("plot")) >= int(digging["plots"]) or self.held("spade") is None:
             return None
@@ -199,9 +199,17 @@ class _Turn:
         ]
         if not candidates:
             return None
-        if (self.pos["x"], self.pos["y"]) in candidates:  # já está num tile bom: cava aqui
-            return {"action": "dig", "params": {}, "intent": "cavar um canteiro"}
-        x, y = min(candidates, key=lambda t: (abs(t[0] - wx) + abs(t[1] - wy), t))
+
+        def closest_to_well(tile: tuple[int, int]) -> tuple[int, tuple[int, int]]:
+            return abs(tile[0] - wx) + abs(tile[1] - wy), tile
+
+        me = (self.pos["x"], self.pos["y"])
+        near = [t for t in candidates if max(abs(t[0] - me[0]), abs(t[1] - me[1])) <= 1]
+        if near:  # um tile bom ao lado (ou o seu): cava ali, como se rega
+            x, y = min(near, key=closest_to_well)
+            target = {"x": x, "y": y}
+            return {"action": "dig", "params": {"target": target}, "intent": f"cavar em {x},{y}"}
+        x, y = min(candidates, key=closest_to_well)
         target = {"x": x, "y": y}
         return {"action": "move", "params": {"target": target}, "intent": f"ir cavar em {x},{y}"}
 

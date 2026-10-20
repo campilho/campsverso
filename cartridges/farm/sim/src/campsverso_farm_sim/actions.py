@@ -10,6 +10,7 @@ from campsverso_cartridge_api import (
     ActionContext,
     EntityView,
     Interrupt,
+    Position,
     Rejection,
     SpawnDef,
     Validation,
@@ -517,7 +518,7 @@ class Sleep(FarmAction):
 
 @dataclass(frozen=True)
 class Dig(FarmAction):
-    """Cava um canteiro no tile onde o avatar está, com a pá (ADR-0062)."""
+    """Cava um canteiro num tile de grama ao lado do avatar, ou no dele, com a pá (ADR-0062)."""
 
     name: str = "dig"
 
@@ -528,31 +529,47 @@ class Dig(FarmAction):
             return Rejection("invalid_params", "aqui não se cava")
         if held(ctx.view, ctx.avatar_id, str(tools["spade_kind"])) is None:
             return Rejection("missing_item", "sem pá")
-        me = ctx.view.entity(ctx.avatar_id).position
-        assert me is not None
-        if ctx.view.tile_kind(me) != str(digging["tile_kind"]):
+        spot = _dig_spot(ctx)
+        if isinstance(spot, Rejection):
+            return spot
+        if ctx.view.tile_kind(spot) != str(digging["tile_kind"]):
             return Rejection("not_grass")
-        if any(e.position == me and e.entity_id != ctx.avatar_id for e in ctx.view.entities()):
+        if any(e.position == spot and e.entity_id != ctx.avatar_id for e in ctx.view.entities()):
             return Rejection("occupied")
         if len(ctx.view.entities("plot")) >= int(digging["max_plots"]):
             return Rejection("no_room")
         return None
 
     def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
-        digging = section(ctx.view, "digging")
-        me = ctx.view.entity(ctx.avatar_id).position
-        assert me is not None
+        spot = _dig_spot(ctx)
+        assert not isinstance(spot, Rejection)
         number = len(ctx.view.entities("plot")) + 1
-        group = "leste" if me.x >= int(digging["east_from_x"]) else "oeste"
+        # Sem grupo nem rótulo: o terreno não dá pista; a faixa do rio é do analista (bíblia 2 §13).
         ops.spawn(
             SpawnDef(
                 f"plot-{number:02d}",
                 "plot",
-                position=me,
-                attributes={"group": group},
+                position=spot,
                 hidden={"bonus_points": 0.0, "ripe_days": 0},
             )
         )
+
+
+def _dig_spot(ctx: ActionContext) -> Position | Rejection:
+    """O tile a cavar: `target: {x, y}` ao lado do avatar (um dos 8 ao redor, ou o dele), como se
+    rega; sem alvo, o tile em que ele está, que é o que o menu do humano manda."""
+    me = ctx.view.entity(ctx.avatar_id).position
+    assert me is not None
+    raw = ctx.params.get("target")
+    if raw is None:
+        return me
+    if not isinstance(raw, Mapping) or not all(
+        isinstance(cast(Mapping[str, Any], raw).get(k), int) for k in ("x", "y")
+    ):
+        return Rejection("invalid_params", "dig exige target {x, y}, ou nada para cavar aqui")
+    target = cast(Mapping[str, int], raw)
+    spot = Position(int(target["x"]), int(target["y"]))
+    return spot if me.chebyshev(spot) <= 1 else Rejection("not_adjacent")
 
 
 @dataclass(frozen=True)
