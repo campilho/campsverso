@@ -80,6 +80,10 @@ campsverso/
       sim/                    # mapa (Tiled), avatar camps, ajustes de números, R-001
       art/                    # o Camps (sprite LPC), o mapa visual e o manifesto do cenário
       mind/                   # o cartão de identidade do Camps; entry point campsverso.minds (ADR-0059)
+    farm_boavista/            # a Fazenda Boa Vista, a fazenda 2 do M13 (ADR-0062): estende farm_camps
+      sim/                    # mapa sem canteiros com o fogão, boavista.yaml (as mecânicas ligadas por dados), R-001
+      art/                    # o mapa visual; o resto vem das camadas farm e farm_camps
+      mind/                   # o manual e o catálogo da fazenda 2 sobre o cartão do Camps; entry point camps_boavista
   apps/
     ui/                       # Vite + Phaser
   tools/
@@ -129,12 +133,12 @@ make sandbox      # mundo descartável com tudo ligado, em data/sandbox/<data-ho
 make ui-build     # compila a UI em apps/ui/dist; o gateway a serve em http://127.0.0.1:8765
 make ui           # a UI em modo desenvolvimento (Vite), com proxy para o gateway
 make ui-e2e       # fumaça da tela no navegador (Playwright), com um sandbox próprio (porta 8799)
-make soak DAYS=30 # resistência em modo máximo, com processos e NATS próprios (SEM_REGRA=1)
+make soak DAYS=30 # resistência em modo máximo, com processos e NATS próprios (SEM_REGRA=1); MUNDO=farm-boavista-01 escolhe o mundo (também em sandbox, run e metrics)
 make replay DAY=N # reexecuta um dia a partir do snapshot e do diário e compara com o arquivo
 make metrics      # métricas da bíblia §13 a partir do arquivo (ARCHIVE=pasta do mundo)
 make percepcao    # fotos e deltas da percepção por dia, em bytes e tokens estimados (ADR-0056); CONTAR=20 calibra com count_tokens
 make llm-smoke    # uma chamada real pela porta de modelo, medida e publicada pelo contrato (ADR-0058); pede ANTHROPIC_API_KEY no .env
-make fita DIAS=2  # grava em processo a fita de teste do controlador LLM, chamando a API (ADR-0059); o CI só a reproduz
+make fita DIAS=2  # grava em processo a fita de teste do controlador LLM, chamando a API (ADR-0059); o CI só a reproduz; CARTUCHO=farm_boavista grava a da fazenda 2
 make corrida DIAS=7   # N dias em processo com a mente sobre a API, com ou sem memória (ADR-0060); o mundo espera o modelo
 make arena DIAS=30    # as corridas da arena, em sequência, em data/arena/<data-hora> (ADR-0061); SO=nome roda uma só
 make arena-report     # o relatório da arena (tabela da bíblia lado a lado, o leste pela memória) em docs/arena/

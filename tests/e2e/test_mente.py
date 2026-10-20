@@ -29,6 +29,9 @@ class WaitingPort:
 
     def __init__(self) -> None:
         self.lengths: list[int] = []  # mensagens por pedido: a janela cresce e zera na foto
+        self.requests: list[
+            ModelRequest
+        ] = []  # os pedidos inteiros, para olhar o sistema e as ferramentas
 
     def capabilities(self) -> ModelCapabilities:
         return ModelCapabilities()
@@ -38,6 +41,7 @@ class WaitingPort:
 
     async def complete(self, request: ModelRequest) -> ModelResponse:
         self.lengths.append(len(request.messages))
+        self.requests.append(request)
         return ModelResponse(
             content=[
                 {"type": "thinking", "thinking": "", "signature": "x"},
@@ -178,3 +182,32 @@ async def test_a_memoria_sobrevive_a_um_reinicio_da_mente(tmp_path: Path) -> Non
     )
     assert f"Dia 1, ao dormir: {last.summary}" in block
     assert beliefs[0].statement in block
+
+
+async def test_a_tubulacao_da_boa_vista_com_uma_porta_que_so_espera() -> None:
+    """ADR-0062: a mente `camps_boavista` no mundo `farm-boavista-01`, em processo, um dia inteiro
+    com uma porta que só sabe esperar: o manual e o catálogo novos entram no pedido, a foto traz o
+    peso, a capacidade e o estoque do quiosque, e o dia fecha sem falha nem desmaio."""
+    port = WaitingPort()
+    pipeline = Pipeline(controller="llm", port=port, budget=LIMITS, cartridge="farm_boavista")
+    assert pipeline.worldid == "farm-boavista-01"
+    await pipeline.start()
+    await pipeline.run_days(1)
+    assert pipeline.mind is not None
+    assert pipeline.mind.calls > 0
+    assert pipeline.mind.failures == 0  # quem só espera desmaia às 02:00, como na fazenda 1
+    first = pipeline.of_type("perception.delivered.v1")[0]
+    camps = next(e for e in first["view"]["entities"] if e["entity_id"] == "camps")
+    assert (camps["attributes"]["capacity"], camps["attributes"]["weight"]) == (20, 8.0)
+    kiosk = next(e for e in first["view"]["entities"] if e["entity_id"] == "kiosk")
+    assert "semente_rabanete" in str(kiosk["attributes"]["estoque_hoje"])
+    assert not [e for e in first["view"]["entities"] if e["kind"] == "plot"]  # sem canteiros
+    request = port.requests[0]
+    assert any(tool["name"] == "dig" for tool in request.tools)
+    system = request.system
+    text = (
+        system
+        if isinstance(system, str)
+        else " ".join(str(block.get("text", "")) for block in (system or []))
+    )
+    assert "Fazenda Boa Vista" in text
