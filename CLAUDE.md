@@ -1,6 +1,6 @@
 # CLAUDE.md — Campsverso
 
-Campsverso é uma plataforma de simulação orientada a eventos para agentes de IA autônomos que vivem em mundos 2D. Cada mundo é um **cartucho** (fazenda, estúdio, startup…) rodando sobre um **kernel** genérico. A versão publicada é a **v0.1.0 "Fazenda do Camps"**: um avatar, nenhum LLM, controladores humano, script e replay. A **v0.2, a possessão** (`docs/planos/v0.2-macro.md`), está em construção: M8 a M12 feitos (o controlador LLM, ADR-0059; a memória baseline, ADR-0060; a arena, ADR-0061) e o M13, a Fazenda Boa Vista (a fazenda 2), em curso (ADR-0062); depois vêm o M14 (a segunda rodada da arena) e o M15 (fechamento).
+Campsverso é uma plataforma de simulação orientada a eventos para agentes de IA autônomos que vivem em mundos 2D. Cada mundo é um **cartucho** (fazenda, estúdio, startup…) rodando sobre um **kernel** genérico. A versão publicada é a **v0.1.0 "Fazenda do Camps"**: um avatar, nenhum LLM, controladores humano, script e replay. A **v0.2, a possessão** (`docs/planos/v0.2-macro.md`), está em construção: M8 a M13 feitos (o controlador LLM, ADR-0059; a memória baseline, ADR-0060; a arena, ADR-0061; a Fazenda Boa Vista, a fazenda 2, ADR-0062, com a arte própria adiada para durante o M14); o próximo é o M14 (a segunda rodada da arena, na Boa Vista, com Sonnet e Opus) e depois o M15 (fechamento).
 
 O projeto também é material de aprendizado e de publicações. Clareza, testes e registro das decisões importam tanto quanto o código.
 

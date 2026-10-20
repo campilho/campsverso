@@ -17,17 +17,17 @@ Tempo e tokens do Claude Code em cada marco (ADR-0051).
 | preparação | 5 | 36 | 56 | 197 | 13,0 | 580 |
 | M0 | 2 | 34 | 81 | 183 | 37,5 | 211 |
 | M1 | 1 | 35 | 54 | 198 | 38,2 | 222 |
-| M2 | 4 | 65 | 10 | 34 | 8,2 | 35 |
-| M3 | 2 | 46 | 0 | 0 | 0,0 | 0 |
-| M4 | 3 | 67 | 0 | 0 | 0,0 | 0 |
-| M5 | 2 | 33 | 0 | 0 | 0,0 | 0 |
-| M6 | 6 | 78 | 320 | 327 | 121,4 | 572 |
+| M2 | 4 | 65 | 159 | 292 | 59,5 | 502 |
+| M3 | 2 | 46 | 120 | 198 | 77,9 | 250 |
+| M4 | 3 | 67 | 253 | 296 | 90,5 | 526 |
+| M5 | 2 | 33 | 115 | 136 | 79,7 | 198 |
+| M6 | 6 | 76 | 325 | 334 | 124,6 | 1.327 |
 | M7 | 6 | 28 | 98 | 91 | 68,2 | 857 |
 | M8 | 16 | 82 | 110 | 365 | 50,3 | 872 |
 | M9 | 4 | 34 | 35 | 147 | 28,8 | 891 |
 | M10+M11 | 17 | 120 | 165 | 528 | 104,1 | 1.676 |
 | M12 | 13 | 54 | 98 | 213 | 26,8 | 628 |
-| M13 | 3 | 112 | 140 | 309 | 93,8 | 443 |
+| M13 | 7 | 154 | 239 | 471 | 121,1 | 765 |
 
 ## Uso do plano Max
 
@@ -44,3 +44,5 @@ Anotado ao fechar cada marco, como o app mostra: a janela de 5 horas e a semana.
 | 2026-10-19 | fim do M10 e do M11 (janela de 5 h reiniciada antes da leitura) | 15 | 22 |
 | 2026-10-19 | fim do M12 (noite |  depois da arena e do plano do M13) | 20 | 29 |
 | 2026-10-20 | M13 em curso (fazenda 2: kernel |  gênero |  cenário |  script 2 |  mente |  fita; madrugada) | 83 | 37 |
+| 2026-10-20 | M13 em curso (manhã: premissas revistas |  métricas da bíblia 2 §13 |  e2e nos dois mundos |  tela da Boa Vista; semana da Fable a 80%) | 34 | 43 |
+| 2026-10-20 | fim do M13 (meio-dia; semana da Fable a 81%) | 36 | 43 |
