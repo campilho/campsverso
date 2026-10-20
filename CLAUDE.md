@@ -1,6 +1,6 @@
 # CLAUDE.md — Campsverso
 
-Campsverso é uma plataforma de simulação orientada a eventos para agentes de IA autônomos que vivem em mundos 2D. Cada mundo é um **cartucho** (fazenda, estúdio, startup…) rodando sobre um **kernel** genérico. A versão publicada é a **v0.1.0 "Fazenda do Camps"**: um avatar, nenhum LLM, controladores humano, script e replay. A **v0.2, a possessão** (`docs/planos/v0.2-macro.md`), está em construção: M8 a M11 feitos (o controlador LLM, ADR-0059; a memória baseline, ADR-0060) e o M12, a arena, em curso (ADR-0061).
+Campsverso é uma plataforma de simulação orientada a eventos para agentes de IA autônomos que vivem em mundos 2D. Cada mundo é um **cartucho** (fazenda, estúdio, startup…) rodando sobre um **kernel** genérico. A versão publicada é a **v0.1.0 "Fazenda do Camps"**: um avatar, nenhum LLM, controladores humano, script e replay. A **v0.2, a possessão** (`docs/planos/v0.2-macro.md`), está em construção: M8 a M12 feitos (o controlador LLM, ADR-0059; a memória baseline, ADR-0060; a arena, ADR-0061) e o M13, a Fazenda Boa Vista (a fazenda 2), em curso (ADR-0062); depois vêm o M14 (a segunda rodada da arena) e o M15 (fechamento).
 
 O projeto também é material de aprendizado e de publicações. Clareza, testes e registro das decisões importam tanto quanto o código.
 
@@ -14,7 +14,8 @@ Leia antes de qualquer tarefa não trivial, nesta ordem:
 4. `docs/arquitetura/kernel-gestao-do-tempo.md` — relógio e políticas de tempo
 5. `docs/arquitetura/pesquisa-componentes-plataforma-simulacao.md` — bibliotecas avaliadas
 6. `docs/arquitetura/catalogo-eventos-v0.1.md` — eventos e comandos da v0.1 (depois do M0, guia de leitura dos schemas em `contracts/`)
-7. `docs/decisoes/README.md` — índice das ADRs. **Uma ADR aceita prevalece sobre o texto dos documentos acima.**
+7. `docs/arquitetura/fazenda-boa-vista-biblia.md` — a fazenda 2 do M13: números, regras visíveis e ocultas, o fazendeiro-script 2
+8. `docs/decisoes/README.md` — índice das ADRs. **Uma ADR aceita prevalece sobre o texto dos documentos acima.**
 
 Se dois documentos conflitarem, ou se faltar uma decisão: **pare e pergunte**. Depois registre a decisão como ADR curto em `docs/decisoes/NNNN-titulo.md`.
 

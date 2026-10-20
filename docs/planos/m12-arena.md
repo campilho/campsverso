@@ -67,4 +67,24 @@ Aprovadas em 19/out/2026 (ADR-0061). As três mudanças do usuário sobre o rasc
 
 ## 9. Como ficou
 
-Fica para o fim do marco.
+Sete corridas de 30 dias em 19/out/2026, todas no mesmo mundo e na mesma seed (mais três seeds para o Haiku com memória), em processo, com o relatório inteiro em [`docs/arena/2026-10-19.md`](../arena/2026-10-19.md). Os totais:
+
+| | script | Haiku sem memória | Haiku com memória (seed 1) | seed 2 | seed 3 | seed 4 | com memória, sem a regra |
+|---|---|---|---|---|---|---|---|
+| Moedas ao fim | 1.175 | 790 | 1.340 | 1.225 | 1.185 | 345 | 85 |
+| Colheitas | 184 | 101 | 117 | 111 | 99 | 70 | 76 |
+| Recusas | 0 | 98 | 94 | 98 | 91 | 103 | 111 |
+| Pico de fome, desmaios | 79, 0 | 100, 0 | 100, 0 | 100, 0 | 100, 1 | 100, 0 | 100, 1 |
+| Chamadas, custo | | 1.656, US$ 0,60 | 1.722, US$ 0,91 | 1.647, US$ 0,87 | 1.681, US$ 0,87 | 1.464, US$ 0,79 | 1.572, US$ 0,82 |
+| Crenças ao fim | | | 24 | 27 | 32 | 34 | 26 |
+
+O que as corridas disseram:
+
+1. **A memória paga em moedas, com variância grande.** Três das quatro seeds com memória passaram o script (1.340, 1.225 e 1.185 contra 1.175); a quarta passou fome do dia 7 ao 22 e fechou com 345. A média das quatro é 1.024, e o Haiku sem memória, numa seed só, fez 790. O script continua imbatível em colheitas (184 contra 99 a 117) e em recusas (zero contra uns 95): ele não erra distância.
+2. **Ninguém descobriu o leste.** Nenhuma corrida com memória guardou, ao fim de 30 dias, uma crença de que o leste amadurece mais rápido. As três que chegaram perto desaprenderam: a seed 1 formou no dia 11 uma crença sobre canteiros do leste que "não avançam na virada" e a retirou no dia 18; a seed 2 escreveu no dia 23 que "a abóbora amadurece em cerca de 6 dias nos canteiros do leste, não 8 como eu pensava" e, até o dia 30, diluiu para "6 a 8 dias, dependendo do canteiro" com confiança 0,50; a seed 3 viu no dia 15 que "o oeste ficou parado enquanto o leste avançou" e transformou isso numa crença sobre rega (0,95). A primeira anotação que nota a vantagem do leste, na seed 1, é do dia 30. A memória guarda o que o agente escreve; ela não faz ele comparar o que mediu.
+3. **O comportamento não discrimina.** Todos plantam uns 55 a 60% no leste, o script inclusive, por rotina; a seed 4 e o controle sem a regra ficam em 42 a 45%. O sinal do comportamento, que era o do rascunho, não separa quem descobriu de quem não descobriu; por isso a decisão 5 virou o dado da memória, e por isso a fazenda 2 nasce sem canteiros (ADR-0062).
+4. **A regra é o que faz a fazenda pagar.** O controle sem a R-001, com memória, fechou com 85 moedas: na fazenda 1, metade do rendimento vem do rio, mesmo para quem não sabe que ele existe. Os dias até amadurecer no arquivo mostram o efeito a quem olhar (oeste 4,2 a 5,1 contra leste 3,1 a 4,1 nas corridas com a regra), e nenhum agente olhou.
+5. **O Haiku erra distância, não regra.** Entre 66 e 81 das recusas de cada corrida são `not_adjacent`, como no M11; `already_there` vem depois. A fome bate 100 em todas as corridas do modelo (o script fica em 79): ele não guarda comida.
+6. **Custo e ritmo.** US$ 0,020 a 0,030 por dia simulado, 49 a 57 chamadas por dia, latência mediana de 1,7 a 1,9 s; a arena inteira custou US$ 4,86 de API, e uma corrida leva uns 70 minutos de relógio quando o Mac está acordado.
+
+O que mudou em relação ao plano: a arena rodou em cinco processos em paralelo para recuperar o dia perdido com o Mac dormindo, com as corridas novas em pastas próprias e reservas na pasta principal (a reserva ao começar vai para o corredor antes do M14, `futuro.md`); o `make arena` passou a rodar sob `caffeinate`; a heurística de "descobriu" ficou estrita (um comparativo de tempo ou de vantagem no trecho que fala do leste) e o relatório mostra a primeira redação de cada crença, porque foi nela que a descoberta apareceu e sumiu. Custo do marco: US$ 4,86 de API e, no Claude Code, 13 turnos e 48 minutos de conversa (`docs/custos`).

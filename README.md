@@ -33,8 +33,8 @@ A pergunta da v0.2: **um LLM consegue viver na fazenda, prosperar e descobrir so
 | M9: porta de modelo e orçamento | `ModelPort`, eventos das chamadas, teto de custo que pausa o mundo, respostas gravadas para testes | concluído em 18/out/2026 |
 | M10: o controlador LLM | o Camps decide pela percepção e pelo catálogo de ações, com um cartão de identidade | concluído em 18/out/2026 |
 | M11: memória baseline | registrar, lembrar e refletir; crenças com confiança e origem | concluído em 19/out/2026 |
-| M12: a arena | script × Haiku sem memória × Haiku com memória, 30 dias, lado a lado, com o custo por dia simulado e quem descobriu o leste | em curso |
-| M13: a fazenda 2, "Fazenda Boa Vista" | um segundo mundo em que as escolhas custam: sete culturas, canteiros cavados, ferramentas com peso, mercado, fogão, validade; o fazendeiro-script 2 | a fazer |
+| M12: a arena | script × Haiku sem memória × Haiku com memória, 30 dias, lado a lado, com o custo por dia simulado e quem descobriu o leste | concluído em 19/out/2026 |
+| M13: a fazenda 2, "Fazenda Boa Vista" | um segundo mundo em que as escolhas custam: sete culturas, canteiros cavados, ferramentas com peso, mercado, fogão, validade; o fazendeiro-script 2 | em curso |
 | M14: a segunda rodada da arena | script 2 × Haiku × Sonnet × Opus na fazenda nova, por menos dias | a fazer |
 | M15: fechamento | critérios de aceite, diário e a tag `v0.2.0` | a fazer |
 
@@ -46,7 +46,9 @@ A pergunta da v0.2: **um LLM consegue viver na fazenda, prosperar e descobrir so
 
 **M11 concluído em 19/out/2026** ([plano](docs/planos/m11-memoria-baseline.md), ADR-0060): a `MemoryPort` com episódios, anotações, crenças e reflexão; o adaptador SQLite por avatar; o bloco de memória na abertura de cada janela; a reflexão ao dormir como ferramenta estrita; cinco eventos `memory.*` e o caderno no painel do operador. Em 7 dias com a mesma seed, a mente com memória colheu 22 contra 16 sem memória, mediu que o leste amadurece em 2 dias e passou a plantar lá.
 
-**M12 em curso** ([plano](docs/planos/m12-arena.md), ADR-0061): a arena em processo, `make arena` e `make arena-report`, com o relatório em `docs/arena/`.
+**M12 concluído em 19/out/2026** ([plano](docs/planos/m12-arena.md), ADR-0061, [relatório](docs/arena/2026-10-19.md)): sete corridas de 30 dias em processo, com `make arena` e `make arena-report`. O Haiku com memória passou o script em moedas em três de quatro seeds (1.340, 1.225 e 1.185 contra 1.175), mas nenhuma corrida descobriu a regra do rio: a que chegou mais perto escreveu a resposta certa no dia 23 e desaprendeu até o dia 30. Custo da arena: US$ 4,86.
+
+**M13 em curso** ([plano](docs/planos/m13-fazenda-2.md), ADR-0062, [bíblia](docs/arquitetura/fazenda-boa-vista-biblia.md)): a Fazenda Boa Vista, um segundo mundo em que as escolhas custam, com quatro primitivas novas no kernel.
 
 ## Depois: v0.3, o escritório que constrói a si mesmo
 
