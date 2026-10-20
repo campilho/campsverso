@@ -25,7 +25,7 @@ from campsverso_adapters import AnthropicModel, RecordingModel, SqliteMemory, Sy
 from campsverso_ports import MemoryPort, ModelPort
 from campsverso_testkit.fita import LIMITS, summary
 from campsverso_testkit.nats_server import REPO
-from campsverso_testkit.pipeline import Pipeline
+from campsverso_testkit.pipeline import MODEL, Pipeline
 from campsverso_tools.arena import east_signals
 from campsverso_tools.metrics import compute, table
 
@@ -41,6 +41,8 @@ class Spec:
     memory: bool = False
     river_bonus: bool = True
     seed: int = SEED
+    cartridge: str = "farm_camps"  # a Fazenda do Camps; farm_boavista é a fazenda 2 (M14)
+    model: str = MODEL
 
 
 SPECS: tuple[Spec, ...] = (
@@ -82,6 +84,8 @@ async def run_spec(spec: Spec, days: int, out: Path) -> dict[str, Any]:
         port=port,
         budget=LIMITS if port is not None else None,
         memory=notebook,
+        cartridge=spec.cartridge,
+        model=spec.model,
     )
     started = datetime.now(UTC)
     _say(

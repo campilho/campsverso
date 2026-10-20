@@ -19,9 +19,20 @@ from pathlib import Path
 from typing import Any
 
 REPO = Path(__file__).resolve().parents[4]
-LOGIC = REPO / "cartridges/farm_camps/sim/src/campsverso_farm_camps_sim/data/map.tmj"
 TILESET = REPO / "cartridges/farm/art/terrain.tsj"
-OUT = REPO / "cartridges/farm_camps/art/map-visual.tmj"
+SCENARIOS = ("farm_camps", "farm_boavista")  # os cenários com mapa próprio
+
+
+def logic_map(scenario: str) -> Path:
+    return REPO / f"cartridges/{scenario}/sim/src/campsverso_{scenario}_sim/data/map.tmj"
+
+
+def visual_map(scenario: str) -> Path:
+    return REPO / f"cartridges/{scenario}/art/map-visual.tmj"
+
+
+LOGIC = logic_map("farm_camps")
+OUT = visual_map("farm_camps")
 TILESET_IMAGE = "../../farm/art/terrain.png"  # relativo ao mapa visual, para abrir no Tiled
 
 PATHS = {"path", "entrance"}
@@ -200,18 +211,24 @@ def render(doc: Mapping[str, Any]) -> str:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="campsverso_tools.visual_map")
     parser.add_argument("--check", action="store_true", help="só confere se o arquivo está em dia")
+    parser.add_argument("--scenario", choices=SCENARIOS, help="um cenário só (padrão: todos)")
     args = parser.parse_args(argv)
-    logic = json.loads(LOGIC.read_text(encoding="utf-8"))
     tileset = json.loads(TILESET.read_text(encoding="utf-8"))
-    text = render(build(logic, tileset))
-    if args.check:
-        if not OUT.exists() or OUT.read_text(encoding="utf-8") != text:
-            print(f"{OUT.relative_to(REPO)} desatualizado: rode make mapa-visual", file=sys.stderr)
-            return 1
-        print("mapa visual em dia")
-        return 0
-    OUT.write_text(text, encoding="utf-8")
-    print(f"mapa visual gravado em {OUT.relative_to(REPO)}")
+    for scenario in [args.scenario] if args.scenario else SCENARIOS:
+        source, out = logic_map(scenario), visual_map(scenario)
+        if not out.parent.exists():
+            continue  # o cenário ainda não tem pasta de arte
+        text = render(build(json.loads(source.read_text(encoding="utf-8")), tileset))
+        if args.check:
+            if not out.exists() or out.read_text(encoding="utf-8") != text:
+                print(
+                    f"{out.relative_to(REPO)} desatualizado: rode make mapa-visual", file=sys.stderr
+                )
+                return 1
+            print(f"mapa visual de {scenario} em dia")
+            continue
+        out.write_text(text, encoding="utf-8")
+        print(f"mapa visual gravado em {out.relative_to(REPO)}")
     return 0
 
 

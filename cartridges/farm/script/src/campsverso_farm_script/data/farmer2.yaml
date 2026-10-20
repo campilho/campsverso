@@ -1,0 +1,57 @@
+# Fazendeiro-script 2 (bíblia 2, §11): a linha de base competente e cega da Fazenda Boa Vista.
+# Segue o manual com regras boas e nenhuma regra oculta: cava perto do poço, planta a melhor
+# conta visível que o dinheiro permite, guarda comida, vende enquanto o preço do dia compensa,
+# compra o regador grande quando sobra. Nunca o arado, nunca o adubo.
+
+id: script/farmer2-v1
+wait_ticks: 15
+
+sleep:
+  bed_kind: bed
+  at: "21:30"
+  low_energy: 10
+  ground_after: "01:30"
+  wake_at: "06:00"
+
+needs: {hunger: fome, energy: energia}
+hunger_eat_at: 70
+food_days: 2  # comida guardada para dois dias, em pontos de fome (56 por dia)
+hunger_per_day: 56
+
+foods:  # comestíveis: valor de venda e quanto tiram de fome (bíblia 2, §5)
+  rabanete: {sale: 25, hunger: 25}
+  batata: {sale: 50, hunger: 35}
+  abobora: {sale: 104, hunger: 50}
+  cenoura: {sale: 20, hunger: 15}
+  morango: {sale: 90, hunger: 20}
+  tomate: {sale: 70, hunger: 30}
+  alho: {sale: 40, hunger: 10}
+dishes: [sopa_de_batata, ensopado, pure_de_abobora]  # pratos prontos: come primeiro
+soup: {recipe: sopa_de_batata, needs: {batata: 2}}  # cozinha quando tem os ingredientes
+
+crops:  # a conta visível: (venda - semente) / dias; o script planta a melhor que pode comprar
+  rabanete: {seed: semente_rabanete, price: 10, days: 3, sale: 25}
+  batata: {seed: semente_batata, price: 20, days: 5, sale: 50}
+  abobora: {seed: semente_abobora, price: 40, days: 8, sale: 104}
+  cenoura: {seed: semente_cenoura, price: 15, days: 4, sale: 20}
+  morango: {seed: semente_morango, price: 60, days: 6, sale: 90}
+  tomate: {seed: semente_tomate, price: 30, days: 4, sale: 70}
+  alho: {seed: semente_alho, price: 12, days: 7, sale: 40}
+
+digging: {plots: 16, near: well, radius: 2}  # cava 16 canteiros na grama a até 2 tiles do poço
+sell_floor: 0.8  # vende enquanto o preço do dia for pelo menos 80% da tabela
+coins_reserve: 30
+big_can: {kind: watering_can_large, item: watering_can_large, price: 150}
+small_can: watering_can
+
+kinds:
+  plot: plot
+  well: well
+  chest: chest
+  sell_box: sell_box
+  kiosk: kiosk
+  stove: stove
+  can: watering_can
+
+stages: {ripe: madura, withered: murcha}
+rain: rain

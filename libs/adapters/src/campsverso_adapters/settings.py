@@ -48,12 +48,28 @@ class NatsSettings:
 
 
 @dataclass(frozen=True, slots=True)
+class ArtLayer:
+    """Uma camada de arte (ADR-0053); `only_for` restringe aos cartuchos listados (ADR-0062)."""
+
+    name: str
+    dir: Path
+    only_for: tuple[str, ...] | None = None
+
+    def applies_to(self, cartridge: str) -> bool:
+        return self.only_for is None or cartridge in self.only_for
+
+
+@dataclass(frozen=True, slots=True)
 class GatewaySettings:
     host: str = "127.0.0.1"  # só local na v0.1, sem login (ADR-0050)
     port: int = 8765
     maps: dict[str, Path] = field(default_factory=dict[str, Path])  # id do mapa -> arquivo Tiled
     ui_dir: Path | None = None  # UI compilada; sem ela, a UI roda pelo Vite (make ui)
-    art: tuple[tuple[str, Path], ...] = ()  # camadas de arte, do gênero ao cenário (ADR-0053)
+    art: tuple[ArtLayer, ...] = ()  # camadas de arte, do gênero ao cenário (ADR-0053)
+
+    def art_for(self, cartridge: str) -> tuple[tuple[str, Path], ...]:
+        """As camadas que valem para o cartucho do mundo, na ordem."""
+        return tuple((a.name, a.dir) for a in self.art if a.applies_to(cartridge))
 
 
 @dataclass(frozen=True, slots=True)
@@ -117,6 +133,7 @@ class WorldSettings:
     controllers: dict[str, tuple[str, str]]  # avatar -> (tipo, id) no começo; vazio: o do cartucho
     budget: BudgetSettings | None = None  # tetos de gasto com modelos (ADR-0058)
     minds: Mapping[str, MindSettings] = field(default_factory=dict[str, MindSettings])  # ADR-0059
+    script: str = "farmer"  # o fazendeiro-script deste mundo (entry point campsverso.controllers)
 
 
 def _read(path: Path) -> Mapping[str, Any]:
@@ -162,7 +179,16 @@ def load_env(path: Path, root: Path | None = None) -> EnvSettings:
             port=int(gateway.get("port", 8765)),
             maps={str(k): base / str(v) for k, v in maps.items()},
             ui_dir=base / str(gateway["ui_dir"]) if gateway.get("ui_dir") else None,
-            art=tuple((str(layer["name"]), base / str(layer["dir"])) for layer in art),
+            art=tuple(
+                ArtLayer(
+                    str(layer["name"]),
+                    base / str(layer["dir"]),
+                    None
+                    if layer.get("only_for") is None
+                    else tuple(str(c) for c in cast(list[Any], layer["only_for"])),
+                )
+                for layer in art
+            ),
         ),
         pulse_seconds=float(kernel.get("pulse_seconds", 1.0)),
         perception=PerceptionSettings(
@@ -224,6 +250,7 @@ def load_world(path: Path, root: Path | None = None) -> WorldSettings:
     return WorldSettings(
         worldid=str(doc["worldid"]),
         cartridge=str(doc["cartridge"]),
+        script=str(doc.get("script") or "farmer"),
         seed=int(doc["seed"]),
         start=start,
         mode=mode,

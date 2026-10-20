@@ -68,7 +68,7 @@ def contribute_extensions(world: WorldBuilder, data: Mapping[str, Any]) -> None:
     for system in build_extension_systems(data):
         world.add_system(system)
     for affordance in affordances(dict(data)):
-        world.add_affordance(affordance)
+        world.add_affordance(affordance, replace=True)  # o cenário troca a do gênero
     for metric in metrics(data):
         world.add_metric(metric)
     movement = cast(Mapping[str, Any], data.get("movement", {}))

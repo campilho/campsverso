@@ -26,8 +26,8 @@ from campsverso_testkit.soak import WORLD, Processes
 PORT = 8765
 
 
-def _world_file(out: Path, mind: str | None = None) -> Path:
-    world = yaml.safe_load(WORLD.read_text(encoding="utf-8"))
+def _world_file(out: Path, mind: str | None = None, source: Path = WORLD) -> Path:
+    world = yaml.safe_load(source.read_text(encoding="utf-8"))
     world["clock"] = {"mode": "continuous", "scale": 72, "paused": False}
     minds = cast(dict[str, dict[str, Any]], world.get("minds") or {})
     for avatar, settings in list(minds.items()):
@@ -40,9 +40,9 @@ def _world_file(out: Path, mind: str | None = None) -> Path:
     return path
 
 
-def run(out: Path, port: int = PORT, mind: str | None = None) -> int:
+def run(out: Path, port: int = PORT, mind: str | None = None, source: Path = WORLD) -> int:
     out.mkdir(parents=True, exist_ok=True)
-    world = _world_file(out, mind)
+    world = _world_file(out, mind, source)
     stop = {"now": False}
 
     def interrupt(_signum: int, _frame: object) -> None:
@@ -103,8 +103,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, required=True, help="pasta do mundo descartável")
     parser.add_argument("--port", type=int, default=PORT, help="porta do gateway")
     parser.add_argument("--mind", help="a mente que assume o Camps, ex.: camps (ADR-0059)")
+    parser.add_argument("--world", type=Path, default=WORLD, help="o arquivo do mundo")
     args = parser.parse_args(argv)
-    return run(args.out, args.port, args.mind)
+    return run(args.out, args.port, args.mind, args.world)
 
 
 if __name__ == "__main__":

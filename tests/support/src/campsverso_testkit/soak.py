@@ -23,7 +23,8 @@ from typing import Any
 
 import yaml
 
-from campsverso_adapters import NatsBus, load_env
+from campsverso_adapters import NatsBus, load_env, load_world
+from campsverso_kernel.loader import discover
 from campsverso_ports import Envelope
 from campsverso_testkit.nats_server import REPO, NatsServer, nats_server
 from campsverso_tools.metrics import compute, read_archive
@@ -46,11 +47,12 @@ class SoakResult:
     out: str = ""
 
 
-def _world_file(out: Path, river_bonus: bool) -> Path:
-    world = yaml.safe_load(WORLD.read_text(encoding="utf-8"))
+def _world_file(out: Path, river_bonus: bool, source: Path = WORLD) -> Path:
+    world = yaml.safe_load(source.read_text(encoding="utf-8"))
     world["clock"] = {"mode": "max", "paused": False}
     if not river_bonus:
-        rules = REPO / "cartridges/farm_camps/sim/src/campsverso_farm_camps_sim/data/rules.yaml"
+        rules = discover()[str(world["cartridge"])].rules_file()
+        assert rules is not None, "o cenário não tem arquivo de regras"
         flags = yaml.safe_load(rules.read_text(encoding="utf-8"))
         for rule in flags["rules"].values():
             rule["enabled"] = False
@@ -110,7 +112,7 @@ class Processes:
             "--world",
             world,
             "--controller",
-            "farmer",
+            load_world(self.world).script,  # o fazendeiro-script do mundo (bíblia 2, §11)
         )
         self.spawn("kernel", "campsverso_kernel.main", "--world", world, "--data-dir", data)
 
@@ -140,9 +142,16 @@ class Processes:
                 process.wait()
 
 
-async def run(days: int, out: Path, *, river_bonus: bool = True, quiet: bool = False) -> SoakResult:
+async def run(
+    days: int,
+    out: Path,
+    *,
+    river_bonus: bool = True,
+    quiet: bool = False,
+    source: Path = WORLD,
+) -> SoakResult:
     out.mkdir(parents=True, exist_ok=True)
-    world = _world_file(out, river_bonus)
+    world = _world_file(out, river_bonus, source)
     target = days * DAY
     with nats_server(out) as nats:
         bus = await NatsBus.connect(
@@ -194,7 +203,7 @@ async def run(days: int, out: Path, *, river_bonus: bool = True, quiet: bool = F
             with contextlib.suppress(Exception):
                 await bus.close()
         result.max_rss_mb = processes.max_rss
-    folder = out / "archive" / "farm-camps-01"
+    folder = out / "archive" / str(yaml.safe_load(source.read_text(encoding="utf-8"))["worldid"])
     if folder.exists():
         result.metrics = compute(read_archive(folder)).totals()
     return result
@@ -205,9 +214,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--days", type=int, default=30)
     parser.add_argument("--out", type=Path, help="pasta da execução (padrão: uma pasta temporária)")
     parser.add_argument("--sem-regra", action="store_true", help="desliga a regra oculta R-001")
+    parser.add_argument("--world", type=Path, default=WORLD, help="o arquivo do mundo")
     args = parser.parse_args(argv)
     out = args.out or Path(tempfile.mkdtemp(prefix="campsverso-soak-"))
-    result = asyncio.run(run(args.days, out, river_bonus=not args.sem_regra))
+    result = asyncio.run(run(args.days, out, river_bonus=not args.sem_regra, source=args.world))
     print(json.dumps(result.__dict__, ensure_ascii=False, indent=2))
     return 0 if result.ok else 1
 

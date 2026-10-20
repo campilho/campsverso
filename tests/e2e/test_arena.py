@@ -16,6 +16,8 @@ async def test_a_corrida_do_script_grava_a_pasta(tmp_path: Path) -> None:
         "memory": False,
         "river_bonus": True,
         "seed": SEED,
+        "cartridge": "farm_camps",
+        "model": "claude-haiku-5-5",
     }
     assert result["totals"]["days"] == 2
     assert (result["calls"], result["gave_up"], result["aborted_day"]) == (0, False, None)

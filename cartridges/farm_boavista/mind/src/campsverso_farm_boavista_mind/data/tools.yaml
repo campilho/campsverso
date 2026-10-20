@@ -1,0 +1,174 @@
+# Catálogo de ferramentas da mente na Fazenda Boa Vista (ADR-0062): uma por ação do mundo, com as
+# descrições em português. Duração e energia repetem o `actions` do gênero e do cenário, e um
+# teste confere que batem. Toda ferramenta ganha o campo `intent`, que a mente acrescenta.
+tools:
+  - name: move_near
+    action: move
+    description: >-
+      Andar até ficar ao lado de uma coisa (um canteiro, o poço, o baú, a caixa de vendas, o
+      quiosque, o fogão, a cama), pelo id dela; o mundo escolhe o tile e o caminho. Qualquer
+      trajeto leva 1 minuto, e cada 20 tiles andados gastam 1 de energia.
+    params:
+      - name: near
+        type: string
+        description: "o id da entidade (ex.: plot-03, well, chest, sell-box, kiosk, stove, bed)"
+  - name: move_to
+    action: move
+    description: >-
+      Andar até um tile pelas coordenadas; o tile precisa ser pisável e alcançável. É assim que se
+      escolhe onde cavar: vá até um tile de grama e use dig.
+    params:
+      - {name: x, type: integer, description: "a coluna, da esquerda para a direita"}
+      - {name: y, type: integer, description: "a linha, de cima para baixo"}
+    shape: {target: {x: $x, y: $y}}
+  - name: dig
+    description: >-
+      Cavar um canteiro no tile de grama em que você está, com a pá do seu inventário. O canteiro
+      nasce vazio, com um id (plot-01, plot-02...). Até 32 canteiros. Com o arado, leva 5 minutos.
+    duration: 15
+    energy: 8
+    shape: {}
+  - name: plant
+    description: >-
+      Plantar uma semente num canteiro vazio ao seu lado. Gasta a semente da cultura, que precisa
+      estar no seu inventário. Com o arado no inventário leva 1 minuto e 1 de energia.
+    duration: 5
+    energy: 2
+    params:
+      - {name: target, type: string, description: "o id do canteiro (kind plot)"}
+      - name: crop
+        type: string
+        description: "a cultura"
+        enum: [rabanete, batata, abobora, cenoura, morango, tomate, alho]
+  - name: fertilize
+    description: >-
+      Adubar um canteiro vazio ao seu lado com 1 adubo do seu inventário, antes de plantar: a
+      planta seguinte cresce melhor. O canteiro mostra `adubado` até o plantio.
+    duration: 3
+    energy: 1
+    params:
+      - {name: target, type: string, description: "o id do canteiro"}
+  - name: water
+    description: >-
+      Regar o canteiro ao seu lado com um regador, que gasta 1 carga; o canteiro precisa ter
+      planta. A chuva rega todos os canteiros de graça.
+    duration: 2
+    energy: 2
+    params:
+      - {name: target, type: string, description: "o id do canteiro"}
+  - name: refill
+    description: >-
+      Encher no poço ao seu lado os regadores que você carrega (o comum fica com 10 cargas, o
+      grande com 25). Só o poço enche o regador.
+    duration: 3
+    energy: 1
+    params:
+      - {name: target, type: string, description: "o id do poço"}
+  - name: harvest
+    description: >-
+      Colher um canteiro ao seu lado com a planta madura: rende 1 unidade da colheita no seu
+      inventário (se couber) e deixa o canteiro vazio. Uma madura que fica três dias sem colher
+      murcha.
+    duration: 3
+    energy: 1
+    params:
+      - {name: target, type: string, description: "o id do canteiro"}
+  - name: clear
+    description: >-
+      Limpar um canteiro ao seu lado com a planta murcha, deixando-o vazio para plantar de novo.
+    duration: 3
+    energy: 2
+    params:
+      - {name: target, type: string, description: "o id do canteiro"}
+  - name: cook
+    description: >-
+      Cozinhar no fogão ao seu lado uma receita com ingredientes do seu inventário: sopa_de_batata
+      (2 batatas, 10 minutos), ensopado (1 batata, 1 cenoura, 1 alho, 20 minutos) ou
+      pure_de_abobora (1 abóbora, 15 minutos). O prato vai para o seu inventário e dura 2 dias.
+    duration: 10
+    energy: 2
+    params:
+      - {name: target, type: string, description: "o id do fogão (kind stove)"}
+      - name: recipe
+        type: string
+        description: "a receita"
+        enum: [sopa_de_batata, ensopado, pure_de_abobora]
+  - name: eat
+    description: >-
+      Comer uma colheita ou um prato do seu inventário; reduz a fome (rabanete 25, batata 35,
+      abóbora 50, cenoura 15, morango 20, tomate 30, alho 10; os pratos, só comendo se descobre).
+    duration: 10
+    energy: 0
+    params:
+      - name: item
+        type: string
+        description: "a comida"
+        enum: [rabanete, batata, abobora, cenoura, morango, tomate, alho, sopa_de_batata, ensopado, pure_de_abobora]
+  - name: deposit
+    description: >-
+      Guardar no baú ao seu lado itens do seu inventário, ou uma ferramenta pelo id dela (ex.:
+      plow-1, watering_can_large-1); o baú guarda bem.
+    duration: 1
+    energy: 0
+    params:
+      - {name: target, type: string, description: "o id do baú"}
+      - {name: item, type: string, description: "o item (ex.: rabanete, semente_tomate, adubo) ou o id de uma ferramenta"}
+      - {name: qty, type: integer, description: "quantas unidades, 1 ou mais (1 para uma ferramenta)"}
+  - name: withdraw
+    description: >-
+      Pegar do baú ao seu lado itens para o seu inventário, ou uma ferramenta pelo id dela. O que
+      não cabe no seu inventário é recusado com too_heavy.
+    duration: 1
+    energy: 0
+    params:
+      - {name: target, type: string, description: "o id do baú"}
+      - {name: item, type: string, description: "o item ou o id de uma ferramenta"}
+      - {name: qty, type: integer, description: "quantas unidades, 1 ou mais (1 para uma ferramenta)"}
+  - name: sell
+    description: >-
+      Pôr colheitas do seu inventário na caixa de vendas ao seu lado, pelo preço de hoje que a
+      caixa mostra (preco_rabanete, preco_batata...). O comprador recolhe a caixa às 22:00 e paga
+      em moedas às 06:00. Vender muito da mesma colheita no dia derruba o preço dela.
+    duration: 1
+    energy: 0
+    params:
+      - {name: target, type: string, description: "o id da caixa de vendas"}
+      - name: item
+        type: string
+        description: "a colheita"
+        enum: [rabanete, batata, abobora, cenoura, morango, tomate, alho]
+      - {name: qty, type: integer, description: "quantas unidades, 1 ou mais"}
+  - name: buy
+    description: >-
+      Comprar no quiosque ao seu lado, aberto das 08:00 às 18:00, com moedas do seu inventário:
+      sementes (rabanete 10, batata 20, abóbora 40, cenoura 15, morango 60, tomate 30, alho 12
+      cada; só as que estão em estoque_hoje), adubo (15), o regador grande (150, 25 cargas, pesa
+      9) e o arado (300, pesa 12; uma ferramenta por vez, e tem de caber).
+    duration: 2
+    energy: 0
+    params:
+      - {name: target, type: string, description: "o id do quiosque"}
+      - name: item
+        type: string
+        description: "o que comprar"
+        enum: [semente_rabanete, semente_batata, semente_abobora, semente_cenoura, semente_morango, semente_tomate, semente_alho, adubo, watering_can_large, plow]
+      - {name: qty, type: integer, description: "quantas unidades, 1 ou mais"}
+  - name: sleep
+    description: >-
+      Dormir na cama ao seu lado. À noite (das 20:00 às 06:00) dorme até as 06:00; de dia é um
+      cochilo até a energia encher. A cama recupera 12,5 de energia por hora. Não dá para acordar
+      antes.
+    params:
+      - {name: target, type: string, description: "o id da cama"}
+  - name: sleep_here
+    action: sleep
+    description: >-
+      Dormir onde está, no chão: recupera só 5 de energia por hora, com as mesmas regras de
+      horário da cama. Serve quando a cama está longe e já é tarde.
+    shape: {}
+  - name: wait
+    description: >-
+      Esperar parado, sem gastar nada além do tempo; entre 1 e 60 minutos. Serve para deixar uma
+      planta crescer, o quiosque abrir ou o dia virar.
+    params:
+      - {name: ticks, type: integer, description: "quantos minutos, de 1 a 60"}

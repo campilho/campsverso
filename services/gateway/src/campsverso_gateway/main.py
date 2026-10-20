@@ -74,7 +74,9 @@ async def run(args: argparse.Namespace) -> int:
     )
     settings = env.gateway
     port = args.port or settings.port
-    realtime = FastApiRealtime(settings.host, port, settings.maps, settings.ui_dir, settings.art)
+    realtime = FastApiRealtime(
+        settings.host, port, settings.maps, settings.ui_dir, settings.art_for(world.cartridge)
+    )
     stop = asyncio.Event()
     for signum in (signal.SIGINT, signal.SIGTERM):
         asyncio.get_running_loop().add_signal_handler(signum, stop.set)

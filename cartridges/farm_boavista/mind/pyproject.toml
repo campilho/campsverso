@@ -1,0 +1,18 @@
+[project]
+name = "campsverso-farm-boavista-mind"
+version = "0.1.0.dev0"
+description = "A mente do Camps na Fazenda Boa Vista (M13): o manual do cenário sobre o cartão do Camps."
+requires-python = ">=3.14"
+license = "MIT"
+dependencies = [
+  "campsverso-mind",
+  "campsverso-farm-mind",
+  "campsverso-farm-camps-mind",
+]
+
+[project.entry-points."campsverso.minds"]
+camps_boavista = "campsverso_farm_boavista_mind:mind"
+
+[build-system]
+requires = ["uv_build>=0.13,<0.14"]
+build-backend = "uv_build"

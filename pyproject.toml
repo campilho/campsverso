@@ -21,6 +21,7 @@ dependencies = [
   "campsverso-farm-script",
   "campsverso-farm-camps-sim",
   "campsverso-farm-boavista-sim",
+  "campsverso-farm-boavista-mind",
   "campsverso-farm-mind",
   "campsverso-farm-camps-mind",
   "campsverso-tools",
@@ -54,6 +55,7 @@ members = [
   "cartridges/farm_camps/sim",
   "cartridges/farm_camps/mind",
   "cartridges/farm_boavista/sim",
+  "cartridges/farm_boavista/mind",
   "tools/contracts",
   "tests/support",
 ]
@@ -75,6 +77,7 @@ campsverso-farm-sim = { workspace = true }
 campsverso-farm-script = { workspace = true }
 campsverso-farm-camps-sim = { workspace = true }
 campsverso-farm-boavista-sim = { workspace = true }
+campsverso-farm-boavista-mind = { workspace = true }
 campsverso-farm-mind = { workspace = true }
 campsverso-farm-camps-mind = { workspace = true }
 campsverso-tools = { workspace = true }
@@ -148,6 +151,7 @@ root_packages = [
   "campsverso_farm_boavista_sim",
   "campsverso_farm_mind",
   "campsverso_farm_camps_mind",
+  "campsverso_farm_boavista_mind",
   "campsverso_tools",
   "campsverso_testkit",
 ]
@@ -172,6 +176,7 @@ forbidden_modules = [
   "campsverso_farm_boavista_sim",
   "campsverso_farm_mind",
   "campsverso_farm_camps_mind",
+  "campsverso_farm_boavista_mind",
   "campsverso_tools",
   "campsverso_testkit",
 ]
@@ -179,7 +184,11 @@ forbidden_modules = [
 [[tool.importlinter.contracts]]
 name = "As mentes dos cartuchos só conhecem a mente genérica (ADR-0059)"
 type = "forbidden"
-source_modules = ["campsverso_farm_mind", "campsverso_farm_camps_mind"]
+source_modules = [
+  "campsverso_farm_mind",
+  "campsverso_farm_camps_mind",
+  "campsverso_farm_boavista_mind",
+]
 forbidden_modules = [
   "campsverso_cartridge_api",
   "campsverso_adapters",
@@ -228,6 +237,7 @@ forbidden_modules = [
   "campsverso_farm_boavista_sim",
   "campsverso_farm_mind",
   "campsverso_farm_camps_mind",
+  "campsverso_farm_boavista_mind",
 ]
 
 [[tool.importlinter.contracts]]
@@ -270,6 +280,7 @@ source_modules = ["campsverso_farm_sim", "campsverso_farm_mind"]
 forbidden_modules = [
   "campsverso_farm_camps_sim",
   "campsverso_farm_camps_mind",
+  "campsverso_farm_boavista_mind",
   "campsverso_farm_boavista_sim",
 ]
 
@@ -281,6 +292,7 @@ forbidden_modules = [
   "campsverso_mind",
   "campsverso_farm_mind",
   "campsverso_farm_camps_mind",
+  "campsverso_farm_boavista_mind",
   "campsverso_adapters",
   "campsverso_kernel",
   "campsverso_perception",
@@ -373,5 +385,6 @@ source_modules = [
   "campsverso_farm_boavista_sim",
   "campsverso_farm_mind",
   "campsverso_farm_camps_mind",
+  "campsverso_farm_boavista_mind",
 ]
 forbidden_modules = ["campsverso_tools", "campsverso_testkit"]

@@ -60,8 +60,9 @@ class WorldBuilder(Protocol):
 
     def add_rule_impl(self, impl: RuleImpl, *, override: bool = False) -> None: ...
 
-    def add_affordance(self, affordance: AffordanceDef) -> None:
-        """Uma entrada do catálogo de ações para quem joga (ADR-0051); a ação precisa existir."""
+    def add_affordance(self, affordance: AffordanceDef, *, replace: bool = False) -> None:
+        """Uma entrada do catálogo de ações para quem joga (ADR-0051); a ação precisa existir.
+        Com `replace`, as afordâncias já registradas para a mesma ação saem (ADR-0062)."""
         ...
 
     def add_metric(self, metric: MetricDef, *, override: bool = False) -> None:
@@ -74,7 +75,9 @@ class WorldBuilder(Protocol):
 
     def spawn(self, entity: SpawnDef, *, override: bool = False) -> None: ...
 
-    def add_avatar(self, avatar: AvatarDef) -> None: ...
+    def add_avatar(self, avatar: AvatarDef, *, override: bool = False) -> None:
+        """Com `override`, um cenário troca o controlador padrão do avatar que herdou."""
+        ...
 
     def add_items(self, container_id: str, item: str, qty: int) -> None: ...
 

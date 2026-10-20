@@ -1,0 +1,2 @@
+file,source,authors,licenses,urls,notes
+map-visual.tmj,gerado por make mapa-visual a partir do mapa lógico e do tileset do gênero farm (terrain.png),ver cartridges/farm/art/CREDITS.csv,CC-BY-SA 3.0,,sem arte própria ainda: o fogão e as ferramentas usam cores de reserva (ADR-0062)

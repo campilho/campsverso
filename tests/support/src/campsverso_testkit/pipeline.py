@@ -50,6 +50,11 @@ REPLAY_ID = "replay/teste"
 LLM_ID = "llm/camps"
 MODEL = "claude-haiku-5-5"
 ENV = REPO / "config" / "env" / "local.yaml"
+# Os mundos de teste por cartucho (ADR-0062): o id do mundo, o fazendeiro-script e a mente.
+WORLDS: dict[str, tuple[str, str, str]] = {
+    "farm_camps": (WORLD, "farmer", "camps"),
+    "farm_boavista": ("farm-boavista-01", "farmer2", "camps_boavista"),
+}
 
 type ControllerKind = Literal["script", "replay", "none", "llm"]
 
@@ -67,19 +72,25 @@ class Pipeline:
         recording: Sequence[Recorded] = (),
         river_bonus: bool = True,
         port: ModelPort | None = None,
-        mind: str = "camps",
+        mind: str | None = None,
         budget: BudgetLimits | None = None,
         memory: MemoryPort | bool = True,
+        cartridge: str = "farm_camps",
+        model: str = MODEL,
     ) -> None:
         """`memory=True` dá à mente um caderno SQLite em memória (ADR-0060); `False` é o M10;
-        uma porta pronta (um arquivo) serve ao teste de reinício."""
+        uma porta pronta (um arquivo) serve ao teste de reinício. `cartridge` escolhe o mundo
+        (a Fazenda do Camps ou a Boa Vista), com o script e a mente de cada um (ADR-0062)."""
+        worldid, script, default_mind = WORLDS[cartridge]
+        self.worldid, self.cartridge = worldid, cartridge
+        mind = mind or default_mind
         self.inner = InMemoryBus()
         self.bus = ValidatingBus(self.inner)
         self.ids = SequentialUuid7Ids()
         self.clock = FakeWallClock()
         self.telemetry = MemoryTelemetry()
         validator = ContractValidator()
-        core = make_core(seed, river_bonus=river_bonus)
+        core = make_core(seed, river_bonus=river_bonus, cartridge=cartridge)
         if controller == "replay":
             core.configure_controllers({"camps": ControllerRef("replay", REPLAY_ID)})
         if controller == "llm":
@@ -88,7 +99,7 @@ class Pipeline:
         else:
             core.configure_clock("max", None, False)
         self.validator = validator
-        self.version = run_version("farm_camps", 60)
+        self.version = run_version(cartridge, 60)
         self.store, self.blobs = SqliteWorldStore(":memory:"), MemoryBlobStore()
         engine = Engine(core, self.version, validator)
         self.kernel = KernelService(
@@ -96,16 +107,16 @@ class Pipeline:
         )
         self.core = core
         self.perception = PerceptionService(
-            WORLD, self.bus, MemoryBlobStore(), self.clock, self.ids, self.telemetry
+            worldid, self.bus, MemoryBlobStore(), self.clock, self.ids, self.telemetry
         )
         self.runner: ControllerRunner | ReplayRunner | None = None
         self.mind: LlmController | None = None
         self.guard: BudgetService | None = None
         if controller == "script":
             self.runner = ControllerRunner(
-                WORLD,
+                worldid,
                 "camps",
-                load_controller("farmer"),
+                load_controller(script),
                 self.bus,
                 self.ids,
                 self.clock,
@@ -113,7 +124,14 @@ class Pipeline:
             )
         elif controller == "replay":
             self.runner = ReplayRunner(
-                WORLD, "camps", REPLAY_ID, recording, self.bus, self.ids, self.clock, self.telemetry
+                worldid,
+                "camps",
+                REPLAY_ID,
+                recording,
+                self.bus,
+                self.ids,
+                self.clock,
+                self.telemetry,
             )
         elif controller == "llm":
             if port is None:
@@ -122,8 +140,8 @@ class Pipeline:
             metered = MeteredModel(
                 port,
                 bus=self.bus,
-                worldid=WORLD,
-                cartridge="farm_camps",
+                worldid=worldid,
+                cartridge=cartridge,
                 controller={"type": "llm", "id": LLM_ID},
                 prices=load_env(ENV).models,
                 clock=self.clock,
@@ -143,24 +161,24 @@ class Pipeline:
                 metered,
                 controller_id=LLM_ID,
                 avatar_id="camps",
-                model=MODEL,
+                model=model,
                 telemetry=self.telemetry,
                 memory=notebook,
             )
             self.runner = ControllerRunner(
-                WORLD,
+                worldid,
                 "camps",
                 self.mind,
                 self.bus,
                 self.ids,
                 self.clock,
                 self.telemetry,
-                cartridge="farm_camps",
+                cartridge=cartridge,
                 sim_time=sim_time,
             )
         if budget is not None:
             self.guard = BudgetService(
-                WORLD, budget, self.bus, MemoryBlobStore(), self.clock, self.ids, self.telemetry
+                worldid, budget, self.bus, MemoryBlobStore(), self.clock, self.ids, self.telemetry
             )
 
     async def start(self) -> None:

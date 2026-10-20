@@ -18,15 +18,15 @@ type View = Mapping[str, Any]
 type Proposal = dict[str, Any]
 
 
-def _minutes(hhmm: str) -> int:
+def minutes(hhmm: str) -> int:
     return int(hhmm[:2]) * 60 + int(hhmm[3:5])
 
 
-def _distance(a: Mapping[str, int], b: Mapping[str, int]) -> int:
+def distance(a: Mapping[str, int], b: Mapping[str, int]) -> int:
     return abs(a["x"] - b["x"]) + abs(a["y"] - b["y"])
 
 
-def _adjacent(a: Mapping[str, int], b: Mapping[str, int]) -> bool:
+def adjacent(a: Mapping[str, int], b: Mapping[str, int]) -> bool:
     return max(abs(a["x"] - b["x"]), abs(a["y"] - b["y"])) <= 1
 
 
@@ -64,7 +64,7 @@ class _Turn:
         needs = cast(Mapping[str, float], me["needs"])
         self.hunger = float(needs.get(config["needs"]["hunger"], 0))
         self.energy = float(needs.get(config["needs"]["energy"], 100))
-        self.now = _minutes(str(view["clock"]["sim_time"])[11:16])
+        self.now = minutes(str(view["clock"]["sim_time"])[11:16])
         self.raining = view["weather"]["condition"] == config["rain"]
         self.entities = cast(Sequence[Mapping[str, Any]], view["entities"])
         self.stock: dict[str, dict[str, int]] = {
@@ -81,12 +81,12 @@ class _Turn:
     def nearest(self, candidates: Sequence[Mapping[str, Any]]) -> Mapping[str, Any] | None:
         placed = [e for e in candidates if e.get("position") is not None]
         return min(
-            placed, key=lambda e: (_distance(self.pos, e["position"]), e["entity_id"]), default=None
+            placed, key=lambda e: (distance(self.pos, e["position"]), e["entity_id"]), default=None
         )
 
     def at(self, thing: Mapping[str, Any], action: str, intent: str, /, **params: Any) -> Proposal:
         """Age se estiver ao lado; senão, anda até lá."""
-        if _adjacent(self.pos, thing["position"]):
+        if adjacent(self.pos, thing["position"]):
             return {"action": action, "params": params, "intent": intent}
         near = {"near": thing["entity_id"]}
         return {"action": "move", "params": near, "intent": f"ir para {thing['entity_id']}"}
@@ -112,7 +112,7 @@ class _Turn:
         return {"action": "wait", "params": {"ticks": ticks}, "intent": "esperar"}
 
     def _night(self, since: str) -> bool:
-        return self.now >= _minutes(since) or self.now < _minutes(self.c["sleep"]["wake_at"])
+        return self.now >= minutes(since) or self.now < minutes(self.c["sleep"]["wake_at"])
 
     def sleep(self) -> Proposal | None:
         rules = self.c["sleep"]
@@ -120,8 +120,8 @@ class _Turn:
         if not (tired or self._night(rules["at"])):
             return None
         bed = self.nearest(self.of_kind(rules["bed_kind"]))
-        late = _minutes(rules["ground_after"]) <= self.now < _minutes(rules["wake_at"])
-        if bed is None or (late and not _adjacent(self.pos, bed["position"])):
+        late = minutes(rules["ground_after"]) <= self.now < minutes(rules["wake_at"])
+        if bed is None or (late and not adjacent(self.pos, bed["position"])):
             return {"action": "sleep", "params": {}, "intent": "dormir onde está"}
         return self.at(bed, "sleep", "dormir na cama", target=bed["entity_id"])
 

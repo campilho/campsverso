@@ -40,7 +40,9 @@ gateway:  # o WebSocket da UI (ADR-0050); só local, sem login
   port: 8765
   maps:  # id do mapa (o do session.started) -> arquivo Tiled do cartucho
     farm_camps: cartridges/farm_camps/sim/src/campsverso_farm_camps_sim/data/map.tmj
+    farm_boavista: cartridges/farm_boavista/sim/src/campsverso_farm_boavista_sim/data/map.tmj
   ui_dir: apps/ui/dist  # a UI compilada (make ui-build); sem ela, só pelo Vite (make ui)
   art:  # arte dos cartuchos, do gênero ao cenário; a tela junta os manifestos nesta ordem (ADR-0053)
     - {name: farm, dir: cartridges/farm/art}
     - {name: farm_camps, dir: cartridges/farm_camps/art}
+    - {name: farm_boavista, dir: cartridges/farm_boavista/art, only_for: [farm_boavista]}  # só na fazenda 2

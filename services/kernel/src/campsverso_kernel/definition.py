@@ -146,7 +146,9 @@ class DefinitionBuilder:
             self.rule_impls, impl.name, impl, override=override, what="implementação de regra"
         )
 
-    def add_affordance(self, affordance: AffordanceDef) -> None:
+    def add_affordance(self, affordance: AffordanceDef, *, replace: bool = False) -> None:
+        if replace:
+            self.affordances = [a for a in self.affordances if a.action != affordance.action]
         self.affordances.append(affordance)
 
     def add_metric(self, metric: MetricDef, *, override: bool = False) -> None:
@@ -158,8 +160,8 @@ class DefinitionBuilder:
     def spawn(self, entity: SpawnDef, *, override: bool = False) -> None:
         _register(self.spawns, entity.entity_id, entity, override=override, what="entidade")
 
-    def add_avatar(self, avatar: AvatarDef) -> None:
-        _register(self.avatars, avatar.entity_id, avatar, override=False, what="avatar")
+    def add_avatar(self, avatar: AvatarDef, *, override: bool = False) -> None:
+        _register(self.avatars, avatar.entity_id, avatar, override=override, what="avatar")
 
     def add_items(self, container_id: str, item: str, qty: int) -> None:
         self.initial_items.append((container_id, item, qty))

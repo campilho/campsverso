@@ -91,14 +91,17 @@ def summary(pipeline: Pipeline) -> dict[str, Any]:
     }
 
 
-async def run_days(days: int, port: ModelPort) -> dict[str, Any]:
-    pipeline = Pipeline(controller="llm", port=port, budget=LIMITS)
+SLUGS = {"farm_camps": "camps", "farm_boavista": "boavista"}  # o nome da fita por cartucho
+
+
+async def run_days(days: int, port: ModelPort, cartridge: str = "farm_camps") -> dict[str, Any]:
+    pipeline = Pipeline(controller="llm", port=port, budget=LIMITS, cartridge=cartridge)
     await pipeline.start()
     await pipeline.run_days(days)
     return summary(pipeline)
 
 
-async def record(days: int, out: Path) -> int:
+async def record(days: int, out: Path, cartridge: str = "farm_camps") -> int:
     if not os.environ.get("ANTHROPIC_API_KEY"):
         print("ANTHROPIC_API_KEY ausente: rode com --env-file .env (ADR-0058)", file=sys.stderr)
         return 2
@@ -106,11 +109,11 @@ async def record(days: int, out: Path) -> int:
     clock = SystemWallClock()
     recorder = RecordingModel(AnthropicModel(clock=clock), scratch, "record", clock=clock)
     print(f"gravando {days} dia(s) com a API... (uma chamada por decisão)", flush=True)
-    recorded = await run_days(days, recorder)
+    recorded = await run_days(days, recorder, cartridge)
     print(json.dumps({"gravacao": recorded}, ensure_ascii=False, indent=2), flush=True)
     entries = slim(scratch, out)
     print(f"fita magra: {out} ({entries} chamadas)", flush=True)
-    replayed = await run_days(days, RecordingModel(None, out, "replay"))
+    replayed = await run_days(days, RecordingModel(None, out, "replay"), cartridge)
     print(json.dumps({"reproducao": replayed}, ensure_ascii=False, indent=2), flush=True)
     if replayed["failed"] or replayed["calls"] != recorded["calls"] or replayed["charged"]:
         print("a reprodução não bateu com a gravação: a fita não serve de teste", file=sys.stderr)
@@ -123,11 +126,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="campsverso_testkit.fita")
     parser.add_argument("--days", type=int, default=1, help="dias simulados a gravar")
     parser.add_argument(
-        "--out", type=Path, help="a fita magra (padrão: tests/fixtures/llm/camps-dia-N.jsonl)"
+        "--out", type=Path, help="a fita magra (padrão: tests/fixtures/llm/<cartucho>-dia-N.jsonl)"
+    )
+    parser.add_argument(
+        "--cartridge", choices=sorted(SLUGS), default="farm_camps", help="o mundo (ADR-0062)"
     )
     args = parser.parse_args(argv)
-    out = args.out or FIXTURES / f"camps-dia-{args.days}.jsonl"
-    return asyncio.run(record(args.days, out))
+    out = args.out or FIXTURES / f"{SLUGS[args.cartridge]}-dia-{args.days}.jsonl"
+    return asyncio.run(record(args.days, out, args.cartridge))
 
 
 if __name__ == "__main__":
