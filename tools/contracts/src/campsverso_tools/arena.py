@@ -29,10 +29,12 @@ TICKS_PER_DAY = 1440
 DAY_STARTS_AT = 6 * 60  # o dia simulado começa às 06:00
 FROM_DAY = 4  # a partir de quando o comportamento conta como "depois de ter visto" (ADR-0061)
 EAST = re.compile(r"\bleste\b|\bplot-e-\d+\b", re.IGNORECASE)
-# O que faz de uma crença sobre o leste uma descoberta, e não só uma menção: fala de tempo, de
-# vantagem ou do rio. É uma heurística; a trajetória inteira vai para o relatório, para quem ler.
+# O que faz de uma crença (ou anotação) sobre o leste uma descoberta, e não só uma menção: um
+# comparativo de tempo ou de vantagem, ou o rio. "Madura em 3 dias" não conta: é o manual. É uma
+# heurística; a trajetória inteira vai para o relatório, para quem quiser discordar.
 DISCOVERY = re.compile(
-    r"\b(2|dois) dias?\b|r[áa]pid|mais cedo|\bantes\b|melhor|\brio\b|madur|menos dias",
+    r"\b(2|dois) dias?\b|r[áa]pid|mais cedo|mais depressa|menos dias|antes (do|que o) oeste"
+    r"|melhor|\brio\b|cresce(m)? mais|rende(m)? mais",
     re.IGNORECASE,
 )
 ORDER = (
