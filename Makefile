@@ -134,9 +134,9 @@ soak: tools ## resistência com processos e NATS próprios: make soak DAYS=30 (S
 	$(PY) python -m campsverso_testkit.soak --days $(DAYS) --world config/worlds/$(MUNDO).yaml \
 	  --out data/soak/$$(date +%Y%m%d-%H%M%S) $(if $(SEM_REGRA),--sem-regra,)
 
-replay: ## reexecuta um dia gravado do mundo e compara com o arquivo: make replay DAY=N
-	@test -n "$(DAY)" || { echo "uso: make replay DAY=N"; exit 1; }
-	$(PY) python -m campsverso_kernel.main --replay-day $(DAY)
+replay: ## reexecuta um dia gravado do mundo e compara com o arquivo: make replay DAY=N [MUNDO=farm-boavista-01]
+	@test -n "$(DAY)" || { echo "uso: make replay DAY=N [MUNDO=farm-boavista-01]"; exit 1; }
+	$(PY) python -m campsverso_kernel.main --replay-day $(DAY) --world config/worlds/$(MUNDO).yaml
 
 metrics: ## métricas da bíblia §13 a partir do arquivo: make metrics [ARCHIVE=pasta do mundo]
 	$(PY) python -m campsverso_tools.metrics $(ARCHIVE)

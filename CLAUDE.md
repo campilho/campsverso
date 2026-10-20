@@ -133,7 +133,7 @@ make sandbox      # mundo descartável com tudo ligado, em data/sandbox/<data-ho
 make ui-build     # compila a UI em apps/ui/dist; o gateway a serve em http://127.0.0.1:8765
 make ui           # a UI em modo desenvolvimento (Vite), com proxy para o gateway
 make ui-e2e       # fumaça da tela no navegador (Playwright), com um sandbox próprio (porta 8799)
-make soak DAYS=30 # resistência em modo máximo, com processos e NATS próprios (SEM_REGRA=1); MUNDO=farm-boavista-01 escolhe o mundo (também em sandbox, run e metrics)
+make soak DAYS=30 # resistência em modo máximo, com processos e NATS próprios (SEM_REGRA=1); MUNDO=farm-boavista-01 escolhe o mundo (também em sandbox, run, replay e metrics)
 make replay DAY=N # reexecuta um dia a partir do snapshot e do diário e compara com o arquivo
 make metrics      # métricas da bíblia §13 a partir do arquivo (ARCHIVE=pasta do mundo)
 make percepcao    # fotos e deltas da percepção por dia, em bytes e tokens estimados (ADR-0056); CONTAR=20 calibra com count_tokens

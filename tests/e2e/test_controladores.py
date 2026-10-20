@@ -4,6 +4,8 @@ import json
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+import pytest
+
 from campsverso_controller_runner.replay import recorded_proposals
 from campsverso_kernel.replay import DayReplay, replay_day
 from campsverso_ports import Envelope
@@ -11,6 +13,7 @@ from campsverso_testkit.hashing import canonical_hash
 from campsverso_testkit.pipeline import DAY, Pipeline
 
 HIDDEN = ("growth_points", "planted_day", "dry_days", "payee")  # atributos ocultos da fazenda
+WORLDS = ("farm_camps", "farm_boavista")  # a fazenda 1 e a Fazenda Boa Vista (ADR-0062)
 
 
 async def test_dois_dias_do_script_pelo_ciclo_completo() -> None:
@@ -33,10 +36,11 @@ def _hash(envelopes: Sequence[Envelope]) -> str:
     return canonical_hash(sorted(envelopes, key=lambda e: (str(e["source"]), int(e["seq"]))))
 
 
-async def test_a4_mesma_seed_mesmo_hash_pelo_ciclo_inteiro() -> None:
+@pytest.mark.parametrize("cartridge", WORLDS)
+async def test_a4_mesma_seed_mesmo_hash_pelo_ciclo_inteiro(cartridge: str) -> None:
     runs: list[str] = []
     for seed in (20261010, 20261010, 7):
-        pipeline = Pipeline(seed)
+        pipeline = Pipeline(seed, cartridge=cartridge)
         await pipeline.start()
         await pipeline.run_days(3)
         runs.append(_hash(pipeline.envelopes))  # kernel, percepção e comandos do script
@@ -125,13 +129,14 @@ def _world(envelopes: Sequence[Envelope], until: int) -> list[tuple[Any, ...]]:
     ]
 
 
-async def test_replay_reproduz_a_sessao_gravada() -> None:
-    original = Pipeline()
+@pytest.mark.parametrize("cartridge", WORLDS)
+async def test_replay_reproduz_a_sessao_gravada(cartridge: str) -> None:
+    original = Pipeline(cartridge=cartridge)
     await original.start()
     await original.run_days(1)
     recording = recorded_proposals(original.envelopes, "camps")
     assert len(recording) > 50
-    replay = Pipeline(controller="replay", recording=recording)
+    replay = Pipeline(controller="replay", recording=recording, cartridge=cartridge)
     await replay.start()
     await replay.run_until(DAY)
     assert _world(replay.envelopes, DAY) == _world(original.envelopes, DAY)
@@ -141,8 +146,9 @@ async def test_replay_reproduz_a_sessao_gravada() -> None:
 # ----------------------------------------------------------------- replay de um dia (A5)
 
 
-async def test_a5_reexecutar_um_dia_reproduz_o_arquivo() -> None:
-    pipeline = Pipeline()
+@pytest.mark.parametrize("cartridge", WORLDS)
+async def test_a5_reexecutar_um_dia_reproduz_o_arquivo(cartridge: str) -> None:
+    pipeline = Pipeline(cartridge=cartridge)
     await pipeline.start()
     await pipeline.run_days(3)
     core = pipeline.core
