@@ -48,6 +48,7 @@ class WorldDefinition:
     affordances: tuple[AffordanceDef, ...] = ()  # catálogo de ações para quem joga (ADR-0051)
     metrics: tuple[MetricDef, ...] = ()  # métricas do dia para o operador (ADR-0054)
     perception_radius: int | None = None  # None: o mapa inteiro (ADR-0056)
+    movement_cost: tuple[str, float] | None = None  # (necessidade, pontos por tile) (ADR-0062)
 
     @property
     def top(self) -> CartridgeManifest:
@@ -83,6 +84,7 @@ class DefinitionBuilder:
     clock: ClockDef | None = None
     tiles_per_minute: float = 1.0
     perception_radius: int | None = None
+    movement_cost: tuple[str, float] | None = None
     data: dict[str, dict[str, Any]] = field(default_factory=dict[str, dict[str, Any]])
     kinds: dict[str, KindDef] = field(default_factory=dict[str, KindDef])
     items: dict[str, ItemDef] = field(default_factory=dict[str, ItemDef])
@@ -110,6 +112,11 @@ class DefinitionBuilder:
         if radius is not None and radius < 0:
             raise DefinitionError("o raio de percepção não pode ser negativo")
         self.perception_radius = radius
+
+    def set_movement_cost(self, need: str, points_per_tile: float) -> None:
+        if points_per_tile < 0:
+            raise DefinitionError("o custo de andar não pode ser negativo")
+        self.movement_cost = (need, points_per_tile)
 
     def merge_data(self, namespace: str, data: Mapping[str, Any]) -> None:
         self.data[namespace] = _deep_merge(self.data.get(namespace, {}), data)
@@ -224,9 +231,14 @@ class DefinitionBuilder:
             initial_items=tuple(self.initial_items),
             stages=self.stages,
             perception_radius=self.perception_radius,
+            movement_cost=self.movement_cost,
         )
 
     def _validate(self, grid: GridMap) -> None:
+        if self.movement_cost is not None and self.movement_cost[0] not in self.needs:
+            raise DefinitionError(
+                f"custo de andar numa necessidade indefinida: {self.movement_cost[0]}"
+            )
         """Junta todos os problemas e falha uma vez só, com a lista completa."""
         problems: list[str] = []
         for spawn in self.spawns.values():

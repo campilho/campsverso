@@ -2056,6 +2056,39 @@ class WorldEntityStateChangedV1(BaseModel):
     """
 
 
+class WorldEntityStoredV1(BaseModel):
+    """
+    Entidade guardada noutro contêiner (uma ferramenta que vai do avatar para o baú, ou volta), sem posição no mapa (ADR-0062).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    entity_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    from_container: Annotated[
+        str | None,
+        Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId"),
+    ] = None
+    """
+    De onde saiu; ausente quando estava no mapa.
+    """
+    to_container: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    action_id: Annotated[str | None, Field(pattern="^act-[0-9]{6,}$", title="ActionId")] = None
+    """
+    Id de ação: contador determinístico do kernel.
+    """
+
+
 class WorldItemConsumedV1(BaseModel):
     """
     Item saiu do mundo.

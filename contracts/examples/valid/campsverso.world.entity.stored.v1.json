@@ -1,0 +1,22 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c24-7606-85a1-00fe473b4400",
+  "source": "/kernel/farm-camps-01",
+  "type": "campsverso.world.entity.stored.v1",
+  "time": "2026-10-11T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/world/entity.stored.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 64,
+  "simtime": "2026-03-02T07:04:00-03:00",
+  "seq": 13,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "entity_id": "arado",
+    "from_container": "camps",
+    "to_container": "chest",
+    "action_id": "act-000121"
+  }
+}

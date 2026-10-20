@@ -629,3 +629,33 @@ def test_lotes_com_validade_seguem_os_itens() -> None:
     assert (p.expires_in("camps", "rabanete"), p.expires_in("chest", "rabanete")) == (3, 1)
     again = Projection(json.loads(json.dumps(p.export())))
     assert again.lots == p.lots
+
+
+def test_entidade_guardada_sai_do_mapa_e_entra_no_conteiner() -> None:
+    """ADR-0062: `entity.stored` troca o contêiner da entidade e apaga a posição."""
+    p = started()
+    p.apply(
+        "world",
+        ev(
+            2,
+            0,
+            "world.entity.spawned.v1",
+            entity_id="arado",
+            kind="plow",
+            position={"x": 5, "y": 5},
+        ),
+    )
+    p.apply("world", ev(3, 1, "world.entity.stored.v1", entity_id="arado", to_container="chest"))
+    assert p.entities["arado"] == {"kind": "plow", "attributes": {}, "container_id": "chest"}
+    p.apply(
+        "world",
+        ev(
+            4,
+            2,
+            "world.entity.stored.v1",
+            entity_id="arado",
+            from_container="chest",
+            to_container="camps",
+        ),
+    )
+    assert p.entities["arado"]["container_id"] == "camps"

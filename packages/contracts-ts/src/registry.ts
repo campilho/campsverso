@@ -318,6 +318,12 @@ export const CONTRACT_TYPES = {
     producer: "kernel",
     dataschema: "contracts://events/world/entity.state_changed.v1",
   },
+  "campsverso.world.entity.stored.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/world/entity.stored.v1",
+  },
   "campsverso.world.item.consumed.v1": {
     kind: "event",
     visibility: "world",
@@ -422,6 +428,7 @@ export interface PayloadByType {
   "campsverso.world.entity.moved.v1": T.WorldEntityMovedV1;
   "campsverso.world.entity.spawned.v1": T.WorldEntitySpawnedV1;
   "campsverso.world.entity.state_changed.v1": T.WorldEntityStateChangedV1;
+  "campsverso.world.entity.stored.v1": T.WorldEntityStoredV1;
   "campsverso.world.item.consumed.v1": T.WorldItemConsumedV1;
   "campsverso.world.item.created.v1": T.WorldItemCreatedV1;
   "campsverso.world.item.transferred.v1": T.WorldItemTransferredV1;

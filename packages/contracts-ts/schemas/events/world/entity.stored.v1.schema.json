@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/world/entity.stored.v1",
+  "title": "WorldEntityStoredV1",
+  "description": "Entidade guardada noutro contêiner (uma ferramenta que vai do avatar para o baú, ou volta), sem posição no mapa (ADR-0062).",
+  "x-type": "campsverso.world.entity.stored.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "entity_id",
+    "to_container"
+  ],
+  "properties": {
+    "entity_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "from_container": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "De onde saiu; ausente quando estava no mapa."
+    },
+    "to_container": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "action_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/action_id"
+    }
+  }
+}

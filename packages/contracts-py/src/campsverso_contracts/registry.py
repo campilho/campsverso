@@ -436,6 +436,14 @@ CONTRACT_TYPES: Final[dict[str, ContractType]] = {
             models.WorldEntityStateChangedV1,
         ),
         ContractType(
+            "campsverso.world.entity.stored.v1",
+            "event",
+            "world",
+            "kernel",
+            "contracts://events/world/entity.stored.v1",
+            models.WorldEntityStoredV1,
+        ),
+        ContractType(
             "campsverso.world.item.consumed.v1",
             "event",
             "world",

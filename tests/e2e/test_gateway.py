@@ -106,12 +106,16 @@ async def _reference(nats: NatsServer, name: str) -> dict[str, Any]:
         streams=STREAMS,
     )
 
+    # Os dois streams são lidos por consumidores independentes, que se intercalam de um jeito a
+    # cada vez; o gateway os vê na ordem em que foram publicados. Para a referência ser a mesma,
+    # tudo é guardado e aplicado na ordem do tick e da hora de publicação.
+    collected: list[tuple[str, Envelope]] = []
+
     def apply(stream: str) -> Callable[[Sequence[tuple[str, Envelope]]], Awaitable[None]]:
         async def handler(batch: Sequence[tuple[str, Envelope]]) -> None:
             for _, envelope in batch:
-                skip = envelope["type"] == "campsverso.perception.delivered.v1"
-                if not skip and not projection.seen(stream, envelope):
-                    projection.apply(stream, envelope)
+                if envelope["type"] != "campsverso.perception.delivered.v1":
+                    collected.append((stream, envelope))
 
         return handler
 
@@ -120,6 +124,10 @@ async def _reference(nats: NatsServer, name: str) -> dict[str, Any]:
     await world.caught_up()
     await agent.caught_up()
     await bus.close()
+    collected.sort(key=lambda item: (int(item[1].get("tick") or 0), str(item[1].get("time", ""))))
+    for stream, envelope in collected:
+        if not projection.seen(stream, envelope):
+            projection.apply(stream, envelope)
     return observer_state(projection)
 
 
@@ -178,6 +186,15 @@ async def test_gateway_visoes_comandos_e_a6(tmp_path: Path, nats: NatsServer) ->
         reference = await _reference(nats, "referencia")
         state = (await gateway.welcome("operator"))["state"]
         pulse = state.pop("pulse")  # o pulso não vem dos streams (ADR-0051)
+        # O consumidor da referência às vezes devolve antes de ler o último evento (o `caught_up`
+        # do JetStream é uma foto do pendente); remontar resolve, até cinco vezes.
+        for attempt in range(5):
+            if state == reference:
+                break
+            await asyncio.sleep(1)
+            reference = await _reference(nats, f"referencia-{attempt}")
+            state = (await gateway.welcome("operator"))["state"]
+            pulse = state.pop("pulse")
         assert state == reference, _diff(state, reference)
         assert pulse["alive"] is True
         assert pulse["tick"] >= state["tick"]

@@ -109,6 +109,7 @@ Notação dos payloads (`data`): `campo: tipo`; `?` marca campo opcional.
 | `campsverso.world.entity.moved.v1` | world | `entity_id` · `action_id` · `origin: position` · `waypoints: [position]` (só esquinas e destino) · `depart_tick: int` · `arrival_tick: int` · `tiles_per_tick: number` | D1 |
 | `campsverso.world.entity.move_interrupted.v1` | world | `entity_id` · `action_id` · `position` (posição real) · `reason: cancelled\|blocked\|fainted` | D1 |
 | `campsverso.world.entity.state_changed.v1` | world | `entity_id` · `changes: attributes` (só atributos visíveis) · `cause?: string` (ação ou nome do sistema) · `action_id?` | contratos §7; ADR-0025 |
+| `campsverso.world.entity.stored.v1` | world | `entity_id` · `from_container?` · `to_container` · `action_id?`: a entidade (uma ferramenta) guardada noutro contêiner, sem posição no mapa (ADR-0062) | M13 |
 | `campsverso.world.item.created.v1` | world | `item` · `qty` · `container_id` · `reason: string` (`initial`, `harvest`, `buy`, `payment`) · `action_id?` | §14.2 |
 | `campsverso.world.item.transferred.v1` | world | `item` · `qty` · `from_container`, `to_container: entity_id` · `reason: string` (`deposit`, `withdraw`, `sell`) · `action_id?` | §14.2 |
 | `campsverso.world.item.consumed.v1` | world | `item` · `qty` · `container_id` · `reason: string` (`eat`, `plant`, `buy_payment`, `buyer_collect`) · `action_id?` | §14.2; `buyer_collect` é **novo**: o comprador esvazia a caixa às 22:00 |

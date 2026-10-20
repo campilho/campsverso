@@ -36,6 +36,7 @@ class KindDef:
     hidden: Attributes = field(default_factory=dict[str, Scalar])
     capacity: float | None = None  # peso máximo que guarda; None é sem limite (ADR-0062)
     shelf_life_factor: float = 1.0  # multiplica a validade do que guarda (o baú conserva; oculto)
+    weight: float = 0.0  # o que uma entidade deste tipo pesa quando guardada (uma ferramenta)
 
 
 @dataclass(frozen=True, slots=True)

@@ -1436,6 +1436,18 @@ export interface WorldEntityStateChangedV1 {
   action_id?: ActionId;
 }
 /**
+ * Entidade guardada noutro contêiner (uma ferramenta que vai do avatar para o baú, ou volta), sem posição no mapa (ADR-0062).
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "WorldEntityStoredV1".
+ */
+export interface WorldEntityStoredV1 {
+  entity_id: EntityId;
+  from_container?: EntityId;
+  to_container: EntityId;
+  action_id?: ActionId;
+}
+/**
  * Item saiu do mundo.
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema

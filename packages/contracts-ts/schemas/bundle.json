@@ -2782,6 +2782,31 @@
         }
       }
     },
+    "WorldEntityStoredV1": {
+      "title": "WorldEntityStoredV1",
+      "description": "Entidade guardada noutro contêiner (uma ferramenta que vai do avatar para o baú, ou volta), sem posição no mapa (ADR-0062).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entity_id",
+        "to_container"
+      ],
+      "properties": {
+        "entity_id": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "from_container": {
+          "$ref": "#/$defs/EntityId",
+          "description": "De onde saiu; ausente quando estava no mapa."
+        },
+        "to_container": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "action_id": {
+          "$ref": "#/$defs/ActionId"
+        }
+      }
+    },
     "WorldItemConsumedV1": {
       "title": "WorldItemConsumedV1",
       "description": "Item saiu do mundo.",

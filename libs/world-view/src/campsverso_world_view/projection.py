@@ -172,6 +172,15 @@ class Projection:
             entity["display_name"] = data["display_name"]
         self.entities[str(data["entity_id"])] = entity
 
+    def _on_world_entity_stored(self, data: Mapping[str, Any]) -> None:
+        """A entidade foi guardada noutro contêiner (ADR-0062): sai do mapa."""
+        entity = self.entities.get(str(data["entity_id"]))
+        if entity is None:
+            return
+        entity["container_id"] = data["to_container"]
+        entity.pop("position", None)
+        self.motion.pop(str(data["entity_id"]), None)
+
     def _on_world_entity_state_changed(self, data: Mapping[str, Any]) -> None:
         entity = self.entities.get(str(data["entity_id"]))
         if entity is not None:

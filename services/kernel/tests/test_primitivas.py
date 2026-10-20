@@ -139,6 +139,25 @@ class Dig:
 
 
 @dataclass(frozen=True)
+class Stow:
+    """Guarda a pá na caixa, ou pega de volta (`back: true`): uma entidade muda de contêiner."""
+
+    name: str = "stow"
+
+    def validate(self, ctx: ActionContext) -> Validation:
+        target = ctx.avatar_id if ctx.params.get("back") else "box"
+        if not ctx.view.fits_entity("spade", target):
+            return Rejection("too_heavy")
+        return Accepted(1)
+
+    def complete(self, ctx: ActionContext, ops: WorldOps) -> None:
+        ops.move_entity("spade-1", ctx.avatar_id if ctx.params.get("back") else "box")
+
+    def interrupted(self, ctx: ActionContext, ops: WorldOps, elapsed_ticks: int) -> None:
+        pass
+
+
+@dataclass(frozen=True)
 class Lab2:
     manifest: CartridgeManifest = field(default_factory=lambda: CartridgeManifest("lab2", "0.1.0"))
 
@@ -149,14 +168,17 @@ class Lab2:
         world.define_kind(KindDef("avatar", capacity=7))
         world.define_kind(KindDef("box", blocking=True, capacity=100, shelf_life_factor=2))
         world.define_kind(KindDef("plot", attributes={"dug": False}))
+        world.define_kind(KindDef("spade", weight=3))
+        world.set_movement_cost("energia", 0.05)  # 1 de energia a cada 20 tiles (ADR-0062)
         world.define_item(ItemDef("moeda", "moeda"))
         world.define_item(ItemDef("pedra", "recurso", weight=2))
         world.define_item(ItemDef("maca", "comida", weight=0.5, shelf_life_days=2))
         world.define_need(NeedDef("energia", 100, {"asleep": 12}, role="energy"))
         world.define_need(NeedDef("fome", 10, {"awake": 3, "asleep": 1}))
-        for action in (Grab(), Stash(), Pick(), Eat(), Dig()):
+        for action in (Grab(), Stash(), Pick(), Eat(), Dig(), Stow()):
             world.add_action(action)
         world.add_avatar(AvatarDef("ana", SCRIPT))
+        world.spawn(SpawnDef("spade-1", "spade", container_id="ana"))
         world.add_items("ana", "moeda", 5)
 
     def rules_file(self) -> Path | None:
@@ -194,17 +216,18 @@ def _do(core: KernelCore, action: str, params: dict[str, Any] | None = None) -> 
 def test_peso_e_capacidade() -> None:
     core = make_core()
     assert core.world.entity("ana").attributes["capacity"] == 7
-    facts = _do(core, "grab", {"qty": 3})
+    assert core.world.weight("ana") == 3.0  # a pá, uma entidade guardada, pesa pelo tipo
+    facts = _do(core, "grab", {"qty": 2})
     assert _only(facts, "action.completed")
     changes = [c["changes"] for c in _only(facts, "world.entity.state_changed")]
-    assert {"weight": 6.0} in changes
-    assert core.world.weight("ana") == 6.0
+    assert {"weight": 7.0} in changes
+    assert core.world.weight("ana") == 7.0
     assert not core.world.fits("pedra", 1, "ana")
     (rejected,) = _only(_do(core, "grab", {"qty": 1}), "action.rejected")
     assert rejected["reason"] == "too_heavy"
     facts = _do(core, "stash", {"item": "pedra", "qty": 2})
     assert _only(facts, "world.item.transferred")[0]["qty"] == 2
-    assert (core.world.weight("ana"), core.world.weight("box")) == (2.0, 4.0)
+    assert (core.world.weight("ana"), core.world.weight("box")) == (3.0, 4.0)
     assert core.world.entity("box").attributes["weight"] == 4.0
     assert core.world.capacity("box") == 100
 
@@ -212,7 +235,42 @@ def test_peso_e_capacidade() -> None:
 def test_o_kernel_trata_nao_caber_como_violacao() -> None:
     core = make_core()
     with pytest.raises(WorldRuleError, match="too_heavy"):
-        core.world.create_item("pedra", 4, "ana", "test")
+        core.world.create_item("pedra", 3, "ana", "test")  # 3 da pá + 6 > 7
+    core.world.spawn(SpawnDef("spade-2", "spade", container_id="ana"))  # 3 + 3 = 6: cabe
+    with pytest.raises(WorldRuleError, match="too_heavy"):
+        core.world.create_item("pedra", 1, "ana", "test")  # 6 + 2 > 7
+    with pytest.raises(WorldRuleError, match="too_heavy"):
+        core.world.spawn(SpawnDef("spade-3", "spade", container_id="ana"))  # 6 + 3 > 7
+
+
+def test_guardar_a_ferramenta_na_caixa_e_pegar_de_volta() -> None:
+    core = make_core()
+    facts = _do(core, "stow")
+    (stored,) = _only(facts, "world.entity.stored")
+    assert stored == {
+        "entity_id": "spade-1",
+        "from_container": "ana",
+        "to_container": "box",
+        "action_id": stored["action_id"],
+    }
+    assert core.world.entity("spade-1").container_id == "box"
+    assert (core.world.weight("ana"), core.world.weight("box")) == (0.0, 3.0)
+    _do(core, "grab", {"qty": 3})  # sem a pá cabem 3 pedras (6 de 7)
+    (rejected,) = _only(_do(core, "stow", {"back": True}), "action.rejected")
+    assert rejected["reason"] == "too_heavy"
+    _do(core, "stash", {"item": "pedra", "qty": 2})
+    assert _only(_do(core, "stow", {"back": True}), "world.entity.stored")
+    assert core.world.entity("spade-1").container_id == "ana"
+    assert core.world.weight("ana") == 5.0
+
+
+def test_andar_gasta_energia_por_tile() -> None:
+    core = make_core()
+    before = core.world.need("ana", "energia")
+    core.submit(command("move", {"target": {"x": 3, "y": 1}}))  # de (1,1) a (3,1): 2 tiles
+    _run(core, 4)
+    assert core.world.entity("ana").position == Position(3, 1)
+    assert core.world.need("ana", "energia") == pytest.approx(before - 2 * 0.05)
 
 
 # ----------------------------------------------------------------- entidade em tempo de execução

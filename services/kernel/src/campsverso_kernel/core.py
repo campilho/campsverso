@@ -834,6 +834,10 @@ class KernelCore:
         ):
             if action.trajectory is not None:
                 world.entity_map[avatar.avatar_id].position = action.trajectory.path[-1]
+                cost = self.definition.movement_cost
+                tiles = len(action.trajectory.path) - 1
+                if cost is not None and cost[1] and tiles > 0:  # andar gasta (ADR-0062)
+                    world.change_need(avatar.avatar_id, cost[0], -(cost[1] * tiles))
             spec = self.definition.actions.get(action.name)
             if spec is not None:
                 spec.complete(

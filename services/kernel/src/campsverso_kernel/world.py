@@ -304,7 +304,16 @@ class World:
             raise WorldRuleError(f"tipo indefinido: {entity.kind}")
         if entity.container_id is not None and entity.container_id not in self.entity_map:
             raise WorldRuleError(f"contêiner inexistente: {entity.container_id}")
+        if entity.container_id is not None and not self.fits_entity(
+            entity.kind, entity.container_id
+        ):
+            raise WorldRuleError(
+                f"{entity.container_id} não aguenta {entity.entity_id} (too_heavy): "
+                "a ação devia ter recusado"
+            )
         created = self._spawn_entity(entity)
+        if entity.container_id is not None:
+            self._weigh(entity.container_id)
         if created.blocking and created.position is not None:
             self._reblock()
 
@@ -520,10 +529,47 @@ class World:
     # --- peso e capacidade (ADR-0062)
 
     def weight(self, container_id: str) -> float:
+        """Os itens pelo peso de cada um, mais as entidades guardadas pelo peso do tipo."""
         stock = self.containers.get(container_id, {})
-        return round(
-            sum(qty * float(self.definition.items[item].weight) for item, qty in stock.items()), 3
+        items = sum(qty * float(self.definition.items[item].weight) for item, qty in stock.items())
+        held = sum(
+            float(self.definition.kinds[e.kind].weight)
+            for e in self.entity_map.values()
+            if e.container_id == container_id
         )
+        return round(items + held, 3)
+
+    def fits_entity(self, kind: str, container_id: str) -> bool:
+        capacity = self.capacity(container_id)
+        if capacity is None:
+            return True
+        extra = float(self.definition.kinds[kind].weight)
+        return self.weight(container_id) + extra <= capacity + 1e-9
+
+    def move_entity(self, entity_id: str, to_container: str) -> None:
+        entity = self.entity_map.get(entity_id)
+        if entity is None:
+            raise WorldRuleError(f"entidade inexistente: {entity_id}")
+        if to_container not in self.entity_map or to_container == entity_id:
+            raise WorldRuleError(f"contêiner inválido: {to_container}")
+        if entity.container_id == to_container:
+            raise WorldRuleError(f"{entity_id} já está em {to_container}")
+        if not self.fits_entity(entity.kind, to_container):
+            raise WorldRuleError(
+                f"{to_container} não aguenta {entity_id} (too_heavy): a ação devia ter recusado"
+            )
+        data: dict[str, Any] = {"entity_id": entity_id, "to_container": to_container}
+        if entity.container_id is not None:
+            data["from_container"] = entity.container_id
+        origin = entity.container_id
+        was_blocking = entity.blocking and entity.position is not None
+        entity.container_id, entity.position = to_container, None
+        self.emit_fact("campsverso.world.entity.stored.v1", self._with_action(data))
+        if was_blocking:
+            self._reblock()
+        if origin is not None:
+            self._weigh(origin)
+        self._weigh(to_container)
 
     def capacity(self, container_id: str) -> float | None:
         entity = self.entity_map.get(container_id)

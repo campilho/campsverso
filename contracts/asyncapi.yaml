@@ -591,6 +591,17 @@ channels:
     messages:
       WorldEntityStateChangedV1:
         $ref: '#/components/messages/WorldEntityStateChangedV1'
+  WorldEntityStoredV1:
+    address: campsverso.{worldid}.world.world.entity.stored.v1
+    title: campsverso.world.entity.stored.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorldEntityStoredV1:
+        $ref: '#/components/messages/WorldEntityStoredV1'
   WorldItemConsumedV1:
     address: campsverso.{worldid}.world.world.item.consumed.v1
     title: campsverso.world.item.consumed.v1
@@ -1067,6 +1078,13 @@ operations:
       $ref: '#/channels/WorldEntityStateChangedV1'
     messages:
     - $ref: '#/channels/WorldEntityStateChangedV1/messages/WorldEntityStateChangedV1'
+    x-producer: kernel
+  sendWorldEntityStoredV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorldEntityStoredV1'
+    messages:
+    - $ref: '#/channels/WorldEntityStoredV1/messages/WorldEntityStoredV1'
     x-producer: kernel
   sendWorldItemConsumedV1:
     action: send
@@ -3291,6 +3309,25 @@ components:
           description: Ação ou nome do sistema que causou a mudança.
         action_id:
           $ref: '#/components/schemas/ActionId'
+    WorldEntityStoredV1:
+      title: WorldEntityStoredV1
+      description: Entidade guardada noutro contêiner (uma ferramenta que vai do avatar para o baú, ou
+        volta), sem posição no mapa (ADR-0062).
+      type: object
+      additionalProperties: false
+      required:
+      - entity_id
+      - to_container
+      properties:
+        entity_id:
+          $ref: '#/components/schemas/EntityId'
+        from_container:
+          $ref: '#/components/schemas/EntityId'
+          description: De onde saiu; ausente quando estava no mapa.
+        to_container:
+          $ref: '#/components/schemas/EntityId'
+        action_id:
+          $ref: '#/components/schemas/ActionId'
     WorldItemConsumedV1:
       title: WorldItemConsumedV1
       description: Item saiu do mundo.
@@ -4520,6 +4557,16 @@ components:
       contentType: application/json
       payload:
         $ref: '#/components/schemas/WorldEntityStateChangedV1'
+      x-visibility: world
+      x-producer: kernel
+    WorldEntityStoredV1:
+      name: campsverso.world.entity.stored.v1
+      title: WorldEntityStoredV1
+      summary: Entidade guardada noutro contêiner (uma ferramenta que vai do avatar para o baú, ou volta),
+        sem posição no mapa (ADR-0062).
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorldEntityStoredV1'
       x-visibility: world
       x-producer: kernel
     WorldItemConsumedV1:

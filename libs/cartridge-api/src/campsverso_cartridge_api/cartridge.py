@@ -33,6 +33,10 @@ class WorldBuilder(Protocol):
 
     def set_tiles_per_minute(self, speed: float) -> None: ...
 
+    def set_movement_cost(self, need: str, points_per_tile: float) -> None:
+        """Andar gasta `points_per_tile` da necessidade por tile percorrido (ADR-0062)."""
+        ...
+
     def set_perception_radius(self, radius: int | None) -> None:
         """Até onde um avatar enxerga, em tiles (distância de Chebyshev; ADR-0056).
 
