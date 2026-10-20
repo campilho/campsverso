@@ -105,7 +105,9 @@ sandbox: tools ui-build ## mundo descartável com tudo ligado, em data/sandbox/<
 
 DIAS ?= 1
 
-CARTUCHO ?= farm_camps  # farm_boavista grava a fita da fazenda 2 (ADR-0062)
+# farm_boavista grava a fita da fazenda 2 (ADR-0062). O comentário fica na linha de cima: o make
+# guarda os espaços antes de um `#` no valor da variável (o CI de 20/out subiu `config/worlds/.yaml`).
+CARTUCHO ?= farm_camps
 
 fita: ## grava em processo a fita de teste do controlador LLM, chamando a API (ADR-0059): make fita DIAS=1 [CARTUCHO=farm_boavista]
 	uv run --locked --env-file .env python -m campsverso_testkit.fita --days $(DIAS) --cartridge $(CARTUCHO)
@@ -125,7 +127,8 @@ arena-report: ## o relatório da arena em docs/arena/AAAA-MM-DD.md, da arena mai
 	$(PY) python -m campsverso_tools.arena $(PASTA)
 
 DAYS ?= 30
-MUNDO ?= farm-camps-01  # o arquivo do mundo em config/worlds/; farm-boavista-01 é a fazenda 2 (M13)
+# O arquivo do mundo em config/worlds/; farm-boavista-01 é a fazenda 2 (M13). Comentário na linha de cima, como acima.
+MUNDO ?= farm-camps-01
 ARCHIVE ?= data/archive/$(MUNDO)
 EVERY ?= 20
 export MUNDO
