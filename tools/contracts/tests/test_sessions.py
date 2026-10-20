@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from campsverso_tools.sessions import main, read_csv, turns
+from campsverso_tools.sessions import Turn, main, merge, read_csv, turns
 
 
 def _line(kind: str, stamp: str, **extra: Any) -> str:
@@ -74,3 +74,39 @@ def test_grava_so_numeros_e_nao_duplica(tmp_path: Path) -> None:
     assert "segredo" not in written
     assert "abóbora" not in written
     assert "| M5 | 2 |" in (out / "README.md").read_text(encoding="utf-8")
+
+
+def test_turno_gravado_nao_encolhe_quando_a_transcricao_compacta() -> None:
+    """Compactar a sessão tira as chamadas antigas do arquivo: o turno volta com zero e não pode
+    apagar os números gravados; um turno que cresceu de verdade continua a ser atualizado."""
+
+    def turn(calls: int, marco: str = "") -> Turn:
+        start, end = "2026-10-18T20:00-03:00", "2026-10-18T20:09-03:00"
+        return Turn("s1", start, end, 9.0, calls, 1, 2, 3, 4, marco)
+
+    saved = [turn(11, "M10+M11")]
+    (kept,) = merge(saved, [turn(0)], "M13")
+    assert (kept.chamadas, kept.marco) == (11, "M10+M11")
+    (grown,) = merge(saved, [turn(12)], "M13")
+    assert (grown.chamadas, grown.marco) == (12, "M10+M11")
+    (fresh,) = merge([], [turn(0)], "M13")
+    assert fresh.marco == "M13"  # um turno novo entra mesmo sem chamada (um pedido só de texto)
+
+
+def test_ignora_o_contexto_reinserido_com_carimbo_anterior_ao_turno(tmp_path: Path) -> None:
+    """Ao compactar, o app regrava a transcrição com mensagens antigas depois do pedido novo,
+    com os carimbos originais: elas não contam no turno nem puxam o fim dele para trás."""
+    path = tmp_path / "abcdef12-sessao.jsonl"
+    path.write_text(
+        "\n".join(
+            [
+                _prompt("10:00:00", "continuando a sessão"),
+                _call("09:00:00", "msg-velha", 999),  # reinserida: de antes do turno
+                _call("10:01:00", "msg-nova", 10),
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (turn,) = turns(path)
+    assert (turn.chamadas, turn.saida) == (1, 10)
+    assert turn.fim.endswith("07:01-03:00")  # 10:01Z em horário local, não 09:00Z

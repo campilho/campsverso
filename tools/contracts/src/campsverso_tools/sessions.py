@@ -82,6 +82,8 @@ def turns(path: Path) -> list[Turn]:
     result: list[Turn] = []
     seen: set[str] = set()
     last: datetime | None = None
+    start: datetime | None = None
+    end: datetime | None = None
     active = 0.0
     current: Turn | None = None
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -96,16 +98,21 @@ def turns(path: Path) -> list[Turn]:
             current = Turn(path.stem[:8], _local(moment), _local(moment), 0.0, 0, 0, 0, 0, 0)
             result.append(current)
             last, active = moment, 0.0
+            start = end = moment
             continue
-        if current is None or entry.get("type") not in ("assistant", "user"):
+        if current is None or start is None or entry.get("type") not in ("assistant", "user"):
             continue
+        if moment < start:
+            continue  # contexto que a compactação reinsere, com o carimbo de antes do turno
         if last is not None and (gap := (moment - last).total_seconds()) <= IDLE_SECONDS:
             active += max(gap, 0.0)
         last = moment
         if entry.get("type") != "assistant":
             continue
         message: Mapping[str, Any] = entry.get("message", {})
-        current.fim = _local(moment)
+        if end is None or moment > end:  # o fim só anda para a frente
+            end = moment
+            current.fim = _local(moment)
         call = str(message.get("id") or entry.get("requestId") or "")
         if call in seen:
             continue  # uma chamada aparece uma vez por bloco de conteúdo
@@ -143,11 +150,18 @@ def read_csv(path: Path) -> list[Turn]:
 
 
 def merge(saved: Iterable[Turn], fresh: Iterable[Turn], marco: str = "") -> list[Turn]:
-    """Números novos para os turnos conhecidos (um turno pode ter crescido); o marco fica."""
+    """Números novos para os turnos conhecidos (um turno pode ter crescido); o marco fica. Um
+    turno que a transcrição já não tem inteiro não apaga o que foi gravado: depois de compactar
+    a sessão, as chamadas antigas somem do arquivo e viriam como zero (20/out)."""
     by_key = {t.key: t for t in saved}
     for turn in fresh:
         known = by_key.get(turn.key)
-        turn.marco = known.marco if known is not None and known.marco else marco
+        if known is not None:
+            turn.marco = known.marco or marco
+            if turn.chamadas < known.chamadas:
+                continue  # a transcrição encolheu: fica o gravado
+        else:
+            turn.marco = marco
         by_key[turn.key] = turn
     return sorted(by_key.values(), key=lambda t: t.inicio)
 
