@@ -140,7 +140,7 @@ make percepcao    # fotos e deltas da percepção por dia, em bytes e tokens est
 make llm-smoke    # uma chamada real pela porta de modelo, medida e publicada pelo contrato (ADR-0058); pede ANTHROPIC_API_KEY no .env
 make fita DIAS=2  # grava em processo a fita de teste do controlador LLM, chamando a API (ADR-0059); o CI só a reproduz; CARTUCHO=farm_boavista grava a da fazenda 2
 make corrida DIAS=7   # N dias em processo com a mente sobre a API, com ou sem memória (ADR-0060); o mundo espera o modelo
-make arena DIAS=30    # as corridas da arena, em sequência, em data/arena/<data-hora> (ADR-0061); SO=nome roda uma só; RODADA=boavista é a segunda rodada (M14)
+make arena DIAS=30    # as corridas da arena, em sequência, em data/arena/<data>-<rodada> (ADR-0061); SO=nome roda uma só; RODADA=boavista é a segunda rodada (M14); vários em paralelo no mesmo dia dividem as corridas
 make arena-report     # o relatório da arena (tabela da bíblia lado a lado, o leste pela memória) em docs/arena/
 make mapa-visual  # regrava o mapa visual da fazenda a partir do mapa lógico (ADR-0053)
 make sessoes      # tempo e tokens do Claude Code por turno e por marco em docs/custos (MARCO=M5)

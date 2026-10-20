@@ -120,8 +120,13 @@ ARENA_DIAS ?= 30
 # sem ele, o Mac dorme quando ninguém mexe e as corridas param junto (19/out).
 CAFFEINATE := $(shell command -v caffeinate >/dev/null 2>&1 && echo "caffeinate -i")
 
-arena: ## as corridas da arena em sequência, em data/arena/<data-hora> (ADR-0061): make arena [RODADA=boavista] [ARENA_DIAS=30] [SO=haiku-memoria] [PASTA=data/arena/x]
-	$(CAFFEINATE) uv run --locked --env-file .env python -m campsverso_testkit.arena --days $(ARENA_DIAS) $(if $(RODADA),--rodada $(RODADA),) $(foreach s,$(SO),--only $(s)) $(if $(PASTA),--out $(PASTA),)
+# A pasta padrão é uma por dia e por rodada: vários `make arena` em paralelo no mesmo dia caem na
+# mesma pasta e dividem as corridas pela reserva (ADR-0063). Com a hora no nome, cada processo
+# criava a sua pasta e rodava a rodada inteira sozinho (20/out, três vezes a mesma corrida).
+ARENA_PASTA = $(or $(PASTA),data/arena/$(shell date +%Y%m%d)-$(or $(RODADA),camps))
+
+arena: ## as corridas da arena em sequência, em data/arena/<data>-<rodada> (ADR-0061): make arena [RODADA=boavista] [ARENA_DIAS=30] [SO=haiku-memoria] [PASTA=data/arena/x]; vários em paralelo dividem a rodada
+	$(CAFFEINATE) uv run --locked --env-file .env python -m campsverso_testkit.arena --days $(ARENA_DIAS) $(if $(RODADA),--rodada $(RODADA),) $(foreach s,$(SO),--only $(s)) --out $(ARENA_PASTA)
 
 arena-report: ## o relatório da arena em docs/arena/AAAA-MM-DD.md, da arena mais recente ou de PASTA=data/arena/x
 	$(PY) python -m campsverso_tools.arena $(PASTA)
