@@ -1,6 +1,6 @@
 # Ideia: o escritório que constrói a si mesmo
 
-**Status:** escrito em 14/out/2026 como aprofundamento da ideia; em 17/out a direção foi adotada para a v0.3 (ADR-0055). As decisões da seção 10 continuam em aberto e vão para o plano macro da v0.3, com decisões numeradas, antes de qualquer código.
+**Status:** escrito em 14/out/2026 como aprofundamento da ideia; em 17/out a direção foi adotada para a v0.3 (ADR-0055); em 20/out o escritório passou para a v0.4, depois da fazenda sofisticada (ADR-0064). As decisões da seção 10 continuam em aberto e vão para o plano macro da v0.3, com decisões numeradas, antes de qualquer código.
 
 ## A ideia
 

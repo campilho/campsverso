@@ -30,6 +30,8 @@ A pergunta que a v0.1 responde: *a arquitetura orientada a eventos, com módulos
 
 Revisão de 17/out/2026 (ADR-0055): a v0.3 passa a ser o escritório que constrói a si mesmo, o primeiro cartucho com efeitos externos; o estúdio vem depois, sobre a porta que o escritório constrói.
 
+Revisão de 20/out/2026 (ADR-0064): a v0.3 passa a ser a fazenda sofisticada, o escritório vai para a v0.4 e o estúdio para a v0.5; o mundo com memória completa e a camada social anda para a v0.6 em diante.
+
 ---
 
 ## 3. Dentro e fora da v0.1

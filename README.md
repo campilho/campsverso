@@ -52,9 +52,11 @@ A pergunta da v0.2: **um LLM consegue viver na fazenda, prosperar e descobrir so
 
 **M14 concluído em 20/out/2026** ([plano](docs/planos/m14-segunda-rodada.md), ADR-0063, [relatório](docs/arena/2026-10-20.md)): oito corridas de 30 dias na Fazenda Boa Vista. O Opus terminou com 1.143 moedas, cinco vezes as 220 do fazendeiro-script 2, planejando o capital e diversificando as culturas; o Sonnet ficou com 18, e o Haiku, que empatava com o script na fazenda 1, quebrou nas quatro seeds. Ninguém cavou na faixa do rio, então a regra oculta nunca agiu: descobrir o rio na Boa Vista pede exploração. Custo da rodada: US$ 40,30. A arte da fazenda 2 (quatro culturas novas e o fogão) entrou durante as corridas.
 
-## Depois: v0.3, o escritório que constrói a si mesmo
+## Depois: v0.3, a fazenda sofisticada; v0.4, o escritório
 
-Em vez de outra fazenda, um escritório de programação com um único dev no começo, cujo trabalho é melhorar o próprio Campsverso: ele recebe tickets de nós, abre PRs, espera o CI, e quando um PR é mesclado o mundo reinicia na versão que ele mesmo escreveu. Depois ele propõe um ajudante. É o primeiro cartucho com efeitos externos; a v0.2 inteira é pré-requisito. A ideia está em [ideia-escritorio-que-se-constroi.md](docs/planos/ideia-escritorio-que-se-constroi.md), a direção na [ADR-0055](docs/decisoes/0055-a-v0-3-e-o-escritorio-que-se-constroi.md) e as telas propostas em [docs/design](docs/design/README.md).
+A v0.3 continua na fazenda, mais sofisticada: canteiros sem teto, estações, encomendas, exploração, vários avatares, um fazendeiro-script que planeja e experimenta, e a arena com famílias de modelos ([plano macro](docs/planos/v0.3-macro.md), [ADR-0064](docs/decisoes/0064-a-v0-3-e-a-fazenda-sofisticada.md), [a análise da ordem](docs/planos/analise-ordem-v0.3-v0.5.md)). Ela constrói de propósito o que o escritório também vai precisar.
+
+Na v0.4, um escritório de programação com um único dev no começo, cujo trabalho é melhorar o próprio Campsverso: ele recebe tickets de nós, abre PRs, espera o CI, e quando um PR é mesclado o mundo reinicia na versão que ele mesmo escreveu. Depois ele propõe um ajudante. É o primeiro cartucho com efeitos externos; a v0.2 inteira é pré-requisito. A ideia está em [ideia-escritorio-que-se-constroi.md](docs/planos/ideia-escritorio-que-se-constroi.md), a direção na [ADR-0055](docs/decisoes/0055-a-v0-3-e-o-escritorio-que-se-constroi.md) e as telas propostas em [docs/design](docs/design/README.md).
 
 
 ```mermaid
