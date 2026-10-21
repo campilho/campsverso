@@ -29,16 +29,16 @@ TICKS_PER_DAY = 1440
 DAY_STARTS_AT = 6 * 60  # o dia simulado começa às 06:00
 FROM_DAY = 4  # a partir de quando o comportamento conta como "depois de ter visto" (ADR-0061)
 EAST = re.compile(r"\bleste\b|\bplot-e-\d+\b", re.IGNORECASE)
-# Na Boa Vista não há "leste" nos ids: a descoberta é falar do rio, da margem ou do lado leste.
-RIVER = re.compile(r"\brio\b|\bmargem\b|\bbeira\b|perto da [áa]gua|\bleste\b", re.IGNORECASE)
-# As outras regras ocultas da Boa Vista (bíblia 2 §10): o assunto e o efeito, no mesmo trecho.
+# Na Boa Vista não há "leste" nos ids: a descoberta é falar do rio, da beira dele ou do lado leste.
+# "Margem" sozinha não conta: na arena do M14 era a margem de lucro do tomate.
+RIVER = re.compile(r"\brio\b|margem do rio|beira do rio|perto da [áa]gua|\bleste\b", re.IGNORECASE)
+# As outras regras ocultas da Boa Vista (bíblia 2 §10): o assunto e o efeito, no mesmo trecho. Os
+# efeitos são estreitos de propósito: "regado todo dia, o tomate amadurece em 4" não é a murcha,
+# e "guardar comida no baú" não é o baú que conserva (arena do M14).
 RULES: dict[str, tuple[re.Pattern[str], re.Pattern[str]]] = {
     "tomate": (
         re.compile(r"\btomate", re.IGNORECASE),
-        re.compile(
-            r"murch|\bsec[oa]s?\b|sem (água|rega)|todo (o )?dia|regar sempre|exigente|delicad",
-            re.IGNORECASE,
-        ),
+        re.compile(r"murch|\bsec[oa]s?\b|sem (água|rega)|um dia sem", re.IGNORECASE),
     ),
     "alho": (
         re.compile(r"\balho", re.IGNORECASE),
@@ -49,15 +49,25 @@ RULES: dict[str, tuple[re.Pattern[str], re.Pattern[str]]] = {
     ),
     "bau": (
         re.compile(r"\bba[úu]\b", re.IGNORECASE),
-        re.compile(r"conserva|dura(m)? mais|estraga(m)? menos|validade|vence|guard", re.IGNORECASE),
+        re.compile(
+            r"conserva|dura(m)? mais|estraga(m)? menos|demora(m)? (mais )?a estragar"
+            r"|n[ãa]o estraga|vence(m)? (mais tarde|depois)",
+            re.IGNORECASE,
+        ),
     ),
     "ensopado": (
         re.compile(r"\bensopado", re.IGNORECASE),
-        re.compile(r"sacia|segura a fome|rende|dura|mais tempo|demora|devagar", re.IGNORECASE),
+        re.compile(
+            r"sacia|segura a fome|fome (sobe|cresce) (mais )?devagar|dura mais|mais tempo",
+            re.IGNORECASE,
+        ),
     ),
     "adubo": (
         re.compile(r"\badub", re.IGNORECASE),
-        re.compile(r"cresc|r[áa]pid|mais|melhor|b[ôo]nus|ajuda|vale", re.IGNORECASE),
+        re.compile(
+            r"cresce(m|u)? (mais|melhor)|mais r[áa]pid|b[ôo]nus|acelera|rende(m)? mais",
+            re.IGNORECASE,
+        ),
     ),
 }
 WORLDS = {"farm_camps": "farm-camps-01", "farm_boavista": "farm-boavista-01"}

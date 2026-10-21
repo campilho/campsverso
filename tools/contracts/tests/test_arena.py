@@ -322,3 +322,20 @@ def test_o_relatorio_da_boa_vista_fala_do_rio_e_das_linhas_novas(tmp_path: Path)
     tomate = "nenhuma anotação; crença dia 5 (0,70); plantou 1, murcharam 1"
     assert f"Regra oculta: o tomate murcha com um dia seco | {tomate}" in text
     assert "Parou no teto de orçamento | não" in text
+
+
+def test_as_heuristicas_da_boa_vista_nao_confundem_lucro_nem_rotina() -> None:
+    """Os falsos positivos da arena do M14: a margem de lucro, regar todo dia, guardar comida."""
+    east = east_signals(
+        [
+            ev(0, "world.session.started.v1", tick_seconds=60, map=BOAVISTA_MAP),
+            mem(10, "memory.noted.v1", day=1, text="Tomate custa 30 e vende 70: boa margem."),
+            mem(20, "memory.noted.v1", day=1, text="Plano: guardar comida no baú."),
+            belief(30, "formed", "bel-0001", "Regado todo dia, o tomate amadurece em 4.", 0.9),
+            belief(40, "formed", "bel-0002", "No baú a colheita dura mais.", 0.8),
+        ]
+    )
+    assert (east["first_note"], east["beliefs"]) == (None, [])
+    assert east["rules"]["tomate"] == {"first_note": None, "first_belief": None}
+    assert east["rules"]["bau"]["first_note"] is None
+    assert east["rules"]["bau"]["first_belief"]["belief_id"] == "bel-0002"
