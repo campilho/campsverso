@@ -78,4 +78,26 @@ Aprovadas em 20/out/2026 (ADR-0063), todas como recomendado; a 1 com a pergunta 
 
 ## 8. Como ficou
 
-*(a preencher no fechamento)*
+Fechado em 20/out/2026, no mesmo dia do M13: o plano e as decisões à tarde, o corredor e o relatório na sessão da Fable, a rodada e a arte à noite numa sessão no Opus. O relatório está em `docs/arena/2026-10-20.md`. Sonnet e Opus correram os 30 dias (decisão 1, com os tetos como seguro; nenhum bateu no teto).
+
+**Os números.**
+
+| Corrida | Moedas | Colheitas | Canteiros | Ferramentas | Fome máx. | Desmaios | US$ |
+|---|---|---|---|---|---|---|---|
+| script 2 | 220 | 141 | 16 | regador grande (dia 25) | 91 | 0 | 0 |
+| Haiku com memória (4 seeds) | 0 a 5 | 22 a 29 | 4 a 5 | nenhuma | 100 | 1 a 2 | 0,45 a 0,49 |
+| Haiku sem a regra | 5 | 28 | 6 | nenhuma | 100 | 1 | 0,51 |
+| Sonnet | 18 | 81 | 15 | nenhuma | 100 | 0 | 11,58 |
+| Opus | 1.143 | 161 | 32 | arado (dia 19), regador grande (dia 25) | 72 | 0 | 26,35 |
+
+**O que a rodada disse.**
+
+- **Na Boa Vista os modelos se separam.** Na fazenda 1, o Haiku com memória empatava ou passava o script; aqui ele quebrou nas quatro seeds: terminou sem dinheiro, com a fome em 100 e desmaios, decidindo umas 26 vezes por dia (contra 55 na fazenda 1) e esperando mais do que trabalhava. O Sonnet sobreviveu sem desmaio, mas ficou longe do script em moedas. O Opus terminou com cinco vezes as moedas do script e mais colheitas que ele.
+- **O Opus planejou o capital.** Cavou os 32 canteiros até o dia 14, diversificou (rabanete, batata, abóbora, tomate, cenoura), comprou o arado e o regador grande e os revezou pelo baú por causa do peso, cozinhou duas sopas e anotou o mercado saturando ("até 4 unidades saem a preço cheio"). Reinvestiu tudo em semente até o dia 21 e colheu o retorno no fim: a curva de moedas sobe nos últimos oito dias.
+- **Ninguém cavou na faixa do rio,** nem o script: os 16 canteiros dele ficam ao redor do poço, a 7 tiles da faixa, e os modelos cavam perto da casa e do poço porque andar gasta energia. Sem canteiro na faixa, a R-001 nunca agiu, e o controle sem a regra terminou igual aos outros Haikus. Com o teto de 32 e nenhum jeito de desfazer um canteiro, quem descobrisse o rio tarde não poderia mudar a fazenda de lugar. Descobrir o rio na Boa Vista pede exploração, e nenhum controlador explorou.
+- **As outras regras ocultas quase não apareceram:** ninguém plantou alho, ninguém adubou, ninguém fez ensopado; os tomates foram regados todo dia e nunca murcharam; só o Opus usou o baú (12 vezes). Nenhuma corrida vendeu abaixo de 80% do preço.
+- **Custo:** US$ 40,30 na rodada (Haikus 2,38, Sonnet 11,58, Opus 26,35), mais US$ 0,11 das corridas duplicadas no começo; o plano estimava uns US$ 60 com Sonnet e Opus por 30 dias. O Opus custou US$ 0,88 por dia simulado e levou 1 h 37 min.
+
+**O que deu errado.** Os três `make arena` abertos em paralelo criaram três pastas (a padrão levava a hora), e a reserva não valia entre elas; dois foram parados no dia 3 ou 4 do Haiku e a pasta padrão passou a ser uma por dia e por rodada. Conferindo o relatório, três heurísticas estavam frouxas: "margem" casava com a margem de lucro do tomate, "todo dia" com o tempo para amadurecer e "guard" com "guardar comida". A última revelou uma dica da regra oculta do baú na descrição da ferramenta `deposit` e no manual ("o baú guarda bem"), que o teste de palavras proibidas não lia; uma crença do Opus repetiu a frase. A dica saiu do manual e do catálogo, o teste passou a ler as descrições das ferramentas, as heurísticas ficaram estreitas e o relatório foi regerado. O sinal do baú desta rodada fica contaminado e não conta como descoberta.
+
+**Para depois** (`futuro.md`): canteiros sem teto e um jeito de aterrar o canteiro vazio, para a descoberta do rio poder mudar a fazenda; um fazendeiro-script que planeja o capital e faz experimentos (canteiros de teste em lugares diferentes) para competir com o Opus; assistir uma corrida na tela pelo replay em modo contínuo. O usuário considera fazer da v0.3 uma fazenda de novo, com essas complexidades, e empurrar o escritório para a v0.4; a decisão fica para o fechamento da v0.2 (M15).

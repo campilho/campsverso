@@ -35,7 +35,7 @@ A pergunta da v0.2: **um LLM consegue viver na fazenda, prosperar e descobrir so
 | M11: memória baseline | registrar, lembrar e refletir; crenças com confiança e origem | concluído em 19/out/2026 |
 | M12: a arena | script × Haiku sem memória × Haiku com memória, 30 dias, lado a lado, com o custo por dia simulado e quem descobriu o leste | concluído em 19/out/2026 |
 | M13: a fazenda 2, "Fazenda Boa Vista" | um segundo mundo em que as escolhas custam: sete culturas, canteiros cavados, ferramentas com peso, mercado, fogão, validade; o fazendeiro-script 2 | concluído em 20/out/2026 (a arte própria fica para durante o M14) |
-| M14: a segunda rodada da arena | script 2 × Haiku × Sonnet × Opus na fazenda nova, com teto por corrida | em curso |
+| M14: a segunda rodada da arena | script 2 × Haiku × Sonnet × Opus na fazenda nova, com teto por corrida | concluído em 20/out/2026 |
 | M15: fechamento | critérios de aceite, diário e a tag `v0.2.0` | a fazer |
 
 **M8 concluído em 17/out/2026** ([plano](docs/planos/m8-mundo-pronto-para-o-llm.md), ADR-0056 e ADR-0057): o terreno e o raio no `session.started`, a foto com mapa, o delta `perception.updated.v1`, acordado custa energia e a fome no teto drena, e `make percepcao` mede o custo em tokens.
@@ -50,7 +50,7 @@ A pergunta da v0.2: **um LLM consegue viver na fazenda, prosperar e descobrir so
 
 **M13 concluído em 20/out/2026** ([plano](docs/planos/m13-fazenda-2.md), ADR-0062, [bíblia](docs/arquitetura/fazenda-boa-vista-biblia.md)): a Fazenda Boa Vista, um segundo mundo em que as escolhas custam, com quatro primitivas novas no kernel (peso e capacidade, canteiro cavado em tempo de execução, lotes com validade, modificadores de necessidade), o gênero `farm` estendido por dados, o fazendeiro-script 2, a mente com o manual novo e as métricas da bíblia 2. O script 2 vive 30 dias sem recusa nem desmaio (220 moedas, 141 colheitas) e cava todos os canteiros fora da faixa do rio: a linha de base cega da segunda rodada. `make sandbox MUNDO=farm-boavista-01` abre o mundo novo; a arte própria fica para durante o M14.
 
-**M14 em curso** ([plano](docs/planos/m14-segunda-rodada.md), ADR-0063): a segunda rodada da arena, na Boa Vista, com o script 2, o Haiku em quatro seeds, o controle sem a regra, o Sonnet e o Opus, cada corrida com os seus dias e o seu teto de orçamento (`make arena RODADA=boavista`); o relatório ganha os grupos do mundo, as linhas da bíblia 2 e "descobriu o rio".
+**M14 concluído em 20/out/2026** ([plano](docs/planos/m14-segunda-rodada.md), ADR-0063, [relatório](docs/arena/2026-10-20.md)): oito corridas de 30 dias na Fazenda Boa Vista. O Opus terminou com 1.143 moedas, cinco vezes as 220 do fazendeiro-script 2, planejando o capital e diversificando as culturas; o Sonnet ficou com 18, e o Haiku, que empatava com o script na fazenda 1, quebrou nas quatro seeds. Ninguém cavou na faixa do rio, então a regra oculta nunca agiu: descobrir o rio na Boa Vista pede exploração. Custo da rodada: US$ 40,30. A arte da fazenda 2 (quatro culturas novas e o fogão) entrou durante as corridas.
 
 ## Depois: v0.3, o escritório que constrói a si mesmo
 
