@@ -1,6 +1,7 @@
 """`make sessoes`: turnos, tempo ativo e tokens, sem nada do texto das conversas (ADR-0051)."""
 
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -109,4 +110,5 @@ def test_ignora_o_contexto_reinserido_com_carimbo_anterior_ao_turno(tmp_path: Pa
     )
     (turn,) = turns(path)
     assert (turn.chamadas, turn.saida) == (1, 10)
-    assert turn.fim.endswith("07:01-03:00")  # 10:01Z em horário local, não 09:00Z
+    # O fim é 10:01Z no fuso de quem roda (o CI roda em UTC), não as 09:00Z da reinserida.
+    assert datetime.fromisoformat(turn.fim) == datetime(2026, 10, 12, 10, 1, tzinfo=UTC)
