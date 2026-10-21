@@ -39,6 +39,10 @@ FORBIDDEN = (
     "não precisa de rega",
     "needs_water",
     "wither_after",
+    "guarda bem",  # o baú que conserva é oculto (arena do M14: a dica estava no catálogo)
+    "conserva",
+    "dura mais",
+    "estraga menos",
 )
 
 
@@ -107,6 +111,12 @@ def test_o_cartao_e_o_do_camps() -> None:
 
 def test_as_notas_contam_o_visivel_e_calam_o_oculto() -> None:
     notes = NOTES.read_text(encoding="utf-8").lower()
+    catalog = (NOTES.parent / "tools.yaml").read_text(encoding="utf-8").lower()
+    for phrase in FORBIDDEN:  # as descrições das ferramentas também são lidas pela mente
+        if phrase.isalpha():
+            assert re.search(rf"\b{phrase}\b", catalog) is None, phrase
+        else:
+            assert phrase not in catalog, phrase
     for phrase in FORBIDDEN:
         if phrase.isalpha():  # palavra inteira: "rio" não é o "rio" de "superior"
             assert re.search(rf"\b{phrase}\b", notes) is None, phrase
