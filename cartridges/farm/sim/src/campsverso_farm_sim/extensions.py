@@ -67,7 +67,25 @@ def contribute_extensions(world: WorldBuilder, data: Mapping[str, Any]) -> None:
         world.add_action(action)
     for system in build_extension_systems(data):
         world.add_system(system)
-    for affordance in affordances(dict(data)):
+    # As afordâncias do gênero resolveram as escolhas (culturas, itens por categoria) com os dados
+    # do gênero; o cenário as resolve de novo com as culturas e os itens somados, e troca as que
+    # declara. Sem isso, o menu de plantar da Boa Vista só oferecia as três culturas da fazenda 1.
+    declared = {str(entry["action"]) for entry in data.get("affordances", [])}
+    inherited = [e for e in base.get("affordances", []) if str(e["action"]) not in declared]
+    catalog = {
+        "crops": {**base.get("crops", {}), **data.get("crops", {})},
+        "items": {
+            **base.get("items", {}),
+            **{
+                name: {**base.get("items", {}).get(name, {}), **info}
+                for name, info in cast(
+                    Mapping[str, Mapping[str, Any]], data.get("items", {})
+                ).items()
+            },
+        },
+        "affordances": [*inherited, *data.get("affordances", [])],
+    }
+    for affordance in affordances(catalog):
         world.add_affordance(affordance, replace=True)  # o cenário troca a do gênero
     base_metrics = {str(m["id"]) for m in base.get("metrics", [])}
     for metric in metrics(data):

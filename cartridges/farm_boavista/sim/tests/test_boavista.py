@@ -261,3 +261,30 @@ def test_andar_gasta_energia() -> None:
     farmer.walk(4, 14)  # pela porta e pelo caminho: 10 tiles
     awake = (farmer.core.tick - start) / 60  # 1 por hora acordado (ADR-0056)
     assert world.need("camps", "energia") == pytest.approx(before - 10 * 0.05 - awake, abs=0.001)
+
+
+def test_os_menus_oferecem_as_culturas_e_os_itens_da_boa_vista() -> None:
+    """As escolhas que o gênero resolve com os dados dele (culturas, itens por categoria) são
+    resolvidas de novo com os do cenário: o humano planta, vende e guarda o que a Boa Vista tem."""
+    menus = {a.action: a for a in make_core(cartridge="farm_boavista").definition.affordances}
+
+    def choices(action: str, param: str) -> tuple[str, ...]:
+        return next(p.choices for p in menus[action].params if p.name == param)
+
+    assert set(choices("plant", "crop")) == {
+        "rabanete", "batata", "abobora", "cenoura", "morango", "tomate", "alho"
+    }  # fmt: skip
+    assert {"tomate", "alho", "morango"} <= set(choices("sell", "item"))
+    assert {"ensopado", "adubo", "semente_alho"} <= set(choices("deposit", "item"))
+    assert {"ensopado", "adubo"} <= set(choices("withdraw", "item"))
+    assert list(menus)[:3] == ["plant", "water", "harvest"]  # a ordem do gênero fica
+    assert (
+        len(
+            [
+                a
+                for a in make_core(cartridge="farm_boavista").definition.affordances
+                if a.action == "plant"
+            ]
+        )
+        == 1
+    )
