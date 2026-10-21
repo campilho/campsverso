@@ -86,7 +86,7 @@
           },
           "look": {
             "sheet": "crops",
-            "frame": 12
+            "frame": 28
           }
         },
         {
@@ -121,8 +121,38 @@
         },
         {
           "when": {
-            "crop": "batata",
-            "stage": "crescendo"
+            "crop": "cenoura",
+            "stage": "broto"
+          },
+          "look": {
+            "sheet": "crops",
+            "frame": 3
+          }
+        },
+        {
+          "when": {
+            "crop": "morango",
+            "stage": "broto"
+          },
+          "look": {
+            "sheet": "crops",
+            "frame": 4
+          }
+        },
+        {
+          "when": {
+            "crop": "tomate",
+            "stage": "broto"
+          },
+          "look": {
+            "sheet": "crops",
+            "frame": 5
+          }
+        },
+        {
+          "when": {
+            "crop": "alho",
+            "stage": "broto"
           },
           "look": {
             "sheet": "crops",
@@ -131,12 +161,22 @@
         },
         {
           "when": {
+            "crop": "batata",
+            "stage": "crescendo"
+          },
+          "look": {
+            "sheet": "crops",
+            "frame": 14
+          }
+        },
+        {
+          "when": {
             "crop": "rabanete",
             "stage": "crescendo"
           },
           "look": {
             "sheet": "crops",
-            "frame": 7
+            "frame": 15
           }
         },
         {
@@ -146,7 +186,47 @@
           },
           "look": {
             "sheet": "crops",
-            "frame": 8
+            "frame": 16
+          }
+        },
+        {
+          "when": {
+            "crop": "cenoura",
+            "stage": "crescendo"
+          },
+          "look": {
+            "sheet": "crops",
+            "frame": 17
+          }
+        },
+        {
+          "when": {
+            "crop": "morango",
+            "stage": "crescendo"
+          },
+          "look": {
+            "sheet": "crops",
+            "frame": 18
+          }
+        },
+        {
+          "when": {
+            "crop": "tomate",
+            "stage": "crescendo"
+          },
+          "look": {
+            "sheet": "crops",
+            "frame": 19
+          }
+        },
+        {
+          "when": {
+            "crop": "alho",
+            "stage": "crescendo"
+          },
+          "look": {
+            "sheet": "crops",
+            "frame": 20
           }
         },
         {
@@ -156,7 +236,7 @@
           },
           "look": {
             "sheet": "crops",
-            "frame": 9
+            "frame": 21
           }
         },
         {
@@ -166,7 +246,7 @@
           },
           "look": {
             "sheet": "crops",
-            "frame": 10
+            "frame": 22
           }
         },
         {
@@ -176,7 +256,47 @@
           },
           "look": {
             "sheet": "crops",
-            "frame": 11
+            "frame": 23
+          }
+        },
+        {
+          "when": {
+            "crop": "cenoura",
+            "stage": "madura"
+          },
+          "look": {
+            "sheet": "crops",
+            "frame": 24
+          }
+        },
+        {
+          "when": {
+            "crop": "morango",
+            "stage": "madura"
+          },
+          "look": {
+            "sheet": "crops",
+            "frame": 25
+          }
+        },
+        {
+          "when": {
+            "crop": "tomate",
+            "stage": "madura"
+          },
+          "look": {
+            "sheet": "crops",
+            "frame": 26
+          }
+        },
+        {
+          "when": {
+            "crop": "alho",
+            "stage": "madura"
+          },
+          "look": {
+            "sheet": "crops",
+            "frame": 27
           }
         },
         {
@@ -186,7 +306,7 @@
           },
           "look": {
             "sheet": "crops",
-            "frame": 6,
+            "frame": 14,
             "tint": "#9c8a5a"
           }
         },
@@ -197,7 +317,7 @@
           },
           "look": {
             "sheet": "crops",
-            "frame": 7,
+            "frame": 15,
             "tint": "#9c8a5a"
           }
         },
@@ -208,41 +328,8 @@
           },
           "look": {
             "sheet": "crops",
-            "frame": 8,
+            "frame": 16,
             "tint": "#9c8a5a"
-          }
-        },
-        {
-          "when": {
-            "crop": "cenoura",
-            "stage": "broto"
-          },
-          "look": {
-            "sheet": "crops",
-            "frame": 1,
-            "tint": "#f0a040"
-          }
-        },
-        {
-          "when": {
-            "crop": "cenoura",
-            "stage": "crescendo"
-          },
-          "look": {
-            "sheet": "crops",
-            "frame": 7,
-            "tint": "#f0a040"
-          }
-        },
-        {
-          "when": {
-            "crop": "cenoura",
-            "stage": "madura"
-          },
-          "look": {
-            "sheet": "crops",
-            "frame": 10,
-            "tint": "#f0a040"
           }
         },
         {
@@ -252,41 +339,8 @@
           },
           "look": {
             "sheet": "crops",
-            "frame": 7,
+            "frame": 17,
             "tint": "#9c8a5a"
-          }
-        },
-        {
-          "when": {
-            "crop": "morango",
-            "stage": "broto"
-          },
-          "look": {
-            "sheet": "crops",
-            "frame": 1,
-            "tint": "#e0405a"
-          }
-        },
-        {
-          "when": {
-            "crop": "morango",
-            "stage": "crescendo"
-          },
-          "look": {
-            "sheet": "crops",
-            "frame": 7,
-            "tint": "#e0405a"
-          }
-        },
-        {
-          "when": {
-            "crop": "morango",
-            "stage": "madura"
-          },
-          "look": {
-            "sheet": "crops",
-            "frame": 10,
-            "tint": "#e0405a"
           }
         },
         {
@@ -296,41 +350,8 @@
           },
           "look": {
             "sheet": "crops",
-            "frame": 7,
+            "frame": 18,
             "tint": "#9c8a5a"
-          }
-        },
-        {
-          "when": {
-            "crop": "tomate",
-            "stage": "broto"
-          },
-          "look": {
-            "sheet": "crops",
-            "frame": 2,
-            "tint": "#e04a3a"
-          }
-        },
-        {
-          "when": {
-            "crop": "tomate",
-            "stage": "crescendo"
-          },
-          "look": {
-            "sheet": "crops",
-            "frame": 8,
-            "tint": "#e04a3a"
-          }
-        },
-        {
-          "when": {
-            "crop": "tomate",
-            "stage": "madura"
-          },
-          "look": {
-            "sheet": "crops",
-            "frame": 11,
-            "tint": "#e04a3a"
           }
         },
         {
@@ -340,41 +361,8 @@
           },
           "look": {
             "sheet": "crops",
-            "frame": 8,
+            "frame": 19,
             "tint": "#9c8a5a"
-          }
-        },
-        {
-          "when": {
-            "crop": "alho",
-            "stage": "broto"
-          },
-          "look": {
-            "sheet": "crops",
-            "frame": 0,
-            "tint": "#f2f0e6"
-          }
-        },
-        {
-          "when": {
-            "crop": "alho",
-            "stage": "crescendo"
-          },
-          "look": {
-            "sheet": "crops",
-            "frame": 6,
-            "tint": "#f2f0e6"
-          }
-        },
-        {
-          "when": {
-            "crop": "alho",
-            "stage": "madura"
-          },
-          "look": {
-            "sheet": "crops",
-            "frame": 9,
-            "tint": "#f2f0e6"
           }
         },
         {
@@ -384,7 +372,7 @@
           },
           "look": {
             "sheet": "crops",
-            "frame": 6,
+            "frame": 20,
             "tint": "#9c8a5a"
           }
         }
@@ -402,7 +390,8 @@
       "color": "#8a5a35"
     },
     "stove": {
-      "color": "#b5563a"
+      "sheet": "objects",
+      "frame": 6
     }
   },
   "phases": {
