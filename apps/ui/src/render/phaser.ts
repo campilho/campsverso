@@ -76,9 +76,11 @@ class ThingView {
     const cy = y * TILE + TILE / 2;
     const depth = depthAt(y);
     const sheet = look.sheet !== undefined && scene.textures.exists(look.sheet) ? look.sheet : undefined;
-    this.box.setVisible(sheet === undefined && look.color !== undefined).setPosition(cx, cy).setDepth(depth);
-    if (look.color !== undefined) {
-      this.box.setFillStyle(colorNumber(look.color));
+    // Sem quadro, o quadrado de cor é a coisa; com quadro, só o chão (`ground`) vai por baixo dele.
+    const fill = sheet === undefined ? look.color : look.ground;
+    this.box.setVisible(fill !== undefined).setPosition(cx, cy).setDepth(depth - 0.05);
+    if (fill !== undefined) {
+      this.box.setFillStyle(colorNumber(fill));
     }
     this.image.setVisible(sheet !== undefined).setPosition(cx, (y + 1) * TILE).setDepth(depth);
     if (sheet !== undefined) {

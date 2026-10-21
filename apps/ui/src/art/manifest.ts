@@ -27,6 +27,9 @@ export interface Look {
   readonly badge?: string;
   /** Escala do quadro (a cama LPC tem 2 tiles de largura; a casa da fazenda, só 3). */
   readonly scale?: number;
+  /** Cor do chão por baixo do quadro: o canteiro cavado na grama da Boa Vista continua de terra
+   * com a planta em cima (na fazenda 1, a terra vem do mapa). */
+  readonly ground?: string;
 }
 
 export interface Variant {

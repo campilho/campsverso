@@ -69,6 +69,16 @@ describe("manifesto de arte (ADR-0053)", () => {
     expect(lookOf(GENRE, "plot", { crop: null, stage: null })).toEqual({ color: "#5b3a1e", badges: [] });
   });
 
+  it("o chão de uma camada de cima fica por baixo da variante (o canteiro da Boa Vista)", () => {
+    const boavista = mergeManifests([
+      rooted(GENRE, "/content/art/farm"),
+      rooted({ version: 1, kinds: { plot: { ground: "#8a5a35" } } }, "/content/art/farm_boavista"),
+    ]);
+    expect(boavista.kinds?.plot?.variants).toHaveLength(2);
+    expect(lookOf(boavista, "plot", { crop: "batata", stage: "broto" })).toMatchObject({ sheet: "crops", frame: 7, ground: "#8a5a35" });
+    expect(lookOf(GENRE, "plot", { crop: "batata", stage: "broto" }).ground).toBeUndefined();
+  });
+
   it("o que o manifesto não conhece ganha cor estável e nome curto", () => {
     expect(lookOf(GENRE, "scarecrow", {})).toEqual(lookOf(GENRE, "scarecrow", {}));
     expect(lookOf(GENRE, "scarecrow", {}).label).toBe("scare");

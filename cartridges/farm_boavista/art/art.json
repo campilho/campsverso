@@ -1,5 +1,10 @@
 {
   "version": 1,
   "credits": "CREDITS.csv",
-  "visual_map": "map-visual.tmj"
+  "visual_map": "map-visual.tmj",
+  "kinds": {
+    "plot": {
+      "ground": "#8a5a35"
+    }
+  }
 }
