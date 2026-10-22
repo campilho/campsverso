@@ -6,6 +6,9 @@ Chama o modelo pela porta inteira (fita em modo `record` + decorador que mede), 
 memória com validação de contrato, e repete o mesmo pedido: a segunda resposta vem da fita, com
 `charged: false`. Imprime tokens, custo, latência e os eventos. Precisa de ANTHROPIC_API_KEY no
 ambiente (o `.env`, carregado pelo `--env-file`); o CI nunca roda isto.
+
+Com uma fita que já tem o pedido, a primeira resposta também vem dela e nada é chamado; por isso
+o `make llm-smoke` passa uma fita nova a cada execução (`--cassette`).
 """
 
 import argparse
