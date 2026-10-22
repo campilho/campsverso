@@ -1,6 +1,6 @@
 # CLAUDE.md — Campsverso
 
-Campsverso é uma plataforma de simulação orientada a eventos para agentes de IA autônomos que vivem em mundos 2D. Cada mundo é um **cartucho** (fazenda, estúdio, startup…) rodando sobre um **kernel** genérico. A versão publicada é a **v0.1.0 "Fazenda do Camps"**: um avatar, nenhum LLM, controladores humano, script e replay. A **v0.2, a possessão** (`docs/planos/v0.2-macro.md`), está em construção: M8 a M14 feitos (o controlador LLM, ADR-0059; a memória baseline, ADR-0060; a arena, ADR-0061; a Fazenda Boa Vista, a fazenda 2, ADR-0062; a segunda rodada da arena, com Sonnet e Opus, ADR-0063); o próximo é o M15 (fechamento da v0.2). Depois, a v0.3 é a fazenda sofisticada (ADR-0064; `docs/planos/v0.3-macro.md`, decisões a aprovar) e o escritório vai para a v0.4.
+Campsverso é uma plataforma de simulação orientada a eventos para agentes de IA autônomos que vivem em mundos 2D. Cada mundo é um **cartucho** (fazenda, estúdio, startup…) rodando sobre um **kernel** genérico. A versão publicada é a **v0.2.0 "A possessão"** (`docs/versoes/v0.2.0.md`; aceite em `docs/aceite-v0.2.md`): o controlador LLM (ADR-0059) com memória baseline (ADR-0060), a arena (ADR-0061), a Fazenda Boa Vista, a fazenda 2 (ADR-0062), e duas rodadas da arena, a segunda com Sonnet e Opus (ADR-0063); o fechamento é a ADR-0065. A v0.1.0 "Fazenda do Camps" foi a primeira: um avatar, nenhum LLM, controladores humano, script e replay. A próxima, a **v0.3, é a fazenda sofisticada** (ADR-0064; `docs/planos/v0.3-macro.md`): a linha foi aprovada no M15, e as vinte decisões do plano macro são revistas em detalhe no começo da v0.3 (viram a ADR-0066). O escritório vai para a v0.4.
 
 O projeto também é material de aprendizado e de publicações. Clareza, testes e registro das decisões importam tanto quanto o código.
 
@@ -100,7 +100,7 @@ campsverso/
     design/                   # referências visuais (Claude Design)
     custos/                   # tempo e tokens por marco (make sessoes), só números
     arena/                    # os relatórios da arena (make arena-report), um por data (ADR-0061)
-    versoes/                  # notas de cada versão (v0.1.0)
+    versoes/                  # notas de cada versão (v0.1.0, v0.2.0)
   tests/
     e2e/                      # resistência, determinismo, replay, recuperação
     support/                  # campsverso_testkit: mundos e roteiros para testes (ADR-0040)
@@ -137,7 +137,7 @@ make soak DAYS=30 # resistência em modo máximo, com processos e NATS próprios
 make replay DAY=N # reexecuta um dia a partir do snapshot e do diário e compara com o arquivo
 make metrics      # métricas da bíblia §13 a partir do arquivo (ARCHIVE=pasta do mundo)
 make percepcao    # fotos e deltas da percepção por dia, em bytes e tokens estimados (ADR-0056); CONTAR=20 calibra com count_tokens
-make llm-smoke    # uma chamada real pela porta de modelo, medida e publicada pelo contrato (ADR-0058); pede ANTHROPIC_API_KEY no .env
+make llm-smoke    # uma chamada real pela porta de modelo, numa fita nova a cada vez, medida e publicada pelo contrato (ADR-0058); pede ANTHROPIC_API_KEY no .env
 make fita DIAS=2  # grava em processo a fita de teste do controlador LLM, chamando a API (ADR-0059); o CI só a reproduz; CARTUCHO=farm_boavista grava a da fazenda 2
 make corrida DIAS=7   # N dias em processo com a mente sobre a API, com ou sem memória (ADR-0060); o mundo espera o modelo
 make arena DIAS=30    # as corridas da arena, em sequência, em data/arena/<data>-<rodada> (ADR-0061); SO=nome roda uma só; RODADA=boavista é a segunda rodada (M14); vários em paralelo no mesmo dia dividem as corridas

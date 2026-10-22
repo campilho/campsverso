@@ -28,7 +28,8 @@ Tempo e tokens do Claude Code em cada marco (ADR-0051).
 | M10+M11 | 17 | 120 | 165 | 528 | 104,1 | 1.676 |
 | M12 | 13 | 54 | 98 | 213 | 26,8 | 628 |
 | M13 | 7 | 158 | 246 | 477 | 123,8 | 776 |
-| M14 | 18 | 50 | 191 | 228 | 98,4 | 1.701 |
+| M14 | 18 | 50 | 195 | 230 | 101,1 | 1.705 |
+| M15 | 4 | 34 | 115 | 114 | 37,1 | 989 |
 
 ## Uso do plano Max
 
@@ -48,3 +49,4 @@ Anotado ao fechar cada marco, como o app mostra: a janela de 5 horas e a semana.
 | 2026-10-20 | M13 em curso (manhã: premissas revistas |  métricas da bíblia 2 §13 |  e2e nos dois mundos |  tela da Boa Vista; semana da Fable a 80%) | 34 | 43 |
 | 2026-10-20 | fim do M13 (meio-dia; semana da Fable a 81%) | 36 | 43 |
 | 2026-10-20 | fim do M14 (noite; a rodada e a arte numa sessão no Opus; semana da Fable a 88%) | 30 | 48 |
+| 2026-10-21 | fim do M15 (noite; o fechamento da v0.2 no Opus; semana da Fable a 88%) | 5 | 51 |

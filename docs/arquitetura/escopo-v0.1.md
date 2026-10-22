@@ -32,6 +32,8 @@ Revisão de 17/out/2026 (ADR-0055): a v0.3 passa a ser o escritório que constr�
 
 Revisão de 20/out/2026 (ADR-0064): a v0.3 passa a ser a fazenda sofisticada, o escritório vai para a v0.4 e o estúdio para a v0.5; o mundo com memória completa e a camada social anda para a v0.6 em diante.
 
+Revisão de 21/out/2026 (ADR-0065): a v0.2 foi fechada como `v0.2.0`, com o aceite em `docs/aceite-v0.2.md`. A arena teve o script, o Haiku, o Sonnet e o Opus; o humano ficou como referência qualitativa.
+
 ---
 
 ## 3. Dentro e fora da v0.1

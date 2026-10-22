@@ -10,9 +10,16 @@ Projeto pessoal de aprendizado, construído em público com a ajuda do Claude Co
 
 ## Status
 
-**v0.1.0 "Fazenda do Camps"**, a primeira versão: um avatar, nenhum LLM; controladores humano, script e replay. Os 11 critérios de aceite estão conferidos em [aceite-v0.1.md](docs/aceite-v0.1.md), e os números da construção em [a v0.1 em números](docs/diario/README.md#a-v01-em-números). Detalhes no [escopo da v0.1](docs/arquitetura/escopo-v0.1.md).
+**v0.2.0 "A possessão"** (21/out/2026), a versão atual:
+- um LLM assume o Camps, com memória, e vive 30 dias simulados;
+- duas fazendas: a do Camps e a Boa Vista, em que as escolhas custam;
+- duas rodadas da arena contra o fazendeiro-script, com o custo de cada chamada medido.
 
-| Marco | Situação |
+Os 8 critérios de aceite e a resposta à pergunta da versão estão em [aceite-v0.2.md](docs/aceite-v0.2.md). As notas estão em [v0.2.0](docs/versoes/v0.2.0.md), e os números da construção em [a v0.2 em números](docs/diario/README.md#a-v02-em-números).
+
+**v0.1.0 "Fazenda do Camps"** (12/out/2026), a primeira versão: um avatar, nenhum LLM; controladores humano, script e replay. Os 11 critérios de aceite estão conferidos em [aceite-v0.1.md](docs/aceite-v0.1.md), e os números da construção em [a v0.1 em números](docs/diario/README.md#a-v01-em-números). Detalhes no [escopo da v0.1](docs/arquitetura/escopo-v0.1.md).
+
+| Marco da v0.1 | Situação |
 |---|---|
 | M0: fundação (monorepo, contratos, codegen, CI) | concluído |
 | M1: kernel sem barramento (modelo de mundo, relógio, ações, regras, cartuchos farm e farm_camps) | concluído |
@@ -23,7 +30,7 @@ Projeto pessoal de aprendizado, construído em público com a ajuda do Claude Co
 | M6: renderer Phaser (arte LPC, mapa visual, o Camps animado, retrato e créditos) | concluído |
 | M7: fechamento (métricas da bíblia no painel do operador, critérios de aceite da v0.1) | concluído |
 
-## Em construção: v0.2, a possessão
+## v0.2, a possessão
 
 A pergunta da v0.2: **um LLM consegue viver na fazenda, prosperar e descobrir sozinho a regra oculta do rio?** E como ele se compara ao fazendeiro-script, a um humano e a outros modelos, no mesmo mundo e com as mesmas métricas? O plano completo está em [v0.2-macro.md](docs/planos/v0.2-macro.md).
 
@@ -34,9 +41,9 @@ A pergunta da v0.2: **um LLM consegue viver na fazenda, prosperar e descobrir so
 | M10: o controlador LLM | o Camps decide pela percepção e pelo catálogo de ações, com um cartão de identidade | concluído em 18/out/2026 |
 | M11: memória baseline | registrar, lembrar e refletir; crenças com confiança e origem | concluído em 19/out/2026 |
 | M12: a arena | script × Haiku sem memória × Haiku com memória, 30 dias, lado a lado, com o custo por dia simulado e quem descobriu o leste | concluído em 19/out/2026 |
-| M13: a fazenda 2, "Fazenda Boa Vista" | um segundo mundo em que as escolhas custam: sete culturas, canteiros cavados, ferramentas com peso, mercado, fogão, validade; o fazendeiro-script 2 | concluído em 20/out/2026 (a arte própria fica para durante o M14) |
+| M13: a fazenda 2, "Fazenda Boa Vista" | um segundo mundo em que as escolhas custam: sete culturas, canteiros cavados, ferramentas com peso, mercado, fogão, validade; o fazendeiro-script 2 | concluído em 20/out/2026 (a arte própria entrou no M14) |
 | M14: a segunda rodada da arena | script 2 × Haiku × Sonnet × Opus na fazenda nova, com teto por corrida | concluído em 20/out/2026 |
-| M15: fechamento | critérios de aceite, diário e a tag `v0.2.0` | a fazer |
+| M15: fechamento | critérios de aceite, diário e a tag `v0.2.0` | concluído em 21/out/2026 |
 
 **M8 concluído em 17/out/2026** ([plano](docs/planos/m8-mundo-pronto-para-o-llm.md), ADR-0056 e ADR-0057): o terreno e o raio no `session.started`, a foto com mapa, o delta `perception.updated.v1`, acordado custa energia e a fome no teto drena, e `make percepcao` mede o custo em tokens.
 
@@ -52,7 +59,9 @@ A pergunta da v0.2: **um LLM consegue viver na fazenda, prosperar e descobrir so
 
 **M14 concluído em 20/out/2026** ([plano](docs/planos/m14-segunda-rodada.md), ADR-0063, [relatório](docs/arena/2026-10-20.md)): oito corridas de 30 dias na Fazenda Boa Vista. O Opus terminou com 1.143 moedas, cinco vezes as 220 do fazendeiro-script 2, planejando o capital e diversificando as culturas; o Sonnet ficou com 18, e o Haiku, que empatava com o script na fazenda 1, quebrou nas quatro seeds. Ninguém cavou na faixa do rio, então a regra oculta nunca agiu: descobrir o rio na Boa Vista pede exploração. Custo da rodada: US$ 40,30. A arte da fazenda 2 (quatro culturas novas e o fogão) entrou durante as corridas.
 
-## Depois: v0.3, a fazenda sofisticada; v0.4, o escritório
+**M15 concluído em 21/out/2026** ([plano](docs/planos/m15-fechamento.md), ADR-0065, [aceite](docs/aceite-v0.2.md)): os 8 critérios conferidos no código final, com um soak de 30 dias em cada mundo, a fumaça da tela nos dois e uma chamada real à API. A resposta à pergunta: o LLM vive e prospera onde o mundo deixa, mas nenhum controlador descobriu a regra do rio. É a pergunta que a v0.3 herda.
+
+## Próxima: v0.3, a fazenda sofisticada; depois, v0.4, o escritório
 
 A v0.3 continua na fazenda, mais sofisticada: canteiros sem teto, estações, encomendas, exploração, vários avatares, um fazendeiro-script que planeja e experimenta, e a arena com famílias de modelos ([plano macro](docs/planos/v0.3-macro.md), [ADR-0064](docs/decisoes/0064-a-v0-3-e-a-fazenda-sofisticada.md), [a análise da ordem](docs/planos/analise-ordem-v0.3-v0.5.md)). Ela constrói de propósito o que o escritório também vai precisar.
 
@@ -61,7 +70,7 @@ Na v0.4, um escritório de programação com um único dev no começo, cujo trab
 
 ```mermaid
 flowchart LR
-    cart["Cartuchos<br/>farm → farm_camps"] -. "dados, ações e regras" .-> kernel
+    cart["Cartuchos<br/>farm → farm_camps → farm_boavista"] -. "dados, ações e regras" .-> kernel
     kernel["Kernel<br/>o único que escreve o mundo"] -- "eventos" --> nats[("NATS JetStream")]
     nats -- "comandos" --> kernel
     nats -- "world e agent" --> percepcao["Percepção"]
@@ -77,10 +86,11 @@ flowchart LR
     gateway <-->|"WebSocket"| tela["Tela (Phaser)<br/>jogador e operador"]
 ```
 
-- **O kernel é o único que escreve o mundo.** Controladores (o humano, o script, o replay e, na v0.2, um LLM) só propõem ações; o kernel valida, aplica e publica os fatos.
+- **O kernel é o único que escreve o mundo.** Controladores (o humano, o script, o replay e, desde a v0.2, um LLM) só propõem ações; o kernel valida, aplica e publica os fatos.
 - **Tudo passa pelo barramento como evento,** com um contrato (JSON Schema) para cada tipo. Os serviços não importam o código uns dos outros.
 - **A visibilidade é garantida pelas permissões do NATS.** Os efeitos da regra oculta são eventos `internal`, que os controladores não conseguem assinar.
 - **O cartucho traz o mundo:** culturas, preços, ações, menus, métricas, mapa e arte. O kernel só conhece a física genérica (tempo, espaço, itens, necessidades, ações e regras).
+- **A arena roda o mesmo kernel, a mesma mente e a mesma porta de modelo em processo,** sem barramento: o mundo espera cada resposta do modelo, e cada corrida tem o seu teto de custo (ADR-0061).
 
 ## Como começar
 
@@ -90,6 +100,8 @@ Requisitos: [uv](https://docs.astral.sh/uv/) e [pnpm](https://pnpm.io/). O uv in
 make setup   # dependências Python e TypeScript, e o nats-server com versão fixa
 make check   # lint, tipos, testes, arquitetura e contratos
 make sandbox # um mundo descartável com tudo ligado; a UI fica em http://127.0.0.1:8765/?view=operator
+make sandbox MUNDO=farm-boavista-01 # o mesmo, na Fazenda Boa Vista
+make sandbox MENTE=camps            # o LLM assume o Camps (precisa de ANTHROPIC_API_KEY no .env)
 make run     # o mundo oficial: NATS, kernel, percepção, fazendeiro-script, arquivador, gateway e guarda de orçamento
 make stop    # derruba o NATS
 make ui      # a UI em modo desenvolvimento (Vite), ligada ao gateway do run ou do sandbox
@@ -102,12 +114,12 @@ make percepcao      # fotos e deltas da percepção por dia, em bytes e tokens e
 make llm-smoke      # uma chamada real pela porta de modelo, medida e publicada pelo contrato (ADR-0058)
 make fita DIAS=2    # grava em processo a fita de teste do controlador LLM, chamando a API (ADR-0059)
 make corrida DIAS=7 # N dias em processo com a mente sobre a API, com ou sem memória (ADR-0060)
-make arena DIAS=30  # as corridas da arena: script × Haiku sem memória × Haiku com memória, em data/arena/ (ADR-0061)
+make arena DIAS=30  # as corridas da arena em data/arena/ (ADR-0061); RODADA=boavista é a segunda rodada, com Sonnet e Opus (ADR-0063)
 make arena-report   # o relatório da arena em docs/arena/
 make help    # todos os alvos
 ```
 
-O `make run` gera as senhas locais do NATS em `.env`, fora do git. O mundo fica em `data/farm-camps-01/` (estado e snapshots) e o histórico de eventos em `data/archive/`. A UI abre em `http://127.0.0.1:8765/?view=player` (jogador) ou `?view=operator` (operador, com relógio e linha do tempo). O `make sandbox` faz o mesmo numa pasta própria em `data/sandbox/`, sem tocar no mundo oficial; com `MENTE=camps`, a mente assume o Camps (precisa de `ANTHROPIC_API_KEY` no `.env`).
+O `make run` gera as senhas locais do NATS em `.env`, fora do git. O mundo fica em `data/farm-camps-01/` (estado e snapshots) e o histórico de eventos em `data/archive/`. A UI abre em `http://127.0.0.1:8765/?view=player` (jogador) ou `?view=operator` (operador, com relógio e linha do tempo). O `make sandbox` faz o mesmo numa pasta própria em `data/sandbox/`, sem tocar no mundo oficial; com `MENTE=camps`, a mente assume o Camps (precisa de `ANTHROPIC_API_KEY` no `.env`). `MUNDO=farm-boavista-01` escolhe a Fazenda Boa Vista no `sandbox`, no `run`, no `soak`, no `replay` e no `metrics`.
 
 Para jogar, clique em "Assumir o Camps". O clique esquerdo anda; o clique direito abre o menu de ações da coisa clicada, ou o do próprio Camps. "Devolver ao script" devolve o controle ao fazendeiro-script.
 

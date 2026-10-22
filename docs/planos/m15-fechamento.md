@@ -1,6 +1,6 @@
 # Plano do M15 — o fechamento da v0.2
 
-*Proposto em 21/out/2026, depois do M14 e da decisão da v0.3 (ADR-0064). Aprovado em: (pendente). Como no M7, o fechamento da v0.1, este marco não constrói nada novo: confere, documenta e publica.*
+*Proposto em 21/out/2026, depois do M14 e da decisão da v0.3 (ADR-0064). Aprovado em 21/out/2026: as decisões 1 a 5 como recomendado; na 6, o usuário prefere revisar as vinte decisões da v0.3 em detalhe quando ela começar. Como no M7, o fechamento da v0.1, este marco não constrói nada novo: confere, documenta e publica.*
 
 ## O que a v0.2 prometeu
 
@@ -31,7 +31,7 @@ A pergunta do plano macro: **"Um LLM consegue viver na Fazenda do Camps, sobrevi
 
 ## 3. A revisão do `futuro.md`
 
-O backlog cresceu a v0.2 inteira. A revisão tira o que foi feito (enxergar o mapa, Playwright, andar gasta energia, o caderno do avatar, a reserva da corrida, conferir o `make sessoes` do M2 e do M3, Sonnet e Opus numa fazenda mais rica) e põe em cada item que fica o destino do plano macro da v0.3: um marco da v0.3, a fazenda 4, a v0.4 ou depois.
+O backlog cresceu a v0.2 inteira. A revisão tira o que foi feito (enxergar o mapa, Playwright, andar gasta energia, o caderno do avatar, a reserva da corrida, Sonnet e Opus numa fazenda mais rica) e o que se explicou (os números baixos do `make sessoes` no M2 e no M3) e põe em cada item que fica o destino do plano macro da v0.3: um marco da v0.3, a fazenda 4, a v0.4 ou depois.
 
 ## 4. Documentação
 
@@ -62,8 +62,32 @@ Estimativa: uma sessão. Custo de API: uns centavos (a chamada real).
 3. **A revisão do `futuro.md`** com o destino de cada item. *Recomendação: sim; a v0.3 começa por ele.*
 4. **"A v0.2 em números"** no diário, incluindo o custo de API por marco. *Recomendação: sim; o projeto é público e o custo é parte da história.*
 5. **A tag `v0.2.0` e a Release** no GitHub, depois do seu ok. *Recomendação: sim, como na v0.1.*
-6. **As vinte decisões do plano macro da v0.3:** a sua resposta "vamos nesta linha" vale como aprovação de todas como recomendado (a ADR-0065 no começo da v0.3), ou prefere passar por elas uma a uma antes? *Recomendação: aprovar a linha agora e confirmar as decisões de cada marco no plano dele, como na v0.2; a ADR-0065 registra a lista no começo do M16.*
+6. **As vinte decisões do plano macro da v0.3:** a sua resposta "vamos nesta linha" vale como aprovação de todas como recomendado (uma ADR no começo da v0.3), ou prefere passar por elas uma a uma antes? *Recomendação: aprovar a linha agora e confirmar as decisões de cada marco no plano dele, como na v0.2; uma ADR registra a lista no começo do M16.*
 
 ## 8. Como ficou
 
-*(a preencher no fechamento)*
+Tudo como o plano, numa sessão, em 21/out à noite (ADR-0065).
+
+- **Os soaks** repetiram os números de referência:
+  - a fazenda 1 (`data/soak/20261021-214938`) fez 1.175 moedas em 33,4 s, com o leste em 2,0 dias e o oeste em 3,0;
+  - a Boa Vista (`data/soak/20261021-215018`) fez 220 moedas, 141 colheitas e 16 canteiros em 31,3 s;
+  - `make percepcao` deu uns 63 mil tokens por dia com deltas.
+- **O `make check` com `TZ=UTC`** deu verde: 381 testes em Python, 44 da tela, 3 dos contratos e 12 contratos de arquitetura. **O `make ui-e2e`** passou 3 de 3 em cada mundo.
+- **A chamada real:**
+  - O `make llm-smoke` voltou da fita: a padrão já tinha o pedido de 18/out, e nada foi chamado.
+  - Com uma fita nova, a chamada foi real: Haiku 5.5, 532 tokens de entrada e 137 de saída, US$ 0,00012, 4,1 s, `charged: true`.
+  - O alvo passou a gravar numa fita nova a cada execução.
+- **O aceite** (`docs/aceite-v0.2.md`) tem os 8 critérios com a evidência e a resposta à pergunta.
+- **A revisão do `futuro.md`:**
+  - saíram sete itens feitos na v0.2;
+  - os números baixos de M2 e M3 no `make sessoes` ficaram explicados (a compactação da sessão);
+  - cada item que fica aponta para a lista do plano macro da v0.3.
+- **A documentação:**
+  - o README, o CLAUDE.md, o escopo e o plano macro marcam a v0.2 fechada;
+  - o índice do diário tem "a v0.2 em números", com o custo de API por marco (cerca de US$ 47 na versão);
+  - as notas estão em `docs/versoes/v0.2.0.md`.
+- **O que mudou em relação ao plano:**
+  - o CHANGELOG dos contratos ganhou também a seção `v0.1.0`, porque as seções do M2 ao M7 tinham ficado como "Não publicado" na tag da v0.1;
+  - o `CREDITS.csv` da Boa Vista perdeu a nota velha de "sem arte própria";
+  - a decisão 6 ficou para o começo da v0.3, como o usuário pediu.
+- **A tag `v0.2.0`** espera o ok do usuário para o push.
