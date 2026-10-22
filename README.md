@@ -52,18 +52,19 @@ A pergunta: **um LLM consegue viver na fazenda, prosperar e descobrir sozinho a 
 
 ## Em construção: v0.3.0 — A fazenda sofisticada
 
-A pergunta: **num mundo maior, com estações, encomendas e regras escondidas em lugares que pedem exploração, quem aprende o mundo e lucra com o que aprendeu: um modelo, um script que faz experimentos ou um humano? E quanto vale aprender?** Na v0.2 os modelos planejaram bem, mas ninguém explorou. A v0.3 continua na fazenda, com canteiros sem teto, estações, encomendas, um mapa maior com névoa, regras ocultas sorteadas por seed, vários avatares, um fazendeiro-script que faz experimentos, um oráculo que conhece as regras e a arena com famílias de modelos. Ela também constrói de propósito o que o escritório da v0.4 vai precisar.
+A pergunta: **num mundo maior, com estações, encomendas e regras escondidas em lugares que pedem exploração, quem aprende o mundo e lucra com o que aprendeu: um modelo, um script que faz experimentos ou um humano? E quanto vale aprender?** Na v0.2 os modelos planejaram bem, mas ninguém explorou. A v0.3 continua na fazenda, num cenário novo, a Fazenda Morada do Sol: um mapa maior com névoa, canteiros sem teto, um ano com as quatro estações, encomendas e uma economia de oferta e demanda, ajudantes contratáveis, um fazendeiro-script que faz experimentos, um oráculo que conhece as regras e a arena com outras famílias de modelos. Ela também constrói de propósito o que o escritório da v0.4 vai precisar.
 
-[Plano macro](docs/planos/v0.3-macro.md) · [ADR-0064](docs/decisoes/0064-a-v0-3-e-a-fazenda-sofisticada.md) · [a análise da ordem das versões](docs/planos/analise-ordem-v0.3-v0.5.md)
+[Plano macro](docs/planos/v0.3-macro.md) · [as decisões (ADR-0066)](docs/decisoes/0066-decisoes-do-plano-macro-da-v0-3.md) · [ADR-0064](docs/decisoes/0064-a-v0-3-e-a-fazenda-sofisticada.md) · [a análise da ordem das versões](docs/planos/analise-ordem-v0.3-v0.5.md)
 
 | Marco | Entrega | Situação |
 |---|---|---|
-| M16: o mundo que cresce | remover entidade; canteiros sem teto que voltam a ser grama; estações; assistir na tela uma corrida gravada | próximo: as decisões da v0.3 antes do plano |
-| M17: a economia | encomendas com prazo, processamento, adubos, demanda e preços por estação, clima com previsão, rótulos de eventos | a fazer |
-| M18: explorar | mapa maior, névoa, regras ocultas sorteadas por seed e em lugares distantes, métricas de exploração | a fazer |
-| M19: os controladores | o fazendeiro-script 3, que planeja e faz experimentos; o oráculo; o caderno de campo da mente | a fazer |
-| M20: vários avatares | percepção, posse e tela com vários avatares; dois fazendeiros ou um ajudante | a fazer |
-| M21: a terceira arena | famílias de modelos, várias seeds, a prova do mundo, o humano na tabela | a fazer |
+| Antes do M16: a rodada do humano da v0.2 | o usuário joga a Boa Vista com a seed da rodada do M14 | próximo |
+| M16: a Fazenda Morada do Sol | o cenário novo com o mapa maior e a câmera que rola, canteiros sem teto, o ano acelerado com as quatro estações, as regras ocultas novas, a arte | a fazer |
+| M17: ver e assistir | a névoa, a noite e a lanterna; a visão arena, com as corridas ao vivo e gravadas; os menus do humano | a fazer |
+| M18: a economia | um módulo de economia reaproveitável: oferta e demanda, encomendas com prazo, a feira, processamento, clima | a fazer |
+| M19: os controladores e a medição | o fazendeiro-script 3, o oráculo, o caderno de campo, a prova do mundo e o juiz, as variantes do mapa | a fazer |
+| M20: os ajudantes | vários avatares; cinco personagens contratáveis, cada um com a sua ficha | a fazer |
+| M21: a terceira arena | a rodada do humano da v0.3; Claude, script 3 e oráculo; depois GPT e Gemini | a fazer |
 | M22: fechamento | critérios de aceite, diário, notas e a tag `v0.3.0` | a fazer |
 
 ## Depois: v0.4.0 — O escritório que constrói a si mesmo
