@@ -87,6 +87,7 @@ DISCOVERY = re.compile(
 ORDER = (
     "script",
     "script2",
+    "humano",
     "haiku",
     "haiku-memoria",
     "haiku-memoria-s2",
@@ -726,6 +727,8 @@ def _coins_section(runs: Sequence[Run]) -> list[str]:
 
 
 def _controller_name(spec: Mapping[str, Any]) -> str:
+    if spec.get("controller") == "human":
+        return "humano"
     if spec.get("controller") != "llm":
         return str(spec.get("controller"))
     model = str(spec.get("model", "claude-haiku-5-5"))

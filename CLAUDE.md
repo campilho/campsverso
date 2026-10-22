@@ -130,7 +130,7 @@ make secrets      # gera em .env (fora do git) as senhas do NATS que faltam
 make up           # sobe o NATS em segundo plano
 make stop         # derruba o NATS
 make run          # sobe o NATS e o Procfile (honcho): kernel, percepção, script, arquivador e gateway
-make sandbox      # mundo descartável com tudo ligado, em data/sandbox/<data-hora> (não toca no oficial); MENTE=camps põe o LLM no Camps (ADR-0059; na Boa Vista, MENTE=camps_boavista)
+make sandbox      # mundo descartável com tudo ligado, em data/sandbox/<data-hora> (não toca no oficial); MENTE=camps põe o LLM no Camps (ADR-0059; na Boa Vista, MENTE=camps_boavista); PAUSADO=1 começa com o relógio parado
 make ui-build     # compila a UI em apps/ui/dist; o gateway a serve em http://127.0.0.1:8765
 make ui           # a UI em modo desenvolvimento (Vite), com proxy para o gateway
 make ui-e2e       # fumaça da tela no navegador (Playwright), com um sandbox próprio (porta 8799); MUNDO=farm-boavista-01 abre a fazenda 2
@@ -143,6 +143,7 @@ make fita DIAS=2  # grava em processo a fita de teste do controlador LLM, chaman
 make corrida DIAS=7   # N dias em processo com a mente sobre a API, com ou sem memória (ADR-0060); o mundo espera o modelo
 make arena DIAS=30    # as corridas da arena, em sequência, em data/arena/<data>-<rodada> (ADR-0061); SO=nome roda uma só; RODADA=boavista é a segunda rodada (M14); vários em paralelo no mesmo dia dividem as corridas
 make arena-report     # o relatório da arena (tabela da bíblia lado a lado, o leste pela memória) em docs/arena/
+make arena-humano SANDBOX=data/sandbox/<pasta>  # a partida de um humano no sandbox como mais uma corrida da rodada (ADR-0066); PASTA= escolhe a rodada
 make mapa-visual  # regrava o mapa visual da fazenda a partir do mapa lógico (ADR-0053)
 make sessoes      # tempo e tokens do Claude Code por turno e por marco em docs/custos (MARCO=M5)
 ```

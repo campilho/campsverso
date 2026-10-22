@@ -23,7 +23,7 @@ NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR BUDGET MIND
 .DEFAULT_GOAL := help
 .PHONY: help setup contracts check lint fmt types test arch contracts-check compat \
         up stop run ui ui-build sandbox soak replay metrics ui-e2e mapa-visual sessoes tools secrets fita corrida \
-        arena arena-report
+        arena arena-report arena-humano
 
 help: ## lista os alvos
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-16s %s\n", $$1, $$2}'
@@ -100,8 +100,8 @@ ui-build: ## compila a UI em apps/ui/dist, que o gateway serve
 ui: ## UI em modo desenvolvimento (Vite em http://127.0.0.1:5173), ligada ao gateway de make run ou sandbox
 	$(PNPM) --filter @campsverso/ui dev
 
-sandbox: tools ui-build ## mundo descartável com tudo ligado, em data/sandbox/<data-hora>; MENTE=camps põe o LLM no Camps (ADR-0059; na Boa Vista, MENTE=camps_boavista); Ctrl+C para parar
-	$(if $(MENTE),uv run --locked --env-file .env,$(PY)) python -m campsverso_testkit.sandbox --world config/worlds/$(MUNDO).yaml --out data/sandbox/$$(date +%Y%m%d-%H%M%S) $(if $(MENTE),--mind $(MENTE),)
+sandbox: tools ui-build ## mundo descartável com tudo ligado, em data/sandbox/<data-hora>; MENTE=camps põe o LLM no Camps (ADR-0059; na Boa Vista, MENTE=camps_boavista); PAUSADO=1 começa parado; Ctrl+C para parar
+	$(if $(MENTE),uv run --locked --env-file .env,$(PY)) python -m campsverso_testkit.sandbox --world config/worlds/$(MUNDO).yaml --out data/sandbox/$$(date +%Y%m%d-%H%M%S) $(if $(MENTE),--mind $(MENTE),) $(if $(PAUSADO),--pausado,)
 
 DIAS ?= 1
 
@@ -127,6 +127,10 @@ ARENA_PASTA = $(or $(PASTA),data/arena/$(shell date +%Y%m%d)-$(or $(RODADA),camp
 
 arena: ## as corridas da arena em sequência, em data/arena/<data>-<rodada> (ADR-0061): make arena [RODADA=boavista] [ARENA_DIAS=30] [SO=haiku-memoria] [PASTA=data/arena/x]; vários em paralelo dividem a rodada
 	$(CAFFEINATE) uv run --locked --env-file .env python -m campsverso_testkit.arena --days $(ARENA_DIAS) $(if $(RODADA),--rodada $(RODADA),) $(foreach s,$(SO),--only $(s)) --out $(ARENA_PASTA)
+
+arena-humano: ## a partida de um humano no sandbox como corrida da arena: make arena-humano SANDBOX=data/sandbox/<pasta> [PASTA=rodada] [NOME=humano]
+	@test -n "$(SANDBOX)" || { echo "uso: make arena-humano SANDBOX=data/sandbox/<pasta> [PASTA=data/arena/<rodada>]"; exit 1; }
+	$(PY) python -m campsverso_tools.arena_humano $(SANDBOX) $(if $(PASTA),--arena $(PASTA),) $(if $(NOME),--name $(NOME),)
 
 arena-report: ## o relatório da arena em docs/arena/AAAA-MM-DD.md, da arena mais recente ou de PASTA=data/arena/x
 	$(PY) python -m campsverso_tools.arena $(PASTA)

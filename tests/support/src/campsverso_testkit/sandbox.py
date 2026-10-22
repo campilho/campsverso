@@ -8,6 +8,9 @@ contínuo na escala 72, com tudo dentro da pasta `--out`. O gateway serve a UI c
 
 Com `--mind camps` (ADR-0059) sobem também a mente, que assume o Camps ao conectar, e a guarda de
 orçamento; a fita da mente fica em `<out>/llm.jsonl`, gravando. Precisa de ANTHROPIC_API_KEY.
+
+Com `--pausado`, o relógio começa parado: quem vai jogar assume o Camps antes do script agir e
+retoma o relógio pela tela (a rodada do humano, ADR-0066).
 """
 
 import argparse
@@ -26,9 +29,11 @@ from campsverso_testkit.soak import WORLD, Processes
 PORT = 8765
 
 
-def _world_file(out: Path, mind: str | None = None, source: Path = WORLD) -> Path:
+def _world_file(
+    out: Path, mind: str | None = None, source: Path = WORLD, *, paused: bool = False
+) -> Path:
     world = yaml.safe_load(source.read_text(encoding="utf-8"))
-    world["clock"] = {"mode": "continuous", "scale": 72, "paused": False}
+    world["clock"] = {"mode": "continuous", "scale": 72, "paused": paused}
     minds = cast(dict[str, dict[str, Any]], world.get("minds") or {})
     for avatar, settings in list(minds.items()):
         if mind is not None and settings.get("mind") == mind:
@@ -40,9 +45,16 @@ def _world_file(out: Path, mind: str | None = None, source: Path = WORLD) -> Pat
     return path
 
 
-def run(out: Path, port: int = PORT, mind: str | None = None, source: Path = WORLD) -> int:
+def run(
+    out: Path,
+    port: int = PORT,
+    mind: str | None = None,
+    source: Path = WORLD,
+    *,
+    paused: bool = False,
+) -> int:
     out.mkdir(parents=True, exist_ok=True)
-    world = _world_file(out, mind, source)
+    world = _world_file(out, mind, source, paused=paused)
     stop = {"now": False}
 
     def interrupt(_signum: int, _frame: object) -> None:
@@ -104,8 +116,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--port", type=int, default=PORT, help="porta do gateway")
     parser.add_argument("--mind", help="a mente que assume o Camps, ex.: camps (ADR-0059)")
     parser.add_argument("--world", type=Path, default=WORLD, help="o arquivo do mundo")
+    parser.add_argument("--pausado", action="store_true", help="o relógio começa parado")
     args = parser.parse_args(argv)
-    return run(args.out, args.port, args.mind, args.world)
+    return run(args.out, args.port, args.mind, args.world, paused=args.pausado)
 
 
 if __name__ == "__main__":

@@ -121,6 +121,7 @@ make fita DIAS=2    # grava em processo a fita de teste do controlador LLM, cham
 make corrida DIAS=7 # N dias em processo com a mente sobre a API, com ou sem memória (ADR-0060)
 make arena DIAS=30  # as corridas da arena em data/arena/ (ADR-0061); RODADA=boavista é a segunda rodada, com Sonnet e Opus (ADR-0063)
 make arena-report   # o relatório da arena em docs/arena/
+make arena-humano SANDBOX=data/sandbox/<pasta>  # a sua partida no sandbox como mais uma corrida da rodada
 make help    # todos os alvos
 ```
 
