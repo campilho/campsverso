@@ -101,6 +101,7 @@ campsverso/
     custos/                   # tempo e tokens por marco (make sessoes), só números
     arena/                    # os relatórios da arena (make arena-report), um por data (ADR-0061)
     versoes/                  # notas de cada versão (v0.1.0, v0.2.0)
+    imagens/                  # um print de cada versão, para o README
   tests/
     e2e/                      # resistência, determinismo, replay, recuperação
     support/                  # campsverso_testkit: mundos e roteiros para testes (ADR-0040)
@@ -129,7 +130,7 @@ make secrets      # gera em .env (fora do git) as senhas do NATS que faltam
 make up           # sobe o NATS em segundo plano
 make stop         # derruba o NATS
 make run          # sobe o NATS e o Procfile (honcho): kernel, percepção, script, arquivador e gateway
-make sandbox      # mundo descartável com tudo ligado, em data/sandbox/<data-hora> (não toca no oficial); MENTE=camps põe o LLM no Camps (ADR-0059)
+make sandbox      # mundo descartável com tudo ligado, em data/sandbox/<data-hora> (não toca no oficial); MENTE=camps põe o LLM no Camps (ADR-0059; na Boa Vista, MENTE=camps_boavista)
 make ui-build     # compila a UI em apps/ui/dist; o gateway a serve em http://127.0.0.1:8765
 make ui           # a UI em modo desenvolvimento (Vite), com proxy para o gateway
 make ui-e2e       # fumaça da tela no navegador (Playwright), com um sandbox próprio (porta 8799); MUNDO=farm-boavista-01 abre a fazenda 2

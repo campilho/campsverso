@@ -8,31 +8,36 @@ Cada mundo é um **cartucho** (fazenda, estúdio, vilarejo…) rodando sobre um 
 
 Projeto pessoal de aprendizado, construído em público com a ajuda do Claude Code e documentado passo a passo.
 
-## Status
+## Versões
 
-**v0.2.0 "A possessão"** (21/out/2026), a versão atual:
-- um LLM assume o Camps, com memória, e vive 30 dias simulados;
-- duas fazendas: a do Camps e a Boa Vista, em que as escolhas custam;
-- duas rodadas da arena contra o fazendeiro-script, com o custo de cada chamada medido.
+Cada versão responde a uma pergunta. As publicadas têm notas, critérios de aceite conferidos e os números da construção; cada marco teve um plano aprovado antes do código.
 
-Os 8 critérios de aceite e a resposta à pergunta da versão estão em [aceite-v0.2.md](docs/aceite-v0.2.md). As notas estão em [v0.2.0](docs/versoes/v0.2.0.md), e os números da construção em [a v0.2 em números](docs/diario/README.md#a-v02-em-números).
+### v0.1.0 — Fazenda do Camps (12/out/2026)
 
-**v0.1.0 "Fazenda do Camps"** (12/out/2026), a primeira versão: um avatar, nenhum LLM; controladores humano, script e replay. Os 11 critérios de aceite estão conferidos em [aceite-v0.1.md](docs/aceite-v0.1.md), e os números da construção em [a v0.1 em números](docs/diario/README.md#a-v01-em-números). Detalhes no [escopo da v0.1](docs/arquitetura/escopo-v0.1.md).
+A pergunta: **a arquitetura orientada a eventos, com módulos totalmente independentes, funciona e aguenta rodar dias seguidos?** Sim: 30 dias simulados em 35 s, determinística, e voltando de um `kill -9` sem perder nem repetir eventos. Um avatar, nenhum LLM; controladores humano, script e replay.
 
-| Marco da v0.1 | Situação |
-|---|---|
-| M0: fundação (monorepo, contratos, codegen, CI) | concluído |
-| M1: kernel sem barramento (modelo de mundo, relógio, ações, regras, cartuchos farm e farm_camps) | concluído |
-| M2: durabilidade (NATS, outbox, arquivo JSONL, snapshots, retomada) | concluído |
-| M3: controladores headless (percepção, fazendeiro-script, replay, modo máximo) | concluído |
-| M4: UI de depuração (gateway WebSocket, canvas, visões jogador/operador, controles do relógio) | concluído |
-| M5: controlador humano (clicar para mover, menu de ações, assumir e devolver a posse) | concluído |
-| M6: renderer Phaser (arte LPC, mapa visual, o Camps animado, retrato e créditos) | concluído |
-| M7: fechamento (métricas da bíblia no painel do operador, critérios de aceite da v0.1) | concluído |
+![A Fazenda do Camps no dia 5, na visão do operador: o fazendeiro-script cuida dos canteiros do oeste e do leste, e as métricas mostram 12 colheitas no leste contra 8 no oeste](docs/imagens/v0.1.0-fazenda-do-camps.png)
 
-## v0.2, a possessão
+[Notas](docs/versoes/v0.1.0.md) · [critérios de aceite](docs/aceite-v0.1.md) · [a v0.1 em números](docs/diario/README.md#a-v01-em-números) · [escopo](docs/arquitetura/escopo-v0.1.md)
 
-A pergunta da v0.2: **um LLM consegue viver na fazenda, prosperar e descobrir sozinho a regra oculta do rio?** E como ele se compara ao fazendeiro-script, a um humano e a outros modelos, no mesmo mundo e com as mesmas métricas? O plano completo está em [v0.2-macro.md](docs/planos/v0.2-macro.md).
+| Marco | Entrega | Situação |
+|---|---|---|
+| M0: fundação | monorepo, contratos, codegen, CI | concluído em 11/out/2026 |
+| M1: kernel sem barramento | modelo de mundo, relógio, ações, regras, cartuchos `farm` e `farm_camps` | concluído em 11/out/2026 |
+| M2: durabilidade | NATS, outbox, arquivo JSONL, snapshots, retomada | concluído em 11/out/2026 |
+| M3: controladores headless | percepção, fazendeiro-script, replay, modo máximo | concluído em 11/out/2026 |
+| M4: UI de depuração | gateway WebSocket, canvas, visões jogador e operador, controles do relógio | concluído em 12/out/2026 |
+| M5: controlador humano | clicar para mover, menu de ações, assumir e devolver a posse | concluído em 12/out/2026 |
+| M6: renderer Phaser | arte LPC, mapa visual, o Camps animado, retrato e créditos | concluído em 12/out/2026 |
+| M7: fechamento | métricas da bíblia no painel do operador, critérios de aceite | concluído em 12/out/2026 |
+
+### v0.2.0 — A possessão (21/out/2026)
+
+A pergunta: **um LLM consegue viver na fazenda, prosperar e descobrir sozinho a regra oculta do rio?** Viver e prosperar, sim: o Haiku com memória passou o fazendeiro-script na fazenda 1, e o Opus fez cinco vezes as moedas do script na Fazenda Boa Vista, onde as escolhas custam. Descobrir, não: nenhum controlador achou a regra do rio. Cerca de US$ 47 de API na versão inteira.
+
+![A Fazenda Boa Vista no dia 5, na visão do operador, com o Haiku no Camps: a intenção de cada ação e o caderno com o resumo da noite, o plano e as crenças com a confiança](docs/imagens/v0.2.0-fazenda-boa-vista.png)
+
+[Notas e os marcos um a um](docs/versoes/v0.2.0.md) · [critérios de aceite](docs/aceite-v0.2.md) · [a v0.2 em números](docs/diario/README.md#a-v02-em-números) · [plano macro](docs/planos/v0.2-macro.md) · relatórios da arena: [M12](docs/arena/2026-10-19.md) e [M14](docs/arena/2026-10-20.md)
 
 | Marco | Entrega | Situação |
 |---|---|---|
@@ -40,33 +45,32 @@ A pergunta da v0.2: **um LLM consegue viver na fazenda, prosperar e descobrir so
 | M9: porta de modelo e orçamento | `ModelPort`, eventos das chamadas, teto de custo que pausa o mundo, respostas gravadas para testes | concluído em 18/out/2026 |
 | M10: o controlador LLM | o Camps decide pela percepção e pelo catálogo de ações, com um cartão de identidade | concluído em 18/out/2026 |
 | M11: memória baseline | registrar, lembrar e refletir; crenças com confiança e origem | concluído em 19/out/2026 |
-| M12: a arena | script × Haiku sem memória × Haiku com memória, 30 dias, lado a lado, com o custo por dia simulado e quem descobriu o leste | concluído em 19/out/2026 |
-| M13: a fazenda 2, "Fazenda Boa Vista" | um segundo mundo em que as escolhas custam: sete culturas, canteiros cavados, ferramentas com peso, mercado, fogão, validade; o fazendeiro-script 2 | concluído em 20/out/2026 (a arte própria entrou no M14) |
-| M14: a segunda rodada da arena | script 2 × Haiku × Sonnet × Opus na fazenda nova, com teto por corrida | concluído em 20/out/2026 |
+| M12: a arena | script × Haiku sem memória × Haiku com memória, 30 dias lado a lado, com o custo e quem descobriu o leste | concluído em 19/out/2026 |
+| M13: a Fazenda Boa Vista | um segundo mundo em que as escolhas custam: sete culturas, canteiros cavados, ferramentas com peso, mercado, fogão, validade; o fazendeiro-script 2 | concluído em 20/out/2026 |
+| M14: a segunda rodada da arena | script 2 × Haiku × Sonnet × Opus na Boa Vista, com teto por corrida | concluído em 20/out/2026 |
 | M15: fechamento | critérios de aceite, diário e a tag `v0.2.0` | concluído em 21/out/2026 |
 
-**M8 concluído em 17/out/2026** ([plano](docs/planos/m8-mundo-pronto-para-o-llm.md), ADR-0056 e ADR-0057): o terreno e o raio no `session.started`, a foto com mapa, o delta `perception.updated.v1`, acordado custa energia e a fome no teto drena, e `make percepcao` mede o custo em tokens.
+## Em construção: v0.3.0 — A fazenda sofisticada
 
-**M9 concluído em 18/out/2026** ([plano](docs/planos/m9-porta-de-modelo-e-orcamento.md), ADR-0058): a `ModelPort` com o adaptador da API da Anthropic, a fita que grava e reproduz respostas, o medidor que publica cada chamada como evento com tokens e custo, e a guarda de orçamento que pausa o mundo no teto. A primeira chamada real custou US$ 0,000124; a calibração mostrou 2,1 caracteres por token no JSON da percepção.
+A pergunta: **num mundo maior, com estações, encomendas e regras escondidas em lugares que pedem exploração, quem aprende o mundo e lucra com o que aprendeu: um modelo, um script que faz experimentos ou um humano? E quanto vale aprender?** Na v0.2 os modelos planejaram bem, mas ninguém explorou. A v0.3 continua na fazenda, com canteiros sem teto, estações, encomendas, um mapa maior com névoa, regras ocultas sorteadas por seed, vários avatares, um fazendeiro-script que faz experimentos, um oráculo que conhece as regras e a arena com famílias de modelos. Ela também constrói de propósito o que o escritório da v0.4 vai precisar.
 
-**M10 concluído em 18/out/2026** ([plano](docs/planos/m10-controlador-llm.md), ADR-0059): a mente, uma biblioteca genérica que conversa com o modelo pela porta, com o cartão de identidade e o catálogo de ações como dados do cartucho; uma ferramenta estrita por ação, a janela de conversa que segue a percepção, e a possessão por comando. O Camps viveu 7 dias a 72× no Haiku 5.5 por US$ 0,14, sem desmaiar e sem intervenção.
+[Plano macro](docs/planos/v0.3-macro.md) · [ADR-0064](docs/decisoes/0064-a-v0-3-e-a-fazenda-sofisticada.md) · [a análise da ordem das versões](docs/planos/analise-ordem-v0.3-v0.5.md)
 
-**M11 concluído em 19/out/2026** ([plano](docs/planos/m11-memoria-baseline.md), ADR-0060): a `MemoryPort` com episódios, anotações, crenças e reflexão; o adaptador SQLite por avatar; o bloco de memória na abertura de cada janela; a reflexão ao dormir como ferramenta estrita; cinco eventos `memory.*` e o caderno no painel do operador. Em 7 dias com a mesma seed, a mente com memória colheu 22 contra 16 sem memória, mediu que o leste amadurece em 2 dias e passou a plantar lá.
+| Marco | Entrega | Situação |
+|---|---|---|
+| M16: o mundo que cresce | remover entidade; canteiros sem teto que voltam a ser grama; estações; assistir na tela uma corrida gravada | próximo: as decisões da v0.3 antes do plano |
+| M17: a economia | encomendas com prazo, processamento, adubos, demanda e preços por estação, clima com previsão, rótulos de eventos | a fazer |
+| M18: explorar | mapa maior, névoa, regras ocultas sorteadas por seed e em lugares distantes, métricas de exploração | a fazer |
+| M19: os controladores | o fazendeiro-script 3, que planeja e faz experimentos; o oráculo; o caderno de campo da mente | a fazer |
+| M20: vários avatares | percepção, posse e tela com vários avatares; dois fazendeiros ou um ajudante | a fazer |
+| M21: a terceira arena | famílias de modelos, várias seeds, a prova do mundo, o humano na tabela | a fazer |
+| M22: fechamento | critérios de aceite, diário, notas e a tag `v0.3.0` | a fazer |
 
-**M12 concluído em 19/out/2026** ([plano](docs/planos/m12-arena.md), ADR-0061, [relatório](docs/arena/2026-10-19.md)): sete corridas de 30 dias em processo, com `make arena` e `make arena-report`. O Haiku com memória passou o script em moedas em três de quatro seeds (1.340, 1.225 e 1.185 contra 1.175), mas nenhuma corrida descobriu a regra do rio: a que chegou mais perto escreveu a resposta certa no dia 23 e desaprendeu até o dia 30. Custo da arena: US$ 4,86.
+## Depois: v0.4.0 — O escritório que constrói a si mesmo
 
-**M13 concluído em 20/out/2026** ([plano](docs/planos/m13-fazenda-2.md), ADR-0062, [bíblia](docs/arquitetura/fazenda-boa-vista-biblia.md)): a Fazenda Boa Vista, um segundo mundo em que as escolhas custam, com quatro primitivas novas no kernel (peso e capacidade, canteiro cavado em tempo de execução, lotes com validade, modificadores de necessidade), o gênero `farm` estendido por dados, o fazendeiro-script 2, a mente com o manual novo e as métricas da bíblia 2. O script 2 vive 30 dias sem recusa nem desmaio (220 moedas, 141 colheitas) e cava todos os canteiros fora da faixa do rio: a linha de base cega da segunda rodada. `make sandbox MUNDO=farm-boavista-01` abre o mundo novo; a arte própria fica para durante o M14.
+Um escritório de programação com um único dev no começo, cujo trabalho é melhorar o próprio Campsverso: ele recebe tickets de nós, abre PRs, espera o CI, e quando um PR é mesclado o mundo reinicia na versão que ele mesmo escreveu. É o primeiro cartucho com efeitos externos. A ideia está em [ideia-escritorio-que-se-constroi.md](docs/planos/ideia-escritorio-que-se-constroi.md) e a direção na [ADR-0055](docs/decisoes/0055-a-v0-3-e-o-escritorio-que-se-constroi.md); a ordem (o escritório na v0.4, o estúdio na v0.5) está na [ADR-0064](docs/decisoes/0064-a-v0-3-e-a-fazenda-sofisticada.md). O plano dele nasce no fim da v0.3.
 
-**M14 concluído em 20/out/2026** ([plano](docs/planos/m14-segunda-rodada.md), ADR-0063, [relatório](docs/arena/2026-10-20.md)): oito corridas de 30 dias na Fazenda Boa Vista. O Opus terminou com 1.143 moedas, cinco vezes as 220 do fazendeiro-script 2, planejando o capital e diversificando as culturas; o Sonnet ficou com 18, e o Haiku, que empatava com o script na fazenda 1, quebrou nas quatro seeds. Ninguém cavou na faixa do rio, então a regra oculta nunca agiu: descobrir o rio na Boa Vista pede exploração. Custo da rodada: US$ 40,30. A arte da fazenda 2 (quatro culturas novas e o fogão) entrou durante as corridas.
-
-**M15 concluído em 21/out/2026** ([plano](docs/planos/m15-fechamento.md), ADR-0065, [aceite](docs/aceite-v0.2.md)): os 8 critérios conferidos no código final, com um soak de 30 dias em cada mundo, a fumaça da tela nos dois e uma chamada real à API. A resposta à pergunta: o LLM vive e prospera onde o mundo deixa, mas nenhum controlador descobriu a regra do rio. É a pergunta que a v0.3 herda.
-
-## Próxima: v0.3, a fazenda sofisticada; depois, v0.4, o escritório
-
-A v0.3 continua na fazenda, mais sofisticada: canteiros sem teto, estações, encomendas, exploração, vários avatares, um fazendeiro-script que planeja e experimenta, e a arena com famílias de modelos ([plano macro](docs/planos/v0.3-macro.md), [ADR-0064](docs/decisoes/0064-a-v0-3-e-a-fazenda-sofisticada.md), [a análise da ordem](docs/planos/analise-ordem-v0.3-v0.5.md)). Ela constrói de propósito o que o escritório também vai precisar.
-
-Na v0.4, um escritório de programação com um único dev no começo, cujo trabalho é melhorar o próprio Campsverso: ele recebe tickets de nós, abre PRs, espera o CI, e quando um PR é mesclado o mundo reinicia na versão que ele mesmo escreveu. Depois ele propõe um ajudante. É o primeiro cartucho com efeitos externos; a v0.2 inteira é pré-requisito. A ideia está em [ideia-escritorio-que-se-constroi.md](docs/planos/ideia-escritorio-que-se-constroi.md), a direção na [ADR-0055](docs/decisoes/0055-a-v0-3-e-o-escritorio-que-se-constroi.md) e as telas propostas em [docs/design](docs/design/README.md).
-
+## Como funciona
 
 ```mermaid
 flowchart LR
@@ -119,7 +123,7 @@ make arena-report   # o relatório da arena em docs/arena/
 make help    # todos os alvos
 ```
 
-O `make run` gera as senhas locais do NATS em `.env`, fora do git. O mundo fica em `data/farm-camps-01/` (estado e snapshots) e o histórico de eventos em `data/archive/`. A UI abre em `http://127.0.0.1:8765/?view=player` (jogador) ou `?view=operator` (operador, com relógio e linha do tempo). O `make sandbox` faz o mesmo numa pasta própria em `data/sandbox/`, sem tocar no mundo oficial; com `MENTE=camps`, a mente assume o Camps (precisa de `ANTHROPIC_API_KEY` no `.env`). `MUNDO=farm-boavista-01` escolhe a Fazenda Boa Vista no `sandbox`, no `run`, no `soak`, no `replay` e no `metrics`.
+O `make run` gera as senhas locais do NATS em `.env`, fora do git. O mundo fica em `data/farm-camps-01/` (estado e snapshots) e o histórico de eventos em `data/archive/`. A UI abre em `http://127.0.0.1:8765/?view=player` (jogador) ou `?view=operator` (operador, com relógio e linha do tempo). O `make sandbox` faz o mesmo numa pasta própria em `data/sandbox/`, sem tocar no mundo oficial; com `MENTE=camps`, a mente assume o Camps (na Boa Vista, `MENTE=camps_boavista`; precisa de `ANTHROPIC_API_KEY` no `.env`). `MUNDO=farm-boavista-01` escolhe a Fazenda Boa Vista no `sandbox`, no `run`, no `soak`, no `replay` e no `metrics`.
 
 Para jogar, clique em "Assumir o Camps". O clique esquerdo anda; o clique direito abre o menu de ações da coisa clicada, ou o do próprio Camps. "Devolver ao script" devolve o controle ao fazendeiro-script.
 
