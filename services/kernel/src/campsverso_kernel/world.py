@@ -321,6 +321,32 @@ class World:
         if created.blocking and created.position is not None:
             self._reblock()
 
+    def despawn(self, entity_id: str, reason: str) -> None:
+        """WorldOps: remove uma entidade em tempo de execução (ADR-0067)."""
+        entity = self.entity_map.get(entity_id)
+        if entity is None:
+            raise WorldRuleError(f"entidade inexistente: {entity_id}")
+        if entity_id in self.avatar_map:
+            raise WorldRuleError(f"avatar não se remove: {entity_id}")
+        holds_items = any(qty > 0 for qty in self.containers.get(entity_id, {}).values())
+        if holds_items or any(e.container_id == entity_id for e in self.entity_map.values()):
+            raise WorldRuleError(f"{entity_id} ainda guarda coisas: esvazie antes de remover")
+        for avatar in self.avatar_map.values():
+            action = avatar.action
+            if action is not None and entity_id in action.params.values():
+                raise WorldRuleError(f"{entity_id} é o alvo de {action.action_id}, em andamento")
+        del self.entity_map[entity_id]
+        self.containers.pop(entity_id, None)
+        self.lots.pop(entity_id, None)
+        data: dict[str, Any] = {"entity_id": entity_id, "kind": entity.kind, "reason": reason}
+        if entity.position is not None:
+            data["position"] = position_data(entity.position)
+        self.emit_fact("campsverso.world.entity.despawned.v1", self._with_action(data))
+        if entity.blocking and entity.position is not None:
+            self._reblock()
+        if entity.container_id is not None:
+            self._weigh(entity.container_id)
+
     # ------------------------------------------------------------- snapshot (M2)
 
     def export_state(self) -> dict[str, Any]:
@@ -436,6 +462,13 @@ class World:
 
     def weather(self, day: int) -> str | None:
         return self.weather_by_day.get(day)
+
+    def season(self, day: int) -> str | None:
+        return self.calendar.season(day)
+
+    def date(self, day: int) -> str | None:
+        when = self.calendar.date_of(day)
+        return None if when is None else when.isoformat()
 
     def data(self, namespace: str) -> Mapping[str, Any]:
         return MappingProxyType(dict(self.definition.data.get(namespace, {})))

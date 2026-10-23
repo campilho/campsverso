@@ -57,6 +57,9 @@ class Projection:
         self.simtime: str | None = raw.get("simtime")
         self.day: int = int(raw.get("day", 1))
         self.phase: str = str(raw.get("phase", UNKNOWN_PHASE))
+        # A data e a estação do ano acelerado (ADR-0067), da última mudança de fase; None sem ano.
+        self.date: str | None = raw.get("date")
+        self.season: str | None = raw.get("season")
         self.weather: dict[str, str] = dict(raw.get("weather", {}))  # dia -> condição
         self.entities: dict[str, dict[str, Any]] = {
             k: dict(v) for k, v in raw.get("entities", {}).items()
@@ -111,6 +114,8 @@ class Projection:
             "simtime": self.simtime,
             "day": self.day,
             "phase": self.phase,
+            "date": self.date,
+            "season": self.season,
             "weather": self.weather,
             "entities": self.entities,
             "containers": self.containers,
@@ -179,6 +184,11 @@ class Projection:
             return
         entity["container_id"] = data["to_container"]
         entity.pop("position", None)
+        self.motion.pop(str(data["entity_id"]), None)
+
+    def _on_world_entity_despawned(self, data: Mapping[str, Any]) -> None:
+        """A entidade saiu do mundo (ADR-0067): some da projeção e do movimento."""
+        self.entities.pop(str(data["entity_id"]), None)
         self.motion.pop(str(data["entity_id"]), None)
 
     def _on_world_entity_state_changed(self, data: Mapping[str, Any]) -> None:
@@ -260,6 +270,7 @@ class Projection:
 
     def _on_world_clock_phase_changed(self, data: Mapping[str, Any]) -> None:
         self.phase, self.day = str(data["phase"]), int(data["day"])
+        self.date, self.season = data.get("date"), data.get("season")
 
     def _on_action_accepted(self, data: Mapping[str, Any]) -> None:
         action: dict[str, Any] = {

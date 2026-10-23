@@ -75,7 +75,7 @@ def replay_day(
     day: int,
     validator: EnvelopeValidator | None = None,
 ) -> DayReplay:
-    calendar = Calendar.create(config.start, definition.clock)
+    calendar = Calendar.create(config.start, definition.clock, definition.year)
     start, end = day_range(calendar, day)
     usable = [s for s in store.snapshots() if s.tick <= start]
     if not usable:

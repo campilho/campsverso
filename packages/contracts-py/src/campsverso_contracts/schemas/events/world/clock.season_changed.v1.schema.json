@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/world/clock.season_changed.v1",
+  "title": "WorldClockSeasonChangedV1",
+  "description": "A estação mudou na virada do dia, num mundo com ano declarado pelo cartucho (ADR-0067). A data é a do calendário do ano acelerado, à parte do simtime.",
+  "x-type": "campsverso.world.clock.season_changed.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "day",
+    "date",
+    "season"
+  ],
+  "properties": {
+    "day": {
+      "$ref": "contracts://common/defs.v1#/$defs/day"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "A data do calendário no dia da troca."
+    },
+    "season": {
+      "$ref": "contracts://common/defs.v1#/$defs/token",
+      "description": "A estação que começa: primavera, verao, outono, inverno…"
+    },
+    "previous_season": {
+      "$ref": "contracts://common/defs.v1#/$defs/token",
+      "description": "A estação que termina."
+    }
+  }
+}

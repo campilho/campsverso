@@ -94,6 +94,20 @@ class PerceptionState(Projection):
         value = perception.get("radius")
         return int(value) if isinstance(value, int) else None
 
+    def _clock(self, tick: int) -> dict[str, Any]:
+        """O relógio da foto e do delta; a data e a estação só num mundo com ano (ADR-0067)."""
+        clock: dict[str, Any] = {
+            "tick": tick,
+            "sim_time": self.simtime,
+            "day": self.day,
+            "phase": self.phase,
+        }
+        if self.date is not None:
+            clock["date"] = self.date
+        if self.season is not None:
+            clock["season"] = self.season
+        return clock
+
     def view(self, avatar_id: str) -> dict[str, Any]:
         """O instantâneo de `perception.delivered.v1` (catálogo §3.7), no tick mais recente."""
         tick = self.tick
@@ -134,7 +148,7 @@ class PerceptionState(Projection):
             item["attributes"] = dict(sorted(entity["attributes"].items()))
             entities.append(item)
         view: dict[str, Any] = {
-            "clock": {"tick": tick, "sim_time": self.simtime, "day": self.day, "phase": self.phase},
+            "clock": self._clock(tick),
             "weather": {
                 "condition": self.weather.get(weather_day, "desconhecido"),
                 "day": int(weather_day),

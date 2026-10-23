@@ -158,6 +158,22 @@ class Stow:
 
 
 @dataclass(frozen=True)
+class Fill:
+    """Aterra um canteiro: a entidade sai do mundo (ADR-0067)."""
+
+    name: str = "fill"
+
+    def validate(self, ctx: ActionContext) -> Validation:
+        return Accepted(1)
+
+    def complete(self, ctx: ActionContext, ops: WorldOps) -> None:
+        ops.despawn(str(ctx.params["plot"]), "filled")
+
+    def interrupted(self, ctx: ActionContext, ops: WorldOps, elapsed_ticks: int) -> None:
+        pass
+
+
+@dataclass(frozen=True)
 class Lab2:
     manifest: CartridgeManifest = field(default_factory=lambda: CartridgeManifest("lab2", "0.1.0"))
 
@@ -175,7 +191,7 @@ class Lab2:
         world.define_item(ItemDef("maca", "comida", weight=0.5, shelf_life_days=2))
         world.define_need(NeedDef("energia", 100, {"asleep": 12}, role="energy"))
         world.define_need(NeedDef("fome", 10, {"awake": 3, "asleep": 1}))
-        for action in (Grab(), Stash(), Pick(), Eat(), Dig(), Stow()):
+        for action in (Grab(), Stash(), Pick(), Eat(), Dig(), Stow(), Fill()):
             world.add_action(action)
         world.add_avatar(AvatarDef("ana", SCRIPT))
         world.spawn(SpawnDef("spade-1", "spade", container_id="ana"))
@@ -299,6 +315,48 @@ def test_cavar_cria_uma_entidade_que_sobrevive_ao_snapshot() -> None:
     assert [e.entity_id for e in other.world.entities("plot")] == ["plot-01"]
     with pytest.raises(WorldRuleError, match="já existe"):
         core.world.spawn(SpawnDef("plot-01", "plot", position=Position(3, 1)))
+
+
+def test_aterrar_remove_a_entidade_e_o_snapshot_nao_a_traz_de_volta() -> None:
+    core = make_core()
+    _do(core, "dig", {"target": {"x": 2, "y": 1}})
+    facts = _do(core, "fill", {"plot": "plot-01"})
+    (despawned,) = _only(facts, "world.entity.despawned")
+    assert despawned == {
+        "entity_id": "plot-01",
+        "kind": "plot",
+        "position": {"x": 2, "y": 1},
+        "reason": "filled",
+        "action_id": despawned["action_id"],
+    }
+    assert core.world.entities("plot") == []
+    other = KernelCore(
+        build_world("lab2", {"lab2": Lab2()}), WorldConfig("lab2-01", 7, START), (), "test"
+    )
+    other.restore_state(core.export_state())
+    assert other.world.entities("plot") == []
+
+
+def test_o_kernel_recusa_remover_avatar_conteiner_cheio_e_alvo_de_acao() -> None:
+    core = make_core()
+    world = core.world
+    with pytest.raises(WorldRuleError, match="inexistente"):
+        world.despawn("plot-99", "filled")
+    with pytest.raises(WorldRuleError, match="avatar"):
+        world.despawn("ana", "filled")
+    _do(core, "stow")  # a pá vai para a caixa: uma entidade dentro dela
+    with pytest.raises(WorldRuleError, match="guarda coisas"):
+        world.despawn("box", "filled")
+    _do(core, "stow", {"back": True})
+    _do(core, "grab", {"qty": 1})
+    _do(core, "stash", {"item": "pedra", "qty": 1})  # e agora um item
+    with pytest.raises(WorldRuleError, match="guarda coisas"):
+        world.despawn("box", "filled")
+    _do(core, "dig", {"target": {"x": 2, "y": 1}})
+    core.submit(command("fill", {"plot": "plot-01"}))
+    core.step()  # aceita: o canteiro é o alvo de uma ação em andamento
+    with pytest.raises(WorldRuleError, match="alvo"):
+        world.despawn("plot-01", "filled")
 
 
 # ----------------------------------------------------------------- lotes e validade

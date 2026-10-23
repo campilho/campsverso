@@ -18,8 +18,10 @@ from campsverso_cartridge_api import (
     SpawnDef,
     SystemSpec,
     ThresholdDef,
+    YearDef,
 )
 from campsverso_contracts import CONTRACT_TYPES
+from campsverso_kernel.calendar import month_day
 from campsverso_kernel.errors import DefinitionError
 from campsverso_kernel.pipeline import DEFAULT_STAGES
 from campsverso_kernel.space import GridMap
@@ -49,6 +51,7 @@ class WorldDefinition:
     metrics: tuple[MetricDef, ...] = ()  # métricas do dia para o operador (ADR-0054)
     perception_radius: int | None = None  # None: o mapa inteiro (ADR-0056)
     movement_cost: tuple[str, float] | None = None  # (necessidade, pontos por tile) (ADR-0062)
+    year: YearDef | None = None  # o ano com estações (ADR-0067); None: sem data do ano
 
     @property
     def top(self) -> CartridgeManifest:
@@ -82,6 +85,7 @@ class DefinitionBuilder:
 
     stages: tuple[str, ...] = DEFAULT_STAGES
     clock: ClockDef | None = None
+    year: YearDef | None = None
     tiles_per_minute: float = 1.0
     perception_radius: int | None = None
     movement_cost: tuple[str, float] | None = None
@@ -102,6 +106,19 @@ class DefinitionBuilder:
 
     def configure_clock(self, clock: ClockDef) -> None:
         self.clock = clock
+
+    def configure_year(self, year: YearDef) -> None:
+        if year.days < len(year.seasons) or not year.seasons:
+            raise DefinitionError("o ano precisa de estações e de pelo menos um dia por estação")
+        names = [name for name, _ in year.seasons]
+        if len(set(names)) != len(names):
+            raise DefinitionError(f"estação repetida no ano: {names}")
+        for when in (year.start, *(start for _, start in year.seasons)):
+            try:
+                month_day(when)
+            except ValueError as error:
+                raise DefinitionError(f"data do ano inválida: {when!r}") from error
+        self.year = year
 
     def set_tiles_per_minute(self, speed: float) -> None:
         if speed <= 0:
@@ -216,6 +233,7 @@ class DefinitionBuilder:
         return WorldDefinition(
             chain=tuple(chain),
             clock=self.clock,
+            year=self.year,
             tiles_per_minute=self.tiles_per_minute,
             data=dict(self.data),
             kinds=dict(self.kinds),

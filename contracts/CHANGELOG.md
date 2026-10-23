@@ -2,6 +2,16 @@
 
 Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão maior, só entram campos opcionais novos; mudança incompatível vira um tipo novo (`.v2`). A checagem `make compat` confere isso a cada commit.
 
+## Não publicado (M16)
+
+- **A primitiva de remover entidade** (ADR-0067), um tipo novo:
+  - `campsverso.world.entity.despawned.v1` (`world`, produtor `kernel`): uma entidade removida em tempo de execução, como o canteiro vazio que volta a ser grama (`entity_id`, `kind`, `position?`, `reason`, `action_id?`). Avatares, contêineres com itens ou com entidades dentro, e o alvo de uma ação em andamento não se removem.
+- **O ano acelerado com estações** (ADR-0067), um tipo novo e campos opcionais:
+  - `campsverso.world.clock.season_changed.v1` (`world`, produtor `kernel`): a estação mudou na virada do dia (`day`, `date`, `season`, `previous_season?`);
+  - `world.clock.phase_changed.v1` ganha `date` (a data do calendário do ano acelerado, à parte do `simtime`) e `season`;
+  - o relógio da foto (`perception.delivered.v1`, `view.clock`), o `seen_clock` do delta e o `ObserverState` ganham `date` e `season`.
+  - Só um mundo cujo cartucho declara um ano (`WorldBuilder.configure_year`) os publica; as fazendas 1 e 2 continuam sem.
+
 ## v0.2.0: 2026-10-21
 
 A possessão: o mundo pronto para o LLM, a porta de modelo, o controlador LLM, a memória e a Fazenda Boa Vista. São 11 eventos novos, e o resto são campos opcionais; nenhuma mudança incompatível (`make compat`).

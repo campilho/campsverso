@@ -15,6 +15,7 @@ from campsverso_cartridge_api.definitions import (
     NeedDef,
     SpawnDef,
     ThresholdDef,
+    YearDef,
 )
 from campsverso_cartridge_api.specs import ActionSpec, RuleImpl, SystemSpec
 
@@ -30,6 +31,10 @@ class WorldBuilder(Protocol):
     """Implementado pelo kernel. Repetir um nome sem override é erro de carga (ADR-0036)."""
 
     def configure_clock(self, clock: ClockDef) -> None: ...
+
+    def configure_year(self, year: YearDef) -> None:
+        """Um ano com estações (ADR-0067); sem ele, o mundo não tem data do ano nem estação."""
+        ...
 
     def set_tiles_per_minute(self, speed: float) -> None: ...
 

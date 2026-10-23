@@ -413,6 +413,11 @@ export interface SeenClock {
   sim_time: string;
   day: Day;
   phase: Token;
+  /**
+   * A data do calendário do ano acelerado (ADR-0067), à parte do simtime; ausente sem ano declarado.
+   */
+  date?: string;
+  season?: Token;
 }
 /**
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
@@ -1175,6 +1180,11 @@ export interface ViewClock {
   sim_time: string;
   day: Day;
   phase: Token;
+  /**
+   * A data do calendário do ano acelerado (ADR-0067), à parte do simtime; ausente sem ano declarado.
+   */
+  date?: string;
+  season?: Token;
 }
 export interface ViewWeather {
   condition: Token;
@@ -1328,6 +1338,11 @@ export interface WorldClockPausedV1 {
 export interface WorldClockPhaseChangedV1 {
   phase: Token;
   day: Day;
+  /**
+   * A data do calendário do ano acelerado (ADR-0067), à parte do simtime; ausente sem ano declarado.
+   */
+  date?: string;
+  season?: Token;
 }
 /**
  * Relógio retomado no modo em que estava (ADR-0026).
@@ -1351,6 +1366,21 @@ export interface WorldClockScaleChangedV1 {
   by: Actor;
 }
 /**
+ * A estação mudou na virada do dia, num mundo com ano declarado pelo cartucho (ADR-0067). A data é a do calendário do ano acelerado, à parte do simtime.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "WorldClockSeasonChangedV1".
+ */
+export interface WorldClockSeasonChangedV1 {
+  day: Day;
+  /**
+   * A data do calendário no dia da troca.
+   */
+  date: string;
+  season: Token;
+  previous_season?: Token;
+}
+/**
  * Avanço passo a passo com o relógio pausado.
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
@@ -1372,6 +1402,19 @@ export interface WorldCommandRejectedV1 {
   command_type: string;
   reason: Token;
   detail?: string;
+}
+/**
+ * Entidade removida do mundo em tempo de execução (o canteiro vazio que volta a ser grama; ADR-0067). Avatares, contêineres com itens e alvos de ações em andamento não se removem.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "WorldEntityDespawnedV1".
+ */
+export interface WorldEntityDespawnedV1 {
+  entity_id: EntityId;
+  kind: Token;
+  position?: Position;
+  reason: Token;
+  action_id?: ActionId;
 }
 /**
  * Movimento interrompido; traz a posição real no momento (D1).
@@ -1695,6 +1738,11 @@ export interface ObserverState {
   sim_time?: string;
   day: Day;
   phase: Token;
+  /**
+   * A data do calendário do ano acelerado (ADR-0067), da última mudança de fase; ausente sem ano declarado.
+   */
+  date?: string;
+  season?: Token;
   session?: ObserverSession;
   clock: ObserverClock;
   pulse?: ObserverPulse;

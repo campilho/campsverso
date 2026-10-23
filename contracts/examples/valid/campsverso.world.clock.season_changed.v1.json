@@ -1,0 +1,22 @@
+{
+  "specversion": "1.0",
+  "id": "01a1fa10-1c24-7606-85a1-00fe473b4402",
+  "source": "/kernel/farm-camps-01",
+  "type": "campsverso.world.clock.season_changed.v1",
+  "time": "2026-10-11T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/world/clock.season_changed.v1",
+  "worldid": "farm-morada-do-sol-01",
+  "cartridge": "farm_morada_do_sol",
+  "tick": 10080,
+  "simtime": "2026-10-17T06:00:00-03:00",
+  "seq": 5120,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "day": 8,
+    "date": "2026-12-22",
+    "season": "verao",
+    "previous_season": "primavera"
+  }
+}

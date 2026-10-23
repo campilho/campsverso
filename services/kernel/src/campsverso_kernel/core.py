@@ -75,7 +75,7 @@ class KernelCore:
     ) -> None:
         self.definition = definition
         self.config = config
-        self.calendar = Calendar.create(config.start, definition.clock)
+        self.calendar = Calendar.create(config.start, definition.clock, definition.year)
         self.log = FactLog()
         self.world = World(
             definition,
@@ -590,12 +590,23 @@ class KernelCore:
     def _stage_clock(self) -> None:
         if not self.calendar.is_minute_start(self.tick):
             return
-        phase = self._phases.get(self.calendar.minute_of_day(self.tick))
+        minute, day = self.calendar.minute_of_day(self.tick), self.world.day
+        season = self.calendar.season(day)
+        if minute == self.calendar.day_starts_at and day > 1 and season is not None:
+            previous = self.calendar.season(day - 1)
+            if season != previous:  # a virada do dia que troca a estação (ADR-0067)
+                self.world.emit_fact(
+                    "campsverso.world.clock.season_changed.v1",
+                    {"day": day, "date": self.world.date(day), "season": season}
+                    | ({"previous_season": previous} if previous else {}),
+                )
+        phase = self._phases.get(minute)
         if phase is None:
             return
-        self.world.emit_fact(
-            "campsverso.world.clock.phase_changed.v1", {"phase": phase, "day": self.world.day}
-        )
+        data: dict[str, Any] = {"phase": phase, "day": day}
+        if season is not None:
+            data |= {"date": self.world.date(day), "season": season}
+        self.world.emit_fact("campsverso.world.clock.phase_changed.v1", data)
         for avatar in self.world.avatar_map.values():
             avatar.add_pending("phase_changed")
 
@@ -865,7 +876,10 @@ class KernelCore:
             return now
         candidates_scheduled = [tick for tick, _ in self._scheduled if tick >= now]
         minutes = (
-            {minute for _, minute in self._daily} | set(self._phases) | set(range(0, 1440, 60))
+            {minute for _, minute in self._daily}
+            | set(self._phases)
+            | set(range(0, 1440, 60))
+            | {self.calendar.day_starts_at}  # a virada do dia pode trocar a estação (ADR-0067)
         )
         if self.calendar.is_minute_start(now) and self.calendar.minute_of_day(now) in minutes:
             return now

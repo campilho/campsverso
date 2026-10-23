@@ -32,6 +32,8 @@ def observer_state(
             "sim_time": p.simtime,
             "day": p.day,
             "phase": p.phase,
+            "date": p.date,
+            "season": p.season,
             "session": p.session,
             "clock": p.clock,
             "pulse": pulse,

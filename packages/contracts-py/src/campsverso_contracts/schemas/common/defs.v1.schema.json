@@ -368,6 +368,15 @@
         },
         "phase": {
           "$ref": "#/$defs/token"
+        },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "description": "A data do calendário do ano acelerado (ADR-0067), à parte do simtime; ausente sem ano declarado."
+        },
+        "season": {
+          "$ref": "#/$defs/token",
+          "description": "A estação da data (primavera, verao…), declarada pelo cartucho; ausente sem ano declarado."
         }
       }
     },

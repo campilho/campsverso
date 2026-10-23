@@ -43,6 +43,14 @@ class WorldView(Protocol):
 
     def weather(self, day: int) -> str | None: ...
 
+    def season(self, day: int) -> str | None:
+        """A estação do dia, se o cartucho declarou um ano (ADR-0067)."""
+        ...
+
+    def date(self, day: int) -> str | None:
+        """A data do calendário do dia, "AAAA-MM-DD", se o cartucho declarou um ano."""
+        ...
+
     def data(self, namespace: str) -> Mapping[str, Any]:
         """Dados do cartucho, já mesclados pelas camadas (ADR-0031)."""
         ...
@@ -108,6 +116,12 @@ class WorldOps(Protocol):
     def spawn(self, entity: SpawnDef) -> None:
         """Cria uma entidade em tempo de execução (um canteiro cavado), publicando
         `world.entity.spawned` como no início da sessão (ADR-0062). O id tem de ser novo."""
+        ...
+
+    def despawn(self, entity_id: str, reason: str) -> None:
+        """Remove uma entidade em tempo de execução (o canteiro vazio que volta a ser grama),
+        publicando `world.entity.despawned` (ADR-0067). Recusa avatar, contêiner com itens ou com
+        entidades dentro, e o alvo de uma ação em andamento."""
         ...
 
     def move_entity(self, entity_id: str, to_container: str) -> None:

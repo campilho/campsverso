@@ -1,0 +1,25 @@
+{
+  "specversion": "1.0",
+  "id": "01a1fa10-1c24-7606-85a1-00fe473b4401",
+  "source": "/kernel/farm-camps-01",
+  "type": "campsverso.world.entity.despawned.v1",
+  "time": "2026-10-11T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/world/entity.despawned.v1",
+  "worldid": "farm-morada-do-sol-01",
+  "cartridge": "farm_morada_do_sol",
+  "tick": 4320,
+  "simtime": "2026-10-13T06:00:00-03:00",
+  "seq": 2041,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "entity_id": "plot-007",
+    "kind": "plot",
+    "position": {
+      "x": 21,
+      "y": 14
+    },
+    "reason": "reverted_to_grass"
+  }
+}

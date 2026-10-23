@@ -18,6 +18,16 @@ class ClockDef:
 
 
 @dataclass(frozen=True, slots=True)
+class YearDef:
+    """Um ano acelerado com estações (ADR-0067). A data do calendário anda à parte do `simtime`:
+    o ano inteiro cabe em `days` dias simulados, e a estação vale pela data."""
+
+    days: int  # dias simulados que o ano dura
+    start: str  # "MM-DD": a data do calendário no dia 1
+    seasons: tuple[tuple[str, str], ...]  # (nome, "MM-DD" em que a estação começa)
+
+
+@dataclass(frozen=True, slots=True)
 class ItemDef:
     item_id: str
     category: str

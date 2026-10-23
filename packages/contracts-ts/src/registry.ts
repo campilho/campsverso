@@ -282,6 +282,12 @@ export const CONTRACT_TYPES = {
     producer: "kernel",
     dataschema: "contracts://events/world/clock.scale_changed.v1",
   },
+  "campsverso.world.clock.season_changed.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/world/clock.season_changed.v1",
+  },
   "campsverso.world.clock.stepped.v1": {
     kind: "event",
     visibility: "world",
@@ -293,6 +299,12 @@ export const CONTRACT_TYPES = {
     visibility: "observer",
     producer: "kernel",
     dataschema: "contracts://events/world/command.rejected.v1",
+  },
+  "campsverso.world.entity.despawned.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/world/entity.despawned.v1",
   },
   "campsverso.world.entity.move_interrupted.v1": {
     kind: "event",
@@ -422,8 +434,10 @@ export interface PayloadByType {
   "campsverso.world.clock.phase_changed.v1": T.WorldClockPhaseChangedV1;
   "campsverso.world.clock.resumed.v1": T.WorldClockResumedV1;
   "campsverso.world.clock.scale_changed.v1": T.WorldClockScaleChangedV1;
+  "campsverso.world.clock.season_changed.v1": T.WorldClockSeasonChangedV1;
   "campsverso.world.clock.stepped.v1": T.WorldClockSteppedV1;
   "campsverso.world.command.rejected.v1": T.WorldCommandRejectedV1;
+  "campsverso.world.entity.despawned.v1": T.WorldEntityDespawnedV1;
   "campsverso.world.entity.move_interrupted.v1": T.WorldEntityMoveInterruptedV1;
   "campsverso.world.entity.moved.v1": T.WorldEntityMovedV1;
   "campsverso.world.entity.spawned.v1": T.WorldEntitySpawnedV1;

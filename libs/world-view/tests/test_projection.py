@@ -659,3 +659,25 @@ def test_entidade_guardada_sai_do_mapa_e_entra_no_conteiner() -> None:
         ),
     )
     assert p.entities["arado"]["container_id"] == "camps"
+
+
+def test_entidade_removida_some_da_projecao() -> None:
+    """ADR-0067: `entity.despawned` tira a entidade da vista (o delta a dá como `gone`)."""
+    p = started()
+    p.apply(
+        "world",
+        ev(
+            2,
+            0,
+            "world.entity.spawned.v1",
+            entity_id="plot-001",
+            kind="plot",
+            position={"x": 5, "y": 5},
+        ),
+    )
+    assert "plot-001" in p.entities
+    p.apply(
+        "world",
+        ev(3, 1, "world.entity.despawned.v1", entity_id="plot-001", kind="plot", reason="filled"),
+    )
+    assert "plot-001" not in p.entities

@@ -84,6 +84,15 @@
           "$ref": "contracts://common/defs.v1#/$defs/token",
           "description": "Fase do dia; `desconhecida` antes do primeiro evento de fase."
         },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "description": "A data do calendário do ano acelerado (ADR-0067), da última mudança de fase; ausente sem ano declarado."
+        },
+        "season": {
+          "$ref": "contracts://common/defs.v1#/$defs/token",
+          "description": "A estação da data; ausente sem ano declarado."
+        },
         "session": {
           "type": "object",
           "title": "ObserverSession",

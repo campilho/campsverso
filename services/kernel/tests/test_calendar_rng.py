@@ -1,16 +1,23 @@
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from campsverso_cartridge_api import ClockDef
+from campsverso_cartridge_api import ClockDef, YearDef
 from campsverso_kernel.calendar import Calendar, parse_hhmm
 from campsverso_kernel.rng import RngStreams, SplitMix64
 
 BRT = timezone(timedelta(hours=-3))
 CLOCK = ClockDef(tick_seconds=60, day_starts_at="06:00", phases=())
 CAL = Calendar.create(datetime(2026, 10, 10, 6, 0, tzinfo=BRT), CLOCK)
+# O ano da Morada do Sol (ADR-0067): 28 dias simulados, começando na primavera do hemisfério sul.
+YEAR = YearDef(
+    28,
+    "09-22",
+    (("primavera", "09-22"), ("verao", "12-21"), ("outono", "03-20"), ("inverno", "06-21")),
+)
+SOL = Calendar.create(datetime(2026, 10, 10, 6, 0, tzinfo=BRT), CLOCK, YEAR)
 
 
 def test_tick_zero_e_o_inicio_do_projeto() -> None:
@@ -62,3 +69,36 @@ def test_randint_fica_no_intervalo(seed: int, low: int, width: int) -> None:
 def test_fluxos_diferentes_sao_independentes() -> None:
     streams = RngStreams(42)
     assert streams.get("weather").random() != streams.get("market").random()
+
+
+def test_sem_ano_nao_ha_data_nem_estacao() -> None:
+    assert CAL.date_of(1) is None
+    assert CAL.season(5) is None
+
+
+def test_o_ano_de_28_dias_tem_sete_dias_por_estacao() -> None:
+    seasons = [SOL.season(day) for day in range(1, 29)]
+    assert seasons == ["primavera"] * 7 + ["verao"] * 7 + ["outono"] * 7 + ["inverno"] * 7
+    assert SOL.season(29) == "primavera"  # o ano seguinte
+
+
+@pytest.mark.parametrize(
+    ("day", "when"),
+    [
+        (1, date(2026, 9, 22)),
+        (7, date(2026, 12, 9)),
+        (8, date(2026, 12, 22)),
+        (15, date(2027, 3, 23)),
+        (22, date(2027, 6, 22)),
+        (29, date(2027, 9, 22)),
+    ],
+)
+def test_a_data_anda_uns_13_dias_por_dia_simulado(day: int, when: date) -> None:
+    assert SOL.date_of(day) == when
+
+
+def test_janeiro_ainda_e_verao() -> None:
+    """Antes do primeiro começo do ano (20/03), vale a estação do fim do ano: o verão."""
+    days = [day for day in range(1, 29) if (SOL.date_of(day) or date.min).month == 1]
+    assert days
+    assert {SOL.season(day) for day in days} == {"verao"}

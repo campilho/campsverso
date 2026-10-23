@@ -388,6 +388,14 @@ CONTRACT_TYPES: Final[dict[str, ContractType]] = {
             models.WorldClockScaleChangedV1,
         ),
         ContractType(
+            "campsverso.world.clock.season_changed.v1",
+            "event",
+            "world",
+            "kernel",
+            "contracts://events/world/clock.season_changed.v1",
+            models.WorldClockSeasonChangedV1,
+        ),
+        ContractType(
             "campsverso.world.clock.stepped.v1",
             "event",
             "world",
@@ -402,6 +410,14 @@ CONTRACT_TYPES: Final[dict[str, ContractType]] = {
             "kernel",
             "contracts://events/world/command.rejected.v1",
             models.WorldCommandRejectedV1,
+        ),
+        ContractType(
+            "campsverso.world.entity.despawned.v1",
+            "event",
+            "world",
+            "kernel",
+            "contracts://events/world/entity.despawned.v1",
+            models.WorldEntityDespawnedV1,
         ),
         ContractType(
             "campsverso.world.entity.move_interrupted.v1",

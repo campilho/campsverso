@@ -299,3 +299,24 @@ def test_a_validade_dos_lotes_chega_na_foto() -> None:
         {"item": "moeda", "qty": 100},
         {"item": "rabanete", "qty": 2, "expires_in_days": 3},
     ]
+
+
+def test_o_relogio_traz_a_data_e_a_estacao_so_com_ano() -> None:
+    """ADR-0067: sem ano declarado, o relógio da foto fica como antes; com ano, ganha os dois."""
+    p = world()
+    assert set(p.view("camps")["clock"]) == {"tick", "sim_time", "day", "phase"}
+    p.apply(
+        "world",
+        ev(
+            6,
+            1440,
+            "world.clock.phase_changed.v1",
+            phase="amanhecer",
+            day=8,
+            date="2026-12-22",
+            season="verao",
+        ),
+    )
+    clock = p.view("camps")["clock"]
+    assert (clock["date"], clock["season"]) == ("2026-12-22", "verao")
+    assert Projection(json.loads(json.dumps(p.export()))).season == "verao"

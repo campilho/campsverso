@@ -525,6 +525,17 @@ channels:
     messages:
       WorldClockScaleChangedV1:
         $ref: '#/components/messages/WorldClockScaleChangedV1'
+  WorldClockSeasonChangedV1:
+    address: campsverso.{worldid}.world.world.clock.season_changed.v1
+    title: campsverso.world.clock.season_changed.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorldClockSeasonChangedV1:
+        $ref: '#/components/messages/WorldClockSeasonChangedV1'
   WorldClockSteppedV1:
     address: campsverso.{worldid}.world.world.clock.stepped.v1
     title: campsverso.world.clock.stepped.v1
@@ -547,6 +558,17 @@ channels:
     messages:
       WorldCommandRejectedV1:
         $ref: '#/components/messages/WorldCommandRejectedV1'
+  WorldEntityDespawnedV1:
+    address: campsverso.{worldid}.world.world.entity.despawned.v1
+    title: campsverso.world.entity.despawned.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorldEntityDespawnedV1:
+        $ref: '#/components/messages/WorldEntityDespawnedV1'
   WorldEntityMoveInterruptedV1:
     address: campsverso.{worldid}.world.world.entity.move_interrupted.v1
     title: campsverso.world.entity.move_interrupted.v1
@@ -1037,6 +1059,13 @@ operations:
     messages:
     - $ref: '#/channels/WorldClockScaleChangedV1/messages/WorldClockScaleChangedV1'
     x-producer: kernel
+  sendWorldClockSeasonChangedV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorldClockSeasonChangedV1'
+    messages:
+    - $ref: '#/channels/WorldClockSeasonChangedV1/messages/WorldClockSeasonChangedV1'
+    x-producer: kernel
   sendWorldClockSteppedV1:
     action: send
     channel:
@@ -1050,6 +1079,13 @@ operations:
       $ref: '#/channels/WorldCommandRejectedV1'
     messages:
     - $ref: '#/channels/WorldCommandRejectedV1/messages/WorldCommandRejectedV1'
+    x-producer: kernel
+  sendWorldEntityDespawnedV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorldEntityDespawnedV1'
+    messages:
+    - $ref: '#/channels/WorldEntityDespawnedV1/messages/WorldEntityDespawnedV1'
     x-producer: kernel
   sendWorldEntityMoveInterruptedV1:
     action: send
@@ -1464,6 +1500,15 @@ components:
           $ref: '#/components/schemas/Day'
         phase:
           $ref: '#/components/schemas/Token'
+        date:
+          type: string
+          format: date
+          description: A data do calendário do ano acelerado (ADR-0067), à parte do simtime; ausente sem
+            ano declarado.
+        season:
+          $ref: '#/components/schemas/Token'
+          description: A estação da data (primavera, verao…), declarada pelo cartucho; ausente sem ano
+            declarado.
     SeenWeather:
       title: SeenWeather
       type: object
@@ -2815,6 +2860,15 @@ components:
                   $ref: '#/components/schemas/Day'
                 phase:
                   $ref: '#/components/schemas/Token'
+                date:
+                  type: string
+                  format: date
+                  description: A data do calendário do ano acelerado (ADR-0067), à parte do simtime; ausente
+                    sem ano declarado.
+                season:
+                  $ref: '#/components/schemas/Token'
+                  description: A estação da data (primavera, verao…), declarada pelo cartucho; ausente
+                    sem ano declarado.
             weather:
               type: object
               title: ViewWeather
@@ -3133,6 +3187,15 @@ components:
           description: 'Ex.: amanhecer, meio_dia, entardecer, noite, madrugada.'
         day:
           $ref: '#/components/schemas/Day'
+        date:
+          type: string
+          format: date
+          description: A data do calendário do ano acelerado (ADR-0067), à parte do simtime; ausente sem
+            ano declarado.
+        season:
+          $ref: '#/components/schemas/Token'
+          description: A estação da data (primavera, verao…), declarada pelo cartucho; ausente sem ano
+            declarado.
     WorldClockResumedV1:
       title: WorldClockResumedV1
       description: Relógio retomado no modo em que estava (ADR-0026).
@@ -3168,6 +3231,29 @@ components:
           - human
         by:
           $ref: '#/components/schemas/Actor'
+    WorldClockSeasonChangedV1:
+      title: WorldClockSeasonChangedV1
+      description: A estação mudou na virada do dia, num mundo com ano declarado pelo cartucho (ADR-0067).
+        A data é a do calendário do ano acelerado, à parte do simtime.
+      type: object
+      additionalProperties: false
+      required:
+      - day
+      - date
+      - season
+      properties:
+        day:
+          $ref: '#/components/schemas/Day'
+        date:
+          type: string
+          format: date
+          description: A data do calendário no dia da troca.
+        season:
+          $ref: '#/components/schemas/Token'
+          description: 'A estação que começa: primavera, verao, outono, inverno…'
+        previous_season:
+          $ref: '#/components/schemas/Token'
+          description: A estação que termina.
     WorldClockSteppedV1:
       title: WorldClockSteppedV1
       description: Avanço passo a passo com o relógio pausado.
@@ -3207,6 +3293,31 @@ components:
           type: string
           minLength: 1
           maxLength: 500
+    WorldEntityDespawnedV1:
+      title: WorldEntityDespawnedV1
+      description: Entidade removida do mundo em tempo de execução (o canteiro vazio que volta a ser grama;
+        ADR-0067). Avatares, contêineres com itens e alvos de ações em andamento não se removem.
+      type: object
+      additionalProperties: false
+      required:
+      - entity_id
+      - kind
+      - reason
+      properties:
+        entity_id:
+          $ref: '#/components/schemas/EntityId'
+        kind:
+          $ref: '#/components/schemas/Token'
+          description: O tipo da entidade removida.
+        position:
+          $ref: '#/components/schemas/Position'
+          description: Onde ela estava no mapa; ausente se estava dentro de um contêiner.
+        reason:
+          $ref: '#/components/schemas/Token'
+          description: 'O motivo, dado pelo cartucho: reverted_to_grass…'
+        action_id:
+          $ref: '#/components/schemas/ActionId'
+          description: A ação que removeu a entidade, se foi uma ação; ausente quando foi um sistema.
     WorldEntityMoveInterruptedV1:
       title: WorldEntityMoveInterruptedV1
       description: Movimento interrompido; traz a posição real no momento (D1).
@@ -3794,6 +3905,14 @@ components:
             phase:
               $ref: '#/components/schemas/Token'
               description: Fase do dia; `desconhecida` antes do primeiro evento de fase.
+            date:
+              type: string
+              format: date
+              description: A data do calendário do ano acelerado (ADR-0067), da última mudança de fase;
+                ausente sem ano declarado.
+            season:
+              $ref: '#/components/schemas/Token'
+              description: A estação da data; ausente sem ano declarado.
             session:
               type: object
               title: ObserverSession
@@ -4509,6 +4628,16 @@ components:
         $ref: '#/components/schemas/WorldClockScaleChangedV1'
       x-visibility: world
       x-producer: kernel
+    WorldClockSeasonChangedV1:
+      name: campsverso.world.clock.season_changed.v1
+      title: WorldClockSeasonChangedV1
+      summary: A estação mudou na virada do dia, num mundo com ano declarado pelo cartucho (ADR-0067).
+        A data é a do calendário do ano acelerado, à parte do simtime.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorldClockSeasonChangedV1'
+      x-visibility: world
+      x-producer: kernel
     WorldClockSteppedV1:
       name: campsverso.world.clock.stepped.v1
       title: WorldClockSteppedV1
@@ -4526,6 +4655,16 @@ components:
       payload:
         $ref: '#/components/schemas/WorldCommandRejectedV1'
       x-visibility: observer
+      x-producer: kernel
+    WorldEntityDespawnedV1:
+      name: campsverso.world.entity.despawned.v1
+      title: WorldEntityDespawnedV1
+      summary: Entidade removida do mundo em tempo de execução (o canteiro vazio que volta a ser grama;
+        ADR-0067). Avatares, contêineres com itens e alvos de ações em andamento não se removem.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorldEntityDespawnedV1'
+      x-visibility: world
       x-producer: kernel
     WorldEntityMoveInterruptedV1:
       name: campsverso.world.entity.move_interrupted.v1

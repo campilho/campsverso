@@ -359,6 +359,15 @@
         },
         "phase": {
           "$ref": "#/$defs/Token"
+        },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "description": "A data do calendário do ano acelerado (ADR-0067), à parte do simtime; ausente sem ano declarado."
+        },
+        "season": {
+          "$ref": "#/$defs/Token",
+          "description": "A estação da data (primavera, verao…), declarada pelo cartucho; ausente sem ano declarado."
         }
       }
     },
@@ -2114,6 +2123,15 @@
                 },
                 "phase": {
                   "$ref": "#/$defs/Token"
+                },
+                "date": {
+                  "type": "string",
+                  "format": "date",
+                  "description": "A data do calendário do ano acelerado (ADR-0067), à parte do simtime; ausente sem ano declarado."
+                },
+                "season": {
+                  "$ref": "#/$defs/Token",
+                  "description": "A estação da data (primavera, verao…), declarada pelo cartucho; ausente sem ano declarado."
                 }
               }
             },
@@ -2542,6 +2560,15 @@
         },
         "day": {
           "$ref": "#/$defs/Day"
+        },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "description": "A data do calendário do ano acelerado (ADR-0067), à parte do simtime; ausente sem ano declarado."
+        },
+        "season": {
+          "$ref": "#/$defs/Token",
+          "description": "A estação da data (primavera, verao…), declarada pelo cartucho; ausente sem ano declarado."
         }
       }
     },
@@ -2589,6 +2616,35 @@
         },
         "by": {
           "$ref": "#/$defs/Actor"
+        }
+      }
+    },
+    "WorldClockSeasonChangedV1": {
+      "title": "WorldClockSeasonChangedV1",
+      "description": "A estação mudou na virada do dia, num mundo com ano declarado pelo cartucho (ADR-0067). A data é a do calendário do ano acelerado, à parte do simtime.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "day",
+        "date",
+        "season"
+      ],
+      "properties": {
+        "day": {
+          "$ref": "#/$defs/Day"
+        },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "description": "A data do calendário no dia da troca."
+        },
+        "season": {
+          "$ref": "#/$defs/Token",
+          "description": "A estação que começa: primavera, verao, outono, inverno…"
+        },
+        "previous_season": {
+          "$ref": "#/$defs/Token",
+          "description": "A estação que termina."
         }
       }
     },
@@ -2641,6 +2697,38 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 500
+        }
+      }
+    },
+    "WorldEntityDespawnedV1": {
+      "title": "WorldEntityDespawnedV1",
+      "description": "Entidade removida do mundo em tempo de execução (o canteiro vazio que volta a ser grama; ADR-0067). Avatares, contêineres com itens e alvos de ações em andamento não se removem.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entity_id",
+        "kind",
+        "reason"
+      ],
+      "properties": {
+        "entity_id": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "kind": {
+          "$ref": "#/$defs/Token",
+          "description": "O tipo da entidade removida."
+        },
+        "position": {
+          "$ref": "#/$defs/Position",
+          "description": "Onde ela estava no mapa; ausente se estava dentro de um contêiner."
+        },
+        "reason": {
+          "$ref": "#/$defs/Token",
+          "description": "O motivo, dado pelo cartucho: reverted_to_grass…"
+        },
+        "action_id": {
+          "$ref": "#/$defs/ActionId",
+          "description": "A ação que removeu a entidade, se foi uma ação; ausente quando foi um sistema."
         }
       }
     },
@@ -3391,6 +3479,15 @@
             "phase": {
               "$ref": "#/$defs/Token",
               "description": "Fase do dia; `desconhecida` antes do primeiro evento de fase."
+            },
+            "date": {
+              "type": "string",
+              "format": "date",
+              "description": "A data do calendário do ano acelerado (ADR-0067), da última mudança de fase; ausente sem ano declarado."
+            },
+            "season": {
+              "$ref": "#/$defs/Token",
+              "description": "A estação da data; ausente sem ano declarado."
             },
             "session": {
               "type": "object",

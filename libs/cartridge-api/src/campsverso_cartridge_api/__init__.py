@@ -14,6 +14,7 @@ from campsverso_cartridge_api.definitions import (
     NeedDef,
     SpawnDef,
     ThresholdDef,
+    YearDef,
 )
 from campsverso_cartridge_api.model import (
     Attributes,
@@ -81,4 +82,5 @@ __all__ = [
     "WorldBuilder",
     "WorldOps",
     "WorldView",
+    "YearDef",
 ]

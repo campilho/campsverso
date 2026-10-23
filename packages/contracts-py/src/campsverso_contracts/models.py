@@ -3,6 +3,7 @@
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, RootModel
 from typing import Annotated, Any, Literal
 from typing_extensions import TypeAliasType
+from datetime import date as date_aliased
 
 
 class ContractsBundle(BaseModel):
@@ -187,6 +188,16 @@ class SeenClock(BaseModel):
     phase: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
     """
     Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    date: date_aliased | None = None
+    """
+    A data do calendário do ano acelerado (ADR-0067), à parte do simtime; ausente sem ano declarado.
+    """
+    season: Annotated[
+        str | None, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")
+    ] = None
+    """
+    A estação da data (primavera, verao…), declarada pelo cartucho; ausente sem ano declarado.
     """
 
 
@@ -1473,6 +1484,16 @@ class ViewClock(BaseModel):
     """
     Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
     """
+    date: date_aliased | None = None
+    """
+    A data do calendário do ano acelerado (ADR-0067), à parte do simtime; ausente sem ano declarado.
+    """
+    season: Annotated[
+        str | None, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")
+    ] = None
+    """
+    A estação da data (primavera, verao…), declarada pelo cartucho; ausente sem ano declarado.
+    """
 
 
 class ViewWeather(BaseModel):
@@ -1856,6 +1877,16 @@ class WorldClockPhaseChangedV1(BaseModel):
     """
     Dia simulado (dia agrícola, ADR-0018), começando em 1.
     """
+    date: date_aliased | None = None
+    """
+    A data do calendário do ano acelerado (ADR-0067), à parte do simtime; ausente sem ano declarado.
+    """
+    season: Annotated[
+        str | None, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")
+    ] = None
+    """
+    A estação da data (primavera, verao…), declarada pelo cartucho; ausente sem ano declarado.
+    """
 
 
 class WorldClockResumedV1(BaseModel):
@@ -1886,6 +1917,34 @@ class WorldClockScaleChangedV1(BaseModel):
     by: Annotated[str, Field(max_length=128, min_length=1, title="Actor")]
     """
     Quem causou: human/operator, script/farmer-v1, system/kernel.
+    """
+
+
+class WorldClockSeasonChangedV1(BaseModel):
+    """
+    A estação mudou na virada do dia, num mundo com ano declarado pelo cartucho (ADR-0067). A data é a do calendário do ano acelerado, à parte do simtime.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+    date: date_aliased
+    """
+    A data do calendário no dia da troca.
+    """
+    season: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    A estação que começa: primavera, verao, outono, inverno…
+    """
+    previous_season: Annotated[
+        str | None, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")
+    ] = None
+    """
+    A estação que termina.
     """
 
 
@@ -1934,6 +1993,38 @@ class WorldCommandRejectedV1(BaseModel):
     Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
     """
     detail: Annotated[str | None, Field(max_length=500, min_length=1)] = None
+
+
+class WorldEntityDespawnedV1(BaseModel):
+    """
+    Entidade removida do mundo em tempo de execução (o canteiro vazio que volta a ser grama; ADR-0067). Avatares, contêineres com itens e alvos de ações em andamento não se removem.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    entity_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    kind: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    O tipo da entidade removida.
+    """
+    position: Position | None = None
+    """
+    Onde ela estava no mapa; ausente se estava dentro de um contêiner.
+    """
+    reason: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    O motivo, dado pelo cartucho: reverted_to_grass…
+    """
+    action_id: Annotated[str | None, Field(pattern="^act-[0-9]{6,}$", title="ActionId")] = None
+    """
+    A ação que removeu a entidade, se foi uma ação; ausente quando foi um sistema.
+    """
 
 
 class WorldEntityMoveInterruptedV1(BaseModel):
@@ -2717,6 +2808,16 @@ class ObserverState(BaseModel):
     phase: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
     """
     Fase do dia; `desconhecida` antes do primeiro evento de fase.
+    """
+    date: date_aliased | None = None
+    """
+    A data do calendário do ano acelerado (ADR-0067), da última mudança de fase; ausente sem ano declarado.
+    """
+    season: Annotated[
+        str | None, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")
+    ] = None
+    """
+    A estação da data; ausente sem ano declarado.
     """
     session: Annotated[ObserverSession | None, Field(title="ObserverSession")] = None
     clock: Annotated[ObserverClock, Field(title="ObserverClock")]

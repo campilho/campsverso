@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/world/entity.despawned.v1",
+  "title": "WorldEntityDespawnedV1",
+  "description": "Entidade removida do mundo em tempo de execução (o canteiro vazio que volta a ser grama; ADR-0067). Avatares, contêineres com itens e alvos de ações em andamento não se removem.",
+  "x-type": "campsverso.world.entity.despawned.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "entity_id",
+    "kind",
+    "reason"
+  ],
+  "properties": {
+    "entity_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "kind": {
+      "$ref": "contracts://common/defs.v1#/$defs/token",
+      "description": "O tipo da entidade removida."
+    },
+    "position": {
+      "$ref": "contracts://common/defs.v1#/$defs/position",
+      "description": "Onde ela estava no mapa; ausente se estava dentro de um contêiner."
+    },
+    "reason": {
+      "$ref": "contracts://common/defs.v1#/$defs/token",
+      "description": "O motivo, dado pelo cartucho: reverted_to_grass…"
+    },
+    "action_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/action_id",
+      "description": "A ação que removeu a entidade, se foi uma ação; ausente quando foi um sistema."
+    }
+  }
+}
