@@ -641,6 +641,14 @@
           ],
           "minimum": 0,
           "description": "Distância de Chebyshev, em tiles, do que um avatar enxerga; null é o mapa inteiro."
+        },
+        "landmarks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/token"
+          },
+          "uniqueItems": true,
+          "description": "Tipos de entidade que todo avatar enxerga além do raio: as construções fixas, que quem mora ali conhece (ADR-0067). Ausente: nenhum."
         }
       }
     },

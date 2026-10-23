@@ -54,6 +54,7 @@ ENV = REPO / "config" / "env" / "local.yaml"
 WORLDS: dict[str, tuple[str, str, str]] = {
     "farm_camps": (WORLD, "farmer", "camps"),
     "farm_boavista": ("farm-boavista-01", "farmer2", "camps_boavista"),
+    "farm_morada_do_sol": ("farm-morada-do-sol-01", "farmer2", "camps_morada"),
 }
 
 type ControllerKind = Literal["script", "replay", "none", "llm"]

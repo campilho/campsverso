@@ -11,6 +11,8 @@ year:  # o ano acelerado (ADR-0067): 28 dias simulados, 7 por estação, no hemi
 
 perception:
   radius: 12  # script e LLM veem 12 tiles em volta; a névoa na tela é do M17
+  # As construções fixas se veem além do raio: quem mora na fazenda sabe onde ficam (ADR-0067).
+  landmarks: [bed, door, chest, stove, well, sell_box, kiosk]
 
 kinds:
   scarecrow: {blocking: true}

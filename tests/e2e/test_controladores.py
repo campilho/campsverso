@@ -13,7 +13,7 @@ from campsverso_testkit.hashing import canonical_hash
 from campsverso_testkit.pipeline import DAY, Pipeline
 
 HIDDEN = ("growth_points", "planted_day", "dry_days", "payee")  # atributos ocultos da fazenda
-WORLDS = ("farm_camps", "farm_boavista")  # a fazenda 1 e a Fazenda Boa Vista (ADR-0062)
+WORLDS = ("farm_camps", "farm_boavista", "farm_morada_do_sol")  # as três fazendas (ADR-0067)
 
 
 async def test_dois_dias_do_script_pelo_ciclo_completo() -> None:

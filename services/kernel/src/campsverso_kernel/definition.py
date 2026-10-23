@@ -50,6 +50,7 @@ class WorldDefinition:
     affordances: tuple[AffordanceDef, ...] = ()  # catálogo de ações para quem joga (ADR-0051)
     metrics: tuple[MetricDef, ...] = ()  # métricas do dia para o operador (ADR-0054)
     perception_radius: int | None = None  # None: o mapa inteiro (ADR-0056)
+    perception_landmarks: tuple[str, ...] = ()  # vistos além do raio (ADR-0067)
     movement_cost: tuple[str, float] | None = None  # (necessidade, pontos por tile) (ADR-0062)
     year: YearDef | None = None  # o ano com estações (ADR-0067); None: sem data do ano
 
@@ -88,6 +89,7 @@ class DefinitionBuilder:
     year: YearDef | None = None
     tiles_per_minute: float = 1.0
     perception_radius: int | None = None
+    perception_landmarks: tuple[str, ...] = ()
     movement_cost: tuple[str, float] | None = None
     data: dict[str, dict[str, Any]] = field(default_factory=dict[str, dict[str, Any]])
     kinds: dict[str, KindDef] = field(default_factory=dict[str, KindDef])
@@ -124,6 +126,9 @@ class DefinitionBuilder:
         if speed <= 0:
             raise DefinitionError("a velocidade precisa ser positiva")
         self.tiles_per_minute = speed
+
+    def set_perception_landmarks(self, kinds: tuple[str, ...]) -> None:
+        self.perception_landmarks = tuple(sorted(set(kinds)))
 
     def set_perception_radius(self, radius: int | None) -> None:
         if radius is not None and radius < 0:
@@ -251,6 +256,7 @@ class DefinitionBuilder:
             initial_items=tuple(self.initial_items),
             stages=self.stages,
             perception_radius=self.perception_radius,
+            perception_landmarks=self.perception_landmarks,
             movement_cost=self.movement_cost,
         )
 

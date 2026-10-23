@@ -544,6 +544,10 @@ export interface PerceptionConfig {
    * Distância de Chebyshev, em tiles, do que um avatar enxerga; null é o mapa inteiro.
    */
   radius: number | null;
+  /**
+   * Tipos de entidade que todo avatar enxerga além do raio: as construções fixas, que quem mora ali conhece (ADR-0067). Ausente: nenhum.
+   */
+  landmarks?: Token[];
 }
 /**
  * Tokens de uma chamada de modelo, como o provedor os contou (ADR-0058): entrada, saída, lidos do cache e gravados no cache.

@@ -345,7 +345,10 @@ class Projection:
         perception = cast(Mapping[str, Any], data.get("perception") or {})
         radius = perception.get("radius")
         if radius is not None:
-            self.session["perception"] = {"radius": int(radius)}
+            config: dict[str, Any] = {"radius": int(radius)}
+            if perception.get("landmarks"):  # as construções vistas além do raio (ADR-0067)
+                config["landmarks"] = [str(k) for k in cast(list[Any], perception["landmarks"])]
+            self.session["perception"] = config
         self.clock = {
             "mode": data["mode"],
             "scale": float(data["scale"]),

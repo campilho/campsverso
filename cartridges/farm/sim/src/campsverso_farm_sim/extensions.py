@@ -117,6 +117,8 @@ def contribute_extensions(
     perception = cast(Mapping[str, Any], data.get("perception", {}))
     if "radius" in perception:  # o raio do cenário (ADR-0067); o do gênero é o mapa inteiro
         world.set_perception_radius(perception["radius"])
+    if "landmarks" in perception:  # as construções que se veem além do raio
+        world.set_perception_landmarks(tuple(str(k) for k in perception["landmarks"]))
     movement = cast(Mapping[str, Any], data.get("movement", {}))
     if movement.get("energy_per_tile"):
         world.set_movement_cost(config.ENERGY, float(movement["energy_per_tile"]))

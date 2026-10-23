@@ -94,6 +94,11 @@ class PerceptionState(Projection):
         value = perception.get("radius")
         return int(value) if isinstance(value, int) else None
 
+    def landmarks(self) -> frozenset[str]:
+        """Os tipos que se veem além do raio (ADR-0067): as construções fixas da fazenda."""
+        perception = cast(Mapping[str, Any], (self.session or {}).get("perception") or {})
+        return frozenset(str(k) for k in cast(list[Any], perception.get("landmarks") or []))
+
     def _clock(self, tick: int) -> dict[str, Any]:
         """O relógio da foto e do delta; a data e a estação só num mundo com ano (ADR-0067)."""
         clock: dict[str, Any] = {
@@ -120,6 +125,7 @@ class PerceptionState(Projection):
         if avatar_id in self.actions:
             me["action"] = dict(self.actions[avatar_id])
         radius = self.radius()
+        landmarks = self.landmarks()
         center = cast(Mapping[str, int] | None, me["position"])
 
         def near(entity_id: str) -> bool:
@@ -127,6 +133,8 @@ class PerceptionState(Projection):
             e o que não tem lugar conhecido entram sempre."""
             if radius is None or center is None or entity_id == avatar_id:
                 return True
+            if self.entities.get(entity_id, {}).get("kind") in landmarks:
+                return True  # a construção fixa: quem mora ali sabe onde fica
             where = self.position_at(entity_id, tick)
             if where is None:
                 holder = self.entities.get(entity_id, {}).get("container_id")

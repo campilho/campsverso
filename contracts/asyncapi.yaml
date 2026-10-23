@@ -1724,6 +1724,13 @@ components:
           - 'null'
           minimum: 0
           description: Distância de Chebyshev, em tiles, do que um avatar enxerga; null é o mapa inteiro.
+        landmarks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Token'
+          uniqueItems: true
+          description: 'Tipos de entidade que todo avatar enxerga além do raio: as construções fixas,
+            que quem mora ali conhece (ADR-0067). Ausente: nenhum.'
     LlmUsage:
       title: LlmUsage
       description: 'Tokens de uma chamada de modelo, como o provedor os contou (ADR-0058): entrada, saída,

@@ -320,3 +320,42 @@ def test_o_relogio_traz_a_data_e_a_estacao_so_com_ano() -> None:
     clock = p.view("camps")["clock"]
     assert (clock["date"], clock["season"]) == ("2026-12-22", "verao")
     assert Projection(json.loads(json.dumps(p.export()))).season == "verao"
+
+
+def test_com_raio_os_marcos_se_veem_de_longe_e_o_resto_nao() -> None:
+    """ADR-0067: com raio, só as construções declaradas como marcos passam do raio."""
+    p = world()
+    p.apply(
+        "world",
+        ev(
+            6,
+            0,
+            "world.session.started.v1",
+            cartridge_version="0.1.0",
+            seed=1,
+            tick_seconds=60,
+            mode="continuous",
+            scale=72.0,
+            paused=False,
+            resumed=False,
+            perception={"radius": 2, "landmarks": ["kiosk"]},
+        ),
+    )
+    for seq, (entity_id, kind, x) in enumerate(
+        (("kiosk", "kiosk", 30), ("plot-far", "plot", 30)), start=7
+    ):
+        p.apply(
+            "world",
+            ev(
+                seq,
+                0,
+                "world.entity.spawned.v1",
+                entity_id=entity_id,
+                kind=kind,
+                position={"x": x, "y": 1},
+            ),
+        )
+    seen = {e["entity_id"] for e in p.view("camps")["entities"]}
+    assert "kiosk" in seen
+    assert "plot-far" not in seen
+    assert "plot-a" not in seen  # a 4 tiles: fora do raio 2

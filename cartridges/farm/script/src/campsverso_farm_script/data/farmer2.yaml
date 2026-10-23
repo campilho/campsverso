@@ -26,6 +26,10 @@ foods:  # comestíveis: valor de venda e quanto tiram de fome (bíblia 2, §5)
   morango: {sale: 90, hunger: 20}
   tomate: {sale: 70, hunger: 30}
   alho: {sale: 40, hunger: 10}
+  milho: {sale: 45, hunger: 25}
+  melancia: {sale: 120, hunger: 40}
+  mandioca: {sale: 80, hunger: 45}
+  couve: {sale: 30, hunger: 12}
 dishes: [sopa_de_batata, ensopado, pure_de_abobora]  # pratos prontos: come primeiro
 soup: {recipe: sopa_de_batata, needs: {batata: 2}}  # cozinha quando tem os ingredientes
 
@@ -37,6 +41,10 @@ crops:  # a conta visível: (venda - semente) / dias; o script planta a melhor q
   morango: {seed: semente_morango, price: 60, days: 6, sale: 90}
   tomate: {seed: semente_tomate, price: 30, days: 4, sale: 70}
   alho: {seed: semente_alho, price: 12, days: 7, sale: 40}
+  milho: {seed: semente_milho, price: 20, days: 6, sale: 45}  # as quatro da Morada do Sol (M16)
+  melancia: {seed: semente_melancia, price: 35, days: 8, sale: 120}
+  mandioca: {seed: semente_mandioca, price: 25, days: 10, sale: 80}
+  couve: {seed: semente_couve, price: 12, days: 4, sale: 30}
 
 digging: {plots: 16, near: well, radius: 2}  # cava 16 canteiros na grama a até 2 tiles do poço
 sell_floor: 0.8  # vende enquanto o preço do dia for pelo menos 80% da tabela
@@ -62,3 +70,21 @@ kinds:
 
 stages: {ripe: madura, withered: murcha}
 rain: rain
+
+# A Morada do Sol (ADR-0067): o calendário de plantio do manual (visível) e o horário do quiosque.
+# Sem a estação na foto (as fazendas 1 e 2), nada disto entra na conta.
+season_pace: {boa: 1.0, fraca: 0.5, parada: 0.0}
+calendar:
+  milho: {primavera: boa, verao: boa, outono: fraca, inverno: parada}
+  melancia: {primavera: boa, verao: boa, outono: parada, inverno: parada}
+  mandioca: {primavera: boa, verao: boa, outono: fraca, inverno: fraca}
+  couve: {primavera: fraca, verao: parada, outono: boa, inverno: boa}
+  abobora: {primavera: boa, verao: boa, outono: fraca, inverno: parada}
+  tomate: {primavera: boa, verao: fraca, outono: boa, inverno: parada}
+  batata: {primavera: fraca, verao: parada, outono: boa, inverno: boa}
+  cenoura: {primavera: fraca, verao: parada, outono: boa, inverno: boa}
+  rabanete: {primavera: boa, verao: fraca, outono: boa, inverno: boa}
+  alho: {primavera: parada, verao: parada, outono: boa, inverno: boa}
+  morango: {primavera: fraca, verao: parada, outono: boa, inverno: boa}
+kiosk_hours: {opens: "08:00", closes: "18:00"}
+

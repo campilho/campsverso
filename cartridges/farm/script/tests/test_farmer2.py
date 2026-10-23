@@ -223,3 +223,30 @@ def test_com_o_regador_grande_na_mao_guarda_o_pequeno() -> None:
     proposal = SCRIPT.decide(view(at=(7, 1), plots=plots, tools=both))
     assert proposal["action"] == "deposit"
     assert proposal["params"] == {"target": "chest", "item": "watering-can", "qty": 1}
+
+
+def test_com_raio_lembra_o_que_viu_e_esquece_o_que_sumiu_a_vista() -> None:
+    """Morada do Sol (ADR-0067): a foto mostra só um recorte; o script lembra o canteiro de fora."""
+    script = Farmer2Script.load()  # a lembrança é de cada instância
+    can = [held("watering-can", "watering_can", charges=10, capacity=10)]  # sem a pá: não cava
+    ripe = plot("plot-far", 6, 3, crop="rabanete", stage="madura")
+    script.decide(view(at=(1, 3), tools=can, plots=[ripe]))
+    second = view(at=(1, 3), tools=can)
+    second["map"] = {"origin": {"x": 0, "y": 0}, "rows": [r[:4] for r in ROWS], "legend": LEGEND}
+    proposal = script.decide(second)  # o canteiro maduro ficou fora do recorte: vai até ele
+    assert (proposal["action"], proposal["params"]) == ("move", {"near": "plot-far"})
+    third = script.decide(view(at=(1, 3), tools=can))  # à vista e ausente: esqueceu
+    assert third["params"] != {"near": "plot-far"}
+
+
+def test_com_estacao_nao_planta_a_cultura_parada() -> None:
+    """No inverno o milho para (calendário do manual): o script planta o que cresce."""
+    can = [held("watering-can", "watering_can", charges=10, capacity=10)]
+    seeds = {"semente_milho": 3, "semente_couve": 3}
+    winter = view(at=(1, 3), tools=can, mine=seeds, plots=[plot("plot-01", 2, 3)])
+    winter["clock"]["season"] = "inverno"
+    proposal = SCRIPT.decide(winter)
+    assert (proposal["action"], proposal["params"]["crop"]) == ("plant", "couve")
+    summer = view(at=(1, 3), tools=can, mine=seeds, plots=[plot("plot-01", 2, 3)])
+    summer["clock"]["season"] = "verao"
+    assert SCRIPT.decide(summer)["params"]["crop"] == "milho"

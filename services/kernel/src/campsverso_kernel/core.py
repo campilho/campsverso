@@ -282,7 +282,12 @@ class KernelCore:
                     "rows": rows,
                     "legend": legend,
                 },
-                "perception": {"radius": self.definition.perception_radius},
+                "perception": {"radius": self.definition.perception_radius}
+                | (
+                    {"landmarks": list(self.definition.perception_landmarks)}
+                    if self.definition.perception_landmarks
+                    else {}
+                ),
                 **self._affordances(),
                 **self._metrics(),
             },

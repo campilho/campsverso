@@ -213,6 +213,13 @@ São verdades do mundo, como decidido na ADR-0066. Elas seguem os quatro critér
 
   É memória do que o avatar viu, nunca do mundo, então não vaza regra oculta. É também a primeira peça do caderno de campo do M19. *Recomendação: sim.*
 
+- **15. Os marcos** *(nova, durante a implementação, a confirmar).*
+  - **O problema:** com o raio de 12 tiles, o fazendeiro-script nunca encontrou o quiosque, que fica a 25 tiles da casa e longe do caminho dele. O soak do ano mostrou isso: sem comprar sementes, ele plantou 10 vezes no ano. O LLM teria o mesmo problema.
+  - **A proposta:** o cenário declara como marcos as construções fixas (cama, porta, baú, fogão, poço, caixa de vendas e quiosque), que todo avatar enxerga além do raio, como quem conhece a própria fazenda. Os canteiros e o resto continuam limitados ao raio e à lembrança.
+  - **Como entra:** um campo opcional na configuração da percepção (`landmarks`).
+  - **O resultado no soak:** o script 2 adaptado fecha o ano com 74 plantios, 66 colheitas e nenhum desmaio.
+  - *Recomendação: sim. Se o usuário preferir que o avatar descubra o quiosque andando, os marcos saem dos dados e o script ganha um passeio de reconhecimento.*
+
 **As notas do usuário na aprovação (22/out):**
 - **1:** as fazendas anteriores ficam guardadas como estão.
 - **2:** o tamanho do mapa se ajusta depois de jogar.

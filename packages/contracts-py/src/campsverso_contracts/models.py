@@ -399,6 +399,10 @@ class PerceptionConfig(BaseModel):
     """
     Distância de Chebyshev, em tiles, do que um avatar enxerga; null é o mapa inteiro.
     """
+    landmarks: list[Token] | None = None
+    """
+    Tipos de entidade que todo avatar enxerga além do raio: as construções fixas, que quem mora ali conhece (ADR-0067). Ausente: nenhum.
+    """
 
 
 class LlmUsage(BaseModel):

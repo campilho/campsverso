@@ -42,6 +42,10 @@ class WorldBuilder(Protocol):
         """Andar gasta `points_per_tile` da necessidade por tile percorrido (ADR-0062)."""
         ...
 
+    def set_perception_landmarks(self, kinds: tuple[str, ...]) -> None:
+        """Tipos que se enxergam além do raio: as construções fixas (ADR-0067)."""
+        ...
+
     def set_perception_radius(self, radius: int | None) -> None:
         """Até onde um avatar enxerga, em tiles (distância de Chebyshev; ADR-0056).
 

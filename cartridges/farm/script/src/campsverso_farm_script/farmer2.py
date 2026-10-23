@@ -1,14 +1,20 @@
 """Fazendeiro-script 2 (bíblia 2, §11): a linha de base competente e cega da Fazenda Boa Vista.
 
-Como o fazendeiro-script da v0.1, é uma função pura da foto da percepção para uma proposta, com
-empates por distância e por id. Segue o manual com regras boas (cava perto do poço, planta a
-melhor conta visível que o dinheiro permite, cozinha a sopa, vende enquanto o preço do dia
-compensa, compra o regador grande quando sobra) e não sabe nenhuma regra oculta: nunca o arado,
-nunca o adubo, rega tudo, inclusive o alho.
+Como o fazendeiro-script da v0.1, decide pela foto da percepção, com empates por distância e por
+id. Segue o manual com regras boas (cava perto do poço, planta a melhor conta visível que o
+dinheiro permite, cozinha a sopa, vende enquanto o preço do dia compensa, compra o regador grande
+quando sobra) e não sabe nenhuma regra oculta: nunca o arado, nunca o adubo, rega tudo, inclusive
+o alho.
+
+Na Morada do Sol (ADR-0067) ele vê só um raio em volta; por isso lembra o último estado de cada
+coisa que viu e vai até ela quando precisa (o quiosque, o poço, a caixa de vendas, os canteiros).
+O que estava à vista e sumiu, ele esquece. Com a estação na foto, segue o calendário de plantio do
+manual: não planta nem compra a cultura parada e conta a fraca como mais lenta. Com o mapa
+inteiro à vista (a Boa Vista), a lembrança nunca muda nada.
 """
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, cast
 
@@ -23,6 +29,8 @@ GRASS = "grass"
 @dataclass(frozen=True)
 class Farmer2Script:
     config: Mapping[str, Any]
+    # O último estado visto de cada coisa com posição, para quem vê só um raio (ADR-0067).
+    memory: dict[str, Mapping[str, Any]] = field(default_factory=dict[str, Mapping[str, Any]])
 
     @classmethod
     def load(cls) -> Farmer2Script:
@@ -37,7 +45,38 @@ class Farmer2Script:
         return str(self.config["id"])
 
     def decide(self, view: View) -> Proposal:
-        return _Turn(self.config, view).decide()
+        return _Turn(self.config, view, self._remember(view)).decide()
+
+    def _remember(self, view: View) -> list[Mapping[str, Any]]:
+        """As coisas à vista e as lembradas fora da vista. Sem o terreno na foto, só as à vista."""
+        current = cast(Sequence[Mapping[str, Any]], view["entities"])
+        box = _visible_box(view)
+        if box is None:
+            return list(current)
+        here = {str(e["entity_id"]) for e in current}
+        for entity in current:
+            if entity.get("position") is not None:
+                self.memory[str(entity["entity_id"])] = entity
+        for entity_id in sorted(self.memory):
+            if entity_id not in here and _inside(box, self.memory[entity_id]["position"]):
+                del self.memory[entity_id]  # estava à vista e sumiu: virou grama, foi comida...
+        return [*current, *(e for i, e in sorted(self.memory.items()) if i not in here)]
+
+
+def _visible_box(view: View) -> tuple[int, int, int, int] | None:
+    """O retângulo do terreno da foto: o que está à vista agora."""
+    terrain = cast(Mapping[str, Any] | None, view.get("map"))
+    if terrain is None:
+        return None
+    origin = cast(Mapping[str, int], terrain.get("origin") or {"x": 0, "y": 0})
+    rows = cast(Sequence[str], terrain["rows"])
+    width = max((len(r) for r in rows), default=0)
+    return int(origin["x"]), int(origin["y"]), width, len(rows)
+
+
+def _inside(box: tuple[int, int, int, int], where: Mapping[str, int]) -> bool:
+    x0, y0, width, height = box
+    return x0 <= int(where["x"]) < x0 + width and y0 <= int(where["y"]) < y0 + height
 
 
 def _tile_kind(view: View, x: int, y: int) -> str | None:
@@ -56,7 +95,9 @@ def _tile_kind(view: View, x: int, y: int) -> str | None:
 
 
 class _Turn:
-    def __init__(self, config: Mapping[str, Any], view: View) -> None:
+    def __init__(
+        self, config: Mapping[str, Any], view: View, entities: Sequence[Mapping[str, Any]]
+    ) -> None:
         self.c = config
         self.view = view
         me = view["self"]
@@ -67,7 +108,9 @@ class _Turn:
         self.energy = float(needs.get(config["needs"]["energy"], 100))
         self.now = minutes(str(view["clock"]["sim_time"])[11:16])
         self.raining = view["weather"]["condition"] == config["rain"]
-        self.entities = cast(Sequence[Mapping[str, Any]], view["entities"])
+        self.entities = entities
+        self.in_view = {str(e["entity_id"]) for e in view["entities"]}
+        self.season = cast(str | None, view["clock"].get("season"))
         self.stock: dict[str, dict[str, int]] = {
             str(c["container_id"]): {str(i["item"]): int(i["qty"]) for i in c["items"]}
             for c in view["containers"]
@@ -198,7 +241,10 @@ class _Turn:
             if (x, y) not in taken and _tile_kind(self.view, x, y) == GRASS
         ]
         if not candidates:
-            return None
+            if well["entity_id"] in self.in_view:
+                return None
+            near = {"near": well["entity_id"]}  # o terreno de lá não está à vista: vai ver
+            return {"action": "move", "params": near, "intent": "ir para o poço cavar"}
 
         def closest_to_well(tile: tuple[int, int]) -> tuple[int, tuple[int, int]]:
             return abs(tile[0] - wx) + abs(tile[1] - wy), tile
@@ -249,15 +295,24 @@ class _Turn:
             return None
         return self.at(plot, "water", f"regar {plot['entity_id']}", target=plot["entity_id"])
 
+    def _pace(self, crop: str) -> float:
+        """O ritmo da cultura na estação, pelo calendário do manual; 1 sem estação na foto."""
+        if self.season is None:
+            return 1.0
+        calendar = cast(Mapping[str, Mapping[str, str]], self.c.get("calendar", {}))
+        level = calendar.get(crop, {}).get(self.season)
+        return 1.0 if level is None else float(self.c["season_pace"][level])
+
     def _best_crops(self) -> list[str]:
-        """As culturas pela conta visível, da melhor à pior: (venda - semente) / dias."""
+        """As culturas pela conta visível, da melhor à pior: (venda - semente) / dias, com os dias
+        esticados pela estação; a cultura parada na estação fica de fora."""
         crops = cast(Mapping[str, Mapping[str, Any]], self.c["crops"])
 
         def gain(name: str) -> float:
             c = crops[name]
-            return (float(c["sale"]) - float(c["price"])) / float(c["days"])
+            return (float(c["sale"]) - float(c["price"])) * self._pace(name) / float(c["days"])
 
-        return sorted(crops, key=lambda n: (-gain(n), n))
+        return sorted((n for n in crops if self._pace(n) > 0), key=lambda n: (-gain(n), n))
 
     def plant(self) -> Proposal | None:
         plot = self.nearest(self.plots(None))
@@ -355,7 +410,15 @@ class _Turn:
         metade fica com ela e o resto vai para a melhor conta visível que o dinheiro permite,
         guardando uma reserva. O regador grande só quando sobra depois de semear a fazenda."""
         kiosk = self.nearest(self.of_kind("kiosk"))
-        if kiosk is None or not kiosk["attributes"].get("open"):
+        if kiosk is None:
+            return None
+        if kiosk["entity_id"] not in self.in_view:  # lembrado: vai até lá no horário do manual
+            hours = cast(Mapping[str, str] | None, self.c.get("kiosk_hours"))
+            opens = hours is not None and minutes(hours["opens"]) <= self.now
+            if opens and hours is not None and self.now < minutes(hours["closes"]) - 30:
+                return self._kiosk_errand(kiosk)
+            return None
+        if not kiosk["attributes"].get("open"):
             return None
         coins, reserve = self.mine("moeda"), int(self.c["coins_reserve"])
         crops = cast(Mapping[str, Mapping[str, Any]], self.c["crops"])
@@ -413,3 +476,18 @@ class _Turn:
                     qty=qty,
                 )
         return None
+
+    def _kiosk_errand(self, kiosk: Mapping[str, Any]) -> Proposal | None:
+        """Vai ao quiosque lembrado quando faltam sementes para os canteiros vazios."""
+        crops = cast(Mapping[str, Mapping[str, Any]], self.c["crops"])
+        held = sum(self.mine(str(c["seed"])) for c in crops.values())
+        food_price = int(crops[str(self.c["food_crop"])]["price"])
+        if len(self.plots(None)) <= held or self.mine("moeda") < food_price + int(
+            self.c["coins_reserve"]
+        ):
+            return None
+        return {
+            "action": "move",
+            "params": {"near": kiosk["entity_id"]},
+            "intent": "ir ao quiosque comprar sementes",
+        }
