@@ -408,4 +408,5 @@ async def test_a6_percepcao_cai_e_volta_sem_derrubar_o_kernel(
     seqs = [int(e["seq"]) for e in photos()]
     ids = [str(e["id"]) for e in photos()]
     assert len(set(ids)) == len(ids)
-    assert len(set(seqs)) == len(seqs)  # nenhuma foto repetida depois da volta
+    fotos = [(e["seq"], str(e["id"])[-6:], e["tick"], str(e["causationid"])[-6:]) for e in photos()]
+    assert len(set(seqs)) == len(seqs), fotos  # nenhuma foto repetida depois da volta
