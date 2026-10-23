@@ -143,13 +143,16 @@ class FarmAction:
         pass  # nenhuma ação da fazenda é `partial` na v0.1 (ADR-0052)
 
 
-def _empty_hidden(view: WorldView, target: str) -> dict[str, Any]:
+def empty_hidden(view: WorldView, target: str) -> dict[str, Any]:
     """O estado oculto de um canteiro vazio; os campos da fazenda 2 só onde já existiam."""
     hidden = dict(EMPTY_HIDDEN)
-    current = view.entity(target).hidden
-    for key in ("bonus_points", "ripe_days"):
+    plot = view.entity(target)
+    current = plot.hidden
+    for key in ("bonus_points", "ripe_days", "empty_days"):
         if key in current:
             hidden[key] = 0.0 if key == "bonus_points" else 0
+    if "last_crop" in current:  # a cultura que saiu, para a fadiga do solo (ADR-0067)
+        hidden["last_crop"] = plot.attributes.get("crop")
     return hidden
 
 
@@ -263,7 +266,7 @@ class Harvest(FarmAction):
         target = str(ctx.params["target"])
         crop = str(ctx.view.entity(target).attributes["crop"])
         ops.create_item(crop, 1, ctx.avatar_id, "harvest")
-        ops.set_attributes(target, visible=EMPTY_PLOT, hidden=_empty_hidden(ctx.view, target))
+        ops.set_attributes(target, visible=EMPTY_PLOT, hidden=empty_hidden(ctx.view, target))
         ops.explain_effects(target)  # regras (inclusive ocultas) que ajudaram a planta (internal)
 
 
@@ -279,7 +282,7 @@ class Clear(FarmAction):
 
     def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
         target = str(ctx.params["target"])
-        ops.set_attributes(target, visible=EMPTY_PLOT, hidden=_empty_hidden(ctx.view, target))
+        ops.set_attributes(target, visible=EMPTY_PLOT, hidden=empty_hidden(ctx.view, target))
 
 
 @dataclass(frozen=True)
@@ -543,16 +546,16 @@ class Dig(FarmAction):
     def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
         spot = _dig_spot(ctx)
         assert not isinstance(spot, Rejection)
-        number = len(ctx.view.entities("plot")) + 1
+        digging = section(ctx.view, "digging")
+        sequence = digging.get("id_sequence")
+        if sequence is None:  # a Boa Vista: o número é a contagem, e nenhum canteiro some
+            plot_id = f"plot-{len(ctx.view.entities('plot')) + 1:02d}"
+        else:  # um contador que nunca repete, porque o canteiro volta a ser grama (ADR-0067)
+            plot_id = f"plot-{ops.next_seq(str(sequence)):03d}"
         # Sem grupo nem rótulo: o terreno não dá pista; a faixa do rio é do analista (bíblia 2 §13).
-        ops.spawn(
-            SpawnDef(
-                f"plot-{number:02d}",
-                "plot",
-                position=spot,
-                hidden={"bonus_points": 0.0, "ripe_days": 0},
-            )
-        )
+        hidden: dict[str, Any] = {"bonus_points": 0.0, "ripe_days": 0}
+        hidden.update(cast(Mapping[str, Any], digging.get("plot_hidden", {})))
+        ops.spawn(SpawnDef(plot_id, "plot", position=spot, hidden=hidden))
 
 
 def _dig_spot(ctx: ActionContext) -> Position | Rejection:
@@ -650,7 +653,45 @@ class Cook(FarmAction):
         ops.create_item(str(recipe["dish"]), 1, ctx.avatar_id, "cook")
 
 
-EXTRA_ACTIONS: tuple[FarmAction, ...] = (Dig(), Fertilize(), Cook())  # só com dados do cenário
+@dataclass(frozen=True)
+class Place(FarmAction):
+    """Finca no chão, ao lado do avatar (ou onde ele está), um item que vira entidade: o
+    espantalho (ADR-0067). O cenário diz em `placeables` o tipo de entidade de cada item."""
+
+    name: str = "place"
+
+    def check(self, ctx: ActionContext) -> Rejection | None:
+        placeables = optional(ctx.view, "placeables")
+        item = ctx.params.get("item")
+        if placeables is None or not isinstance(item, str) or item not in placeables:
+            return Rejection("invalid_params", "isso não se finca")
+        if ctx.view.items(ctx.avatar_id).get(item, 0) < 1:
+            return Rejection("missing_item")
+        spot = _dig_spot(ctx)
+        if isinstance(spot, Rejection):
+            return spot
+        allowed = cast(list[str], section(ctx.view, "placeables", item).get("on", ["grass"]))
+        if ctx.view.tile_kind(spot) not in allowed:
+            return Rejection("not_grass")
+        if any(e.position == spot and e.entity_id != ctx.avatar_id for e in ctx.view.entities()):
+            return Rejection("occupied")
+        return None
+
+    def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
+        spot = _dig_spot(ctx)
+        assert not isinstance(spot, Rejection)
+        item = str(ctx.params["item"])
+        kind = str(section(ctx.view, "placeables", item)["kind"])
+        ops.consume_item(item, 1, ctx.avatar_id, "place")
+        ops.spawn(SpawnDef(f"{kind}-{ops.next_seq(kind):02d}", kind, position=spot))
+
+
+EXTRA_ACTIONS: tuple[FarmAction, ...] = (  # só com dados do cenário
+    Dig(),
+    Fertilize(),
+    Cook(),
+    Place(),
+)
 
 ALL_ACTIONS: tuple[FarmAction, ...] = (
     Plant(),

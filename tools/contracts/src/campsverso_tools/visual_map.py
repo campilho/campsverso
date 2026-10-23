@@ -20,7 +20,7 @@ from typing import Any
 
 REPO = Path(__file__).resolve().parents[4]
 TILESET = REPO / "cartridges/farm/art/terrain.tsj"
-SCENARIOS = ("farm_camps", "farm_boavista")  # os cenários com mapa próprio
+SCENARIOS = ("farm_camps", "farm_boavista", "farm_morada_do_sol")  # os cenários com mapa próprio
 
 
 def logic_map(scenario: str) -> Path:

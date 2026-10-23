@@ -22,6 +22,7 @@ dependencies = [
   "campsverso-farm-camps-sim",
   "campsverso-farm-boavista-sim",
   "campsverso-farm-boavista-mind",
+  "campsverso-farm-morada-do-sol-sim",
   "campsverso-farm-mind",
   "campsverso-farm-camps-mind",
   "campsverso-tools",
@@ -56,6 +57,7 @@ members = [
   "cartridges/farm_camps/mind",
   "cartridges/farm_boavista/sim",
   "cartridges/farm_boavista/mind",
+  "cartridges/farm_morada_do_sol/sim",
   "tools/contracts",
   "tests/support",
 ]
@@ -78,6 +80,7 @@ campsverso-farm-script = { workspace = true }
 campsverso-farm-camps-sim = { workspace = true }
 campsverso-farm-boavista-sim = { workspace = true }
 campsverso-farm-boavista-mind = { workspace = true }
+campsverso-farm-morada-do-sol-sim = { workspace = true }
 campsverso-farm-mind = { workspace = true }
 campsverso-farm-camps-mind = { workspace = true }
 campsverso-tools = { workspace = true }
@@ -149,6 +152,7 @@ root_packages = [
   "campsverso_farm_script",
   "campsverso_farm_camps_sim",
   "campsverso_farm_boavista_sim",
+  "campsverso_farm_morada_do_sol_sim",
   "campsverso_farm_mind",
   "campsverso_farm_camps_mind",
   "campsverso_farm_boavista_mind",
@@ -174,6 +178,7 @@ forbidden_modules = [
   "campsverso_farm_script",
   "campsverso_farm_camps_sim",
   "campsverso_farm_boavista_sim",
+  "campsverso_farm_morada_do_sol_sim",
   "campsverso_farm_mind",
   "campsverso_farm_camps_mind",
   "campsverso_farm_boavista_mind",
@@ -203,6 +208,7 @@ forbidden_modules = [
   "campsverso_farm_script",
   "campsverso_farm_camps_sim",
   "campsverso_farm_boavista_sim",
+  "campsverso_farm_morada_do_sol_sim",
   "campsverso_tools",
   "campsverso_testkit",
 ]
@@ -235,6 +241,7 @@ forbidden_modules = [
   "campsverso_farm_script",
   "campsverso_farm_camps_sim",
   "campsverso_farm_boavista_sim",
+  "campsverso_farm_morada_do_sol_sim",
   "campsverso_farm_mind",
   "campsverso_farm_camps_mind",
   "campsverso_farm_boavista_mind",
@@ -257,12 +264,18 @@ forbidden_modules = [
   "campsverso_farm_sim",
   "campsverso_farm_camps_sim",
   "campsverso_farm_boavista_sim",
+  "campsverso_farm_morada_do_sol_sim",
 ]
 
 [[tool.importlinter.contracts]]
 name = "Cartuchos mudam o mundo só pela cartridge-api (ADR-0025)"
 type = "forbidden"
-source_modules = ["campsverso_farm_sim", "campsverso_farm_camps_sim", "campsverso_farm_boavista_sim"]
+source_modules = [
+  "campsverso_farm_sim",
+  "campsverso_farm_camps_sim",
+  "campsverso_farm_boavista_sim",
+  "campsverso_farm_morada_do_sol_sim",
+]
 forbidden_modules = [
   "campsverso_adapters",
   "campsverso_kernel",
@@ -282,6 +295,7 @@ forbidden_modules = [
   "campsverso_farm_camps_mind",
   "campsverso_farm_boavista_mind",
   "campsverso_farm_boavista_sim",
+  "campsverso_farm_morada_do_sol_sim",
 ]
 
 [[tool.importlinter.contracts]]
@@ -304,6 +318,7 @@ forbidden_modules = [
   "campsverso_farm_script",
   "campsverso_farm_camps_sim",
   "campsverso_farm_boavista_sim",
+  "campsverso_farm_morada_do_sol_sim",
   "campsverso_tools",
 ]
 
@@ -325,6 +340,7 @@ forbidden_modules = [
   "campsverso_farm_script",
   "campsverso_farm_camps_sim",
   "campsverso_farm_boavista_sim",
+  "campsverso_farm_morada_do_sol_sim",
   "campsverso_tools",
   "campsverso_testkit",
 ]
@@ -383,6 +399,7 @@ source_modules = [
   "campsverso_farm_script",
   "campsverso_farm_camps_sim",
   "campsverso_farm_boavista_sim",
+  "campsverso_farm_morada_do_sol_sim",
   "campsverso_farm_mind",
   "campsverso_farm_camps_mind",
   "campsverso_farm_boavista_mind",

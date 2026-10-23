@@ -1059,6 +1059,34 @@ class FarmBuyerPaidV1(BaseModel):
     """
 
 
+class FarmCropEatenV1(BaseModel):
+    """
+    Uma planta madura amanheceu comida por um bicho, e o canteiro ficou vazio (ADR-0067). O efeito é visível; por que este canteiro e não outro, não.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    plot_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    crop: Annotated[str, Field(max_length=64, pattern="^[a-z0-9]+(_[a-z0-9]+)*$", title="ItemId")]
+    """
+    Id de item ou cultura; conteúdo do cartucho, em português, sem acento: moeda, semente_rabanete.
+    """
+    day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+    by: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Quem comeu, como se vê no canteiro: corvo…
+    """
+
+
 class FarmCropMaturedV1(BaseModel):
     """
     Planta madura; days é a evidência observável da regra oculta (bíblia §13).

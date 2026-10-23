@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/farm/crop.eaten.v1",
+  "title": "FarmCropEatenV1",
+  "description": "Uma planta madura amanheceu comida por um bicho, e o canteiro ficou vazio (ADR-0067). O efeito é visível; por que este canteiro e não outro, não.",
+  "x-type": "campsverso.farm.crop.eaten.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "plot_id",
+    "crop",
+    "day",
+    "by"
+  ],
+  "properties": {
+    "plot_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "crop": {
+      "$ref": "contracts://common/defs.v1#/$defs/item_id"
+    },
+    "day": {
+      "$ref": "contracts://common/defs.v1#/$defs/day"
+    },
+    "by": {
+      "$ref": "contracts://common/defs.v1#/$defs/token",
+      "description": "Quem comeu, como se vê no canteiro: corvo…"
+    }
+  }
+}

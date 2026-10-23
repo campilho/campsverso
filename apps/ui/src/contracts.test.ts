@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 describe("contratos vistos pela UI", () => {
   it("conhecem a visibilidade de cada tipo", () => {
-    expect(Object.keys(CONTRACT_TYPES)).toHaveLength(62);
+    expect(Object.keys(CONTRACT_TYPES)).toHaveLength(63);
     expect(CONTRACT_TYPES["campsverso.rules.effect_applied.v1"].visibility).toBe("internal");
     expect(CONTRACT_TYPES["campsverso.perception.updated.v1"].visibility).toBe("agent");
   });

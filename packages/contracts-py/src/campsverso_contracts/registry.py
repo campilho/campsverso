@@ -212,6 +212,14 @@ CONTRACT_TYPES: Final[dict[str, ContractType]] = {
             models.FarmBuyerPaidV1,
         ),
         ContractType(
+            "campsverso.farm.crop.eaten.v1",
+            "event",
+            "world",
+            "kernel",
+            "contracts://events/farm/crop.eaten.v1",
+            models.FarmCropEatenV1,
+        ),
+        ContractType(
             "campsverso.farm.crop.matured.v1",
             "event",
             "world",

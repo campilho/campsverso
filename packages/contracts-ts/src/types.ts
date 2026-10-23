@@ -917,6 +917,18 @@ export interface PaidItem {
   unit_price: number;
 }
 /**
+ * Uma planta madura amanheceu comida por um bicho, e o canteiro ficou vazio (ADR-0067). O efeito é visível; por que este canteiro e não outro, não.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "FarmCropEatenV1".
+ */
+export interface FarmCropEatenV1 {
+  plot_id: EntityId;
+  crop: ItemId;
+  day: Day;
+  by: Token;
+}
+/**
  * Planta madura; days é a evidência observável da regra oculta (bíblia §13).
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema

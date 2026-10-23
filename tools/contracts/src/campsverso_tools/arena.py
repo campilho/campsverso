@@ -70,7 +70,11 @@ RULES: dict[str, tuple[re.Pattern[str], re.Pattern[str]]] = {
         ),
     ),
 }
-WORLDS = {"farm_camps": "farm-camps-01", "farm_boavista": "farm-boavista-01"}
+WORLDS = {
+    "farm_camps": "farm-camps-01",
+    "farm_boavista": "farm-boavista-01",
+    "farm_morada_do_sol": "farm-morada-do-sol-01",
+}
 MODEL_NAMES = {
     "claude-haiku-5-5": "Haiku 5.5",
     "claude-sonnet-5-5": "Sonnet 5.5",

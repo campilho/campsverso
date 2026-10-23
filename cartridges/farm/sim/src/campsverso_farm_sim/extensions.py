@@ -9,15 +9,30 @@ no arquivo do cenário não é ligado: a fazenda 1 não passa por aqui.
 from collections.abc import Mapping
 from typing import Any, cast
 
-from campsverso_cartridge_api import ItemDef, KindDef, WorldBuilder
+from campsverso_cartridge_api import ItemDef, KindDef, WorldBuilder, YearDef
 from campsverso_farm_sim import config
 from campsverso_farm_sim.actions import ALL_ACTIONS, EXTRA_ACTIONS, INTERRUPTS
 from campsverso_farm_sim.cartridge import affordances, metrics
 from campsverso_farm_sim.systems import build_extension_systems
 
 
-def contribute_extensions(world: WorldBuilder, data: Mapping[str, Any]) -> None:
+def _merged(base: Mapping[str, Any], extra: Mapping[str, Any]) -> dict[str, Any]:
+    """Itens e culturas somados pelas camadas, com os campos de cada um mesclados."""
+    return {
+        name: {**cast(Mapping[str, Any], base.get(name, {})), **cast(Mapping[str, Any], info)}
+        for name, info in {**base, **extra}.items()
+    }
+
+
+def contribute_extensions(
+    world: WorldBuilder, data: Mapping[str, Any], inherited: Mapping[str, Any] | None = None
+) -> None:
+    """Liga o que `data` traz. `inherited` são os dados de um cenário de baixo que já passou por
+    aqui (a Boa Vista, sob a Morada do Sol; ADR-0067): o que ele registrou é trocado, não repetido,
+    e os menus se resolvem com as culturas e os itens de todas as camadas."""
     base = config.load()
+    lower: Mapping[str, Any] = inherited or {}
+    lower_items = cast(Mapping[str, Any], lower.get("items", {}))
     for item, info in cast(Mapping[str, Mapping[str, Any]], data.get("items", {})).items():
         shelf = info.get("shelf_life_days")
         world.define_item(
@@ -27,7 +42,7 @@ def contribute_extensions(world: WorldBuilder, data: Mapping[str, Any]) -> None:
                 weight=float(info.get("weight", 0.0)),
                 shelf_life_days=None if shelf is None else int(shelf),
             ),
-            override=item in base["items"],
+            override=item in base["items"] or item in lower_items,
         )
     base_kinds = {
         "avatar",
@@ -40,6 +55,7 @@ def contribute_extensions(world: WorldBuilder, data: Mapping[str, Any]) -> None:
         "kiosk",
         "door",
         "watering_can",
+        *cast(Mapping[str, Any], lower.get("kinds", {})),
     }
     for kind, info in cast(Mapping[str, Mapping[str, Any]], data.get("kinds", {})).items():
         capacity = info.get("capacity")
@@ -55,7 +71,7 @@ def contribute_extensions(world: WorldBuilder, data: Mapping[str, Any]) -> None:
             ),
             override=kind in base_kinds,
         )
-    known = {action.name for action in ALL_ACTIONS}
+    known = {action.name for action in ALL_ACTIONS} | set(lower.get("actions", {}))
     for name, numbers in cast(Mapping[str, Mapping[str, Any]], data.get("actions", {})).items():
         if numbers.get("interrupt") not in INTERRUPTS:  # ADR-0052
             raise ValueError(f"{name} precisa de interrupt em {INTERRUPTS}")
@@ -65,31 +81,42 @@ def contribute_extensions(world: WorldBuilder, data: Mapping[str, Any]) -> None:
         if action is None:
             raise ValueError(f"ação desconhecida no cenário: {name}")
         world.add_action(action)
+    lower_systems = {system.name for system in build_extension_systems(lower)}
     for system in build_extension_systems(data):
-        world.add_system(system)
+        if system.name not in lower_systems:  # o sistema de baixo já lê os dados mesclados
+            world.add_system(system)
     # As afordâncias do gênero resolveram as escolhas (culturas, itens por categoria) com os dados
     # do gênero; o cenário as resolve de novo com as culturas e os itens somados, e troca as que
     # declara. Sem isso, o menu de plantar da Boa Vista só oferecia as três culturas da fazenda 1.
     declared = {str(entry["action"]) for entry in data.get("affordances", [])}
-    inherited = [e for e in base.get("affordances", []) if str(e["action"]) not in declared]
+    below = [
+        *(
+            e
+            for e in base.get("affordances", [])
+            if str(e["action"])
+            not in {str(x["action"]) for x in lower.get("affordances", [])} | declared
+        ),
+        *(e for e in lower.get("affordances", []) if str(e["action"]) not in declared),
+    ]
     catalog = {
-        "crops": {**base.get("crops", {}), **data.get("crops", {})},
-        "items": {
-            **base.get("items", {}),
-            **{
-                name: {**base.get("items", {}).get(name, {}), **info}
-                for name, info in cast(
-                    Mapping[str, Mapping[str, Any]], data.get("items", {})
-                ).items()
-            },
-        },
-        "affordances": [*inherited, *data.get("affordances", [])],
+        "crops": _merged(
+            _merged(base.get("crops", {}), lower.get("crops", {})), data.get("crops", {})
+        ),
+        "items": _merged(_merged(base.get("items", {}), lower_items), data.get("items", {})),
+        "affordances": [*below, *data.get("affordances", [])],
     }
     for affordance in affordances(catalog):
         world.add_affordance(affordance, replace=True)  # o cenário troca a do gênero
-    base_metrics = {str(m["id"]) for m in base.get("metrics", [])}
+    known_metrics = {str(m["id"]) for m in [*base.get("metrics", []), *lower.get("metrics", [])]}
     for metric in metrics(data):
-        world.add_metric(metric, override=metric.id in base_metrics)  # o cenário troca a do gênero
+        world.add_metric(metric, override=metric.id in known_metrics)  # troca a de baixo
+    year = cast(Mapping[str, Any] | None, data.get("year"))
+    if year is not None:  # o ano com estações (ADR-0067)
+        seasons = cast(Mapping[str, str], year["seasons"])
+        world.configure_year(YearDef(int(year["days"]), str(year["start"]), tuple(seasons.items())))
+    perception = cast(Mapping[str, Any], data.get("perception", {}))
+    if "radius" in perception:  # o raio do cenário (ADR-0067); o do gênero é o mapa inteiro
+        world.set_perception_radius(perception["radius"])
     movement = cast(Mapping[str, Any], data.get("movement", {}))
     if movement.get("energy_per_tile"):
         world.set_movement_cost(config.ENERGY, float(movement["energy_per_tile"]))

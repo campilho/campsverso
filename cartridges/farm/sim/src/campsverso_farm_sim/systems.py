@@ -13,7 +13,15 @@ from campsverso_cartridge_api import (
     WorldOps,
     WorldView,
 )
-from campsverso_farm_sim.config import ENERGY, HUNGER, optional, section
+from campsverso_farm_sim.actions import EMPTY_PLOT, empty_hidden
+from campsverso_farm_sim.config import (
+    ENERGY,
+    HUNGER,
+    optional,
+    season_factor,
+    season_level,
+    section,
+)
 
 
 @dataclass(frozen=True)
@@ -77,7 +85,9 @@ def grow_crops(ctx: SystemContext, ops: WorldOps) -> None:
         points = float(plot.hidden.get("growth_points") or 0.0)
         dry = int(plot.hidden.get("dry_days") or 0)
         if plot.attributes.get("watered_today") or not needs_water:
-            points += ops.apply_rules("growth_points", plot.entity_id, base)  # regras ocultas aqui
+            # A estação dá o ritmo (ADR-0067); as regras ocultas entram por cima.
+            pace = base * season_factor(view, str(crop))
+            points += ops.apply_rules("growth_points", plot.entity_id, pace)
             points += float(plot.hidden.get("bonus_points") or 0.0)  # o adubo deste plantio
             dry = 0
         else:
@@ -222,15 +232,74 @@ def kiosk_stock(ctx: SystemContext, ops: WorldOps) -> None:
     view = ctx.view
     cycle = section(view, "kiosk_cycle")
     today = ((view.day - 1) % int(cycle["days"])) + 1
+    season = view.season(view.day)
+    items = section(view, "items")
+
+    def in_season(seed: str) -> bool:  # a semente parada na estação não é vendida (ADR-0067)
+        crop = items.get(seed, {}).get("crop")
+        return crop is None or season_level(view, str(crop), season) != "parada"
+
     seeds = sorted(
         str(seed)
         for seed, days in cast(Mapping[str, Any], cycle["seeds"]).items()
-        if today in cast(list[int], days)
+        if today in cast(list[int], days) and in_season(str(seed))
     )
     always = sorted(str(item) for item in cast(list[Any], cycle.get("always", [])))
     stock = ", ".join(seeds + always)
     for kiosk in view.entities("kiosk"):
         ops.set_attributes(kiosk.entity_id, visible={"estoque_hoje": stock})
+
+
+def crows(ctx: SystemContext, ops: WorldOps) -> None:
+    """Na virada do dia, depois do crescimento: a planta madura longe da casa, sem espantalho por
+    perto, pode amanhecer comida por um corvo (R-002, oculta; ADR-0067). O canteiro fica vazio e
+    o efeito é visível; a distância, o raio do espantalho e a chance não são ditos."""
+    view = ctx.view
+    rule = section(view, "crows")
+    anchor = view.entity(str(rule["anchor"])).position
+    if anchor is None:
+        return
+    guards = [
+        e.position for e in view.entities(str(rule["scarecrow_kind"])) if e.position is not None
+    ]
+    far, radius = int(rule["min_distance"]), int(rule["scarecrow_radius"])
+    chance = float(rule["chance"])
+    for plot in view.entities("plot"):
+        spot = plot.position
+        if plot.attributes.get("stage") != "madura" or spot is None:
+            continue
+        if spot.chebyshev(anchor) <= far or any(spot.chebyshev(g) <= radius for g in guards):
+            continue
+        if view.rng("crows").random() >= chance:
+            continue
+        crop = str(plot.attributes["crop"])
+        ops.set_attributes(
+            plot.entity_id, visible=EMPTY_PLOT, hidden=empty_hidden(view, plot.entity_id)
+        )
+        ops.emit(
+            "campsverso.farm.crop.eaten.v1",
+            {"plot_id": plot.entity_id, "crop": crop, "day": view.day, "by": "corvo"},
+        )
+
+
+def revert_plots(ctx: SystemContext, ops: WorldOps) -> None:
+    """Na virada do dia, o canteiro cavado que passou `revert_after_days` manhãs vazio volta a ser
+    grama (ADR-0067). Só os que guardam `empty_days` (os cavados do cenário que liga isto); o
+    canteiro com planta, mesmo murcha, não conta, e o alvo de uma ação em andamento espera."""
+    view = ctx.view
+    limit = int(section(view, "digging")["revert_after_days"])
+    for plot in view.entities("plot"):
+        if "empty_days" not in plot.hidden:
+            continue
+        if plot.attributes.get("crop") is not None:
+            if plot.hidden.get("empty_days"):
+                ops.set_attributes(plot.entity_id, hidden={"empty_days": 0})
+            continue
+        days = int(plot.hidden.get("empty_days") or 0) + 1
+        if days >= limit and not view.targeted(plot.entity_id):
+            ops.despawn(plot.entity_id, "reverted_to_grass")
+        else:
+            ops.set_attributes(plot.entity_id, hidden={"empty_days": days})
 
 
 def market_reset(ctx: SystemContext, ops: WorldOps) -> None:
@@ -260,6 +329,26 @@ def build_extension_systems(data: Mapping[str, Any]) -> tuple[FarmSystem, ...]:
                 15,
                 (OnSessionStart(), DailyAt((day_start,))),
                 kiosk_stock,
+            )
+        )
+    if "crows" in data:
+        systems.append(
+            FarmSystem(
+                "crows",
+                "scheduled",
+                11,  # depois do crescimento (10): a planta que amadureceu hoje já pode ser comida
+                (DailyAt((day_start,)),),
+                crows,
+            )
+        )
+    if "revert_after_days" in data.get("digging", {}):
+        systems.append(
+            FarmSystem(
+                "revert_plots",
+                "scheduled",
+                12,  # depois do crescimento (10): o canteiro colhido hoje ainda conta como vazio
+                (DailyAt((day_start,)),),
+                revert_plots,
             )
         )
     if "market" in data:

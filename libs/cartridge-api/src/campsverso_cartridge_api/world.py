@@ -43,6 +43,10 @@ class WorldView(Protocol):
 
     def weather(self, day: int) -> str | None: ...
 
+    def targeted(self, entity_id: str) -> bool:
+        """Se alguma ação em andamento aponta para a entidade (ADR-0067): o que não se remove."""
+        ...
+
     def season(self, day: int) -> str | None:
         """A estação do dia, se o cartucho declarou um ano (ADR-0067)."""
         ...
@@ -116,6 +120,10 @@ class WorldOps(Protocol):
     def spawn(self, entity: SpawnDef) -> None:
         """Cria uma entidade em tempo de execução (um canteiro cavado), publicando
         `world.entity.spawned` como no início da sessão (ADR-0062). O id tem de ser novo."""
+        ...
+
+    def next_seq(self, name: str) -> int:
+        """O próximo número do contador `name`, a partir de 1, guardado no snapshot (ADR-0067)."""
         ...
 
     def despawn(self, entity_id: str, reason: str) -> None:

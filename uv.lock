@@ -16,6 +16,7 @@ members = [
     "campsverso-farm-camps-mind",
     "campsverso-farm-camps-sim",
     "campsverso-farm-mind",
+    "campsverso-farm-morada-do-sol-sim",
     "campsverso-farm-script",
     "campsverso-farm-sim",
     "campsverso-gateway",
@@ -134,6 +135,7 @@ dependencies = [
     { name = "campsverso-farm-camps-mind" },
     { name = "campsverso-farm-camps-sim" },
     { name = "campsverso-farm-mind" },
+    { name = "campsverso-farm-morada-do-sol-sim" },
     { name = "campsverso-farm-script" },
     { name = "campsverso-farm-sim" },
     { name = "campsverso-gateway" },
@@ -172,6 +174,7 @@ requires-dist = [
     { name = "campsverso-farm-camps-mind", editable = "cartridges/farm_camps/mind" },
     { name = "campsverso-farm-camps-sim", editable = "cartridges/farm_camps/sim" },
     { name = "campsverso-farm-mind", editable = "cartridges/farm/mind" },
+    { name = "campsverso-farm-morada-do-sol-sim", editable = "cartridges/farm_morada_do_sol/sim" },
     { name = "campsverso-farm-script", editable = "cartridges/farm/script" },
     { name = "campsverso-farm-sim", editable = "cartridges/farm/sim" },
     { name = "campsverso-gateway", editable = "services/gateway" },
@@ -387,6 +390,29 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "campsverso-mind", editable = "libs/mind" }]
+
+[[package]]
+name = "campsverso-farm-morada-do-sol-sim"
+version = "0.1.0.dev0"
+source = { editable = "cartridges/farm_morada_do_sol/sim" }
+dependencies = [
+    { name = "campsverso-cartridge-api" },
+    { name = "campsverso-contracts" },
+    { name = "campsverso-farm-boavista-sim" },
+    { name = "campsverso-farm-camps-sim" },
+    { name = "campsverso-farm-sim" },
+    { name = "pyyaml" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "campsverso-cartridge-api", editable = "libs/cartridge-api" },
+    { name = "campsverso-contracts", editable = "packages/contracts-py" },
+    { name = "campsverso-farm-boavista-sim", editable = "cartridges/farm_boavista/sim" },
+    { name = "campsverso-farm-camps-sim", editable = "cartridges/farm_camps/sim" },
+    { name = "campsverso-farm-sim", editable = "cartridges/farm/sim" },
+    { name = "pyyaml", specifier = ">=6" },
+]
 
 [[package]]
 name = "campsverso-farm-script"

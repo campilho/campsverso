@@ -1,0 +1,19 @@
+# Instâncias de regra da Fazenda Morada do Sol (FlagPort, ADR-0015). As implementações genéricas vêm
+# do gênero farm; aqui só se liga e se parametriza (ADR-0039). Os corvos (R-002) são um sistema do
+# gênero ligado por dados, em morada.yaml.
+rules:
+  river_proximity_bonus:  # R-001 (oculta): água perto faz crescer mais rápido; a várzea e a lagoa
+    impl: water_proximity_bonus
+    version: 1.0.0
+    hidden: true
+    enabled: true
+    params:
+      radius: 4
+      multiplier: 1.5
+  soil_fatigue:  # R-003 (oculta): repetir a cultura no mesmo canteiro faz crescer mais devagar
+    impl: soil_fatigue
+    version: 1.0.0
+    hidden: true
+    enabled: true
+    params:
+      multiplier: 0.6

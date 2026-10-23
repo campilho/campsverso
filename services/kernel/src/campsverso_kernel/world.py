@@ -154,6 +154,7 @@ class World:
         self.reported_needs: dict[str, dict[str, int]] = {}
         self.avatar_map: dict[str, Avatar] = {}
         self.weather_by_day: dict[int, str] = {}
+        self.sequences: dict[str, int] = {}  # contadores dos cartuchos (ADR-0067): nome -> último
         self.contributions: dict[str, dict[str, Contribution]] = {}
         self.crossings: list[
             tuple[str, ThresholdDef]
@@ -321,6 +322,19 @@ class World:
         if created.blocking and created.position is not None:
             self._reblock()
 
+    def next_seq(self, name: str) -> int:
+        """WorldOps: o próximo número do contador `name`, a partir de 1, guardado no snapshot
+        (ADR-0067). Serve a ids que nunca se repetem, como o do canteiro cavado."""
+        self.sequences[name] = self.sequences.get(name, 0) + 1
+        return self.sequences[name]
+
+    def targeted(self, entity_id: str) -> bool:
+        """WorldView: alguma ação em andamento aponta para a entidade, por qualquer parâmetro."""
+        return any(
+            a.action is not None and entity_id in a.action.params.values()
+            for a in self.avatar_map.values()
+        )
+
     def despawn(self, entity_id: str, reason: str) -> None:
         """WorldOps: remove uma entidade em tempo de execução (ADR-0067)."""
         entity = self.entity_map.get(entity_id)
@@ -331,10 +345,8 @@ class World:
         holds_items = any(qty > 0 for qty in self.containers.get(entity_id, {}).values())
         if holds_items or any(e.container_id == entity_id for e in self.entity_map.values()):
             raise WorldRuleError(f"{entity_id} ainda guarda coisas: esvazie antes de remover")
-        for avatar in self.avatar_map.values():
-            action = avatar.action
-            if action is not None and entity_id in action.params.values():
-                raise WorldRuleError(f"{entity_id} é o alvo de {action.action_id}, em andamento")
+        if self.targeted(entity_id):
+            raise WorldRuleError(f"{entity_id} é o alvo de uma ação em andamento")
         del self.entity_map[entity_id]
         self.containers.pop(entity_id, None)
         self.lots.pop(entity_id, None)
@@ -383,6 +395,8 @@ class World:
             },
             "rng": self._rng.states(),
             "rules": self.rules.export_state(),
+            # Só quando há contador: os snapshots dos mundos que não usam ficam como eram.
+            **({"sequences": dict(self.sequences)} if self.sequences else {}),
         }
 
     def import_state(self, state: Mapping[str, Any]) -> None:
@@ -403,6 +417,9 @@ class World:
             a["avatar_id"]: _avatar_from(a) for a in cast(list[dict[str, Any]], state["avatars"])
         }
         self.weather_by_day = {int(day): str(condition) for day, condition in state["weather"]}
+        self.sequences = {
+            str(k): int(v) for k, v in cast(Mapping[str, Any], state.get("sequences") or {}).items()
+        }
         self.contributions = {
             entity: {name: Contribution(**c) for name, c in rules.items()}
             for entity, rules in state["contributions"].items()

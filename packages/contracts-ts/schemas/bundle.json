@@ -1528,6 +1528,33 @@
         }
       }
     },
+    "FarmCropEatenV1": {
+      "title": "FarmCropEatenV1",
+      "description": "Uma planta madura amanheceu comida por um bicho, e o canteiro ficou vazio (ADR-0067). O efeito é visível; por que este canteiro e não outro, não.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plot_id",
+        "crop",
+        "day",
+        "by"
+      ],
+      "properties": {
+        "plot_id": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "crop": {
+          "$ref": "#/$defs/ItemId"
+        },
+        "day": {
+          "$ref": "#/$defs/Day"
+        },
+        "by": {
+          "$ref": "#/$defs/Token",
+          "description": "Quem comeu, como se vê no canteiro: corvo…"
+        }
+      }
+    },
     "FarmCropMaturedV1": {
       "title": "FarmCropMaturedV1",
       "description": "Planta madura; days é a evidência observável da regra oculta (bíblia §13).",

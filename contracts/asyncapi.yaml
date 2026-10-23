@@ -279,6 +279,17 @@ channels:
     messages:
       FarmBuyerPaidV1:
         $ref: '#/components/messages/FarmBuyerPaidV1'
+  FarmCropEatenV1:
+    address: campsverso.{worldid}.world.farm.crop.eaten.v1
+    title: campsverso.farm.crop.eaten.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      FarmCropEatenV1:
+        $ref: '#/components/messages/FarmCropEatenV1'
   FarmCropMaturedV1:
     address: campsverso.{worldid}.world.farm.crop.matured.v1
     title: campsverso.farm.crop.matured.v1
@@ -904,6 +915,13 @@ operations:
       $ref: '#/channels/FarmBuyerPaidV1'
     messages:
     - $ref: '#/channels/FarmBuyerPaidV1/messages/FarmBuyerPaidV1'
+    x-producer: kernel
+  sendFarmCropEatenV1:
+    action: send
+    channel:
+      $ref: '#/channels/FarmCropEatenV1'
+    messages:
+    - $ref: '#/channels/FarmCropEatenV1/messages/FarmCropEatenV1'
     x-producer: kernel
   sendFarmCropMaturedV1:
     action: send
@@ -2389,6 +2407,27 @@ components:
           minimum: 0
         day:
           $ref: '#/components/schemas/Day'
+    FarmCropEatenV1:
+      title: FarmCropEatenV1
+      description: Uma planta madura amanheceu comida por um bicho, e o canteiro ficou vazio (ADR-0067).
+        O efeito é visível; por que este canteiro e não outro, não.
+      type: object
+      additionalProperties: false
+      required:
+      - plot_id
+      - crop
+      - day
+      - by
+      properties:
+        plot_id:
+          $ref: '#/components/schemas/EntityId'
+        crop:
+          $ref: '#/components/schemas/ItemId'
+        day:
+          $ref: '#/components/schemas/Day'
+        by:
+          $ref: '#/components/schemas/Token'
+          description: 'Quem comeu, como se vê no canteiro: corvo…'
     FarmCropMaturedV1:
       title: FarmCropMaturedV1
       description: Planta madura; days é a evidência observável da regra oculta (bíblia §13).
@@ -4418,6 +4457,16 @@ components:
       contentType: application/json
       payload:
         $ref: '#/components/schemas/FarmBuyerPaidV1'
+      x-visibility: world
+      x-producer: kernel
+    FarmCropEatenV1:
+      name: campsverso.farm.crop.eaten.v1
+      title: FarmCropEatenV1
+      summary: Uma planta madura amanheceu comida por um bicho, e o canteiro ficou vazio (ADR-0067). O
+        efeito é visível; por que este canteiro e não outro, não.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/FarmCropEatenV1'
       x-visibility: world
       x-producer: kernel
     FarmCropMaturedV1:

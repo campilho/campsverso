@@ -41,3 +41,21 @@ def optional(view: WorldView, *path: str) -> Mapping[str, Any] | None:
 
 def ticks_per_hour(view: WorldView) -> int:
     return 3600 // int(section(view, "clock")["tick_seconds"])
+
+
+def season_level(view: WorldView, crop: str, season: str | None) -> str | None:
+    """A afinidade da cultura com a estação (boa, fraca, parada), se declarada (ADR-0067)."""
+    if season is None:
+        return None
+    affinity = optional(view, "crops", crop, "seasons")
+    level = None if affinity is None else affinity.get(season)
+    return None if level is None else str(level)
+
+
+def season_factor(view: WorldView, crop: str) -> float:
+    """O ritmo de crescimento da cultura na estação do dia; 1 sem ano ou sem afinidade declarada."""
+    year = optional(view, "year")
+    level = season_level(view, crop, view.season(view.day))
+    if year is None or level is None:
+        return 1.0
+    return float(cast(Mapping[str, Any], year["affinity"])[level])

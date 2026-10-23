@@ -150,6 +150,12 @@ export const CONTRACT_TYPES = {
     producer: "kernel",
     dataschema: "contracts://events/farm/buyer.paid.v1",
   },
+  "campsverso.farm.crop.eaten.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/farm/crop.eaten.v1",
+  },
   "campsverso.farm.crop.matured.v1": {
     kind: "event",
     visibility: "world",
@@ -412,6 +418,7 @@ export interface PayloadByType {
   "campsverso.cmd.clock.step.v1": T.CmdClockStepV1;
   "campsverso.cmd.rules.toggle.v1": T.CmdRulesToggleV1;
   "campsverso.farm.buyer.paid.v1": T.FarmBuyerPaidV1;
+  "campsverso.farm.crop.eaten.v1": T.FarmCropEatenV1;
   "campsverso.farm.crop.matured.v1": T.FarmCropMaturedV1;
   "campsverso.farm.crop.withered.v1": T.FarmCropWitheredV1;
   "campsverso.llm.call.completed.v1": T.LlmCallCompletedV1;

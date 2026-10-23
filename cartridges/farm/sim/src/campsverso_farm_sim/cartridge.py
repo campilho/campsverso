@@ -19,7 +19,7 @@ from campsverso_cartridge_api import (
 )
 from campsverso_farm_sim import config
 from campsverso_farm_sim.actions import ALL_ACTIONS, EMPTY_HIDDEN, EMPTY_PLOT, INTERRUPTS
-from campsverso_farm_sim.rules import WaterProximityBonus
+from campsverso_farm_sim.rules import SoilFatigue, WaterProximityBonus
 from campsverso_farm_sim.systems import build_systems
 
 
@@ -142,6 +142,7 @@ class FarmCartridge:
         for system in build_systems(data):
             world.add_system(system)
         world.add_rule_impl(WaterProximityBonus())
+        world.add_rule_impl(SoilFatigue())
         for affordance in affordances(data):
             world.add_affordance(affordance)
         for metric in metrics(data):

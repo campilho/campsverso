@@ -1,0 +1,90 @@
+# Dados da Fazenda Morada do Sol (bíblia 3; ADR-0067), mesclados no namespace farm por cima da
+# Boa Vista: só o que muda ou é novo. Regras ocultas aqui dentro (os corvos, a fadiga do solo em
+# rules.yaml) nunca vão para o manual da mente: só os efeitos são visíveis. O calendário de
+# plantio (as afinidades com as estações) é visível: está no manual.
+
+year:  # o ano acelerado (ADR-0067): 28 dias simulados, 7 por estação, no hemisfério sul
+  days: 28
+  start: "09-22"
+  seasons: {primavera: "09-22", verao: "12-21", outono: "03-20", inverno: "06-21"}
+  affinity: {boa: 1.0, fraca: 0.5, parada: 0.0}  # o ritmo de crescimento por nível
+
+perception:
+  radius: 12  # script e LLM veem 12 tiles em volta; a névoa na tela é do M17
+
+kinds:
+  scarecrow: {blocking: true}
+
+digging:
+  max_plots: 400  # um teto técnico, só para o desempenho; no jogo, os freios são a energia e a rega
+  id_sequence: plot  # plot-001, plot-002…: o número nunca se repete, porque o canteiro some
+  revert_after_days: 3  # o canteiro cavado que passa 3 manhãs vazio volta a ser grama (visível)
+  plot_hidden: {empty_days: 0, last_crop: null}
+
+placeables:  # o que se finca no chão com a ação place
+  espantalho: {kind: scarecrow, on: [grass]}
+
+crows:  # R-002 (oculta): a planta madura longe da casa e sem espantalho perto pode ser comida
+  anchor: door
+  scarecrow_kind: scarecrow
+  min_distance: 18
+  scarecrow_radius: 6
+  chance: 0.5
+
+items:
+  semente_milho: {category: semente, crop: milho, price: 20, weight: 0.1}
+  semente_melancia: {category: semente, crop: melancia, price: 35, weight: 0.1}
+  semente_mandioca: {category: semente, crop: mandioca, price: 25, weight: 0.1}
+  semente_couve: {category: semente, crop: couve, price: 12, weight: 0.1}
+  milho: {category: colheita, sale_price: 45, hunger: 25, weight: 0.5, shelf_life_days: 8}
+  melancia: {category: colheita, sale_price: 120, hunger: 40, weight: 3, shelf_life_days: 12}
+  mandioca: {category: colheita, sale_price: 80, hunger: 45, weight: 1, shelf_life_days: 20}
+  couve: {category: colheita, sale_price: 30, hunger: 12, weight: 0.5, shelf_life_days: 5}
+  espantalho: {category: objeto, price: 60, weight: 4}
+
+crops:  # as quatro novas, e a afinidade de cada cultura com cada estação (o calendário do manual)
+  milho: {seed: semente_milho, points_to_mature: 6,
+          seasons: {primavera: boa, verao: boa, outono: fraca, inverno: parada}}
+  melancia: {seed: semente_melancia, points_to_mature: 8,
+             seasons: {primavera: boa, verao: boa, outono: parada, inverno: parada}}
+  mandioca: {seed: semente_mandioca, points_to_mature: 10,
+             seasons: {primavera: boa, verao: boa, outono: fraca, inverno: fraca}}
+  couve: {seed: semente_couve, points_to_mature: 4,
+          seasons: {primavera: fraca, verao: parada, outono: boa, inverno: boa}}
+  abobora: {seasons: {primavera: boa, verao: boa, outono: fraca, inverno: parada}}
+  tomate: {seasons: {primavera: boa, verao: fraca, outono: boa, inverno: parada}}
+  batata: {seasons: {primavera: fraca, verao: parada, outono: boa, inverno: boa}}
+  cenoura: {seasons: {primavera: fraca, verao: parada, outono: boa, inverno: boa}}
+  rabanete: {seasons: {primavera: boa, verao: fraca, outono: boa, inverno: boa}}
+  alho: {seasons: {primavera: parada, verao: parada, outono: boa, inverno: boa}}
+  morango: {seasons: {primavera: fraca, verao: parada, outono: boa, inverno: boa}}
+
+kiosk_cycle:  # as sementes novas no ciclo; a semente parada na estação some do estoque
+  seeds:
+    semente_milho: [1, 2, 3, 4, 5, 6]
+    semente_melancia: [2, 5]
+    semente_mandioca: [1, 3, 5]
+    semente_couve: [1, 2, 3, 4, 5, 6]
+  always: [adubo, espantalho]
+
+actions:
+  place: {duration: 10, energy: 3, interrupt: never}
+
+affordances:
+  - action: place
+    label: Fincar aqui
+    kinds: [self]
+    target: false
+    params: [{name: item, label: Item, choices: [espantalho], source: inventory}]
+  - action: buy
+    label: Comprar
+    kinds: [kiosk]
+    params:
+      - {name: item, label: Item, choices: [semente_rabanete, semente_batata, semente_abobora, semente_cenoura, semente_morango, semente_tomate, semente_alho, semente_milho, semente_melancia, semente_mandioca, semente_couve, adubo, espantalho, watering_can_large, plow]}
+      - {name: qty, label: Quantidade, minimum: 1, default: 1}
+
+metrics:  # além das da Boa Vista
+  - {id: comidas, label: Plantas comidas, kind: count, event: campsverso.farm.crop.eaten.v1,
+     by: {field: crop}}
+  - {id: voltaram_a_grama, label: Canteiros que voltaram a ser grama, kind: count,
+     event: campsverso.world.entity.despawned.v1, where: {reason: reverted_to_grass}}

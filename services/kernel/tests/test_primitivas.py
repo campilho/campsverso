@@ -355,8 +355,21 @@ def test_o_kernel_recusa_remover_avatar_conteiner_cheio_e_alvo_de_acao() -> None
     _do(core, "dig", {"target": {"x": 2, "y": 1}})
     core.submit(command("fill", {"plot": "plot-01"}))
     core.step()  # aceita: o canteiro é o alvo de uma ação em andamento
+    assert world.targeted("plot-01")
     with pytest.raises(WorldRuleError, match="alvo"):
         world.despawn("plot-01", "filled")
+
+
+def test_o_contador_nunca_repete_e_sobrevive_ao_snapshot() -> None:
+    core = make_core()
+    assert "sequences" not in core.export_state()["world"]  # sem contador, o snapshot é o de antes
+    assert [core.world.next_seq("plot"), core.world.next_seq("plot")] == [1, 2]
+    assert core.world.next_seq("outro") == 1
+    other = KernelCore(
+        build_world("lab2", {"lab2": Lab2()}), WorldConfig("lab2-01", 7, START), (), "test"
+    )
+    other.restore_state(core.export_state())
+    assert other.world.next_seq("plot") == 3
 
 
 # ----------------------------------------------------------------- lotes e validade
