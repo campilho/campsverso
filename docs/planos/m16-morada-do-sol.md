@@ -1,6 +1,6 @@
 # Plano do M16 — A Fazenda Morada do Sol
 
-*Proposto em 22/out/2026, depois da ADR-0066. Aprovado em: (pendente). É o primeiro marco da v0.3 e o primeiro dos dois marcos de visual (o M17 traz a névoa, a noite e a visão arena).*
+*Proposto em 22/out/2026, depois da ADR-0066. Aprovado em 22/out/2026 (ADR-0067): as treze decisões como recomendado, com quatro notas do usuário (a §8), e a decisão 14, nova, da pergunta dele sobre lembrar do que saiu da vista. É o primeiro marco da v0.3 e o primeiro dos dois marcos de visual (o M17 traz a névoa, a noite e a visão arena).*
 
 **Pronto quando:**
 - existe um terceiro mundo, `farm-morada-do-sol-01`, maior que a tela, com a câmera que segue o Camps e deixa olhar o resto;
@@ -205,6 +205,23 @@ São verdades do mundo, como decidido na ADR-0066. Elas seguem os quatro critér
 11. **As regras ocultas R-001 (a várzea), R-002 (os corvos e o espantalho) e R-003 (a fadiga do solo),** com as verdades da Boa Vista mantidas. *Recomendação: sim. A R-002 pune quem planta longe sem pensar; a R-003 premia quem experimenta.*
 12. **A grama tingida por estação e o espantalho desenhado no estilo LPC,** se o pacote não tiver um. *Recomendação: sim. Downloads novos só com o seu ok.*
 13. **O fazendeiro-script 2 adaptado** como a linha de base do ano até o script 3. *Recomendação: sim.*
+
+- **14. A lembrança do que se viu** *(nova, da pergunta do usuário na aprovação).* Com o raio de 12 tiles, o LLM precisa lembrar do canteiro que plantou lá embaixo, como um humano lembra. Hoje ele só tem a conversa recente, as próprias anotações e as crenças; e o delta da percepção chama de `gone` tanto o que foi removido quanto o que só saiu da vista. A proposta tem três partes:
+  - **na percepção,** o delta separa `out_of_view` (saiu do raio e continua existindo) de `gone` (foi removido), num campo opcional;
+  - **na `MemoryPort`,** a mente guarda o último estado visto de cada entidade (posição, atributos visíveis, quando viu), no mesmo SQLite do caderno;
+  - **no bloco de abertura de cada janela,** entra uma lista curta: "fora de vista, pelo que você lembra: plot-007 em (40,30), rabanete em broto, visto no dia 3 às 06:10".
+
+  É memória do que o avatar viu, nunca do mundo, então não vaza regra oculta. É também a primeira peça do caderno de campo do M19. *Recomendação: sim.*
+
+**As notas do usuário na aprovação (22/out):**
+- **1:** as fazendas anteriores ficam guardadas como estão.
+- **2:** o tamanho do mapa se ajusta depois de jogar.
+- **5:** o `despawn` fica no kernel e no `cartridge-api`, não no cartucho, para o escritório não precisar herdar da fazenda.
+- **7:** o mecanismo do calendário é genérico, no kernel, mas só a Morada do Sol declara um ano; as fazendas 1 e 2 ficam sem estações. Um mundo que quiser estações declara o seu sem herdar a fazenda.
+- **8:** a 72×, um dia simulado leva 20 minutos e o ano, umas 9 horas e 20 minutos de jogo.
+- **11:** a saturação do preço não é regra oculta; é a economia. Vender muito baixar o preço já vale desde a Boa Vista, e comprar muito subir o preço vem no M18.
+- **12:** o download de arte está autorizado se precisar.
+- **13:** o script 2 adaptado fica mais sofisticado, com regras condicionais (comprar pela conta da estação, cozinhar com fome e ingredientes, espalhar as vendas para não saturar, guardar o que dura), sem nenhuma regra oculta.
 
 ## 9. Como ficou
 
