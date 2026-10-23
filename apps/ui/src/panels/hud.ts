@@ -7,6 +7,19 @@ import type { Status } from "../store.ts";
 
 const STATUS: Record<Status, string> = { connecting: "conectando…", open: "ao vivo", closed: "sem conexão" };
 
+const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const SEASONS: Readonly<Record<string, string>> = { verao: "verão" };
+
+/** A data e a estação do ano acelerado (ADR-0067), "15 de nov · primavera"; vazio sem ano. */
+export function yearText(state: ObserverState): string {
+  if (state.date === undefined) {
+    return "";
+  }
+  const [, month, day] = state.date.split("-").map(Number);
+  const season = state.season === undefined ? "" : ` · ${SEASONS[state.season] ?? state.season}`;
+  return ` · ${String(day)} de ${MONTHS[(month ?? 1) - 1] ?? ""}${season}`;
+}
+
 function clockBadge(state: ObserverState): string {
   const { mode, scale, paused } = state.clock;
   const pace = mode === "max" ? "máximo" : `${String(scale ?? "?")}×`;
@@ -51,7 +64,7 @@ export function renderHud(
     el(
       "div",
       { className: "hud-clock" },
-      el("strong", { className: "hud-time" }, `Dia ${String(state.day)} · ${clockText(state, tick)}`),
+      el("strong", { className: "hud-time" }, `Dia ${String(state.day)} · ${clockText(state, tick)}${yearText(state)}`),
       el("span", { className: "hud-phase" }, state.phase),
       el("span", { className: "hud-weather" }, `clima: ${weather}`),
       el("span", { className: "badge hud-pace" }, clockBadge(state)),

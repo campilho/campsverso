@@ -11,6 +11,10 @@ export interface WorldRenderer {
   setArt(art: ArtManifest): void;
   /** Desenha o estado no tick mostrado (fracionário); a tela chama a cada quadro. */
   draw(state: ObserverState, tick: number): void;
+  /** Quem a câmera segue, num mapa maior que a tela (ADR-0067); o canvas de depuração não segue. */
+  follow?(entityId: string): void;
+  /** O centro de um tile em coordenadas da tela, pela câmera; para os testes no navegador. */
+  clientOf?(x: number, y: number): { x: number; y: number } | undefined;
   /** O tile sob um ponto da tela (coordenadas do evento do mouse), ou nada fora do mapa. */
   tileAt(clientX: number, clientY: number): { x: number; y: number } | undefined;
 }

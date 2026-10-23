@@ -14,6 +14,7 @@ import {
   facingOf,
   frameOf,
   lookOf,
+  seasonTint,
   shadeOf,
   tileLook,
   weatherEffect,
@@ -32,6 +33,9 @@ const TILE = 32;
 const DROPS = 140;
 const FONT = "ui-monospace, monospace";
 const MAP_KEY = "visual-map";
+// A tela mostra no máximo 32 × 18 tiles; um mapa maior (a Morada do Sol, ADR-0067) rola com a câmera.
+const VIEW = { width: 32, height: 18 };
+const DRAG = 6; // pixels de arrasto antes de virar arrastar, e não clique
 const FEET = 2; // os pés do LPC ficam um pouco acima da borda do quadro
 
 interface Frame {
@@ -218,13 +222,20 @@ class WorldScene extends Phaser.Scene {
   art: ArtManifest = EMPTY;
   frame: Frame | undefined;
   terrainDirty = true;
-  private created = false;
+  created = false; // a cena já rodou o create (a câmera existe)
   private terrain!: Phaser.GameObjects.Graphics;
   private shade!: Phaser.GameObjects.Rectangle;
   private rain!: Phaser.GameObjects.Graphics;
   private visual: Phaser.Tilemaps.Tilemap | undefined;
+  private ground: Phaser.Tilemaps.TilemapLayer | Phaser.Tilemaps.TilemapGPULayer | undefined;
+  private tinted: string | undefined;
   private readonly things = new Map<string, ThingView>();
   private readonly avatars = new Map<string, AvatarView>();
+  private readonly seen = new Map<string, Point>(); // onde cada avatar aparece agora, em tiles
+  /** Quem a câmera segue; parar de seguir é arrastar, voltar é o botão. */
+  follow: string | undefined;
+  following = true;
+  whole = false; // o mapa inteiro na tela, com zoom
 
   constructor() {
     super({ key: "world" });
@@ -232,8 +243,9 @@ class WorldScene extends Phaser.Scene {
 
   create(): void {
     this.terrain = this.add.graphics().setDepth(0);
-    this.shade = this.add.rectangle(0, 0, 1, 1, 0x0c123c, 0).setOrigin(0).setDepth(80);
-    this.rain = this.add.graphics().setDepth(81);
+    // A noite e a chuva são da tela, não do mundo: não rolam com a câmera.
+    this.shade = this.add.rectangle(0, 0, 1, 1, 0x0c123c, 0).setOrigin(0.5).setDepth(80).setScrollFactor(0);
+    this.rain = this.add.graphics().setDepth(81).setScrollFactor(0);
     this.created = true;
     this.loadArt();
   }
@@ -276,7 +288,14 @@ class WorldScene extends Phaser.Scene {
     const { state } = frame;
     this.drawThings(state);
     this.drawAvatars(frame, time);
-    this.shade.setSize(width, height).setFillStyle(0x0c123c, shadeOf(this.art, state.phase));
+    this.aim();
+    this.tint(state.season);
+    // Com zoom, o que não rola encolhe em volta do centro: o retângulo cresce na mesma conta.
+    const zoom = this.cameras.main.zoom;
+    this.shade
+      .setPosition(width / 2, height / 2)
+      .setSize(width / zoom, height / zoom)
+      .setFillStyle(0x0c123c, shadeOf(this.art, state.phase));
     this.drawRain(weatherEffect(this.art, state.weather[String(state.day)]) === "rain", time, width, height);
   }
 
@@ -290,9 +309,13 @@ class WorldScene extends Phaser.Scene {
         .filter((tileset): tileset is Phaser.Tilemaps.Tileset => tileset !== null);
       if (tilesets.length === map.tilesets.length) {
         map.layers.forEach((layer, index) => {
-          map.createLayer(layer.name, tilesets, 0, 0).setDepth(index * 0.01);
+          const created = map.createLayer(layer.name, tilesets, 0, 0).setDepth(index * 0.01);
+          if (index === 0) {
+            this.ground = created;
+          }
         });
         this.visual = map;
+        this.tinted = undefined; // a camada nova ainda não tem o tom da estação
       } else {
         map.destroy();
       }
@@ -344,6 +367,7 @@ class WorldScene extends Phaser.Scene {
         continue;
       }
       seen.add(id);
+      this.seen.set(id, at);
       let view = this.avatars.get(id);
       if (view === undefined) {
         view = new AvatarView(this, id);
@@ -358,6 +382,41 @@ class WorldScene extends Phaser.Scene {
         this.avatars.delete(id);
       }
     }
+  }
+
+  /** A câmera: o mapa inteiro com zoom, ou seguindo o avatar, dentro dos limites do mapa. */
+  private aim(): void {
+    const grid = this.grid;
+    if (grid === undefined) {
+      return;
+    }
+    const cam = this.cameras.main;
+    const width = grid.width * TILE;
+    const height = grid.height * TILE;
+    if (this.whole) {
+      cam.removeBounds();
+      cam.setZoom(Math.min(1, cam.width / width, cam.height / height));
+      cam.centerOn(width / 2, height / 2);
+      return;
+    }
+    cam.setZoom(1);
+    cam.setBounds(0, 0, width, height);
+    const at = this.follow === undefined ? undefined : this.seen.get(this.follow);
+    if (this.following && at !== undefined) {
+      cam.centerOn(at.x * TILE + TILE / 2, at.y * TILE + TILE / 2);
+    }
+  }
+
+  /** O chão no tom da estação (ADR-0067); só muda quando a estação muda. */
+  private tint(season: string | undefined): void {
+    const color = seasonTint(this.art, season);
+    if (this.ground === undefined || color === this.tinted) {
+      return;
+    }
+    if (this.ground instanceof Phaser.Tilemaps.TilemapLayer) {
+      this.ground.setTint(colorNumber(color)); // a camada de GPU não tinge: fica sem o tom
+    }
+    this.tinted = color;
   }
 
   /** A cama do sono em andamento, onde está desenhada (o avatar dorme ao lado dela no mundo). */
@@ -404,9 +463,21 @@ export class PhaserRenderer implements WorldRenderer {
   private readonly scene = new WorldScene();
   private readonly game: Phaser.Game;
   private size = { width: 32, height: 18 };
+  private grid = { width: 32, height: 18 };
+  private drag: { x: number; y: number; moved: boolean } | undefined;
+  private swallowClick = false;
+  private readonly followButton: HTMLButtonElement;
+  private readonly wholeButton: HTMLButtonElement;
 
   constructor() {
-    this.element = el("div", { className: "phaser" });
+    this.followButton = el("button", { className: "map-button" }, "Seguir o Camps");
+    this.wholeButton = el("button", { className: "map-button" }, "Mapa inteiro");
+    this.element = el(
+      "div",
+      { className: "phaser" },
+      el("div", { className: "map-buttons" }, this.followButton, this.wholeButton),
+    );
+    this.listen();
     this.game = new Phaser.Game({
       type: rendererType(),
       parent: this.element,
@@ -425,10 +496,92 @@ export class PhaserRenderer implements WorldRenderer {
   setGrid(grid: TileGrid): void {
     this.scene.grid = grid;
     this.scene.terrainDirty = true;
-    if (grid.width !== this.size.width || grid.height !== this.size.height) {
-      this.size = { width: grid.width, height: grid.height };
-      this.game.scale.resize(grid.width * TILE, grid.height * TILE);
+    this.grid = { width: grid.width, height: grid.height };
+    // O canvas tem no máximo o tamanho da tela; o resto do mapa a câmera mostra (ADR-0067).
+    const width = Math.min(grid.width, VIEW.width);
+    const height = Math.min(grid.height, VIEW.height);
+    if (width !== this.size.width || height !== this.size.height) {
+      this.size = { width, height };
+      this.game.scale.resize(width * TILE, height * TILE);
     }
+    this.buttons();
+  }
+
+  /** Quem a câmera segue, num mapa maior que a tela. */
+  follow(entityId: string): void {
+    this.scene.follow = entityId;
+  }
+
+  private big(): boolean {
+    return this.grid.width > VIEW.width || this.grid.height > VIEW.height;
+  }
+
+  private buttons(): void {
+    const big = this.big();
+    this.followButton.hidden = !big || (this.scene.following && !this.scene.whole);
+    this.wholeButton.hidden = !big || this.scene.whole;
+  }
+
+  /** Arrastar com o botão esquerdo rola o mapa; o clique que termina um arrasto não conta. */
+  private listen(): void {
+    const stop = (event: Event): void => {
+      event.stopPropagation(); // o botão não é um clique no mapa
+    };
+    this.followButton.addEventListener("click", (event) => {
+      stop(event);
+      this.scene.following = true;
+      this.scene.whole = false;
+      this.buttons();
+    });
+    this.wholeButton.addEventListener("click", (event) => {
+      stop(event);
+      this.scene.whole = true;
+      this.buttons();
+    });
+    this.followButton.addEventListener("contextmenu", stop);
+    this.wholeButton.addEventListener("contextmenu", stop);
+    this.element.addEventListener("pointerdown", (event) => {
+      const onCanvas = event.target instanceof HTMLCanvasElement;
+      this.drag = event.button === 0 && onCanvas && this.big() ? { x: event.clientX, y: event.clientY, moved: false } : undefined;
+    });
+    window.addEventListener("pointermove", (event) => {
+      const drag = this.drag;
+      if (drag === undefined) {
+        return;
+      }
+      const dx = event.clientX - drag.x;
+      const dy = event.clientY - drag.y;
+      if (!drag.moved && Math.hypot(dx, dy) < DRAG) {
+        return;
+      }
+      drag.moved = true;
+      const canvas = this.game.canvas;
+      const box = canvas.getBoundingClientRect();
+      const cam = this.scene.cameras.main;
+      const scale = box.width === 0 ? 1 : canvas.width / box.width;
+      this.scene.whole = false;
+      this.scene.following = false;
+      cam.setZoom(1);
+      cam.scrollX -= (dx * scale) / cam.zoom;
+      cam.scrollY -= (dy * scale) / cam.zoom;
+      drag.x = event.clientX;
+      drag.y = event.clientY;
+      this.buttons();
+    });
+    window.addEventListener("pointerup", () => {
+      this.swallowClick = this.drag?.moved === true;
+      this.drag = undefined;
+    });
+    this.element.addEventListener(
+      "click",
+      (event) => {
+        if (this.swallowClick) {
+          event.stopImmediatePropagation();
+          this.swallowClick = false;
+        }
+      },
+      { capture: true },
+    );
   }
 
   setArt(art: ArtManifest): void {
@@ -441,7 +594,37 @@ export class PhaserRenderer implements WorldRenderer {
     this.scene.frame = { state, tick };
   }
 
+  clientOf(x: number, y: number): { x: number; y: number } | undefined {
+    if (!this.scene.created) {
+      return undefined;
+    }
+    const canvas = this.game.canvas;
+    const box = canvas.getBoundingClientRect();
+    const cam = this.scene.cameras.main;
+    // Do mundo ao pixel do canvas (o inverso de getWorldPoint), e dele à tela.
+    const px = (x * TILE + TILE / 2 - cam.worldView.x) * cam.zoom;
+    const py = (y * TILE + TILE / 2 - cam.worldView.y) * cam.zoom;
+    return { x: box.left + (px * box.width) / canvas.width, y: box.top + (py * box.height) / canvas.height };
+  }
+
   tileAt(clientX: number, clientY: number): { x: number; y: number } | undefined {
-    return tileUnder(this.game.canvas, TILE, clientX, clientY);
+    if (!this.scene.created) {
+      return tileUnder(this.game.canvas, TILE, clientX, clientY); // antes da cena, sem câmera
+    }
+    const camera = this.scene.cameras.main;
+    const canvas = this.game.canvas;
+    const box = canvas.getBoundingClientRect();
+    if (box.width === 0 || box.height === 0) {
+      return undefined;
+    }
+    // Do ponto da tela ao pixel do canvas, e dele ao mundo pela câmera (rolagem e zoom).
+    const point = camera.getWorldPoint(
+      ((clientX - box.left) * canvas.width) / box.width,
+      ((clientY - box.top) * canvas.height) / box.height,
+    );
+    const x = Math.floor(point.x / TILE);
+    const y = Math.floor(point.y / TILE);
+    const inside = x >= 0 && y >= 0 && x < this.grid.width && y < this.grid.height;
+    return inside ? { x, y } : undefined;
   }
 }

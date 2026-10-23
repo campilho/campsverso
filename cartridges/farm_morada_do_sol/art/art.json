@@ -7,5 +7,19 @@
       "color": "#c9a227",
       "label": "Espantalho"
     }
+  },
+  "seasons": {
+    "primavera": {
+      "tint": "#ffffff"
+    },
+    "verao": {
+      "tint": "#fff1c9"
+    },
+    "outono": {
+      "tint": "#f2d6a2"
+    },
+    "inverno": {
+      "tint": "#d6e0e6"
+    }
   }
 }
