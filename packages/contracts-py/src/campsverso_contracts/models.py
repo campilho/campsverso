@@ -93,6 +93,10 @@ class AffordanceParam(BaseModel):
     """
     minimum: int | None = None
     default: int | None = None
+    entities: bool | None = None
+    """
+    As escolhas incluem também as entidades guardadas na fonte, pelo id: as ferramentas no inventário ou no baú (ADR-0068).
+    """
 
 
 class Affordance(BaseModel):
@@ -110,13 +114,32 @@ class Affordance(BaseModel):
     label: Annotated[str, Field(max_length=64, min_length=1)]
     on: Annotated[list[Token], Field(min_length=1)]
     """
-    Tipos de entidade em que a ação aparece; `self` é o próprio avatar.
+    Tipos de entidade em que a ação aparece; `self` é o próprio avatar; um tipo de terreno (`grass`) põe a ação no menu de um tile vazio desse terreno, e o tile vai em `target` como `{x, y}` (ADR-0068).
     """
     target: bool
     """
     A entidade clicada vai no parâmetro `target`.
     """
     params: list[AffordanceParam] | None = None
+
+
+class EventLabel(BaseModel):
+    """
+    Como a linha do tempo conta um tipo de evento, declarado pelo cartucho (ADR-0068). Vale o rótulo mais específico (mais campos em `where`) cujos campos do texto existem no evento; no empate, o primeiro declarado. Sem rótulo, a tela mostra o tipo cru.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    event: Annotated[str, Field(pattern="^campsverso\\.[a-z0-9_]+(\\.[a-z0-9_]+)*\\.v[0-9]+$")]
+    where: dict[str, str | float | bool | None] | None = None
+    """
+    Campos do evento que precisam bater; caminhos com ponto (`params.action`).
+    """
+    text: Annotated[str, Field(max_length=160, min_length=1)]
+    """
+    O texto, com campos do evento entre chaves e caminhos com ponto (`plantou {params.crop} no {params.target}`).
+    """
 
 
 class MetricGroup(BaseModel):
@@ -2446,6 +2469,10 @@ class WorldSessionStartedV1(BaseModel):
     """
     Catálogo de métricas do dia que o cartucho declara (ADR-0054).
     """
+    labels: Annotated[list[EventLabel] | None, Field(max_length=256)] = None
+    """
+    Os rótulos da linha do tempo que o cartucho declara (ADR-0068).
+    """
     perception: PerceptionConfig | None = None
     """
     O raio de percepção declarado pelo cartucho; vale para todos os atores (ADR-0056).
@@ -2634,6 +2661,10 @@ class ObserverSession(BaseModel):
     metrics: list[Metric] | None = None
     """
     O catálogo de métricas do session.started (ADR-0054).
+    """
+    labels: list[EventLabel] | None = None
+    """
+    Os rótulos da linha do tempo do session.started (ADR-0068).
     """
     perception: PerceptionConfig | None = None
 

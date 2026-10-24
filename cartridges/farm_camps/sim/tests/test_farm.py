@@ -1,7 +1,10 @@
 """Ações e sistemas do gênero farm, exercitados no cenário real (bíblia §6 a §10; ADR-0039)."""
 
+import re
+
 import pytest
 
+from campsverso_contracts import CONTRACT_TYPES
 from campsverso_kernel.facts import Fact
 from campsverso_kernel.world import to_units
 from campsverso_testkit.farm import SCRIPT_ID, Farmer, make_core, of_type
@@ -393,6 +396,23 @@ def test_catalogo_de_acoes_bate_com_as_acoes_e_sai_no_session_started() -> None:
     catalog = {(a["action"], a["label"]) for a in started["affordances"]}
     assert ("plant", "Plantar") in catalog
     assert ("sleep", "Dormir aqui") in catalog
+
+
+def test_rotulos_da_linha_do_tempo_saem_no_session_started_e_citam_campos_do_evento() -> None:
+    """Os rótulos (ADR-0068): cada campo entre chaves e cada filtro existem no payload do evento
+    (o primeiro nível; `params` é livre)."""
+    farmer = _farmer()
+    (started,) = of_type(farmer.facts, "world.session.started")
+    harvest = {
+        "event": "campsverso.world.item.created.v1",
+        "where": {"reason": "harvest"},
+        "text": "{container_id} colheu {qty} {item}",
+    }
+    assert harvest in started["labels"]
+    for label in started["labels"]:
+        fields = set(CONTRACT_TYPES[label["event"]].payload.model_fields)
+        cited = [*re.findall(r"\{([a-z0-9_.]+)\}", label["text"]), *label.get("where", {})]
+        assert {c.split(".")[0] for c in cited} <= fields, label
 
 
 def test_catalogo_de_metricas_sai_no_session_started() -> None:

@@ -10,6 +10,7 @@ from campsverso_cartridge_api import (
     AvatarDef,
     CartridgeManifest,
     ClockDef,
+    EventLabelDef,
     ItemDef,
     KindDef,
     MetricDef,
@@ -49,6 +50,7 @@ class WorldDefinition:
     stages: tuple[str, ...] = DEFAULT_STAGES
     affordances: tuple[AffordanceDef, ...] = ()  # catálogo de ações para quem joga (ADR-0051)
     metrics: tuple[MetricDef, ...] = ()  # métricas do dia para o operador (ADR-0054)
+    labels: tuple[EventLabelDef, ...] = ()  # rótulos da linha do tempo (ADR-0068)
     perception_radius: int | None = None  # None: o mapa inteiro (ADR-0056)
     perception_landmarks: tuple[str, ...] = ()  # vistos além do raio (ADR-0067)
     perception_by_phase: Mapping[str, int] = field(default_factory=dict[str, int])  # ADR-0068
@@ -103,6 +105,7 @@ class DefinitionBuilder:
     actions: dict[str, ActionSpec] = field(default_factory=dict[str, ActionSpec])
     affordances: list[AffordanceDef] = field(default_factory=list[AffordanceDef])
     metrics: dict[str, MetricDef] = field(default_factory=dict[str, MetricDef])
+    labels: list[EventLabelDef] = field(default_factory=list[EventLabelDef])
     systems: dict[str, SystemSpec] = field(default_factory=dict[str, SystemSpec])
     rule_impls: dict[str, RuleImpl] = field(default_factory=dict[str, RuleImpl])
     tiled: Mapping[str, Any] | None = None
@@ -186,6 +189,12 @@ class DefinitionBuilder:
     def add_metric(self, metric: MetricDef, *, override: bool = False) -> None:
         _register(self.metrics, metric.id, metric, override=override, what="métrica")
 
+    def add_label(self, label: EventLabelDef, *, replace: bool = False) -> None:
+        if replace:
+            key = (label.event, dict(label.where))
+            self.labels = [x for x in self.labels if (x.event, dict(x.where)) != key]
+        self.labels.append(label)
+
     def set_map(self, tiled: Mapping[str, Any]) -> None:
         self.tiled = tiled
 
@@ -213,6 +222,12 @@ class DefinitionBuilder:
             if problem is not None:
                 raise DefinitionError(f"métrica {metric.id!r}: {problem}")
         return tuple(self.metrics.values())
+
+    def _labels(self) -> tuple[EventLabelDef, ...]:
+        for label in self.labels:
+            if label.event not in CONTRACT_TYPES:
+                raise DefinitionError(f"rótulo: o evento {label.event!r} não está nos contratos")
+        return tuple(self.labels)
 
     def _affordances(self) -> tuple[AffordanceDef, ...]:
         for affordance in self.affordances:
@@ -258,6 +273,7 @@ class DefinitionBuilder:
             actions=dict(self.actions),
             affordances=self._affordances(),
             metrics=self._metrics(),
+            labels=self._labels(),
             systems=dict(self.systems),
             rule_impls=dict(self.rule_impls),
             grid=grid,

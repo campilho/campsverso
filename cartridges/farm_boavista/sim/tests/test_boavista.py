@@ -278,6 +278,13 @@ def test_os_menus_oferecem_as_culturas_e_os_itens_da_boa_vista() -> None:
     assert {"ensopado", "adubo", "semente_alho"} <= set(choices("deposit", "item"))
     assert {"ensopado", "adubo"} <= set(choices("withdraw", "item"))
     assert list(menus)[:3] == ["plant", "water", "harvest"]  # a ordem do gênero fica
+    # Uma ação com duas entradas fica com as duas: dormir na cama e no chão, cavar aqui e na grama.
+    every = make_core(cartridge="farm_boavista").definition.affordances
+    assert {a.on for a in every if a.action == "sleep"} == {("bed",), ("self",)}
+    assert {a.on for a in every if a.action == "dig"} == {("self",), ("grass",)}
+    chest = [a.params[0] for a in every if a.action in {"deposit", "withdraw"}]
+    assert len(chest) == 2
+    assert all(p.entities for p in chest)  # as ferramentas pelo id
     assert (
         len(
             [

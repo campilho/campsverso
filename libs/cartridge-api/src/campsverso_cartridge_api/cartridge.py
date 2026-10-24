@@ -9,6 +9,7 @@ from campsverso_cartridge_api.definitions import (
     AffordanceDef,
     AvatarDef,
     ClockDef,
+    EventLabelDef,
     ItemDef,
     KindDef,
     MetricDef,
@@ -80,6 +81,11 @@ class WorldBuilder(Protocol):
 
     def add_metric(self, metric: MetricDef, *, override: bool = False) -> None:
         """Uma métrica do dia (ADR-0054); um cartucho que estende outro acrescenta as suas."""
+        ...
+
+    def add_label(self, label: EventLabelDef, *, replace: bool = False) -> None:
+        """Um rótulo da linha do tempo (ADR-0068). Com `replace`, os já registrados para o mesmo
+        evento e o mesmo `where` saem: o cenário troca o do gênero."""
         ...
 
     def set_map(self, tiled: Mapping[str, Any]) -> None:

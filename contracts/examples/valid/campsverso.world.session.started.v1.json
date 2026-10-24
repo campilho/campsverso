@@ -169,6 +169,22 @@
     ],
     "perception": {
       "radius": null
-    }
+    },
+    "labels": [
+      {
+        "event": "campsverso.action.completed.v1",
+        "where": {
+          "action": "plant"
+        },
+        "text": "plantou {params.crop} no {params.target}"
+      },
+      {
+        "event": "campsverso.world.item.created.v1",
+        "where": {
+          "reason": "harvest"
+        },
+        "text": "colheu {qty} {item}"
+      }
+    ]
   }
 }

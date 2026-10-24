@@ -222,6 +222,10 @@
         },
         "default": {
           "type": "integer"
+        },
+        "entities": {
+          "type": "boolean",
+          "description": "As escolhas incluem também as entidades guardadas na fonte, pelo id: as ferramentas no inventário ou no baú (ADR-0068)."
         }
       }
     },
@@ -251,7 +255,7 @@
           "items": {
             "$ref": "#/$defs/token"
           },
-          "description": "Tipos de entidade em que a ação aparece; `self` é o próprio avatar."
+          "description": "Tipos de entidade em que a ação aparece; `self` é o próprio avatar; um tipo de terreno (`grass`) põe a ação no menu de um tile vazio desse terreno, e o tile vai em `target` como `{x, y}` (ADR-0068)."
         },
         "target": {
           "type": "boolean",
@@ -274,6 +278,38 @@
         "cancel",
         "partial"
       ]
+    },
+    "event_label": {
+      "title": "EventLabel",
+      "description": "Como a linha do tempo conta um tipo de evento, declarado pelo cartucho (ADR-0068). Vale o rótulo mais específico (mais campos em `where`) cujos campos do texto existem no evento; no empate, o primeiro declarado. Sem rótulo, a tela mostra o tipo cru.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event",
+        "text"
+      ],
+      "properties": {
+        "event": {
+          "type": "string",
+          "pattern": "^campsverso\\.[a-z0-9_]+(\\.[a-z0-9_]+)*\\.v[0-9]+$"
+        },
+        "where": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/scalar"
+          },
+          "description": "Campos do evento que precisam bater; caminhos com ponto (`params.action`)."
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "description": "O texto, com campos do evento entre chaves e caminhos com ponto (`plantou {params.crop} no {params.target}`)."
+        }
+      }
     },
     "metric": {
       "title": "Metric",

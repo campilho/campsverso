@@ -593,6 +593,12 @@ export class PhaserRenderer implements WorldRenderer {
     this.scene.follow = entityId;
   }
 
+  recenter(): void {
+    this.scene.following = true;
+    this.scene.whole = false;
+    this.buttons();
+  }
+
   private big(): boolean {
     return this.grid.width > VIEW.width || this.grid.height > VIEW.height;
   }
@@ -619,9 +625,7 @@ export class PhaserRenderer implements WorldRenderer {
     };
     this.followButton.addEventListener("click", (event) => {
       stop(event);
-      this.scene.following = true;
-      this.scene.whole = false;
-      this.buttons();
+      this.recenter();
     });
     this.wholeButton.addEventListener("click", (event) => {
       stop(event);

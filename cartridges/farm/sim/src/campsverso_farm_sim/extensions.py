@@ -12,7 +12,7 @@ from typing import Any, cast
 from campsverso_cartridge_api import ItemDef, KindDef, WorldBuilder, YearDef
 from campsverso_farm_sim import config
 from campsverso_farm_sim.actions import ALL_ACTIONS, EXTRA_ACTIONS, INTERRUPTS
-from campsverso_farm_sim.cartridge import affordances, metrics
+from campsverso_farm_sim.cartridge import affordances, labels, metrics
 from campsverso_farm_sim.systems import build_extension_systems
 
 
@@ -105,11 +105,20 @@ def contribute_extensions(
         "items": _merged(_merged(base.get("items", {}), lower_items), data.get("items", {})),
         "affordances": [*below, *data.get("affordances", [])],
     }
+    replaced: set[str] = set()
     for affordance in affordances(catalog):
-        world.add_affordance(affordance, replace=True)  # o cenário troca a do gênero
+        # O cenário troca as do gênero, uma vez por ação: uma ação com duas entradas (dormir na
+        # cama e no chão; cavar no próprio tile e na grama) fica com as duas (ADR-0068).
+        world.add_affordance(affordance, replace=affordance.action not in replaced)
+        replaced.add(affordance.action)
     known_metrics = {str(m["id"]) for m in [*base.get("metrics", []), *lower.get("metrics", [])]}
     for metric in metrics(data):
         world.add_metric(metric, override=metric.id in known_metrics)  # troca a de baixo
+    seen: set[tuple[str, str]] = set()
+    for label in labels(data):  # como as afordâncias: troca as de baixo, uma vez por chave
+        key = (label.event, repr(sorted(label.where.items())))
+        world.add_label(label, replace=key not in seen)
+        seen.add(key)
     year = cast(Mapping[str, Any] | None, data.get("year"))
     if year is not None:  # o ano com estações (ADR-0067)
         seasons = cast(Mapping[str, str], year["seasons"])

@@ -100,18 +100,21 @@ actions:  # os novos, e as variantes com o arado
 
 affordances:  # o que entra no menu além do que o gênero já tem (ADR-0051)
   - {action: dig, label: Cavar um canteiro aqui, kinds: [self], target: false}
+  - {action: dig, label: Cavar um canteiro aqui, kinds: [grass]}  # o menu da grama (ADR-0068)
   - {action: fertilize, label: Adubar, kinds: [plot]}
   - action: deposit  # o baú guarda também pratos e adubo
     label: Guardar no baú
     kinds: [chest]
     params:
-      - {name: item, label: Item, choices: {category: [colheita, semente, prato, adubo]}, source: inventory}
+      - {name: item, label: Item, choices: {category: [colheita, semente, prato, adubo]}, source: inventory,
+         entities: true}
       - {name: qty, label: Quantidade, minimum: 1, default: 1}
   - action: withdraw
     label: Pegar do baú
     kinds: [chest]
     params:
-      - {name: item, label: Item, choices: {category: [colheita, semente, prato, adubo]}, source: target}
+      - {name: item, label: Item, choices: {category: [colheita, semente, prato, adubo]}, source: target,
+         entities: true}
       - {name: qty, label: Quantidade, minimum: 1, default: 1}
   - action: cook
     label: Cozinhar

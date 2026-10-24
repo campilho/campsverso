@@ -283,8 +283,64 @@ canvas {
 }
 
 .action-menu[hidden],
-.notice[hidden] {
+.notice[hidden],
+.queue[hidden],
+.commands[hidden] {
   display: none;
+}
+
+/* A fila do humano (ADR-0068): uma linha sob o mapa, só quando há o que fazer. */
+.queue {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  padding: 4px 0;
+  font-size: 13px;
+}
+
+.queue ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.queue .hint {
+  color: var(--muted);
+}
+
+/* Os comandos de quem joga: aparecem na primeira vez, e pelo botão "Comandos". */
+.commands {
+  position: fixed;
+  top: 64px;
+  right: 16px;
+  z-index: 20;
+  max-width: 360px;
+  padding: 10px 12px;
+  background: var(--panel);
+  border: 1px solid #444b5a;
+  border-radius: 4px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+
+.commands ul {
+  margin: 8px 0;
+  padding-left: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.commands kbd {
+  font-family: inherit;
+  font-size: 12px;
+  padding: 0 5px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: #0d0f13;
 }
 
 .action-menu .menu-title {
@@ -441,6 +497,13 @@ button:disabled {
 
 .timeline .tick {
   color: var(--muted);
+}
+
+/* O rótulo do cartucho (ADR-0068) lê como frase; o tipo cru fica embaixo, menor. */
+.timeline .label {
+  font-family: system-ui, sans-serif;
+  font-size: 12.5px;
+  color: var(--text);
 }
 
 .vis-tag {

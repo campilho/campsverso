@@ -72,7 +72,9 @@ def test_toda_afordancia_tem_ferramenta_com_os_mesmos_parametros() -> None:
             str(p["name"])
             for p in cast(Sequence[Mapping[str, Any]], affordance.get("params") or ())
         }
-        if affordance.get("target", True) and affordance.get("kinds") != ["self"]:
+        if affordance.get("kinds") == ["grass"]:  # o menu da grama: o tile, em x e y (ADR-0068)
+            wanted |= {"x", "y"}
+        elif affordance.get("target", True) and affordance.get("kinds") != ["self"]:
             wanted.add("target")
         assert any(wanted <= {p.name for p in t.params} for t in candidates), (
             f"{action}: nenhuma ferramenta com {sorted(wanted)}"

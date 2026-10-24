@@ -21,10 +21,17 @@ export interface MenuParam {
   readonly initial?: number;
 }
 
+/** Um tile do mapa, no lugar de uma entidade (o menu da grama; ADR-0068). */
+export interface Tile {
+  readonly x: number;
+  readonly y: number;
+}
+
 export interface MenuEntry {
   readonly action: string;
   readonly label: string;
-  readonly target?: string;
+  /** A entidade clicada, ou o tile vazio (no menu do terreno). */
+  readonly target?: string | Tile;
   readonly params: readonly MenuParam[];
   /** Todo parâmetro de escolha tem ao menos uma opção. */
   readonly ready: boolean;
@@ -39,9 +46,17 @@ function stock(state: ObserverState, containerId: string | undefined): Readonly<
   return containerId === undefined ? {} : (state.containers[containerId] ?? {});
 }
 
+/** As entidades guardadas num contêiner (as ferramentas no inventário ou no baú), pelo id. */
+function heldBy(state: ObserverState, containerId: string | undefined): string[] {
+  return Object.entries(state.entities)
+    .filter(([, e]) => containerId !== undefined && e?.container_id === containerId)
+    .map(([id]) => id)
+    .sort();
+}
+
 function param(state: ObserverState, avatarId: string, target: string | undefined, raw: NonNullable<Affordance["params"]>[number]): MenuParam {
   const choices = raw.choices ?? [];
-  if (choices.length === 0) {
+  if (choices.length === 0 && raw.entities !== true) {
     return {
       name: raw.name,
       label: raw.label,
@@ -53,7 +68,8 @@ function param(state: ObserverState, avatarId: string, target: string | undefine
   }
   const from = raw.source === "inventory" ? avatarId : raw.source === "target" ? target : undefined;
   const have = stock(state, from);
-  const options = from === undefined ? choices : choices.filter((c) => (have[c] ?? 0) > 0);
+  const items = from === undefined ? choices : choices.filter((c) => (have[c] ?? 0) > 0);
+  const options = raw.entities === true ? [...items, ...heldBy(state, from)] : items;
   return { name: raw.name, label: raw.label, options, numeric: false };
 }
 
@@ -76,6 +92,36 @@ export function menuFor(state: ObserverState, avatarId: string, clicked: string)
         ready: params.every((p) => p.numeric || p.options.length > 0),
       };
     });
+}
+
+/** O menu de um tile vazio: as ações declaradas para o terreno dele (`grass`), com o tile no
+ * `target`, as que têm o que escolher; e, primeiro, andar até lá (ADR-0068). */
+export function tileMenu(state: ObserverState, avatarId: string, tile: Tile, terrain: string): MenuEntry[] {
+  const entries = (state.session?.affordances ?? [])
+    .filter((a) => terrain !== "" && a.on.includes(terrain))
+    .map((a) => {
+      const params = (a.params ?? []).map((p) => param(state, avatarId, undefined, p));
+      return {
+        action: a.action,
+        label: a.label,
+        ...(a.target ? { target: { x: tile.x, y: tile.y } } : {}),
+        params,
+        ready: params.every((p) => p.numeric || p.options.length > 0),
+      };
+    })
+    .filter((entry) => entry.ready);
+  const walk: MenuEntry = { action: "move", label: "Andar até aqui", target: { x: tile.x, y: tile.y }, params: [], ready: true };
+  return entries.length === 0 ? [] : [walk, ...entries];
+}
+
+/** O passo até o lado do alvo de uma ação, se o avatar estiver longe dele: `move {near}`. */
+export function approach(state: ObserverState, avatarId: string, target: string | Tile | undefined): Proposal | undefined {
+  const me = state.entities[avatarId]?.position;
+  const spot = typeof target === "string" ? state.entities[target]?.position : target;
+  if (me === undefined || spot === undefined || Math.max(Math.abs(me.x - spot.x), Math.abs(me.y - spot.y)) <= 1) {
+    return undefined;
+  }
+  return { avatar_id: avatarId, action: "move", params: { near: typeof target === "string" ? target : { x: spot.x, y: spot.y } } };
 }
 
 export function proposal(avatarId: string, entry: MenuEntry, chosen: Readonly<Record<string, string | number>>): Proposal {

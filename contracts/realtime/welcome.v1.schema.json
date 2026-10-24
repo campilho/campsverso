@@ -157,6 +157,13 @@
               },
               "description": "O catálogo de métricas do session.started (ADR-0054)."
             },
+            "labels": {
+              "type": "array",
+              "items": {
+                "$ref": "contracts://common/defs.v1#/$defs/event_label"
+              },
+              "description": "Os rótulos da linha do tempo do session.started (ADR-0068)."
+            },
             "perception": {
               "$ref": "contracts://common/defs.v1#/$defs/perception_config"
             }

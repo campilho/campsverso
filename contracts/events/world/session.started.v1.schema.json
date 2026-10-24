@@ -95,6 +95,14 @@
       },
       "description": "Catálogo de métricas do dia que o cartucho declara (ADR-0054)."
     },
+    "labels": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "$ref": "contracts://common/defs.v1#/$defs/event_label"
+      },
+      "description": "Os rótulos da linha do tempo que o cartucho declara (ADR-0068)."
+    },
     "perception": {
       "$ref": "contracts://common/defs.v1#/$defs/perception_config",
       "description": "O raio de percepção declarado pelo cartucho; vale para todos os atores (ADR-0056)."

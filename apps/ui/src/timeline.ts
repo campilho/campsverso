@@ -1,5 +1,6 @@
-/** Linha do tempo: um resumo legível de qualquer evento, sem conhecer o cartucho (ADR-0050). */
-import type { EnvelopeV1 } from "@campsverso/contracts";
+/** Linha do tempo: um resumo legível de qualquer evento, sem conhecer o cartucho (ADR-0050), e o
+ * rótulo que o cartucho declara para ele, quando há (ADR-0068). */
+import type { EnvelopeV1, EventLabel } from "@campsverso/contracts";
 
 export type Visibility = EnvelopeV1["visibility"];
 
@@ -49,6 +50,45 @@ export function summarize(event: EnvelopeV1, limit = 4): string {
     }
   }
   return parts.join(" · ");
+}
+
+/** O valor num caminho com ponto (`params.crop`), ou nada. */
+function pick(data: unknown, path: string): unknown {
+  let value = data;
+  for (const key of path.split(".")) {
+    if (typeof value !== "object" || value === null || !(key in value)) {
+      return undefined;
+    }
+    value = (value as Record<string, unknown>)[key];
+  }
+  return value;
+}
+
+/** O texto de um rótulo com os campos do evento, ou nada se faltar algum; `semente_batata` vira
+ * `semente batata`. */
+function fill(text: string, data: unknown): string | undefined {
+  const paths = [...text.matchAll(/\{([a-z0-9_.]+)\}/g)].map((m) => m[1] ?? "");
+  const values = new Map(paths.map((path) => [path, scalar(pick(data, path))]));
+  if ([...values.values()].some((value) => value === undefined)) {
+    return undefined;
+  }
+  return text.replace(/\{([a-z0-9_.]+)\}/g, (_, path: string) => (values.get(path) ?? "").replace(/_/g, " "));
+}
+
+/** O rótulo do cartucho para o evento: o mais específico que bate e tem todos os campos; no
+ * empate, o primeiro declarado. Sem nenhum, `undefined`, e a tela mostra o tipo cru. */
+export function describe(event: EnvelopeV1, labels: readonly EventLabel[]): string | undefined {
+  const candidates = labels
+    .map((label, order) => ({ label, order, weight: Object.keys(label.where ?? {}).length }))
+    .filter(({ label }) => label.event === event.type && Object.entries(label.where ?? {}).every(([path, want]) => pick(event.data, path) === want))
+    .sort((a, b) => b.weight - a.weight || a.order - b.order);
+  for (const { label } of candidates) {
+    const text = fill(label.text, event.data);
+    if (text !== undefined) {
+      return text;
+    }
+  }
+  return undefined;
 }
 
 export function matches(event: EnvelopeV1, filter: TimelineFilter): boolean {

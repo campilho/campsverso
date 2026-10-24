@@ -10,6 +10,7 @@ from campsverso_cartridge_api import (
     AffordanceParam,
     CartridgeManifest,
     ClockDef,
+    EventLabelDef,
     ItemDef,
     KindDef,
     MetricDef,
@@ -67,6 +68,7 @@ def affordances(data: dict[str, Any]) -> tuple[AffordanceDef, ...]:
                     source=p.get("source", "any"),
                     minimum=p.get("minimum"),
                     default=p.get("default"),
+                    entities=bool(p.get("entities", False)),
                 )
                 for p in entry.get("params", [])
             ),
@@ -90,6 +92,16 @@ def metrics(data: Mapping[str, Any]) -> tuple[MetricDef, ...]:
             item=entry.get("item"),
         )
         for entry in data.get("metrics", [])
+    )
+
+
+def labels(data: Mapping[str, Any]) -> tuple[EventLabelDef, ...]:
+    """Os rótulos da linha do tempo, dos dados (ADR-0068)."""
+    return tuple(
+        EventLabelDef(
+            event=str(entry["event"]), text=str(entry["text"]), where=dict(entry.get("where", {}))
+        )
+        for entry in data.get("labels", [])
     )
 
 
@@ -147,6 +159,8 @@ class FarmCartridge:
             world.add_affordance(affordance)
         for metric in metrics(data):
             world.add_metric(metric)
+        for label in labels(data):
+            world.add_label(label)
 
     def rules_file(self) -> Path | None:
         return None  # o gênero não liga nenhuma regra; o cenário decide (ADR-0039)

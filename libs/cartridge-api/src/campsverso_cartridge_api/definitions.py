@@ -96,6 +96,7 @@ class AffordanceParam:
 
     `source` diz onde as escolhas valem: `any` (a lista toda), `inventory` (só o que o avatar tem)
     ou `target` (só o que a entidade clicada guarda). É sugestão para o menu; o kernel decide.
+    `entities` acrescenta às escolhas as entidades guardadas na fonte, pelo id (as ferramentas).
     """
 
     name: str
@@ -104,6 +105,7 @@ class AffordanceParam:
     source: ChoiceSource = "any"
     minimum: int | None = None
     default: int | None = None
+    entities: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,6 +123,17 @@ class AffordanceDef:
 
 
 type MetricKind = Literal["count", "max_need", "item"]
+
+
+@dataclass(frozen=True, slots=True)
+class EventLabelDef:
+    """Como a linha do tempo conta um tipo de evento (ADR-0068): o texto, com campos do evento
+    entre chaves (`colheu {qty} {item}`), para os eventos que batem com `where`. A tela usa o mais
+    específico cujos campos existem no evento, e o tipo cru quando nenhum serve."""
+
+    event: str
+    text: str
+    where: Mapping[str, Scalar] = field(default_factory=dict[str, Scalar])
 
 
 @dataclass(frozen=True, slots=True)

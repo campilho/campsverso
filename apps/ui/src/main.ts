@@ -1,7 +1,8 @@
 /** A UI do Campsverso (M4 a M6; ADR-0050, ADR-0051, ADR-0053): o mundo pelo gateway.
  *
  * `?view=player` (padrão) mostra o mapa e o HUD; `?view=operator` acrescenta o painel do operador.
- * Nas duas visões dá para assumir o Camps e jogar: o clique esquerdo anda, o direito abre o menu.
+ * Nas duas visões dá para assumir o Camps e jogar: o clique esquerdo anda, o direito abre o menu, o
+ * shift enfileira, e o teclado anda e abre o menu (ADR-0068).
  * O mapa é desenhado pelo Phaser com a arte dos cartuchos; `?render=debug` volta ao canvas de
  * depuração, com ids e rótulos.
  */
@@ -14,21 +15,24 @@ import { Connection, type View } from "./connection.ts";
 import { button, el } from "./dom.ts";
 import { motionClock } from "./motion.ts";
 import { CreditsDialog } from "./panels/credits.ts";
+import { CommandsHelp } from "./panels/help.ts";
 import { renderHud } from "./panels/hud.ts";
 import { ActionMenu } from "./panels/menu.ts";
 import { OperatorPanel } from "./panels/operator.ts";
 import { Portrait } from "./panels/portrait.ts";
-import { inControl, menuFor, proposal, thingAt, walkTo } from "./play.ts";
+import { inControl, menuFor, proposal, thingAt, tileMenu, walkTo, type MenuEntry, type Proposal, type Tile } from "./play.ts";
 import { busyText, progressOf } from "./progress.ts";
+import { ActionQueue, type Step } from "./queue.ts";
 import { MapCanvas } from "./render/canvas.ts";
 import { PhaserRenderer } from "./render/phaser.ts";
 import type { WorldRenderer } from "./render/renderer.ts";
 import { DisplayClock, clockText, isLive } from "./simclock.ts";
 import { Store } from "./store.ts";
-import { parseTiledMap } from "./tiled.ts";
+import { parseTiledMap, tileAt as terrainAt, type TileGrid } from "./tiled.ts";
 
 const NOTICE_MS = 6000;
 const PANEL_EVERY_MS = 150;
+const KEY_REPEAT_MS = 200;
 const PROPOSE = "campsverso.cmd.action.propose.v1";
 const POSSESS = "campsverso.cmd.avatar.possess.v1";
 const RELEASE = "campsverso.cmd.avatar.release.v1";
@@ -51,6 +55,7 @@ Object.assign(window, { campsverso: { tileCenter: (x: number, y: number) => map.
 const hud = el("div", { className: "hud" });
 const control = el("div", { className: "control" });
 const notice = el("div", { className: "notice" });
+const queueBox = el("div", { className: "queue" });
 const aside = el("aside", { className: "operator" });
 const other = view === "operator" ? "player" : "operator";
 const header = el(
@@ -73,10 +78,12 @@ if (app === null) {
 app.className = view;
 app.replaceChildren(
   header,
-  el("main", {}, el("section", { className: "world" }, control, map.element, notice, hud), view === "operator" && aside),
+  el("main", {}, el("section", { className: "world" }, control, map.element, notice, queueBox, hud), view === "operator" && aside),
 );
 
 const menu = new ActionMenu(document.body);
+const help = new CommandsHelp(document.body);
+const queue = new ActionQueue();
 const portrait = new Portrait();
 const credits = new CreditsDialog(document.body);
 let art: LoadedArt | undefined;
@@ -99,6 +106,10 @@ let lastControl = "";
 let shownTick = 0;
 let noticeUntil = 0;
 let lastReply = "";
+let grid: TileGrid | undefined;
+let shownQueue = -1;
+let wasInControl = false;
+let lastKeyMove = 0;
 
 function avatarId(): string {
   return store.welcome?.avatar_id ?? "camps";
@@ -131,7 +142,8 @@ function explain(event: EnvelopeV1): string | undefined {
 async function loadMap(id: string): Promise<void> {
   const response = await fetch(`/content/maps/${encodeURIComponent(id)}.tmj`);
   if (response.ok) {
-    map.setGrid(parseTiledMap(await response.json()));
+    grid = parseTiledMap(await response.json());
+    map.setGrid(grid);
   }
 }
 
@@ -157,6 +169,7 @@ store.onChange(() => {
   const reply = store.lastReply;
   if (reply?.ok === false && reply.error !== undefined && reply.request_id !== lastReply) {
     lastReply = reply.request_id;
+    queue.clear();
     say(`O gateway recusou o pedido (${reply.error.code}): ${reply.error.message}`);
   }
 });
@@ -164,8 +177,9 @@ store.onChange(() => {
 store.onEvents((events) => {
   for (const event of events) {
     const text = explain(event);
-    if (text !== undefined) {
-      say(text);
+    const cleared = queue.settle(event, avatarId());
+    if (text !== undefined || cleared !== undefined) {
+      say([text, cleared].filter((part) => part !== undefined).join(" "));
     }
   }
 });
@@ -204,12 +218,61 @@ function renderControl(state: ObserverState): void {
     ? `O Camps está com ${controller === undefined ? "ninguém" : controller.id}. Assuma para jogar.`
     : busy
       ? "Você controla o Camps."
-      : "Sua vez: clique esquerdo anda; clique direito abre o menu (no Camps, o menu de si).";
+      : "Sua vez: clique esquerdo anda; clique direito abre o menu; shift enfileira.";
   control.replaceChildren(
     mine
       ? button("Devolver ao script", () => { connection.send(RELEASE, { avatar_id: avatarId() }); }, store.status === "open")
       : button("Assumir o Camps", () => { assume(state); }, store.status === "open"),
     el("span", { className: "hint" }, hint),
+    ...(mine ? [button("Comandos", () => { help.show(); })] : []),
+  );
+  if (mine && !wasInControl) {
+    help.firstTime();
+  }
+  wasInControl = mine;
+}
+
+// ---------------------------------------------------------------- a fila (ADR-0068)
+
+/** O passo da fila para uma escolha do menu: o rótulo que a fila mostra e o alvo de que o Camps
+ * precisa estar ao lado (andar não tem). */
+function stepFor(state: ObserverState, entry: MenuEntry, chosen: Record<string, string | number>): Step {
+  const values = Object.values(chosen).filter((v): v is string => typeof v === "string").map((v) => v.replace(/_/g, " "));
+  const target = entry.target;
+  const where =
+    typeof target === "string" ? (state.entities[target]?.display_name ?? target) : target === undefined ? "" : `(${String(target.x)}, ${String(target.y)})`;
+  const label = [`${entry.label}${values.length > 0 ? ` (${values.join(", ")})` : ""}`, where].filter((part) => part !== "").join(" · ");
+  const near = entry.action === "move" ? undefined : target;
+  return { label, proposal: proposal(avatarId(), entry, chosen), ...(near === undefined ? {} : { near }) };
+}
+
+/** Com o shift, o passo entra no fim da fila; sem, substitui a fila. Andar sem o shift vai na hora,
+ * como o clique esquerdo: troca o trajeto em andamento. */
+function act(step: Step, queued: boolean): void {
+  if (!queued) {
+    queue.clear();
+    if (step.proposal.action === "move") {
+      connection.send(PROPOSE, { ...step.proposal });
+      return;
+    }
+  }
+  queue.push(step);
+}
+
+function walkStep(state: ObserverState, tile: Tile): Step {
+  return { label: `Andar até (${String(tile.x)}, ${String(tile.y)})`, proposal: walkTo(state, avatarId(), tile.x, tile.y) };
+}
+
+function renderQueue(): void {
+  if (queue.version === shownQueue) {
+    return;
+  }
+  shownQueue = queue.version;
+  queueBox.hidden = queue.list.length === 0;
+  queueBox.replaceChildren(
+    el("strong", {}, "Fila"),
+    el("ol", {}, ...queue.list.map((step) => el("li", {}, step.label))),
+    el("span", { className: "hint" }, "Esc esvazia"),
   );
 }
 
@@ -231,7 +294,7 @@ map.element.addEventListener("click", (event) => {
     say("Assuma o controle do Camps para jogar.");
     return;
   }
-  connection.send(PROPOSE, { ...walkTo(state, avatarId(), tile.x, tile.y) });
+  act(walkStep(state, tile), event.shiftKey);
 });
 
 map.element.addEventListener("contextmenu", (event) => {
@@ -245,17 +308,100 @@ map.element.addEventListener("contextmenu", (event) => {
     say("Assuma o controle do Camps para jogar.");
     return;
   }
+  openMenu(state, tile, event.pageX, event.pageY, event.shiftKey);
+});
+
+/** O menu do clique direito: o do Camps, o da coisa no tile, o do terreno vazio, ou só andar. */
+function openMenu(state: ObserverState, tile: Tile, pageX: number, pageY: number, queued: boolean): void {
   const me = avatarTile(state);
   const clicked = me?.x === tile.x && me.y === tile.y ? "self" : thingAt(state, tile.x, tile.y);
+  const choose = (entry: MenuEntry, chosen: Record<string, string | number>): void => {
+    act(stepFor(state, entry, chosen), queued);
+  };
+  const suffix = queued ? " · entra na fila" : "";
   if (clicked === undefined) {
-    connection.send(PROPOSE, { ...walkTo(state, avatarId(), tile.x, tile.y) }); // chão: só andar
+    const entries = tileMenu(state, avatarId(), tile, grid === undefined ? "" : terrainAt(grid, tile.x, tile.y));
+    if (entries.length === 0) {
+      act(walkStep(state, tile), queued); // chão sem ação: só andar
+      return;
+    }
+    menu.open(pageX, pageY, `(${String(tile.x)}, ${String(tile.y)})${suffix}`, entries, choose);
     return;
   }
   const entity = clicked === "self" ? state.entities[avatarId()] : state.entities[clicked];
   const title = clicked === "self" ? `${entity?.display_name ?? avatarId()} (você)` : (entity?.display_name ?? clicked);
-  menu.open(event.pageX, event.pageY, title, menuFor(state, avatarId(), clicked), (entry, chosen) => {
-    connection.send(PROPOSE, { ...proposal(avatarId(), entry, chosen) });
-  });
+  menu.open(pageX, pageY, `${title}${suffix}`, menuFor(state, avatarId(), clicked), choose);
+}
+
+// ---------------------------------------------------------------- o teclado (ADR-0068)
+
+const STEPS: Readonly<Record<string, readonly [number, number]>> = {
+  ArrowUp: [0, -1],
+  ArrowDown: [0, 1],
+  ArrowLeft: [-1, 0],
+  ArrowRight: [1, 0],
+  w: [0, -1],
+  s: [0, 1],
+  a: [-1, 0],
+  d: [1, 0],
+};
+
+/** De onde sai um passo do teclado: o fim do trajeto em andamento, ou o tile em que ele está. */
+function stepOrigin(state: ObserverState): Tile | undefined {
+  const motion = state.motion[avatarId()];
+  if (state.actions[avatarId()]?.action === "move" && motion !== undefined) {
+    return motion.path[motion.path.length - 1];
+  }
+  return avatarTile(state);
+}
+
+document.addEventListener("keydown", (event) => {
+  if (event.target instanceof Element && event.target.closest("input, select, textarea") !== null) {
+    return;
+  }
+  if (event.metaKey || event.ctrlKey || event.altKey) {
+    return;
+  }
+  const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+  if (key === " ") {
+    event.preventDefault();
+    map.recenter?.();
+    return;
+  }
+  if (key === "?") {
+    help.show();
+    return;
+  }
+  if (key === "Escape") {
+    if (queue.clear()) {
+      say("A fila foi esvaziada.");
+    }
+    return;
+  }
+  const state = store.state;
+  if (state === undefined || run !== null || !inControl(state, avatarId())) {
+    return;
+  }
+  const delta = STEPS[key];
+  if (delta !== undefined) {
+    event.preventDefault();
+    const now = performance.now();
+    const from = stepOrigin(state);
+    if (from === undefined || (event.repeat && now - lastKeyMove < KEY_REPEAT_MS)) {
+      return;
+    }
+    lastKeyMove = now;
+    const step: Proposal = { avatar_id: avatarId(), action: "move", params: { target: { x: from.x + delta[0], y: from.y + delta[1] } } };
+    act({ label: "um passo", proposal: step }, false);
+    return;
+  }
+  if (key === "e") {
+    const me = avatarTile(state);
+    const at = me === undefined ? undefined : map.clientOf?.(me.x, me.y);
+    if (me !== undefined && at !== undefined) {
+      openMenu(state, me, at.x + window.scrollX, at.y + window.scrollY, event.shiftKey);
+    }
+  }
 });
 
 // ---------------------------------------------------------------- quadros
@@ -267,6 +413,15 @@ function frame(now: number): void {
     shownTick = tick;
     map.draw(state, tick);
     renderControl(state);
+    if (run === null && inControl(state, avatarId())) {
+      const next = queue.next(state, avatarId());
+      if (next !== undefined) {
+        connection.send(PROPOSE, { ...next });
+      }
+    } else if (queue.list.length > 0) {
+      queue.clear(); // sem o controle, a fila não vale
+    }
+    renderQueue();
     const shownClock = clockText(state, tick);
     const panelDue = (dirty || now - lastPanel > 1000) && now - lastPanel >= PANEL_EVERY_MS;
     if (panelDue || shownClock !== lastClock) {
@@ -290,6 +445,7 @@ function frame(now: number): void {
 }
 
 notice.hidden = true;
+queueBox.hidden = true;
 connection.open();
 void loadArt().then((loaded) => {
   art = loaded;

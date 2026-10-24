@@ -59,10 +59,27 @@ def test_move_near_escolhe_o_tile_livre_mais_perto_da_entidade() -> None:
     assert _only(_run(core, 3), "action.completed")[0]["action"] == "touch"
 
 
+def test_move_near_um_tile_anda_ate_o_lado_dele() -> None:
+    """O menu da grama do humano (ADR-0068): ao lado de um tile, como ao lado de uma coisa."""
+    near_box = _only(_run(_with(command("move", {"near": "box"}))), "world.entity.moved")
+    box = _started().world.position_of("box")
+    assert box is not None
+    tile = {"near": {"x": box.x, "y": box.y}}
+    assert _only(_run(_with(command("move", tile))), "world.entity.moved") == near_box
+
+
+def _with(cmd: dict[str, Any]) -> KernelCore:
+    core = _started()
+    core.submit(cmd)
+    return core
+
+
 def test_move_near_recusas() -> None:
     core = _started()
     for params, reason in (
         ({"near": "fantasma"}, "invalid_params"),
+        ({"near": {"x": 999, "y": 0}}, "invalid_params"),
+        ({"near": {"x": "1", "y": 0}}, "invalid_params"),
         ({"near": "box", "target": {"x": 3, "y": 1}}, "invalid_params"),
         ({}, "invalid_params"),
     ):

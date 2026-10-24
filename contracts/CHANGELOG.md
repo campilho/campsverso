@@ -2,7 +2,7 @@
 
 Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão maior, só entram campos opcionais novos; mudança incompatível vira um tipo novo (`.v2`). A checagem `make compat` confere isso a cada commit.
 
-## Não publicado (M16)
+## Não publicado (M16 e M17)
 
 - **A primitiva de remover entidade** (ADR-0067), um tipo novo:
   - `campsverso.world.entity.despawned.v1` (`world`, produtor `kernel`): uma entidade removida em tempo de execução, como o canteiro vazio que volta a ser grama (`entity_id`, `kind`, `position?`, `reason`, `action_id?`). Avatares, contêineres com itens ou com entidades dentro, e o alvo de uma ação em andamento não se removem.
@@ -13,6 +13,8 @@ Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão 
   - Só um mundo cujo cartucho declara um ano (`WorldBuilder.configure_year`) os publica; as fazendas 1 e 2 continuam sem.
 - **O que saiu da vista** (ADR-0067): `perception.updated.v1` ganha `out_of_view`, as entidades que saíram do raio e continuam no mundo; `gone` passa a ser só o que deixou de existir à vista do avatar.
 - **A noite e a luz** (ADR-0068): `perception_config` ganha `by_phase` (o raio por fase do dia) e `lights` (itens que, no inventário, garantem um raio mínimo).
+- **Os rótulos da linha do tempo** (ADR-0068): `common/defs.v1` ganha `event_label` (`event`, `where?`, `text` com campos entre chaves), e `world.session.started.v1` e o `session` do `realtime.welcome.v1` ganham `labels`, os rótulos que o cartucho declara.
+- **Os menus do humano** (ADR-0068): `affordance_param` ganha `entities` (as escolhas incluem as entidades guardadas na fonte, pelo id: as ferramentas no inventário ou no baú), e o `on` de uma `affordance` passa a aceitar um tipo de terreno (`grass`), que põe a ação no menu de um tile vazio com o tile em `target` como `{x, y}`. O `move` aceita `near: {x, y}`, o tile livre mais perto ao lado de um tile (os parâmetros das ações são livres no contrato).
 - **Os marcos** (ADR-0067): `common/defs.v1` `perception_config` ganha `landmarks`, os tipos de entidade que todo avatar enxerga além do raio (as construções fixas: a casa, o poço, o quiosque).
 - **A planta comida** (ADR-0067): `campsverso.farm.crop.eaten.v1` (`world`, produtor `kernel`, publicado pelo cartucho farm): a planta madura amanheceu comida (`plot_id`, `crop`, `day`, `by`). O efeito é visível; a regra que escolhe o canteiro (a R-002 da Morada do Sol), não.
 

@@ -85,7 +85,9 @@ watering_can: {capacity: 10}
 # Catálogo de ações para quem joga (ADR-0051): o que aparece no menu de cada tipo de entidade, ou do
 # próprio avatar (`self`), em `kinds`. O menu só sugere; quem decide é o kernel. Escolhas: lista, `crops`
 # (as culturas) ou `{category: ...}` (os itens da categoria). `source`: onde a escolha vale (any,
-# inventory ou target). Sem escolhas, o parâmetro é um número.
+# inventory ou target); `entities` junta as entidades guardadas lá, pelo id (as ferramentas). Sem
+# escolhas, o parâmetro é um número. Um tipo de terreno em `kinds` (`grass`) põe a ação no menu de
+# um tile vazio desse terreno, com o tile no `target` (ADR-0068).
 affordances:
   - {action: plant, label: Plantar, kinds: [plot], params: [{name: crop, label: Cultura, choices: crops}]}
   - {action: water, label: Regar, kinds: [plot]}
@@ -96,13 +98,15 @@ affordances:
     label: Guardar no baú
     kinds: [chest]
     params:
-      - {name: item, label: Item, choices: {category: [colheita, semente]}, source: inventory}
+      - {name: item, label: Item, choices: {category: [colheita, semente]}, source: inventory,
+         entities: true}
       - {name: qty, label: Quantidade, minimum: 1, default: 1}
   - action: withdraw
     label: Pegar do baú
     kinds: [chest]
     params:
-      - {name: item, label: Item, choices: {category: [colheita, semente]}, source: target}
+      - {name: item, label: Item, choices: {category: [colheita, semente]}, source: target,
+         entities: true}
       - {name: qty, label: Quantidade, minimum: 1, default: 1}
   - action: sell
     label: Vender
@@ -140,3 +144,138 @@ metrics:
   - {id: murchas, label: Plantas murchas, kind: count, event: campsverso.farm.crop.withered.v1}
   - {id: pico_fome, label: Pico de fome, kind: max_need, need: fome}
   - {id: desmaios, label: Desmaios, kind: count, event: campsverso.avatar.fainted.v1}
+
+# A linha do tempo legível (ADR-0068): como a tela conta cada evento. `{campo}` é o valor no evento
+# (caminhos com ponto); vale o rótulo mais específico (mais campos em `where`) cujos campos existem
+# no evento, e no empate o primeiro. Sem rótulo, a tela mostra o tipo cru. Um cenário acrescenta os
+# seus, e troca os do gênero com o mesmo evento e o mesmo `where`.
+labels:
+  # o que o avatar começa a fazer
+  - {event: campsverso.action.accepted.v1, where: {action: move}, text: "{avatar_id} vai até perto de {params.near}"}
+  - {event: campsverso.action.accepted.v1, where: {action: move}, text: "{avatar_id} vai até {params.target}"}
+  - {event: campsverso.action.accepted.v1, where: {action: wait}, text: "{avatar_id} espera {params.ticks} min: {intent}"}
+  - {event: campsverso.action.accepted.v1, where: {action: wait}, text: "{avatar_id} espera {params.ticks} min"}
+  - {event: campsverso.action.accepted.v1, where: {action: plant}, text: "{avatar_id} vai plantar {params.crop} no {params.target} · {intent}"}
+  - {event: campsverso.action.accepted.v1, where: {action: plant}, text: "{avatar_id} vai plantar {params.crop} no {params.target}"}
+  - {event: campsverso.action.accepted.v1, where: {action: water}, text: "{avatar_id} vai regar o {params.target} · {intent}"}
+  - {event: campsverso.action.accepted.v1, where: {action: water}, text: "{avatar_id} vai regar o {params.target}"}
+  - {event: campsverso.action.accepted.v1, where: {action: harvest}, text: "{avatar_id} vai colher o {params.target} · {intent}"}
+  - {event: campsverso.action.accepted.v1, where: {action: harvest}, text: "{avatar_id} vai colher o {params.target}"}
+  - {event: campsverso.action.accepted.v1, where: {action: clear}, text: "{avatar_id} vai limpar o {params.target} · {intent}"}
+  - {event: campsverso.action.accepted.v1, where: {action: clear}, text: "{avatar_id} vai limpar o {params.target}"}
+  - {event: campsverso.action.accepted.v1, where: {action: refill}, text: "{avatar_id} vai encher o regador · {intent}"}
+  - {event: campsverso.action.accepted.v1, where: {action: refill}, text: "{avatar_id} vai encher o regador"}
+  - {event: campsverso.action.accepted.v1, where: {action: deposit}, text: "{avatar_id} vai guardar {params.item} no baú · {intent}"}
+  - {event: campsverso.action.accepted.v1, where: {action: deposit}, text: "{avatar_id} vai guardar {params.item} no baú"}
+  - {event: campsverso.action.accepted.v1, where: {action: withdraw}, text: "{avatar_id} vai pegar {params.item} do baú · {intent}"}
+  - {event: campsverso.action.accepted.v1, where: {action: withdraw}, text: "{avatar_id} vai pegar {params.item} do baú"}
+  - {event: campsverso.action.accepted.v1, where: {action: sell}, text: "{avatar_id} vai vender {params.item} · {intent}"}
+  - {event: campsverso.action.accepted.v1, where: {action: sell}, text: "{avatar_id} vai vender {params.item}"}
+  - {event: campsverso.action.accepted.v1, where: {action: buy}, text: "{avatar_id} vai comprar {params.item} · {intent}"}
+  - {event: campsverso.action.accepted.v1, where: {action: buy}, text: "{avatar_id} vai comprar {params.item}"}
+  - {event: campsverso.action.accepted.v1, where: {action: sleep}, text: "{avatar_id} vai dormir · {intent}"}
+  - {event: campsverso.action.accepted.v1, where: {action: sleep}, text: "{avatar_id} vai dormir"}
+  - {event: campsverso.action.accepted.v1, where: {action: eat}, text: "{avatar_id} vai comer {params.item} · {intent}"}
+  - {event: campsverso.action.accepted.v1, where: {action: eat}, text: "{avatar_id} vai comer {params.item}"}
+  - {event: campsverso.action.accepted.v1, where: {action: dig}, text: "{avatar_id} vai cavar um canteiro · {intent}"}
+  - {event: campsverso.action.accepted.v1, where: {action: dig}, text: "{avatar_id} vai cavar um canteiro"}
+  - {event: campsverso.action.accepted.v1, where: {action: fertilize}, text: "{avatar_id} vai adubar o {params.target} · {intent}"}
+  - {event: campsverso.action.accepted.v1, where: {action: fertilize}, text: "{avatar_id} vai adubar o {params.target}"}
+  - {event: campsverso.action.accepted.v1, where: {action: cook}, text: "{avatar_id} vai cozinhar {params.recipe} · {intent}"}
+  - {event: campsverso.action.accepted.v1, where: {action: cook}, text: "{avatar_id} vai cozinhar {params.recipe}"}
+  - {event: campsverso.action.accepted.v1, where: {action: place}, text: "{avatar_id} vai fincar {params.item} · {intent}"}
+  - {event: campsverso.action.accepted.v1, where: {action: place}, text: "{avatar_id} vai fincar {params.item}"}
+  - {event: campsverso.action.accepted.v1, text: "{avatar_id} começa: {action} · {intent}"}
+  - {event: campsverso.action.accepted.v1, text: "{avatar_id} começa: {action}"}
+  # o que o avatar fez
+  - {event: campsverso.action.completed.v1, where: {action: move}, text: "{avatar_id} chegou perto de {params.near}"}
+  - {event: campsverso.action.completed.v1, where: {action: move}, text: "{avatar_id} chegou a {params.target}"}
+  - {event: campsverso.action.completed.v1, where: {action: wait}, text: "{avatar_id} esperou {duration_ticks} min"}
+  - {event: campsverso.action.completed.v1, where: {action: plant}, text: "{avatar_id} plantou {params.crop} no {params.target}"}
+  - {event: campsverso.action.completed.v1, where: {action: water}, text: "{avatar_id} regou o {params.target}"}
+  - {event: campsverso.action.completed.v1, where: {action: harvest}, text: "{avatar_id} colheu o {params.target}"}
+  - {event: campsverso.action.completed.v1, where: {action: clear}, text: "{avatar_id} limpou o {params.target}"}
+  - {event: campsverso.action.completed.v1, where: {action: refill}, text: "{avatar_id} encheu o regador no {params.target}"}
+  - {event: campsverso.action.completed.v1, where: {action: deposit}, text: "{avatar_id} guardou {params.qty} {params.item} no {params.target}"}
+  - {event: campsverso.action.completed.v1, where: {action: deposit}, text: "{avatar_id} guardou {params.item} no {params.target}"}
+  - {event: campsverso.action.completed.v1, where: {action: withdraw}, text: "{avatar_id} pegou {params.qty} {params.item} do {params.target}"}
+  - {event: campsverso.action.completed.v1, where: {action: withdraw}, text: "{avatar_id} pegou {params.item} do {params.target}"}
+  - {event: campsverso.action.completed.v1, where: {action: sell}, text: "{avatar_id} pôs {params.qty} {params.item} na caixa de vendas"}
+  - {event: campsverso.action.completed.v1, where: {action: sell}, text: "{avatar_id} pôs {params.item} na caixa de vendas"}
+  - {event: campsverso.action.completed.v1, where: {action: buy}, text: "{avatar_id} comprou {params.qty} {params.item}"}
+  - {event: campsverso.action.completed.v1, where: {action: buy}, text: "{avatar_id} comprou {params.item}"}
+  - {event: campsverso.action.completed.v1, where: {action: sleep}, text: "{avatar_id} deitou na {params.target}"}
+  - {event: campsverso.action.completed.v1, where: {action: sleep}, text: "{avatar_id} deitou no chão"}
+  - {event: campsverso.action.completed.v1, where: {action: eat}, text: "{avatar_id} comeu {params.item}"}
+  - {event: campsverso.action.completed.v1, where: {action: dig}, text: "{avatar_id} cavou um canteiro em {params.target}"}
+  - {event: campsverso.action.completed.v1, where: {action: dig}, text: "{avatar_id} cavou um canteiro onde estava"}
+  - {event: campsverso.action.completed.v1, where: {action: fertilize}, text: "{avatar_id} adubou o {params.target}"}
+  - {event: campsverso.action.completed.v1, where: {action: cook}, text: "{avatar_id} cozinhou {params.recipe}"}
+  - {event: campsverso.action.completed.v1, where: {action: place}, text: "{avatar_id} fincou {params.item} em {params.target}"}
+  - {event: campsverso.action.completed.v1, where: {action: place}, text: "{avatar_id} fincou {params.item} onde estava"}
+  - {event: campsverso.action.completed.v1, text: "{avatar_id} terminou: {action}"}
+  - {event: campsverso.action.rejected.v1, text: "recusado: {action} de {avatar_id} ({reason}: {detail})"}
+  - {event: campsverso.action.rejected.v1, text: "recusado: {action} de {avatar_id} ({reason})"}
+  - {event: campsverso.action.failed.v1, text: "{action} de {avatar_id} parou no meio ({reason})"}
+  - {event: campsverso.world.command.rejected.v1, text: "comando recusado: {command_type} ({reason})"}
+  # os itens
+  - {event: campsverso.world.item.created.v1, where: {reason: harvest}, text: "{container_id} colheu {qty} {item}"}
+  - {event: campsverso.world.item.created.v1, where: {reason: buy}, text: "{container_id} recebeu {qty} {item} do quiosque"}
+  - {event: campsverso.world.item.created.v1, where: {reason: payment}, text: "o comprador pagou {qty} moedas a {container_id}"}
+  - {event: campsverso.world.item.created.v1, where: {reason: initial}, text: "{container_id} começa com {qty} {item}"}
+  - {event: campsverso.world.item.created.v1, where: {reason: cook}, text: "{container_id} ficou com {qty} {item} do fogão"}
+  - {event: campsverso.world.item.created.v1, text: "{container_id} ganhou {qty} {item} ({reason})"}
+  - {event: campsverso.world.item.consumed.v1, where: {reason: eat}, text: "{container_id} comeu {qty} {item}"}
+  - {event: campsverso.world.item.consumed.v1, where: {reason: plant}, text: "{container_id} gastou {qty} {item} no plantio"}
+  - {event: campsverso.world.item.consumed.v1, where: {reason: buy_payment}, text: "{container_id} pagou {qty} moedas"}
+  - {event: campsverso.world.item.consumed.v1, where: {reason: buyer_collect}, text: "o comprador levou {qty} {item} da caixa"}
+  - {event: campsverso.world.item.consumed.v1, where: {reason: spoiled}, text: "{qty} {item} de {container_id} estragou"}
+  - {event: campsverso.world.item.consumed.v1, text: "{container_id} gastou {qty} {item} ({reason})"}
+  - {event: campsverso.world.item.transferred.v1, where: {reason: sell}, text: "{qty} {item} foi para a caixa de vendas"}
+  - {event: campsverso.world.item.transferred.v1, text: "{qty} {item} passou de {from_container} para {to_container}"}
+  - {event: campsverso.world.entity.stored.v1, text: "{entity_id} passou de {from_container} para {to_container}"}
+  # o mundo
+  - {event: campsverso.world.session.started.v1, text: "o mundo começou (semente {seed})"}
+  - {event: campsverso.world.clock.phase_changed.v1, text: "dia {day}: {phase} ({date})"}
+  - {event: campsverso.world.clock.phase_changed.v1, text: "dia {day}: {phase}"}
+  - {event: campsverso.world.clock.season_changed.v1, text: "começou a estação: {season}"}
+  - {event: campsverso.world.weather.changed.v1, where: {condition: rain}, text: "chove no dia {day}"}
+  - {event: campsverso.world.weather.changed.v1, where: {condition: sun}, text: "sol no dia {day}"}
+  - {event: campsverso.world.weather.changed.v1, text: "o tempo do dia {day}: {condition}"}
+  - {event: campsverso.world.entity.spawned.v1, where: {kind: plot}, text: "um canteiro novo: {entity_id} em {position}"}
+  - {event: campsverso.world.entity.spawned.v1, text: "surgiu {display_name} ({entity_id})"}
+  - {event: campsverso.world.entity.spawned.v1, text: "surgiu {entity_id} ({kind})"}
+  - {event: campsverso.world.entity.despawned.v1, where: {reason: reverted_to_grass}, text: "o {entity_id} voltou a ser grama"}
+  - {event: campsverso.world.entity.despawned.v1, text: "{entity_id} sumiu ({reason})"}
+  - {event: campsverso.world.entity.moved.v1, text: "{entity_id} sai andando de {origin}"}
+  - {event: campsverso.world.entity.move_interrupted.v1, text: "{entity_id} parou em {position} ({reason})"}
+  - {event: campsverso.world.need.threshold_crossed.v1, where: {direction: up}, text: "a {need} de {avatar_id} passou de {threshold}"}
+  - {event: campsverso.world.need.threshold_crossed.v1, text: "a {need} de {avatar_id} voltou abaixo de {threshold}"}
+  - {event: campsverso.world.need.changed.v1, text: "{need} de {avatar_id}: {value}"}
+  # o corpo e quem controla
+  - {event: campsverso.avatar.sleep.started.v2, where: {cause: faint}, text: "{avatar_id} apagou no chão até as 06:00"}
+  - {event: campsverso.avatar.sleep.started.v2, text: "{avatar_id} dormiu na {bed_id}"}
+  - {event: campsverso.avatar.sleep.started.v2, text: "{avatar_id} dormiu no chão"}
+  - {event: campsverso.avatar.sleep.ended.v2, text: "{avatar_id} acordou com {energy} de energia"}
+  - {event: campsverso.avatar.fainted.v1, where: {reason: late_night}, text: "{avatar_id} desmaiou de sono às 02:00"}
+  - {event: campsverso.avatar.fainted.v1, text: "{avatar_id} desmaiou de cansaço"}
+  - {event: campsverso.avatar.possessed.v1, text: "{controller.id} assumiu {avatar_id}"}
+  - {event: campsverso.avatar.released.v1, text: "{avatar_id} foi devolvido"}
+  - {event: campsverso.avatar.decision_requested.v1, text: "{avatar_id} decide o próximo passo"}
+  # a fazenda
+  - {event: campsverso.farm.crop.matured.v1, text: "{crop} amadureceu no {plot_id} em {days} dias"}
+  - {event: campsverso.farm.crop.withered.v1, text: "{crop} murchou no {plot_id}"}
+  - {event: campsverso.farm.crop.eaten.v1, text: "amanheceu comido o {crop} do {plot_id}"}
+  - {event: campsverso.farm.buyer.paid.v1, text: "o comprador pagou {total} moedas pela caixa"}
+  # a mente e quem joga (os eventos da plataforma, até haver uma camada comum a todos os cartuchos)
+  - {event: campsverso.cmd.action.propose.v1, text: "{avatar_id} propõe {action}: {intent}"}
+  - {event: campsverso.cmd.action.propose.v1, text: "{avatar_id} propõe {action}"}
+  - {event: campsverso.memory.noted.v1, text: "anotou: {text}"}
+  - {event: campsverso.memory.belief.formed.v1, text: "passou a crer: {statement}"}
+  - {event: campsverso.memory.belief.updated.v1, text: "revisou: {statement}"}
+  - {event: campsverso.memory.belief.retracted.v1, text: "deixou de crer: {statement}"}
+  - {event: campsverso.memory.reflected.v1, text: "refletiu sobre o dia {day}: {summary}"}
+  - {event: campsverso.llm.call.completed.v1, text: "chamou {model} ({purpose}), US$ {cost_usd}"}
+  - {event: campsverso.llm.call.completed.v1, text: "chamou {model} ({purpose})"}
+  - {event: campsverso.perception.delivered.v1, text: "{avatar_id} recebeu a foto do mundo"}
+  - {event: campsverso.perception.updated.v1, text: "{avatar_id} recebeu o que mudou"}

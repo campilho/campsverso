@@ -354,6 +354,10 @@ export interface AffordanceParam {
   source: "any" | "inventory" | "target";
   minimum?: number;
   default?: number;
+  /**
+   * As escolhas incluem também as entidades guardadas na fonte, pelo id: as ferramentas no inventário ou no baú (ADR-0068).
+   */
+  entities?: boolean;
 }
 /**
  * Uma ação no menu de um tipo de entidade, ou do próprio avatar (`self`). O menu só sugere; quem decide é o kernel (ADR-0051).
@@ -365,7 +369,7 @@ export interface Affordance {
   action: Token;
   label: string;
   /**
-   * Tipos de entidade em que a ação aparece; `self` é o próprio avatar.
+   * Tipos de entidade em que a ação aparece; `self` é o próprio avatar; um tipo de terreno (`grass`) põe a ação no menu de um tile vazio desse terreno, e o tile vai em `target` como `{x, y}` (ADR-0068).
    *
    * @minItems 1
    */
@@ -375,6 +379,25 @@ export interface Affordance {
    */
   target: boolean;
   params?: AffordanceParam[];
+}
+/**
+ * Como a linha do tempo conta um tipo de evento, declarado pelo cartucho (ADR-0068). Vale o rótulo mais específico (mais campos em `where`) cujos campos do texto existem no evento; no empate, o primeiro declarado. Sem rótulo, a tela mostra o tipo cru.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "EventLabel".
+ */
+export interface EventLabel {
+  event: string;
+  /**
+   * Campos do evento que precisam bater; caminhos com ponto (`params.action`).
+   */
+  where?: {
+    [k: string]: Scalar | undefined;
+  };
+  /**
+   * O texto, com campos do evento entre chaves e caminhos com ponto (`plantou {params.crop} no {params.target}`).
+   */
+  text: string;
 }
 /**
  * Uma métrica do dia simulado, declarada pelo cartucho e contada pela projeção comum (ADR-0054). `count` conta um tipo de evento; `max_need` guarda o pico de uma necessidade; `item` guarda a quantidade de um item com os avatares no fim do dia.
@@ -1628,6 +1651,12 @@ export interface WorldSessionStartedV1 {
    * @maxItems 64
    */
   metrics?: Metric[];
+  /**
+   * Os rótulos da linha do tempo que o cartucho declara (ADR-0068).
+   *
+   * @maxItems 256
+   */
+  labels?: EventLabel[];
   perception?: PerceptionConfig;
 }
 export interface SessionMap {
@@ -1849,6 +1878,10 @@ export interface ObserverSession {
    * O catálogo de métricas do session.started (ADR-0054).
    */
   metrics?: Metric[];
+  /**
+   * Os rótulos da linha do tempo do session.started (ADR-0068).
+   */
+  labels?: EventLabel[];
   perception?: PerceptionConfig;
 }
 /**

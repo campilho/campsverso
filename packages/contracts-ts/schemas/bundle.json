@@ -216,6 +216,10 @@
         },
         "default": {
           "type": "integer"
+        },
+        "entities": {
+          "type": "boolean",
+          "description": "As escolhas incluem também as entidades guardadas na fonte, pelo id: as ferramentas no inventário ou no baú (ADR-0068)."
         }
       }
     },
@@ -245,7 +249,7 @@
           "items": {
             "$ref": "#/$defs/Token"
           },
-          "description": "Tipos de entidade em que a ação aparece; `self` é o próprio avatar."
+          "description": "Tipos de entidade em que a ação aparece; `self` é o próprio avatar; um tipo de terreno (`grass`) põe a ação no menu de um tile vazio desse terreno, e o tile vai em `target` como `{x, y}` (ADR-0068)."
         },
         "target": {
           "type": "boolean",
@@ -268,6 +272,35 @@
         "cancel",
         "partial"
       ]
+    },
+    "EventLabel": {
+      "title": "EventLabel",
+      "description": "Como a linha do tempo conta um tipo de evento, declarado pelo cartucho (ADR-0068). Vale o rótulo mais específico (mais campos em `where`) cujos campos do texto existem no evento; no empate, o primeiro declarado. Sem rótulo, a tela mostra o tipo cru.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event",
+        "text"
+      ],
+      "properties": {
+        "event": {
+          "type": "string",
+          "pattern": "^campsverso\\.[a-z0-9_]+(\\.[a-z0-9_]+)*\\.v[0-9]+$"
+        },
+        "where": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/Scalar"
+          },
+          "description": "Campos do evento que precisam bater; caminhos com ponto (`params.action`)."
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "description": "O texto, com campos do evento entre chaves e caminhos com ponto (`plantou {params.crop} no {params.target}`)."
+        }
+      }
     },
     "Metric": {
       "title": "Metric",
@@ -3228,6 +3261,14 @@
           },
           "description": "Catálogo de métricas do dia que o cartucho declara (ADR-0054)."
         },
+        "labels": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/EventLabel"
+          },
+          "description": "Os rótulos da linha do tempo que o cartucho declara (ADR-0068)."
+        },
         "perception": {
           "$ref": "#/$defs/PerceptionConfig",
           "description": "O raio de percepção declarado pelo cartucho; vale para todos os atores (ADR-0056)."
@@ -3610,6 +3651,13 @@
                     "$ref": "#/$defs/Metric"
                   },
                   "description": "O catálogo de métricas do session.started (ADR-0054)."
+                },
+                "labels": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/EventLabel"
+                  },
+                  "description": "Os rótulos da linha do tempo do session.started (ADR-0068)."
                 },
                 "perception": {
                   "$ref": "#/$defs/PerceptionConfig"

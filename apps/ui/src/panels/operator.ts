@@ -4,12 +4,12 @@
  * Os botões só pedem: quem aceita ou recusa é o kernel, e a resposta volta como evento. Desabilitar
  * "Avançar" fora da pausa é conforto (ADR-0026), não regra.
  */
-import type { EnvelopeV1, ObserverState, RealtimeReplyV1 } from "@campsverso/contracts";
+import type { EnvelopeV1, EventLabel, ObserverState, RealtimeReplyV1 } from "@campsverso/contracts";
 
 import { button, el } from "../dom.ts";
 import { metricTable } from "../metrics.ts";
 import { clockText } from "../simclock.ts";
-import { matches, shortType, summarize, type TimelineFilter, type Visibility } from "../timeline.ts";
+import { describe, matches, shortType, summarize, type TimelineFilter, type Visibility } from "../timeline.ts";
 
 const CMD = "campsverso.cmd.clock.";
 const VISIBILITIES: readonly Visibility[] = ["world", "agent", "internal", "observer"];
@@ -84,7 +84,7 @@ export class OperatorPanel {
     this.renderDecision(state, avatarId);
     this.renderNotebook(state, avatarId);
     this.renderMetrics(state);
-    this.renderTimeline(timeline);
+    this.renderTimeline(timeline, state.session?.labels ?? []);
   }
 
   private renderMetrics(state: ObserverState): void {
@@ -211,7 +211,7 @@ export class OperatorPanel {
     );
   }
 
-  private renderTimeline(timeline: readonly EnvelopeV1[]): void {
+  private renderTimeline(timeline: readonly EnvelopeV1[], labels: readonly EventLabel[]): void {
     const key = `${String(timeline.length)}:${timeline.at(-1)?.id ?? ""}`;
     if (key === this.shown.timeline) {
       return;
@@ -224,14 +224,16 @@ export class OperatorPanel {
         continue;
       }
       const rejected = event.type.endsWith(".rejected.v1");
+      // O rótulo do cartucho, quando há (ADR-0068); embaixo, o tipo cru, para quem depura.
+      const label = describe(event, labels);
       rows.push(
         el(
           "li",
           { className: `${event.visibility}${rejected ? " rejected" : ""}`, title: JSON.stringify(event.data, null, 2) },
           el("span", { className: "tick" }, String(event.tick ?? "")),
           el("span", { className: "vis-tag" }, event.visibility),
-          el("span", { className: "type" }, shortType(event.type)),
-          el("span", { className: "summary" }, summarize(event)),
+          label === undefined ? el("span", { className: "type" }, shortType(event.type)) : el("span", { className: "type label" }, label),
+          el("span", { className: "summary" }, label === undefined ? summarize(event) : shortType(event.type)),
         ),
       );
     }

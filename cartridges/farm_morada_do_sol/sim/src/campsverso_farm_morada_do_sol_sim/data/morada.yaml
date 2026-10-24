@@ -82,6 +82,10 @@ affordances:
     kinds: [self]
     target: false
     params: [{name: item, label: Item, choices: [espantalho], source: inventory}]
+  - action: place  # o menu da grama (ADR-0068)
+    label: Fincar aqui
+    kinds: [grass]
+    params: [{name: item, label: Item, choices: [espantalho], source: inventory}]
   - action: buy
     label: Comprar
     kinds: [kiosk]

@@ -247,6 +247,8 @@ class KernelCore:
                     param["minimum"] = p.minimum
                 if p.default is not None:
                     param["default"] = p.default
+                if p.entities:
+                    param["entities"] = True
                 params.append(param)
             if params:
                 entry["params"] = params
@@ -273,6 +275,14 @@ class KernelCore:
             catalog.append(entry)
         return {"metrics": catalog} if catalog else {}
 
+    def _labels(self) -> dict[str, Any]:
+        """Os rótulos da linha do tempo (ADR-0068); ausente se o cartucho não declarar nenhum."""
+        catalog = [
+            {"event": x.event, "text": x.text} | ({"where": dict(x.where)} if x.where else {})
+            for x in self.definition.labels
+        ]
+        return {"labels": catalog} if catalog else {}
+
     def start(self) -> None:
         world = self.world
         grid = self.definition.grid
@@ -297,6 +307,7 @@ class KernelCore:
                 "perception": self._perception(),
                 **self._affordances(),
                 **self._metrics(),
+                **self._labels(),
             },
         )
         world.emit_fact(
@@ -803,15 +814,15 @@ class KernelCore:
     def _validate_move(
         self, avatar: Avatar, params: Mapping[str, Any]
     ) -> tuple[Validation, Trajectory | None]:
-        """`{target: {x, y}}` ou `{near: entity_id}`: o tile livre mais perto ao lado (ADR-0047)."""
+        """`{target: {x, y}}` ou `{near: entity_id | {x, y}}`: no `near`, o tile livre mais perto ao
+        lado da coisa ou do tile (ADR-0047; o tile, ADR-0068)."""
         origin = self.world.position_of(avatar.avatar_id)
         assert origin is not None
         raw, near = params.get("target"), params.get("near")
         if (raw is None) == (near is None):
             return Rejection("invalid_params", "move exige target {x, y} ou near"), None
         if near is not None:
-            entity = self.world.entity_map.get(near) if isinstance(near, str) else None
-            spot = None if entity is None else self.world.position_of(entity.entity_id)
+            spot = self._near_spot(near)
             if spot is None:
                 return Rejection("invalid_params", f"{near!r} não é uma entidade no mapa"), None
             if origin.chebyshev(spot) <= 1:
@@ -843,6 +854,20 @@ class KernelCore:
         duration = max(1, math.ceil((len(path) - 1) / self.tiles_per_tick - 1e-9))
         trajectory = Trajectory(origin, tuple(path), self.tick, self.tiles_per_tick)
         return Accepted(duration, "cancel"), trajectory
+
+    def _near_spot(self, near: Any) -> Position | None:
+        """Onde fica o `near` de um move: a entidade no mapa, ou um tile `{x, y}` dentro dele."""
+        if isinstance(near, str):
+            entity = self.world.entity_map.get(near)
+            return None if entity is None else self.world.position_of(entity.entity_id)
+        if not isinstance(near, Mapping):
+            return None
+        raw = cast(Mapping[str, Any], near)
+        x, y = raw.get("x"), raw.get("y")
+        if not isinstance(x, int) or not isinstance(y, int):
+            return None
+        spot = Position(x, y)
+        return spot if self.definition.grid.in_bounds(spot) else None
 
     def _complete(self, avatar: Avatar) -> None:
         world = self.world

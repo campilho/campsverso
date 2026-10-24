@@ -13,6 +13,8 @@ export interface WorldRenderer {
   draw(state: ObserverState, tick: number): void;
   /** Quem a câmera segue, num mapa maior que a tela (ADR-0067); o canvas de depuração não segue. */
   follow?(entityId: string): void;
+  /** Volta a seguir quem a câmera segue, depois de arrastar o mapa (a tecla espaço; ADR-0068). */
+  recenter?(): void;
   /** A névoa da visão do jogador (ADR-0068): sempre, ou com o botão do operador. */
   setFog?(mode: "always" | "toggle"): void;
   /** O centro de um tile em coordenadas da tela, pela câmera; para os testes no navegador. */
