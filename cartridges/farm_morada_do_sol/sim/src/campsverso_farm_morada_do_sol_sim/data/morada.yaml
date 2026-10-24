@@ -12,7 +12,7 @@ year:  # o ano acelerado (ADR-0067): 28 dias simulados, 7 por estação, no hemi
 perception:
   radius: 12  # script e LLM veem 12 tiles em volta; a névoa na tela é do M17
   # As construções fixas se veem além do raio: quem mora na fazenda sabe onde ficam (ADR-0067).
-  landmarks: [bed, door, chest, stove, well, sell_box, kiosk, order_board]
+  landmarks: [bed, door, chest, stove, well, sell_box, kiosk, order_board, fair_stall]
   # A noite enxerga menos, e a lanterna no inventário garante 10 (ADR-0068); visível, no manual.
   by_phase: {amanhecer: 12, meio_dia: 12, entardecer: 7, noite: 5, madrugada: 5}
   lights: {lanterna: 10}
@@ -29,6 +29,17 @@ kinds:
   scarecrow: {blocking: true}
   order_board: {blocking: true, capacity: 100}  # o quadro de encomendas: os pedidos ficam dentro dele
   order: {weight: 0}  # um pedido do quadro (ADR-0069)
+  fair_stall: {blocking: true}  # a barraca da feira, na entrada da fazenda
+
+fair:  # a feira (ADR-0069): a agenda da libs/economy; a barraca paga na hora
+  kind: fair_stall
+  every: 7  # a cada 7 dias: o último dia de cada estação
+  first: 7
+  opens: "06:00"
+  closes: "14:00"
+  premium: 0.3  # 30% acima da referência do mercado
+  sell: {step: 0.02, floor: 0.4, recovery: 1.0}  # a pressão própria, que zera a cada feira
+  categories: [colheita]  # o que a barraca compra; os produtos do tacho entram com ele
 
 orders:  # o quadro de encomendas (ADR-0069), sobre a libs/economy
   board_kind: order_board
@@ -103,6 +114,12 @@ actions:
   deliver_order: {duration: 5, energy: 1, interrupt: never}
 
 affordances:
+  - action: sell  # na caixa de vendas, como no gênero, e na barraca da feira (ADR-0069)
+    label: Vender
+    kinds: [sell_box, fair_stall]
+    params:
+      - {name: item, label: Colheita, choices: {category: [colheita]}, source: inventory}
+      - {name: qty, label: Quantidade, minimum: 1, default: 1}
   - action: accept_order
     label: Aceitar a encomenda
     kinds: [order_board]

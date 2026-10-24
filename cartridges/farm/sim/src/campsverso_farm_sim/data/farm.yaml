@@ -204,6 +204,7 @@ labels:
   - {event: campsverso.action.completed.v1, where: {action: deposit}, text: "{avatar_id} guardou {params.item} no {params.target}"}
   - {event: campsverso.action.completed.v1, where: {action: withdraw}, text: "{avatar_id} pegou {params.qty} {params.item} do {params.target}"}
   - {event: campsverso.action.completed.v1, where: {action: withdraw}, text: "{avatar_id} pegou {params.item} do {params.target}"}
+  - {event: campsverso.action.completed.v1, where: {action: sell, params.target: feira}, text: "{avatar_id} vendeu {params.qty} {params.item} na feira"}
   - {event: campsverso.action.completed.v1, where: {action: sell}, text: "{avatar_id} pôs {params.qty} {params.item} na caixa de vendas"}
   - {event: campsverso.action.completed.v1, where: {action: sell}, text: "{avatar_id} pôs {params.item} na caixa de vendas"}
   - {event: campsverso.action.completed.v1, where: {action: buy}, text: "{avatar_id} comprou {params.qty} {params.item}"}
@@ -230,6 +231,7 @@ labels:
   - {event: campsverso.world.item.created.v1, where: {reason: payment}, text: "o comprador pagou {qty} moedas a {container_id}"}
   - {event: campsverso.world.item.created.v1, where: {reason: initial}, text: "{container_id} começa com {qty} {item}"}
   - {event: campsverso.world.item.created.v1, where: {reason: cook}, text: "{container_id} ficou com {qty} {item} do fogão"}
+  - {event: campsverso.world.item.created.v1, where: {reason: fair_payment}, text: "{container_id} recebeu {qty} moedas na feira"}
   - {event: campsverso.world.item.created.v1, where: {reason: order_payment}, text: "{container_id} recebeu {qty} moedas de uma encomenda"}
   - {event: campsverso.world.item.created.v1, text: "{container_id} ganhou {qty} {item} ({reason})"}
   - {event: campsverso.world.item.consumed.v1, where: {reason: eat}, text: "{container_id} comeu {qty} {item}"}
@@ -237,6 +239,7 @@ labels:
   - {event: campsverso.world.item.consumed.v1, where: {reason: buy_payment}, text: "{container_id} pagou {qty} moedas"}
   - {event: campsverso.world.item.consumed.v1, where: {reason: buyer_collect}, text: "o comprador levou {qty} {item} da caixa"}
   - {event: campsverso.world.item.consumed.v1, where: {reason: spoiled}, text: "{qty} {item} de {container_id} estragou"}
+  - {event: campsverso.world.item.consumed.v1, where: {reason: fair_sale}, text: "{container_id} vendeu {qty} {item} na feira"}
   - {event: campsverso.world.item.consumed.v1, where: {reason: order}, text: "{container_id} entregou {qty} {item} numa encomenda"}
   - {event: campsverso.world.item.consumed.v1, text: "{container_id} gastou {qty} {item} ({reason})"}
   - {event: campsverso.world.item.transferred.v1, where: {reason: sell}, text: "{qty} {item} foi para a caixa de vendas"}

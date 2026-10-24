@@ -8,7 +8,7 @@
  "tilewidth": 32,
  "tileheight": 32,
  "nextlayerid": 3,
- "nextobjectid": 11,
+ "nextobjectid": 12,
  "tilesets": [
   {
    "firstgid": 1,
@@ -2868,6 +2868,24 @@
        "name": "display_name",
        "type": "string",
        "value": "Quadro de encomendas"
+      }
+     ]
+    },
+    {
+     "id": 11,
+     "name": "feira",
+     "type": "fair_stall",
+     "x": 992,
+     "y": 1184,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Barraca da feira"
       }
      ]
     },

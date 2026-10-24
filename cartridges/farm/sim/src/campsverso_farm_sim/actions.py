@@ -19,6 +19,7 @@ from campsverso_cartridge_api import (
 )
 from campsverso_economy import after_delivery, refuse_delivery, refuse_take
 from campsverso_farm_sim.config import ENERGY, HUNGER, optional, section, ticks_per_hour
+from campsverso_farm_sim.fair import apply_sale, check_sale, fair_stall
 from campsverso_farm_sim.market import buy_from, memory_market, sell_to
 from campsverso_farm_sim.orders import (
     as_order,
@@ -727,6 +728,23 @@ class Place(FarmAction):
         ops.spawn(SpawnDef(f"{kind}-{ops.next_seq(kind):02d}", kind, position=spot))
 
 
+@dataclass(frozen=True)
+class Sell(MoveItems):
+    """Vender: na caixa de vendas, que o comprador paga de manhã, ou, num cenário com feira, na
+    barraca aberta, que paga na hora (ADR-0069)."""
+
+    def check(self, ctx: ActionContext) -> Rejection | None:
+        stall = fair_stall(ctx.view, ctx.params.get("target"))
+        return super().check(ctx) if stall is None else check_sale(ctx, stall)
+
+    def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
+        stall = fair_stall(ctx.view, ctx.params.get("target"))
+        if stall is None:
+            super().apply(ctx, ops)
+        else:
+            apply_sale(ctx, ops, stall)
+
+
 def _board_order(ctx: ActionContext) -> tuple[EntityView, EntityView] | Rejection:
     """O quadro ao lado do avatar e o pedido dentro dele (ADR-0069)."""
     data = optional(ctx.view, "orders")
@@ -832,9 +850,7 @@ ALL_ACTIONS: tuple[FarmAction, ...] = (
     Eat(),
     MoveItems(name="deposit", kind="chest", to_container=True, reason="deposit"),
     MoveItems(name="withdraw", kind="chest", to_container=False, reason="withdraw"),
-    MoveItems(
-        name="sell", kind="sell_box", to_container=True, reason="sell", only_category="colheita"
-    ),
+    Sell(name="sell", kind="sell_box", to_container=True, reason="sell", only_category="colheita"),
     Buy(),
     Sleep(),
 )

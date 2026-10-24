@@ -23,6 +23,7 @@ from campsverso_farm_sim.config import (
     season_level,
     section,
 )
+from campsverso_farm_sim.fair import fair_hours
 from campsverso_farm_sim.market import memory_market, turnover
 from campsverso_farm_sim.orders import orders_daily
 
@@ -378,6 +379,17 @@ def build_extension_systems(data: Mapping[str, Any]) -> tuple[FarmSystem, ...]:
                 26,  # depois do mercado (25): o pedido sai pela referência de hoje
                 (OnSessionStart(), DailyAt((day_start,))),
                 orders_daily,
+            )
+        )
+    if "fair" in data:
+        fair = data["fair"]
+        systems.append(
+            FarmSystem(
+                "fair_hours",
+                "scheduled",
+                27,  # depois do mercado (25) e das encomendas (26): a referência de hoje
+                (OnSessionStart(), DailyAt((str(fair["opens"]), str(fair["closes"])))),
+                fair_hours,
             )
         )
     if "market" in data:
