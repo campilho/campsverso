@@ -14,6 +14,7 @@ import {
   facingOf,
   frameOf,
   lookOf,
+  seasonSheet,
   seasonTint,
   shadeOf,
   tileLook,
@@ -229,6 +230,7 @@ class WorldScene extends Phaser.Scene {
   private visual: Phaser.Tilemaps.Tilemap | undefined;
   private ground: Phaser.Tilemaps.TilemapLayer | Phaser.Tilemaps.TilemapGPULayer | undefined;
   private tinted: string | undefined;
+  private season: string | undefined; // a estação já desenhada nas folhas do mapa visual
   private readonly things = new Map<string, ThingView>();
   private readonly avatars = new Map<string, AvatarView>();
   private readonly seen = new Map<string, Point>(); // onde cada avatar aparece agora, em tiles
@@ -316,6 +318,7 @@ class WorldScene extends Phaser.Scene {
         });
         this.visual = map;
         this.tinted = undefined; // a camada nova ainda não tem o tom da estação
+        this.season = undefined;
       } else {
         map.destroy();
       }
@@ -407,8 +410,18 @@ class WorldScene extends Phaser.Scene {
     }
   }
 
-  /** O chão no tom da estação (ADR-0067); só muda quando a estação muda. */
+  /** O chão no tom da estação e as folhas da estação no mapa visual (ADR-0067); só muda quando
+   * a estação muda. */
   private tint(season: string | undefined): void {
+    if (this.visual !== undefined && season !== this.season) {
+      for (const tileset of this.visual.tilesets) {
+        const sheet = seasonSheet(this.art, season, tileset.name);
+        if (this.textures.exists(sheet)) {
+          tileset.setImage(this.textures.get(sheet));
+        }
+      }
+      this.season = season;
+    }
     const color = seasonTint(this.art, season);
     if (this.ground === undefined || color === this.tinted) {
       return;

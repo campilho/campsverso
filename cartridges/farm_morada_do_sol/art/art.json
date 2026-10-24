@@ -4,7 +4,8 @@
   "visual_map": "map-visual.tmj",
   "kinds": {
     "scarecrow": {
-      "color": "#c9a227",
+      "sheet": "morada-objects",
+      "frame": 0,
       "label": "Espantalho"
     }
   },
@@ -16,10 +17,38 @@
       "tint": "#fff1c9"
     },
     "outono": {
-      "tint": "#f2d6a2"
+      "tint": "#f2d6a2",
+      "tilesets": {
+        "trees": "trees-outono"
+      }
     },
     "inverno": {
-      "tint": "#d6e0e6"
+      "tint": "#d6e0e6",
+      "tilesets": {
+        "trees": "trees-inverno"
+      }
+    }
+  },
+  "sheets": {
+    "morada-objects": {
+      "image": "objects.png",
+      "frame_width": 64,
+      "frame_height": 96
+    },
+    "trees": {
+      "image": "trees.png",
+      "frame_width": 32,
+      "frame_height": 32
+    },
+    "trees-outono": {
+      "image": "trees-outono.png",
+      "frame_width": 32,
+      "frame_height": 32
+    },
+    "trees-inverno": {
+      "image": "trees-inverno.png",
+      "frame_width": 32,
+      "frame_height": 32
     }
   }
 }

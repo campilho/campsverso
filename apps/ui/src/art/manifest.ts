@@ -86,8 +86,11 @@ export interface ArtManifest {
   readonly kinds?: Readonly<Record<string, KindArt>>;
   /** Quanto escurecer em cada fase do dia (0 a 1). */
   readonly phases?: Readonly<Record<string, { readonly shade: number }>>;
-  /** A cor que tinge o chão em cada estação do ano acelerado (ADR-0067). */
-  readonly seasons?: Readonly<Record<string, { readonly tint: string }>>;
+  /** Em cada estação do ano acelerado (ADR-0067): a cor que tinge o chão e as folhas que trocam
+   * as do mapa visual (as árvores de outono, por exemplo), pelo nome do tileset. */
+  readonly seasons?: Readonly<
+    Record<string, { readonly tint?: string; readonly tilesets?: Readonly<Record<string, string>> }>
+  >;
   /** Efeito de cada condição do clima. */
   readonly weather?: Readonly<Record<string, { readonly effect: "rain" }>>;
   /** O mapa visual (Tiled), desenhado no lugar das cores dos tiles. */
@@ -185,6 +188,11 @@ export function tileLook(manifest: ArtManifest, type: string): Look {
 /** O tom do chão na estação; branco (sem tingir) fora de um ano declarado. */
 export function seasonTint(manifest: ArtManifest, season: string | undefined): string {
   return season === undefined ? "#ffffff" : (manifest.seasons?.[season]?.tint ?? "#ffffff");
+}
+
+/** A folha que desenha o tileset na estação; o próprio nome do tileset fora de uma troca. */
+export function seasonSheet(manifest: ArtManifest, season: string | undefined, tileset: string): string {
+  return season === undefined ? tileset : (manifest.seasons?.[season]?.tilesets?.[tileset] ?? tileset);
 }
 
 export function shadeOf(manifest: ArtManifest, phase: string): number {

@@ -34,6 +34,10 @@ def visual_map(scenario: str) -> Path:
 LOGIC = logic_map("farm_camps")
 OUT = visual_map("farm_camps")
 TILESET_IMAGE = "../../farm/art/terrain.png"  # relativo ao mapa visual, para abrir no Tiled
+# Árvores LPC por cima da mata (ADR-0067): só nos cenários listados, na folha `trees.png` da
+# pasta de arte deles, 4 árvores de 3 x 4 tiles lado a lado. As fazendas 1 e 2 ficam com a cerca.
+TREE_SCENARIOS = ("farm_morada_do_sol",)
+TREES, TREE_W, TREE_H = 4, 3, 4
 
 PATHS = {"path", "entrance"}
 HOUSE = {"wall", "floor", "door"}
@@ -141,7 +145,29 @@ def _overlays(types: Grid, x: int, y: int) -> list[str]:
     return [f"dirt-edge-{piece}" for piece in edges]
 
 
-def build(logic: Mapping[str, Any], tileset: Mapping[str, Any]) -> dict[str, Any]:
+def _trees(types: Grid, first: int) -> list[int]:
+    """Árvores carimbadas na mata: a cada 3 colunas e 4 linhas, com as linhas desencontradas, onde
+    o tronco e os dois lados dele são mata. Uma árvore de 3 x 4 tiles nunca cobre outra."""
+    height, width = len(types), len(types[0])
+    data = [0] * (width * height)
+    for base in range(TREE_H - 1, height, TREE_H):
+        shift = (base // TREE_H) % 2
+        for x in range(1 + shift, width - 1, TREE_W):
+            if not all(types[base][cx] == "tree" for cx in (x - 1, x, x + 1)):
+                continue
+            tree = _variant(x, base, TREES)
+            for row in range(TREE_H):
+                for col in range(TREE_W):
+                    ty, tx = base - TREE_H + 1 + row, x - 1 + col
+                    if 0 <= ty < height:
+                        tile = row * TREES * TREE_W + tree * TREE_W + col
+                        data[ty * width + tx] = first + tile
+    return data
+
+
+def build(
+    logic: Mapping[str, Any], tileset: Mapping[str, Any], *, trees: bool = False
+) -> dict[str, Any]:
     types = logical_types(logic)
     height, width = len(types), len(types[0])
     gid = {str(t["type"]): int(t["id"]) + 1 for t in tileset["tiles"]}
@@ -152,6 +178,25 @@ def build(logic: Mapping[str, Any], tileset: Mapping[str, Any]) -> dict[str, Any
     for level in range(depth):
         data = [gid[s[level]] if level < len(s) else 0 for s in stacks]
         layers.append({"name": f"over-{level + 1}", "data": data})
+    tilesets: list[dict[str, Any]] = [{"firstgid": 1, **dict(tileset), "image": TILESET_IMAGE}]
+    if trees:
+        first = 1 + int(tileset["tilecount"])
+        layers.append({"name": "trees", "data": _trees(types, first)})
+        tilesets.append(
+            {
+                "firstgid": first,
+                "name": "trees",
+                "tilewidth": 32,
+                "tileheight": 32,
+                "tilecount": TREES * TREE_W * TREE_H,
+                "columns": TREES * TREE_W,
+                "margin": 0,
+                "spacing": 0,
+                "image": "trees.png",
+                "imagewidth": TREES * TREE_W * 32,
+                "imageheight": TREE_H * 32,
+            }
+        )
     return {
         "type": "map",
         "version": "1.10",
@@ -187,7 +232,7 @@ def build(logic: Mapping[str, Any], tileset: Mapping[str, Any]) -> dict[str, Any
             }
             for i, layer in enumerate(layers)
         ],
-        "tilesets": [{"firstgid": 1, **dict(tileset), "image": TILESET_IMAGE}],
+        "tilesets": tilesets,
     }
 
 
@@ -218,7 +263,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         source, out = logic_map(scenario), visual_map(scenario)
         if not out.parent.exists():
             continue  # o cenário ainda não tem pasta de arte
-        text = render(build(json.loads(source.read_text(encoding="utf-8")), tileset))
+        logic = json.loads(source.read_text(encoding="utf-8"))
+        text = render(build(logic, tileset, trees=scenario in TREE_SCENARIOS))
         if args.check:
             if not out.exists() or out.read_text(encoding="utf-8") != text:
                 print(

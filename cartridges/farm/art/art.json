@@ -17,6 +17,11 @@
       "image": "crops.png",
       "frame_width": 32,
       "frame_height": 64
+    },
+    "crops2": {
+      "image": "crops2.png",
+      "frame_width": 32,
+      "frame_height": 64
     }
   },
   "tiles": {
@@ -373,6 +378,170 @@
           "look": {
             "sheet": "crops",
             "frame": 20,
+            "tint": "#9c8a5a"
+          }
+        },
+        {
+          "when": {
+            "crop": "milho",
+            "stage": "broto"
+          },
+          "look": {
+            "sheet": "crops2",
+            "frame": 0
+          }
+        },
+        {
+          "when": {
+            "crop": "melancia",
+            "stage": "broto"
+          },
+          "look": {
+            "sheet": "crops2",
+            "frame": 1
+          }
+        },
+        {
+          "when": {
+            "crop": "mandioca",
+            "stage": "broto"
+          },
+          "look": {
+            "sheet": "crops2",
+            "frame": 2
+          }
+        },
+        {
+          "when": {
+            "crop": "couve",
+            "stage": "broto"
+          },
+          "look": {
+            "sheet": "crops2",
+            "frame": 3
+          }
+        },
+        {
+          "when": {
+            "crop": "milho",
+            "stage": "crescendo"
+          },
+          "look": {
+            "sheet": "crops2",
+            "frame": 8
+          }
+        },
+        {
+          "when": {
+            "crop": "melancia",
+            "stage": "crescendo"
+          },
+          "look": {
+            "sheet": "crops2",
+            "frame": 9
+          }
+        },
+        {
+          "when": {
+            "crop": "mandioca",
+            "stage": "crescendo"
+          },
+          "look": {
+            "sheet": "crops2",
+            "frame": 10
+          }
+        },
+        {
+          "when": {
+            "crop": "couve",
+            "stage": "crescendo"
+          },
+          "look": {
+            "sheet": "crops2",
+            "frame": 11
+          }
+        },
+        {
+          "when": {
+            "crop": "milho",
+            "stage": "madura"
+          },
+          "look": {
+            "sheet": "crops2",
+            "frame": 12
+          }
+        },
+        {
+          "when": {
+            "crop": "melancia",
+            "stage": "madura"
+          },
+          "look": {
+            "sheet": "crops2",
+            "frame": 13
+          }
+        },
+        {
+          "when": {
+            "crop": "mandioca",
+            "stage": "madura"
+          },
+          "look": {
+            "sheet": "crops2",
+            "frame": 14
+          }
+        },
+        {
+          "when": {
+            "crop": "couve",
+            "stage": "madura"
+          },
+          "look": {
+            "sheet": "crops2",
+            "frame": 15
+          }
+        },
+        {
+          "when": {
+            "crop": "milho",
+            "stage": "murcha"
+          },
+          "look": {
+            "sheet": "crops2",
+            "frame": 8,
+            "tint": "#9c8a5a"
+          }
+        },
+        {
+          "when": {
+            "crop": "melancia",
+            "stage": "murcha"
+          },
+          "look": {
+            "sheet": "crops2",
+            "frame": 9,
+            "tint": "#9c8a5a"
+          }
+        },
+        {
+          "when": {
+            "crop": "mandioca",
+            "stage": "murcha"
+          },
+          "look": {
+            "sheet": "crops2",
+            "frame": 10,
+            "tint": "#9c8a5a"
+          }
+        },
+        {
+          "when": {
+            "crop": "couve",
+            "stage": "murcha"
+          },
+          "look": {
+            "sheet": "crops2",
+            "frame": 11,
             "tint": "#9c8a5a"
           }
         }

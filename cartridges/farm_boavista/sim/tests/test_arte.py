@@ -41,11 +41,11 @@ def test_toda_cultura_tem_os_quatro_estagios_desenhados() -> None:
     for crop in crops:
         for stage in STAGES:
             look = looks[(crop, stage)]
-            assert look["sheet"] == "crops"
+            assert look["sheet"] == "crops"  # as da Morada do Sol ficam em crops2 (ADR-0067)
             assert 0 <= int(look["frame"]) < total, (crop, stage)
     assert int(looks[(None, "semente")]["frame"]) < total
     # Só a murcha é tingida: as culturas novas têm desenho próprio, não a cor de reserva.
-    assert {crop for (crop, _), look in looks.items() if "tint" in look} == set(crops)
+    assert set(crops) <= {crop for (crop, _), look in looks.items() if "tint" in look}
     assert all(stage == "murcha" for (_, stage), look in looks.items() if "tint" in look)
 
 
