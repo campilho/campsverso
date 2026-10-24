@@ -60,8 +60,8 @@ A pergunta: **num mundo maior, com estações, encomendas e regras escondidas em
 |---|---|---|
 | Antes do M16: a rodada do humano da v0.2 | o usuário joga a Boa Vista com a seed da rodada do M14 | as ferramentas prontas; a partida espera uma noite livre |
 | M16: a Fazenda Morada do Sol | o cenário novo com o mapa maior e a câmera que rola, canteiros sem teto, o ano acelerado com as quatro estações, as regras ocultas novas, a arte | concluído em 23/out/2026 ([plano](docs/planos/m16-morada-do-sol.md), ADR-0067, [bíblia](docs/arquitetura/fazenda-morada-do-sol-biblia.md)) |
-| M17: ver e assistir | a névoa, a noite e a lanterna; a visão arena, com as corridas ao vivo e gravadas; os menus do humano | próximo |
-| M18: a economia | um módulo de economia reaproveitável: oferta e demanda, encomendas com prazo, a feira, processamento, clima | a fazer |
+| M17: ver e assistir | a névoa, a noite e a lanterna; a visão arena, com as corridas ao vivo e gravadas; os menus do humano | concluído em 24/out/2026 ([plano](docs/planos/m17-ver-e-assistir.md), ADR-0068) |
+| M18: a economia | um módulo de economia reaproveitável: oferta e demanda, encomendas com prazo, a feira, processamento, clima | próximo |
 | M19: os controladores e a medição | o fazendeiro-script 3, o oráculo, o caderno de campo, a prova do mundo e o juiz, as variantes do mapa | a fazer |
 | M20: os ajudantes | vários avatares; cinco personagens contratáveis, cada um com a sua ficha | a fazer |
 | M21: a terceira arena | a rodada do humano da v0.3; Claude, script 3 e oráculo; depois GPT e Gemini | a fazer |
@@ -107,11 +107,11 @@ make check   # lint, tipos, testes, arquitetura e contratos
 make sandbox # um mundo descartável com tudo ligado; a UI fica em http://127.0.0.1:8765/?view=operator
 make sandbox MUNDO=farm-boavista-01 # o mesmo, na Fazenda Boa Vista
 make sandbox MENTE=camps            # o LLM assume o Camps (precisa de ANTHROPIC_API_KEY no .env)
-make sandbox MUNDO=farm-morada-do-sol-01  # a Fazenda Morada do Sol (v0.3, em construção)
+make sandbox MUNDO=farm-morada-do-sol-01  # a Fazenda Morada do Sol (v0.3), com a névoa, a noite e a lanterna
 make run     # o mundo oficial: NATS, kernel, percepção, fazendeiro-script, arquivador, gateway e guarda de orçamento
 make stop    # derruba o NATS
 make ui      # a UI em modo desenvolvimento (Vite), ligada ao gateway do run ou do sandbox
-make ui-e2e  # fumaça da tela num navegador de verdade (Playwright), com um sandbox próprio
+make ui-e2e  # a tela num navegador de verdade (Playwright), com servidores próprios: a fazenda 1, a Morada do Sol e uma rodada sintética da arena
 make mapa-visual    # regrava o mapa visual da fazenda a partir do mapa lógico
 make soak DAYS=30   # 30 dias simulados em modo máximo, com processos e NATS próprios
 make sessoes MARCO=M6   # tempo e tokens do Claude Code por marco, em docs/custos/
@@ -123,10 +123,11 @@ make corrida DIAS=7 # N dias em processo com a mente sobre a API, com ou sem mem
 make arena DIAS=30  # as corridas da arena em data/arena/ (ADR-0061); RODADA=boavista é a segunda rodada, com Sonnet e Opus (ADR-0063)
 make arena-report   # o relatório da arena em docs/arena/
 make arena-humano SANDBOX=data/sandbox/<pasta>  # a sua partida no sandbox como mais uma corrida da rodada
+make assistir PASTA=data/arena/<rodada>  # as corridas de uma rodada na tela, ao vivo ou gravadas: http://127.0.0.1:8765/?view=arena
 make help    # todos os alvos
 ```
 
-O `make run` gera as senhas locais do NATS em `.env`, fora do git. O mundo fica em `data/farm-camps-01/` (estado e snapshots) e o histórico de eventos em `data/archive/`. A UI abre em `http://127.0.0.1:8765/?view=player` (jogador) ou `?view=operator` (operador, com relógio e linha do tempo). O `make sandbox` faz o mesmo numa pasta própria em `data/sandbox/`, sem tocar no mundo oficial; com `MENTE=camps`, a mente assume o Camps (na Boa Vista, `MENTE=camps_boavista`; precisa de `ANTHROPIC_API_KEY` no `.env`). `MUNDO=farm-boavista-01` escolhe a Fazenda Boa Vista no `sandbox`, no `run`, no `soak`, no `replay` e no `metrics`.
+O `make run` gera as senhas locais do NATS em `.env`, fora do git. O mundo fica em `data/farm-camps-01/` (estado e snapshots) e o histórico de eventos em `data/archive/`. A UI abre em `http://127.0.0.1:8765/?view=player` (jogador) ou `?view=operator` (operador, com relógio e linha do tempo). O `make sandbox` faz o mesmo numa pasta própria em `data/sandbox/`, sem tocar no mundo oficial; com `MENTE=camps`, a mente assume o Camps (na Boa Vista, `MENTE=camps_boavista`; precisa de `ANTHROPIC_API_KEY` no `.env`). `MUNDO=farm-boavista-01` escolhe a Fazenda Boa Vista no `sandbox`, no `run`, no `soak`, no `replay` e no `metrics`. Na Morada do Sol, a visão do jogador mostra só o que o Camps vê (a névoa) e quem joga tem o menu da grama, a fila com o shift e o teclado. O `make assistir` abre as corridas de uma rodada da arena lado a lado, montadas do arquivo de eventos de cada uma, com a velocidade da reprodução; um clique abre a corrida na visão do operador, só para ler.
 
 Para jogar, clique em "Assumir o Camps". O clique esquerdo anda; o clique direito abre o menu de ações da coisa clicada, ou o do próprio Camps. "Devolver ao script" devolve o controle ao fazendeiro-script.
 

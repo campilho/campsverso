@@ -164,7 +164,7 @@ llm-smoke: ## uma chamada real pela porta de modelo, medida e publicada pelo con
 	uv run --locked --env-file .env python -m campsverso_tools.llm_smoke --model $(or $(MODEL),claude-haiku-5-5) \
 	  --cassette data/llm/smoke-$$(date +%Y%m%d-%H%M%S).jsonl
 
-ui-e2e: tools ui-build ## fumaça da tela no navegador (Playwright), com um sandbox próprio na porta 8799 [MUNDO=farm-boavista-01]
+ui-e2e: tools ui-build ## a tela no navegador (Playwright): a fazenda 1 (8799), a Morada do Sol (8798) e a arena (8797) [MUNDO=farm-boavista-01]
 	pnpm --filter @campsverso/ui exec playwright test
 
 mapa-visual: ## regrava o mapa visual da fazenda a partir do mapa lógico (ADR-0053)

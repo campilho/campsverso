@@ -27,6 +27,15 @@
 11. **A lanterna desenhada no estilo LPC,** se nenhum pacote tiver uma.
 12. **O manual da Morada do Sol ganha a noite e a lanterna,** e a fita é regravada se o pedido mudar.
 
+## Na implementação
+
+Detalhes que a implementação pediu, dentro das decisões acima (o plano, §8):
+- **O `move` aceita `near: {x, y}`:** o tile livre mais perto ao lado de um tile, como já fazia ao lado de uma entidade. É uma regra de espaço do kernel, genérica, e é o que deixa o Camps andar até o lado da grama antes de cavar.
+- **O menu do terreno:** o `on` de uma afordância aceita um tipo de terreno (`grass`), e o tile vai no `target` como `{x, y}`. O parâmetro ganha `entities`, que junta às escolhas as entidades guardadas na fonte, pelo id (as ferramentas).
+- **A fila anda até o alvo:** cada passo com alvo longe do avatar começa por um `move {near}`, em qualquer menu, e não só na grama.
+- **Os rótulos:** vale o rótulo mais específico (mais campos em `where`) cujos campos do texto existem no evento; no empate, o primeiro declarado. Os eventos da plataforma (o caderno, as chamadas de modelo, a percepção) são rotulados pelo gênero farm, até haver uma camada comum a todos os cartuchos.
+- **A luz** aparece a qualquer hora escura no tamanho do raio da hora: fria sem luz, quente com a lanterna.
+
 ## Consequências
 
 - **Contratos:** campos opcionais em `perception_config` (`by_phase`, `lights`) e no `session.started` (os rótulos). O `make compat` confere.

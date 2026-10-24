@@ -24,7 +24,8 @@ O registro de cada sessão de trabalho: o que foi feito, o que deu errado, as de
 | Data | Entradas |
 |---|---|
 | [22/out/2026](2026-10-22.md) | o plano do M16 e a rodada do humano preparada; à noite, a aprovação (ADR-0067) e o kernel, o cenário, o script e a câmera da Fazenda Morada do Sol |
-| [23/out/2026](2026-10-23.md) | a arte (árvores por estação, culturas novas, espantalho), a lembrança do que se viu, a mente e a bíblia 3: o fechamento do M16 |
+| [23/out/2026](2026-10-23.md) | a arte (árvores por estação, culturas novas, espantalho), a lembrança do que se viu, a mente e a bíblia 3: o fechamento do M16; à noite, o plano do M17 (ADR-0068) |
+| [24/out/2026](2026-10-24.md) | o M17, ver e assistir: a noite e a lanterna na percepção, a névoa na tela, o modo de assistir e a página da arena, os menus do humano com a fila e o teclado, os rótulos da linha do tempo, a lanterna desenhada |
 
 ## A v0.1 em números
 

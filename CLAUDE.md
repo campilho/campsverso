@@ -1,6 +1,6 @@
 # CLAUDE.md — Campsverso
 
-Campsverso é uma plataforma de simulação orientada a eventos para agentes de IA autônomos que vivem em mundos 2D. Cada mundo é um **cartucho** (fazenda, estúdio, startup…) rodando sobre um **kernel** genérico. A versão publicada é a **v0.2.0 "A possessão"** (`docs/versoes/v0.2.0.md`; aceite em `docs/aceite-v0.2.md`): o controlador LLM (ADR-0059) com memória baseline (ADR-0060), a arena (ADR-0061), a Fazenda Boa Vista, a fazenda 2 (ADR-0062), e duas rodadas da arena, a segunda com Sonnet e Opus (ADR-0063); o fechamento é a ADR-0065. A v0.1.0 "Fazenda do Camps" foi a primeira: um avatar, nenhum LLM, controladores humano, script e replay. A próxima, a **v0.3, é a fazenda sofisticada** (ADR-0064; `docs/planos/v0.3-macro.md`): as decisões estão na ADR-0066 (o cenário novo é a Fazenda Morada do Sol; o visual antes das outras famílias de modelos). O M16 (a Fazenda Morada do Sol, ADR-0067; `docs/planos/m16-morada-do-sol.md`) está feito; o próximo é o M17 (ver e assistir), e a rodada do humano na Boa Vista espera uma noite livre do usuário. O escritório vai para a v0.4.
+Campsverso é uma plataforma de simulação orientada a eventos para agentes de IA autônomos que vivem em mundos 2D. Cada mundo é um **cartucho** (fazenda, estúdio, startup…) rodando sobre um **kernel** genérico. A versão publicada é a **v0.2.0 "A possessão"** (`docs/versoes/v0.2.0.md`; aceite em `docs/aceite-v0.2.md`): o controlador LLM (ADR-0059) com memória baseline (ADR-0060), a arena (ADR-0061), a Fazenda Boa Vista, a fazenda 2 (ADR-0062), e duas rodadas da arena, a segunda com Sonnet e Opus (ADR-0063); o fechamento é a ADR-0065. A v0.1.0 "Fazenda do Camps" foi a primeira: um avatar, nenhum LLM, controladores humano, script e replay. A próxima, a **v0.3, é a fazenda sofisticada** (ADR-0064; `docs/planos/v0.3-macro.md`): as decisões estão na ADR-0066 (o cenário novo é a Fazenda Morada do Sol; o visual antes das outras famílias de modelos). O M16 (a Fazenda Morada do Sol, ADR-0067; `docs/planos/m16-morada-do-sol.md`) e o M17 (ver e assistir: a névoa, a noite e a lanterna, o modo de assistir e a página da arena, os menus do humano e os rótulos da linha do tempo; ADR-0068; `docs/planos/m17-ver-e-assistir.md`) estão feitos; o próximo é o M18 (a economia), e a rodada do humano na Boa Vista espera uma noite livre do usuário. O escritório vai para a v0.4.
 
 O projeto também é material de aprendizado e de publicações. Clareza, testes e registro das decisões importam tanto quanto o código.
 
@@ -138,7 +138,7 @@ make run          # sobe o NATS e o Procfile (honcho): kernel, percepção, scri
 make sandbox      # mundo descartável com tudo ligado, em data/sandbox/<data-hora> (não toca no oficial); MENTE=camps põe o LLM no Camps (ADR-0059; na Boa Vista, MENTE=camps_boavista; na Morada do Sol, MENTE=camps_morada); PAUSADO=1 começa com o relógio parado
 make ui-build     # compila a UI em apps/ui/dist; o gateway a serve em http://127.0.0.1:8765
 make ui           # a UI em modo desenvolvimento (Vite), com proxy para o gateway
-make ui-e2e       # fumaça da tela no navegador (Playwright), com um sandbox próprio (porta 8799); MUNDO=farm-boavista-01 abre a fazenda 2, MUNDO=farm-morada-do-sol-01 a fazenda 3
+make ui-e2e       # a tela no navegador (Playwright), em três servidores próprios: a fazenda 1 (porta 8799; MUNDO=farm-boavista-01 ou farm-morada-do-sol-01 troca), a Morada do Sol pausada (8798) e uma rodada sintética da arena no modo de assistir (8797)
 make soak DAYS=30 # resistência em modo máximo, com processos e NATS próprios (SEM_REGRA=1); MUNDO=farm-boavista-01 escolhe o mundo (também em sandbox, run, replay e metrics)
 make replay DAY=N # reexecuta um dia a partir do snapshot e do diário e compara com o arquivo
 make metrics      # métricas da bíblia §13 a partir do arquivo (ARCHIVE=pasta do mundo)
@@ -149,6 +149,7 @@ make corrida DIAS=7   # N dias em processo com a mente sobre a API, com ou sem m
 make arena DIAS=30    # as corridas da arena, em sequência, em data/arena/<data>-<rodada> (ADR-0061); SO=nome roda uma só; RODADA=boavista é a segunda rodada (M14); vários em paralelo no mesmo dia dividem as corridas
 make arena-report     # o relatório da arena (tabela da bíblia lado a lado, o leste pela memória) em docs/arena/
 make arena-humano SANDBOX=data/sandbox/<pasta>  # a partida de um humano no sandbox como mais uma corrida da rodada (ADR-0066); PASTA= escolhe a rodada
+make assistir PASTA=data/arena/<rodada>  # o gateway no modo de assistir: as corridas da rodada em http://127.0.0.1:8765/?view=arena, ao vivo ou gravadas, montadas dos fatos (ADR-0068)
 make mapa-visual  # regrava o mapa visual da fazenda a partir do mapa lógico (ADR-0053)
 make sessoes      # tempo e tokens do Claude Code por turno e por marco em docs/custos (MARCO=M5)
 ```

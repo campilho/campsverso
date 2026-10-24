@@ -125,4 +125,34 @@
 
 ## 8. Como ficou
 
-*(a preencher no fechamento)*
+Feito em 23 e 24/out, numa sessão, com as decisões 1 a 12 e as notas do usuário.
+
+- **A percepção:** `perception_config` ganha `by_phase` e `lights`; o serviço de percepção aplica o raio da hora a cada avatar. A Morada do Sol declara 12 de dia, 7 no entardecer, 5 à noite e de madrugada, e a lanterna (40 moedas) garante 10. O manual e o catálogo contam a noite e a lanterna, e a fita foi regravada (61 chamadas, US$ 0,033).
+- **A névoa:** uma nuvem sobre o que nunca foi visto e um cinza sobre o que já foi, com as coisas congeladas como foram vistas por último até voltarem ao raio; as construções sempre à vista. O operador liga "Ver como o Camps". A tela faz a conta do raio com a mesma regra da percepção, e um arquivo de casos é lido pelos dois testes, em Python e em TypeScript.
+- **Assistir:** a arena grava o arquivo de cada corrida por partes, a cada dia, com um `estado.json`. O gateway ganha o modo de assistir (`make assistir PASTA=...`): monta a tela de cada corrida pelos fatos, segue a que está rodando e toca a terminada num relógio de reprodução que o operador pausa e acelera. O resto é recusado como só leitura. Um teste confere que o estado montado do arquivo é igual ao montado pelo barramento.
+- **A página da arena** (`?view=arena`): até 6 corridas lado a lado no canvas 2D, com as velocidades pausa, 1 dia por minuto, 1 dia a cada 10 s e máximo. Um clique abre a corrida na visão do operador, com o aviso de só leitura e a volta à arena.
+- **Os menus do humano:**
+  - o clique direito na grama vazia abre "Andar até aqui", "Cavar um canteiro aqui" e "Fincar aqui";
+  - o baú oferece as ferramentas pelo id;
+  - o Camps anda até o lado do alvo antes de agir, em qualquer menu;
+  - a fila na tela: o shift enfileira, uma recusa esvazia e avisa, o Esc esvazia;
+  - o teclado: as setas e o WASD andam, o espaço volta a seguir, o E abre o menu do Camps;
+  - a caixa de comandos aparece sozinha na primeira vez, e depois pelo botão "Comandos" ou pela tecla "?".
+- **Os rótulos:** o cartucho declara a linha do tempo como dado (122 rótulos no gênero), e o operador lê "camps colheu 1 milho", com o tipo cru embaixo.
+- **A lanterna:** um ícone de 32 × 32 no estilo LPC, desenho próprio, no inventário do HUD. À noite, uma luz em volta do Camps do tamanho do raio da hora: fria sem luz, quente com a lanterna.
+- **Os testes:**
+  - o raio pelos mesmos casos nas duas linguagens;
+  - assistir, com o relógio de reprodução, o arquivo que cresce e o estado igual ao do barramento;
+  - a fila, os menus e os rótulos no Vitest;
+  - o Playwright em três projetos com servidores próprios: a fazenda 1, a Morada do Sol pausada (a névoa; cavar pela grama) e uma rodada sintética de duas corridas (a arena).
+
+  O `make check` tem 439 testes em Python e 55 na tela.
+- **Os números:** os soaks repetem os de sempre. A Morada do Sol, com a noite mais curta, fica em 67 plantios, 56 colheitas e 15 moedas, sem desmaio: o script dorme à noite e explora de dia. A fazenda 1 faz 1.175 moedas em 33,9 s, e a Boa Vista 220 em 30,3 s.
+- **O que mudou em relação ao plano:**
+  - o kernel ganhou uma regra de espaço genérica, o `move` com `near: {x, y}` (ao lado de um tile);
+  - o contrato ganhou `entities` no parâmetro de uma afordância, e o terreno (`grass`) no `on`;
+  - a luz em volta do Camps vale a qualquer hora escura, não só com a lanterna, para mostrar o raio da hora.
+- **O que se achou no caminho:**
+  - o menu da Boa Vista e da Morada do Sol tinha perdido "Dormir na cama" desde o M13, porque a troca das afordâncias por ação apagava também as entradas do próprio cenário;
+  - a data e a estação passavam por cima da fase no HUD;
+  - o clique direito sob a nuvem abriria o menu de uma coisa nunca vista, e agora só anda.
