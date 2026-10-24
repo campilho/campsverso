@@ -39,7 +39,9 @@ const view: View = query.get("view") === "operator" ? "operator" : "player";
 const debug = query.get("render") === "debug";
 const store = new Store();
 const scheme = location.protocol === "https:" ? "wss" : "ws";
-const connection = new Connection(`${scheme}://${location.host}/ws?view=${view}`, store);
+const run = query.get("run"); // uma corrida da arena, no modo de assistir (ADR-0068)
+const runParam = run === null ? "" : `&run=${encodeURIComponent(run)}`;
+const connection = new Connection(`${scheme}://${location.host}/ws?view=${view}${runParam}`, store);
 
 const map: WorldRenderer = debug ? new MapCanvas(el("canvas")) : new PhaserRenderer();
 map.follow?.(avatarId());
@@ -179,6 +181,17 @@ function assume(state: ObserverState): void {
 }
 
 function renderControl(state: ObserverState): void {
+  if (run !== null) {
+    if (lastControl === "") {
+      // Assistir não muda o mundo: no lugar de assumir o Camps, o que é esta tela e a volta à arena.
+      lastControl = "assistindo";
+      const back = el("a", {}, "voltar à arena");
+      back.href = "/?view=arena";
+      const hint = `Assistindo à corrida ${run}: só leitura; o relógio do painel controla a reprodução.`;
+      control.replaceChildren(el("span", { className: "hint" }, hint), back);
+    }
+    return;
+  }
   const mine = inControl(state, avatarId());
   const controller = state.controllers[avatarId()];
   const busy = state.actions[avatarId()] !== undefined || state.asleep[avatarId()] === true;

@@ -11,9 +11,9 @@ Só escuta no endereço dado (127.0.0.1 na v0.1): não há login.
 
 import contextlib
 import json
-from collections.abc import AsyncIterator, Mapping, Sequence
+from collections.abc import AsyncIterator, Callable, Mapping, Sequence
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
@@ -27,13 +27,18 @@ POLICY_VIOLATION = 1008  # código WebSocket para pedido fora das regras
 
 
 class _WsConnection:
-    def __init__(self, websocket: WebSocket, view: View) -> None:
+    def __init__(self, websocket: WebSocket, view: View, run: str | None = None) -> None:
         self._ws = websocket
         self._view: View = view
+        self._run = run
 
     @property
     def view(self) -> View:
         return self._view
+
+    @property
+    def run(self) -> str | None:
+        return self._run
 
     async def send(self, message: Message) -> None:
         try:
@@ -66,8 +71,10 @@ class FastApiRealtime:
         maps: Mapping[str, Path] | None = None,
         ui_dir: Path | None = None,
         art: Sequence[tuple[str, Path]] = (),
+        runs: Callable[[], list[dict[str, Any]]] | None = None,
     ) -> None:
         self.host, self.port = host, port
+        self._runs = runs  # o modo de assistir lista as corridas em /arena/runs (ADR-0068)
         self._maps = dict(maps or {})
         self._ui_dir = ui_dir
         self._art = [(name, folder.resolve()) for name, folder in art]
@@ -77,16 +84,22 @@ class FastApiRealtime:
         app = FastAPI(title="Campsverso gateway", docs_url=None, redoc_url=None)
 
         @app.websocket("/ws")
-        async def ws(websocket: WebSocket, view: str = "player") -> None:  # pyright: ignore[reportUnusedFunction]
+        async def ws(  # pyright: ignore[reportUnusedFunction]
+            websocket: WebSocket, view: str = "player", run: str | None = None
+        ) -> None:
             if view not in VIEWS:
                 await websocket.close(code=POLICY_VIOLATION)
                 return
             await websocket.accept()
-            connection = _WsConnection(websocket, view)
+            connection = _WsConnection(websocket, view, run)
             try:
                 await handler(connection)
             finally:
                 await connection.close()
+
+        @app.get("/arena/runs")
+        async def runs() -> list[dict[str, Any]]:  # pyright: ignore[reportUnusedFunction]
+            return [] if self._runs is None else self._runs()
 
         @app.get("/content/maps/{name}")
         async def map_file(name: str) -> FileResponse:  # pyright: ignore[reportUnusedFunction]

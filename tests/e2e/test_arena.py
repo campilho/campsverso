@@ -43,8 +43,13 @@ async def test_a_corrida_do_script_grava_a_pasta(tmp_path: Path) -> None:
         "metrics.txt",
         "archive.jsonl",
         "progresso.txt",
+        "estado.json",
     }
     assert "script dia 2:" in (folder / "progresso.txt").read_text(encoding="utf-8")
+    # O modo de assistir lê o arquivo enquanto ele cresce e o estado diz se acabou (ADR-0068).
+    state = json.loads((folder / "estado.json").read_text(encoding="utf-8"))
+    lines = (folder / "archive.jsonl").read_text(encoding="utf-8").splitlines()
+    assert (state["day"], state["done"], state["events"]) == (2, True, len(lines))
 
 
 def test_a_arena_so_completa_o_que_falta(

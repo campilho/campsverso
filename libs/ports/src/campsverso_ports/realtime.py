@@ -21,6 +21,11 @@ class RealtimeConnection(Protocol):
         """A visão pedida pela UI ao conectar (`/ws?view=player|operator`)."""
         ...
 
+    @property
+    def run(self) -> str | None:
+        """A corrida pedida no modo de assistir (`/ws?run=<nome>`; ADR-0068), ou None."""
+        ...
+
     async def send(self, message: Message) -> None:
         """Manda uma mensagem; levanta ConnectionClosedError se a conexão já fechou."""
         ...

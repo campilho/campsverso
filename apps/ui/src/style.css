@@ -602,3 +602,51 @@ dialog.credits .urls {
   color: var(--muted);
   font-weight: normal;
 }
+
+/* A visão arena (ADR-0068): de 4 a 6 corridas lado a lado, pequenas. */
+.arena {
+  padding: 12px 18px;
+}
+
+.arena header {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.arena-speeds {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.arena-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 12px;
+}
+
+.arena-card {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px;
+  cursor: pointer;
+}
+
+.arena-card h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+
+.arena-card canvas {
+  width: 100%;
+  height: auto;
+  max-height: none;
+}
+
+.arena-status {
+  margin: 6px 0 0;
+  font-size: 12px;
+}

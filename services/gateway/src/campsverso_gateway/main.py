@@ -30,6 +30,7 @@ from campsverso_adapters import (
 # Fora do __init__ dos adaptadores: só o gateway carrega o FastAPI.
 from campsverso_adapters.realtime_fastapi import FastApiRealtime
 from campsverso_gateway.service import GatewayService
+from campsverso_gateway.watch import WatchService
 
 AVATAR = "camps"  # o único avatar da v0.1 (ADR-0022)
 
@@ -42,10 +43,49 @@ def _parse(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument("--nats-url", help="substitui nats.url do ambiente")
     parser.add_argument("--port", type=int, help="substitui gateway.port do ambiente")
     parser.add_argument("--avatar", default=AVATAR, help="avatar acompanhado pela UI")
+    parser.add_argument(
+        "--watch", type=Path, help="assistir as corridas de uma rodada da arena (ADR-0068)"
+    )
     return parser.parse_args(argv)
 
 
+async def watch(args: argparse.Namespace) -> int:
+    """O modo de assistir: sem NATS, a tela lê os arquivos de eventos de uma rodada (ADR-0068)."""
+    telemetry = JsonTelemetry("gateway")
+    env = load_env(args.env)
+    service = WatchService(args.watch, Uuid7Ids(), telemetry)
+    cartridge = service.cartridge() or load_world(args.world).cartridge
+    settings = env.gateway
+    port = args.port or settings.port
+    realtime = FastApiRealtime(
+        settings.host,
+        port,
+        settings.maps,
+        settings.ui_dir,
+        settings.art_for(cartridge),
+        runs=service.runs,
+    )
+    stop = asyncio.Event()
+    for signum in (signal.SIGINT, signal.SIGTERM):
+        asyncio.get_running_loop().add_signal_handler(signum, stop.set)
+    await service.start()
+    server = asyncio.create_task(realtime.serve(service.handle))
+    telemetry.info("gateway.watching", folder=str(args.watch), url=f"http://{settings.host}:{port}")
+    try:
+        while not stop.is_set() and service.failure is None and not server.done():
+            with contextlib.suppress(TimeoutError):
+                await asyncio.wait_for(stop.wait(), 0.5)
+    finally:
+        await realtime.stop()
+        with contextlib.suppress(Exception):
+            await asyncio.wait_for(server, 5)
+        await service.stop()
+    return 1 if service.failure is not None else 0
+
+
 async def run(args: argparse.Namespace) -> int:
+    if args.watch is not None:
+        return await watch(args)
     telemetry = JsonTelemetry("gateway")
     env, world = load_env(args.env), load_world(args.world)
     password = os.environ.get("NATS_GATEWAY_PASSWORD")

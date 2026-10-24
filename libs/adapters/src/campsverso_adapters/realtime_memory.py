@@ -11,8 +11,9 @@ _CLOSED: Message = {}
 class MemoryClient:
     """O lado da UI num teste: manda mensagens e espera as do gateway."""
 
-    def __init__(self, view: View) -> None:
+    def __init__(self, view: View, run: str | None = None) -> None:
         self.view: View = view
+        self.run = run  # a corrida pedida no modo de assistir (ADR-0068)
         self.inbox: asyncio.Queue[Message] = asyncio.Queue()  # do gateway para a UI
         self.outbox: asyncio.Queue[Message | None] = asyncio.Queue()  # da UI para o gateway
         self.closed = False
@@ -42,6 +43,10 @@ class _MemoryConnection:
     @property
     def view(self) -> View:
         return self._client.view
+
+    @property
+    def run(self) -> str | None:
+        return self._client.run
 
     async def send(self, message: Message) -> None:
         if self._client.closed:
@@ -73,10 +78,10 @@ class MemoryRealtime:
         for task in self._tasks:
             task.cancel()
 
-    async def connect(self, view: View = "player") -> MemoryClient:
+    async def connect(self, view: View = "player", run_name: str | None = None) -> MemoryClient:
         await self._ready.wait()
         assert self._handler is not None
-        client = MemoryClient(view)
+        client = MemoryClient(view, run_name)
         connection = _MemoryConnection(client)
         handler = self._handler
 

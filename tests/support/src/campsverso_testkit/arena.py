@@ -108,9 +108,23 @@ async def run_spec(
     `llm.jsonl` (a fita inteira) e `memory.sqlite`. Devolve o resumo. Se a mente desistir (três
     falhas seguidas), a corrida para no dia em que isso aconteceu, marcado em `aborted_day`; se
     bater no teto de orçamento, idem, em `budget_day`. `port` troca a API por uma porta falsa
-    (só os testes)."""
+    (só os testes). O `archive.jsonl` cresce a cada dia simulado, e o `estado.json` diz o dia e se
+    a corrida terminou: é o que o modo de assistir lê ao vivo (ADR-0068)."""
     out.mkdir(parents=True, exist_ok=True)
     log = out / "progresso.txt"
+    archive = out / "archive.jsonl"
+    archive.write_text("", encoding="utf-8")
+    written = 0
+
+    def flush(day: int, *, done: bool = False) -> None:
+        nonlocal written
+        fresh = pipeline.envelopes[written:]
+        with archive.open("a", encoding="utf-8") as handle:
+            handle.writelines(json.dumps(e, ensure_ascii=False) + "\n" for e in fresh)
+        written += len(fresh)
+        state = {"name": spec.name, "day": day, "done": done, "events": written}
+        (out / "estado.json").write_text(json.dumps(state), encoding="utf-8")
+
     clock = SystemWallClock()
     api: AnthropicModel | None = None
     notebook: MemoryPort | bool = False
@@ -155,6 +169,7 @@ async def run_spec(
                 log,
             )
             break
+        flush(day)
         partial = summary(pipeline)
         elapsed = (datetime.now(UTC) - started).total_seconds()
         _say(
@@ -187,10 +202,7 @@ async def run_spec(
         json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     (out / "metrics.txt").write_text(table(report) + "\n", encoding="utf-8")
-    (out / "archive.jsonl").write_text(
-        "".join(json.dumps(e, ensure_ascii=False) + "\n" for e in pipeline.envelopes),
-        encoding="utf-8",
-    )
+    flush(budget_day or aborted or days, done=True)  # o resto do dia que parou, se parou
     return result
 
 

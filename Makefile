@@ -23,7 +23,7 @@ NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR BUDGET MIND
 .DEFAULT_GOAL := help
 .PHONY: help setup contracts check lint fmt types test arch contracts-check compat \
         up stop run ui ui-build sandbox soak replay metrics ui-e2e mapa-visual sessoes tools secrets fita corrida \
-        arena arena-report arena-humano
+        arena arena-report arena-humano assistir
 
 help: ## lista os alvos
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-16s %s\n", $$1, $$2}'
@@ -127,6 +127,10 @@ ARENA_PASTA = $(or $(PASTA),data/arena/$(shell date +%Y%m%d)-$(or $(RODADA),camp
 
 arena: ## as corridas da arena em sequência, em data/arena/<data>-<rodada> (ADR-0061): make arena [RODADA=boavista] [ARENA_DIAS=30] [SO=haiku-memoria] [PASTA=data/arena/x]; vários em paralelo dividem a rodada
 	$(CAFFEINATE) uv run --locked --env-file .env python -m campsverso_testkit.arena --days $(ARENA_DIAS) $(if $(RODADA),--rodada $(RODADA),) $(foreach s,$(SO),--only $(s)) --out $(ARENA_PASTA)
+
+assistir: ui-build ## assistir as corridas de uma rodada da arena na tela, ao vivo ou gravadas (ADR-0068): make assistir PASTA=data/arena/<rodada>; abre em http://127.0.0.1:8765/?view=arena
+	@test -n "$(PASTA)" || { echo "uso: make assistir PASTA=data/arena/<rodada>"; exit 1; }
+	$(PY) python -m campsverso_gateway.main --watch $(PASTA)
 
 arena-humano: ## a partida de um humano no sandbox como corrida da arena: make arena-humano SANDBOX=data/sandbox/<pasta> [PASTA=rodada] [NOME=humano]
 	@test -n "$(SANDBOX)" || { echo "uso: make arena-humano SANDBOX=data/sandbox/<pasta> [PASTA=data/arena/<rodada>]"; exit 1; }
