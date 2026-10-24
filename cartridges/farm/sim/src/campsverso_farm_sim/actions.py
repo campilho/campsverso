@@ -30,6 +30,7 @@ from campsverso_farm_sim.orders import (
     taken_by,
 )
 from campsverso_farm_sim.processing import busy, ingredients, machine, recipe, start
+from campsverso_farm_sim.weather import can_cost, wet
 
 EMPTY_PLOT: dict[str, Any] = {"crop": None, "stage": None, "watered_today": False}
 EMPTY_HIDDEN: dict[str, Any] = {"growth_points": 0.0, "planted_day": None, "dry_days": 0}
@@ -199,7 +200,7 @@ class Plant(FarmAction):
         crop = str(ctx.params["crop"])
         target = str(ctx.params["target"])
         ops.consume_item(str(section(ctx.view, "crops", crop)["seed"]), 1, ctx.avatar_id, "plant")
-        rained = ctx.view.weather(ctx.view.day) == "rain"  # chuva conta como rega (ADR-0039)
+        rained = wet(ctx.view, ctx.view.day)  # chuva conta como rega (ADR-0039)
         visible: dict[str, Any] = {"crop": crop, "stage": "semente", "watered_today": rained}
         hidden: dict[str, Any] = {"growth_points": 0.0, "planted_day": ctx.view.day, "dry_days": 0}
         plot = ctx.view.entity(target)
@@ -227,16 +228,15 @@ class Water(FarmAction):
         can = watering_can(ctx.view, ctx.avatar_id)
         if can is None:
             return Rejection("missing_item", "sem regador")
-        if int(can.attributes.get("charges") or 0) < 1:
+        if int(can.attributes.get("charges") or 0) < can_cost(ctx.view):  # a seca gasta mais
             return Rejection("can_empty")
         return None
 
     def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
         can = watering_can(ctx.view, ctx.avatar_id)
         assert can is not None
-        ops.set_attributes(
-            can.entity_id, visible={"charges": int(can.attributes["charges"] or 0) - 1}
-        )
+        charges = int(can.attributes["charges"] or 0) - can_cost(ctx.view)
+        ops.set_attributes(can.entity_id, visible={"charges": charges})
         ops.set_attributes(str(ctx.params["target"]), visible={"watered_today": True})
 
 

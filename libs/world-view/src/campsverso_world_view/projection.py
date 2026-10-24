@@ -61,6 +61,7 @@ class Projection:
         self.date: str | None = raw.get("date")
         self.season: str | None = raw.get("season")
         self.weather: dict[str, str] = dict(raw.get("weather", {}))  # dia -> condição
+        self.forecasts: set[str] = set(raw.get("forecasts", []))  # os dias que vieram de previsão
         self.entities: dict[str, dict[str, Any]] = {
             k: dict(v) for k, v in raw.get("entities", {}).items()
         }
@@ -117,6 +118,7 @@ class Projection:
             "date": self.date,
             "season": self.season,
             "weather": self.weather,
+            "forecasts": sorted(self.forecasts, key=int),
             "entities": self.entities,
             "containers": self.containers,
             "lots": self.lots,
@@ -266,7 +268,12 @@ class Projection:
         self._add_lot(container, item, data, -qty)
 
     def _on_world_weather_changed(self, data: Mapping[str, Any]) -> None:
-        self.weather[str(data["day"])] = str(data["condition"])
+        day = str(data["day"])
+        self.weather[day] = str(data["condition"])
+        if data.get("forecast"):  # a previsão da véspera (ADR-0069)
+            self.forecasts.add(day)
+        else:
+            self.forecasts.discard(day)
 
     def _on_world_clock_phase_changed(self, data: Mapping[str, Any]) -> None:
         self.phase, self.day = str(data["phase"]), int(data["day"])

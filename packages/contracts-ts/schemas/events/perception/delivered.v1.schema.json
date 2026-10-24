@@ -116,6 +116,10 @@
             },
             "day": {
               "$ref": "contracts://common/defs.v1#/$defs/day"
+            },
+            "tomorrow": {
+              "$ref": "contracts://common/defs.v1#/$defs/token",
+              "description": "O tempo de amanhã, quando a previsão já saiu (ADR-0069)."
             }
           }
         },

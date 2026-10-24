@@ -236,6 +236,12 @@ class SeenWeather(BaseModel):
     """
     Dia simulado (dia agrícola, ADR-0018), começando em 1.
     """
+    tomorrow: Annotated[
+        str | None, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")
+    ] = None
+    """
+    O tempo de amanhã, quando a previsão já saiu (ADR-0069).
+    """
 
 
 class SeenAction(BaseModel):
@@ -1276,6 +1282,30 @@ class FarmCropEatenV1(BaseModel):
     """
 
 
+class FarmCropKnockedDownV1(BaseModel):
+    """
+    Uma planta madura foi derrubada pela tempestade da noite, e o canteiro ficou vazio (ADR-0069). A tempestade vem na previsão da véspera.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    plot_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    crop: Annotated[str, Field(max_length=64, pattern="^[a-z0-9]+(_[a-z0-9]+)*$", title="ItemId")]
+    """
+    Id de item ou cultura; conteúdo do cartucho, em português, sem acento: moeda, semente_rabanete.
+    """
+    day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+
+
 class FarmCropMaturedV1(BaseModel):
     """
     Planta madura; days é a evidência observável da regra oculta (bíblia §13).
@@ -1724,6 +1754,12 @@ class ViewWeather(BaseModel):
     day: Annotated[int, Field(ge=1, title="Day")]
     """
     Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+    tomorrow: Annotated[
+        str | None, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")
+    ] = None
+    """
+    O tempo de amanhã, quando a previsão já saiu (ADR-0069).
     """
 
 
@@ -2652,11 +2688,15 @@ class WorldWeatherChangedV1(BaseModel):
     )
     condition: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
     """
-    Ex.: sun, rain.
+    Ex.: sun, rain; num cenário com clima de mundo aberto, também storm e drought (ADR-0069).
     """
     day: Annotated[int, Field(ge=1, title="Day")]
     """
     Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+    forecast: bool | None = None
+    """
+    O tempo de um dia que ainda não chegou: a previsão, publicada na véspera (ADR-0069).
     """
 
 

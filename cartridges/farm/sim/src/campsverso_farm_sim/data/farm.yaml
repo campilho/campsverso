@@ -256,6 +256,12 @@ labels:
   - {event: campsverso.world.clock.phase_changed.v1, text: "dia {day}: {phase} ({date})"}
   - {event: campsverso.world.clock.phase_changed.v1, text: "dia {day}: {phase}"}
   - {event: campsverso.world.clock.season_changed.v1, text: "começou a estação: {season}"}
+  - {event: campsverso.world.weather.changed.v1, where: {forecast: true, condition: rain}, text: "previsão: chuva amanhã (dia {day})"}
+  - {event: campsverso.world.weather.changed.v1, where: {forecast: true, condition: sun}, text: "previsão: sol amanhã (dia {day})"}
+  - {event: campsverso.world.weather.changed.v1, where: {forecast: true, condition: storm}, text: "previsão: tempestade amanhã (dia {day})"}
+  - {event: campsverso.world.weather.changed.v1, where: {forecast: true, condition: drought}, text: "previsão: seca amanhã (dia {day})"}
+  - {event: campsverso.world.weather.changed.v1, where: {condition: storm}, text: "tempestade no dia {day}"}
+  - {event: campsverso.world.weather.changed.v1, where: {condition: drought}, text: "seca no dia {day}"}
   - {event: campsverso.world.weather.changed.v1, where: {condition: rain}, text: "chove no dia {day}"}
   - {event: campsverso.world.weather.changed.v1, where: {condition: sun}, text: "sol no dia {day}"}
   - {event: campsverso.world.weather.changed.v1, text: "o tempo do dia {day}: {condition}"}
@@ -283,6 +289,7 @@ labels:
   - {event: campsverso.farm.crop.matured.v1, text: "{crop} amadureceu no {plot_id} em {days} dias"}
   - {event: campsverso.farm.crop.withered.v1, text: "{crop} murchou no {plot_id}"}
   - {event: campsverso.farm.crop.eaten.v1, text: "amanheceu comido o {crop} do {plot_id}"}
+  - {event: campsverso.farm.crop.knocked_down.v1, text: "a tempestade derrubou o {crop} do {plot_id}"}
   - {event: campsverso.farm.buyer.paid.v1, text: "o comprador pagou {total} moedas pela caixa"}
   # as encomendas (ADR-0069), eventos da biblioteca de economia
   - {event: campsverso.economy.order.posted.v1, text: "pedido novo no quadro: {client} quer {qty} {item} até o dia {due_day}, paga {reward}"}

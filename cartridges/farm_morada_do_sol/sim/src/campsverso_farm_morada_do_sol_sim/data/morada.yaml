@@ -17,6 +17,19 @@ perception:
   by_phase: {amanhecer: 12, meio_dia: 12, entardecer: 7, noite: 5, madrugada: 5}
   lights: {lanterna: 10}
 
+weather:  # o clima de mundo aberto (ADR-0069), sobre a libs/climate
+  forecast_at: "18:00"  # o tempo de amanhã sai na véspera, na foto e na tela
+  chances: {rain: 0.2}  # um dia em cinco, como nas outras fazendas, nas estações sem tabela
+  by_season:  # o que sobra é sol
+    primavera: {rain: 0.2, storm: 0.04, drought: 0.03}
+    verao: {rain: 0.25, storm: 0.08, drought: 0.03}
+    outono: {rain: 0.2, storm: 0.04, drought: 0.03}
+    inverno: {rain: 0.1, storm: 0.04, drought: 0.1}  # o inverno seco
+  wet: [rain, storm]  # as condições que regam todas as plantas
+  storm: {knock_down: 0.3}  # cada planta madura tem 30% de chance de cair na manhã da tempestade
+  drought: {water_by: "12:00", can_charges: 2}  # regar até o meio-dia; o regador gasta 2 cargas
+  shock: {conditions: [storm, drought], magnitude: 0.15, days: 3}  # o mercado sobe 15% por 3 dias
+
 market:  # o mercado que lembra (ADR-0069), sobre a libs/economy; a Boa Vista volta à tabela de manhã
   # Vender: cada unidade derruba 2% da referência, até 40%; de manhã volta um terço do caminho.
   sell: {step: 0.02, floor: 0.4, recovery: 0.3333}

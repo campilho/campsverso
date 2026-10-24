@@ -449,6 +449,7 @@ export interface SeenClock {
 export interface SeenWeather {
   condition: Token;
   day: Day;
+  tomorrow?: Token;
 }
 /**
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
@@ -1040,6 +1041,17 @@ export interface FarmCropEatenV1 {
   by: Token;
 }
 /**
+ * Uma planta madura foi derrubada pela tempestade da noite, e o canteiro ficou vazio (ADR-0069). A tempestade vem na previsão da véspera.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "FarmCropKnockedDownV1".
+ */
+export interface FarmCropKnockedDownV1 {
+  plot_id: EntityId;
+  crop: ItemId;
+  day: Day;
+}
+/**
  * Planta madura; days é a evidência observável da regra oculta (bíblia §13).
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
@@ -1312,6 +1324,7 @@ export interface ViewClock {
 export interface ViewWeather {
   condition: Token;
   day: Day;
+  tomorrow?: Token;
 }
 export interface ViewSelf {
   entity_id: EntityId;
@@ -1760,6 +1773,10 @@ export interface WorldSnapshotCreatedV1 {
 export interface WorldWeatherChangedV1 {
   condition: Token;
   day: Day;
+  /**
+   * O tempo de um dia que ainda não chegou: a previsão, publicada na véspera (ADR-0069).
+   */
+  forecast?: boolean;
 }
 /**
  * Pulso do kernel: o tick de verdade e o relógio, a cada kernel.pulse_seconds de tempo real. Vai para campsverso.<mundo>.live.kernel, que nenhum stream guarda: não entra no histórico, no arquivo JSONL nem no replay (ADR-0051).

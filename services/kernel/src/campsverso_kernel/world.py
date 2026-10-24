@@ -872,9 +872,14 @@ class World:
 
     # ------------------------------------------------------------- WorldOps: clima, sono, desmaio
 
-    def set_weather(self, condition: str, day: int) -> None:
+    def set_weather(self, condition: str, day: int, *, forecast: bool = False) -> None:
+        """O tempo de um dia; com `forecast`, a previsão publicada na véspera (ADR-0069). O tempo
+        sorteado na madrugada para o dia agrícola que começa às 06:00 não é previsão."""
         self.weather_by_day[day] = condition
-        self.emit_fact("campsverso.world.weather.changed.v1", {"condition": condition, "day": day})
+        data: dict[str, Any] = {"condition": condition, "day": day}
+        if forecast:
+            data["forecast"] = True
+        self.emit_fact("campsverso.world.weather.changed.v1", data)
 
     def start_sleep(
         self,

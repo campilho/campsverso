@@ -421,3 +421,14 @@ def test_o_raio_da_hora_bate_com_a_conta_da_tela() -> None:
             created = ev(seq, 2, "world.item.created.v1", item=item, qty=qty, container_id="camps")
             p.apply("world", created)
         assert p.radius("camps") == case["expected"], (n, case)
+
+
+def test_a_foto_traz_o_tempo_de_amanha_quando_a_previsao_sai() -> None:
+    """ADR-0069: a previsão das 18:00 entra na foto como `tomorrow`; antes dela, não."""
+    p = world()
+    p.apply("world", ev(6, 0, "world.weather.changed.v1", condition="sun", day=1))
+    assert "tomorrow" not in p.view("camps")["weather"]
+    p.apply(
+        "world", ev(7, 720, "world.weather.changed.v1", condition="storm", day=2, forecast=True)
+    )
+    assert p.view("camps")["weather"] == {"condition": "sun", "day": 1, "tomorrow": "storm"}

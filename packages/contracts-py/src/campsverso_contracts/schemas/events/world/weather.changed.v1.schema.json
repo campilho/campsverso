@@ -15,10 +15,14 @@
   "properties": {
     "condition": {
       "$ref": "contracts://common/defs.v1#/$defs/token",
-      "description": "Ex.: sun, rain."
+      "description": "Ex.: sun, rain; num cenário com clima de mundo aberto, também storm e drought (ADR-0069)."
     },
     "day": {
       "$ref": "contracts://common/defs.v1#/$defs/day"
+    },
+    "forecast": {
+      "type": "boolean",
+      "description": "O tempo de um dia que ainda não chegou: a previsão, publicada na véspera (ADR-0069)."
     }
   }
 }

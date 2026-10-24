@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/farm/crop.knocked_down.v1",
+  "title": "FarmCropKnockedDownV1",
+  "description": "Uma planta madura foi derrubada pela tempestade da noite, e o canteiro ficou vazio (ADR-0069). A tempestade vem na previsão da véspera.",
+  "x-type": "campsverso.farm.crop.knocked_down.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "plot_id",
+    "crop",
+    "day"
+  ],
+  "properties": {
+    "plot_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "crop": {
+      "$ref": "contracts://common/defs.v1#/$defs/item_id"
+    },
+    "day": {
+      "$ref": "contracts://common/defs.v1#/$defs/day"
+    }
+  }
+}

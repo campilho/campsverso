@@ -27,6 +27,7 @@ from campsverso_farm_sim.fair import fair_hours
 from campsverso_farm_sim.market import memory_market, turnover
 from campsverso_farm_sim.orders import orders_daily
 from campsverso_farm_sim.processing import HOURS, machines_hourly
+from campsverso_farm_sim.weather import drought_noon, knocked_down, market_shock, wet
 
 
 @dataclass(frozen=True)
@@ -57,8 +58,10 @@ def draw_weather(ctx: SystemContext, ops: WorldOps) -> None:
     sorteio é o da biblioteca do clima, pela estação do dia (ADR-0069)."""
     view = ctx.view
     day = view.day if isinstance(ctx.trigger, OnSessionStart) else view.day + 1
-    rules = climate_rules(section(view, "weather"))
-    ops.set_weather(draw(view.rng("weather"), rules, view.season(day)), day)
+    weather = section(view, "weather")
+    rules = climate_rules(weather)
+    forecast = "forecast_at" in weather and day > view.day  # a previsão da véspera (ADR-0069)
+    ops.set_weather(draw(view.rng("weather"), rules, view.season(day)), day, forecast=forecast)
 
 
 def _stage_for(points: float, required: float, stages: Mapping[str, Any]) -> str:
@@ -101,7 +104,8 @@ def grow_crops(ctx: SystemContext, ops: WorldOps) -> None:
         dry_limit = int(info.get("wither_after_dry_days", stages["wither_after_dry_days"]))
         points = float(plot.hidden.get("growth_points") or 0.0)
         dry = int(plot.hidden.get("dry_days") or 0)
-        if plot.attributes.get("watered_today") or not needs_water:
+        watered = plot.attributes.get("watered_today") and not plot.hidden.get("parched")
+        if watered or not needs_water:
             # A estação dá o ritmo (ADR-0067); as regras ocultas entram por cima.
             pace = base * season_factor(view, str(crop))
             points += ops.apply_rules("growth_points", plot.entity_id, pace)
@@ -137,14 +141,32 @@ def grow_crops(ctx: SystemContext, ops: WorldOps) -> None:
 
 
 def start_new_day(ctx: SystemContext, ops: WorldOps) -> None:
-    """Depois do crescimento: zera a rega; com chuva, toda planta já conta como regada."""
+    """Depois do crescimento: zera a rega; com chuva (ou tempestade), toda planta já conta como
+    regada. Num cenário com seca, a marca da seca de ontem sai."""
     view = ctx.view
-    rained = view.weather(view.day) == "rain"
+    rained = wet(view, view.day)
+    dry_season = optional(view, "weather", "drought") is not None
     for plot in view.entities("plot"):
         has_plant = (
             plot.attributes.get("crop") is not None and plot.attributes.get("stage") != "murcha"
         )
-        ops.set_attributes(plot.entity_id, visible={"watered_today": rained and has_plant})
+        hidden = {"parched": False} if dry_season else None
+        ops.set_attributes(
+            plot.entity_id, visible={"watered_today": rained and has_plant}, hidden=hidden
+        )
+
+
+def weather_effects(ctx: SystemContext, ops: WorldOps) -> None:
+    """Na manhã do dia, antes do crescimento: a tempestade derruba plantas maduras, e depois de uma
+    tempestade ou de uma seca o mercado sobe (ADR-0069)."""
+    view = ctx.view
+    for plot_id, crop in knocked_down(view):
+        ops.set_attributes(plot_id, visible=EMPTY_PLOT, hidden=empty_hidden(view, plot_id))
+        ops.emit(
+            "campsverso.farm.crop.knocked_down.v1",
+            {"plot_id": plot_id, "crop": crop, "day": view.day},
+        )
+    market_shock(view, ops)
 
 
 def buyer_collect(ctx: SystemContext, ops: WorldOps) -> None:
@@ -381,6 +403,32 @@ def build_extension_systems(data: Mapping[str, Any]) -> tuple[FarmSystem, ...]:
                 (OnSessionStart(), DailyAt((day_start,))),
                 orders_daily,
             )
+        )
+    weather = cast(Mapping[str, Any], data.get("weather") or {})
+    if "forecast_at" in weather:  # o tempo de amanhã sai na véspera (ADR-0069): troca o do gênero
+        systems.append(
+            FarmSystem(
+                "weather",
+                "scheduled",
+                10,
+                (OnSessionStart(), DailyAt((str(weather["forecast_at"]),))),
+                draw_weather,
+            )
+        )
+    if "storm" in weather or "shock" in weather:
+        systems.append(
+            FarmSystem(
+                "weather_effects",
+                "scheduled",
+                9,  # antes do crescimento (10): a planta que amadureceu hoje ainda não cai
+                (DailyAt((day_start,)),),
+                weather_effects,
+            )
+        )
+    if "drought" in weather:
+        water_by = str(cast(Mapping[str, Any], weather["drought"])["water_by"])
+        systems.append(
+            FarmSystem("drought_noon", "scheduled", 10, (DailyAt((water_by,)),), drought_noon)
         )
     if "processing" in data:
         systems.append(

@@ -147,7 +147,10 @@ class WorldOps(Protocol):
         (hora do mundo); um modificador novo com o mesmo rótulo substitui o anterior."""
         ...
 
-    def set_weather(self, condition: str, day: int) -> None: ...
+    def set_weather(self, condition: str, day: int, *, forecast: bool = False) -> None:
+        """O tempo de um dia. Com `forecast`, é a previsão de um dia que ainda não chegou, e a foto
+        a mostra como o tempo de amanhã (ADR-0069)."""
+        ...
 
     def start_sleep(
         self,

@@ -4,6 +4,7 @@ Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão 
 
 ## Não publicado (M18)
 
+- **O clima com previsão** (ADR-0069): `world.weather.changed.v1` ganha `forecast` (o tempo de um dia que ainda não chegou), e as condições novas `storm` e `drought` cabem no `condition`, que já é texto aberto; a foto (`perception.delivered.v1`, `view.weather`) e o delta (`seen_weather`) ganham `tomorrow`, o tempo de amanhã quando a previsão já saiu; e um tipo novo, `campsverso.farm.crop.knocked_down.v1` (`world`, produtor `kernel`, publicado pelo cartucho farm): a planta madura que a tempestade derrubou (`plot_id`, `crop`, `day`).
 - **As encomendas** (ADR-0069): o domínio de biblioteca `economy` (`domains.json`, chave `libraries`), com quatro tipos novos de visibilidade `world`, produtor `kernel`, publicados pelo cartucho que usa a `libs/economy`: `campsverso.economy.order.posted.v1` (um pedido apareceu no quadro: `order_id`, `board_id`, `client`, `item`, `qty`, `reward`, `posted_day`, `due_day`), `campsverso.economy.order.accepted.v1` (`order_id`, `taker`, `day`), `campsverso.economy.order.delivered.v1` (entregue e pago na hora: `order_id`, `client`, `item`, `qty`, `reward`, `taker`, `day`) e `campsverso.economy.order.expired.v1` (o prazo passou: `order_id`, `client`, `item`, `qty`, `due_day`, `taker?`, `day`).
 
 ## M16 e M17 (publicados em 24/out, antes de uma versão)

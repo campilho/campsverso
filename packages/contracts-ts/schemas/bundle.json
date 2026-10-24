@@ -418,6 +418,10 @@
         },
         "day": {
           "$ref": "#/$defs/Day"
+        },
+        "tomorrow": {
+          "$ref": "#/$defs/Token",
+          "description": "O tempo de amanhã, quando a previsão já saiu (ADR-0069)."
         }
       }
     },
@@ -1772,6 +1776,28 @@
         }
       }
     },
+    "FarmCropKnockedDownV1": {
+      "title": "FarmCropKnockedDownV1",
+      "description": "Uma planta madura foi derrubada pela tempestade da noite, e o canteiro ficou vazio (ADR-0069). A tempestade vem na previsão da véspera.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plot_id",
+        "crop",
+        "day"
+      ],
+      "properties": {
+        "plot_id": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "crop": {
+          "$ref": "#/$defs/ItemId"
+        },
+        "day": {
+          "$ref": "#/$defs/Day"
+        }
+      }
+    },
     "FarmCropMaturedV1": {
       "title": "FarmCropMaturedV1",
       "description": "Planta madura; days é a evidência observável da regra oculta (bíblia §13).",
@@ -2393,6 +2419,10 @@
                 },
                 "day": {
                   "$ref": "#/$defs/Day"
+                },
+                "tomorrow": {
+                  "$ref": "#/$defs/Token",
+                  "description": "O tempo de amanhã, quando a previsão já saiu (ADR-0069)."
                 }
               }
             },
@@ -3484,10 +3514,14 @@
       "properties": {
         "condition": {
           "$ref": "#/$defs/Token",
-          "description": "Ex.: sun, rain."
+          "description": "Ex.: sun, rain; num cenário com clima de mundo aberto, também storm e drought (ADR-0069)."
         },
         "day": {
           "$ref": "#/$defs/Day"
+        },
+        "forecast": {
+          "type": "boolean",
+          "description": "O tempo de um dia que ainda não chegou: a previsão, publicada na véspera (ADR-0069)."
         }
       }
     },

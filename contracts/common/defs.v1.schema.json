@@ -430,6 +430,10 @@
         },
         "day": {
           "$ref": "#/$defs/day"
+        },
+        "tomorrow": {
+          "$ref": "#/$defs/token",
+          "description": "O tempo de amanhã, quando a previsão já saiu (ADR-0069)."
         }
       }
     },

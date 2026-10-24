@@ -162,12 +162,16 @@ class PerceptionState(Projection):
                 item["container_id"] = entity["container_id"]
             item["attributes"] = dict(sorted(entity["attributes"].items()))
             entities.append(item)
+        weather: dict[str, Any] = {
+            "condition": self.weather.get(weather_day, "desconhecido"),
+            "day": int(weather_day),
+        }
+        tomorrow = str(self.day + 1)
+        if tomorrow in self.forecasts and tomorrow in self.weather:  # a previsão saiu (ADR-0069)
+            weather["tomorrow"] = self.weather[tomorrow]
         view: dict[str, Any] = {
             "clock": self._clock(tick),
-            "weather": {
-                "condition": self.weather.get(weather_day, "desconhecido"),
-                "day": int(weather_day),
-            },
+            "weather": weather,
             "self": me,
             "containers": [
                 {

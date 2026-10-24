@@ -13,7 +13,7 @@ from campsverso_cartridge_api import ItemDef, KindDef, WorldBuilder, YearDef
 from campsverso_farm_sim import config
 from campsverso_farm_sim.actions import ALL_ACTIONS, EXTRA_ACTIONS, INTERRUPTS
 from campsverso_farm_sim.cartridge import affordances, labels, metrics
-from campsverso_farm_sim.systems import build_extension_systems
+from campsverso_farm_sim.systems import build_extension_systems, build_systems
 
 
 def _merged(base: Mapping[str, Any], extra: Mapping[str, Any]) -> dict[str, Any]:
@@ -84,9 +84,11 @@ def contribute_extensions(
     if "orders" in data:  # as encomendas publicam os eventos da biblioteca de economia (ADR-0069)
         world.use_domain("economy")
     lower_systems = {system.name for system in build_extension_systems(lower)}
+    genre_systems = {system.name for system in build_systems(base)}
     for system in build_extension_systems(data):
         if system.name not in lower_systems:  # o sistema de baixo já lê os dados mesclados
-            world.add_system(system)
+            # Um sistema com o nome de um do gênero o troca: o tempo sorteado na véspera (ADR-0069).
+            world.add_system(system, override=system.name in genre_systems)
     # As afordâncias do gênero resolveram as escolhas (culturas, itens por categoria) com os dados
     # do gênero; o cenário as resolve de novo com as culturas e os itens somados, e troca as que
     # declara. Sem isso, o menu de plantar da Boa Vista só oferecia as três culturas da fazenda 1.

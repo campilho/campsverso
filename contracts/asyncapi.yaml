@@ -334,6 +334,17 @@ channels:
     messages:
       FarmCropEatenV1:
         $ref: '#/components/messages/FarmCropEatenV1'
+  FarmCropKnockedDownV1:
+    address: campsverso.{worldid}.world.farm.crop.knocked_down.v1
+    title: campsverso.farm.crop.knocked_down.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      FarmCropKnockedDownV1:
+        $ref: '#/components/messages/FarmCropKnockedDownV1'
   FarmCropMaturedV1:
     address: campsverso.{worldid}.world.farm.crop.matured.v1
     title: campsverso.farm.crop.matured.v1
@@ -995,6 +1006,13 @@ operations:
     messages:
     - $ref: '#/channels/FarmCropEatenV1/messages/FarmCropEatenV1'
     x-producer: kernel
+  sendFarmCropKnockedDownV1:
+    action: send
+    channel:
+      $ref: '#/channels/FarmCropKnockedDownV1'
+    messages:
+    - $ref: '#/channels/FarmCropKnockedDownV1/messages/FarmCropKnockedDownV1'
+    x-producer: kernel
   sendFarmCropMaturedV1:
     action: send
     channel:
@@ -1642,6 +1660,9 @@ components:
           $ref: '#/components/schemas/Token'
         day:
           $ref: '#/components/schemas/Day'
+        tomorrow:
+          $ref: '#/components/schemas/Token'
+          description: O tempo de amanhã, quando a previsão já saiu (ADR-0069).
     SeenAction:
       title: SeenAction
       type: object
@@ -2678,6 +2699,23 @@ components:
         by:
           $ref: '#/components/schemas/Token'
           description: 'Quem comeu, como se vê no canteiro: corvo…'
+    FarmCropKnockedDownV1:
+      title: FarmCropKnockedDownV1
+      description: Uma planta madura foi derrubada pela tempestade da noite, e o canteiro ficou vazio
+        (ADR-0069). A tempestade vem na previsão da véspera.
+      type: object
+      additionalProperties: false
+      required:
+      - plot_id
+      - crop
+      - day
+      properties:
+        plot_id:
+          $ref: '#/components/schemas/EntityId'
+        crop:
+          $ref: '#/components/schemas/ItemId'
+        day:
+          $ref: '#/components/schemas/Day'
     FarmCropMaturedV1:
       title: FarmCropMaturedV1
       description: Planta madura; days é a evidência observável da regra oculta (bíblia §13).
@@ -3170,6 +3208,9 @@ components:
                   $ref: '#/components/schemas/Token'
                 day:
                   $ref: '#/components/schemas/Day'
+                tomorrow:
+                  $ref: '#/components/schemas/Token'
+                  description: O tempo de amanhã, quando a previsão já saiu (ADR-0069).
             self:
               type: object
               title: ViewSelf
@@ -4000,9 +4041,13 @@ components:
       properties:
         condition:
           $ref: '#/components/schemas/Token'
-          description: 'Ex.: sun, rain.'
+          description: 'Ex.: sun, rain; num cenário com clima de mundo aberto, também storm e drought
+            (ADR-0069).'
         day:
           $ref: '#/components/schemas/Day'
+        forecast:
+          type: boolean
+          description: 'O tempo de um dia que ainda não chegou: a previsão, publicada na véspera (ADR-0069).'
     LiveKernelV1:
       title: LiveKernelV1
       description: 'Pulso do kernel: o tick de verdade e o relógio, a cada kernel.pulse_seconds de tempo
@@ -4774,6 +4819,16 @@ components:
       contentType: application/json
       payload:
         $ref: '#/components/schemas/FarmCropEatenV1'
+      x-visibility: world
+      x-producer: kernel
+    FarmCropKnockedDownV1:
+      name: campsverso.farm.crop.knocked_down.v1
+      title: FarmCropKnockedDownV1
+      summary: Uma planta madura foi derrubada pela tempestade da noite, e o canteiro ficou vazio (ADR-0069).
+        A tempestade vem na previsão da véspera.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/FarmCropKnockedDownV1'
       x-visibility: world
       x-producer: kernel
     FarmCropMaturedV1:
