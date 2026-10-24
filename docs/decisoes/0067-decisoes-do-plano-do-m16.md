@@ -24,6 +24,8 @@
     - a `MemoryPort` guarda o último estado visto de cada entidade;
     - o bloco de abertura lista o que está fora de vista.
 
+15. **Os marcos** *(decidida durante a implementação e confirmada pelo usuário em 23/out)*: o cenário declara as construções fixas (cama, porta, baú, fogão, poço, caixa de vendas e quiosque), que todo avatar enxerga além do raio, como quem conhece a própria fazenda (`perception_config.landmarks`). O resto se descobre andando e fica na lembrança; o fazendeiro-script explora a fronteira do que já viu.
+
 ## Consequências
 
 - **Contratos:** dois eventos novos (`world.entity.despawned.v1` e `world.clock.season_changed.v1`) e campos opcionais (`date` e `season` no relógio, `out_of_view` no delta). O `make compat` confere que tudo é compatível.

@@ -19,6 +19,13 @@ O registro de cada sessão de trabalho: o que foi feito, o que deu errado, as de
 | [20/out/2026](2026-10-20.md) | o M13 revisto: cavar ao lado como regar, o canteiro sem grupo (a faixa do rio é do analista), as métricas da bíblia 2 §13, a fita regravada, o soak de 30 dias repetido, os e2e nos dois mundos, a tela da Boa Vista conferida e o fechamento do M13; à tarde e à noite, o M14 (ADR-0063): o corredor e o relatório da segunda rodada, a arte da Boa Vista e a rodada de 30 dias (o Opus com 1.143 moedas contra 220 do script; ninguém cavou no rio) |
 | [21/out/2026](2026-10-21.md) | a ordem das versões confirmada (a fazenda sofisticada na v0.3, o escritório na v0.4, o estúdio na v0.5; ADR-0064) e o plano macro da v0.3 com a pesquisa na web; à noite, o M15 (ADR-0065): os soaks finais, a chamada real, o aceite da v0.2, o `futuro.md` revisto e a v0.2 em números; depois da tag, o README por versão com os prints e as decisões da v0.3 (ADR-0066) |
 
+## Índice da v0.3
+
+| Data | Entradas |
+|---|---|
+| [22/out/2026](2026-10-22.md) | o plano do M16 e a rodada do humano preparada; à noite, a aprovação (ADR-0067) e o kernel, o cenário, o script e a câmera da Fazenda Morada do Sol |
+| [23/out/2026](2026-10-23.md) | a arte (árvores por estação, culturas novas, espantalho), a lembrança do que se viu, a mente e a bíblia 3: o fechamento do M16 |
+
 ## A v0.1 em números
 
 Do primeiro commit (11/out/2026, 12h15) à tag `v0.1.0` (12/out/2026), em dois dias de trabalho com o Claude Code.

@@ -1,6 +1,6 @@
 # CLAUDE.md — Campsverso
 
-Campsverso é uma plataforma de simulação orientada a eventos para agentes de IA autônomos que vivem em mundos 2D. Cada mundo é um **cartucho** (fazenda, estúdio, startup…) rodando sobre um **kernel** genérico. A versão publicada é a **v0.2.0 "A possessão"** (`docs/versoes/v0.2.0.md`; aceite em `docs/aceite-v0.2.md`): o controlador LLM (ADR-0059) com memória baseline (ADR-0060), a arena (ADR-0061), a Fazenda Boa Vista, a fazenda 2 (ADR-0062), e duas rodadas da arena, a segunda com Sonnet e Opus (ADR-0063); o fechamento é a ADR-0065. A v0.1.0 "Fazenda do Camps" foi a primeira: um avatar, nenhum LLM, controladores humano, script e replay. A próxima, a **v0.3, é a fazenda sofisticada** (ADR-0064; `docs/planos/v0.3-macro.md`): as decisões estão na ADR-0066 (o cenário novo é a Fazenda Morada do Sol; o visual antes das outras famílias de modelos). O M16 (a Morada do Sol, ADR-0067; `docs/planos/m16-morada-do-sol.md`) está em construção, e a rodada do humano na Boa Vista espera uma noite livre do usuário. O escritório vai para a v0.4.
+Campsverso é uma plataforma de simulação orientada a eventos para agentes de IA autônomos que vivem em mundos 2D. Cada mundo é um **cartucho** (fazenda, estúdio, startup…) rodando sobre um **kernel** genérico. A versão publicada é a **v0.2.0 "A possessão"** (`docs/versoes/v0.2.0.md`; aceite em `docs/aceite-v0.2.md`): o controlador LLM (ADR-0059) com memória baseline (ADR-0060), a arena (ADR-0061), a Fazenda Boa Vista, a fazenda 2 (ADR-0062), e duas rodadas da arena, a segunda com Sonnet e Opus (ADR-0063); o fechamento é a ADR-0065. A v0.1.0 "Fazenda do Camps" foi a primeira: um avatar, nenhum LLM, controladores humano, script e replay. A próxima, a **v0.3, é a fazenda sofisticada** (ADR-0064; `docs/planos/v0.3-macro.md`): as decisões estão na ADR-0066 (o cenário novo é a Fazenda Morada do Sol; o visual antes das outras famílias de modelos). O M16 (a Fazenda Morada do Sol, ADR-0067; `docs/planos/m16-morada-do-sol.md`) está feito; o próximo é o M17 (ver e assistir), e a rodada do humano na Boa Vista espera uma noite livre do usuário. O escritório vai para a v0.4.
 
 O projeto também é material de aprendizado e de publicações. Clareza, testes e registro das decisões importam tanto quanto o código.
 
@@ -15,7 +15,8 @@ Leia antes de qualquer tarefa não trivial, nesta ordem:
 5. `docs/arquitetura/pesquisa-componentes-plataforma-simulacao.md` — bibliotecas avaliadas
 6. `docs/arquitetura/catalogo-eventos-v0.1.md` — eventos e comandos da v0.1 (depois do M0, guia de leitura dos schemas em `contracts/`)
 7. `docs/arquitetura/fazenda-boa-vista-biblia.md` — a fazenda 2 do M13: números, regras visíveis e ocultas, o fazendeiro-script 2
-8. `docs/decisoes/README.md` — índice das ADRs. **Uma ADR aceita prevalece sobre o texto dos documentos acima.**
+8. `docs/arquitetura/fazenda-morada-do-sol-biblia.md` — a fazenda 3 do M16: o ano e as estações, o mapa com raio e marcos, os canteiros que voltam a ser grama, as regras ocultas R-001 a R-003
+9. `docs/decisoes/README.md` — índice das ADRs. **Uma ADR aceita prevalece sobre o texto dos documentos acima.**
 
 Se dois documentos conflitarem, ou se faltar uma decisão: **pare e pergunte**. Depois registre a decisão como ADR curto em `docs/decisoes/NNNN-titulo.md`.
 
@@ -84,6 +85,10 @@ campsverso/
       sim/                    # mapa sem canteiros com o fogão, boavista.yaml (as mecânicas ligadas por dados), R-001
       art/                    # o mapa visual; o resto vem das camadas farm e farm_camps
       mind/                   # o manual e o catálogo da fazenda 2 sobre o cartão do Camps; entry point camps_boavista
+    farm_morada_do_sol/       # a Fazenda Morada do Sol, a fazenda 3 do M16 (ADR-0067): estende farm_boavista
+      sim/                    # mapa 64 x 40, morada.yaml (o ano, as estações, os canteiros que voltam, o espantalho, os corvos), R-001 e R-003
+      art/                    # o mapa visual com as árvores LPC por estação e o espantalho
+      mind/                   # o manual e o catálogo da fazenda 3; entry point camps_morada
   apps/
     ui/                       # Vite + Phaser
   tools/
@@ -130,16 +135,16 @@ make secrets      # gera em .env (fora do git) as senhas do NATS que faltam
 make up           # sobe o NATS em segundo plano
 make stop         # derruba o NATS
 make run          # sobe o NATS e o Procfile (honcho): kernel, percepção, script, arquivador e gateway
-make sandbox      # mundo descartável com tudo ligado, em data/sandbox/<data-hora> (não toca no oficial); MENTE=camps põe o LLM no Camps (ADR-0059; na Boa Vista, MENTE=camps_boavista); PAUSADO=1 começa com o relógio parado
+make sandbox      # mundo descartável com tudo ligado, em data/sandbox/<data-hora> (não toca no oficial); MENTE=camps põe o LLM no Camps (ADR-0059; na Boa Vista, MENTE=camps_boavista; na Morada do Sol, MENTE=camps_morada); PAUSADO=1 começa com o relógio parado
 make ui-build     # compila a UI em apps/ui/dist; o gateway a serve em http://127.0.0.1:8765
 make ui           # a UI em modo desenvolvimento (Vite), com proxy para o gateway
-make ui-e2e       # fumaça da tela no navegador (Playwright), com um sandbox próprio (porta 8799); MUNDO=farm-boavista-01 abre a fazenda 2
+make ui-e2e       # fumaça da tela no navegador (Playwright), com um sandbox próprio (porta 8799); MUNDO=farm-boavista-01 abre a fazenda 2, MUNDO=farm-morada-do-sol-01 a fazenda 3
 make soak DAYS=30 # resistência em modo máximo, com processos e NATS próprios (SEM_REGRA=1); MUNDO=farm-boavista-01 escolhe o mundo (também em sandbox, run, replay e metrics)
 make replay DAY=N # reexecuta um dia a partir do snapshot e do diário e compara com o arquivo
 make metrics      # métricas da bíblia §13 a partir do arquivo (ARCHIVE=pasta do mundo)
 make percepcao    # fotos e deltas da percepção por dia, em bytes e tokens estimados (ADR-0056); CONTAR=20 calibra com count_tokens
 make llm-smoke    # uma chamada real pela porta de modelo, numa fita nova a cada vez, medida e publicada pelo contrato (ADR-0058); pede ANTHROPIC_API_KEY no .env
-make fita DIAS=2  # grava em processo a fita de teste do controlador LLM, chamando a API (ADR-0059); o CI só a reproduz; CARTUCHO=farm_boavista grava a da fazenda 2
+make fita DIAS=2  # grava em processo a fita de teste do controlador LLM, chamando a API (ADR-0059); o CI só a reproduz; CARTUCHO=farm_boavista grava a da fazenda 2, CARTUCHO=farm_morada_do_sol a da fazenda 3
 make corrida DIAS=7   # N dias em processo com a mente sobre a API, com ou sem memória (ADR-0060); o mundo espera o modelo
 make arena DIAS=30    # as corridas da arena, em sequência, em data/arena/<data>-<rodada> (ADR-0061); SO=nome roda uma só; RODADA=boavista é a segunda rodada (M14); vários em paralelo no mesmo dia dividem as corridas
 make arena-report     # o relatório da arena (tabela da bíblia lado a lado, o leste pela memória) em docs/arena/

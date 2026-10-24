@@ -232,4 +232,15 @@ São verdades do mundo, como decidido na ADR-0066. Elas seguem os quatro critér
 
 ## 9. Como ficou
 
-*(a preencher no fechamento)*
+Feito em 22 e 23/out, em duas sessões, com as decisões 1 a 15 (a 15, os marcos, confirmada pelo usuário em 23/out).
+
+- **O teste A6 intermitente:** não achei caminho no código para a foto repetir; 12 de 12 sob carga passaram, e o teste agora imprime as fotos quando falha (no `futuro.md`).
+- **O kernel:** a primitiva `despawn` com as recusas; o contador `next_seq`; a consulta `targeted`; o ano (`YearDef`, `configure_year`), com a data e a estação no `Calendar`, em campos opcionais do relógio, e o evento `season_changed`; o salto de tempo para na virada do dia.
+- **Os contratos:** três eventos novos (`world.entity.despawned`, `world.clock.season_changed`, `farm.crop.eaten`) e campos opcionais (`date` e `season`, `landmarks` na percepção, `out_of_view` no delta); `make compat` limpo.
+- **O cenário:** a Morada do Sol estende a Boa Vista, com o mapa de 64 × 40, o raio de 12 tiles e os marcos, o ano de 28 dias, a afinidade de cada cultura com a estação, quatro culturas novas, os canteiros sem teto que voltam a ser grama em 3 manhãs, o espantalho (`place`), os corvos (R-002) e a fadiga do solo (R-003). O gênero liga tudo por dados e aceita uma cadeia de três cenários.
+- **A tela:** a câmera que segue o Camps, o arrastar, "Seguir o Camps" e "Mapa inteiro"; a data e a estação no HUD; o chão no tom da estação; as árvores LPC na mata, que trocam de folha no outono (laranja) e no inverno (marrom); as culturas novas e o espantalho desenhados. A fumaça da tela passa nos três mundos.
+- **A lembrança (decisão 14):** a percepção separa `out_of_view` de `gone`; a `MemoryPort` guarda os lugares; o bloco de abertura lista o que está fora de vista. O fazendeiro-script lembra as coisas e o terreno, explora a fronteira quando não tem o que fazer e viu o mapa inteiro entre os dias 2 e 3 do soak.
+- **A mente:** o manual e o catálogo da Morada do Sol (`camps_morada`), com o teste de palavras proibidas ampliado; a fita de dois dias tem 55 chamadas (US$ 0,031).
+- **Os números:** o soak do ano na Morada do Sol (28 dias, em uns 25 s) vive sem desmaio, com 67 plantios, 56 colheitas e 15 moedas ao fim; a fazenda 1 repete 1.175 moedas e a Boa Vista 220. Determinismo e replay passam nos três mundos; o `make check` tem 431 testes em Python.
+- **O que ficou fraco, de propósito:** o script 2 não sabe as regras ocultas e repete o rabanete nos mesmos canteiros, e a fadiga do solo o leva de 3 para uns 5,5 dias. É a linha de base cega; o script 3, que experimenta, é do M19.
+- **O que mudou em relação ao plano:** os marcos (decisão 15), porque sem eles o script não achava o quiosque; a escolha da base de comida pela estação; o tom das árvores no inverno é o marrom (o inverno seco) e não o pálido, que era sutil demais; e a cerca viva das fazendas 1 e 2 fica como estava (as árvores só onde o cenário pede).
