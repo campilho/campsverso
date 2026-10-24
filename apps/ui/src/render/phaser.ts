@@ -33,6 +33,10 @@ import { tileUnder, type WorldRenderer } from "./renderer.ts";
 
 const TILE = 32;
 const DROPS = 140;
+const CLOUD_COLOR = 0xdde2e8; // a névoa sobre o que nunca foi visto
+const SEEN_COLOR = 0x6f7782; // o cinza sobre o que já foi visto
+const SEEN_ALPHA = 0.5;
+const HAZE = [0.5, 0.22]; // o véu do anel de fora da vista e o do seguinte, em fração da névoa
 const LIGHT_RINGS = 20; // anéis da luz à noite, do mais largo ao mais estreito (sem degraus à vista)
 const FONT = "ui-monospace, monospace";
 const MAP_KEY = "visual-map";
@@ -400,17 +404,18 @@ class WorldScene extends Phaser.Scene {
       for (let x = 0; x < grid.width; x++) {
         const sight = this.fog.sight(x, y);
         if (sight === "visible") {
+          this.drawHaze(x, y, grid);
           continue;
         }
         if (sight === "seen") {
-          this.fogLayer.fillStyle(0x6f7782, 0.5).fillRect(x * TILE, y * TILE, TILE, TILE);
+          this.fogLayer.fillStyle(SEEN_COLOR, SEEN_ALPHA).fillRect(x * TILE, y * TILE, TILE, TILE);
           continue;
         }
         // Nuvem: um véu claro e, a cada poucos tiles, um tufo grande que passa por cima dos
         // vizinhos, em lugares que não se repetem em grade.
         const hash = (x * 73856093) ^ (y * 19349663);
         const puff = (Math.abs(hash) % 7) / 100;
-        this.fogLayer.fillStyle(0xdde2e8, 0.9 + puff).fillRect(x * TILE, y * TILE, TILE, TILE);
+        this.fogLayer.fillStyle(CLOUD_COLOR, 0.9 + puff).fillRect(x * TILE, y * TILE, TILE, TILE);
         if (Math.abs(hash) % 3 === 0) {
           const dx = (Math.abs(hash >> 3) % 24) - 4;
           const dy = (Math.abs(hash >> 7) % 24) - 4;
@@ -419,6 +424,21 @@ class WorldScene extends Phaser.Scene {
       }
     }
     this.fogDrawn = true;
+  }
+
+  /** O véu nos dois anéis de fora da vista, na cor do que está além (a nuvem ou o cinza do já
+   * visto): a passagem à névoa fica gradual, e nada além do raio aparece. */
+  private drawHaze(x: number, y: number, grid: TileGrid): void {
+    const edge = this.fog.edge(x, y);
+    const { beyond } = edge ?? { beyond: { x: -1, y: -1 } };
+    if (edge === undefined || beyond.x < 0 || beyond.y < 0 || beyond.x >= grid.width || beyond.y >= grid.height) {
+      return; // longe da borda, ou a borda é a do mapa
+    }
+    const cloud = this.fog.sight(beyond.x, beyond.y) === "unseen";
+    const alpha = HAZE[edge.depth] ?? 0;
+    this.fogLayer
+      .fillStyle(cloud ? CLOUD_COLOR : SEEN_COLOR, (cloud ? 1 : SEEN_ALPHA) * alpha)
+      .fillRect(x * TILE, y * TILE, TILE, TILE);
   }
 
   /** O que o jogador enxerga num tile, com a névoa ligada; sem névoa, nada. */

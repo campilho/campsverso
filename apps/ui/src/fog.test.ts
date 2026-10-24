@@ -45,6 +45,18 @@ describe("a névoa (ADR-0068)", () => {
     }
   });
 
+  it("a borda da vista: os dois anéis de fora, com o tile logo além na direção de fora", () => {
+    const fog = new FogMemory();
+    fog.look(state("amanhecer", {}), { x: 10, y: 10 }, 4);
+    expect(fog.edge(14, 10)).toEqual({ depth: 0, beyond: { x: 15, y: 10 } });
+    expect(fog.edge(10, 7)).toEqual({ depth: 1, beyond: { x: 10, y: 5 } });
+    expect(fog.edge(6, 6)).toEqual({ depth: 0, beyond: { x: 5, y: 5 } });
+    expect(fog.edge(11, 10)).toBeUndefined(); // longe da borda
+    expect(fog.edge(15, 10)).toBeUndefined(); // fora da vista
+    fog.look(state("amanhecer", {}), { x: 10, y: 10 }, 2);
+    expect(fog.edge(12, 10)).toBeUndefined(); // um raio pequeno não tem véu
+  });
+
   it("o que saiu da vista fica congelado como foi visto, e o que nunca foi visto não aparece", () => {
     const fog = new FogMemory();
     const plot = { kind: "plot", position: { x: 2, y: 0 }, attributes: { crop: "milho", stage: "broto" } };

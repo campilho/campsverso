@@ -59,6 +59,26 @@ export class FogMemory {
     return changed;
   }
 
+  /** A borda da vista, para a passagem à névoa ser gradual sem mostrar nada além do raio: num tile
+   * à vista nos dois anéis de fora, quantos tiles faltam até a borda (0 é o anel de fora) e o tile
+   * logo além dela, na direção de fora; nada nos outros, nem num raio menor que 3. */
+  edge(x: number, y: number): { depth: number; beyond: { x: number; y: number } } | undefined {
+    const at = this.center;
+    const radius = this.radius;
+    if (at === undefined || radius === undefined || radius < 3) {
+      return undefined;
+    }
+    const dx = x - at.x;
+    const dy = y - at.y;
+    const depth = radius - Math.max(Math.abs(dx), Math.abs(dy));
+    if (depth < 0 || depth > 1) {
+      return undefined;
+    }
+    const sx = Math.abs(dx) >= Math.abs(dy) ? Math.sign(dx) : 0;
+    const sy = Math.abs(dy) >= Math.abs(dx) ? Math.sign(dy) : 0;
+    return { depth, beyond: { x: x + sx * (depth + 1), y: y + sy * (depth + 1) } };
+  }
+
   sight(x: number, y: number): Sight {
     const at = this.center;
     if (at !== undefined && this.radius !== undefined && Math.max(Math.abs(x - at.x), Math.abs(y - at.y)) <= this.radius) {
