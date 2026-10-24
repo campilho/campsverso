@@ -91,7 +91,7 @@ def summary(pipeline: Pipeline) -> dict[str, Any]:
     }
 
 
-SLUGS = {"farm_camps": "camps", "farm_boavista": "boavista"}  # o nome da fita por cartucho
+SLUGS = {"farm_camps": "camps", "farm_boavista": "boavista", "farm_morada_do_sol": "morada"}
 
 
 async def run_days(days: int, port: ModelPort, cartridge: str = "farm_camps") -> dict[str, Any]:

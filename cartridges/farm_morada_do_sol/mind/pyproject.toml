@@ -1,0 +1,18 @@
+[project]
+name = "campsverso-farm-morada-do-sol-mind"
+version = "0.1.0.dev0"
+description = "A mente do Camps na Fazenda Morada do Sol (M16): o manual do cenário sobre o cartão do Camps."
+requires-python = ">=3.14"
+license = "MIT"
+dependencies = [
+  "campsverso-mind",
+  "campsverso-farm-mind",
+  "campsverso-farm-camps-mind",
+]
+
+[project.entry-points."campsverso.minds"]
+camps_morada = "campsverso_farm_morada_do_sol_mind:mind"
+
+[build-system]
+requires = ["uv_build>=0.13,<0.14"]
+build-backend = "uv_build"

@@ -214,6 +214,7 @@ async def test_a_tubulacao_da_boa_vista_com_uma_porta_que_so_espera() -> None:
 
 
 BOAVISTA = REPO / "tests" / "fixtures" / "llm" / "boavista-dia-2.jsonl"
+MORADA = REPO / "tests" / "fixtures" / "llm" / "morada-dia-2.jsonl"
 
 
 async def test_dois_dias_do_camps_na_boa_vista_pela_fita() -> None:
@@ -244,3 +245,28 @@ async def test_dois_dias_do_camps_na_boa_vista_pela_fita() -> None:
     assert plots
     assert all(p["entity_id"].startswith("plot-") for p in plots)
     assert all("action_id" in p for p in plots)  # cavados por uma ação, não pelo mapa
+
+
+async def test_dois_dias_do_camps_na_morada_do_sol_pela_fita() -> None:
+    """ADR-0067: a fita gravada com a API na Fazenda Morada do Sol (make fita DIAS=2
+    CARTUCHO=farm_morada_do_sol) reproduz dois dias sem rede: as mesmas chamadas, nada cobrado, a
+    data e a estação no relógio, e o Camps cavou com o número que nunca se repete."""
+    pipeline = Pipeline(
+        controller="llm",
+        port=RecordingModel(None, MORADA, "replay"),
+        budget=LIMITS,
+        cartridge="farm_morada_do_sol",
+    )
+    await pipeline.start()
+    await pipeline.run_days(2)
+    calls = pipeline.of_type("llm.call.completed.v1")
+    assert pipeline.of_type("llm.call.failed.v1") == []  # nenhum cassette_miss
+    assert len(calls) == sum(1 for line in MORADA.read_text(encoding="utf-8").splitlines() if line)
+    assert _by(calls, "charged") == {False}
+    assert pipeline.mind is not None
+    assert pipeline.mind.reflections >= 1
+    plots = [e for e in pipeline.of_type("world.entity.spawned.v1") if e["kind"] == "plot"]
+    assert plots
+    assert all(re.fullmatch(r"plot-\d{3}", p["entity_id"]) for p in plots)
+    phases = pipeline.of_type("world.clock.phase_changed.v1")
+    assert {p["season"] for p in phases} == {"primavera"}  # os dois primeiros dias do ano

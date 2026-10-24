@@ -16,6 +16,7 @@ members = [
     "campsverso-farm-camps-mind",
     "campsverso-farm-camps-sim",
     "campsverso-farm-mind",
+    "campsverso-farm-morada-do-sol-mind",
     "campsverso-farm-morada-do-sol-sim",
     "campsverso-farm-script",
     "campsverso-farm-sim",
@@ -135,6 +136,7 @@ dependencies = [
     { name = "campsverso-farm-camps-mind" },
     { name = "campsverso-farm-camps-sim" },
     { name = "campsverso-farm-mind" },
+    { name = "campsverso-farm-morada-do-sol-mind" },
     { name = "campsverso-farm-morada-do-sol-sim" },
     { name = "campsverso-farm-script" },
     { name = "campsverso-farm-sim" },
@@ -174,6 +176,7 @@ requires-dist = [
     { name = "campsverso-farm-camps-mind", editable = "cartridges/farm_camps/mind" },
     { name = "campsverso-farm-camps-sim", editable = "cartridges/farm_camps/sim" },
     { name = "campsverso-farm-mind", editable = "cartridges/farm/mind" },
+    { name = "campsverso-farm-morada-do-sol-mind", editable = "cartridges/farm_morada_do_sol/mind" },
     { name = "campsverso-farm-morada-do-sol-sim", editable = "cartridges/farm_morada_do_sol/sim" },
     { name = "campsverso-farm-script", editable = "cartridges/farm/script" },
     { name = "campsverso-farm-sim", editable = "cartridges/farm/sim" },
@@ -390,6 +393,23 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "campsverso-mind", editable = "libs/mind" }]
+
+[[package]]
+name = "campsverso-farm-morada-do-sol-mind"
+version = "0.1.0.dev0"
+source = { editable = "cartridges/farm_morada_do_sol/mind" }
+dependencies = [
+    { name = "campsverso-farm-camps-mind" },
+    { name = "campsverso-farm-mind" },
+    { name = "campsverso-mind" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "campsverso-farm-camps-mind", editable = "cartridges/farm_camps/mind" },
+    { name = "campsverso-farm-mind", editable = "cartridges/farm/mind" },
+    { name = "campsverso-mind", editable = "libs/mind" },
+]
 
 [[package]]
 name = "campsverso-farm-morada-do-sol-sim"
