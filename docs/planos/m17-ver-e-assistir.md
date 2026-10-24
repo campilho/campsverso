@@ -1,6 +1,6 @@
 # Plano do M17 — Ver e assistir
 
-*Proposto em 23/out/2026, depois do fechamento do M16. Aprovado em: (pendente). É o segundo marco de visual da v0.3 (ADR-0066): o que o avatar vê na tela passa a ser o que ele vê no mundo, e as corridas da arena passam a poder ser assistidas.*
+*Proposto em 23/out/2026, depois do fechamento do M16. Aprovado em 23/out/2026 (ADR-0068), com as notas do usuário na §7. É o segundo marco de visual da v0.3 (ADR-0066): o que o avatar vê na tela passa a ser o que ele vê no mundo, e as corridas da arena passam a poder ser assistidas.*
 
 **Pronto quando:**
 - **A névoa:** na visão do jogador, a tela mostra só o que o Camps enxerga (o raio, os marcos e o terreno que ele já viu, mais escuro). O operador vê tudo e pode trocar para "ver como o Camps".
@@ -113,6 +113,15 @@
 10. **Os rótulos de eventos declarados pelo cartucho,** no `session.started`. *Recomendação: sim. O escritório vai precisar disso ("abriu o PR #41").*
 11. **A lanterna desenhada no estilo LPC,** se o pacote não tiver uma (download autorizado se precisar). Ela aparece no inventário e na luz em volta do Camps, não no mapa. *Recomendação: sim.*
 12. **O manual da Morada do Sol** ganha a noite e a lanterna, e a fita é regravada se o pedido mudar (uns US$ 0,03). *Recomendação: sim.*
+
+**As notas do usuário na aprovação (23/out):**
+- **1:** a mesma regra para todos, configurável, maior de dia e menor de noite.
+- **2:** a névoa é névoa mesmo, uma nuvem, e não preto. Onde o avatar passa, ela abre e mostra o chão. Quando ele se afasta, o desenho fica, coberto por um cinza semitransparente, e o que está ali fica congelado como foi visto até ele voltar ao raio.
+- **3:** o humano vê o desenho congelado na névoa, mas não sabe se algo mudou. O script e o LLM não veem, então lembram de fato, sabendo que pode ter mudado.
+- **5:** ficar de olho no tamanho dos arquivos; uma limpeza pode vir depois.
+- **6:** de 4 a 6 corridas por tela, por agora.
+- **9:** uma explicação dos comandos na tela, pelo menos na primeira vez.
+- **10:** o escritório vai precisar porque o trabalho dele acontece fora do mapa, e a linha do tempo é a janela para isso.
 
 ## 8. Como ficou
 
