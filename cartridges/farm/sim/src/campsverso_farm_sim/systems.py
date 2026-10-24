@@ -13,6 +13,7 @@ from campsverso_cartridge_api import (
     WorldOps,
     WorldView,
 )
+from campsverso_climate import ClimateRules, draw
 from campsverso_farm_sim.actions import EMPTY_PLOT, empty_hidden
 from campsverso_farm_sim.config import (
     ENERGY,
@@ -36,12 +37,24 @@ class FarmSystem:
         self.body(ctx, ops)
 
 
+def climate_rules(weather: Mapping[str, Any]) -> ClimateRules:
+    """As chances do tempo, dos dados: só `rain_probability` nas fazendas 1 e 2; `chances` e
+    `by_season` num cenário com tempestade e seca (ADR-0069)."""
+    default = weather.get("chances") or {"rain": float(weather["rain_probability"])}
+    by_season = cast(Mapping[str, Mapping[str, float]], weather.get("by_season") or {})
+    return ClimateRules(
+        default={str(k): float(v) for k, v in cast(Mapping[str, Any], default).items()},
+        by_season={s: {str(k): float(v) for k, v in c.items()} for s, c in by_season.items()},
+    )
+
+
 def draw_weather(ctx: SystemContext, ops: WorldOps) -> None:
-    """No início, sorteia o dia 1; às 05:00, o dia agrícola que começa às 06:00 (ADR-0018)."""
+    """No início, sorteia o dia 1; às 05:00, o dia agrícola que começa às 06:00 (ADR-0018). O
+    sorteio é o da biblioteca do clima, pela estação do dia (ADR-0069)."""
     view = ctx.view
     day = view.day if isinstance(ctx.trigger, OnSessionStart) else view.day + 1
-    chance = float(section(view, "weather")["rain_probability"])
-    ops.set_weather("rain" if view.rng("weather").random() < chance else "sun", day)
+    rules = climate_rules(section(view, "weather"))
+    ops.set_weather(draw(view.rng("weather"), rules, view.season(day)), day)
 
 
 def _stage_for(points: float, required: float, stages: Mapping[str, Any]) -> str:

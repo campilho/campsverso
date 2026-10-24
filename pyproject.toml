@@ -11,6 +11,8 @@ dependencies = [
   "campsverso-adapters",
   "campsverso-world-view",
   "campsverso-mind",
+  "campsverso-economy",
+  "campsverso-climate",
   "campsverso-kernel",
   "campsverso-perception",
   "campsverso-controller-runner",
@@ -71,6 +73,8 @@ campsverso-cartridge-api = { workspace = true }
 campsverso-adapters = { workspace = true }
 campsverso-world-view = { workspace = true }
 campsverso-mind = { workspace = true }
+campsverso-economy = { workspace = true }
+campsverso-climate = { workspace = true }
 campsverso-kernel = { workspace = true }
 campsverso-perception = { workspace = true }
 campsverso-controller-runner = { workspace = true }
@@ -145,6 +149,8 @@ root_packages = [
   "campsverso_adapters",
   "campsverso_world_view",
   "campsverso_mind",
+  "campsverso_economy",
+  "campsverso_climate",
   "campsverso_kernel",
   "campsverso_perception",
   "campsverso_controller_runner",
@@ -292,6 +298,50 @@ forbidden_modules = [
   "campsverso_archiver",
   "campsverso_budget",
 ]
+
+[[tool.importlinter.contracts]]
+name = "A economia e o clima são bibliotecas folha: não conhecem kernel, serviços, adaptadores nem cartuchos (ADR-0069)"
+type = "forbidden"
+source_modules = ["campsverso_economy", "campsverso_climate"]
+forbidden_modules = [
+  "campsverso_contracts",
+  "campsverso_ports",
+  "campsverso_cartridge_api",
+  "campsverso_adapters",
+  "campsverso_world_view",
+  "campsverso_mind",
+  "campsverso_kernel",
+  "campsverso_perception",
+  "campsverso_controller_runner",
+  "campsverso_gateway",
+  "campsverso_archiver",
+  "campsverso_budget",
+  "campsverso_farm_sim",
+  "campsverso_farm_script",
+  "campsverso_farm_camps_sim",
+  "campsverso_farm_boavista_sim",
+  "campsverso_farm_morada_do_sol_sim",
+  "campsverso_tools",
+  "campsverso_testkit",
+]
+
+[[tool.importlinter.contracts]]
+name = "O kernel e os serviços não conhecem a economia nem o clima: cada cartucho escolhe usá-los (ADR-0069, princípio 8)"
+type = "forbidden"
+source_modules = [
+  "campsverso_kernel",
+  "campsverso_perception",
+  "campsverso_controller_runner",
+  "campsverso_gateway",
+  "campsverso_archiver",
+  "campsverso_budget",
+  "campsverso_world_view",
+  "campsverso_mind",
+  "campsverso_ports",
+  "campsverso_cartridge_api",
+  "campsverso_adapters",
+]
+forbidden_modules = ["campsverso_economy", "campsverso_climate"]
 
 [[tool.importlinter.contracts]]
 name = "A base não conhece quem a estende (ADR-0031)"

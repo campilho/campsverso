@@ -9,8 +9,10 @@ members = [
     "campsverso-archiver",
     "campsverso-budget",
     "campsverso-cartridge-api",
+    "campsverso-climate",
     "campsverso-contracts",
     "campsverso-controller-runner",
+    "campsverso-economy",
     "campsverso-farm-boavista-mind",
     "campsverso-farm-boavista-sim",
     "campsverso-farm-camps-mind",
@@ -129,8 +131,10 @@ dependencies = [
     { name = "campsverso-archiver" },
     { name = "campsverso-budget" },
     { name = "campsverso-cartridge-api" },
+    { name = "campsverso-climate" },
     { name = "campsverso-contracts" },
     { name = "campsverso-controller-runner" },
+    { name = "campsverso-economy" },
     { name = "campsverso-farm-boavista-mind" },
     { name = "campsverso-farm-boavista-sim" },
     { name = "campsverso-farm-camps-mind" },
@@ -169,8 +173,10 @@ requires-dist = [
     { name = "campsverso-archiver", editable = "services/archiver" },
     { name = "campsverso-budget", editable = "services/budget" },
     { name = "campsverso-cartridge-api", editable = "libs/cartridge-api" },
+    { name = "campsverso-climate", editable = "libs/climate" },
     { name = "campsverso-contracts", editable = "packages/contracts-py" },
     { name = "campsverso-controller-runner", editable = "services/controller-runner" },
+    { name = "campsverso-economy", editable = "libs/economy" },
     { name = "campsverso-farm-boavista-mind", editable = "cartridges/farm_boavista/mind" },
     { name = "campsverso-farm-boavista-sim", editable = "cartridges/farm_boavista/sim" },
     { name = "campsverso-farm-camps-mind", editable = "cartridges/farm_camps/mind" },
@@ -282,6 +288,11 @@ dependencies = [
 requires-dist = [{ name = "campsverso-contracts", editable = "packages/contracts-py" }]
 
 [[package]]
+name = "campsverso-climate"
+version = "0.1.0.dev0"
+source = { editable = "libs/climate" }
+
+[[package]]
 name = "campsverso-contracts"
 version = "0.1.0.dev0"
 source = { editable = "packages/contracts-py" }
@@ -310,6 +321,11 @@ requires-dist = [
     { name = "campsverso-mind", editable = "libs/mind" },
     { name = "campsverso-ports", editable = "libs/ports" },
 ]
+
+[[package]]
+name = "campsverso-economy"
+version = "0.1.0.dev0"
+source = { editable = "libs/economy" }
 
 [[package]]
 name = "campsverso-farm-boavista-mind"
@@ -455,14 +471,18 @@ version = "0.1.0.dev0"
 source = { editable = "cartridges/farm/sim" }
 dependencies = [
     { name = "campsverso-cartridge-api" },
+    { name = "campsverso-climate" },
     { name = "campsverso-contracts" },
+    { name = "campsverso-economy" },
     { name = "pyyaml" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "campsverso-cartridge-api", editable = "libs/cartridge-api" },
+    { name = "campsverso-climate", editable = "libs/climate" },
     { name = "campsverso-contracts", editable = "packages/contracts-py" },
+    { name = "campsverso-economy", editable = "libs/economy" },
     { name = "pyyaml", specifier = ">=6" },
 ]
 
