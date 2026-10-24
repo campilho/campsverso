@@ -209,4 +209,44 @@ O sorteio do tempo sai do gênero farm para uma biblioteca própria, **`libs/cli
 
 ## 13. Como ficou
 
-*(a preencher no fechamento)*
+Feito em 24/out, numa sessão, com as decisões 1 a 16 da ADR-0069.
+
+- **As bibliotecas:**
+  - **`libs/economy`:** o mercado (o fator que cai na venda, sobe na compra e recupera de um dia para o outro; a referência pela estação, pela oscilação e pelo choque), as encomendas com a reputação e a agenda;
+  - **`libs/climate`:** o sorteio do tempo pelas chances da estação;
+  - as duas são funções puras com testes próprios, e o `import-linter` garante que o kernel e os serviços não as conhecem;
+  - o sorteio do tempo do gênero passou pela biblioteca com o mesmo resultado nas três fazendas.
+- **O mercado nos dois sentidos** na Morada do Sol: a caixa que lembra, o quiosque que sobe, a estação no preço e a oscilação, com os preços de agora à vista. A Boa Vista continua no mercado do dia.
+- **As encomendas:** o quadro ao lado do quiosque, com pedidos que são entidades dentro dele e só se leem de perto; aceitar, entregar e receber na hora; a reputação (R-004); o domínio `economy` nos contratos, com quatro eventos.
+- **A feira:** a barraca da entrada da fazenda, a cada 7 dias, das 06:00 às 14:00, 30% acima, paga na hora, com a próxima feira à vista.
+- **O tacho e a composteira:** máquinas que trabalham sozinhas e mostram as horas que faltam; a geleia, o molho e a farinha; o adubo do que ia se perder; os restos da planta murcha.
+- **O clima:** a previsão das 18:00 (o `forecast` no evento, `tomorrow` na foto e "amanhã" no HUD), a tempestade que derruba plantas maduras, a seca que pede rega até o meio-dia, e o mercado que sobe depois de uma delas.
+- **A mente e o script:**
+  - o manual e as ferramentas contam tudo o que é visível, e a reputação fica fora (o teste de palavras proibidas ganhou a R-004);
+  - a fita de dois dias tem 48 chamadas (US$ 0,031);
+  - o script 2 adaptado vive o ano sem desmaio nem recusa.
+- **A tela:**
+  - a arte do quadro, da barraca, do tacho, da composteira e dos produtos;
+  - o menu do quadro com os pedidos pelo nome;
+  - a previsão no HUD;
+  - as métricas por canal, com uma contagem que soma um campo.
+- **Os testes:** 473 em Python e 58 na tela; determinismo e replay nos três mundos.
+- **Os números:**
+  - **O soak do ano na Morada do Sol** com o script 2 adaptado: 48 plantios, 38 colheitas, 17 moedas, nenhum desmaio nem recusa, 1 encomenda entregue de 20 que apareceram, 1 tempestade e 1 seca.
+  - **As fazendas 1 e 2** repetem os números de sempre.
+  - **A corrida de verificação** (7 dias, o Haiku com memória, US$ 0,126):
+    - o modelo foi ao quadro e aceitou "5 rabanetes por 183 moedas até o dia 8";
+    - esperou as 18:00 para ler a previsão;
+    - guardou os rabanetes da encomenda em vez de comê-los, e desmaiou de fome no dia 5.
+- **O que mudou em relação ao plano:**
+  - **O clima numa biblioteca à parte,** `libs/climate`, a pedido do usuário.
+  - **O kernel:**
+    - deixa o cartucho publicar o domínio de uma biblioteca que declarou usar (`use_domain`);
+    - só marca como previsão o tempo que o cartucho pede (`set_weather(..., forecast=True)`).
+  - **A métrica que soma** virou um campo opcional da contagem (`field`), porque um tipo novo no enum não é compatível.
+  - **O pedido do quadro** é uma entidade dentro dele, e por isso só se lê de perto, como a mente notou.
+- **O que se achou no caminho:**
+  - **A previsão quebrou as fitas das fazendas 1 e 2.** O tempo sorteado às 05:00 para o dia agrícola das 06:00 virava "amanhã" na foto. Agora a previsão é explícita.
+  - **O nome do pedido passava dos 64 caracteres** que o contrato aceita. O soak achou, e o rótulo encurtou.
+  - **O script 2 podia repetir uma compra recusada** pelo preço que subiu. Agora ele espera quando a mesma proposta acabou de ser recusada.
+  - **O soak da Boa Vista deu 207 moedas.** A estimativa do preço que sobe valia também onde o preço é fixo; agora só vale quando o quiosque mostra o preço de agora, e a Boa Vista voltou às 220.

@@ -28,9 +28,19 @@ A economia de hoje é código do gênero farm: a caixa de vendas que satura no d
 
 **Todos os números são dados do cenário** (`morada.yaml`), e não do código: o preço de venda e o de compra, a feira, as encomendas, a reputação, as receitas e o clima podem mudar sem mexer na biblioteca nem no gênero. *(Nota do usuário nas decisões 3, 4 e 8.)*
 
+## Na implementação
+
+Detalhes que a implementação pediu, dentro das decisões acima (o plano, §13):
+- **O domínio de uma biblioteca:** o kernel deixa um cartucho publicar os eventos do domínio de uma biblioteca de mundo que ele declarou usar (`WorldBuilder.use_domain("economy")`), além do domínio do próprio cartucho; o `domains.json` ganha a lista `libraries`.
+- **A previsão é explícita:** o cartucho pede `set_weather(..., forecast=True)` quando sorteia na véspera. Sem isso, o tempo sorteado na madrugada para o dia agrícola das 06:00 viraria "amanhã" na foto das fazendas 1 e 2.
+- **O pedido é uma entidade dentro do quadro,** com o que se pede nos atributos e um nome de até 64 caracteres; ele só se lê de perto, como as coisas guardadas num baú.
+- **A métrica que soma é um campo opcional da contagem** (`field`), porque um tipo novo no enum `kind` não é compatível dentro da v1.
+- **O sistema do tempo do cenário troca o do gênero** (o sorteio às 18:00 no lugar das 05:00), por um registro com `override`.
+- **Vender e pegar ganharam alvos:** vender aceita a barraca da feira (paga na hora), e pegar aceita as máquinas.
+
 ## Consequências
 
-- **O kernel não muda,** a não ser para marcar como previsão o tempo de um dia que ainda não chegou.
+- **O kernel muda pouco e de forma genérica:** o domínio de uma biblioteca e a previsão explícita.
 - **Duas bibliotecas novas** no workspace, com as mesmas proibições de determinismo da simulação (sem relógio de parede, sem `random` global) e um contrato no `import-linter`: o kernel e os serviços não as importam, e elas não importam kernel, serviços, adaptadores nem cartuchos.
 - **A Boa Vista e a fazenda 1 ficam como estão:** o mercado que volta à tabela de manhã, só sol e chuva, nenhuma encomenda.
 - **A rodada do M14 continua comparável,** e a Morada do Sol ganha uma linha de base nova (o script 2 adaptado).

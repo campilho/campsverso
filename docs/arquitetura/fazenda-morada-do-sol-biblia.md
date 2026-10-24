@@ -1,6 +1,6 @@
 # Bíblia da Fazenda Morada do Sol (a fazenda 3, M16)
 
-**Status:** escrita em 23/out/2026, ao fim do M16, a partir do plano do marco e da ADR-0067. É a fonte dos números e das regras do cenário `farm_morada_do_sol` e do mundo `farm-morada-do-sol-01`. O cenário estende a Fazenda Boa Vista: o que esta bíblia não diz vale como na bíblia 2 (`fazenda-boa-vista-biblia.md`) e, abaixo dela, na bíblia da v0.1. Isso inclui as ferramentas, o baú, o mercado que satura, o fogão, a validade, o sono e o desmaio.
+**Status:** escrita em 23/out/2026, ao fim do M16, a partir do plano do marco e da ADR-0067; a noite e a lanterna entraram no M17 (ADR-0068), e a economia e o clima no M18 (ADR-0069, §11 a §14). É a fonte dos números e das regras do cenário `farm_morada_do_sol` e do mundo `farm-morada-do-sol-01`. O cenário estende a Fazenda Boa Vista: o que esta bíblia não diz vale como na bíblia 2 (`fazenda-boa-vista-biblia.md`) e, abaixo dela, na bíblia da v0.1. Isso inclui as ferramentas, o baú, o mercado que satura, o fogão, a validade, o sono e o desmaio.
 
 ## 1. Conceito
 
@@ -32,9 +32,9 @@ São 64 × 40 tiles, quatro vezes a área da Boa Vista, com os nove tipos de ter
 | Região | Onde | O que tem |
 |---|---|---|
 | A casa | a oeste, em (4..8, 14..18) | cama, mesa, fogão e, do lado de fora, o baú; a porta em (6, 18) |
-| O centro | em volta da casa | o poço em (14, 20), a caixa de vendas em (9, 20) |
+| O centro | em volta da casa | o poço em (14, 20), a caixa de vendas em (9, 20), a composteira em (2, 17) |
 | A estrada | a linha 22, de x = 6 até o rio | caminho de terra, com ramais para o norte (x = 26) e para o sul (x = 32..33) |
-| O quiosque | ao sul, em (34, 36), junto da entrada da fazenda | as sementes, o adubo, o espantalho e as ferramentas |
+| O quiosque | ao sul, em (34, 36), junto da entrada da fazenda | as sementes, o adubo, o espantalho, a lanterna, o tacho e as ferramentas; o quadro de encomendas em (36, 36) e a barraca da feira em (31, 37) |
 | O rio | a leste, colunas 60..63, de ponta a ponta | não se pisa |
 | A várzea | a grama entre a estrada e o rio, a leste | grama larga, longe da casa |
 | O morro | ao norte, linhas 1..7 | uma faixa de mata com uma clareira e uma lagoa pequena em (24..29, 3..5) |
@@ -48,7 +48,8 @@ O mapa lógico é gerado por script a partir desta tabela e editado no Tiled daq
 | | |
 |---|---|
 | Raio | 12 tiles (distância de Chebyshev) em volta do avatar: o script e o LLM recebem o recorte |
-| Marcos | cama, porta, baú, fogão, poço, caixa de vendas e quiosque se veem além do raio: quem mora na fazenda sabe onde ficam (`perception_config.landmarks`, decisão 15) |
+| Marcos | cama, porta, baú, fogão, poço, caixa de vendas, quiosque, quadro de encomendas, barraca da feira e composteira se veem além do raio: quem mora na fazenda sabe onde ficam (`perception_config.landmarks`, decisão 15). Os pedidos dentro do quadro, não: só de perto |
+| A noite | 12 tiles de dia, 7 no entardecer, 5 à noite e de madrugada; a lanterna no inventário garante 10 (ADR-0068) |
 | Fora da vista | o delta separa `out_of_view` (saiu do raio e continua no mundo) de `gone` (deixou de existir à vista) |
 | A lembrança | a mente guarda o último estado visto de cada coisa (os lugares, na `MemoryPort`) e lista no bloco de abertura o que está fora de vista; o fazendeiro-script guarda a sua própria lembrança, com o terreno |
 
@@ -107,6 +108,7 @@ São verdades do mundo, fixas (ADR-0066): o que muda de uma corrida para outra �
 | R-001, a várzea | água perto faz crescer mais rápido; é a mesma verdade das fazendas 1 e 2 | a até 4 tiles de qualquer tile de água (o rio, a lagoa), o ponto do dia vale 1,5 | a planta amadurece antes |
 | R-002, os corvos | toda manhã, depois do crescimento, cada planta madura longe da casa e sem espantalho por perto pode amanhecer comida; o canteiro fica vazio | longe: a mais de 18 tiles da porta; por perto: a até 6 tiles de um espantalho; a chance é de 1 em 2, pelo RNG nomeado `crows` | o canteiro vazio e o evento `farm.crop.eaten.v1` com `by: corvo` |
 | R-003, a fadiga do solo | plantar a mesma cultura que acabou de sair do canteiro faz a planta crescer mais devagar; trocar de cultura recupera | o canteiro lembra a última cultura colhida ou limpa (`last_crop`); repetir multiplica o ponto por 0,6 | a planta leva mais dias |
+| R-004, a reputação | quem entrega no prazo vê mais pedidos no quadro e prêmios maiores; quem deixa vencer um pedido aceito, o contrário (ADR-0069) | começa em 0,5; sobe 0,1 por entrega, desce 0,2 por pedido aceito que vence; o peso vai de 0,5 a 1,5 na chance de cada vaga e no prêmio | o quadro mais cheio ou mais vazio, e o pagamento dos pedidos novos |
 | As da Boa Vista | o tomate murcha com um dia seco; o alho dispensa rega; o baú conserva; o ensopado segura a fome; o adubo vale para o próximo plantio | os da bíblia 2, §10 | os efeitos de sempre |
 
 Os quatro critérios do plano macro: as três novas são **frequentes** (agem sobre plantar, colher e plantar longe), **descobríveis por experimento** (dois canteiros, um perto e outro longe da água, ou um com e outro sem repetição), **valiosas** (a várzea rende uma vez e meia, os corvos levam metade das maduras longe da casa, a fadiga atrasa dois dias um rabanete) e **sistêmicas** (água faz crescer, bicho come o que está sem guarda, monocultura cansa a terra).
@@ -119,7 +121,9 @@ O mesmo script da Boa Vista, com o que só age onde há estação e recorte:
 - **A exploração:** sem nada para fazer, das 08:00 às 17:00, com energia de 45 ou mais e fome abaixo de 55, anda até a fronteira do que já viu. No soak do ano, viu o mapa inteiro entre os dias 2 e 3.
 - **O calendário:** não planta nem compra a cultura parada na estação, conta a fraca como duas vezes mais lenta e escolhe a base de comida da estação (rabanete, couve ou milho, a primeira que cresce no ritmo cheio).
 
-Ele não sabe nenhuma regra oculta, e sofre com elas: repete o rabanete nos mesmos canteiros, e a fadiga do solo leva o rabanete de 3 para uns 5,5 dias. No soak de um ano, ele vive sem desmaiar (67 plantios, 56 colheitas, 15 moedas ao fim) e é a linha de base cega até o fazendeiro-script 3, no M19.
+Ele não sabe nenhuma regra oculta, e sofre com elas: repete o rabanete nos mesmos canteiros, e a fadiga do solo leva o rabanete de 3 para uns 5,5 dias. É a linha de base cega até o fazendeiro-script 3, no M19.
+
+**Na economia (M18), só no essencial:** não repete uma proposta que acabou de ser recusada; conta o preço da semente que sobe com a compra; na seca, rega com as 2 cargas; perto do quadro, aceita o pedido que já pode cumprir com o que carrega e entrega na hora. A feira e o tacho ficam para o script 3. No soak de um ano com a economia e o clima, ele vive sem desmaio nem recusa: 48 plantios, 38 colheitas, 17 moedas ao fim e 1 encomenda entregue (de 20 que apareceram).
 
 ## 10. As métricas
 
@@ -129,5 +133,54 @@ As da Boa Vista (bíblia 2, §13), mais duas:
 |---|---|
 | Plantas comidas, por cultura | quanto a R-002 custou |
 | Canteiros que voltaram a ser grama | quanto se cavou à toa |
+| Moedas recebidas por canal | quanto veio da caixa, da feira e das encomendas (a métrica soma o `qty` das moedas, agrupado pelo motivo) |
+| Encomendas entregues e vencidas | se a reputação está subindo ou descendo |
+| Feito no tacho e na composteira | quanto se agregou de valor |
+| Plantas derrubadas pela tempestade | quanto custou não ler a previsão |
 
 As de exploração (tiles vistos, distância dos canteiros à casa, canteiros por zona) ficam para o M19, com as variantes do mapa.
+
+## 11. O clima e a previsão
+
+O sorteio é da biblioteca `libs/climate`; o que o tempo faz é do cenário (ADR-0069).
+
+| | |
+|---|---|
+| A previsão | às 18:00 sai o tempo de amanhã (`weather.changed.v1` com `forecast`; `weather.tomorrow` na foto; "amanhã" no HUD), e ele não muda |
+| As chances | primavera e outono: chuva 20%, tempestade 4%, seca 3%; verão: chuva 25%, tempestade 8%, seca 3%; inverno: chuva 10%, tempestade 4%, seca 10%; o resto é sol |
+| A chuva e a tempestade | regam todos os canteiros do dia |
+| A tempestade | na manhã dela, antes do crescimento, cada planta madura tem 30% de chance de cair e se perder (`farm.crop.knocked_down.v1`), pelo RNG `storm`; a que amadureceu na própria manhã está a salvo |
+| A seca | não chove; a planta não regada até as 12:00 não cresce no dia, mesmo regada à tarde; cada rega gasta 2 cargas |
+| O mercado | depois de uma tempestade ou de uma seca, a referência das colheitas sobe 15% por 3 dias |
+
+## 12. O mercado
+
+A caixa de vendas e o quiosque da Morada do Sol usam o mercado da `libs/economy`; a Boa Vista continua com o mercado do dia.
+
+| | |
+|---|---|
+| A referência | a tabela de venda, vezes a estação (boa 1,0; fraca 1,25; parada 1,6), vezes a oscilação do dia (até 4% por dia, limitada a 15%, pelo RNG `market`), vezes o choque do clima |
+| Vender | cada unidade derruba o preço daquela colheita em 2% da referência, até 40%; o que se põe na caixa vale o preço do momento |
+| De um dia para o outro | o preço recupera um terço da distância até a referência: 30 unidades despejadas pesam uns quatro dias |
+| Comprar | cada semente comprada sobe o preço dela 3% no dia, até o dobro; de manhã volta à tabela. O adubo, o espantalho, a lanterna, o tacho e as ferramentas têm preço fixo |
+| O que a caixa compra | as colheitas e os produtos do tacho |
+
+## 13. As encomendas e a feira
+
+| | |
+|---|---|
+| O quadro | ao lado do quiosque; os pedidos são entidades dentro dele (`order-012`), com cliente, item, quantidade, pagamento e prazo, e só se leem de perto |
+| Os pedidos | às 06:00 os vencidos saem e aparecem os novos: 2 vagas por dia, cada uma com 50% de chance (pesada pela reputação, R-004), até 4 no quadro; de 2 a 6 unidades de uma colheita fora da estação parada ou de um produto, prazo de 3 a 7 dias, pagamento 50% acima da referência do dia (pesado pela reputação) |
+| Os clientes | Dona Cida, Seu Juca, Dona Nena, Seu Lourenço, a padaria da praça, o restaurante da estrada, a cantina da escola e o mercadinho |
+| Aceitar e entregar | `accept_order` (2 minutos, até 2 aceitos) e `deliver_order` (5 minutos, os itens no inventário, pagamento na hora); as recusas `no_order`, `order_taken`, `too_many_orders`, `not_your_order`, `order_expired` |
+| A feira | a barraca da entrada da fazenda abre a cada 7 dias (os dias 7, 14, 21 e 28: o último de cada estação), das 06:00 às 14:00, e mostra `proxima_feira`; compra colheitas e produtos 30% acima da referência, com pressão própria (2% por unidade, até 40%) que zera a cada feira, e paga na hora |
+
+## 14. O tacho e a composteira
+
+| | |
+|---|---|
+| O tacho | 200 moedas no quiosque, peso 6; fincado na grama com `place`; trabalha sozinho, uma receita por vez, e mostra `fazendo` e `faltam_horas`; o produto espera dentro dele e sai pelo `withdraw` |
+| As receitas | geleia: 3 morangos, 12 horas, vale 330, validade 30 dias; molho de tomate: 3 tomates, 8 horas, 280, 30 dias; farinha: 4 mandiocas, 8 horas, 450, 90 dias |
+| A composteira | ao lado da casa; 3 unidades de uma colheita, ou de restos de planta, viram 1 adubo em 3 dias (`compost`) |
+| Os restos | limpar uma planta murcha deixa 1 `resto` no inventário |
+| Os produtos | não se comem; vendem-se na caixa, na feira e nas encomendas |
