@@ -217,3 +217,14 @@ metrics:  # além das da Boa Vista
      by: {field: crop}}
   - {id: voltaram_a_grama, label: Canteiros que voltaram a ser grama, kind: count,
      event: campsverso.world.entity.despawned.v1, where: {reason: reverted_to_grass}}
+  # A economia e o clima (ADR-0069). As moedas por canal somam o `qty` (payment é a caixa).
+  - {id: moedas_por_canal, label: Moedas recebidas por canal, kind: count, field: qty,
+     event: campsverso.world.item.created.v1, where: {item: moeda}, by: {field: reason}}
+  - {id: encomendas_entregues, label: Encomendas entregues, kind: count,
+     event: campsverso.economy.order.delivered.v1}
+  - {id: encomendas_vencidas, label: Encomendas que venceram, kind: count,
+     event: campsverso.economy.order.expired.v1}
+  - {id: feito_nas_maquinas, label: Feito no tacho e na composteira, kind: count, field: qty,
+     event: campsverso.world.item.created.v1, where: {reason: process}, by: {field: item}}
+  - {id: derrubadas, label: Plantas derrubadas pela tempestade, kind: count,
+     event: campsverso.farm.crop.knocked_down.v1}

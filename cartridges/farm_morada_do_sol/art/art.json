@@ -7,6 +7,54 @@
       "sheet": "morada-objects",
       "frame": 0,
       "label": "Espantalho"
+    },
+    "order_board": {
+      "sheet": "morada-economia",
+      "frame": 0
+    },
+    "fair_stall": {
+      "sheet": "morada-economia",
+      "frame": 1,
+      "variants": [
+        {
+          "when": {
+            "open": false
+          },
+          "look": {
+            "tint": "#9c9c9c"
+          }
+        }
+      ]
+    },
+    "tacho": {
+      "sheet": "morada-economia",
+      "frame": 2,
+      "label": "{faltam_horas}h",
+      "overlays": [
+        {
+          "when": {
+            "fazendo": null
+          },
+          "look": {
+            "label": ""
+          }
+        }
+      ]
+    },
+    "composteira": {
+      "sheet": "morada-economia",
+      "frame": 3,
+      "label": "{faltam_horas}h",
+      "overlays": [
+        {
+          "when": {
+            "fazendo": null
+          },
+          "look": {
+            "label": ""
+          }
+        }
+      ]
     }
   },
   "seasons": {
@@ -54,12 +102,42 @@
       "image": "items.png",
       "frame_width": 32,
       "frame_height": 32
+    },
+    "morada-economia": {
+      "image": "economia.png",
+      "frame_width": 32,
+      "frame_height": 32
     }
   },
   "items": {
     "lanterna": {
       "sheet": "morada-items",
       "frame": 0
+    },
+    "geleia": {
+      "sheet": "morada-items",
+      "frame": 1
+    },
+    "molho_de_tomate": {
+      "sheet": "morada-items",
+      "frame": 2
+    },
+    "farinha": {
+      "sheet": "morada-items",
+      "frame": 3
+    },
+    "adubo": {
+      "sheet": "morada-items",
+      "frame": 4
+    },
+    "resto": {
+      "sheet": "morada-items",
+      "frame": 5
+    }
+  },
+  "weather": {
+    "storm": {
+      "effect": "rain"
     }
   }
 }

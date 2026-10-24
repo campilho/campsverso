@@ -90,6 +90,7 @@ def metrics(data: Mapping[str, Any]) -> tuple[MetricDef, ...]:
             by_attribute=entry.get("by", {}).get("attribute"),
             need=entry.get("need"),
             item=entry.get("item"),
+            field=entry.get("field"),
         )
         for entry in data.get("metrics", [])
     )

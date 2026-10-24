@@ -63,7 +63,7 @@ export function metricTable(state: ObserverState): MetricTable | undefined {
   const rows = catalog.map((metric): MetricRow => {
     const id = metric.id;
     if (metric.kind === "count") {
-      // Dia sem nenhum evento contado vale zero.
+      // Dia sem nenhum evento contado (ou somado, com `field`) vale zero.
       const total = week.reduce<Value | undefined>((sum, d) => add(sum, at(d, id)), undefined);
       const yesterday = days.includes(today - 1) ? (at(today - 1, id) ?? 0) : undefined;
       return { id, label: metric.label, today: show(at(today, id) ?? 0), yesterday: show(yesterday), week: show(total ?? 0) };

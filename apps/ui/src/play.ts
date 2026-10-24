@@ -19,6 +19,8 @@ export interface MenuParam {
   readonly numeric: boolean;
   readonly minimum?: number;
   readonly initial?: number;
+  /** O nome de cada escolha que é uma entidade (o pedido do quadro, ADR-0069). */
+  readonly names?: Readonly<Record<string, string>>;
 }
 
 /** Um tile do mapa, no lugar de uma entidade (o menu da grama; ADR-0068). */
@@ -69,8 +71,14 @@ function param(state: ObserverState, avatarId: string, target: string | undefine
   const from = raw.source === "inventory" ? avatarId : raw.source === "target" ? target : undefined;
   const have = stock(state, from);
   const items = from === undefined ? choices : choices.filter((c) => (have[c] ?? 0) > 0);
-  const options = raw.entities === true ? [...items, ...heldBy(state, from)] : items;
-  return { name: raw.name, label: raw.label, options, numeric: false };
+  const held = raw.entities === true ? heldBy(state, from) : [];
+  const names = Object.fromEntries(
+    held.flatMap((id) => {
+      const shown = state.entities[id]?.display_name;
+      return shown === undefined ? [] : [[id, shown]];
+    }),
+  );
+  return { name: raw.name, label: raw.label, options: [...items, ...held], numeric: false, names };
 }
 
 /** O menu de uma entidade, ou do próprio avatar (`self`), a partir do catálogo do cartucho. */

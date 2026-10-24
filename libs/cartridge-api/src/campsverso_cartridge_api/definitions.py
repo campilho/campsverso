@@ -143,6 +143,7 @@ class MetricDef:
     - `count`: quantos eventos `event` houve no dia, só os que batem com `where` (caminhos com
       ponto, ex. `params.target`). Com `by_field`, um valor por grupo: o valor do campo, ou, com
       `by_attribute`, o atributo da entidade cujo id está no campo.
+      Com `field`, soma esse campo de cada evento, em vez de contar (ADR-0069).
     - `max_need`: o pico da necessidade `need` no dia.
     - `item`: a quantidade do item `item` com os avatares no fim do dia.
     """
@@ -156,3 +157,4 @@ class MetricDef:
     by_attribute: str | None = None
     need: str | None = None
     item: str | None = None
+    field: str | None = None

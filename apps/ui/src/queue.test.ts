@@ -1,6 +1,7 @@
 import type { Affordance, EnvelopeV1, ObserverState } from "@campsverso/contracts";
 import { describe, expect, it } from "vitest";
 
+import { weatherText } from "./panels/hud.ts";
 import { approach, menuFor, proposal, tileMenu } from "./play.ts";
 import { ActionQueue } from "./queue.ts";
 
@@ -69,6 +70,33 @@ describe("os menus do humano (ADR-0068)", () => {
     const [deposit, withdraw] = menuFor(state(), "camps", "chest");
     expect(deposit?.params[0]?.options).toEqual(["rabanete", "spade-1"]);
     expect(withdraw?.params[0]?.options).toEqual(["plow-1"]);
+  });
+
+  it("o quadro de encomendas oferece os pedidos pelo nome, e a escolha leva o id (ADR-0069)", () => {
+    const board: Affordance = {
+      action: "accept_order",
+      label: "Aceitar a encomenda",
+      on: ["order_board"],
+      target: true,
+      params: [{ name: "order", label: "Pedido", source: "target", entities: true }],
+    };
+    const base = state();
+    const withBoard = state({
+      session: { ...base.session, cartridge_version: "0.1.0", tick_seconds: 60, affordances: [board] },
+      entities: {
+        ...base.entities,
+        "order-board": { kind: "order_board", position: { x: 6, y: 4 }, attributes: {} },
+        "order-012": { kind: "order", container_id: "order-board", display_name: "Dona Cida: 4 milho até dia 12 · 270", attributes: {} },
+      },
+    });
+    const [accept] = menuFor(withBoard, "camps", "order-board");
+    expect(accept?.params[0]?.options).toEqual(["order-012"]);
+    expect(accept?.params[0]?.names).toEqual({ "order-012": "Dona Cida: 4 milho até dia 12 · 270" });
+  });
+
+  it("o HUD mostra o tempo em português e, com a previsão, o de amanhã", () => {
+    expect(weatherText(state({ weather: { "1": "sun" } }))).toBe("clima: sol");
+    expect(weatherText(state({ weather: { "1": "rain", "2": "storm" } }))).toBe("clima: chuva · amanhã: tempestade");
   });
 
   it("longe do alvo, o passo começa por andar até o lado dele; perto, não", () => {

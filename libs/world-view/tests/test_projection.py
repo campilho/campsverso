@@ -694,3 +694,72 @@ def test_o_delta_separa_o_que_saiu_da_vista_do_que_deixou_de_existir() -> None:
     assert diff_views(before, after) == {"gone": ["plot-001", "plot-002"]}
     split = diff_views(before, after, lambda entity_id: entity_id == "plot-002")
     assert split == {"gone": ["plot-001"], "out_of_view": ["plot-002"]}
+
+
+def test_a_metrica_com_campo_soma_em_vez_de_contar() -> None:
+    """ADR-0069: um `count` com `field` soma o campo: as moedas recebidas por canal."""
+    p = Projection()
+    coins = {
+        "id": "moedas_por_canal",
+        "label": "Moedas recebidas por canal",
+        "kind": "count",
+        "event": "campsverso.world.item.created.v1",
+        "where": {"item": "moeda"},
+        "by": {"field": "reason"},
+        "field": "qty",
+    }
+    p.apply(
+        "world",
+        ev(
+            0,
+            0,
+            "world.session.started.v1",
+            cartridge_version="0.2.0",
+            seed=7,
+            tick_seconds=60,
+            mode="max",
+            paused=False,
+            scale=72,
+            metrics=[coins],
+        ),
+    )
+    for seq, (qty, reason) in enumerate(
+        (
+            (100, "initial"),
+            (60, "payment"),
+            (270, "order_payment"),
+            (80, "fair_payment"),
+            (40, "payment"),
+        ),
+        start=1,
+    ):
+        p.apply(
+            "world",
+            ev(
+                seq,
+                10 * seq,
+                "world.item.created.v1",
+                item="moeda",
+                qty=qty,
+                container_id="camps",
+                reason=reason,
+            ),
+        )
+    p.apply(
+        "world",
+        ev(
+            9,
+            99,
+            "world.item.created.v1",
+            item="milho",
+            qty=3,
+            container_id="camps",
+            reason="harvest",
+        ),
+    )
+    assert p.metrics["1"]["moedas_por_canal"] == {
+        "initial": 100,
+        "payment": 100,
+        "order_payment": 270,
+        "fair_payment": 80,
+    }

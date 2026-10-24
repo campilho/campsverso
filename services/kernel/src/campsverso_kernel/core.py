@@ -272,6 +272,8 @@ class KernelCore:
                 entry["need"] = m.need
             if m.item is not None:
                 entry["item"] = m.item
+            if m.field is not None:
+                entry["field"] = m.field
             catalog.append(entry)
         return {"metrics": catalog} if catalog else {}
 

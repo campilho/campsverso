@@ -400,7 +400,7 @@ export interface EventLabel {
   text: string;
 }
 /**
- * Uma métrica do dia simulado, declarada pelo cartucho e contada pela projeção comum (ADR-0054). `count` conta um tipo de evento; `max_need` guarda o pico de uma necessidade; `item` guarda a quantidade de um item com os avatares no fim do dia.
+ * Uma métrica do dia simulado, declarada pelo cartucho e contada pela projeção comum (ADR-0054). `count` conta um tipo de evento, ou soma um campo dele com `field` (ADR-0069); `max_need` guarda o pico de uma necessidade; `item` guarda a quantidade de um item com os avatares no fim do dia.
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
  * via the `definition` "Metric".
@@ -409,6 +409,10 @@ export interface Metric {
   id: Token;
   label: string;
   kind: "count" | "max_need" | "item";
+  /**
+   * Num `count`, o campo numérico do evento que se soma no lugar de contar: as moedas recebidas, por exemplo (ADR-0069).
+   */
+  field?: string;
   /**
    * O tipo de evento contado (`count`).
    */

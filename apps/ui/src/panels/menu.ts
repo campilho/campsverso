@@ -51,7 +51,7 @@ export class ActionMenu {
       }
       const select = el("select");
       for (const option of p.options) {
-        const node = el("option", {}, option.replace(/_/g, " "));
+        const node = el("option", {}, p.names?.[option] ?? option.replace(/_/g, " "));
         node.value = option;
         select.append(node);
       }

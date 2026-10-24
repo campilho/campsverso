@@ -157,7 +157,7 @@ class MetricGroup(BaseModel):
 
 class Metric(BaseModel):
     """
-    Uma métrica do dia simulado, declarada pelo cartucho e contada pela projeção comum (ADR-0054). `count` conta um tipo de evento; `max_need` guarda o pico de uma necessidade; `item` guarda a quantidade de um item com os avatares no fim do dia.
+    Uma métrica do dia simulado, declarada pelo cartucho e contada pela projeção comum (ADR-0054). `count` conta um tipo de evento, ou soma um campo dele com `field` (ADR-0069); `max_need` guarda o pico de uma necessidade; `item` guarda a quantidade de um item com os avatares no fim do dia.
     """
 
     model_config = ConfigDict(
@@ -169,6 +169,10 @@ class Metric(BaseModel):
     """
     label: Annotated[str, Field(max_length=60, min_length=1)]
     kind: Literal["count", "max_need", "item"]
+    field: Annotated[str | None, Field(pattern="^[a-z0-9_]+(\\.[a-z0-9_]+)*$")] = None
+    """
+    Num `count`, o campo numérico do evento que se soma no lugar de contar: as moedas recebidas, por exemplo (ADR-0069).
+    """
     event: Annotated[
         str | None, Field(pattern="^campsverso\\.[a-z0-9_]+(\\.[a-z0-9_]+)*\\.v[0-9]+$")
     ] = None

@@ -63,8 +63,22 @@ def test_a_lanterna_tem_icone_no_inventario() -> None:
     assert "lanterna" in data["items"]
     art = _art(LAYER)
     icon = art["items"]["lanterna"]
-    assert _png_size(LAYER / str(art["sheets"][icon["sheet"]]["image"])) == (32, 32)
     assert 0 <= int(icon["frame"]) < _frames(LAYER, art, str(icon["sheet"]))
+
+
+def test_a_economia_tem_desenho_e_os_produtos_tem_icone() -> None:
+    """ADR-0069: o quadro, a barraca, o tacho e a composteira, e o ícone de cada produto."""
+    data = yaml.safe_load((DATA / "morada.yaml").read_text(encoding="utf-8"))
+    art = _art(LAYER)
+    for kind in ("order_board", "fair_stall", "tacho", "composteira"):
+        assert kind in data["kinds"], kind
+        look = art["kinds"][kind]
+        assert 0 <= int(look["frame"]) < _frames(LAYER, art, str(look["sheet"])), kind
+    products = [i for i, info in data["items"].items() if info.get("category") == "produto"]
+    assert sorted(products) == ["farinha", "geleia", "molho_de_tomate"]
+    for item in [*products, "adubo", "resto", "lanterna"]:
+        icon = art["items"][item]
+        assert 0 <= int(icon["frame"]) < _frames(LAYER, art, str(icon["sheet"])), item
 
 
 def test_as_arvores_trocam_com_a_estacao() -> None:

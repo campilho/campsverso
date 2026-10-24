@@ -9,6 +9,15 @@ const STATUS: Record<Status, string> = { connecting: "conectando…", open: "ao 
 
 const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const SEASONS: Readonly<Record<string, string>> = { verao: "verão" };
+const WEATHER: Readonly<Record<string, string>> = { sun: "sol", rain: "chuva", storm: "tempestade", drought: "seca" };
+
+/** O tempo de hoje e, quando a previsão já saiu, o de amanhã (ADR-0069). */
+export function weatherText(state: ObserverState): string {
+  const name = (condition: string | undefined): string => (condition === undefined ? "?" : (WEATHER[condition] ?? condition));
+  const today = name(state.weather[String(state.day)]);
+  const tomorrow = state.weather[String(state.day + 1)];
+  return tomorrow === undefined ? `clima: ${today}` : `clima: ${today} · amanhã: ${name(tomorrow)}`;
+}
 
 /** A data e a estação do ano acelerado (ADR-0067), "15 de nov · primavera"; vazio sem ano. */
 export function yearText(state: ObserverState): string {
@@ -63,7 +72,6 @@ export function renderHud(
   const avatar = state.entities[avatarId];
   const controller = state.controllers[avatarId];
   const action = state.actions[avatarId];
-  const weather = state.weather[String(state.day)] ?? "?";
   const needs = Object.entries(state.needs[avatarId] ?? {})
     .filter((entry): entry is [string, number] => entry[1] !== undefined)
     .sort(([a], [b]) => a.localeCompare(b));
@@ -82,7 +90,7 @@ export function renderHud(
       { className: "hud-clock" },
       el("strong", { className: "hud-time" }, `Dia ${String(state.day)} · ${clockText(state, tick)}${yearText(state)}`),
       el("span", { className: "hud-phase" }, state.phase),
-      el("span", { className: "hud-weather" }, `clima: ${weather}`),
+      el("span", { className: "hud-weather" }, weatherText(state)),
       el("span", { className: "badge hud-pace" }, clockBadge(state)),
       status === "open" && state.pulse?.alive === false
         ? el("span", { className: "status closed" }, "kernel sem sinal")

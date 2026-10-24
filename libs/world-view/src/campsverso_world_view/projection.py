@@ -414,13 +414,17 @@ class Projection:
                 where = cast(Mapping[str, Any], metric.get("where") or {})
                 if all(_lookup(data, path) == value for path, value in where.items()):
                     values = self._day_values(self._metric_day())
+                    step = 1  # contar; com `field`, somar o valor do campo (ADR-0069)
+                    if metric.get("field"):
+                        raw = _lookup(data, str(metric["field"]))
+                        step = raw if isinstance(raw, int | float) else 0
                     by = cast(Mapping[str, Any] | None, metric.get("by"))
                     if by is None:
-                        values[metric["id"]] = values.get(metric["id"], 0) + 1
+                        values[metric["id"]] = values.get(metric["id"], 0) + step
                     else:
                         group = self._group(_lookup(data, str(by["field"])), by.get("attribute"))
                         counts = values.setdefault(metric["id"], {})
-                        counts[group] = counts.get(group, 0) + 1
+                        counts[group] = counts.get(group, 0) + step
 
     def _peak(self, kind: str, data: Mapping[str, Any]) -> None:
         values: Mapping[str, Any] = {}

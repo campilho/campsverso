@@ -112,8 +112,8 @@ CARTUCHO ?= farm_camps
 fita: ## grava em processo a fita de teste do controlador LLM, chamando a API (ADR-0059): make fita DIAS=1 [CARTUCHO=farm_boavista]
 	uv run --locked --env-file .env python -m campsverso_testkit.fita --days $(DIAS) --cartridge $(CARTUCHO)
 
-corrida: ## N dias em processo com a mente sobre a API, com ou sem memória (ADR-0060): make corrida DIAS=7 [SEM_MEMORIA=1]
-	uv run --locked --env-file .env python -m campsverso_testkit.corrida --days $(DIAS) $(if $(SEM_MEMORIA),--sem-memoria,)
+corrida: ## N dias em processo com a mente sobre a API, com ou sem memória (ADR-0060): make corrida DIAS=7 [SEM_MEMORIA=1] [CARTUCHO=farm_morada_do_sol]
+	uv run --locked --env-file .env python -m campsverso_testkit.corrida --days $(DIAS) $(if $(SEM_MEMORIA),--sem-memoria,) $(if $(CARTUCHO),--cartucho $(CARTUCHO),)
 
 ARENA_DIAS ?= 30
 # No macOS, o caffeinate segura o Mac acordado enquanto a arena roda (horas de chamadas à API);
