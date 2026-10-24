@@ -1,6 +1,6 @@
 # Plano do M18 — A economia
 
-*Proposto em 24/out/2026, depois do fechamento do M17. É o marco da economia da v0.3 (ADR-0066, decisão 7): um módulo reaproveitável pelo escritório e pelo vilarejo, e a Fazenda Morada do Sol como o primeiro mundo que o usa.*
+*Proposto em 24/out/2026, depois do fechamento do M17. Aprovado em 24/out/2026 (ADR-0069), com as notas do usuário na §12 e o clima numa biblioteca à parte (§6). É o marco da economia da v0.3 (ADR-0066, decisão 7): um módulo reaproveitável pelo escritório e pelo vilarejo, e a Fazenda Morada do Sol como o primeiro mundo que o usa.*
 
 **Pronto quando:**
 - **O módulo de economia** existe à parte da fazenda, com testes próprios: mercados com preço que reage à oferta e à demanda, encomendas com prazo e uma agenda de eventos (a feira).
@@ -84,6 +84,8 @@ Na Morada do Sol; a Boa Vista e a fazenda 1 continuam com o mercado de hoje.
 - **A composteira** (decisão 10): ao lado da casa, transforma o que estragou e as plantas murchas em adubo, em 3 dias. Fecha o ciclo do que hoje se perde.
 
 ## 6. O clima com previsão
+
+O sorteio do tempo sai do gênero farm para uma biblioteca própria, **`libs/climate`**, para os mundos ao ar livre: o tempo por estação, a previsão e as condições novas. O escritório não precisa dela. O calendário e as estações continuam no kernel; o que o tempo faz com as plantas e com o mercado continua no cartucho, que liga as duas bibliotecas.
 
 - **A previsão:** às 18:00 sai o tempo de amanhã, visível na foto e no HUD ("amanhã: tempestade"). Às 05:00 ele vale, como hoje.
 - **A tempestade:**
@@ -196,6 +198,14 @@ Na Morada do Sol; a Boa Vista e a fazenda 1 continuam com o mercado de hoje.
 13. **A mente:** o manual, as ferramentas novas, a fita regravada e uma corrida de verificação de 7 dias com o Haiku (uns US$ 0,20 no total). *Recomendação: sim. A fita prova que o pedido funciona; a corrida curta mostra se ele entende as encomendas antes da arena do M21.*
 14. **O script 2 adaptado só no essencial:** encomendas da cultura que já planta e a colheita antes da tempestade; sem feira nem tacho. *Recomendação: sim. A linha de base continua cega, e o script 3 do M19 é quem planeja a economia.*
 15. **A tela:** o menu do quadro com os pedidos vindos dos atributos, a previsão no HUD, o progresso do tacho, a arte própria (ou download com ok) e as métricas por canal. *Recomendação: sim.*
+
+**As notas do usuário na aprovação (24/out):**
+- **A regra geral:** a economia segue a oferta e a demanda; o que é raro custa caro, o que sobra custa pouco.
+- **1:** uma biblioteca, que cada mundo escolhe usar ou não; o escritório pode usar a economia sem a fazenda.
+- **3, 4 e 8:** os números configuráveis (todos ficam nos dados do cenário).
+- **6 e 7:** as encomendas são um bom exercício para os tickets do escritório; a reputação faz pouca diferença com um avatar, e vai fazer no futuro.
+- **11 e 12:** as estações e a previsão talvez devessem ser uma biblioteca separada da economia, para mundos ao ar livre. Ficou assim: `libs/climate`, já neste marco.
+- **14 e 15:** manter simples; o visual se ajusta depois.
 
 ## 13. Como ficou
 
