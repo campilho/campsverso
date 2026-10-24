@@ -1,0 +1,14 @@
+{
+  "descricao": "O raio da hora (ADR-0068): os mesmos casos para a percepção (Python) e para a névoa da tela (TypeScript), que fazem a mesma conta. `held` é o inventário do avatar; `expected` nulo é o mapa inteiro.",
+  "cases": [
+    {"perception": {"radius": 12, "by_phase": {"entardecer": 7, "noite": 5, "madrugada": 5}, "lights": {"lanterna": 10}}, "phase": "amanhecer", "held": {}, "expected": 12},
+    {"perception": {"radius": 12, "by_phase": {"entardecer": 7, "noite": 5, "madrugada": 5}, "lights": {"lanterna": 10}}, "phase": "entardecer", "held": {}, "expected": 7},
+    {"perception": {"radius": 12, "by_phase": {"entardecer": 7, "noite": 5, "madrugada": 5}, "lights": {"lanterna": 10}}, "phase": "noite", "held": {}, "expected": 5},
+    {"perception": {"radius": 12, "by_phase": {"entardecer": 7, "noite": 5, "madrugada": 5}, "lights": {"lanterna": 10}}, "phase": "noite", "held": {"lanterna": 1}, "expected": 10},
+    {"perception": {"radius": 12, "by_phase": {"entardecer": 7, "noite": 5, "madrugada": 5}, "lights": {"lanterna": 10}}, "phase": "meio_dia", "held": {"lanterna": 1}, "expected": 12},
+    {"perception": {"radius": 12, "by_phase": {"noite": 5}, "lights": {"lanterna": 10, "tocha": 6}}, "phase": "noite", "held": {"tocha": 2}, "expected": 6},
+    {"perception": {"radius": 12, "by_phase": {"noite": 5}, "lights": {"lanterna": 10, "tocha": 6}}, "phase": "noite", "held": {"tocha": 1, "lanterna": 1}, "expected": 10},
+    {"perception": {"radius": 9}, "phase": "noite", "held": {"lanterna": 1}, "expected": 9},
+    {"perception": {"radius": null}, "phase": "noite", "held": {}, "expected": null}
+  ]
+}

@@ -2,6 +2,7 @@
 import type { ObserverState } from "@campsverso/contracts";
 
 import type { ArtManifest } from "../art/manifest.ts";
+import type { Sight } from "../fog.ts";
 import type { TileGrid } from "../tiled.ts";
 
 export interface WorldRenderer {
@@ -17,6 +18,8 @@ export interface WorldRenderer {
   recenter?(): void;
   /** A névoa da visão do jogador (ADR-0068): sempre, ou com o botão do operador. */
   setFog?(mode: "always" | "toggle"): void;
+  /** O que o jogador enxerga num tile com a névoa ligada; para os testes no navegador. */
+  sight?(x: number, y: number): Sight | undefined;
   /** O centro de um tile em coordenadas da tela, pela câmera; para os testes no navegador. */
   clientOf?(x: number, y: number): { x: number; y: number } | undefined;
   /** O tile sob um ponto da tela (coordenadas do evento do mouse), ou nada fora do mapa. */

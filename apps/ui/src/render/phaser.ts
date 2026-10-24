@@ -25,7 +25,7 @@ import {
   type Resolved,
 } from "../art/manifest.ts";
 import { el } from "../dom.ts";
-import { FogMemory, lightHeld, visionRadius } from "../fog.ts";
+import { FogMemory, lightHeld, visionRadius, type Sight } from "../fog.ts";
 import { motionClock, type Point } from "../motion.ts";
 import { progressOf } from "../progress.ts";
 import { tileAt, type TileGrid } from "../tiled.ts";
@@ -421,6 +421,11 @@ class WorldScene extends Phaser.Scene {
     this.fogDrawn = true;
   }
 
+  /** O que o jogador enxerga num tile, com a névoa ligada; sem névoa, nada. */
+  sightAt(x: number, y: number): Sight | undefined {
+    return this.fogOn ? this.fog.sight(x, y) : undefined;
+  }
+
   /** Esquece o que foi visto: outra sessão, ou o operador desligou e ligou a névoa. */
   resetFog(): void {
     this.fog = new FogMemory();
@@ -727,6 +732,10 @@ export class PhaserRenderer implements WorldRenderer {
     if (this.fogButton.hidden === toggle) {
       this.fogButton.hidden = !toggle;
     }
+  }
+
+  sight(x: number, y: number): Sight | undefined {
+    return this.scene.sightAt(x, y);
   }
 
   clientOf(x: number, y: number): { x: number; y: number } | undefined {

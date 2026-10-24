@@ -75,21 +75,24 @@ if (app === null) {
   throw new Error("#app não existe no index.html");
 }
 app.className = view;
-app.replaceChildren(
-  header,
-  el("main", {}, el("section", { className: "world" }, control, map.element, notice, queueBox, hud), view === "operator" && aside),
-);
+const world = el("section", { className: "world" }, control, map.element, notice, queueBox, hud);
+app.replaceChildren(header, el("main", {}, world, view === "operator" && aside));
 
 const menu = new ActionMenu(document.body);
-const help = new CommandsHelp(document.body);
+const help = new CommandsHelp(world); // sobre o mapa, sem cobrir o painel do operador
 const queue = new ActionQueue();
 const portrait = new Portrait();
 const icons = new ItemIcons(() => {
   lastClock = ""; // a folha dos ícones chegou: o HUD se redesenha no próximo quadro
 });
-// Para os testes no navegador (Playwright): onde fica, na tela, o centro de um tile; o ícone de um item.
+// Para os testes no navegador (Playwright): onde fica, na tela, o centro de um tile; o que o
+// jogador enxerga nele; o ícone de um item.
 Object.assign(window, {
-  campsverso: { tileCenter: (x: number, y: number) => map.clientOf?.(x, y), itemIcon: (item: string) => icons.url(item) },
+  campsverso: {
+    tileCenter: (x: number, y: number) => map.clientOf?.(x, y),
+    sight: (x: number, y: number) => map.sight?.(x, y),
+    itemIcon: (item: string) => icons.url(item),
+  },
 });
 const credits = new CreditsDialog(document.body);
 let art: LoadedArt | undefined;

@@ -1,6 +1,7 @@
 import type { ObserverState } from "@campsverso/contracts";
 import { describe, expect, it } from "vitest";
 
+import cases from "../../../tests/fixtures/raio/casos.json";
 import { FogMemory, visionRadius } from "./fog.ts";
 
 function state(phase: string, entities: ObserverState["entities"], containers: ObserverState["containers"] = {}): ObserverState {
@@ -33,6 +34,15 @@ describe("a névoa (ADR-0068)", () => {
     expect(visionRadius(state("noite", {}, { camps: { lanterna: 1 } }), "camps")).toBe(2);
     const whole = { ...state("noite", {}), session: { cartridge_version: "0.1.0", tick_seconds: 60 } } as ObserverState;
     expect(visionRadius(whole, "camps")).toBeUndefined();
+  });
+
+  it("a conta bate com a da percepção: os mesmos casos do teste em Python", () => {
+    for (const [n, c] of cases.cases.entries()) {
+      const base = state(c.phase, {}, { camps: c.held });
+      const perception = c.perception as NonNullable<NonNullable<ObserverState["session"]>["perception"]>;
+      const session = { cartridge_version: "0.1.0", tick_seconds: 60, perception };
+      expect(visionRadius({ ...base, session }, "camps") ?? null, `caso ${String(n)}`).toBe(c.expected);
+    }
   });
 
   it("o que saiu da vista fica congelado como foi visto, e o que nunca foi visto não aparece", () => {

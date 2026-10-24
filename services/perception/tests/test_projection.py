@@ -1,9 +1,12 @@
 """A foto da percepção sobre a projeção comum: trajeto pela metade, itens e necessidades."""
 
 import json
+from pathlib import Path
 from typing import Any
 
 from campsverso_perception.view import PerceptionState as Projection
+
+CASES = Path(__file__).resolve().parents[3] / "tests" / "fixtures" / "raio" / "casos.json"
 
 
 def ev(seq: int, tick: int, kind: str, /, **data: Any) -> dict[str, Any]:
@@ -390,3 +393,31 @@ def test_o_raio_da_hora_vem_da_fase_e_a_lanterna_garante_o_dela() -> None:
     )
     assert p.radius("camps") == 4
     assert "plot-a" in {e["entity_id"] for e in p.view("camps")["entities"]}
+
+
+def test_o_raio_da_hora_bate_com_a_conta_da_tela() -> None:
+    """ADR-0068: a névoa da tela faz a mesma conta (fog.test.ts lê os mesmos casos)."""
+    cases = json.loads(CASES.read_text(encoding="utf-8"))["cases"]
+    for n, case in enumerate(cases):
+        p = world()
+        p.apply(
+            "world",
+            ev(
+                6,
+                0,
+                "world.session.started.v1",
+                cartridge_version="0.1.0",
+                seed=1,
+                tick_seconds=60,
+                mode="continuous",
+                scale=72.0,
+                paused=False,
+                resumed=False,
+                perception=case["perception"],
+            ),
+        )
+        p.apply("world", ev(7, 1, "world.clock.phase_changed.v1", phase=case["phase"], day=1))
+        for seq, (item, qty) in enumerate(case["held"].items(), start=8):
+            created = ev(seq, 2, "world.item.created.v1", item=item, qty=qty, container_id="camps")
+            p.apply("world", created)
+        assert p.radius("camps") == case["expected"], (n, case)

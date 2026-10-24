@@ -1,29 +1,7 @@
 /** Fumaça da tela (ADR-0053): o Phaser desenha, os cliques chegam ao kernel, a arte tem créditos. */
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
-const SHOTS = "test-results/telas";
-
-/** O centro de um tile do mapa na tela. A tela diz onde, pela câmera (o mapa maior rola, ADR-0067);
- * sem o ajudante, a conta pelo tamanho do canvas do Phaser (32 px por tile, câmera parada). */
-async function tile(page: Page, x: number, y: number): Promise<{ x: number; y: number }> {
-  const point = await page.evaluate(
-    ([tx, ty]) => (window as unknown as { campsverso?: { tileCenter(x: number, y: number): { x: number; y: number } | undefined } }).campsverso?.tileCenter(tx, ty),
-    [x, y] as const,
-  );
-  if (point !== undefined) {
-    return point;
-  }
-  const canvas = page.locator(".phaser canvas");
-  const box = await canvas.boundingBox();
-  const size = await canvas.evaluate((c: HTMLCanvasElement) => ({ width: c.width, height: c.height }));
-  if (box === null) {
-    throw new Error("o canvas do Phaser não está na tela");
-  }
-  return {
-    x: box.x + ((x + 0.5) * 32 * box.width) / size.width,
-    y: box.y + ((y + 0.5) * 32 * box.height) / size.height,
-  };
-}
+import { SHOTS, tile } from "./tela.ts";
 
 test("o operador vê o mapa desenhado, assume o Camps, anda e devolve", async ({ page }) => {
   await page.goto("/?view=operator");
@@ -35,6 +13,7 @@ test("o operador vê o mapa desenhado, assume o Camps, anda e devolve", async ({
 
   await page.getByRole("button", { name: "Assumir o Camps" }).click();
   await expect(page.getByRole("button", { name: "Devolver ao script" })).toBeVisible();
+  await page.locator(".commands").getByRole("button", { name: "Entendi" }).click(); // a primeira vez (ADR-0068)
   await expect(hud).toContainText("parado", { timeout: 45_000 }); // o que o script deixou em andamento termina
 
   // Com o relógio pausado, cada passo é um tick: a caminhada (1 minuto, a 30 tiles por minuto,
