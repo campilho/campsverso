@@ -936,6 +936,78 @@ export interface AvatarSleepStartedV2 {
   wake_at_tick: Tick;
 }
 /**
+ * Alguém aceitou um pedido do quadro (ADR-0069): o pedido fica com ele até a entrega ou o prazo.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "EconomyOrderAcceptedV1".
+ */
+export interface EconomyOrderAcceptedV1 {
+  order_id: EntityId;
+  taker: EntityId;
+  day: Day;
+}
+/**
+ * Um pedido aceito foi entregue no prazo e pago na hora (ADR-0069).
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "EconomyOrderDeliveredV1".
+ */
+export interface EconomyOrderDeliveredV1 {
+  order_id: EntityId;
+  /**
+   * Quem pediu, como aparece no quadro (Dona Cida, a padaria da praça).
+   */
+  client: string;
+  item: ItemId;
+  qty: number;
+  /**
+   * O pagamento total, em moedas, na entrega.
+   */
+  reward: number;
+  taker: EntityId;
+  day: Day;
+}
+/**
+ * O prazo de um pedido passou e ele saiu do quadro (ADR-0069). Com `taker`, era um pedido aceito e não entregue.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "EconomyOrderExpiredV1".
+ */
+export interface EconomyOrderExpiredV1 {
+  order_id: EntityId;
+  /**
+   * Quem pediu, como aparece no quadro (Dona Cida, a padaria da praça).
+   */
+  client: string;
+  item: ItemId;
+  qty: number;
+  due_day: Day;
+  taker?: EntityId;
+  day: Day;
+}
+/**
+ * Um pedido novo apareceu num quadro de encomendas (ADR-0069): quem pede, o quê, quanto, até quando e quanto paga. O pedido é uma entidade dentro do quadro.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "EconomyOrderPostedV1".
+ */
+export interface EconomyOrderPostedV1 {
+  order_id: EntityId;
+  board_id: EntityId;
+  /**
+   * Quem pediu, como aparece no quadro (Dona Cida, a padaria da praça).
+   */
+  client: string;
+  item: ItemId;
+  qty: number;
+  /**
+   * O pagamento total, em moedas, na entrega.
+   */
+  reward: number;
+  posted_day: Day;
+  due_day: Day;
+}
+/**
  * Pagamento das vendas às 06:00, com o preço de cada item.
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema

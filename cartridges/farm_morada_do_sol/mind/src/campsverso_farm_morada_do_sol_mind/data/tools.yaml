@@ -170,6 +170,27 @@ tools:
         type: string
         description: "o que comprar (ver a descrição)"
       - {name: qty, type: integer, description: "quantas unidades, 1 ou mais"}
+  - name: accept_order
+    strict: false  # a gramática das estritas tem teto; esta é simples
+    description: >-
+      Aceitar um pedido do quadro de encomendas ao seu lado. Cada pedido mostra quem pede
+      (cliente), o item, a quantidade, o prazo (o último dia para entregar) e o pagamento total.
+      O pedido aceito fica com você até a entrega ou até o prazo; até 2 aceitos ao mesmo tempo.
+    duration: 2
+    energy: 0
+    params:
+      - {name: target, type: string, description: "o id do quadro de encomendas"}
+      - {name: order, type: string, description: "o id do pedido (order-012...)"}
+  - name: deliver_order
+    strict: false  # a gramática das estritas tem teto; esta é simples
+    description: >-
+      Entregar no quadro de encomendas ao seu lado um pedido que você aceitou, com os itens no seu
+      inventário: eles saem, e o pagamento entra em moedas na hora. Só até o prazo do pedido.
+    duration: 5
+    energy: 1
+    params:
+      - {name: target, type: string, description: "o id do quadro de encomendas"}
+      - {name: order, type: string, description: "o id do pedido"}
   - name: place
     strict: false  # a gramática das estritas tem teto; esta é simples
     description: >-

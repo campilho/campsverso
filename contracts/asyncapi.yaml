@@ -268,6 +268,50 @@ channels:
     messages:
       CmdRulesToggleV1:
         $ref: '#/components/messages/CmdRulesToggleV1'
+  EconomyOrderAcceptedV1:
+    address: campsverso.{worldid}.world.economy.order.accepted.v1
+    title: campsverso.economy.order.accepted.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      EconomyOrderAcceptedV1:
+        $ref: '#/components/messages/EconomyOrderAcceptedV1'
+  EconomyOrderDeliveredV1:
+    address: campsverso.{worldid}.world.economy.order.delivered.v1
+    title: campsverso.economy.order.delivered.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      EconomyOrderDeliveredV1:
+        $ref: '#/components/messages/EconomyOrderDeliveredV1'
+  EconomyOrderExpiredV1:
+    address: campsverso.{worldid}.world.economy.order.expired.v1
+    title: campsverso.economy.order.expired.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      EconomyOrderExpiredV1:
+        $ref: '#/components/messages/EconomyOrderExpiredV1'
+  EconomyOrderPostedV1:
+    address: campsverso.{worldid}.world.economy.order.posted.v1
+    title: campsverso.economy.order.posted.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      EconomyOrderPostedV1:
+        $ref: '#/components/messages/EconomyOrderPostedV1'
   FarmBuyerPaidV1:
     address: campsverso.{worldid}.world.farm.buyer.paid.v1
     title: campsverso.farm.buyer.paid.v1
@@ -909,6 +953,34 @@ operations:
     messages:
     - $ref: '#/channels/CmdRulesToggleV1/messages/CmdRulesToggleV1'
     x-producer: operator
+  sendEconomyOrderAcceptedV1:
+    action: send
+    channel:
+      $ref: '#/channels/EconomyOrderAcceptedV1'
+    messages:
+    - $ref: '#/channels/EconomyOrderAcceptedV1/messages/EconomyOrderAcceptedV1'
+    x-producer: kernel
+  sendEconomyOrderDeliveredV1:
+    action: send
+    channel:
+      $ref: '#/channels/EconomyOrderDeliveredV1'
+    messages:
+    - $ref: '#/channels/EconomyOrderDeliveredV1/messages/EconomyOrderDeliveredV1'
+    x-producer: kernel
+  sendEconomyOrderExpiredV1:
+    action: send
+    channel:
+      $ref: '#/channels/EconomyOrderExpiredV1'
+    messages:
+    - $ref: '#/channels/EconomyOrderExpiredV1/messages/EconomyOrderExpiredV1'
+    x-producer: kernel
+  sendEconomyOrderPostedV1:
+    action: send
+    channel:
+      $ref: '#/channels/EconomyOrderPostedV1'
+    messages:
+    - $ref: '#/channels/EconomyOrderPostedV1/messages/EconomyOrderPostedV1'
+    x-producer: kernel
   sendFarmBuyerPaidV1:
     action: send
     channel:
@@ -2421,6 +2493,132 @@ components:
           $ref: '#/components/schemas/Position'
         wake_at_tick:
           $ref: '#/components/schemas/Tick'
+    EconomyOrderAcceptedV1:
+      title: EconomyOrderAcceptedV1
+      description: 'Alguém aceitou um pedido do quadro (ADR-0069): o pedido fica com ele até a entrega
+        ou o prazo.'
+      type: object
+      additionalProperties: false
+      required:
+      - order_id
+      - taker
+      - day
+      properties:
+        order_id:
+          $ref: '#/components/schemas/EntityId'
+        taker:
+          $ref: '#/components/schemas/EntityId'
+          description: 'Quem aceitou: o avatar.'
+        day:
+          $ref: '#/components/schemas/Day'
+    EconomyOrderDeliveredV1:
+      title: EconomyOrderDeliveredV1
+      description: Um pedido aceito foi entregue no prazo e pago na hora (ADR-0069).
+      type: object
+      additionalProperties: false
+      required:
+      - order_id
+      - client
+      - item
+      - qty
+      - reward
+      - taker
+      - day
+      properties:
+        order_id:
+          $ref: '#/components/schemas/EntityId'
+        client:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Quem pediu, como aparece no quadro (Dona Cida, a padaria da praça).
+        item:
+          $ref: '#/components/schemas/ItemId'
+        qty:
+          type: integer
+          minimum: 1
+        reward:
+          type: integer
+          minimum: 1
+          description: O pagamento total, em moedas, na entrega.
+        taker:
+          $ref: '#/components/schemas/EntityId'
+          description: Quem entregou e recebeu.
+        day:
+          $ref: '#/components/schemas/Day'
+    EconomyOrderExpiredV1:
+      title: EconomyOrderExpiredV1
+      description: O prazo de um pedido passou e ele saiu do quadro (ADR-0069). Com `taker`, era um pedido
+        aceito e não entregue.
+      type: object
+      additionalProperties: false
+      required:
+      - order_id
+      - client
+      - item
+      - qty
+      - due_day
+      - day
+      properties:
+        order_id:
+          $ref: '#/components/schemas/EntityId'
+        client:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Quem pediu, como aparece no quadro (Dona Cida, a padaria da praça).
+        item:
+          $ref: '#/components/schemas/ItemId'
+        qty:
+          type: integer
+          minimum: 1
+        due_day:
+          $ref: '#/components/schemas/Day'
+        taker:
+          $ref: '#/components/schemas/EntityId'
+          description: Quem tinha aceitado, se alguém tinha.
+        day:
+          $ref: '#/components/schemas/Day'
+    EconomyOrderPostedV1:
+      title: EconomyOrderPostedV1
+      description: 'Um pedido novo apareceu num quadro de encomendas (ADR-0069): quem pede, o quê, quanto,
+        até quando e quanto paga. O pedido é uma entidade dentro do quadro.'
+      type: object
+      additionalProperties: false
+      required:
+      - order_id
+      - board_id
+      - client
+      - item
+      - qty
+      - reward
+      - posted_day
+      - due_day
+      properties:
+        order_id:
+          $ref: '#/components/schemas/EntityId'
+        board_id:
+          $ref: '#/components/schemas/EntityId'
+          description: O quadro em que o pedido apareceu.
+        client:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Quem pediu, como aparece no quadro (Dona Cida, a padaria da praça).
+        item:
+          $ref: '#/components/schemas/ItemId'
+        qty:
+          type: integer
+          minimum: 1
+        reward:
+          type: integer
+          minimum: 1
+          description: O pagamento total, em moedas, na entrega.
+        posted_day:
+          $ref: '#/components/schemas/Day'
+        due_day:
+          $ref: '#/components/schemas/Day'
+          description: O último dia para entregar.
     FarmBuyerPaidV1:
       title: FarmBuyerPaidV1
       description: Pagamento das vendas às 06:00, com o preço de cada item.
@@ -4520,6 +4718,45 @@ components:
         $ref: '#/components/schemas/CmdRulesToggleV1'
       x-visibility: observer
       x-producer: operator
+    EconomyOrderAcceptedV1:
+      name: campsverso.economy.order.accepted.v1
+      title: EconomyOrderAcceptedV1
+      summary: 'Alguém aceitou um pedido do quadro (ADR-0069): o pedido fica com ele até a entrega ou
+        o prazo.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/EconomyOrderAcceptedV1'
+      x-visibility: world
+      x-producer: kernel
+    EconomyOrderDeliveredV1:
+      name: campsverso.economy.order.delivered.v1
+      title: EconomyOrderDeliveredV1
+      summary: Um pedido aceito foi entregue no prazo e pago na hora (ADR-0069).
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/EconomyOrderDeliveredV1'
+      x-visibility: world
+      x-producer: kernel
+    EconomyOrderExpiredV1:
+      name: campsverso.economy.order.expired.v1
+      title: EconomyOrderExpiredV1
+      summary: O prazo de um pedido passou e ele saiu do quadro (ADR-0069). Com `taker`, era um pedido
+        aceito e não entregue.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/EconomyOrderExpiredV1'
+      x-visibility: world
+      x-producer: kernel
+    EconomyOrderPostedV1:
+      name: campsverso.economy.order.posted.v1
+      title: EconomyOrderPostedV1
+      summary: 'Um pedido novo apareceu num quadro de encomendas (ADR-0069): quem pede, o quê, quanto,
+        até quando e quanto paga. O pedido é uma entidade dentro do quadro.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/EconomyOrderPostedV1'
+      x-visibility: world
+      x-producer: kernel
     FarmBuyerPaidV1:
       name: campsverso.farm.buyer.paid.v1
       title: FarmBuyerPaidV1

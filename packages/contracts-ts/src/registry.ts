@@ -144,6 +144,30 @@ export const CONTRACT_TYPES = {
     producer: "operator",
     dataschema: "contracts://commands/rules/toggle.v1",
   },
+  "campsverso.economy.order.accepted.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/economy/order.accepted.v1",
+  },
+  "campsverso.economy.order.delivered.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/economy/order.delivered.v1",
+  },
+  "campsverso.economy.order.expired.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/economy/order.expired.v1",
+  },
+  "campsverso.economy.order.posted.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/economy/order.posted.v1",
+  },
   "campsverso.farm.buyer.paid.v1": {
     kind: "event",
     visibility: "world",
@@ -417,6 +441,10 @@ export interface PayloadByType {
   "campsverso.cmd.clock.set_scale.v1": T.CmdClockSetScaleV1;
   "campsverso.cmd.clock.step.v1": T.CmdClockStepV1;
   "campsverso.cmd.rules.toggle.v1": T.CmdRulesToggleV1;
+  "campsverso.economy.order.accepted.v1": T.EconomyOrderAcceptedV1;
+  "campsverso.economy.order.delivered.v1": T.EconomyOrderDeliveredV1;
+  "campsverso.economy.order.expired.v1": T.EconomyOrderExpiredV1;
+  "campsverso.economy.order.posted.v1": T.EconomyOrderPostedV1;
   "campsverso.farm.buyer.paid.v1": T.FarmBuyerPaidV1;
   "campsverso.farm.crop.eaten.v1": T.FarmCropEatenV1;
   "campsverso.farm.crop.matured.v1": T.FarmCropMaturedV1;

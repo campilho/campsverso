@@ -1024,9 +1024,11 @@ class World:
 
     def emit(self, event_type: str, data: Mapping[str, Any]) -> None:
         domain = event_type.split(".")[1]
-        if domain not in {m.id for m in self.definition.chain}:
+        allowed = {m.id for m in self.definition.chain} | self.definition.event_domains
+        if domain not in allowed:
             raise WorldRuleError(
-                f"{event_type}: o domínio precisa ser um cartucho da cadeia (ADR-0031)"
+                f"{event_type}: o domínio precisa ser um cartucho da cadeia (ADR-0031) ou uma "
+                "biblioteca que o cartucho declarou usar (ADR-0069)"
             )
         if event_type not in CONTRACT_TYPES:
             raise WorldRuleError(f"tipo de evento não declarado em contracts/: {event_type}")

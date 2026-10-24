@@ -1534,6 +1534,166 @@
         }
       }
     },
+    "EconomyOrderAcceptedV1": {
+      "title": "EconomyOrderAcceptedV1",
+      "description": "Alguém aceitou um pedido do quadro (ADR-0069): o pedido fica com ele até a entrega ou o prazo.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order_id",
+        "taker",
+        "day"
+      ],
+      "properties": {
+        "order_id": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "taker": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Quem aceitou: o avatar."
+        },
+        "day": {
+          "$ref": "#/$defs/Day"
+        }
+      }
+    },
+    "EconomyOrderDeliveredV1": {
+      "title": "EconomyOrderDeliveredV1",
+      "description": "Um pedido aceito foi entregue no prazo e pago na hora (ADR-0069).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order_id",
+        "client",
+        "item",
+        "qty",
+        "reward",
+        "taker",
+        "day"
+      ],
+      "properties": {
+        "order_id": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "client": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Quem pediu, como aparece no quadro (Dona Cida, a padaria da praça)."
+        },
+        "item": {
+          "$ref": "#/$defs/ItemId"
+        },
+        "qty": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reward": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "O pagamento total, em moedas, na entrega."
+        },
+        "taker": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Quem entregou e recebeu."
+        },
+        "day": {
+          "$ref": "#/$defs/Day"
+        }
+      }
+    },
+    "EconomyOrderExpiredV1": {
+      "title": "EconomyOrderExpiredV1",
+      "description": "O prazo de um pedido passou e ele saiu do quadro (ADR-0069). Com `taker`, era um pedido aceito e não entregue.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order_id",
+        "client",
+        "item",
+        "qty",
+        "due_day",
+        "day"
+      ],
+      "properties": {
+        "order_id": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "client": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Quem pediu, como aparece no quadro (Dona Cida, a padaria da praça)."
+        },
+        "item": {
+          "$ref": "#/$defs/ItemId"
+        },
+        "qty": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "due_day": {
+          "$ref": "#/$defs/Day"
+        },
+        "taker": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Quem tinha aceitado, se alguém tinha."
+        },
+        "day": {
+          "$ref": "#/$defs/Day"
+        }
+      }
+    },
+    "EconomyOrderPostedV1": {
+      "title": "EconomyOrderPostedV1",
+      "description": "Um pedido novo apareceu num quadro de encomendas (ADR-0069): quem pede, o quê, quanto, até quando e quanto paga. O pedido é uma entidade dentro do quadro.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order_id",
+        "board_id",
+        "client",
+        "item",
+        "qty",
+        "reward",
+        "posted_day",
+        "due_day"
+      ],
+      "properties": {
+        "order_id": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "board_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "O quadro em que o pedido apareceu."
+        },
+        "client": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Quem pediu, como aparece no quadro (Dona Cida, a padaria da praça)."
+        },
+        "item": {
+          "$ref": "#/$defs/ItemId"
+        },
+        "qty": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reward": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "O pagamento total, em moedas, na entrega."
+        },
+        "posted_day": {
+          "$ref": "#/$defs/Day"
+        },
+        "due_day": {
+          "$ref": "#/$defs/Day",
+          "description": "O último dia para entregar."
+        }
+      }
+    },
     "FarmBuyerPaidV1": {
       "title": "FarmBuyerPaidV1",
       "description": "Pagamento das vendas às 06:00, com o preço de cada item.",

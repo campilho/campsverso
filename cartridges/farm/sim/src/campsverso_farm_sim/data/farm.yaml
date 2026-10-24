@@ -185,6 +185,10 @@ labels:
   - {event: campsverso.action.accepted.v1, where: {action: cook}, text: "{avatar_id} vai cozinhar {params.recipe}"}
   - {event: campsverso.action.accepted.v1, where: {action: place}, text: "{avatar_id} vai fincar {params.item} · {intent}"}
   - {event: campsverso.action.accepted.v1, where: {action: place}, text: "{avatar_id} vai fincar {params.item}"}
+  - {event: campsverso.action.accepted.v1, where: {action: accept_order}, text: "{avatar_id} vai aceitar o {params.order} · {intent}"}
+  - {event: campsverso.action.accepted.v1, where: {action: accept_order}, text: "{avatar_id} vai aceitar o {params.order}"}
+  - {event: campsverso.action.accepted.v1, where: {action: deliver_order}, text: "{avatar_id} vai entregar o {params.order} · {intent}"}
+  - {event: campsverso.action.accepted.v1, where: {action: deliver_order}, text: "{avatar_id} vai entregar o {params.order}"}
   - {event: campsverso.action.accepted.v1, text: "{avatar_id} começa: {action} · {intent}"}
   - {event: campsverso.action.accepted.v1, text: "{avatar_id} começa: {action}"}
   # o que o avatar fez
@@ -213,6 +217,8 @@ labels:
   - {event: campsverso.action.completed.v1, where: {action: cook}, text: "{avatar_id} cozinhou {params.recipe}"}
   - {event: campsverso.action.completed.v1, where: {action: place}, text: "{avatar_id} fincou {params.item} em {params.target}"}
   - {event: campsverso.action.completed.v1, where: {action: place}, text: "{avatar_id} fincou {params.item} onde estava"}
+  - {event: campsverso.action.completed.v1, where: {action: accept_order}, text: "{avatar_id} aceitou o {params.order}"}
+  - {event: campsverso.action.completed.v1, where: {action: deliver_order}, text: "{avatar_id} entregou o {params.order}"}
   - {event: campsverso.action.completed.v1, text: "{avatar_id} terminou: {action}"}
   - {event: campsverso.action.rejected.v1, text: "recusado: {action} de {avatar_id} ({reason}: {detail})"}
   - {event: campsverso.action.rejected.v1, text: "recusado: {action} de {avatar_id} ({reason})"}
@@ -224,12 +230,14 @@ labels:
   - {event: campsverso.world.item.created.v1, where: {reason: payment}, text: "o comprador pagou {qty} moedas a {container_id}"}
   - {event: campsverso.world.item.created.v1, where: {reason: initial}, text: "{container_id} começa com {qty} {item}"}
   - {event: campsverso.world.item.created.v1, where: {reason: cook}, text: "{container_id} ficou com {qty} {item} do fogão"}
+  - {event: campsverso.world.item.created.v1, where: {reason: order_payment}, text: "{container_id} recebeu {qty} moedas de uma encomenda"}
   - {event: campsverso.world.item.created.v1, text: "{container_id} ganhou {qty} {item} ({reason})"}
   - {event: campsverso.world.item.consumed.v1, where: {reason: eat}, text: "{container_id} comeu {qty} {item}"}
   - {event: campsverso.world.item.consumed.v1, where: {reason: plant}, text: "{container_id} gastou {qty} {item} no plantio"}
   - {event: campsverso.world.item.consumed.v1, where: {reason: buy_payment}, text: "{container_id} pagou {qty} moedas"}
   - {event: campsverso.world.item.consumed.v1, where: {reason: buyer_collect}, text: "o comprador levou {qty} {item} da caixa"}
   - {event: campsverso.world.item.consumed.v1, where: {reason: spoiled}, text: "{qty} {item} de {container_id} estragou"}
+  - {event: campsverso.world.item.consumed.v1, where: {reason: order}, text: "{container_id} entregou {qty} {item} numa encomenda"}
   - {event: campsverso.world.item.consumed.v1, text: "{container_id} gastou {qty} {item} ({reason})"}
   - {event: campsverso.world.item.transferred.v1, where: {reason: sell}, text: "{qty} {item} foi para a caixa de vendas"}
   - {event: campsverso.world.item.transferred.v1, text: "{qty} {item} passou de {from_container} para {to_container}"}
@@ -267,6 +275,12 @@ labels:
   - {event: campsverso.farm.crop.withered.v1, text: "{crop} murchou no {plot_id}"}
   - {event: campsverso.farm.crop.eaten.v1, text: "amanheceu comido o {crop} do {plot_id}"}
   - {event: campsverso.farm.buyer.paid.v1, text: "o comprador pagou {total} moedas pela caixa"}
+  # as encomendas (ADR-0069), eventos da biblioteca de economia
+  - {event: campsverso.economy.order.posted.v1, text: "pedido novo no quadro: {client} quer {qty} {item} até o dia {due_day}, paga {reward}"}
+  - {event: campsverso.economy.order.accepted.v1, text: "{taker} aceitou o {order_id}"}
+  - {event: campsverso.economy.order.delivered.v1, text: "{taker} entregou a encomenda de {client}: {qty} {item}, {reward} moedas"}
+  - {event: campsverso.economy.order.expired.v1, text: "venceu nas mãos de {taker} o pedido de {client} ({qty} {item})"}
+  - {event: campsverso.economy.order.expired.v1, text: "o pedido de {client} ({qty} {item}) saiu do quadro sem ninguém"}
   # a mente e quem joga (os eventos da plataforma, até haver uma camada comum a todos os cartuchos)
   - {event: campsverso.cmd.action.propose.v1, text: "{avatar_id} propõe {action}: {intent}"}
   - {event: campsverso.cmd.action.propose.v1, text: "{avatar_id} propõe {action}"}

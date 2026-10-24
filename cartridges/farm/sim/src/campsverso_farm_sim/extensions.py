@@ -81,6 +81,8 @@ def contribute_extensions(
         if action is None:
             raise ValueError(f"ação desconhecida no cenário: {name}")
         world.add_action(action)
+    if "orders" in data:  # as encomendas publicam os eventos da biblioteca de economia (ADR-0069)
+        world.use_domain("economy")
     lower_systems = {system.name for system in build_extension_systems(lower)}
     for system in build_extension_systems(data):
         if system.name not in lower_systems:  # o sistema de baixo já lê os dados mesclados

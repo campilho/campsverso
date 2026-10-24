@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/economy/order.delivered.v1",
+  "title": "EconomyOrderDeliveredV1",
+  "description": "Um pedido aceito foi entregue no prazo e pago na hora (ADR-0069).",
+  "x-type": "campsverso.economy.order.delivered.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "order_id",
+    "client",
+    "item",
+    "qty",
+    "reward",
+    "taker",
+    "day"
+  ],
+  "properties": {
+    "order_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "client": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "Quem pediu, como aparece no quadro (Dona Cida, a padaria da praça)."
+    },
+    "item": {
+      "$ref": "contracts://common/defs.v1#/$defs/item_id"
+    },
+    "qty": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "reward": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "O pagamento total, em moedas, na entrega."
+    },
+    "taker": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "Quem entregou e recebeu."
+    },
+    "day": {
+      "$ref": "contracts://common/defs.v1#/$defs/day"
+    }
+  }
+}

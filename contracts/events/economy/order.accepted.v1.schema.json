@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/economy/order.accepted.v1",
+  "title": "EconomyOrderAcceptedV1",
+  "description": "Alguém aceitou um pedido do quadro (ADR-0069): o pedido fica com ele até a entrega ou o prazo.",
+  "x-type": "campsverso.economy.order.accepted.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "order_id",
+    "taker",
+    "day"
+  ],
+  "properties": {
+    "order_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "taker": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "Quem aceitou: o avatar."
+    },
+    "day": {
+      "$ref": "contracts://common/defs.v1#/$defs/day"
+    }
+  }
+}

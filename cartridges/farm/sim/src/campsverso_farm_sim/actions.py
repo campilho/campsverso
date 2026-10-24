@@ -17,8 +17,17 @@ from campsverso_cartridge_api import (
     WorldOps,
     WorldView,
 )
+from campsverso_economy import after_delivery, refuse_delivery, refuse_take
 from campsverso_farm_sim.config import ENERGY, HUNGER, optional, section, ticks_per_hour
 from campsverso_farm_sim.market import buy_from, memory_market, sell_to
+from campsverso_farm_sim.orders import (
+    as_order,
+    in_board,
+    order_rules,
+    reputation,
+    reputation_rules,
+    taken_by,
+)
 
 EMPTY_PLOT: dict[str, Any] = {"crop": None, "stage": None, "watered_today": False}
 EMPTY_HIDDEN: dict[str, Any] = {"growth_points": 0.0, "planted_day": None, "dry_days": 0}
@@ -718,11 +727,100 @@ class Place(FarmAction):
         ops.spawn(SpawnDef(f"{kind}-{ops.next_seq(kind):02d}", kind, position=spot))
 
 
+def _board_order(ctx: ActionContext) -> tuple[EntityView, EntityView] | Rejection:
+    """O quadro ao lado do avatar e o pedido dentro dele (ADR-0069)."""
+    data = optional(ctx.view, "orders")
+    if data is None:
+        return Rejection("invalid_params", "não há encomendas neste mundo")
+    board = find(ctx.view, str(data["board_kind"]), ctx.params.get("target"))
+    if isinstance(board, Rejection):
+        return board
+    if not adjacent(ctx.view, ctx.avatar_id, board):
+        return Rejection("not_adjacent")
+    wanted = ctx.params.get("order")
+    order = next((e for e in in_board(ctx.view, board) if e.entity_id == wanted), None)
+    return (board, order) if order is not None else Rejection("no_order")
+
+
+@dataclass(frozen=True)
+class AcceptOrder(FarmAction):
+    """Aceita um pedido do quadro: ele fica com o avatar até a entrega ou o prazo (ADR-0069)."""
+
+    name: str = "accept_order"
+
+    def check(self, ctx: ActionContext) -> Rejection | None:
+        found = _board_order(ctx)
+        if isinstance(found, Rejection):
+            return found
+        board, entity = found
+        rules = order_rules(section(ctx.view, "orders"))
+        taken = taken_by(ctx.view, board, ctx.avatar_id)
+        reason = refuse_take(as_order(entity), ctx.avatar_id, taken, rules)
+        return None if reason is None else Rejection(reason)
+
+    def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
+        found = _board_order(ctx)
+        assert not isinstance(found, Rejection)
+        _, entity = found
+        ops.set_attributes(entity.entity_id, visible={"aceita_por": ctx.avatar_id})
+        ops.emit(
+            "campsverso.economy.order.accepted.v1",
+            {"order_id": entity.entity_id, "taker": ctx.avatar_id, "day": ctx.view.day},
+        )
+
+
+@dataclass(frozen=True)
+class DeliverOrder(FarmAction):
+    """Entrega um pedido aceito: os itens saem do inventário, o pagamento entra na hora, e a
+    reputação de quem entregou sobe (ADR-0069)."""
+
+    name: str = "deliver_order"
+
+    def check(self, ctx: ActionContext) -> Rejection | None:
+        found = _board_order(ctx)
+        if isinstance(found, Rejection):
+            return found
+        _, entity = found
+        order = as_order(entity)
+        reason = refuse_delivery(order, ctx.avatar_id, ctx.view.day)
+        if reason is not None:
+            return Rejection(reason)
+        if ctx.view.items(ctx.avatar_id).get(order.item, 0) < order.qty:
+            return Rejection("missing_item")
+        return None
+
+    def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
+        found = _board_order(ctx)
+        assert not isinstance(found, Rejection)
+        board, entity = found
+        order = as_order(entity)
+        rules = reputation_rules(section(ctx.view, "orders"))
+        ops.consume_item(order.item, order.qty, ctx.avatar_id, "order")
+        ops.create_item("moeda", order.reward, ctx.avatar_id, "order_payment")
+        raised = after_delivery(reputation(board, ctx.avatar_id, rules), rules)
+        ops.set_attributes(board.entity_id, hidden={f"reputation_{ctx.avatar_id}": raised})
+        ops.despawn(entity.entity_id, "delivered")
+        ops.emit(
+            "campsverso.economy.order.delivered.v1",
+            {
+                "order_id": order.order_id,
+                "client": order.client,
+                "item": order.item,
+                "qty": order.qty,
+                "reward": order.reward,
+                "taker": ctx.avatar_id,
+                "day": ctx.view.day,
+            },
+        )
+
+
 EXTRA_ACTIONS: tuple[FarmAction, ...] = (  # só com dados do cenário
     Dig(),
     Fertilize(),
     Cook(),
     Place(),
+    AcceptOrder(),
+    DeliverOrder(),
 )
 
 ALL_ACTIONS: tuple[FarmAction, ...] = (

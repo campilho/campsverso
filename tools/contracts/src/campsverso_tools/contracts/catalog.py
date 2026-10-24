@@ -88,6 +88,7 @@ class Contracts:
     files: tuple[SchemaFile, ...]
     kernel_domains: frozenset[str]
     cartridge_domains: frozenset[str]
+    library_domains: frozenset[str] = frozenset()  # as bibliotecas de mundo (ADR-0069)
 
     @cached_property
     def by_type(self) -> dict[str, SchemaFile]:
@@ -129,4 +130,5 @@ def load(contracts_dir: Path) -> Contracts:
         files=tuple(files),
         kernel_domains=frozenset(domains["kernel"]),
         cartridge_domains=frozenset(domains["cartridges"]),
+        library_domains=frozenset(domains.get("libraries", [])),
     )

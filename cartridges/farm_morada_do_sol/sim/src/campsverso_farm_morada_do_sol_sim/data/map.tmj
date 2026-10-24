@@ -8,7 +8,7 @@
  "tilewidth": 32,
  "tileheight": 32,
  "nextlayerid": 3,
- "nextobjectid": 10,
+ "nextobjectid": 11,
  "tilesets": [
   {
    "firstgid": 1,
@@ -2850,6 +2850,24 @@
        "name": "display_name",
        "type": "string",
        "value": "Quiosque de sementes"
+      }
+     ]
+    },
+    {
+     "id": 10,
+     "name": "order-board",
+     "type": "order_board",
+     "x": 1152,
+     "y": 1152,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Quadro de encomendas"
       }
      ]
     },

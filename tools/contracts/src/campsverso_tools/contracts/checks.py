@@ -96,7 +96,8 @@ def _check_type(f: SchemaFile, contracts: Contracts) -> list[Problem]:
         )
     else:
         domain = match.group(2)
-        if domain not in contracts.kernel_domains | contracts.cartridge_domains:
+        known = contracts.kernel_domains | contracts.cartridge_domains | contracts.library_domains
+        if domain not in known:
             problems.append(
                 Problem("domain", f"{where}: domínio {domain!r} não está em contracts/domains.json")
             )

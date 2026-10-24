@@ -37,6 +37,11 @@ class WorldBuilder(Protocol):
         """Um ano com estações (ADR-0067); sem ele, o mundo não tem data do ano nem estação."""
         ...
 
+    def use_domain(self, domain: str) -> None:
+        """O domínio de eventos de uma biblioteca de mundo que o cartucho usa (`economy`, ADR-0069):
+        com ele, o cartucho publica os eventos dela, além dos do próprio domínio."""
+        ...
+
     def set_tiles_per_minute(self, speed: float) -> None: ...
 
     def set_movement_cost(self, need: str, points_per_tile: float) -> None:

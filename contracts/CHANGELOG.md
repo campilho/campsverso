@@ -2,7 +2,11 @@
 
 Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão maior, só entram campos opcionais novos; mudança incompatível vira um tipo novo (`.v2`). A checagem `make compat` confere isso a cada commit.
 
-## Não publicado (M16 e M17)
+## Não publicado (M18)
+
+- **As encomendas** (ADR-0069): o domínio de biblioteca `economy` (`domains.json`, chave `libraries`), com quatro tipos novos de visibilidade `world`, produtor `kernel`, publicados pelo cartucho que usa a `libs/economy`: `campsverso.economy.order.posted.v1` (um pedido apareceu no quadro: `order_id`, `board_id`, `client`, `item`, `qty`, `reward`, `posted_day`, `due_day`), `campsverso.economy.order.accepted.v1` (`order_id`, `taker`, `day`), `campsverso.economy.order.delivered.v1` (entregue e pago na hora: `order_id`, `client`, `item`, `qty`, `reward`, `taker`, `day`) e `campsverso.economy.order.expired.v1` (o prazo passou: `order_id`, `client`, `item`, `qty`, `due_day`, `taker?`, `day`).
+
+## M16 e M17 (publicados em 24/out, antes de uma versão)
 
 - **A primitiva de remover entidade** (ADR-0067), um tipo novo:
   - `campsverso.world.entity.despawned.v1` (`world`, produtor `kernel`): uma entidade removida em tempo de execução, como o canteiro vazio que volta a ser grama (`entity_id`, `kind`, `position?`, `reason`, `action_id?`). Avatares, contêineres com itens ou com entidades dentro, e o alvo de uma ação em andamento não se removem.

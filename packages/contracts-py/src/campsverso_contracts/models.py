@@ -1066,6 +1066,154 @@ class AvatarSleepStartedV2(BaseModel):
     """
 
 
+class EconomyOrderAcceptedV1(BaseModel):
+    """
+    Alguém aceitou um pedido do quadro (ADR-0069): o pedido fica com ele até a entrega ou o prazo.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    order_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    taker: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Quem aceitou: o avatar.
+    """
+    day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+
+
+class EconomyOrderDeliveredV1(BaseModel):
+    """
+    Um pedido aceito foi entregue no prazo e pago na hora (ADR-0069).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    order_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    client: Annotated[str, Field(max_length=64, min_length=1)]
+    """
+    Quem pediu, como aparece no quadro (Dona Cida, a padaria da praça).
+    """
+    item: Annotated[str, Field(max_length=64, pattern="^[a-z0-9]+(_[a-z0-9]+)*$", title="ItemId")]
+    """
+    Id de item ou cultura; conteúdo do cartucho, em português, sem acento: moeda, semente_rabanete.
+    """
+    qty: Annotated[int, Field(ge=1)]
+    reward: Annotated[int, Field(ge=1)]
+    """
+    O pagamento total, em moedas, na entrega.
+    """
+    taker: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Quem entregou e recebeu.
+    """
+    day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+
+
+class EconomyOrderExpiredV1(BaseModel):
+    """
+    O prazo de um pedido passou e ele saiu do quadro (ADR-0069). Com `taker`, era um pedido aceito e não entregue.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    order_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    client: Annotated[str, Field(max_length=64, min_length=1)]
+    """
+    Quem pediu, como aparece no quadro (Dona Cida, a padaria da praça).
+    """
+    item: Annotated[str, Field(max_length=64, pattern="^[a-z0-9]+(_[a-z0-9]+)*$", title="ItemId")]
+    """
+    Id de item ou cultura; conteúdo do cartucho, em português, sem acento: moeda, semente_rabanete.
+    """
+    qty: Annotated[int, Field(ge=1)]
+    due_day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+    taker: Annotated[
+        str | None,
+        Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId"),
+    ] = None
+    """
+    Quem tinha aceitado, se alguém tinha.
+    """
+    day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+
+
+class EconomyOrderPostedV1(BaseModel):
+    """
+    Um pedido novo apareceu num quadro de encomendas (ADR-0069): quem pede, o quê, quanto, até quando e quanto paga. O pedido é uma entidade dentro do quadro.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    order_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    board_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O quadro em que o pedido apareceu.
+    """
+    client: Annotated[str, Field(max_length=64, min_length=1)]
+    """
+    Quem pediu, como aparece no quadro (Dona Cida, a padaria da praça).
+    """
+    item: Annotated[str, Field(max_length=64, pattern="^[a-z0-9]+(_[a-z0-9]+)*$", title="ItemId")]
+    """
+    Id de item ou cultura; conteúdo do cartucho, em português, sem acento: moeda, semente_rabanete.
+    """
+    qty: Annotated[int, Field(ge=1)]
+    reward: Annotated[int, Field(ge=1)]
+    """
+    O pagamento total, em moedas, na entrega.
+    """
+    posted_day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+    due_day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    O último dia para entregar.
+    """
+
+
 class PaidItem(BaseModel):
     model_config = ConfigDict(
         extra="ignore",

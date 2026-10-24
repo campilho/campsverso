@@ -12,7 +12,7 @@ year:  # o ano acelerado (ADR-0067): 28 dias simulados, 7 por estação, no hemi
 perception:
   radius: 12  # script e LLM veem 12 tiles em volta; a névoa na tela é do M17
   # As construções fixas se veem além do raio: quem mora na fazenda sabe onde ficam (ADR-0067).
-  landmarks: [bed, door, chest, stove, well, sell_box, kiosk]
+  landmarks: [bed, door, chest, stove, well, sell_box, kiosk, order_board]
   # A noite enxerga menos, e a lanterna no inventário garante 10 (ADR-0068); visível, no manual.
   by_phase: {amanhecer: 12, meio_dia: 12, entardecer: 7, noite: 5, madrugada: 5}
   lights: {lanterna: 10}
@@ -27,6 +27,22 @@ market:  # o mercado que lembra (ADR-0069), sobre a libs/economy; a Boa Vista vo
 
 kinds:
   scarecrow: {blocking: true}
+  order_board: {blocking: true, capacity: 100}  # o quadro de encomendas: os pedidos ficam dentro dele
+  order: {weight: 0}  # um pedido do quadro (ADR-0069)
+
+orders:  # o quadro de encomendas (ADR-0069), sobre a libs/economy
+  board_kind: order_board
+  max_open: 4  # pedidos no quadro, aceitos ou não
+  max_taken: 2  # aceitos ao mesmo tempo por quem aceita
+  new_per_day: 2  # vagas para pedidos novos a cada manhã
+  chance: 0.5  # a chance de cada vaga virar pedido, com a reputação neutra
+  qty: [2, 6]
+  days: [3, 7]  # o prazo, contado do dia em que o pedido aparece
+  premium: 0.5  # 50% acima da referência do mercado no dia em que aparece
+  categories: [colheita]  # o que se pede; os produtos do tacho entram com ele
+  clients: [Dona Cida, Seu Juca, Dona Nena, Seu Lourenço, a padaria da praça, o restaurante da estrada, a cantina da escola, o mercadinho]
+  # R-004 (oculta): quem cumpre o prazo vê mais pedidos e prêmios maiores; quem deixa vencer, menos.
+  reputation: {start: 0.5, gain: 0.1, loss: 0.2, spread: 0.5}
 
 digging:
   max_plots: 400  # um teto técnico, só para o desempenho; no jogo, os freios são a energia e a rega
@@ -83,8 +99,18 @@ kiosk_cycle:  # as sementes novas no ciclo; a semente parada na estação some d
 
 actions:
   place: {duration: 10, energy: 3, interrupt: never}
+  accept_order: {duration: 2, energy: 0, interrupt: never}
+  deliver_order: {duration: 5, energy: 1, interrupt: never}
 
 affordances:
+  - action: accept_order
+    label: Aceitar a encomenda
+    kinds: [order_board]
+    params: [{name: order, label: Pedido, source: target, entities: true}]
+  - action: deliver_order
+    label: Entregar a encomenda
+    kinds: [order_board]
+    params: [{name: order, label: Pedido, source: target, entities: true}]
   - action: place
     label: Fincar aqui
     kinds: [self]

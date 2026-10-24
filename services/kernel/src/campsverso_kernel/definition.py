@@ -57,6 +57,7 @@ class WorldDefinition:
     perception_lights: Mapping[str, int] = field(default_factory=dict[str, int])
     movement_cost: tuple[str, float] | None = None  # (necessidade, pontos por tile) (ADR-0062)
     year: YearDef | None = None  # o ano com estações (ADR-0067); None: sem data do ano
+    event_domains: frozenset[str] = frozenset()  # as bibliotecas de mundo em uso (ADR-0069)
 
     @property
     def top(self) -> CartridgeManifest:
@@ -91,6 +92,7 @@ class DefinitionBuilder:
     stages: tuple[str, ...] = DEFAULT_STAGES
     clock: ClockDef | None = None
     year: YearDef | None = None
+    event_domains: set[str] = field(default_factory=set[str])
     tiles_per_minute: float = 1.0
     perception_radius: int | None = None
     perception_landmarks: tuple[str, ...] = ()
@@ -115,6 +117,9 @@ class DefinitionBuilder:
 
     def configure_clock(self, clock: ClockDef) -> None:
         self.clock = clock
+
+    def use_domain(self, domain: str) -> None:
+        self.event_domains.add(domain)
 
     def configure_year(self, year: YearDef) -> None:
         if year.days < len(year.seasons) or not year.seasons:
@@ -264,6 +269,7 @@ class DefinitionBuilder:
             chain=tuple(chain),
             clock=self.clock,
             year=self.year,
+            event_domains=frozenset(self.event_domains),
             tiles_per_minute=self.tiles_per_minute,
             data=dict(self.data),
             kinds=dict(self.kinds),

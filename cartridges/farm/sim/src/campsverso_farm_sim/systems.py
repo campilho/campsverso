@@ -24,6 +24,7 @@ from campsverso_farm_sim.config import (
     section,
 )
 from campsverso_farm_sim.market import memory_market, turnover
+from campsverso_farm_sim.orders import orders_daily
 
 
 @dataclass(frozen=True)
@@ -367,6 +368,16 @@ def build_extension_systems(data: Mapping[str, Any]) -> tuple[FarmSystem, ...]:
                 12,  # depois do crescimento (10): o canteiro colhido hoje ainda conta como vazio
                 (DailyAt((day_start,)),),
                 revert_plots,
+            )
+        )
+    if "orders" in data:
+        systems.append(
+            FarmSystem(
+                "orders_daily",
+                "scheduled",
+                26,  # depois do mercado (25): o pedido sai pela referência de hoje
+                (OnSessionStart(), DailyAt((day_start,))),
+                orders_daily,
             )
         )
     if "market" in data:

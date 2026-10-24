@@ -1,0 +1,25 @@
+{
+  "specversion": "1.0",
+  "id": "01a1fa10-1c24-7606-85a1-00fe473b4513",
+  "source": "/kernel/farm-morada-do-sol-01",
+  "type": "campsverso.economy.order.expired.v1",
+  "time": "2026-10-24T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/economy/order.expired.v1",
+  "worldid": "farm-morada-do-sol-01",
+  "cartridge": "farm_morada_do_sol",
+  "tick": 4323,
+  "simtime": "2026-10-03T06:00:00-03:00",
+  "seq": 1903,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "order_id": "order-004",
+    "client": "a padaria da praça",
+    "item": "couve",
+    "qty": 3,
+    "due_day": 9,
+    "taker": "camps",
+    "day": 10
+  }
+}

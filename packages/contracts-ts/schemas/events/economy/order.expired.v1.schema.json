@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/economy/order.expired.v1",
+  "title": "EconomyOrderExpiredV1",
+  "description": "O prazo de um pedido passou e ele saiu do quadro (ADR-0069). Com `taker`, era um pedido aceito e não entregue.",
+  "x-type": "campsverso.economy.order.expired.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "order_id",
+    "client",
+    "item",
+    "qty",
+    "due_day",
+    "day"
+  ],
+  "properties": {
+    "order_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "client": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "Quem pediu, como aparece no quadro (Dona Cida, a padaria da praça)."
+    },
+    "item": {
+      "$ref": "contracts://common/defs.v1#/$defs/item_id"
+    },
+    "qty": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "due_day": {
+      "$ref": "contracts://common/defs.v1#/$defs/day"
+    },
+    "taker": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "Quem tinha aceitado, se alguém tinha."
+    },
+    "day": {
+      "$ref": "contracts://common/defs.v1#/$defs/day"
+    }
+  }
+}
