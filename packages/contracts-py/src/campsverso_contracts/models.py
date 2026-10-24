@@ -387,6 +387,12 @@ class TerrainWindow(BaseModel):
     legend: TerrainLegend
 
 
+ByPhaseAdditionalProperty = TypeAliasType("ByPhaseAdditionalProperty", Annotated[int, Field(ge=0)])
+
+
+LightsAdditionalProperty = TypeAliasType("LightsAdditionalProperty", Annotated[int, Field(ge=0)])
+
+
 class PerceptionConfig(BaseModel):
     """
     O que o cartucho declara sobre a percepção (ADR-0056).
@@ -402,6 +408,14 @@ class PerceptionConfig(BaseModel):
     landmarks: list[Token] | None = None
     """
     Tipos de entidade que todo avatar enxerga além do raio: as construções fixas, que quem mora ali conhece (ADR-0067). Ausente: nenhum.
+    """
+    by_phase: dict[str, ByPhaseAdditionalProperty] | None = None
+    """
+    O raio em cada fase do dia, por nome da fase; a fase que não aparece usa `radius` (ADR-0068).
+    """
+    lights: dict[str, LightsAdditionalProperty] | None = None
+    """
+    Itens que, no inventário do avatar, garantem um raio mínimo: item -> raio (a lanterna; ADR-0068).
     """
 
 

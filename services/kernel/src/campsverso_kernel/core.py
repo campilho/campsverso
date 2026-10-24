@@ -216,6 +216,18 @@ class KernelCore:
 
     # ------------------------------------------------------------- sessão
 
+    def _perception(self) -> dict[str, Any]:
+        """A configuração da percepção declarada pelo cartucho (ADR-0056, ADR-0067, ADR-0068)."""
+        d = self.definition
+        config: dict[str, Any] = {"radius": d.perception_radius}
+        if d.perception_landmarks:
+            config["landmarks"] = list(d.perception_landmarks)
+        if d.perception_by_phase:
+            config["by_phase"] = dict(d.perception_by_phase)
+        if d.perception_lights:
+            config["lights"] = dict(d.perception_lights)
+        return config
+
     def _affordances(self) -> dict[str, Any]:
         """O catálogo de ações do cartucho, para quem joga (ADR-0051); ausente se não houver."""
         catalog: list[dict[str, Any]] = []
@@ -282,12 +294,7 @@ class KernelCore:
                     "rows": rows,
                     "legend": legend,
                 },
-                "perception": {"radius": self.definition.perception_radius}
-                | (
-                    {"landmarks": list(self.definition.perception_landmarks)}
-                    if self.definition.perception_landmarks
-                    else {}
-                ),
+                "perception": self._perception(),
                 **self._affordances(),
                 **self._metrics(),
             },

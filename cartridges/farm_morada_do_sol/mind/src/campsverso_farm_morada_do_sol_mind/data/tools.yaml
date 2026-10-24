@@ -160,7 +160,7 @@ tools:
       Itens e preços: semente_rabanete 10, semente_batata 20, semente_abobora 40, semente_cenoura
       15, semente_morango 60, semente_tomate 30, semente_alho 12, semente_milho 20,
       semente_melancia 35, semente_mandioca 25, semente_couve 12 (só as sementes em estoque_hoje),
-      adubo 15, espantalho 60, watering_can_large 150 (o regador grande, 25 cargas, pesa 9) e
+      adubo 15, espantalho 60, lanterna 40 (no inventário, você vê pelo menos 10 tiles), watering_can_large 150 (o regador grande, 25 cargas, pesa 9) e
       plow 300 (o arado, pesa 12). Uma ferramenta por vez, e tem de caber no seu inventário.
     duration: 2
     energy: 0

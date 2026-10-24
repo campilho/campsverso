@@ -637,6 +637,22 @@
           },
           "uniqueItems": true,
           "description": "Tipos de entidade que todo avatar enxerga além do raio: as construções fixas, que quem mora ali conhece (ADR-0067). Ausente: nenhum."
+        },
+        "by_phase": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "description": "O raio em cada fase do dia, por nome da fase; a fase que não aparece usa `radius` (ADR-0068)."
+        },
+        "lights": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "description": "Itens que, no inventário do avatar, garantem um raio mínimo: item -> raio (a lanterna; ADR-0068)."
         }
       }
     },

@@ -42,6 +42,10 @@ class WorldBuilder(Protocol):
         """Andar gasta `points_per_tile` da necessidade por tile percorrido (ADR-0062)."""
         ...
 
+    def set_perception_light(self, by_phase: Mapping[str, int], lights: Mapping[str, int]) -> None:
+        """O raio por fase do dia e os itens que garantem um raio mínimo (ADR-0068)."""
+        ...
+
     def set_perception_landmarks(self, kinds: tuple[str, ...]) -> None:
         """Tipos que se enxergam além do raio: as construções fixas (ADR-0067)."""
         ...

@@ -51,6 +51,8 @@ class WorldDefinition:
     metrics: tuple[MetricDef, ...] = ()  # métricas do dia para o operador (ADR-0054)
     perception_radius: int | None = None  # None: o mapa inteiro (ADR-0056)
     perception_landmarks: tuple[str, ...] = ()  # vistos além do raio (ADR-0067)
+    perception_by_phase: Mapping[str, int] = field(default_factory=dict[str, int])  # ADR-0068
+    perception_lights: Mapping[str, int] = field(default_factory=dict[str, int])
     movement_cost: tuple[str, float] | None = None  # (necessidade, pontos por tile) (ADR-0062)
     year: YearDef | None = None  # o ano com estações (ADR-0067); None: sem data do ano
 
@@ -90,6 +92,8 @@ class DefinitionBuilder:
     tiles_per_minute: float = 1.0
     perception_radius: int | None = None
     perception_landmarks: tuple[str, ...] = ()
+    perception_by_phase: dict[str, int] = field(default_factory=dict[str, int])
+    perception_lights: dict[str, int] = field(default_factory=dict[str, int])
     movement_cost: tuple[str, float] | None = None
     data: dict[str, dict[str, Any]] = field(default_factory=dict[str, dict[str, Any]])
     kinds: dict[str, KindDef] = field(default_factory=dict[str, KindDef])
@@ -126,6 +130,12 @@ class DefinitionBuilder:
         if speed <= 0:
             raise DefinitionError("a velocidade precisa ser positiva")
         self.tiles_per_minute = speed
+
+    def set_perception_light(self, by_phase: Mapping[str, int], lights: Mapping[str, int]) -> None:
+        if any(r < 0 for r in [*by_phase.values(), *lights.values()]):
+            raise DefinitionError("raio negativo na percepção")
+        self.perception_by_phase = dict(sorted(by_phase.items()))
+        self.perception_lights = dict(sorted(lights.items()))
 
     def set_perception_landmarks(self, kinds: tuple[str, ...]) -> None:
         self.perception_landmarks = tuple(sorted(set(kinds)))
@@ -257,6 +267,8 @@ class DefinitionBuilder:
             stages=self.stages,
             perception_radius=self.perception_radius,
             perception_landmarks=self.perception_landmarks,
+            perception_by_phase=dict(self.perception_by_phase),
+            perception_lights=dict(self.perception_lights),
             movement_cost=self.movement_cost,
         )
 

@@ -359,3 +359,34 @@ def test_com_raio_os_marcos_se_veem_de_longe_e_o_resto_nao() -> None:
     assert "kiosk" in seen
     assert "plot-far" not in seen
     assert "plot-a" not in seen  # a 4 tiles: fora do raio 2
+
+
+def test_o_raio_da_hora_vem_da_fase_e_a_lanterna_garante_o_dela() -> None:
+    """ADR-0068: à noite o raio é o da fase; com a lanterna no inventário, o dela."""
+    p = world()
+    p.apply(
+        "world",
+        ev(
+            6,
+            0,
+            "world.session.started.v1",
+            cartridge_version="0.1.0",
+            seed=1,
+            tick_seconds=60,
+            mode="continuous",
+            scale=72.0,
+            paused=False,
+            resumed=False,
+            perception={"radius": 3, "by_phase": {"noite": 1}, "lights": {"lanterna": 4}},
+        ),
+    )
+    assert p.radius("camps") == 3  # amanhecer: não está na tabela, vale o de sempre
+    p.apply("world", ev(7, 1200, "world.clock.phase_changed.v1", phase="noite", day=1))
+    assert p.radius("camps") == 1
+    assert "plot-a" not in {e["entity_id"] for e in p.view("camps")["entities"]}  # a 4 tiles
+    p.apply(
+        "world",
+        ev(8, 1201, "world.item.created.v1", item="lanterna", qty=1, container_id="camps"),
+    )
+    assert p.radius("camps") == 4
+    assert "plot-a" in {e["entity_id"] for e in p.view("camps")["entities"]}

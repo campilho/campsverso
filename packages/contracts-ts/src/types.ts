@@ -548,6 +548,18 @@ export interface PerceptionConfig {
    * Tipos de entidade que todo avatar enxerga além do raio: as construções fixas, que quem mora ali conhece (ADR-0067). Ausente: nenhum.
    */
   landmarks?: Token[];
+  /**
+   * O raio em cada fase do dia, por nome da fase; a fase que não aparece usa `radius` (ADR-0068).
+   */
+  by_phase?: {
+    [k: string]: number | undefined;
+  };
+  /**
+   * Itens que, no inventário do avatar, garantem um raio mínimo: item -> raio (a lanterna; ADR-0068).
+   */
+  lights?: {
+    [k: string]: number | undefined;
+  };
 }
 /**
  * Tokens de uma chamada de modelo, como o provedor os contou (ADR-0058): entrada, saída, lidos do cache e gravados no cache.

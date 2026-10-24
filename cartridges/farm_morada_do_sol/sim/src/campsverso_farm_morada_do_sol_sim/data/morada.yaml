@@ -13,6 +13,9 @@ perception:
   radius: 12  # script e LLM veem 12 tiles em volta; a névoa na tela é do M17
   # As construções fixas se veem além do raio: quem mora na fazenda sabe onde ficam (ADR-0067).
   landmarks: [bed, door, chest, stove, well, sell_box, kiosk]
+  # A noite enxerga menos, e a lanterna no inventário garante 10 (ADR-0068); visível, no manual.
+  by_phase: {amanhecer: 12, meio_dia: 12, entardecer: 7, noite: 5, madrugada: 5}
+  lights: {lanterna: 10}
 
 kinds:
   scarecrow: {blocking: true}
@@ -43,6 +46,7 @@ items:
   mandioca: {category: colheita, sale_price: 80, hunger: 45, weight: 1, shelf_life_days: 20}
   couve: {category: colheita, sale_price: 30, hunger: 12, weight: 0.5, shelf_life_days: 5}
   espantalho: {category: objeto, price: 60, weight: 4}
+  lanterna: {category: objeto, price: 40, weight: 1}
 
 crops:  # as quatro novas, e a afinidade de cada cultura com cada estação (o calendário do manual)
   milho: {seed: semente_milho, points_to_mature: 6,
@@ -67,7 +71,7 @@ kiosk_cycle:  # as sementes novas no ciclo; a semente parada na estação some d
     semente_melancia: [2, 5]
     semente_mandioca: [1, 3, 5]
     semente_couve: [1, 2, 3, 4, 5, 6]
-  always: [adubo, espantalho]
+  always: [adubo, espantalho, lanterna]
 
 actions:
   place: {duration: 10, energy: 3, interrupt: never}
@@ -82,7 +86,7 @@ affordances:
     label: Comprar
     kinds: [kiosk]
     params:
-      - {name: item, label: Item, choices: [semente_rabanete, semente_batata, semente_abobora, semente_cenoura, semente_morango, semente_tomate, semente_alho, semente_milho, semente_melancia, semente_mandioca, semente_couve, adubo, espantalho, watering_can_large, plow]}
+      - {name: item, label: Item, choices: [semente_rabanete, semente_batata, semente_abobora, semente_cenoura, semente_morango, semente_tomate, semente_alho, semente_milho, semente_melancia, semente_mandioca, semente_couve, adubo, espantalho, lanterna, watering_can_large, plow]}
       - {name: qty, label: Quantidade, minimum: 1, default: 1}
 
 metrics:  # além das da Boa Vista

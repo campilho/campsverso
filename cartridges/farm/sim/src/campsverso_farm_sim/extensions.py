@@ -119,6 +119,11 @@ def contribute_extensions(
         world.set_perception_radius(perception["radius"])
     if "landmarks" in perception:  # as construções que se veem além do raio
         world.set_perception_landmarks(tuple(str(k) for k in perception["landmarks"]))
+    if "by_phase" in perception or "lights" in perception:  # a noite e a lanterna (ADR-0068)
+        world.set_perception_light(
+            {str(k): int(v) for k, v in perception.get("by_phase", {}).items()},
+            {str(k): int(v) for k, v in perception.get("lights", {}).items()},
+        )
     movement = cast(Mapping[str, Any], data.get("movement", {}))
     if movement.get("energy_per_tile"):
         world.set_movement_cost(config.ENERGY, float(movement["energy_per_tile"]))

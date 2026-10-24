@@ -88,11 +88,18 @@ class PerceptionState(Projection):
 
     # ------------------------------------------------------------- a foto
 
-    def radius(self) -> int | None:
-        """O raio declarado pelo cartucho (session.started); None é o mapa inteiro."""
+    def radius(self, avatar_id: str | None = None) -> int | None:
+        """O raio da hora (ADR-0068): o da fase, se o cartucho declarou, ou o de sempre; um item de
+        luz no inventário do avatar garante o raio dele. None é o mapa inteiro."""
         perception = cast(Mapping[str, Any], (self.session or {}).get("perception") or {})
         value = perception.get("radius")
-        return int(value) if isinstance(value, int) else None
+        if not isinstance(value, int):
+            return None
+        by_phase = cast(Mapping[str, int], perception.get("by_phase") or {})
+        radius = int(by_phase.get(self.phase, value))
+        lights = cast(Mapping[str, int], perception.get("lights") or {})
+        held = self.containers.get(avatar_id or "", {})
+        return max([radius, *(int(r) for item, r in lights.items() if held.get(item, 0) > 0)])
 
     def landmarks(self) -> frozenset[str]:
         """Os tipos que se veem além do raio (ADR-0067): as construções fixas da fazenda."""
@@ -124,7 +131,7 @@ class PerceptionState(Projection):
         }
         if avatar_id in self.actions:
             me["action"] = dict(self.actions[avatar_id])
-        radius = self.radius()
+        radius = self.radius(avatar_id)
         landmarks = self.landmarks()
         center = cast(Mapping[str, int] | None, me["position"])
 

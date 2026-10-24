@@ -348,6 +348,11 @@ class Projection:
             config: dict[str, Any] = {"radius": int(radius)}
             if perception.get("landmarks"):  # as construções vistas além do raio (ADR-0067)
                 config["landmarks"] = [str(k) for k in cast(list[Any], perception["landmarks"])]
+            for key in ("by_phase", "lights"):  # a noite e a lanterna (ADR-0068)
+                if perception.get(key):
+                    config[key] = {
+                        str(k): int(v) for k, v in cast(Mapping[str, Any], perception[key]).items()
+                    }
             self.session["perception"] = config
         self.clock = {
             "mode": data["mode"],
