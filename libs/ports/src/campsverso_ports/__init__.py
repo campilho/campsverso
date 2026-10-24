@@ -24,6 +24,7 @@ from campsverso_ports.memory import (
     Episode,
     MemoryPort,
     Note,
+    Place,
     Reflection,
     SourceKind,
 )
@@ -97,6 +98,7 @@ __all__ = [
     "Note",
     "OutboxRow",
     "PermissionDeniedError",
+    "Place",
     "RealtimeConnection",
     "RealtimeGateway",
     "Reflection",

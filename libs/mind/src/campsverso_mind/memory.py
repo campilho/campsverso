@@ -20,6 +20,7 @@ from campsverso_ports import (
     ModelRequest,
     ModelResponse,
     Note,
+    Place,
     Reflection,
     request_sha256,
 )
@@ -80,6 +81,7 @@ class MemorySettings:
     block_beliefs: int = 20
     block_notes: int = 20
     block_salient: int = 10
+    block_places: int = 25  # lugares fora de vista que o bloco lista (ADR-0067)
     reflection_model: str | None = None  # None: o modelo das decisões
     reflection_effort: Effort | None = "medium"
     reflection_max_tokens: int = (
@@ -112,6 +114,29 @@ def clock_of(delivery: Mapping[str, Any]) -> Clock:
         int(raw.get("day", 1)),
         str(raw.get("sim_time", "")),
     )
+
+
+def _box(terrain: Mapping[str, Any] | None) -> tuple[int, int, int, int] | None:
+    """O recorte de terreno da foto (origem e tamanho): o que está à vista."""
+    if terrain is None:
+        return None
+    origin = cast(Mapping[str, int], terrain.get("origin") or {"x": 0, "y": 0})
+    rows = cast(Sequence[str], terrain.get("rows") or ())
+    width = max((len(r) for r in rows), default=0)
+    return int(origin["x"]), int(origin["y"]), width, len(rows)
+
+
+def _inside(box: tuple[int, int, int, int], x: int, y: int) -> bool:
+    x0, y0, width, height = box
+    return x0 <= x < x0 + width and y0 <= y < y0 + height
+
+
+def _place_line(clock: Clock, place: Place) -> str:
+    hhmm = place.sim_time[11:16] or clock.at(place.tick)
+    when = hhmm if place.day == clock.day else f"dia {place.day}, {hhmm}"
+    attributes = ", ".join(f"{k} {v}" for k, v in place.attributes if v not in ("null", "false"))
+    detail = f": {attributes}" if attributes else ""
+    return f"- {place.entity_id} ({place.kind}) em ({place.x},{place.y}){detail}; visto {when}"
 
 
 def _short(event_type: str) -> str:
@@ -255,12 +280,64 @@ class Memory:
         self.reflect_due: Clock | None = None
         self.attempts: dict[int, int] = {}  # tentativas de reflexão por dia; o teto evita o laço
         self.fresh = False  # há uma reflexão nova que a próxima entrega precisa mostrar
+        self.in_view: set[str] = set()  # o que a última entrega mostrou (ADR-0067)
 
     # ------------------------------------------------------------- registrar
 
+    def _places(self, clock: Clock, delivery: Mapping[str, Any]) -> None:
+        """O último estado visto de cada coisa com posição (ADR-0067). A foto mostra tudo o que
+        está à vista: o que era lembrado dentro do recorte dela e não está mais lá, sumiu. O delta
+        traz o que mudou, o que saiu do raio (`out_of_view`, que se lembra) e o que deixou de
+        existir à vista (`gone`, que se esquece)."""
+        view = cast(Mapping[str, Any] | None, delivery.get("view"))
+        seen = cast(
+            Sequence[Mapping[str, Any]],
+            (view or {}).get("entities") if view is not None else delivery.get("entities") or (),
+        )
+        mine = {self.avatar_id}
+        places = [
+            Place(
+                str(e["entity_id"]),
+                str(e["kind"]),
+                int(e["position"]["x"]),
+                int(e["position"]["y"]),
+                tuple(
+                    (str(k), _compact(v))
+                    for k, v in sorted(cast(Mapping[str, Any], e.get("attributes") or {}).items())
+                ),
+                clock.tick,
+                clock.day,
+                clock.sim_time,
+            )
+            for e in seen
+            if e.get("position") is not None and str(e["entity_id"]) not in mine
+        ]
+        if places:
+            self.port.remember(places)
+        ids = {p.entity_id for p in places}
+        if view is not None:
+            self.in_view = {str(e["entity_id"]) for e in seen}
+            box = _box(cast(Mapping[str, Any] | None, view.get("map")))
+            if box is not None:
+                stale = [
+                    p.entity_id
+                    for p in self.port.places()
+                    if p.entity_id not in self.in_view and _inside(box, p.x, p.y)
+                ]
+                if stale:
+                    self.port.forget(stale)
+            return
+        gone = [str(i) for i in cast(Sequence[Any], delivery.get("gone") or ())]
+        away = {str(i) for i in cast(Sequence[Any], delivery.get("out_of_view") or ())}
+        if gone:
+            self.port.forget(gone)
+        self.in_view = (self.in_view | ids) - away - set(gone)
+
     def observe(self, delivery: Mapping[str, Any]) -> Clock:
-        """O que aconteceu desde a última entrega vira episódios; a foto não (é estado)."""
+        """O que aconteceu desde a última entrega vira episódios; a foto não (é estado). As coisas
+        vistas viram lugares lembrados (ADR-0067)."""
         clock = clock_of(delivery)
+        self._places(clock, delivery)
         reason = str(cast(Mapping[str, Any], delivery.get("decision") or {}).get("reason", ""))
         if reason in ("session_started", "possessed"):
             text = "assumi o corpo" if reason == "possessed" else "a sessão começou"
@@ -351,6 +428,10 @@ class Memory:
         if salient:
             lines.append("Momentos de hoje:")
             lines.extend(f"- {e.text}" for e in salient)
+        away = [p for p in self.port.places() if p.entity_id not in self.in_view]
+        if away:
+            lines.append("Fora de vista, pelo que você viu por último:")
+            lines.extend(_place_line(clock, p) for p in away[: s.block_places])
         if self.last_proposal:
             lines.append(f"Última ação: {self.last_proposal}")
         if len(lines) == 1:

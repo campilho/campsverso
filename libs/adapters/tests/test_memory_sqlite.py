@@ -3,7 +3,7 @@
 from pathlib import Path
 
 from campsverso_adapters import SqliteMemory
-from campsverso_ports import BeliefRevision, Episode, Note, Reflection
+from campsverso_ports import BeliefRevision, Episode, Note, Place, Reflection
 
 
 def episode(tick: int, text: str, importance: int, day: int = 1, kind: str = "x") -> Episode:
@@ -127,3 +127,23 @@ def test_a_memoria_sobrevive_a_um_reinicio(tmp_path: Path) -> None:
     assert [e.text for e in reopened.episodes(1)] == ["plantei"]
     changes = reopened.save_reflection(reflection(2, BeliefRevision("outra", 0.3, (), "new")))
     assert changes[0].belief.belief_id == "bel-0002"  # os ids continuam de onde pararam
+
+
+def test_lugares_lembrados_e_esquecidos_sobrevivem_a_um_reinicio(tmp_path: Path) -> None:
+    """ADR-0067: o último estado visto de cada coisa, o mais recente primeiro."""
+    path = tmp_path / "camps.sqlite"
+    memory = SqliteMemory(path)
+    memory.remember([Place("plot-001", "plot", 3, 4, (("crop", '"milho"'),), 100, 1)])
+    memory.remember([Place("kiosk", "kiosk", 30, 36, (), 200, 1)])
+    memory.remember([Place("plot-001", "plot", 3, 4, (("crop", "null"),), 300, 2)])
+    assert [(p.entity_id, p.tick) for p in memory.places()] == [("plot-001", 300), ("kiosk", 200)]
+    memory.forget(["kiosk"])
+    memory.close()
+    reopened = SqliteMemory(path)
+    (place,) = reopened.places()
+    assert (place.entity_id, place.x, place.y, place.attributes) == (
+        "plot-001",
+        3,
+        4,
+        (("crop", "null"),),
+    )

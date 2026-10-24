@@ -18,6 +18,7 @@ from campsverso_ports import (
     BeliefRevision,
     Episode,
     Note,
+    Place,
     Reflection,
     SourceKind,
 )
@@ -40,6 +41,10 @@ CREATE TABLE IF NOT EXISTS beliefs (
   confidence REAL NOT NULL, evidence TEXT NOT NULL, source_kind TEXT NOT NULL, source_by TEXT,
   reason TEXT, first_day INTEGER NOT NULL, last_day INTEGER NOT NULL,
   retracted INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS places (
+  entity_id TEXT PRIMARY KEY, kind TEXT NOT NULL, x INTEGER NOT NULL, y INTEGER NOT NULL,
+  attributes TEXT NOT NULL, tick INTEGER NOT NULL, day INTEGER NOT NULL, sim_time TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS reflections (
   day INTEGER PRIMARY KEY, tick INTEGER NOT NULL, summary TEXT NOT NULL, plan TEXT,
@@ -289,6 +294,50 @@ class SqliteMemory:
                 belief.belief_id,
             ),
         )
+
+    # ------------------------------------------------------------- lugares (ADR-0067)
+
+    def places(self) -> list[Place]:
+        rows = self._db.execute("SELECT * FROM places ORDER BY tick DESC, entity_id").fetchall()
+        return [
+            Place(
+                entity_id=str(r["entity_id"]),
+                kind=str(r["kind"]),
+                x=int(r["x"]),
+                y=int(r["y"]),
+                attributes=tuple(
+                    (str(k), str(v)) for k, v in cast(list[list[str]], json.loads(r["attributes"]))
+                ),
+                tick=int(r["tick"]),
+                day=int(r["day"]),
+                sim_time=str(r["sim_time"]),
+            )
+            for r in rows
+        ]
+
+    def remember(self, places: Sequence[Place]) -> None:
+        self._db.executemany(
+            "INSERT OR REPLACE INTO places (entity_id, kind, x, y, attributes, tick, day, sim_time)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                (
+                    p.entity_id,
+                    p.kind,
+                    p.x,
+                    p.y,
+                    json.dumps([list(pair) for pair in p.attributes], ensure_ascii=False),
+                    p.tick,
+                    p.day,
+                    p.sim_time,
+                )
+                for p in places
+            ],
+        )
+        self._db.commit()
+
+    def forget(self, entity_ids: Sequence[str]) -> None:
+        self._db.executemany("DELETE FROM places WHERE entity_id = ?", [(i,) for i in entity_ids])
+        self._db.commit()
 
     def close(self) -> None:
         self._db.close()

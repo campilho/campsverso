@@ -11,6 +11,7 @@ Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão 
   - `world.clock.phase_changed.v1` ganha `date` (a data do calendário do ano acelerado, à parte do `simtime`) e `season`;
   - o relógio da foto (`perception.delivered.v1`, `view.clock`), o `seen_clock` do delta e o `ObserverState` ganham `date` e `season`.
   - Só um mundo cujo cartucho declara um ano (`WorldBuilder.configure_year`) os publica; as fazendas 1 e 2 continuam sem.
+- **O que saiu da vista** (ADR-0067): `perception.updated.v1` ganha `out_of_view`, as entidades que saíram do raio e continuam no mundo; `gone` passa a ser só o que deixou de existir à vista do avatar.
 - **Os marcos** (ADR-0067): `common/defs.v1` `perception_config` ganha `landmarks`, os tipos de entidade que todo avatar enxerga além do raio (as construções fixas: a casa, o poço, o quiosque).
 - **A planta comida** (ADR-0067): `campsverso.farm.crop.eaten.v1` (`world`, produtor `kernel`, publicado pelo cartucho farm): a planta madura amanheceu comida (`plot_id`, `crop`, `day`, `by`). O efeito é visível; a regra que escolhe o canteiro (a R-002 da Morada do Sol), não.
 

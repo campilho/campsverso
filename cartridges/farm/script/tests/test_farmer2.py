@@ -250,3 +250,23 @@ def test_com_estacao_nao_planta_a_cultura_parada() -> None:
     summer = view(at=(1, 3), tools=can, mine=seeds, plots=[plot("plot-01", 2, 3)])
     summer["clock"]["season"] = "verao"
     assert SCRIPT.decide(summer)["params"]["crop"] == "milho"
+
+
+def test_sem_nada_para_fazer_explora_ate_a_fronteira_do_que_viu() -> None:
+    """ADR-0067: com a foto recortada, o script anda até um tile já visto que dá para o não visto.
+    Com a foto começando no canto (o mapa inteiro, como na Boa Vista), não explora."""
+    script = Farmer2Script.load()
+    can = [held("watering-can", "watering_can", charges=10, capacity=10)]  # sem a pá: não cava
+    cut = view(at=(5, 2), tools=can)
+    cut["map"] = {"origin": {"x": 2, "y": 1}, "rows": ROWS, "legend": LEGEND}
+    proposal = script.decide(cut)
+    assert proposal == {
+        "action": "move",
+        "params": {"target": {"x": 4, "y": 1}},  # o mais perto; empate pela linha e pela coluna
+        "intent": "explorar a fazenda",
+    }
+    tired = view(at=(5, 2), tools=can, energy=20)
+    tired["map"] = cut["map"]
+    assert script.decide(tired)["action"] == "wait"  # cansado: não explora
+    whole = Farmer2Script.load()
+    assert whole.decide(view(at=(5, 2), tools=can))["action"] == "wait"

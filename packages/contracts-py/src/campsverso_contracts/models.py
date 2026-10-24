@@ -1718,7 +1718,11 @@ class PerceptionUpdatedV1(BaseModel):
     """
     gone: list[EntityId] | None = None
     """
-    As entidades que deixaram de ser percebidas desde a entrega anterior.
+    As entidades que deixaram de existir à vista do avatar desde a entrega anterior (removidas do mundo). As que só saíram do raio vêm em `out_of_view` (ADR-0067).
+    """
+    out_of_view: list[EntityId] | None = None
+    """
+    As entidades que saíram do raio de percepção desde a entrega anterior e continuam no mundo: quem lembra delas sabe que estão lá (ADR-0067).
     """
     events: Annotated[list[SeenEvent], Field(max_length=1000)]
     """

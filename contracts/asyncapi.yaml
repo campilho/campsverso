@@ -3062,7 +3062,14 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/EntityId'
-          description: As entidades que deixaram de ser percebidas desde a entrega anterior.
+          description: As entidades que deixaram de existir à vista do avatar desde a entrega anterior
+            (removidas do mundo). As que só saíram do raio vêm em `out_of_view` (ADR-0067).
+        out_of_view:
+          type: array
+          items:
+            $ref: '#/components/schemas/EntityId'
+          description: 'As entidades que saíram do raio de percepção desde a entrega anterior e continuam
+            no mundo: quem lembra delas sabe que estão lá (ADR-0067).'
         events:
           type: array
           maxItems: 1000

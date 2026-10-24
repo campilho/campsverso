@@ -666,3 +666,51 @@ async def test_sem_memoria_nada_muda() -> None:
     ].startswith("A sessão começou.")
     await mind.after_proposal()
     assert mind.drain_events() == []
+
+
+# ------------------------------------------------------------- lugares (ADR-0067)
+
+
+def _plot(entity_id: str, x: int, y: int, **attributes: Any) -> dict[str, Any]:
+    return {
+        "entity_id": entity_id,
+        "kind": "plot",
+        "position": {"x": x, "y": y},
+        "attributes": {"crop": None, "stage": None, **attributes},
+    }
+
+
+def test_o_que_saiu_da_vista_fica_lembrado_e_o_que_sumiu_a_vista_se_esquece() -> None:
+    mem = memory()
+    first = snapshot()
+    first["view"]["entities"] = [_plot("plot-001", 3, 3, crop="milho", stage="broto")]
+    first["view"]["map"] = {"origin": {"x": 0, "y": 0}, "rows": ["....."] * 5, "legend": {}}
+    clock = mem.observe(with_clock(first, 120))
+    assert "Fora de vista" not in mem.block(clock)  # à vista: não precisa lembrar
+    away = delta(120, 180)
+    away["out_of_view"] = ["plot-001"]
+    clock = mem.observe(with_clock(away, 180))
+    block = mem.block(clock)
+    assert "Fora de vista, pelo que você viu por último:" in block
+    assert '- plot-001 (plot) em (3,3): crop "milho", stage "broto"; visto 08:00' in block
+    back = snapshot()  # de volta ao recorte, e o canteiro não está mais lá: voltou a ser grama
+    back["view"]["map"] = {"origin": {"x": 0, "y": 0}, "rows": ["....."] * 5, "legend": {}}
+    clock = mem.observe(with_clock(back, 300))
+    assert mem.port.places() == []
+    assert "Fora de vista" not in mem.block(clock)
+
+
+def test_o_que_deixou_de_existir_a_vista_se_esquece_e_fora_do_recorte_fica() -> None:
+    mem = memory()
+    first = snapshot()
+    first["view"]["entities"] = [_plot("plot-001", 3, 3), _plot("plot-002", 40, 30)]
+    mem.observe(with_clock(first, 120))
+    gone = delta(120, 180)
+    gone["gone"] = ["plot-001"]
+    mem.observe(with_clock(gone, 180))
+    assert [p.entity_id for p in mem.port.places()] == ["plot-002"]
+    far = snapshot()  # a foto de um recorte pequeno, longe do plot-002: ele continua lembrado
+    far["view"]["map"] = {"origin": {"x": 0, "y": 0}, "rows": ["....."] * 5, "legend": {}}
+    clock = mem.observe(with_clock(far, 240))
+    assert [p.entity_id for p in mem.port.places()] == ["plot-002"]
+    assert "- plot-002 (plot) em (40,30); visto 08:00" in mem.block(clock)

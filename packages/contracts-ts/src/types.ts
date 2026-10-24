@@ -1255,9 +1255,13 @@ export interface PerceptionUpdatedV1 {
    */
   entities?: SeenEntity[];
   /**
-   * As entidades que deixaram de ser percebidas desde a entrega anterior.
+   * As entidades que deixaram de existir à vista do avatar desde a entrega anterior (removidas do mundo). As que só saíram do raio vêm em `out_of_view` (ADR-0067).
    */
   gone?: EntityId[];
+  /**
+   * As entidades que saíram do raio de percepção desde a entrega anterior e continuam no mundo: quem lembra delas sabe que estão lá (ADR-0067).
+   */
+  out_of_view?: EntityId[];
   /**
    * O que aconteceu desde a entrega anterior, na ordem em que foi publicado: alimenta a memória e a narrativa (M11).
    *

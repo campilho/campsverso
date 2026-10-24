@@ -212,5 +212,5 @@ class PerceptionState(Projection):
             "clock": now["clock"],
             "self": now["self"],
             "events": list(self.pending.get(avatar_id, [])),
-            **diff_views(cast(Mapping[str, Any], last["view"]), now),
+            **diff_views(cast(Mapping[str, Any], last["view"]), now, self.entities.__contains__),
         }

@@ -3,7 +3,7 @@
 import json
 from typing import Any
 
-from campsverso_world_view import Projection, path_from
+from campsverso_world_view import Projection, diff_views, path_from
 
 SCRIPT = {"type": "script", "id": "script/farmer-v1"}
 HUMAN = {"type": "human", "id": "human/camps-browser"}
@@ -681,3 +681,16 @@ def test_entidade_removida_some_da_projecao() -> None:
         ev(3, 1, "world.entity.despawned.v1", entity_id="plot-001", kind="plot", reason="filled"),
     )
     assert "plot-001" not in p.entities
+
+
+def test_o_delta_separa_o_que_saiu_da_vista_do_que_deixou_de_existir() -> None:
+    """ADR-0067: `out_of_view` continua no mundo; `gone` não."""
+    base: dict[str, Any] = {"weather": {"condition": "sun"}, "containers": []}
+    before: dict[str, Any] = {
+        **base,
+        "entities": [{"entity_id": "plot-001"}, {"entity_id": "plot-002"}],
+    }
+    after: dict[str, Any] = {**base, "entities": []}
+    assert diff_views(before, after) == {"gone": ["plot-001", "plot-002"]}
+    split = diff_views(before, after, lambda entity_id: entity_id == "plot-002")
+    assert split == {"gone": ["plot-001"], "out_of_view": ["plot-002"]}

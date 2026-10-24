@@ -7,10 +7,12 @@ quando sobra) e não sabe nenhuma regra oculta: nunca o arado, nunca o adubo, re
 o alho.
 
 Na Morada do Sol (ADR-0067) ele vê só um raio em volta; por isso lembra o último estado de cada
-coisa que viu e vai até ela quando precisa (o quiosque, o poço, a caixa de vendas, os canteiros).
-O que estava à vista e sumiu, ele esquece. Com a estação na foto, segue o calendário de plantio do
-manual: não planta nem compra a cultura parada e conta a fraca como mais lenta. Com o mapa
-inteiro à vista (a Boa Vista), a lembrança nunca muda nada.
+coisa que viu e vai até ela quando precisa (os canteiros, o que não é construção fixa), e lembra
+o terreno que já viu. O que estava à vista e sumiu, ele esquece. Sem nada para fazer, de dia, com
+energia e sem fome, explora: anda até a fronteira do que conhece, até ter visto o mapa inteiro.
+Com a estação na foto, segue o calendário de plantio do manual: não planta nem compra a cultura
+parada e conta a fraca como mais lenta. Com o mapa inteiro à vista (a Boa Vista), a lembrança e a
+exploração nunca mudam nada.
 """
 
 from collections.abc import Mapping, Sequence
@@ -31,6 +33,12 @@ class Farmer2Script:
     config: Mapping[str, Any]
     # O último estado visto de cada coisa com posição, para quem vê só um raio (ADR-0067).
     memory: dict[str, Mapping[str, Any]] = field(default_factory=dict[str, Mapping[str, Any]])
+    # O terreno já visto: (x, y) -> (classe, passável); e o que se sabe do tamanho do mapa.
+    terrain: dict[tuple[int, int], tuple[str, bool]] = field(
+        default_factory=dict[tuple[int, int], tuple[str, bool]]
+    )
+    bounds: dict[str, int] = field(default_factory=dict[str, int])
+    unreachable: set[tuple[int, int]] = field(default_factory=set[tuple[int, int]])
 
     @classmethod
     def load(cls) -> Farmer2Script:
@@ -45,7 +53,81 @@ class Farmer2Script:
         return str(self.config["id"])
 
     def decide(self, view: View) -> Proposal:
-        return _Turn(self.config, view, self._remember(view)).decide()
+        tick = int(view["clock"]["tick"])
+        if tick < self.bounds.get("tick", 0):  # o relógio voltou: outra sessão, outra lembrança
+            self.memory.clear()
+            self.terrain.clear()
+            self.bounds.clear()
+            self.unreachable.clear()
+        self.bounds["tick"] = tick
+        self._learn_terrain(view)
+        turn = _Turn(self.config, view, self._remember(view), self)
+        proposal = turn.decide()
+        self.bounds["exploring"] = int(proposal.get("intent") == EXPLORE)
+        return proposal
+
+    def _learn_terrain(self, view: View) -> None:
+        """Guarda o recorte de terreno da foto e deduz as bordas do mapa. O recorte é centrado no
+        avatar e cortado nas bordas: o raio sai de um lado esquerdo ou de cima que não foi cortado,
+        e um lado direito ou de baixo mais curto que o raio é a borda. Sem raio conhecido (a foto
+        sempre começa no canto: o mapa inteiro), não há o que explorar. Uma exploração recusada
+        marca o alvo como sem caminho."""
+        terrain = cast(Mapping[str, Any] | None, view.get("map"))
+        if terrain is None:
+            return
+        if self.bounds.get("exploring") and _reason(view) == "action_rejected":
+            target = self.bounds.get("target_x"), self.bounds.get("target_y")
+            if target[0] is not None and target[1] is not None:
+                self.unreachable.add((target[0], target[1]))
+        origin = cast(Mapping[str, int], terrain.get("origin") or {"x": 0, "y": 0})
+        rows = cast(Sequence[str], terrain["rows"])
+        legend = cast(Mapping[str, Mapping[str, Any]], terrain["legend"])
+        x0, y0 = int(origin["x"]), int(origin["y"])
+        for dy, row in enumerate(rows):
+            for dx, code in enumerate(row):
+                entry = legend.get(code) or {}
+                passable = bool(
+                    cast(Mapping[str, Any], entry.get("properties") or {}).get("passable")
+                )
+                self.terrain[(x0 + dx, y0 + dy)] = (str(entry.get("kind")), passable)
+        width = max((len(r) for r in rows), default=0)
+        me = cast(Mapping[str, int], view["self"]["position"])
+        cx, cy = int(me["x"]), int(me["y"])
+        if x0 > 0:
+            self.bounds["reach"] = cx - x0
+        elif y0 > 0:
+            self.bounds["reach"] = cy - y0
+        reach = self.bounds.get("reach")
+        if reach is None:
+            return
+        if x0 + width - 1 < cx + reach:
+            self.bounds["width"] = x0 + width
+        if y0 + len(rows) - 1 < cy + reach:
+            self.bounds["height"] = y0 + len(rows)
+
+    def frontier(self, me: Mapping[str, int]) -> tuple[int, int] | None:
+        """O tile passável já visto mais perto, com um vizinho ainda não visto dentro do mapa."""
+        if "reach" not in self.bounds:
+            return None  # o mapa inteiro à vista
+        width, height = self.bounds.get("width"), self.bounds.get("height")
+
+        def unseen(x: int, y: int) -> bool:
+            inside = x >= 0 and y >= 0 and (width is None or x < width)
+            return inside and (height is None or y < height) and (x, y) not in self.terrain
+
+        here = (int(me["x"]), int(me["y"]))
+        best: tuple[int, tuple[int, int]] | None = None
+        for (x, y), (_, passable) in self.terrain.items():
+            if not passable or (x, y) in self.unreachable or (x, y) == here:
+                continue
+            if any(unseen(x + dx, y + dy) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                key = (max(abs(x - here[0]), abs(y - here[1])), (y, x))
+                if best is None or key < best:
+                    best = key
+        if best is None:
+            return None
+        y, x = best[1]
+        return x, y
 
     def _remember(self, view: View) -> list[Mapping[str, Any]]:
         """As coisas à vista e as lembradas fora da vista. Sem o terreno na foto, só as à vista."""
@@ -61,6 +143,13 @@ class Farmer2Script:
             if entity_id not in here and _inside(box, self.memory[entity_id]["position"]):
                 del self.memory[entity_id]  # estava à vista e sumiu: virou grama, foi comida...
         return [*current, *(e for i, e in sorted(self.memory.items()) if i not in here)]
+
+
+EXPLORE = "explorar a fazenda"
+
+
+def _reason(view: View) -> str:
+    return str(cast(Mapping[str, Any], view.get("decision") or {}).get("reason", ""))
 
 
 def _visible_box(view: View) -> tuple[int, int, int, int] | None:
@@ -96,10 +185,15 @@ def _tile_kind(view: View, x: int, y: int) -> str | None:
 
 class _Turn:
     def __init__(
-        self, config: Mapping[str, Any], view: View, entities: Sequence[Mapping[str, Any]]
+        self,
+        config: Mapping[str, Any],
+        view: View,
+        entities: Sequence[Mapping[str, Any]],
+        script: Farmer2Script | None = None,
     ) -> None:
         self.c = config
         self.view = view
+        self.script = script
         me = view["self"]
         self.me_id = str(me["entity_id"])
         self.pos: Mapping[str, int] = me["position"]
@@ -166,12 +260,50 @@ class _Turn:
             self.store,
             self.sell,
             self.buy,
+            self.explore,
         ):
             proposal = rule()
             if proposal is not None:
                 return proposal
         ticks = int(self.c["wait_ticks"])
         return {"action": "wait", "params": {"ticks": ticks}, "intent": "esperar"}
+
+    def explore(self) -> Proposal | None:
+        """Sem nada para fazer: de dia, com energia e sem fome, vai até a fronteira do que conhece
+        (ADR-0067). Com o mapa inteiro à vista, nunca há fronteira."""
+        rules = cast(Mapping[str, Any] | None, self.c.get("explore"))
+        if self.script is None or rules is None:
+            return None
+        daytime = minutes(str(rules["from"])) <= self.now < minutes(str(rules["until"]))
+        rested = self.energy >= float(rules["min_energy"])
+        if not daytime or not rested or self.hunger >= float(rules["max_hunger"]):
+            return None
+        target = self.script.frontier(self.pos)
+        if target is None:
+            return None
+        self.script.bounds["target_x"], self.script.bounds["target_y"] = target
+        return {
+            "action": "move",
+            "params": {"target": {"x": target[0], "y": target[1]}},
+            "intent": EXPLORE,
+        }
+
+    def food_crop(self) -> str:
+        """A cultura da base de comida: a de sempre, ou, com estação na foto, a primeira da lista
+        que cresce no ritmo cheio nesta estação (o rabanete fica fraco no verão)."""
+        usual = str(self.c["food_crop"])
+        if self.season is None:
+            return usual
+        options = [str(c) for c in cast(Sequence[Any], self.c.get("food_crops") or [usual])]
+        return next((c for c in options if self._pace(c) >= 1.0), usual)
+
+    def kind_at(self, x: int, y: int) -> str | None:
+        """A classe do tile: pela foto, ou pelo terreno lembrado."""
+        seen = _tile_kind(self.view, x, y)
+        if seen is not None or self.script is None:
+            return seen
+        remembered = self.script.terrain.get((x, y))
+        return None if remembered is None else remembered[0]
 
     def _night(self, since: str) -> bool:
         return self.now >= minutes(since) or self.now < minutes(self.c["sleep"]["wake_at"])
@@ -238,7 +370,7 @@ class _Turn:
             (x, y)
             for x in range(wx - radius, wx + radius + 1)
             for y in range(wy - radius, wy + radius + 1)
-            if (x, y) not in taken and _tile_kind(self.view, x, y) == GRASS
+            if (x, y) not in taken and self.kind_at(x, y) == GRASS
         ]
         if not candidates:
             if well["entity_id"] in self.in_view:
@@ -422,7 +554,7 @@ class _Turn:
             return None
         coins, reserve = self.mine("moeda"), int(self.c["coins_reserve"])
         crops = cast(Mapping[str, Mapping[str, Any]], self.c["crops"])
-        food = str(self.c["food_crop"])
+        food = self.food_crop()
         food_seed, food_price = str(crops[food]["seed"]), int(crops[food]["price"])
         all_plots = len(self.of_kind("plot"))
         big = cast(Mapping[str, Any], self.c["big_can"])
@@ -481,7 +613,7 @@ class _Turn:
         """Vai ao quiosque lembrado quando faltam sementes para os canteiros vazios."""
         crops = cast(Mapping[str, Mapping[str, Any]], self.c["crops"])
         held = sum(self.mine(str(c["seed"])) for c in crops.values())
-        food_price = int(crops[str(self.c["food_crop"])]["price"])
+        food_price = int(crops[self.food_crop()]["price"])
         if len(self.plots(None)) <= held or self.mine("moeda") < food_price + int(
             self.c["coins_reserve"]
         ):

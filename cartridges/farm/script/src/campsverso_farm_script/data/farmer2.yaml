@@ -87,4 +87,9 @@ calendar:
   alho: {primavera: parada, verao: parada, outono: boa, inverno: boa}
   morango: {primavera: fraca, verao: parada, outono: boa, inverno: boa}
 kiosk_hours: {opens: "08:00", closes: "18:00"}
+food_crops: [rabanete, couve, milho]  # a base de comida da estação: a primeira que cresce no ritmo cheio
 
+# Explorar (ADR-0067): sem nada para fazer, de dia, com energia e sem fome, anda até a fronteira do
+# que já viu. Só muda algo onde a foto é um recorte (a Morada do Sol); com o mapa inteiro, não há
+# fronteira.
+explore: {from: "08:00", until: "17:00", min_energy: 45, max_hunger: 55}

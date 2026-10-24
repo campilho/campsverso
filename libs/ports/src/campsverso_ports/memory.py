@@ -1,10 +1,11 @@
 """Porta de memória (ADR-0060): o que um agente registra, lembra e reflete.
 
-Três operações sobre quatro tipos: episódios (o que o agente viu e fez, uma linha por vez, com
+Três operações sobre cinco tipos: episódios (o que o agente viu e fez, uma linha por vez, com
 importância), anotações (o que ele mesmo quis guardar), crenças (o que ele acredita, com
-confiança, evidências e origem) e reflexões (o fechamento de um dia). A porta não conhece o modelo
-nem o cartucho: quem transforma entregas em episódios e quem chama o modelo para refletir é a
-mente; aqui fica só o que persiste.
+confiança, evidências e origem), reflexões (o fechamento de um dia) e lugares (o último estado
+visto de cada coisa com posição, para lembrar o que saiu do raio de percepção; ADR-0067). A
+porta não conhece o modelo nem o cartucho: quem transforma entregas em episódios e quem chama o
+modelo para refletir é a mente; aqui fica só o que persiste.
 """
 
 from collections.abc import Sequence
@@ -72,6 +73,20 @@ class Reflection:
 
 
 @dataclass(frozen=True, slots=True)
+class Place:
+    """O último estado visto de uma coisa com posição: onde estava e como estava (ADR-0067)."""
+
+    entity_id: str
+    kind: str
+    x: int
+    y: int
+    attributes: tuple[tuple[str, str], ...]  # os atributos visíveis, em texto, ordenados
+    tick: int  # quando foi vista pela última vez
+    day: int
+    sim_time: str = ""
+
+
+@dataclass(frozen=True, slots=True)
 class BeliefChange:
     """A diferença que uma reflexão fez numa crença; vira um evento `memory.belief.*`."""
 
@@ -103,6 +118,19 @@ class MemoryPort(Protocol):
 
     def salient(self, day: int, *, now_tick: int, limit: int) -> list[Episode]:
         """Os episódios marcantes de um dia: importância vezes recência (o memory stream)."""
+        ...
+
+    def places(self) -> list[Place]:
+        """Os lugares lembrados, do visto mais recente ao mais antigo; empate pelo id."""
+        ...
+
+    # ------------------------------------------------------------- lugares
+    def remember(self, places: Sequence[Place]) -> None:
+        """Guarda o estado visto agora, por cima do que havia de cada um."""
+        ...
+
+    def forget(self, entity_ids: Sequence[str]) -> None:
+        """Esquece o que deixou de existir, ou o que estava à vista e não estava mais lá."""
         ...
 
     # ------------------------------------------------------------- refletir
