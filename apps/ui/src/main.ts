@@ -43,6 +43,7 @@ const connection = new Connection(`${scheme}://${location.host}/ws?view=${view}`
 
 const map: WorldRenderer = debug ? new MapCanvas(el("canvas")) : new PhaserRenderer();
 map.follow?.(avatarId());
+map.setFog?.(view === "player" ? "always" : "toggle");
 // Para os testes no navegador (Playwright): onde fica, na tela, o centro de um tile.
 Object.assign(window, { campsverso: { tileCenter: (x: number, y: number) => map.clientOf?.(x, y) } });
 const hud = el("div", { className: "hud" });

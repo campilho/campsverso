@@ -13,6 +13,8 @@ export interface WorldRenderer {
   draw(state: ObserverState, tick: number): void;
   /** Quem a câmera segue, num mapa maior que a tela (ADR-0067); o canvas de depuração não segue. */
   follow?(entityId: string): void;
+  /** A névoa da visão do jogador (ADR-0068): sempre, ou com o botão do operador. */
+  setFog?(mode: "always" | "toggle"): void;
   /** O centro de um tile em coordenadas da tela, pela câmera; para os testes no navegador. */
   clientOf?(x: number, y: number): { x: number; y: number } | undefined;
   /** O tile sob um ponto da tela (coordenadas do evento do mouse), ou nada fora do mapa. */

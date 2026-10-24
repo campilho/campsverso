@@ -25,6 +25,7 @@ import {
   type Resolved,
 } from "../art/manifest.ts";
 import { el } from "../dom.ts";
+import { FogMemory, visionRadius } from "../fog.ts";
 import { motionClock, type Point } from "../motion.ts";
 import { progressOf } from "../progress.ts";
 import { tileAt, type TileGrid } from "../tiled.ts";
@@ -227,6 +228,11 @@ class WorldScene extends Phaser.Scene {
   private terrain!: Phaser.GameObjects.Graphics;
   private shade!: Phaser.GameObjects.Rectangle;
   private rain!: Phaser.GameObjects.Graphics;
+  private fogLayer!: Phaser.GameObjects.Graphics;
+  /** A névoa da visão do jogador (ADR-0068): ligada, a tela mostra o que o avatar vê. */
+  fogOn = false;
+  private fog = new FogMemory();
+  private fogDrawn = false;
   private visual: Phaser.Tilemaps.Tilemap | undefined;
   private ground: Phaser.Tilemaps.TilemapLayer | Phaser.Tilemaps.TilemapGPULayer | undefined;
   private tinted: string | undefined;
@@ -248,6 +254,7 @@ class WorldScene extends Phaser.Scene {
     // A noite e a chuva são da tela, não do mundo: não rolam com a câmera.
     this.shade = this.add.rectangle(0, 0, 1, 1, 0x0c123c, 0).setOrigin(0.5).setDepth(80).setScrollFactor(0);
     this.rain = this.add.graphics().setDepth(81).setScrollFactor(0);
+    this.fogLayer = this.add.graphics().setDepth(70); // a névoa rola com o mapa, abaixo da noite
     this.created = true;
     this.loadArt();
   }
@@ -288,8 +295,8 @@ class WorldScene extends Phaser.Scene {
       return;
     }
     const { state } = frame;
-    this.drawThings(state);
     this.drawAvatars(frame, time);
+    this.drawThings(this.fogged(state));
     this.aim();
     this.tint(state.season);
     // Com zoom, o que não rola encolhe em volta do centro: o retângulo cresce na mesma conta.
@@ -335,9 +342,67 @@ class WorldScene extends Phaser.Scene {
     }
   }
 
-  private drawThings(state: ObserverState): void {
+  /** As entidades como o jogador as vê, com a névoa ligada; senão, todas. Redesenha a névoa
+   * quando o recorte visível muda. */
+  private fogged(state: ObserverState): ObserverState["entities"] {
+    const id = this.follow;
+    const at = id === undefined ? undefined : this.seen.get(id);
+    const radius = id === undefined ? undefined : visionRadius(state, id);
+    if (!this.fogOn || id === undefined || at === undefined || radius === undefined) {
+      if (this.fogDrawn) {
+        this.fogLayer.clear();
+        this.fogDrawn = false;
+      }
+      return state.entities;
+    }
+    const tile = { x: Math.round(at.x), y: Math.round(at.y) };
+    if (this.fog.look(state, tile, radius) || !this.fogDrawn) {
+      this.drawFog();
+    }
+    return this.fog.entities(state, id);
+  }
+
+  /** A nuvem sobre o que nunca foi visto e o cinza sobre o que já foi, tile a tile. */
+  private drawFog(): void {
+    const grid = this.grid;
+    if (grid === undefined) {
+      return;
+    }
+    this.fogLayer.clear();
+    for (let y = 0; y < grid.height; y++) {
+      for (let x = 0; x < grid.width; x++) {
+        const sight = this.fog.sight(x, y);
+        if (sight === "visible") {
+          continue;
+        }
+        if (sight === "seen") {
+          this.fogLayer.fillStyle(0x6f7782, 0.5).fillRect(x * TILE, y * TILE, TILE, TILE);
+          continue;
+        }
+        // Nuvem: um véu claro e, a cada poucos tiles, um tufo grande que passa por cima dos
+        // vizinhos, em lugares que não se repetem em grade.
+        const hash = (x * 73856093) ^ (y * 19349663);
+        const puff = (Math.abs(hash) % 7) / 100;
+        this.fogLayer.fillStyle(0xdde2e8, 0.9 + puff).fillRect(x * TILE, y * TILE, TILE, TILE);
+        if (Math.abs(hash) % 3 === 0) {
+          const dx = (Math.abs(hash >> 3) % 24) - 4;
+          const dy = (Math.abs(hash >> 7) % 24) - 4;
+          this.fogLayer.fillStyle(0xf5f7f9, 0.22).fillCircle(x * TILE + dx, y * TILE + dy, 22);
+        }
+      }
+    }
+    this.fogDrawn = true;
+  }
+
+  /** Esquece o que foi visto: outra sessão, ou o operador desligou e ligou a névoa. */
+  resetFog(): void {
+    this.fog = new FogMemory();
+    this.fogDrawn = false;
+  }
+
+  private drawThings(entities: ObserverState["entities"]): void {
     const seen = new Set<string>();
-    for (const [id, entity] of Object.entries(state.entities)) {
+    for (const [id, entity] of Object.entries(entities)) {
       if (entity?.position === undefined || entity.kind === "avatar") {
         continue;
       }
@@ -481,14 +546,17 @@ export class PhaserRenderer implements WorldRenderer {
   private swallowClick = false;
   private readonly followButton: HTMLButtonElement;
   private readonly wholeButton: HTMLButtonElement;
+  private readonly fogButton: HTMLButtonElement;
+  private fogMode: "always" | "toggle" | "off" = "off";
 
   constructor() {
     this.followButton = el("button", { className: "map-button" }, "Seguir o Camps");
     this.wholeButton = el("button", { className: "map-button" }, "Mapa inteiro");
+    this.fogButton = el("button", { className: "map-button" }, "Ver como o Camps");
     this.element = el(
       "div",
       { className: "phaser" },
-      el("div", { className: "map-buttons" }, this.followButton, this.wholeButton),
+      el("div", { className: "map-buttons" }, this.fogButton, this.followButton, this.wholeButton),
     );
     this.listen();
     this.game = new Phaser.Game({
@@ -529,7 +597,16 @@ export class PhaserRenderer implements WorldRenderer {
     return this.grid.width > VIEW.width || this.grid.height > VIEW.height;
   }
 
+  /** A névoa (ADR-0068): sempre na visão do jogador; o operador liga e desliga. */
+  setFog(mode: "always" | "toggle"): void {
+    this.fogMode = mode;
+    this.scene.fogOn = mode === "always";
+    this.buttons();
+  }
+
   private buttons(): void {
+    this.fogButton.hidden = this.fogMode !== "toggle" || this.fogButton.hidden;
+    this.fogButton.textContent = this.scene.fogOn ? "Ver tudo" : "Ver como o Camps";
     const big = this.big();
     this.followButton.hidden = !big || (this.scene.following && !this.scene.whole);
     this.wholeButton.hidden = !big || this.scene.whole;
@@ -551,6 +628,13 @@ export class PhaserRenderer implements WorldRenderer {
       this.scene.whole = true;
       this.buttons();
     });
+    this.fogButton.addEventListener("click", (event) => {
+      stop(event);
+      this.scene.fogOn = !this.scene.fogOn;
+      this.scene.resetFog(); // o operador vê de novo pelos olhos do avatar, do zero
+      this.buttons();
+    });
+    this.fogButton.addEventListener("contextmenu", stop);
     this.followButton.addEventListener("contextmenu", stop);
     this.wholeButton.addEventListener("contextmenu", stop);
     this.element.addEventListener("pointerdown", (event) => {
@@ -605,6 +689,13 @@ export class PhaserRenderer implements WorldRenderer {
 
   draw(state: ObserverState, tick: number): void {
     this.scene.frame = { state, tick };
+    // Sem raio (as fazendas 1 e 2), não há névoa: o botão do operador não aparece.
+    const follow = this.scene.follow;
+    const radius = follow === undefined ? undefined : visionRadius(state, follow);
+    const toggle = this.fogMode === "toggle" && radius !== undefined;
+    if (this.fogButton.hidden === toggle) {
+      this.fogButton.hidden = !toggle;
+    }
   }
 
   clientOf(x: number, y: number): { x: number; y: number } | undefined {
