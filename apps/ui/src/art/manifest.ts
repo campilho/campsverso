@@ -96,6 +96,8 @@ export interface ArtManifest {
   /** O mapa visual (Tiled), desenhado no lugar das cores dos tiles. */
   readonly visual_map?: string;
   readonly avatars?: Readonly<Record<string, AvatarArt>>;
+  /** O ícone de cada item no inventário do HUD (ADR-0068): um quadro de uma folha. */
+  readonly items?: Readonly<Record<string, Look>>;
   /** Os créditos da arte desta camada (CSV), mostrados na tela. */
   readonly credits?: string;
 }

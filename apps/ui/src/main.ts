@@ -10,6 +10,7 @@ import "./style.css";
 
 import type { EnvelopeV1, ObserverState } from "@campsverso/contracts";
 
+import { ItemIcons } from "./art/icons.ts";
 import { loadArt, type LoadedArt } from "./art/load.ts";
 import { Connection, type View } from "./connection.ts";
 import { button, el } from "./dom.ts";
@@ -50,8 +51,6 @@ const connection = new Connection(`${scheme}://${location.host}/ws?view=${view}$
 const map: WorldRenderer = debug ? new MapCanvas(el("canvas")) : new PhaserRenderer();
 map.follow?.(avatarId());
 map.setFog?.(view === "player" ? "always" : "toggle");
-// Para os testes no navegador (Playwright): onde fica, na tela, o centro de um tile.
-Object.assign(window, { campsverso: { tileCenter: (x: number, y: number) => map.clientOf?.(x, y) } });
 const hud = el("div", { className: "hud" });
 const control = el("div", { className: "control" });
 const notice = el("div", { className: "notice" });
@@ -85,6 +84,13 @@ const menu = new ActionMenu(document.body);
 const help = new CommandsHelp(document.body);
 const queue = new ActionQueue();
 const portrait = new Portrait();
+const icons = new ItemIcons(() => {
+  lastClock = ""; // a folha dos ícones chegou: o HUD se redesenha no próximo quadro
+});
+// Para os testes no navegador (Playwright): onde fica, na tela, o centro de um tile; o ícone de um item.
+Object.assign(window, {
+  campsverso: { tileCenter: (x: number, y: number) => map.clientOf?.(x, y), itemIcon: (item: string) => icons.url(item) },
+});
 const credits = new CreditsDialog(document.body);
 let art: LoadedArt | undefined;
 creditsLink.addEventListener("click", (event) => {
@@ -427,7 +433,7 @@ function frame(now: number): void {
     if (panelDue || shownClock !== lastClock) {
       // O HUD acompanha cada minuto mostrado; o painel do operador, só as mudanças de estado.
       portrait.setBadge(progressOf(state, avatarId(), tick)?.label ?? "");
-      renderHud(hud, state, tick, avatarId(), store.status, portrait.element);
+      renderHud(hud, state, tick, avatarId(), store.status, portrait.element, (item) => icons.url(item));
       lastClock = shownClock;
     }
     if (panelDue) {
@@ -450,6 +456,7 @@ connection.open();
 void loadArt().then((loaded) => {
   art = loaded;
   map.setArt(loaded.manifest);
+  icons.setArt(loaded.manifest);
   portrait.setArt(loaded.manifest, avatarId());
 });
 requestAnimationFrame(frame);

@@ -25,7 +25,7 @@ import {
   type Resolved,
 } from "../art/manifest.ts";
 import { el } from "../dom.ts";
-import { FogMemory, visionRadius } from "../fog.ts";
+import { FogMemory, lightHeld, visionRadius } from "../fog.ts";
 import { motionClock, type Point } from "../motion.ts";
 import { progressOf } from "../progress.ts";
 import { tileAt, type TileGrid } from "../tiled.ts";
@@ -33,6 +33,7 @@ import { tileUnder, type WorldRenderer } from "./renderer.ts";
 
 const TILE = 32;
 const DROPS = 140;
+const LIGHT_RINGS = 20; // anéis da luz à noite, do mais largo ao mais estreito (sem degraus à vista)
 const FONT = "ui-monospace, monospace";
 const MAP_KEY = "visual-map";
 // A tela mostra no máximo 32 × 18 tiles; um mapa maior (a Morada do Sol, ADR-0067) rola com a câmera.
@@ -229,6 +230,7 @@ class WorldScene extends Phaser.Scene {
   private shade!: Phaser.GameObjects.Rectangle;
   private rain!: Phaser.GameObjects.Graphics;
   private fogLayer!: Phaser.GameObjects.Graphics;
+  private light!: Phaser.GameObjects.Graphics;
   /** A névoa da visão do jogador (ADR-0068): ligada, a tela mostra o que o avatar vê. */
   fogOn = false;
   private fog = new FogMemory();
@@ -255,6 +257,8 @@ class WorldScene extends Phaser.Scene {
     this.shade = this.add.rectangle(0, 0, 1, 1, 0x0c123c, 0).setOrigin(0.5).setDepth(80).setScrollFactor(0);
     this.rain = this.add.graphics().setDepth(81).setScrollFactor(0);
     this.fogLayer = this.add.graphics().setDepth(70); // a névoa rola com o mapa, abaixo da noite
+    // A luz em volta do avatar à noite (ADR-0068): por cima da sombra, somando cor, e rola com o mapa.
+    this.light = this.add.graphics().setDepth(80.5).setBlendMode(Phaser.BlendModes.ADD);
     this.created = true;
     this.loadArt();
   }
@@ -305,7 +309,30 @@ class WorldScene extends Phaser.Scene {
       .setPosition(width / 2, height / 2)
       .setSize(width / zoom, height / zoom)
       .setFillStyle(0x0c123c, shadeOf(this.art, state.phase));
+    this.drawLight(state);
     this.drawRain(weatherEffect(this.art, state.weather[String(state.day)]) === "rain", time, width, height);
+  }
+
+  /** A luz em volta do avatar seguido, quando escurece (ADR-0068): o raio da hora da percepção,
+   * fria sem luz nenhuma e quente com a lanterna. Só num mundo cuja percepção tem raio. */
+  private drawLight(state: ObserverState): void {
+    this.light.clear();
+    const id = this.follow;
+    const at = id === undefined ? undefined : this.seen.get(id);
+    const radius = id === undefined ? undefined : visionRadius(state, id);
+    const shade = shadeOf(this.art, state.phase);
+    if (at === undefined || radius === undefined || shade === 0) {
+      return;
+    }
+    const lantern = lightHeld(state, id ?? "");
+    const color = lantern ? 0xffb347 : 0x9fb4ff;
+    const step = (lantern ? 0.065 : 0.025) * shade; // mais escuro, mais contraste
+    const outer = (radius + 0.5) * TILE;
+    const cx = at.x * TILE + TILE / 2;
+    const cy = at.y * TILE + TILE / 2;
+    for (let ring = 0; ring < LIGHT_RINGS; ring++) {
+      this.light.fillStyle(color, step).fillCircle(cx, cy, outer * (1 - ring / LIGHT_RINGS));
+    }
   }
 
   /** O mapa visual do cartucho, quando há; senão, uma cor por tipo de tile do mapa lógico. */

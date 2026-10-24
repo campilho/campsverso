@@ -20,6 +20,12 @@ export function visionRadius(state: ObserverState, avatarId: string): number | u
   return Math.max(radius, ...lights);
 }
 
+/** O avatar carrega uma luz (a lanterna): a tela desenha a luz quente em volta dele à noite. */
+export function lightHeld(state: ObserverState, avatarId: string): boolean {
+  const held = state.containers[avatarId] ?? {};
+  return Object.keys(state.session?.perception?.lights ?? {}).some((item) => (held[item] ?? 0) > 0);
+}
+
 export type Sight = "visible" | "seen" | "unseen";
 
 export class FogMemory {

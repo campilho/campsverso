@@ -144,8 +144,16 @@ canvas {
   grid-area: portrait;
 }
 
-.hud-clock {
+/* Com a data e a estação (ADR-0067), a linha do relógio pode não caber: quebra em vez de um
+   texto passar por cima do outro. */
+.hud > .hud-clock {
   grid-area: clock;
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+
+.hud-clock > * {
+  flex-shrink: 0;
 }
 
 .hud-avatar {
@@ -234,6 +242,15 @@ canvas {
   border-radius: 3px;
   font-family: ui-monospace, monospace;
   font-size: 12px;
+}
+
+/* O ícone do item (ADR-0068): o quadro LPC, sem suavizar, na altura do texto. */
+.item-icon {
+  width: 20px;
+  height: 20px;
+  margin: -4px 4px -5px -4px;
+  vertical-align: middle;
+  image-rendering: pixelated;
 }
 
 .hud label,

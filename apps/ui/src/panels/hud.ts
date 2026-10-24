@@ -36,6 +36,21 @@ export function doingText(action: string, intent?: string): string {
   return intent === undefined ? `fazendo: ${action}` : `fazendo: ${action} · ${intent}`;
 }
 
+/** O ícone de um item do inventário (um endereço de imagem), ou nada: o item fica só com o texto. */
+export type IconOf = (item: string) => string | undefined;
+
+function itemChip(item: string, qty: number, icon?: IconOf): HTMLElement {
+  const url = icon?.(item);
+  const chip = el("span", { className: "item" }, `${item} ×${String(qty)}`);
+  if (url !== undefined) {
+    const image = el("img", { className: "item-icon" });
+    image.src = url;
+    image.alt = "";
+    chip.prepend(image);
+  }
+  return chip;
+}
+
 export function renderHud(
   root: HTMLElement,
   state: ObserverState,
@@ -43,6 +58,7 @@ export function renderHud(
   avatarId: string,
   status: Status,
   portrait?: HTMLElement,
+  icon?: IconOf,
 ): void {
   const avatar = state.entities[avatarId];
   const controller = state.controllers[avatarId];
@@ -92,7 +108,7 @@ export function renderHud(
       "div",
       { className: "hud-items" },
       el("label", {}, "inventário"),
-      ...items.map(([item, qty]) => el("span", { className: "item" }, `${item} ×${String(qty)}`)),
+      ...items.map(([item, qty]) => itemChip(item, qty ?? 0, icon)),
       ...held.map((text) => el("span", { className: "item held" }, text)),
     ),
   );

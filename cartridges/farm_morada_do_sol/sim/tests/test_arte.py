@@ -57,6 +57,16 @@ def test_o_espantalho_tem_desenho() -> None:
     assert 0 <= int(scarecrow["frame"]) < _frames(LAYER, art, str(scarecrow["sheet"]))
 
 
+def test_a_lanterna_tem_icone_no_inventario() -> None:
+    """A lanterna (ADR-0068) aparece no inventário: um item do cenário com um quadro da folha."""
+    data = yaml.safe_load((DATA / "morada.yaml").read_text(encoding="utf-8"))
+    assert "lanterna" in data["items"]
+    art = _art(LAYER)
+    icon = art["items"]["lanterna"]
+    assert _png_size(LAYER / str(art["sheets"][icon["sheet"]]["image"])) == (32, 32)
+    assert 0 <= int(icon["frame"]) < _frames(LAYER, art, str(icon["sheet"]))
+
+
 def test_as_arvores_trocam_com_a_estacao() -> None:
     art = _art(LAYER)
     sizes = {_png_size(LAYER / str(art["sheets"][name]["image"])) for name in art["sheets"]}
