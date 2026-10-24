@@ -18,6 +18,7 @@ from campsverso_cartridge_api import (
     WorldView,
 )
 from campsverso_farm_sim.config import ENERGY, HUNGER, optional, section, ticks_per_hour
+from campsverso_farm_sim.market import buy_from, memory_market, sell_to
 
 EMPTY_PLOT: dict[str, Any] = {"crop": None, "stage": None, "watered_today": False}
 EMPTY_HIDDEN: dict[str, Any] = {"growth_points": 0.0, "planted_day": None, "dry_days": 0}
@@ -366,6 +367,14 @@ class MoveItems(FarmAction):
         ops.transfer_item(item, qty, source, target, self.reason)
         if self.reason == "sell":  # quem recebe o pagamento às 06:00 (ADR-0039)
             hidden: dict[str, Any] = {"payee": ctx.avatar_id}
+            if memory_market(ctx.view) is not None:  # a caixa que lembra (ADR-0069)
+                trade = sell_to(ctx.view, container, item, qty)
+                owed = float(container.hidden.get(f"value_{item}") or 0.0) + trade.total
+                hidden[f"factor_{item}"] = trade.factor
+                hidden[f"value_{item}"] = round(owed, 2)
+                visible = {f"preco_{item}": trade.next_price}
+                ops.set_attributes(container.entity_id, visible=visible, hidden=hidden)
+                return
             market = optional(ctx.view, "market")
             if market is not None:  # o preço do dia cai a cada `step` unidades (ADR-0062)
                 base = int(section(ctx.view, "items", item)["sale_price"])
@@ -437,7 +446,7 @@ class Buy(FarmAction):
             stock = str(kiosk.attributes.get("estoque_hoje") or "")
             if item not in stock.split(", "):
                 return Rejection("out_of_stock")
-        if coins < int(info["price"]) * qty:
+        if coins < _cost(ctx.view, kiosk, item, qty):
             return Rejection("insufficient_funds")
         return None if ctx.view.fits(item, qty, ctx.avatar_id) else Rejection("too_heavy")
 
@@ -450,9 +459,32 @@ class Buy(FarmAction):
             entity_id = f"{name.replace('_', '-')}-{number}"  # ids não levam sublinhado
             ops.spawn(SpawnDef(entity_id, name, container_id=ctx.avatar_id))
             return
-        price = int(section(ctx.view, "items", name)["price"])
-        ops.consume_item("moeda", price * qty, ctx.avatar_id, "buy_payment")
+        kiosk = find(ctx.view, "kiosk", ctx.params.get("target"))
+        assert not isinstance(kiosk, Rejection)
+        cost = _cost(ctx.view, kiosk, name, qty)
+        if _rises(ctx.view, name):  # a semente que sobe com a compra (ADR-0069)
+            trade = buy_from(ctx.view, kiosk, name, qty)
+            ops.set_attributes(
+                kiosk.entity_id,
+                visible={f"preco_{name}": trade.next_price},
+                hidden={f"factor_{name}": trade.factor},
+            )
+        ops.consume_item("moeda", cost, ctx.avatar_id, "buy_payment")
         ops.create_item(name, qty, ctx.avatar_id, "buy")
+
+
+def _rises(view: WorldView, item: str) -> bool:
+    """A semente, num cenário com o mercado que lembra, sobe de preço com a compra."""
+    info = item_info(view, item)
+    seed = info is not None and info.get("category") == "semente"
+    return seed and memory_market(view) is not None
+
+
+def _cost(view: WorldView, kiosk: EntityView, item: str, qty: int) -> int:
+    """O que `qty` unidades custam agora: a tabela, ou o preço que sobe a cada unidade."""
+    if _rises(view, item):
+        return buy_from(view, kiosk, item, qty).total
+    return int(section(view, "items", item)["price"]) * qty
 
 
 def _bed(ctx: ActionContext) -> EntityView | Rejection | None:

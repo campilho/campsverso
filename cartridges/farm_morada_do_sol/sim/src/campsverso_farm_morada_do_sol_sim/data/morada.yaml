@@ -17,6 +17,14 @@ perception:
   by_phase: {amanhecer: 12, meio_dia: 12, entardecer: 7, noite: 5, madrugada: 5}
   lights: {lanterna: 10}
 
+market:  # o mercado que lembra (ADR-0069), sobre a libs/economy; a Boa Vista volta à tabela de manhã
+  # Vender: cada unidade derruba 2% da referência, até 40%; de manhã volta um terço do caminho.
+  sell: {step: 0.02, floor: 0.4, recovery: 0.3333}
+  # Comprar: cada semente sobe 3% no dia, até o dobro; de manhã volta à tabela.
+  buy: {step: 0.03, ceiling: 2.0, recovery: 1.0}
+  season: {boa: 1.0, fraca: 1.25, parada: 1.6}  # o que está fora da estação é raro e vale mais
+  drift: {step: 0.04, limit: 0.15}  # a oscilação do dia, pelo RNG `market`
+
 kinds:
   scarecrow: {blocking: true}
 

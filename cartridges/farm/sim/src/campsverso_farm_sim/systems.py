@@ -23,6 +23,7 @@ from campsverso_farm_sim.config import (
     season_level,
     section,
 )
+from campsverso_farm_sim.market import memory_market, turnover
 
 
 @dataclass(frozen=True)
@@ -316,8 +317,12 @@ def revert_plots(ctx: SystemContext, ops: WorldOps) -> None:
 
 
 def market_reset(ctx: SystemContext, ops: WorldOps) -> None:
-    """Na virada do dia, os preços voltam à tabela e a contagem do dia zera (ADR-0062)."""
+    """Na virada do dia, os preços voltam à tabela e a contagem do dia zera (ADR-0062). Com o
+    mercado que lembra, o preço só recupera parte do caminho (ADR-0069)."""
     view = ctx.view
+    if memory_market(view) is not None:
+        turnover(view, ops)
+        return
     items = section(view, "items")
     for box in view.entities("sell_box"):
         visible: dict[str, Any] = {}
