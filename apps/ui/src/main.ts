@@ -322,6 +322,10 @@ map.element.addEventListener("contextmenu", (event) => {
 
 /** O menu do clique direito: o do Camps, o da coisa no tile, o do terreno vazio, ou só andar. */
 function openMenu(state: ObserverState, tile: Tile, pageX: number, pageY: number, queued: boolean): void {
+  if (map.sight?.(tile.x, tile.y) === "unseen") {
+    act(walkStep(state, tile), queued); // sob a nuvem não há menu: o jogador não sabe o que tem lá
+    return;
+  }
   const me = avatarTile(state);
   const clicked = me?.x === tile.x && me.y === tile.y ? "self" : thingAt(state, tile.x, tile.y);
   const choose = (entry: MenuEntry, chosen: Record<string, string | number>): void => {
