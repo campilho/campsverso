@@ -8,7 +8,7 @@
  "tilewidth": 32,
  "tileheight": 32,
  "nextlayerid": 3,
- "nextobjectid": 12,
+ "nextobjectid": 13,
  "tilesets": [
   {
    "firstgid": 1,
@@ -2886,6 +2886,24 @@
        "name": "display_name",
        "type": "string",
        "value": "Barraca da feira"
+      }
+     ]
+    },
+    {
+     "id": 12,
+     "name": "composteira",
+     "type": "composteira",
+     "x": 64,
+     "y": 544,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Composteira"
       }
      ]
     },

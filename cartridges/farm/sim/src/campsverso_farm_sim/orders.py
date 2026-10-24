@@ -112,7 +112,7 @@ def _candidates(view: WorldView) -> list[tuple[str, float]]:
             continue
         if category == "colheita" and season_level(view, item, season) == "parada":
             continue
-        if box is not None and memory_market(view) is not None and category == "colheita":
+        if box is not None and memory_market(view) is not None:
             found.append((item, crop_reference(view, box, item)))
         else:
             found.append((item, float(info["sale_price"])))

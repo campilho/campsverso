@@ -191,6 +191,30 @@ tools:
     params:
       - {name: target, type: string, description: "o id do quadro de encomendas"}
       - {name: order, type: string, description: "o id do pedido"}
+  - name: process
+    strict: false  # a gramática das estritas tem teto; esta é simples
+    description: >-
+      Carregar o tacho ao seu lado com os ingredientes de uma receita, do seu inventário: geleia
+      (3 morangos, 12 horas), molho_de_tomate (3 tomates, 8 horas) ou farinha (4 mandiocas, 8
+      horas). O tacho trabalha sozinho, e o produto fica nele até você pegar (withdraw, com o tacho
+      como alvo). Uma receita por vez em cada tacho.
+    duration: 5
+    energy: 1
+    params:
+      - {name: target, type: string, description: "o id do tacho"}
+      - {name: recipe, type: string, description: "geleia, molho_de_tomate ou farinha"}
+  - name: compost
+    strict: false  # a gramática das estritas tem teto; esta é simples
+    action: process
+    description: >-
+      Pôr 3 unidades de uma colheita, ou de restos de planta (resto), na composteira ao seu lado:
+      em 3 dias viram 1 adubo, que fica nela até você pegar (withdraw, com a composteira como alvo).
+    duration: 5
+    energy: 1
+    params:
+      - {name: target, type: string, description: "o id da composteira"}
+      - {name: item, type: string, description: "a colheita, ou resto, que vai para a composteira"}
+    shape: {target: $target, recipe: adubo, item: $item}
   - name: place
     strict: false  # a gramática das estritas tem teto; esta é simples
     description: >-

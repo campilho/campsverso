@@ -108,7 +108,8 @@ def test_toda_afordancia_tem_ferramenta_com_os_mesmos_parametros() -> None:
             wanted |= {"x", "y"}
         elif affordance.get("target", True) and affordance.get("kinds") != ["self"]:
             wanted.add("target")
-        assert any(wanted <= {p.name for p in t.params} for t in candidates), (
+        # O que o molde da ferramenta fixa também conta (a composteira só faz adubo).
+        assert any(wanted <= {p.name for p in t.params} | set(t.shape or {}) for t in candidates), (
             f"{action}: nenhuma ferramenta com {sorted(wanted)}"
         )
 
@@ -122,7 +123,7 @@ def test_o_catalogo_tem_o_espantalho_e_as_culturas_novas() -> None:
     plant = next(t for t in mind.tools if t.name == "plant")
     for crop in ("milho", "melancia", "mandioca", "couve"):
         assert crop in plant.description, crop
-    assert sum(not t.strict for t in mind.tools) == 12  # as simples, para caber na gramática
+    assert sum(not t.strict for t in mind.tools) == 14  # as simples, para caber na gramática
 
 
 def test_duracao_e_energia_vem_do_cartucho() -> None:

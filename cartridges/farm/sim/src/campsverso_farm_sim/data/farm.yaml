@@ -189,6 +189,8 @@ labels:
   - {event: campsverso.action.accepted.v1, where: {action: accept_order}, text: "{avatar_id} vai aceitar o {params.order}"}
   - {event: campsverso.action.accepted.v1, where: {action: deliver_order}, text: "{avatar_id} vai entregar o {params.order} · {intent}"}
   - {event: campsverso.action.accepted.v1, where: {action: deliver_order}, text: "{avatar_id} vai entregar o {params.order}"}
+  - {event: campsverso.action.accepted.v1, where: {action: process}, text: "{avatar_id} vai carregar o {params.target} para {params.recipe} · {intent}"}
+  - {event: campsverso.action.accepted.v1, where: {action: process}, text: "{avatar_id} vai carregar o {params.target} para {params.recipe}"}
   - {event: campsverso.action.accepted.v1, text: "{avatar_id} começa: {action} · {intent}"}
   - {event: campsverso.action.accepted.v1, text: "{avatar_id} começa: {action}"}
   # o que o avatar fez
@@ -220,6 +222,7 @@ labels:
   - {event: campsverso.action.completed.v1, where: {action: place}, text: "{avatar_id} fincou {params.item} onde estava"}
   - {event: campsverso.action.completed.v1, where: {action: accept_order}, text: "{avatar_id} aceitou o {params.order}"}
   - {event: campsverso.action.completed.v1, where: {action: deliver_order}, text: "{avatar_id} entregou o {params.order}"}
+  - {event: campsverso.action.completed.v1, where: {action: process}, text: "{avatar_id} carregou o {params.target}: {params.recipe} a caminho"}
   - {event: campsverso.action.completed.v1, text: "{avatar_id} terminou: {action}"}
   - {event: campsverso.action.rejected.v1, text: "recusado: {action} de {avatar_id} ({reason}: {detail})"}
   - {event: campsverso.action.rejected.v1, text: "recusado: {action} de {avatar_id} ({reason})"}
@@ -233,6 +236,8 @@ labels:
   - {event: campsverso.world.item.created.v1, where: {reason: cook}, text: "{container_id} ficou com {qty} {item} do fogão"}
   - {event: campsverso.world.item.created.v1, where: {reason: fair_payment}, text: "{container_id} recebeu {qty} moedas na feira"}
   - {event: campsverso.world.item.created.v1, where: {reason: order_payment}, text: "{container_id} recebeu {qty} moedas de uma encomenda"}
+  - {event: campsverso.world.item.created.v1, where: {reason: process}, text: "o {container_id} terminou: {qty} {item} pronto"}
+  - {event: campsverso.world.item.created.v1, where: {reason: clear}, text: "{container_id} juntou {qty} {item} da planta murcha"}
   - {event: campsverso.world.item.created.v1, text: "{container_id} ganhou {qty} {item} ({reason})"}
   - {event: campsverso.world.item.consumed.v1, where: {reason: eat}, text: "{container_id} comeu {qty} {item}"}
   - {event: campsverso.world.item.consumed.v1, where: {reason: plant}, text: "{container_id} gastou {qty} {item} no plantio"}
@@ -241,6 +246,7 @@ labels:
   - {event: campsverso.world.item.consumed.v1, where: {reason: spoiled}, text: "{qty} {item} de {container_id} estragou"}
   - {event: campsverso.world.item.consumed.v1, where: {reason: fair_sale}, text: "{container_id} vendeu {qty} {item} na feira"}
   - {event: campsverso.world.item.consumed.v1, where: {reason: order}, text: "{container_id} entregou {qty} {item} numa encomenda"}
+  - {event: campsverso.world.item.consumed.v1, where: {reason: process}, text: "{container_id} pôs {qty} {item} numa máquina"}
   - {event: campsverso.world.item.consumed.v1, text: "{container_id} gastou {qty} {item} ({reason})"}
   - {event: campsverso.world.item.transferred.v1, where: {reason: sell}, text: "{qty} {item} foi para a caixa de vendas"}
   - {event: campsverso.world.item.transferred.v1, text: "{qty} {item} passou de {from_container} para {to_container}"}

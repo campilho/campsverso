@@ -31,6 +31,15 @@ def rules(side: Mapping[str, Any]) -> MarketRules:
     )
 
 
+def sold_items(view: WorldView) -> list[str]:
+    """O que a caixa compra, em ordem: as colheitas e o que o comprador do cenário aceitar a mais
+    (os produtos do tacho)."""
+    buyer = optional(view, "buyer")
+    wanted = set(cast(list[str], (buyer or {}).get("categories") or ["colheita"]))
+    items = section(view, "items")
+    return sorted(i for i, info in items.items() if info.get("category") in wanted)
+
+
 def crop_reference(view: WorldView, box: EntityView, item: str) -> float:
     """A referência de hoje de uma colheita: a tabela, a estação (o que está fora dela é raro), a
     oscilação do dia e o choque do clima, se ainda vale."""
@@ -70,7 +79,7 @@ def turnover(view: WorldView, ops: WorldOps) -> None:
     sell_rules, buy_rules = rules(market["sell"]), rules(market["buy"])
     moves = cast(Mapping[str, Any], market.get("drift") or {"step": 0.0, "limit": 0.0})
     items = section(view, "items")
-    crops = sorted(i for i, info in items.items() if info.get("category") == "colheita")
+    crops = sold_items(view)
     rng = view.rng("market")
     for box in view.entities("sell_box"):
         if int(box.hidden.get("market_day") or 0) == view.day:

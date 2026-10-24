@@ -26,6 +26,7 @@ from campsverso_farm_sim.config import (
 from campsverso_farm_sim.fair import fair_hours
 from campsverso_farm_sim.market import memory_market, turnover
 from campsverso_farm_sim.orders import orders_daily
+from campsverso_farm_sim.processing import HOURS, machines_hourly
 
 
 @dataclass(frozen=True)
@@ -380,6 +381,10 @@ def build_extension_systems(data: Mapping[str, Any]) -> tuple[FarmSystem, ...]:
                 (OnSessionStart(), DailyAt((day_start,))),
                 orders_daily,
             )
+        )
+    if "processing" in data:
+        systems.append(
+            FarmSystem("machines_hourly", "scheduled", 18, (DailyAt(HOURS),), machines_hourly)
         )
     if "fair" in data:
         fair = data["fair"]

@@ -29,6 +29,7 @@ from campsverso_farm_sim.orders import (
     reputation_rules,
     taken_by,
 )
+from campsverso_farm_sim.processing import busy, ingredients, machine, recipe, start
 
 EMPTY_PLOT: dict[str, Any] = {"crop": None, "stage": None, "watered_today": False}
 EMPTY_HIDDEN: dict[str, Any] = {"growth_points": 0.0, "planted_day": None, "dry_days": 0}
@@ -294,6 +295,9 @@ class Clear(FarmAction):
     def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
         target = str(ctx.params["target"])
         ops.set_attributes(target, visible=EMPTY_PLOT, hidden=empty_hidden(ctx.view, target))
+        rest = optional(ctx.view, "clear_yields")  # os restos da planta murcha (ADR-0069)
+        if rest is not None and ctx.view.fits(str(rest["item"]), int(rest["qty"]), ctx.avatar_id):
+            ops.create_item(str(rest["item"]), int(rest["qty"]), ctx.avatar_id, "clear")
 
 
 @dataclass(frozen=True)
@@ -331,6 +335,11 @@ class MoveItems(FarmAction):
     reason: str = ""
     only_category: str | None = None
 
+    def categories(self, ctx: ActionContext) -> tuple[str, ...] | None:
+        """As categorias de item que esta ação move; nada é qualquer uma."""
+        del ctx
+        return None if self.only_category is None else (self.only_category,)
+
     def _container(self, ctx: ActionContext) -> EntityView | Rejection:
         container = find(ctx.view, self.kind, ctx.params.get("target"))
         if isinstance(container, Rejection):
@@ -358,8 +367,9 @@ class MoveItems(FarmAction):
         info = item_info(ctx.view, ctx.params.get("item"))
         if info is None:
             return Rejection("invalid_params", "item desconhecido")
-        if self.only_category is not None and info.get("category") != self.only_category:
-            return Rejection("invalid_params", f"só {self.only_category}")
+        allowed = self.categories(ctx)
+        if allowed is not None and info.get("category") not in allowed:
+            return Rejection("invalid_params", f"só {', '.join(allowed)}")
         item = str(ctx.params["item"])
         if ctx.view.items(source).get(item, 0) < qty:
             return Rejection("missing_item")
@@ -729,9 +739,71 @@ class Place(FarmAction):
 
 
 @dataclass(frozen=True)
+class Withdraw(MoveItems):
+    """Pegar do baú e, num cenário com máquinas, o produto que espera numa delas (ADR-0069)."""
+
+    def _container(self, ctx: ActionContext) -> EntityView | Rejection:
+        found = machine(ctx.view, ctx.params.get("target"))
+        if found is None:
+            return super()._container(ctx)
+        return found if adjacent(ctx.view, ctx.avatar_id, found) else Rejection("not_adjacent")
+
+
+@dataclass(frozen=True)
+class Process(FarmAction):
+    """Carrega uma máquina com os ingredientes de uma receita: ela trabalha sozinha e o produto
+    espera dentro dela (ADR-0069)."""
+
+    name: str = "process"
+
+    def _found(
+        self, ctx: ActionContext
+    ) -> tuple[EntityView, str, dict[str, int], Mapping[str, Any]] | Rejection:
+        entity = machine(ctx.view, ctx.params.get("target"))
+        if entity is None:
+            return Rejection("invalid_params", "o alvo não é uma máquina")
+        if not adjacent(ctx.view, ctx.avatar_id, entity):
+            return Rejection("not_adjacent")
+        name = ctx.params.get("recipe")
+        chosen = recipe(ctx.view, entity.kind, name)
+        if chosen is None:
+            return Rejection("invalid_params", "receita desconhecida nesta máquina")
+        needs = ingredients(ctx.view, chosen, ctx.params.get("item"))
+        if isinstance(needs, Rejection):
+            return needs
+        return entity, str(name), needs, chosen
+
+    def check(self, ctx: ActionContext) -> Rejection | None:
+        found = self._found(ctx)
+        if isinstance(found, Rejection):
+            return found
+        entity, _, needs, _ = found
+        if busy(entity):
+            return Rejection("machine_busy")
+        mine = ctx.view.items(ctx.avatar_id)
+        if any(mine.get(item, 0) < qty for item, qty in needs.items()):
+            return Rejection("missing_ingredients")
+        return None
+
+    def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
+        found = self._found(ctx)
+        assert not isinstance(found, Rejection)
+        entity, name, needs, chosen = found
+        for item, qty in sorted(needs.items()):
+            ops.consume_item(item, qty, ctx.avatar_id, "process")
+        start(ctx.view, ops, entity, name, float(chosen["hours"]))
+
+
+@dataclass(frozen=True)
 class Sell(MoveItems):
     """Vender: na caixa de vendas, que o comprador paga de manhã, ou, num cenário com feira, na
     barraca aberta, que paga na hora (ADR-0069)."""
+
+    def categories(self, ctx: ActionContext) -> tuple[str, ...] | None:
+        """O que o comprador da caixa leva: as colheitas e, num cenário com o tacho, os produtos."""
+        buyer = optional(ctx.view, "buyer")
+        wanted = None if buyer is None else buyer.get("categories")
+        return super().categories(ctx) if wanted is None else tuple(cast(list[str], wanted))
 
     def check(self, ctx: ActionContext) -> Rejection | None:
         stall = fair_stall(ctx.view, ctx.params.get("target"))
@@ -839,6 +911,7 @@ EXTRA_ACTIONS: tuple[FarmAction, ...] = (  # só com dados do cenário
     Place(),
     AcceptOrder(),
     DeliverOrder(),
+    Process(),
 )
 
 ALL_ACTIONS: tuple[FarmAction, ...] = (
@@ -849,7 +922,7 @@ ALL_ACTIONS: tuple[FarmAction, ...] = (
     Clear(),
     Eat(),
     MoveItems(name="deposit", kind="chest", to_container=True, reason="deposit"),
-    MoveItems(name="withdraw", kind="chest", to_container=False, reason="withdraw"),
+    Withdraw(name="withdraw", kind="chest", to_container=False, reason="withdraw"),
     Sell(name="sell", kind="sell_box", to_container=True, reason="sell", only_category="colheita"),
     Buy(),
     Sleep(),

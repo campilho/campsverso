@@ -12,7 +12,7 @@ year:  # o ano acelerado (ADR-0067): 28 dias simulados, 7 por estação, no hemi
 perception:
   radius: 12  # script e LLM veem 12 tiles em volta; a névoa na tela é do M17
   # As construções fixas se veem além do raio: quem mora na fazenda sabe onde ficam (ADR-0067).
-  landmarks: [bed, door, chest, stove, well, sell_box, kiosk, order_board, fair_stall]
+  landmarks: [bed, door, chest, stove, well, sell_box, kiosk, order_board, fair_stall, composteira]
   # A noite enxerga menos, e a lanterna no inventário garante 10 (ADR-0068); visível, no manual.
   by_phase: {amanhecer: 12, meio_dia: 12, entardecer: 7, noite: 5, madrugada: 5}
   lights: {lanterna: 10}
@@ -30,6 +30,24 @@ kinds:
   order_board: {blocking: true, capacity: 100}  # o quadro de encomendas: os pedidos ficam dentro dele
   order: {weight: 0}  # um pedido do quadro (ADR-0069)
   fair_stall: {blocking: true}  # a barraca da feira, na entrada da fazenda
+  tacho: {blocking: true, capacity: 30}  # comprado e fincado; o produto espera dentro dele
+  composteira: {blocking: true, capacity: 30}  # ao lado da casa
+
+processing:  # as máquinas (ADR-0069): uma receita por vez, e a máquina trabalha sozinha
+  machines:
+    tacho:
+      recipes:
+        geleia: {ingredients: {morango: 3}, hours: 12, makes: geleia}
+        molho_de_tomate: {ingredients: {tomate: 3}, hours: 8, makes: molho_de_tomate}
+        farinha: {ingredients: {mandioca: 4}, hours: 8, makes: farinha}
+    composteira:
+      recipes:  # o que ia se perder vira adubo: três colheitas quaisquer, ou restos de planta
+        adubo: {ingredients: {any: [colheita, resto], qty: 3}, hours: 72, makes: adubo}
+
+buyer:  # o comprador da caixa leva também os produtos do tacho
+  categories: [colheita, produto]
+
+clear_yields: {item: resto, qty: 1}  # limpar a planta murcha deixa os restos, para a composteira
 
 fair:  # a feira (ADR-0069): a agenda da libs/economy; a barraca paga na hora
   kind: fair_stall
@@ -39,7 +57,7 @@ fair:  # a feira (ADR-0069): a agenda da libs/economy; a barraca paga na hora
   closes: "14:00"
   premium: 0.3  # 30% acima da referência do mercado
   sell: {step: 0.02, floor: 0.4, recovery: 1.0}  # a pressão própria, que zera a cada feira
-  categories: [colheita]  # o que a barraca compra; os produtos do tacho entram com ele
+  categories: [colheita, produto]  # o que a barraca compra
 
 orders:  # o quadro de encomendas (ADR-0069), sobre a libs/economy
   board_kind: order_board
@@ -50,7 +68,7 @@ orders:  # o quadro de encomendas (ADR-0069), sobre a libs/economy
   qty: [2, 6]
   days: [3, 7]  # o prazo, contado do dia em que o pedido aparece
   premium: 0.5  # 50% acima da referência do mercado no dia em que aparece
-  categories: [colheita]  # o que se pede; os produtos do tacho entram com ele
+  categories: [colheita, produto]  # o que se pede
   clients: [Dona Cida, Seu Juca, Dona Nena, Seu Lourenço, a padaria da praça, o restaurante da estrada, a cantina da escola, o mercadinho]
   # R-004 (oculta): quem cumpre o prazo vê mais pedidos e prêmios maiores; quem deixa vencer, menos.
   reputation: {start: 0.5, gain: 0.1, loss: 0.2, spread: 0.5}
@@ -63,6 +81,7 @@ digging:
 
 placeables:  # o que se finca no chão com a ação place
   espantalho: {kind: scarecrow, on: [grass]}
+  tacho: {kind: tacho, on: [grass]}
 
 crows:  # R-002 (oculta): a planta madura longe da casa e sem espantalho perto pode ser comida
   anchor: door
@@ -82,6 +101,11 @@ items:
   couve: {category: colheita, sale_price: 30, hunger: 12, weight: 0.5, shelf_life_days: 5}
   espantalho: {category: objeto, price: 60, weight: 4}
   lanterna: {category: objeto, price: 40, weight: 1}
+  tacho: {category: objeto, price: 200, weight: 6}  # o tacho, para fincar (ADR-0069)
+  geleia: {category: produto, sale_price: 330, weight: 1, shelf_life_days: 30}
+  molho_de_tomate: {category: produto, sale_price: 280, weight: 1, shelf_life_days: 30}
+  farinha: {category: produto, sale_price: 450, weight: 2, shelf_life_days: 90}
+  resto: {category: resto, weight: 0.5}  # os restos de uma planta murcha
 
 crops:  # as quatro novas, e a afinidade de cada cultura com cada estação (o calendário do manual)
   milho: {seed: semente_milho, points_to_mature: 6,
@@ -106,19 +130,50 @@ kiosk_cycle:  # as sementes novas no ciclo; a semente parada na estação some d
     semente_melancia: [2, 5]
     semente_mandioca: [1, 3, 5]
     semente_couve: [1, 2, 3, 4, 5, 6]
-  always: [adubo, espantalho, lanterna]
+  always: [adubo, espantalho, lanterna, tacho]
 
 actions:
   place: {duration: 10, energy: 3, interrupt: never}
   accept_order: {duration: 2, energy: 0, interrupt: never}
   deliver_order: {duration: 5, energy: 1, interrupt: never}
+  process: {duration: 5, energy: 1, interrupt: never}
 
 affordances:
   - action: sell  # na caixa de vendas, como no gênero, e na barraca da feira (ADR-0069)
     label: Vender
     kinds: [sell_box, fair_stall]
     params:
-      - {name: item, label: Colheita, choices: {category: [colheita]}, source: inventory}
+      - {name: item, label: Colheita, choices: {category: [colheita, produto]}, source: inventory}
+      - {name: qty, label: Quantidade, minimum: 1, default: 1}
+  - action: process
+    label: Fazer no tacho
+    kinds: [tacho]
+    params: [{name: recipe, label: Receita, choices: [geleia, molho_de_tomate, farinha]}]
+  - action: process
+    label: Compostar
+    kinds: [composteira]
+    params:
+      - {name: recipe, label: Receita, choices: [adubo]}
+      - {name: item, label: Com, choices: {category: [colheita, resto]}, source: inventory}
+  - action: deposit  # o baú guarda também os produtos do tacho
+    label: Guardar no baú
+    kinds: [chest]
+    params:
+      - {name: item, label: Item, choices: {category: [colheita, semente, prato, adubo, produto]}, source: inventory,
+         entities: true}
+      - {name: qty, label: Quantidade, minimum: 1, default: 1}
+  - action: withdraw  # do baú, como na Boa Vista, e o que espera nas máquinas
+    label: Pegar do baú
+    kinds: [chest]
+    params:
+      - {name: item, label: Item, choices: {category: [colheita, semente, prato, adubo, produto]}, source: target,
+         entities: true}
+      - {name: qty, label: Quantidade, minimum: 1, default: 1}
+  - action: withdraw
+    label: Pegar o que ficou pronto
+    kinds: [tacho, composteira]
+    params:
+      - {name: item, label: Item, choices: {category: [produto, adubo]}, source: target}
       - {name: qty, label: Quantidade, minimum: 1, default: 1}
   - action: accept_order
     label: Aceitar a encomenda
@@ -132,16 +187,16 @@ affordances:
     label: Fincar aqui
     kinds: [self]
     target: false
-    params: [{name: item, label: Item, choices: [espantalho], source: inventory}]
+    params: [{name: item, label: Item, choices: [espantalho, tacho], source: inventory}]
   - action: place  # o menu da grama (ADR-0068)
     label: Fincar aqui
     kinds: [grass]
-    params: [{name: item, label: Item, choices: [espantalho], source: inventory}]
+    params: [{name: item, label: Item, choices: [espantalho, tacho], source: inventory}]
   - action: buy
     label: Comprar
     kinds: [kiosk]
     params:
-      - {name: item, label: Item, choices: [semente_rabanete, semente_batata, semente_abobora, semente_cenoura, semente_morango, semente_tomate, semente_alho, semente_milho, semente_melancia, semente_mandioca, semente_couve, adubo, espantalho, lanterna, watering_can_large, plow]}
+      - {name: item, label: Item, choices: [semente_rabanete, semente_batata, semente_abobora, semente_cenoura, semente_morango, semente_tomate, semente_alho, semente_milho, semente_melancia, semente_mandioca, semente_couve, adubo, espantalho, lanterna, tacho, watering_can_large, plow]}
       - {name: qty, label: Quantidade, minimum: 1, default: 1}
 
 metrics:  # além das da Boa Vista

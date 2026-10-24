@@ -49,7 +49,7 @@ def fair_reference(view: WorldView, item: str) -> float:
     premium = float(section(view, "fair")["premium"])
     info = section(view, "items", item)
     box = next(iter(view.entities("sell_box")), None)
-    if info.get("category") == "colheita" and box is not None and memory_market(view) is not None:
+    if box is not None and memory_market(view) is not None:
         base = crop_reference(view, box, item)
     else:
         base = float(info["sale_price"])
