@@ -262,10 +262,10 @@ class _Turn:
         """Quantas sementes cabem no orçamento, com o preço do quiosque subindo a cada unidade
         num mercado que lembra (ADR-0069); conta para cima, para não ser recusado."""
         shown = kiosk["attributes"].get(f"preco_{seed}")
-        base = float(shown) if isinstance(shown, int | float) else float(price)
-        step = float(cast(Mapping[str, Any], self.c.get("market") or {}).get("buy_step", 0.0))
-        if step == 0.0 and not isinstance(shown, int | float):
+        if not isinstance(shown, int | float):  # o quiosque de preço fixo (a Boa Vista)
             return max(0, budget // price)
+        base = float(shown)
+        step = float(cast(Mapping[str, Any], self.c.get("market") or {}).get("buy_step", 0.0))
         qty, spent = 0, 0
         while True:
             unit = int(base * (1.0 + step * qty)) + 1
