@@ -52,7 +52,7 @@ def test_os_pedidos_aparecem_no_quadro_de_manha() -> None:
     assert attributes["aceita_por"] is None
     assert 3 <= _int(attributes["prazo"]) - 1 <= 7
     assert first.display_name is not None
-    assert "até o dia" in first.display_name
+    assert "até dia" in first.display_name
     board = farmer.core.world.entity(BOARD)
     assert board.attributes.get("capacity") == 100
     for _ in range(4):

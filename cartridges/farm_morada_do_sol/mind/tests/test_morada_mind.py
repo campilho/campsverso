@@ -70,6 +70,14 @@ FORBIDDEN = (
     "revezar",
     "mesma cultura",
     "repetir",
+    # R-004 (ADR-0069): o manual só diz que os clientes lembram de quem cumpre o prazo.
+    "r-004",
+    "reputação",
+    "mais pedidos",
+    "menos pedidos",
+    "prêmio maior",
+    "prêmios maiores",
+    "um terço",
 )
 
 

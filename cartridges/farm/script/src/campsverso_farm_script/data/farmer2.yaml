@@ -67,6 +67,8 @@ kinds:
   kiosk: kiosk
   stove: stove
   can: watering_can
+  order_board: order_board
+  order: order
 
 stages: {ripe: madura, withered: murcha}
 rain: rain
@@ -93,3 +95,10 @@ food_crops: [rabanete, couve, milho]  # a base de comida da estação: a primeir
 # que já viu. Só muda algo onde a foto é um recorte (a Morada do Sol); com o mapa inteiro, não há
 # fronteira.
 explore: {from: "08:00", until: "17:00", min_energy: 45, max_hunger: 55}
+
+# A economia e o clima da Morada do Sol (ADR-0069), só no essencial: o script 2 aceita, perto do
+# quadro, o pedido que já pode cumprir e entrega na hora; conta o preço da semente que sobe com a
+# compra; na seca, rega com as 2 cargas. A feira e o tacho são do script 3 (M19).
+orders: {max_taken: 2}
+market: {buy_step: 0.03}
+drought: {condition: drought, can_charges: 2}

@@ -93,9 +93,10 @@ def taken_by(view: WorldView, board: EntityView, taker: str) -> int:
 
 
 def label(order: Order) -> str:
-    """Como o pedido aparece no quadro e no menu."""
+    """Como o pedido aparece no quadro e no menu, no tamanho do nome de uma entidade (64)."""
     item = order.item.replace("_", " ")
-    return f"{order.client}: {order.qty} {item} até o dia {order.due_day}, paga {order.reward}"
+    text = f"{order.client}: {order.qty} {item} até dia {order.due_day} · {order.reward}"
+    return text[:64]
 
 
 def _candidates(view: WorldView) -> list[tuple[str, float]]:

@@ -39,6 +39,8 @@ class Farmer2Script:
     )
     bounds: dict[str, int] = field(default_factory=dict[str, int])
     unreachable: set[tuple[int, int]] = field(default_factory=set[tuple[int, int]])
+    # A última proposta, para não repetir uma que acabou de ser recusada (ADR-0069).
+    last: dict[str, Proposal] = field(default_factory=dict[str, Proposal])
 
     @classmethod
     def load(cls) -> Farmer2Script:
@@ -59,10 +61,20 @@ class Farmer2Script:
             self.terrain.clear()
             self.bounds.clear()
             self.unreachable.clear()
+            self.last.clear()
         self.bounds["tick"] = tick
         self._learn_terrain(view)
         turn = _Turn(self.config, view, self._remember(view), self)
         proposal = turn.decide()
+        if _reason(view) == "action_rejected" and proposal == self.last.get("proposal"):
+            # A mesma proposta acabou de ser recusada (um preço que subiu, um custo que mudou):
+            # esperar um pouco em vez de repetir, e o mundo anda.
+            proposal = {
+                "action": "wait",
+                "params": {"ticks": int(self.config["wait_ticks"])},
+                "intent": "esperar depois de uma recusa",
+            }
+        self.last["proposal"] = proposal
         self.bounds["exploring"] = int(proposal.get("intent") == EXPLORE)
         return proposal
 
@@ -239,6 +251,29 @@ class _Turn:
     def plots(self, *stages: str | None) -> list[Mapping[str, Any]]:
         return [p for p in self.of_kind("plot") if p["attributes"].get("stage") in stages]
 
+    def water_cost(self) -> int:
+        """As cargas de uma rega hoje: 1, ou o que a seca pede (ADR-0069)."""
+        drought = cast(Mapping[str, Any] | None, self.c.get("drought"))
+        if drought is not None and self.view["weather"]["condition"] == drought["condition"]:
+            return int(drought["can_charges"])
+        return 1
+
+    def affordable(self, kiosk: Mapping[str, Any], seed: str, price: int, budget: int) -> int:
+        """Quantas sementes cabem no orçamento, com o preço do quiosque subindo a cada unidade
+        num mercado que lembra (ADR-0069); conta para cima, para não ser recusado."""
+        shown = kiosk["attributes"].get(f"preco_{seed}")
+        base = float(shown) if isinstance(shown, int | float) else float(price)
+        step = float(cast(Mapping[str, Any], self.c.get("market") or {}).get("buy_step", 0.0))
+        if step == 0.0 and not isinstance(shown, int | float):
+            return max(0, budget // price)
+        qty, spent = 0, 0
+        while True:
+            unit = int(base * (1.0 + step * qty)) + 1
+            if spent + unit > budget:
+                return qty
+            spent += unit
+            qty += 1
+
     def can_charges(self) -> int:
         """O regador que carrega, o grande se tiver."""
         big = self.held(str(self.c["big_can"]["kind"]))
@@ -257,6 +292,8 @@ class _Turn:
             self.refill,
             self.water,
             self.plant,
+            self.deliver,
+            self.accept,
             self.store,
             self.sell,
             self.buy,
@@ -416,14 +453,14 @@ class _Turn:
         return self.at(plot, "clear", f"limpar {plot['entity_id']}", target=plot["entity_id"])
 
     def refill(self) -> Proposal | None:
-        if self.can_charges() > 0 or not self.thirsty():
+        if self.can_charges() >= self.water_cost() or not self.thirsty():
             return None
         well = self.nearest(self.of_kind("well"))
         return None if well is None else self.at(well, "refill", "encher o regador")
 
     def water(self) -> Proposal | None:
         plot = self.nearest(self.thirsty())
-        if plot is None or self.can_charges() < 1:
+        if plot is None or self.can_charges() < self.water_cost():
             return None
         return self.at(plot, "water", f"regar {plot['entity_id']}", target=plot["entity_id"])
 
@@ -583,7 +620,7 @@ class _Turn:
         planted_food = sum(1 for p in self.of_kind("plot") if p["attributes"].get("crop") == food)
         food_missing = min(missing, food_plots - planted_food - seeds_held[food])
         if food_missing > 0 and (not available or food_seed in available):
-            qty = min(food_missing, (coins - reserve) // food_price)
+            qty = min(food_missing, self.affordable(kiosk, food_seed, food_price, coins - reserve))
             if qty >= 1:
                 return self.at(
                     kiosk,
@@ -597,7 +634,7 @@ class _Turn:
             seed, price = str(crops[crop]["seed"]), int(crops[crop]["price"])
             if available and seed not in available:
                 continue
-            qty = min(missing, (coins - reserve) // price)
+            qty = min(missing, self.affordable(kiosk, seed, price, coins - reserve))
             if qty >= 1:
                 return self.at(
                     kiosk,
@@ -606,6 +643,62 @@ class _Turn:
                     target=kiosk["entity_id"],
                     item=seed,
                     qty=qty,
+                )
+        return None
+
+    def _board_orders(self) -> tuple[Mapping[str, Any] | None, list[Mapping[str, Any]]]:
+        """O quadro de encomendas e os pedidos à vista dentro dele: só perto do quadro se leem."""
+        board = self.nearest(self.of_kind("order_board"))
+        if board is None:
+            return None, []
+        kind = self.c["kinds"].get("order", "order")
+        orders = [
+            e
+            for e in self.entities
+            if e["kind"] == kind and e.get("container_id") == board["entity_id"]
+        ]
+        return board, sorted(orders, key=lambda e: e["entity_id"])
+
+    def deliver(self) -> Proposal | None:
+        """Entrega o pedido aceito quando tem os itens (ADR-0069)."""
+        board, orders = self._board_orders()
+        for order in orders:
+            a = order["attributes"]
+            if a.get("aceita_por") == self.me_id and self.mine(str(a["item"])) >= int(
+                a["quantidade"]
+            ):
+                return self.at(
+                    cast(Mapping[str, Any], board),
+                    "deliver_order",
+                    f"entregar a encomenda {order['entity_id']}",
+                    target=cast(Mapping[str, Any], board)["entity_id"],
+                    order=order["entity_id"],
+                )
+        return None
+
+    def accept(self) -> Proposal | None:
+        """Aceita, perto do quadro, o pedido aberto que já dá para cumprir com o que carrega: o
+        script 2 não planta para encomenda (isso é do script 3)."""
+        board, orders = self._board_orders()
+        limits = cast(Mapping[str, Any] | None, self.c.get("orders"))
+        if board is None or limits is None or not orders:
+            return None
+        mine = [o for o in orders if o["attributes"].get("aceita_por") == self.me_id]
+        if len(mine) >= int(limits["max_taken"]):
+            return None
+        best = sorted(
+            (o for o in orders if o["attributes"].get("aceita_por") is None),
+            key=lambda o: (-int(o["attributes"]["pagamento"]), o["entity_id"]),
+        )
+        for order in best:
+            a = order["attributes"]
+            if self.mine(str(a["item"])) >= int(a["quantidade"]):
+                return self.at(
+                    board,
+                    "accept_order",
+                    f"aceitar a encomenda de {a['cliente']}",
+                    target=board["entity_id"],
+                    order=order["entity_id"],
                 )
         return None
 
