@@ -471,3 +471,27 @@ def test_na_morada_o_relatorio_mostra_o_valor_de_saber_e_o_que_o_script_3_aprend
     assert "| agua<=2 | 1,42 (1,21 a 1,66) · 14 |" in text
     assert "| repetida | 0,55 (0,47 a 0,64) · 9 |" in text
     assert "| mata<=2 | - |" in text
+
+
+def test_os_experimentos_da_noite_com_o_veredito_da_noite_seguinte(tmp_path: Path) -> None:
+    arena = tmp_path / "20261025-2200"
+    trial = {"hypothesis": "A chuva rega | tudo.", "test": "não regar", "prediction": "avança"}
+    reflected = [
+        mem(1440, "memory.reflected.v1", day=1, experiment=trial),
+        mem(2880, "memory.reflected.v1", day=2, experiment_result="cumpriu",
+            experiment={**trial, "hypothesis": "O baú conserva."}),
+        mem(4320, "memory.reflected.v1", day=3),
+    ]  # fmt: skip
+    spec = {"name": "haiku-memoria", "controller": "llm", "memory": True, "seed": 1}
+    _run(
+        arena,
+        "haiku-memoria",
+        spec,
+        [ev(0, "world.session.started.v1", tick_seconds=60), *reflected],
+    )
+    out = tmp_path / "relatorio.md"
+    assert main([str(arena), "--out", str(out)]) == 0
+    text = out.read_text(encoding="utf-8")
+    assert "### haiku-memoria: 2 experimentos (1 cumpriu, 1 sem veredito)" in text
+    assert "| 1 | A chuva rega / tudo. | cumpriu |" in text
+    assert "| 2 | O baú conserva. | - |" in text

@@ -323,6 +323,35 @@ def east_signals(envelopes: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
     }
 
 
+REFLECTED = "campsverso.memory.reflected.v1"
+
+
+def experiments_of(envelopes: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """Os experimentos da noite (ADR-0070): o dia em que cada um foi proposto, a hipótese, o
+    teste e a previsão, e o veredito que a reflexão seguinte deu (`None` se não houve)."""
+    found: list[dict[str, Any]] = []
+    for envelope in envelopes:
+        if envelope.get("type") != REFLECTED:
+            continue
+        data: Mapping[str, Any] = envelope.get("data", {})
+        result = data.get("experiment_result")
+        if result is not None and found and found[-1]["result"] is None:
+            found[-1]["result"] = str(result)
+        given = data.get("experiment")
+        if isinstance(given, Mapping):
+            trial = cast(Mapping[str, Any], given)
+            found.append(
+                {
+                    "day": int(data.get("day") or _day(envelope)),
+                    "hypothesis": str(trial.get("hypothesis", "")),
+                    "test": str(trial.get("test", "")),
+                    "prediction": str(trial.get("prediction", "")),
+                    "result": None,
+                }
+            )
+    return found
+
+
 def beliefs_at_end(envelopes: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
     """As crenças ativas ao fim da corrida, da mais confiante à menos, lidas dos eventos."""
     beliefs: dict[str, dict[str, Any]] = {}
@@ -355,9 +384,8 @@ class Run:
     exploration: Exploration | None = None  # as métricas de exploração (ADR-0070)
     exam: dict[str, Any] | None = None  # a prova do mundo (ADR-0070): o gabarito e as respostas
     judge: dict[str, Any] | None = None  # os vereditos do juiz (ADR-0070), lidos de juiz.json
-    model: dict[str, Any] | None = (
-        None  # o que o script 3 aprendeu, ou o oráculo sabe (modelo.json)
-    )
+    model: dict[str, Any] | None = None  # o que o script 3 aprendeu ou o oráculo sabe
+    experiments: list[dict[str, Any]] = field(default_factory=list[dict[str, Any]])  # ADR-0070
 
     @property
     def spec(self) -> dict[str, Any]:
@@ -420,6 +448,7 @@ def load_run(folder: Path) -> Run:
         _optional(folder / "prova.json"),
         _optional(folder / "juiz.json"),
         _optional(folder / "modelo.json"),
+        experiments_of(envelopes),
     )
 
 
@@ -842,16 +871,19 @@ def render(runs: Sequence[Run], *, source: str, date: str) -> str:
             f"{FROM_DAY}"
         )
     )
+    maps = sorted({str(r.spec.get("map") or "a") for r in runs}) if cartridge == MORADA else []
+    where = f", nos mapas {', '.join(maps)}" if len(maps) > 1 else ""
+    control = "as regras R-001 e R-003" if cartridge == MORADA else "a regra R-001"
     lines = [
         f"# Arena de {date}",
         "",
-        f"{len(runs)} corrida(s) de até {days} dias em processo, no mesmo mundo (`{world}`), "
-        "com o mundo esperando o modelo por construção (ADR-0061). Gerado por `make arena-report` "
-        f"a partir de `{source}` (fora do git). A tabela da bíblia §13 é o total dos dias "
-        f'completos de cada corrida; "descobriu {place}" é lido do dado da memória de quem a '
-        f"tem (a primeira anotação e a primeira crença que falam d{place}, e a trajetória de "
-        f"cada crença) e do comportamento de todos ({behaviour}). A corrida sem a regra R-001 é "
-        "o controle.",
+        f"{len(runs)} corrida(s) de até {days} dias em processo, no mesmo mundo "
+        f"(`{world}`){where}, com o mundo esperando o modelo por construção (ADR-0061). Gerado "
+        f"por `make arena-report` a partir de `{source}` (fora do git). A tabela da bíblia §13 "
+        f'é o total dos dias completos de cada corrida; "descobriu {place}" é lido do dado da '
+        f"memória de quem a tem (a primeira anotação e a primeira crença que falam d{place}, e "
+        f"a trajetória de cada crença) e do comportamento de todos ({behaviour}). A corrida sem "
+        f"{control} é o controle.",
         "",
         "## As corridas",
         "",
@@ -888,6 +920,7 @@ def render(runs: Sequence[Run], *, source: str, date: str) -> str:
             for b in r.beliefs[:3]
         ] or ["- nenhuma"]
         lines.append("")
+    lines += _experiments_section(runs)
     lines += _knowing_section(runs)
     lines += _learned_section(runs)
     lines += _judge_section(runs)
@@ -917,6 +950,36 @@ LEARNED = (
     "repetida",
     "adubada",
 )
+
+
+def _experiments_section(runs: Sequence[Run]) -> list[str]:
+    """Os experimentos da noite (ADR-0070): quantos, com que veredito, e cada um, numa linha."""
+    tried = [r for r in runs if r.experiments]
+    if not tried:
+        return []
+    lines = [
+        "## Os experimentos da noite",
+        "",
+        "Na reflexão de cada noite, a mente propõe um experimento barato para o dia seguinte (a "
+        "hipótese, o teste e a previsão), e a reflexão da noite seguinte diz se a previsão se "
+        "cumpriu. O veredito é dela, não do avaliador.",
+        "",
+    ]
+    for r in tried:
+        verdicts = Counter[str](str(e["result"] or "sem veredito") for e in r.experiments)
+        told = ", ".join(f"{n} {k}" for k, n in sorted(verdicts.items()))
+        lines += [f"### {r.name}: {len(r.experiments)} experimentos ({told})", ""]
+        rows = [
+            [str(e["day"]), _short(str(e["hypothesis"]), 160), str(e["result"] or EMPTY)]
+            for e in r.experiments
+        ]
+        lines += [_table(["Dia", "Hipótese", "Veredito"], rows), ""]
+    return lines
+
+
+def _short(text: str, limit: int) -> str:
+    text = " ".join(text.split()).replace("|", "/")
+    return text if len(text) <= limit else text[: limit - 1].rstrip() + "…"
 
 
 def _hungry_days(r: Run) -> int:
@@ -1040,8 +1103,8 @@ def _judge_section(runs: Sequence[Run]) -> list[str]:
         f"`juiz.jsonl` da corrida. Custo: US$ {_n(cost, 2)}.",
         "",
         _table(
-            ["Regra", *(r.name for r in runs)],
-            [[rule, *(cell(r, rule) for r in runs)] for rule in rules],
+            ["Regra", *(r.name for r in judged)],
+            [[rule, *(cell(r, rule) for r in judged)] for rule in rules],
         ),
         "",
     ]
