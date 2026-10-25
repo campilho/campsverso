@@ -738,3 +738,165 @@ def test_o_que_deixou_de_existir_a_vista_se_esquece_e_fora_do_recorte_fica() -> 
     clock = mem.observe(with_clock(far, 240))
     assert [p.entity_id for p in mem.port.places()] == ["plot-002"]
     assert "- plot-002 (plot) em (40,30); visto 08:00" in mem.block(clock)
+
+
+# ------------------------------------------------------------- o caderno de campo (ADR-0070)
+
+
+def _seen(
+    delivery: dict[str, Any], *entities: dict[str, Any], hunger: float | None = None
+) -> dict[str, Any]:
+    delivery["entities"] = list(entities)
+    if hunger is not None:
+        delivery["self"]["needs"] = {"fome": hunger}
+    return delivery
+
+
+def test_o_caderno_de_campo_anota_cada_plantio_so_com_o_que_viu() -> None:
+    mem = memory(field_notebook=True)
+    start = snapshot()
+    start["view"]["entities"] = [_plot("plot-001", 3, 3)]
+    mem.observe(with_clock(start, 120))
+    planted = event(
+        130,
+        "action.completed.v1",
+        avatar_id="camps",
+        action="plant",
+        params={"target": "plot-001", "crop": "rabanete"},
+    )
+    watered = event(
+        132, "action.completed.v1", avatar_id="camps", action="water", params={"target": "plot-001"}
+    )
+    mem.observe(
+        with_clock(
+            _seen(
+                delta(120, 135, events=[planted, watered]), _plot("plot-001", 3, 3, crop="rabanete")
+            ),
+            135,
+        )
+    )
+    rain = event(1440, "world.weather.changed.v1", day=2, condition="rain")
+    mem.observe(with_clock(delta(135, 1450, events=[rain]), 1450, day=2))
+    ripe = event(2880, "farm.crop.matured.v1", plot_id="plot-001", crop="rabanete", day=3)
+    harvested = event(
+        2890,
+        "action.completed.v1",
+        avatar_id="camps",
+        action="harvest",
+        params={"target": "plot-001"},
+    )
+    again = event(
+        2900,
+        "action.completed.v1",
+        avatar_id="camps",
+        action="plant",
+        params={"target": "plot-001", "crop": "rabanete"},
+    )
+    clock = mem.observe(
+        with_clock(
+            _seen(
+                delta(1450, 2905, events=[ripe, harvested, again]),
+                _plot("plot-001", 3, 3, crop="rabanete"),
+            ),
+            2905,
+            day=3,
+        )
+    )
+    first, second = mem.port.plantings()
+    assert (first.crop, first.watered_days, first.matured_day, first.outcome) == (
+        "rabanete",
+        (1, 2),
+        3,
+        "colhida",
+    )
+    assert (second.previous, second.day, second.outcome) == ("rabanete", 3, None)
+    block = mem.block(clock)
+    assert "Caderno de campo (os últimos 2 plantios):" in block
+    assert (
+        "- plot-001 (3,3) rabanete, canteiro novo: plantou no dia 1, rega em 2 dias, "
+        "madura no dia 3 (2 dias); colhida"
+    ) in block
+    assert "- plot-001 (3,3) rabanete, antes rabanete: plantou no dia 3" in block
+    assert (
+        "Por cultura: rabanete 1 colhida, madura de 2 a 2 dias (média 2,0), 1 crescendo." in block
+    )
+
+
+def test_a_planta_que_sumiu_fora_da_vista_fica_sumiu() -> None:
+    mem = memory(field_notebook=True)
+    start = snapshot()
+    start["view"]["entities"] = [_plot("plot-001", 3, 3)]
+    start["view"]["map"] = {"origin": {"x": 0, "y": 0}, "rows": ["....."] * 5, "legend": {}}
+    mem.observe(with_clock(start, 120))
+    planted = event(
+        130,
+        "action.completed.v1",
+        avatar_id="camps",
+        action="plant",
+        params={"target": "plot-001", "crop": "milho"},
+    )
+    mem.observe(with_clock(delta(120, 135, events=[planted]), 135))
+    assert mem.port.plantings()[0].outcome is None  # o lugar lembrado (vazio) é de antes
+    back = snapshot()  # dias depois, à vista de novo, e vazio: ninguém colheu
+    back["view"]["entities"] = [_plot("plot-001", 3, 3)]
+    back["view"]["map"] = {"origin": {"x": 0, "y": 0}, "rows": ["....."] * 5, "legend": {}}
+    mem.observe(with_clock(back, 4500, day=4))
+    assert mem.port.plantings()[0].outcome == "sumiu"
+
+
+def test_a_tabela_da_comida_mostra_a_fome_que_cada_uma_tirou() -> None:
+    mem = memory(field_notebook=True)
+    mem.observe(with_clock(_seen(delta(0, 100), hunger=70), 100))
+    ate = event(
+        110, "action.completed.v1", avatar_id="camps", action="eat", params={"item": "rabanete"}
+    )
+    clock = mem.observe(with_clock(_seen(delta(100, 120, events=[ate]), hunger=45), 120))
+    assert "A comida (a fome que cada uma tirou): rabanete tirou 25 (1 vez)." in mem.block(clock)
+
+
+def test_o_experimento_da_noite_vai_e_volta() -> None:
+    mem = memory(experiments=True)
+    night = Clock(900, 1, "2026-10-10T21:00:00-03:00")
+    first = mem.reflect_request("x", night, 1, "m")
+    schema = first.tools[0]["input_schema"]
+    assert {"experiment", "experiment_result"} <= set(schema["required"])
+    assert "experimento barato para amanhã" in str(first.system)
+    proposed = reflect_use("Plantei.", "Testar.")
+    proposed["input"]["experiment"] = {
+        "hypothesis": "O milho cresce igual nos dois canteiros.",
+        "test": "Plantar milho no norte e no sul.",
+        "prediction": "Amadurecem juntos.",
+    }
+    proposed["input"]["experiment_result"] = ""
+    mem.apply_reflection(first, response(proposed), night, 1)
+    assert mem.drain_events()[0]["data"]["experiment"]["prediction"] == "Amadurecem juntos."
+    day2 = Clock(1500, 2, "2026-10-11T07:00:00-03:00")
+    assert (
+        "Experimento em teste (proposto na noite do dia 1): hipótese: O milho cresce igual "
+        "nos dois canteiros."
+    ) in mem.block(day2)
+    later = Clock(2340, 2, "2026-10-11T21:00:00-03:00")
+    second = mem.reflect_request("x", later, 2, "m")
+    assert (
+        "O experimento que você propôs na noite do dia 1"
+        in second.messages[0]["content"][0]["text"]
+    )
+    verdict = reflect_use("Reguei.", "")
+    verdict["input"]["experiment"] = {"hypothesis": "", "test": "", "prediction": ""}
+    verdict["input"]["experiment_result"] = "falhou"
+    mem.apply_reflection(second, response(verdict), later, 2)
+    assert mem.drain_events()[0]["data"]["experiment_result"] == "falhou"
+    assert [(e.day, e.result, e.result_day) for e in mem.port.experiments()] == [(1, "falhou", 2)]
+    assert mem.open_experiment() is None
+
+
+def test_sem_o_caderno_a_reflexao_e_o_bloco_ficam_como_eram() -> None:
+    mem = memory()
+    night = Clock(900, 1, "2026-10-10T21:00:00-03:00")
+    assert (
+        "experiment"
+        not in mem.reflect_request("x", night, 1, "m").tools[0]["input_schema"]["properties"]
+    )
+    assert mem.notebook.lines(12) == []
+    mem.adopt(Mind("m", "c", "n", (), field_notebook=True, experiments=True))
+    assert (mem.settings.field_notebook, mem.settings.experiments) == (True, True)

@@ -58,6 +58,8 @@ class LlmController:
     ) -> None:
         self.mind = mind
         self.memory = memory
+        if memory is not None:
+            memory.adopt(mind)  # o caderno de campo e o experimento, se a mente os usa (ADR-0070)
         self._port = port
         self._controller_id = controller_id
         self._avatar = avatar_id

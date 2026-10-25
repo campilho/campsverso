@@ -4,6 +4,7 @@ Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão 
 
 ## Não publicado (M19)
 
+- **O experimento da noite** (ADR-0070): `memory.reflected.v1` ganha os campos opcionais `experiment` (a hipótese, o teste e a previsão que a reflexão propôs para o dia seguinte) e `experiment_result` (`cumpriu`, `falhou` ou `inconclusivo`: o veredito sobre o experimento da noite anterior). Só a mente que usa experimentos (a da Morada do Sol) os publica.
 - **A madura que murcha sem colher** (ADR-0062; achado no M19): `farm.crop.withered.v1` aceita `dry_days: 0`, a planta madura que murchou porque ninguém a colheu em 3 dias na Boa Vista e na Morada do Sol. O código publicava 0 desde o M13, e o leitor das métricas contava as murchas da madura por ele, mas o mínimo do schema era 1: a primeira madura esquecida derrubava o barramento que valida. Relaxar o mínimo é compatível (`make compat`).
 
 ## M18 (publicado em 25/out, antes de uma versão)

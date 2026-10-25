@@ -17,8 +17,11 @@ from campsverso_ports import (
     BeliefChange,
     BeliefRevision,
     Episode,
+    Experiment,
+    Meal,
     Note,
     Place,
+    Planting,
     Reflection,
     SourceKind,
 )
@@ -49,6 +52,19 @@ CREATE TABLE IF NOT EXISTS places (
 CREATE TABLE IF NOT EXISTS reflections (
   day INTEGER PRIMARY KEY, tick INTEGER NOT NULL, summary TEXT NOT NULL, plan TEXT,
   beliefs TEXT NOT NULL, prompt_sha256 TEXT
+);
+CREATE TABLE IF NOT EXISTS plantings (
+  plot_id TEXT NOT NULL, tick INTEGER NOT NULL, day INTEGER NOT NULL, crop TEXT NOT NULL,
+  x INTEGER, y INTEGER, previous TEXT, fertilized INTEGER NOT NULL, watered_days TEXT NOT NULL,
+  matured_day INTEGER, outcome TEXT, outcome_day INTEGER, PRIMARY KEY (plot_id, tick)
+);
+CREATE TABLE IF NOT EXISTS meals (
+  id INTEGER PRIMARY KEY, tick INTEGER NOT NULL, day INTEGER NOT NULL, item TEXT NOT NULL,
+  hunger_before REAL NOT NULL, hunger_after REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS experiments (
+  day INTEGER PRIMARY KEY, hypothesis TEXT NOT NULL, test TEXT NOT NULL, prediction TEXT NOT NULL,
+  result TEXT, result_day INTEGER
 );
 """
 
@@ -338,6 +354,97 @@ class SqliteMemory:
     def forget(self, entity_ids: Sequence[str]) -> None:
         self._db.executemany("DELETE FROM places WHERE entity_id = ?", [(i,) for i in entity_ids])
         self._db.commit()
+
+    # ------------------------------------------------------------- o caderno de campo (ADR-0070)
+
+    def save_planting(self, planting: Planting) -> None:
+        self._db.execute(
+            "INSERT OR REPLACE INTO plantings VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                planting.plot_id,
+                planting.tick,
+                planting.day,
+                planting.crop,
+                planting.x,
+                planting.y,
+                planting.previous,
+                int(planting.fertilized),
+                json.dumps(list(planting.watered_days)),
+                planting.matured_day,
+                planting.outcome,
+                planting.outcome_day,
+            ),
+        )
+        self._db.commit()
+
+    def plantings(self) -> list[Planting]:
+        rows = self._db.execute("SELECT * FROM plantings ORDER BY tick, plot_id")
+        return [
+            Planting(
+                plot_id=str(r["plot_id"]),
+                tick=int(r["tick"]),
+                day=int(r["day"]),
+                crop=str(r["crop"]),
+                x=cast(int | None, r["x"]),
+                y=cast(int | None, r["y"]),
+                previous=cast(str | None, r["previous"]),
+                fertilized=bool(r["fertilized"]),
+                watered_days=tuple(cast(list[int], json.loads(str(r["watered_days"])))),
+                matured_day=cast(int | None, r["matured_day"]),
+                outcome=cast(str | None, r["outcome"]),
+                outcome_day=cast(int | None, r["outcome_day"]),
+            )
+            for r in rows
+        ]
+
+    def eat(self, meal: Meal) -> None:
+        self._db.execute(
+            "INSERT INTO meals (tick, day, item, hunger_before, hunger_after)"
+            " VALUES (?, ?, ?, ?, ?)",
+            (meal.tick, meal.day, meal.item, meal.hunger_before, meal.hunger_after),
+        )
+        self._db.commit()
+
+    def meals(self) -> list[Meal]:
+        rows = self._db.execute("SELECT * FROM meals ORDER BY tick, id")
+        return [
+            Meal(
+                int(r["tick"]),
+                int(r["day"]),
+                str(r["item"]),
+                float(r["hunger_before"]),
+                float(r["hunger_after"]),
+            )
+            for r in rows
+        ]
+
+    def save_experiment(self, experiment: Experiment) -> None:
+        self._db.execute(
+            "INSERT OR REPLACE INTO experiments VALUES (?, ?, ?, ?, ?, ?)",
+            (
+                experiment.day,
+                experiment.hypothesis,
+                experiment.test,
+                experiment.prediction,
+                experiment.result,
+                experiment.result_day,
+            ),
+        )
+        self._db.commit()
+
+    def experiments(self) -> list[Experiment]:
+        rows = self._db.execute("SELECT * FROM experiments ORDER BY day")
+        return [
+            Experiment(
+                int(r["day"]),
+                str(r["hypothesis"]),
+                str(r["test"]),
+                str(r["prediction"]),
+                cast(str | None, r["result"]),
+                cast(int | None, r["result_day"]),
+            )
+            for r in rows
+        ]
 
     def close(self) -> None:
         self._db.close()

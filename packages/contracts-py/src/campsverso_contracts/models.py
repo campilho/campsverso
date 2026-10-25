@@ -1622,6 +1622,19 @@ class Beliefs(BaseModel):
     total: Annotated[int, Field(ge=0)]
 
 
+class Experiment(BaseModel):
+    """
+    O experimento que a reflexão propôs para o dia seguinte (ADR-0070).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    hypothesis: Annotated[str, Field(max_length=300, min_length=1)]
+    test: Annotated[str, Field(max_length=300)]
+    prediction: Annotated[str, Field(max_length=300)]
+
+
 class MemoryReflectedV1(BaseModel):
     """
     A reflexão de um dia terminou (ADR-0060): o resumo, o plano para amanhã e quantas crenças foram formadas, atualizadas e retiradas. Nunca leva o prompt: só o hash do pedido.
@@ -1646,6 +1659,14 @@ class MemoryReflectedV1(BaseModel):
     O que o agente pretende amanhã.
     """
     beliefs: Beliefs
+    experiment: Experiment | None = None
+    """
+    O experimento que a reflexão propôs para o dia seguinte (ADR-0070).
+    """
+    experiment_result: Literal["cumpriu", "falhou", "inconclusivo"] | None = None
+    """
+    O veredito da reflexão sobre o experimento da noite anterior (ADR-0070).
+    """
     prompt_sha256: Annotated[str | None, Field(pattern="^[0-9a-f]{64}$")] = None
     """
     Hash do pedido da reflexão, o mesmo do llm.call.completed.

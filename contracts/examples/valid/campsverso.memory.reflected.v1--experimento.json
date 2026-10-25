@@ -1,0 +1,36 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c40-7c11-8a00-1e6802771b78",
+  "source": "/controller-runner/llm/camps",
+  "type": "campsverso.memory.reflected.v1",
+  "time": "2026-10-18T23:40:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/memory/reflected.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 2043,
+  "simtime": "2026-10-11T16:03:00-03:00",
+  "seq": 121,
+  "provenance": "simulated",
+  "visibility": "observer",
+  "actor": "llm/camps",
+  "data": {
+    "avatar_id": "camps",
+    "day": 2,
+    "summary": "Plantei e reguei os oito canteiros do leste; os do oeste seguem no broto. Comi dois rabanetes e dormi na cama às 20:00.",
+    "plan": "De manhã, colher o que amadureceu e vender antes das 22:00; comprar sementes de batata se sobrar moeda.",
+    "beliefs": {
+      "formed": 1,
+      "updated": 1,
+      "retracted": 0,
+      "total": 3
+    },
+    "prompt_sha256": "9c1f9c1f9c1f9c1f9c1f9c1f9c1f9c1f9c1f9c1f9c1f9c1f9c1f9c1f9c1f9c1f",
+    "experiment": {
+      "hypothesis": "A couve cresce igual no canteiro do norte e no do sul.",
+      "test": "Plantar couve nos dois no mesmo dia e regar igual.",
+      "prediction": "As duas amadurecem no mesmo dia."
+    },
+    "experiment_result": "inconclusivo"
+  }
+}

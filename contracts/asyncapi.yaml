@@ -3058,6 +3058,32 @@ components:
             total:
               type: integer
               minimum: 0
+        experiment:
+          type: object
+          additionalProperties: false
+          required:
+          - hypothesis
+          - test
+          - prediction
+          description: O experimento que a reflexão propôs para o dia seguinte (ADR-0070).
+          properties:
+            hypothesis:
+              type: string
+              minLength: 1
+              maxLength: 300
+            test:
+              type: string
+              maxLength: 300
+            prediction:
+              type: string
+              maxLength: 300
+        experiment_result:
+          type: string
+          enum:
+          - cumpriu
+          - falhou
+          - inconclusivo
+          description: O veredito da reflexão sobre o experimento da noite anterior (ADR-0070).
         prompt_sha256:
           type: string
           pattern: ^[0-9a-f]{64}$

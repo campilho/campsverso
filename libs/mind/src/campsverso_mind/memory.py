@@ -5,18 +5,22 @@ Tudo o que a mente escreve na memória vem das entregas da percepção e das pr�
 que ela devolve ao modelo é texto montado só com isso, determinístico, para a fita reproduzir.
 """
 
+import copy
 import json
 import re
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from typing import Any, cast
 
+from campsverso_mind.mind import Mind
+from campsverso_mind.notebook import FieldNotebook
 from campsverso_ports import (
     Belief,
     BeliefRevision,
     Effort,
     Episode,
+    Experiment,
     MemoryPort,
     ModelRequest,
     ModelResponse,
@@ -92,6 +96,11 @@ class MemorySettings:
         16384  # o raciocínio adaptativo gasta daqui; 8 mil cortaram uma noite
     )
     reflection_episodes: int = 200  # linhas do dia que a reflexão lê, as mais recentes
+    # O caderno de campo e o experimento da noite (ADR-0070): ligados pela mente do cenário.
+    field_notebook: bool = False
+    experiments: bool = False
+    block_plantings: int = 12  # plantios que o bloco de abertura mostra, os mais recentes
+    hunger_need: str = "fome"  # a necessidade que a comida mata, para a tabela da comida
 
 
 @dataclass(frozen=True, slots=True)
@@ -264,6 +273,46 @@ REFLECT_TOOL: dict[str, Any] = {
     },
 }
 
+EXPERIMENT_RESULTS = ("cumpriu", "falhou", "inconclusivo")
+
+
+def reflect_tool(experiments: bool) -> dict[str, Any]:
+    """A ferramenta da reflexão; com experimentos (ADR-0070), o experimento de amanhã e o veredito
+    do de ontem."""
+    if not experiments:
+        return REFLECT_TOOL
+    tool = copy.deepcopy(REFLECT_TOOL)
+    schema = cast(dict[str, Any], tool["input_schema"])
+    properties = cast(dict[str, Any], schema["properties"])
+    text = {"type": "string"}
+    properties["experiment"] = {
+        "type": "object",
+        "description": (
+            'Um experimento barato para amanhã, sobre algo que você ainda não sabe; ou os três "".'
+        ),
+        "properties": {
+            "hypothesis": {**text, "description": "O que você acha que acontece, em uma frase."},
+            "test": {**text, "description": "O que fazer amanhã para ver, e com o que comparar."},
+            "prediction": {**text, "description": "O que deve acontecer se a hipótese for certa."},
+        },
+        "required": ["hypothesis", "test", "prediction"],
+        "additionalProperties": False,
+    }
+    properties["experiment_result"] = {
+        "type": "string",
+        "enum": [*EXPERIMENT_RESULTS, ""],
+        "description": 'Se a previsão do experimento de ontem se cumpriu; "" se não havia.',
+    }
+    schema["required"] = [*cast(list[str], schema["required"]), "experiment", "experiment_result"]
+    return tool
+
+
+EXPERIMENT_INSTRUCTIONS = """\
+Proponha também um experimento barato para amanhã, sobre algo que você ainda não sabe de como a \
+fazenda funciona: a hipótese, o teste (o que fazer amanhã, e com o que comparar) e a previsão (o \
+que deve acontecer se a hipótese estiver certa). Se havia um experimento de ontem, diga em \
+`experiment_result` se a previsão se cumpriu, falhou ou ficou inconclusiva."""
+
 REFLECTION_INSTRUCTIONS = """\
 ## A reflexão da noite
 
@@ -292,6 +341,15 @@ class Memory:
         self.attempts: dict[int, int] = {}  # tentativas de reflexão por dia; o teto evita o laço
         self.fresh = False  # há uma reflexão nova que a próxima entrega precisa mostrar
         self.in_view: set[str] = set()  # o que a última entrega mostrou (ADR-0067)
+        self.notebook = FieldNotebook(port, avatar_id, self.settings.hunger_need)
+
+    def adopt(self, mind: Mind) -> None:
+        """O caderno de campo e o experimento da noite, se a mente do cenário os usa (ADR-0070)."""
+        self.settings = replace(
+            self.settings,
+            field_notebook=self.settings.field_notebook or mind.field_notebook,
+            experiments=self.settings.experiments or mind.experiments,
+        )
 
     # ------------------------------------------------------------- registrar
 
@@ -349,6 +407,9 @@ class Memory:
         vistas viram lugares lembrados (ADR-0067)."""
         clock = clock_of(delivery)
         self._places(clock, delivery)
+        if self.settings.field_notebook:
+            places = {p.entity_id: p for p in self.port.places()}
+            self.notebook.observe(clock.day, delivery, places, self.in_view)
         reason = str(cast(Mapping[str, Any], delivery.get("decision") or {}).get("reason", ""))
         if reason in ("session_started", "possessed"):
             text = "assumi o corpo" if reason == "possessed" else "a sessão começou"
@@ -443,6 +504,14 @@ class Memory:
         if away:
             lines.append("Fora de vista, pelo que você viu por último:")
             lines.extend(_place_line(clock, p) for p in away[: s.block_places])
+        if s.field_notebook:
+            lines.extend(self.notebook.lines(s.block_plantings))
+        trial = self.open_experiment()
+        if s.experiments and trial is not None:
+            lines.append(
+                f"Experimento em teste (proposto na noite do dia {trial.day}): hipótese: "
+                f"{trial.hypothesis}; teste: {trial.test}; previsão: {trial.prediction}"
+            )
         if self.last_proposal:
             lines.append(f"Última ação: {self.last_proposal}")
         if len(lines) == 1:
@@ -450,6 +519,13 @@ class Memory:
         return "\n".join(lines)
 
     # ------------------------------------------------------------- refletir
+
+    def open_experiment(self) -> Experiment | None:
+        """O último experimento proposto que ainda não teve veredito."""
+        if not self.settings.experiments:
+            return None
+        found = [e for e in self.port.experiments() if e.result is None]
+        return found[-1] if found else None
 
     def pending_day(self, clock: Clock) -> int | None:
         """Um dia anterior com episódios e sem reflexão: a noite passou sem dormir (desmaio).
@@ -487,6 +563,13 @@ class Memory:
         parts.extend(
             f"- {b.belief_id} ({b.confidence:.2f}): {b.statement}" for b in beliefs
         ) if beliefs else parts.append("- (nenhuma)")
+        trial = self.open_experiment()
+        if trial is not None and trial.day < day:
+            parts.append(
+                f"O experimento que você propôs na noite do dia {trial.day}: hipótese: "
+                f"{trial.hypothesis}; teste: {trial.test}; previsão: {trial.prediction}. Diga se a "
+                "previsão se cumpriu."
+            )
         parts.append("Feche o dia com a ferramenta reflect.")
         return ModelRequest(
             model=s.reflection_model or model,
@@ -494,16 +577,36 @@ class Memory:
             system=[
                 {
                     "type": "text",
-                    "text": f"{system}\n\n{REFLECTION_INSTRUCTIONS}",
+                    "text": f"{system}\n\n{self._instructions()}",
                     "cache_control": {"type": "ephemeral"},
                 }
             ],
-            tools=[REFLECT_TOOL],
+            tools=[reflect_tool(s.experiments)],
             max_tokens=s.reflection_max_tokens,
             effort=s.reflection_effort,
             purpose="reflection",
             avatar_id=self.avatar_id,
         )
+
+    def _instructions(self) -> str:
+        if not self.settings.experiments:
+            return REFLECTION_INSTRUCTIONS
+        return f"{REFLECTION_INSTRUCTIONS}\n\n{EXPERIMENT_INSTRUCTIONS}"
+
+    def _experiment(self, given: Mapping[str, Any], day: int, data: dict[str, Any]) -> None:
+        """O veredito do experimento de ontem e o experimento de amanhã (ADR-0070)."""
+        verdict = str(given.get("experiment_result") or "")
+        trial = self.open_experiment()
+        if trial is not None and trial.day < day and verdict in EXPERIMENT_RESULTS:
+            self.port.save_experiment(replace(trial, result=verdict, result_day=day))
+            data["experiment_result"] = verdict
+        raw = cast(Mapping[str, Any], given.get("experiment") or {})
+        hypothesis, test, prediction = (
+            _clean(raw.get(k, ""), 300) for k in ("hypothesis", "test", "prediction")
+        )
+        if hypothesis:
+            self.port.save_experiment(Experiment(day, hypothesis, test, prediction))
+            data["experiment"] = {"hypothesis": hypothesis, "test": test, "prediction": prediction}
 
     def apply_reflection(
         self, request: ModelRequest, response: ModelResponse, clock: Clock, day: int
@@ -565,6 +668,8 @@ class Memory:
         }
         if plan:
             data["plan"] = plan
+        if self.settings.experiments:
+            self._experiment(given, day, data)
         self._events.insert(
             len(self._events) - len(changes),
             {"type": "campsverso.memory.reflected.v1", "data": data},

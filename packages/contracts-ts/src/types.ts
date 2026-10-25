@@ -1236,6 +1236,18 @@ export interface MemoryReflectedV1 {
     total: number;
   };
   /**
+   * O experimento que a reflexão propôs para o dia seguinte (ADR-0070).
+   */
+  experiment?: {
+    hypothesis: string;
+    test: string;
+    prediction: string;
+  };
+  /**
+   * O veredito da reflexão sobre o experimento da noite anterior (ADR-0070).
+   */
+  experiment_result?: "cumpriu" | "falhou" | "inconclusivo";
+  /**
    * Hash do pedido da reflexão, o mesmo do llm.call.completed.
    */
   prompt_sha256?: string;

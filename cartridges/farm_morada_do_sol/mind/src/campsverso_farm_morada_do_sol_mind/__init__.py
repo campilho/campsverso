@@ -19,6 +19,8 @@ def load() -> Mind:
         card=card,
         notes=NOTES.read_text(encoding="utf-8"),
         tools=load_tools(TOOLS),
+        field_notebook=True,  # o caderno de campo e o experimento da noite (ADR-0070)
+        experiments=True,
     )
 
 

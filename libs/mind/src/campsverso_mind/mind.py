@@ -43,6 +43,9 @@ class Mind:
     card: str  # o cartão de identidade: quem é o avatar e o que quer
     notes: str  # as notas do mundo: o que um recém-chegado saberia
     tools: tuple[ToolDef, ...]
+    # O caderno de campo e o experimento da noite (ADR-0070): a mente de cada cenário diz se os usa.
+    field_notebook: bool = False
+    experiments: bool = False
 
     def extend(self, *, card: str | None = None, notes: str | None = None) -> Mind:
         """Uma camada por cima (ADR-0031): o cenário troca o cartão, ou as notas, do gênero."""

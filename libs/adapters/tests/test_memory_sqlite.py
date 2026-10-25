@@ -1,9 +1,19 @@
 """A memória em SQLite (ADR-0060): registrar, lembrar, refletir, e sobreviver a um reinício."""
 
+from dataclasses import replace
 from pathlib import Path
 
 from campsverso_adapters import SqliteMemory
-from campsverso_ports import BeliefRevision, Episode, Note, Place, Reflection
+from campsverso_ports import (
+    BeliefRevision,
+    Episode,
+    Experiment,
+    Meal,
+    Note,
+    Place,
+    Planting,
+    Reflection,
+)
 
 
 def episode(tick: int, text: str, importance: int, day: int = 1, kind: str = "x") -> Episode:
@@ -147,3 +157,22 @@ def test_lugares_lembrados_e_esquecidos_sobrevivem_a_um_reinicio(tmp_path: Path)
         4,
         (("crop", "null"),),
     )
+
+
+def test_o_caderno_de_campo_volta_ao_reabrir(tmp_path: Path) -> None:
+    # Os plantios, as refeições e os experimentos (ADR-0070), num arquivo que um processo reabre.
+    path = tmp_path / "camps.sqlite"
+    memory = SqliteMemory(path)
+    planting = Planting("plot-001", 130, 1, "rabanete", 3, 3)
+    memory.save_planting(planting)
+    memory.save_planting(replace(planting, watered_days=(1, 2), matured_day=3, outcome="colhida"))
+    memory.save_planting(Planting("plot-001", 2900, 3, "milho", 3, 3, previous="rabanete"))
+    memory.eat(Meal(110, 1, "rabanete", 70.0, 45.0))
+    memory.save_experiment(Experiment(1, "h", "t", "p"))
+    memory.save_experiment(Experiment(1, "h", "t", "p", result="cumpriu", result_day=2))
+    memory.close()
+    reopened = SqliteMemory(path)
+    first, second = reopened.plantings()
+    assert (first.watered_days, first.outcome, second.previous) == ((1, 2), "colhida", "rabanete")
+    assert reopened.meals() == [Meal(110, 1, "rabanete", 70.0, 45.0)]
+    assert reopened.experiments() == [Experiment(1, "h", "t", "p", "cumpriu", 2)]

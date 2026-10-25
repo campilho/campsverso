@@ -3,7 +3,8 @@
 Três operações sobre cinco tipos: episódios (o que o agente viu e fez, uma linha por vez, com
 importância), anotações (o que ele mesmo quis guardar), crenças (o que ele acredita, com
 confiança, evidências e origem), reflexões (o fechamento de um dia) e lugares (o último estado
-visto de cada coisa com posição, para lembrar o que saiu do raio de percepção; ADR-0067). A
+visto de cada coisa com posição, para lembrar o que saiu do raio de percepção; ADR-0067). O
+caderno de campo (ADR-0070) acrescenta os plantios, as refeições e os experimentos da noite. A
 porta não conhece o modelo nem o cartucho: quem transforma entregas em episódios e quem chama o
 modelo para refletir é a mente; aqui fica só o que persiste.
 """
@@ -87,6 +88,49 @@ class Place:
 
 
 @dataclass(frozen=True, slots=True)
+class Planting:
+    """Uma linha do caderno de campo (ADR-0070): um plantio, só com o que o avatar viu. A chave é
+    o canteiro e o tick do plantio."""
+
+    plot_id: str
+    tick: int  # quando plantou
+    day: int
+    crop: str
+    x: int | None = None
+    y: int | None = None
+    previous: str | None = None  # a cultura de antes no mesmo canteiro, pelo caderno
+    fertilized: bool = False
+    watered_days: tuple[int, ...] = ()  # os dias com rega (do regador ou da chuva)
+    matured_day: int | None = None
+    outcome: str | None = None  # colhida, comida, derrubada, murcha, sumiu
+    outcome_day: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class Meal:
+    """O que uma comida tirou de fome (ADR-0070): a fome antes e depois de comer."""
+
+    tick: int
+    day: int
+    item: str
+    hunger_before: float
+    hunger_after: float
+
+
+@dataclass(frozen=True, slots=True)
+class Experiment:
+    """O experimento que a reflexão propôs para o dia seguinte (ADR-0070), e o que a reflexão da
+    noite seguinte disse dele."""
+
+    day: int  # a noite em que foi proposto
+    hypothesis: str
+    test: str
+    prediction: str
+    result: str | None = None  # cumpriu, falhou ou inconclusivo
+    result_day: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class BeliefChange:
     """A diferença que uma reflexão fez numa crença; vira um evento `memory.belief.*`."""
 
@@ -131,6 +175,27 @@ class MemoryPort(Protocol):
 
     def forget(self, entity_ids: Sequence[str]) -> None:
         """Esquece o que deixou de existir, ou o que estava à vista e não estava mais lá."""
+        ...
+
+    # ------------------------------------------------------------- o caderno de campo
+    def save_planting(self, planting: Planting) -> None:
+        """Guarda um plantio, por cima do que havia com o mesmo canteiro e o mesmo tick."""
+        ...
+
+    def plantings(self) -> list[Planting]:
+        """Os plantios, do mais antigo ao mais recente."""
+        ...
+
+    def eat(self, meal: Meal) -> None: ...
+
+    def meals(self) -> list[Meal]: ...
+
+    def save_experiment(self, experiment: Experiment) -> None:
+        """Guarda um experimento, por cima do que havia da mesma noite."""
+        ...
+
+    def experiments(self) -> list[Experiment]:
+        """Os experimentos, do mais antigo ao mais recente."""
         ...
 
     # ------------------------------------------------------------- refletir
