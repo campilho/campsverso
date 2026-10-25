@@ -48,6 +48,13 @@ def test_estado_inicial_da_morada_do_sol() -> None:
     assert {"milho", "melancia", "mandioca", "couve", "tomate", "alho", "rabanete"} <= crops
 
 
+def test_a_fome_da_morada_sobe_2_por_hora_acordado() -> None:
+    # A calibragem do M19 (ADR-0070): o cenário troca o ritmo do gênero (3 por hora acordado).
+    fome = _farmer().core.definition.needs["fome"]
+    assert dict(fome.rates_per_hour) == {"awake": 2.0, "asleep": 1}
+    assert fome.initial == 0
+
+
 def test_o_canteiro_vazio_volta_a_ser_grama_e_o_numero_nao_se_repete() -> None:
     farmer = _farmer()
     farmer.walk(10, 19)

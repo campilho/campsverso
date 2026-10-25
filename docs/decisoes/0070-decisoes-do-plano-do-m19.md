@@ -50,6 +50,13 @@ A v0.2 não conseguiu medir o que mais interessava, aprender o mundo. As heurís
 14. **A rodada de verificação:** os scripts nos três mapas, de graça, e uma corrida de 28 dias do Haiku com o caderno, a prova e o juiz. Nem Opus nem Sonnet jogam neste marco: o Opus aparece só como juiz. *(Nota do usuário.)*
 15. **O CI roda o script 3 o ano inteiro** nos três mapas e sem a regra.
 
+## Durante a implementação (25/out)
+
+O script 3 mostrou que, na Morada do Sol com a economia do M18, ninguém comia direito: o script 2 passava 16 dos 28 dias com a fome em 100; com 400 moedas a mais no começo, perdia 327; e o oráculo, sabendo as regras, também passava fome nos mapas a e c. O freio é a comida: a fome comia quase metade do que 16 canteiros produziam, e a semente custa uns 40% da venda. Decisões do usuário:
+
+16. **A fome da Morada do Sol calibrada em 2 por hora acordado** (era 3), nos dados do cenário (`needs`), sem mudar as fazendas 1 e 2. Com 2, o oráculo atravessa o ano sem fome nos três mapas, e quem ainda aprende passa fome: a diferença é o valor de aprender (a tabela está na bíblia 3, §15).
+17. **As regras de sobrevivência são explícitas para todos:** comer cedo, separar os canteiros da comida (M) dos de vender (N), guardar comida para dois dias e não investir o dinheiro da semente da comida. Estão no manual da mente da Morada do Sol e na configuração do script 3 e do oráculo; o script 2 fica como era, a linha de base cega. Com moedas sobrando, o fazendeiro compara o custo das comidas e anota o que descobre dos pratos no caderno.
+
 ## Consequências
 
 - **O kernel ganha só a escolha do mapa pelo arquivo do mundo,** sem primitiva nova.

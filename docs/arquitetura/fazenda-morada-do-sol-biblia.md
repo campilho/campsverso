@@ -184,3 +184,14 @@ A caixa de vendas e o quiosque da Morada do Sol usam o mercado da `libs/economy`
 | A composteira | ao lado da casa; 3 unidades de uma colheita, ou de restos de planta, viram 1 adubo em 3 dias (`compost`) |
 | Os restos | limpar uma planta murcha deixa 1 `resto` no inventário |
 | Os produtos | não se comem; vendem-se na caixa, na feira e nas encomendas |
+
+## 15. A fome e as regras de sobrevivência (M19)
+
+Calibradas em 25/out/2026, no começo do script 3 (ADR-0070, decisões 16 e 17).
+
+| | |
+|---|---|
+| A fome | sobe 2 por hora acordado e 1 dormindo, uns 40 por dia (nas fazendas 1 e 2, 3 por hora: uns 56); o cenário troca o ritmo do gênero com a seção `needs` |
+| Por quê | com 3 por hora, nem quem sabe as regras ocultas comia direito: o script 2 passava 16 dos 28 dias com a fome em 100, e o oráculo, de 16 a 17 nos mapas a e c. Com 2, o oráculo atravessa o ano sem fome nos três mapas, e o script 3, que ainda aprende, passa de 10 a 12 dias com fome nos mapas a e c: a diferença é o valor de aprender |
+| As regras no manual | comer com a fome em 60; separar os canteiros da comida dos de vender (o rabanete na primavera mata uns 8 de fome por dia: uns 5 canteiros pagam o dia, 7 dão folga; na estação fraca da comida, o dobro); guardar comida para dois dias e não vendê-la; não investir o dinheiro da semente da próxima leva dos canteiros de comida; com moedas sobrando, comparar o custo das comidas e anotar o que se descobre dos pratos |
+| Quem segue | o script 3 e o oráculo, pelos números do manual; o fazendeiro LLM, pelo manual. O script 2 fica como era: é a linha de base cega das rodadas anteriores |

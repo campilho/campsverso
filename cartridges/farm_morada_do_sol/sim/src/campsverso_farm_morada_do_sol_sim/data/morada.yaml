@@ -9,6 +9,12 @@ year:  # o ano acelerado (ADR-0067): 28 dias simulados, 7 por estação, no hemi
   seasons: {primavera: "09-22", verao: "12-21", outono: "03-20", inverno: "06-21"}
   affinity: {boa: 1.0, fraca: 0.5, parada: 0.0}  # o ritmo de crescimento por nível
 
+# A fome no ano acelerado (ADR-0070, calibrada em 25/out): 2 por hora acordado, e não 3 como nas
+# fazendas 1 e 2. Com 3, nem quem sabe as regras ocultas comia direito; com 2, o oráculo atravessa
+# o ano sem passar fome em nenhum dos três mapas, e quem ainda não sabe passa (o valor de aprender).
+needs:
+  fome: {rates_per_hour: {awake: 2}}
+
 perception:
   radius: 12  # script e LLM veem 12 tiles em volta; a névoa na tela é do M17
   # As construções fixas se veem além do raio: quem mora na fazenda sabe onde ficam (ADR-0067).

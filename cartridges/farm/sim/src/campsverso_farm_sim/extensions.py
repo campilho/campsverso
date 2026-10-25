@@ -9,7 +9,7 @@ no arquivo do cenário não é ligado: a fazenda 1 não passa por aqui.
 from collections.abc import Mapping
 from typing import Any, cast
 
-from campsverso_cartridge_api import ItemDef, KindDef, WorldBuilder, YearDef
+from campsverso_cartridge_api import ItemDef, KindDef, NeedDef, WorldBuilder, YearDef
 from campsverso_farm_sim import config
 from campsverso_farm_sim.actions import ALL_ACTIONS, EXTRA_ACTIONS, INTERRUPTS
 from campsverso_farm_sim.cartridge import affordances, labels, metrics
@@ -70,6 +70,19 @@ def contribute_extensions(
                 weight=float(info.get("weight", 0.0)),
             ),
             override=kind in base_kinds,
+        )
+    for need, info in cast(Mapping[str, Mapping[str, Any]], data.get("needs", {})).items():
+        # O ritmo de uma necessidade no cenário, por cima do gênero (a fome da Morada, ADR-0070).
+        below = cast(Mapping[str, Any], base["needs"][need])
+        rates = {
+            **cast(Mapping[str, float], below["rates_per_hour"]),
+            **info.get("rates_per_hour", {}),
+        }
+        world.define_need(
+            NeedDef(
+                need, float(info.get("initial", below["initial"])), rates, role=below.get("role")
+            ),
+            override=True,
         )
     known = {action.name for action in ALL_ACTIONS} | set(lower.get("actions", {}))
     for name, numbers in cast(Mapping[str, Mapping[str, Any]], data.get("actions", {})).items():
