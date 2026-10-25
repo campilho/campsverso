@@ -90,6 +90,9 @@ class Notebook:
     storm_days: set[int] = field(default_factory=set[int])
     abandoned: set[str] = field(default_factory=set[str])
     seen: dict[str, int] = field(default_factory=dict[str, int])  # o dia em que viu cada canteiro
+    # A comida (nota do usuário, ADR-0070): a fome que cada coisa comida tirou, e a fome de agora.
+    meals: dict[str, list[float]] = field(default_factory=dict[str, list[float]])
+    hunger: float | None = None
     digs: int = 0
     plantings: int = 0  # os plantios feitos: a cada `test_every`, um canteiro de teste a mais
     pending_tests: int = 0
@@ -212,6 +215,11 @@ class Farmer3Script(Farmer2Script):
             book.fertilized.add(target)
         elif done and last["action"] == "clear" and target in book.active:
             self._close(book.active.pop(target), "murcha", day)
+        needs = cast(Mapping[str, float], view["self"]["needs"])
+        now = float(needs.get(str(self.config["needs"]["hunger"]), 0))
+        if done and last["action"] == "eat" and book.hunger is not None:
+            book.meals.setdefault(str(params.get("item")), []).append(book.hunger - now)
+        book.hunger = now
         visible = {str(e["entity_id"]): e for e in view["entities"] if e["kind"] == "plot"}
         for plot, planting in list(book.active.items()):
             seen = visible.get(plot)
@@ -575,6 +583,48 @@ class Turn3(Turn2):
     def hunger_of(self, crop: str) -> float:
         foods = cast(Mapping[str, Mapping[str, int]], self.c["foods"])
         return float(foods[crop]["hunger"]) if crop in foods else 0.0
+
+    def eat(self) -> Proposal | None:
+        """Come com a fome no limite do manual (60): primeiro o prato pronto (dura 2 dias), depois
+        o que custa menos por ponto de fome, o preço de venda dividido pela fome que tira (a
+        anotada no caderno, quando já comeu; senão a da tabela). Com 2 batatas, a sopa."""
+        if self.hunger < float(self.c["hunger_eat_at"]):
+            return None
+        dishes = [d for d in cast(Sequence[str], self.c["dishes"]) if self.mine(d) > 0]
+        if dishes:
+            return {"action": "eat", "params": {"item": dishes[0]}, "intent": f"comer {dishes[0]}"}
+        soup = cast(Mapping[str, Any], self.c["soup"])
+        stove = self.nearest(self.of_kind("stove"))
+        if stove is not None and all(
+            self.mine(i) >= q for i, q in cast(Mapping[str, int], soup["needs"]).items()
+        ):
+            recipe = str(soup["recipe"])
+            return self.at(
+                stove, "cook", f"cozinhar {recipe}", target=stove["entity_id"], recipe=recipe
+            )
+        foods = sorted(
+            cast(Mapping[str, Mapping[str, int]], self.c["foods"]),
+            key=lambda f: (self.food_cost(f), f),
+        )
+        held = [f for f in foods if self.mine(f) > 0]
+        if held:
+            return {"action": "eat", "params": {"item": held[0]}, "intent": f"comer {held[0]}"}
+        chest = self.nearest(self.of_kind("chest"))
+        if chest is None:
+            return None
+        stored = [f for f in foods if self.stock.get(str(chest["entity_id"]), {}).get(f, 0) > 0]
+        return (
+            None
+            if not stored
+            else self.at(chest, "withdraw", f"pegar {stored[0]}", item=stored[0], qty=1)
+        )
+
+    def food_cost(self, item: str) -> float:
+        """Moedas por ponto de fome: o que se deixa de vender para matar a fome."""
+        foods = cast(Mapping[str, Mapping[str, int]], self.c["foods"])
+        seen = self.book.meals.get(item)
+        killed = sum(seen) / len(seen) if seen else float(foods[item]["hunger"])
+        return float(foods[item]["sale"]) / max(1.0, killed)
 
     def _kiosk_today(self) -> bool:
         """Ainda dá para ir ao quiosque hoje."""
