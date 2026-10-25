@@ -1,0 +1,119 @@
+# A prova do mundo da Fazenda Morada do Sol (ADR-0070, decisão 12): perguntas fechadas sobre as
+# regras ocultas, com o gabarito da bíblia 3 (§8) e da bíblia 2 (§10). Fica fora do pacote da mente
+# e nunca entra no prompt durante a corrida: a arena a aplica antes (no dia 0, com a memória vazia:
+# o que o modelo supõe) e depois (no fim, com o bloco de abertura e o caderno). A nota é a diferença.
+#
+# Cada pergunta tem as opções, o gabarito (`answer`) e, quando dá, como ler a resposta de um
+# script no modelo dele (`script`): o efeito de um atributo (`effect`, com a opção quando o
+# intervalo de 90% fica acima de 1 e quando fica abaixo), o alcance (`reach`, a faixa mais longe
+# que ainda ajuda) ou as perdas (`loss`, longe e perto da porta, com e sem espantalho, e a opção
+# que a perda sustenta em `means`). Sem como ler, o script responde "não sei".
+
+unknown: nao_sei  # a opção "não sei" de todas as perguntas: vale zero, nem acerto nem erro
+
+questions:
+  - id: agua
+    text: >-
+      Dois canteiros de rabanete plantados no mesmo dia da primavera e regados igual: um a 2 tiles
+      da água (do rio ou de uma lagoa), o outro a 15 tiles. O que acontece?
+    options:
+      perto: o perto da água amadurece antes
+      longe: o longe da água amadurece antes
+      juntos: amadurecem juntos
+      nao_sei: não sei
+    answer: perto
+    script: {effect: [agua<=2, agua<=4], above: perto, below: longe}
+  - id: agua_alcance
+    text: Até que distância da água uma planta cresce diferente por estar perto dela?
+    options:
+      um: só no tile colado na água
+      quatro: até uns 4 tiles
+      dez: até uns 10 tiles
+      todo: em qualquer lugar, a distância não importa
+      nao_sei: não sei
+    answer: quatro
+    script: {reach: {agua<=2: um, agua<=4: quatro, agua<=8: dez, agua<=16: dez}}
+  - id: corvos_longe
+    text: >-
+      Uma planta madura passa a noite num canteiro a 30 tiles da porta de casa, sem nada por perto.
+      O que pode acontecer de manhã?
+    options:
+      nada: nada de diferente
+      comida: pode amanhecer comida por bicho
+      murcha: murcha
+      cresce: cresce mais
+      nao_sei: não sei
+    answer: comida
+    script: {loss: far, means: comida}
+  - id: corvos_perto
+    text: E se o mesmo canteiro ficasse a 5 tiles da porta?
+    options:
+      igual: o mesmo risco
+      sem_risco: não corre esse risco
+      maior: um risco maior
+      nao_sei: não sei
+    answer: sem_risco
+    script: {loss: near, means: sem_risco}
+  - id: espantalho
+    text: Até que distância um espantalho fincado protege as plantas?
+    options:
+      lado: só os tiles ao lado dele
+      seis: uns 6 tiles em volta
+      vinte: uns 20 tiles em volta
+      mapa: a fazenda inteira
+      nao_sei: não sei
+    answer: seis
+    script: {loss: guard, bands: {0: lado, 1: seis}}
+  - id: fadiga
+    text: >-
+      Você colhe rabanete num canteiro e planta rabanete de novo nele. Comparado com um rabanete
+      plantado num canteiro em que antes havia outra cultura, como ele cresce?
+    options:
+      devagar: mais devagar
+      rapido: mais rápido
+      igual: igual
+      nao_sei: não sei
+    answer: devagar
+    script: {effect: [repetida], above: rapido, below: devagar}
+  - id: reputacao
+    text: Você aceita e entrega vários pedidos do quadro no prazo. O que acontece com o quadro?
+    options:
+      mais: aparecem mais pedidos, e pagando mais
+      nada: nada muda
+      menos: aparecem menos pedidos
+      nao_sei: não sei
+    answer: mais
+  - id: tomate
+    text: Um tomate passa um dia inteiro sem rega e sem chuva. O que acontece com ele?
+    options:
+      murcha: murcha
+      para: só deixa de crescer naquele dia, como as outras plantas
+      igual: cresce igual
+      nao_sei: não sei
+    answer: murcha
+  - id: alho
+    text: Um alho fica dias sem rega e sem chuva. O que acontece com ele?
+    options:
+      cresce: cresce do mesmo jeito
+      para: deixa de crescer nos dias sem rega
+      murcha: murcha em dois dias, como as outras
+      nao_sei: não sei
+    answer: cresce
+  - id: bau
+    text: >-
+      Rabanetes colhidos no mesmo dia: uns guardados no baú, outros no seu inventário. Quais
+      estragam primeiro?
+    options:
+      inventario: os do inventário
+      bau: os do baú
+      juntos: estragam juntos
+      nao_sei: não sei
+    answer: inventario
+  - id: ensopado
+    text: Comparado com comer os ingredientes crus, o que o ensopado faz com a fome?
+    options:
+      segura: segura a fome por mais tempo
+      menos: tira menos fome
+      igual: o mesmo que os ingredientes
+      nao_sei: não sei
+    answer: segura

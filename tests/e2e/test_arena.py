@@ -32,6 +32,8 @@ async def test_a_corrida_do_script_grava_a_pasta(tmp_path: Path) -> None:
         "model": "claude-haiku-5-5",
         "days": None,
         "limits": None,
+        "script": None,
+        "map": None,
     }
     assert result["totals"]["days"] == 2
     assert (result["calls"], result["gave_up"], result["aborted_day"]) == (0, False, None)

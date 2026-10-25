@@ -344,6 +344,7 @@ class Run:
     beliefs: list[dict[str, Any]]
     leaks: tuple[int, int] | None = None  # reflexões com marcação no resumo, de quantas (a fita)
     exploration: Exploration | None = None  # as métricas de exploração (ADR-0070)
+    exam: dict[str, Any] | None = None  # a prova do mundo (ADR-0070): o gabarito e as respostas
 
     @property
     def spec(self) -> dict[str, Any]:
@@ -403,6 +404,15 @@ def load_run(folder: Path) -> Run:
         beliefs_at_end(envelopes),
         reflection_leaks(folder / "llm.jsonl"),
         explore(envelopes),
+        _exam(folder / "prova.json"),
+    )
+
+
+def _exam(path: Path) -> dict[str, Any] | None:
+    return (
+        cast(dict[str, Any], json.loads(path.read_text(encoding="utf-8")))
+        if path.is_file()
+        else None
     )
 
 
@@ -866,6 +876,7 @@ def render(runs: Sequence[Run], *, source: str, date: str) -> str:
         ] or ["- nenhuma"]
         lines.append("")
     lines += _exploration_section(runs)
+    lines += _exam_section(runs)
     lines += _coins_section(runs)
     lines += _harvests_section(runs)
     lines += ["## Os arquivos", ""]
@@ -873,6 +884,64 @@ def render(runs: Sequence[Run], *, source: str, date: str) -> str:
         files = ", ".join(f"`{p.name}`" for p in sorted(r.folder.iterdir()) if p.is_file())
         lines.append(f"- **{r.name}**: `{source}/{r.name}/` com {files}")
     return "\n".join(lines) + "\n"
+
+
+UNKNOWN = "nao_sei"  # a opção "não sei" da prova
+
+
+type Taken = Mapping[str, Any] | None  # uma prova feita (a nota e as respostas), ou nenhuma
+
+
+def _answer(question: str, key: str) -> Callable[[Taken], str]:
+    def show(taken: Taken) -> str:
+        if taken is None:
+            return EMPTY
+        given = str(cast(Mapping[str, Any], taken.get("answers") or {}).get(question, UNKNOWN))
+        if given == UNKNOWN:
+            return "não sei"
+        return f"{given} {'✓' if given == key else '✗'}"
+
+    return show
+
+
+def _score(taken: Taken) -> str:
+    return EMPTY if taken is None else f"{taken['right']} / {taken['wrong']} / {taken['unknown']}"
+
+
+def _exam_section(runs: Sequence[Run]) -> list[str]:
+    """A prova do mundo (ADR-0070): a mente antes e depois, o script no modelo dele."""
+    exams = [r.exam for r in runs if r.exam is not None]
+    if not exams:
+        return []
+    key = cast(Mapping[str, str], exams[0]["key"])
+
+    def cell(r: Run, show: Callable[[Taken], str]) -> str:
+        if r.exam is None:
+            return EMPTY
+        before, after = cast(Taken, r.exam.get("before")), cast(Taken, r.exam.get("after"))
+        return show(after) if before is None else f"{show(before)} → {show(after)}"
+
+    def cost(r: Run) -> str:
+        taken = [cast(Mapping[str, Any], (r.exam or {}).get(w) or {}) for w in ("before", "after")]
+        total = sum(float(t.get("cost_usd", 0)) for t in taken)
+        return _n(total, 4) if total else EMPTY
+
+    rows = [[q, a, *(cell(r, _answer(q, a)) for r in runs)] for q, a in key.items()]
+    rows.append(["Acertos / erros / não sei", "", *(cell(r, _score) for r in runs)])
+    rows.append(["Custo da prova (US$)", "", *(cost(r) for r in runs)])
+    return [
+        "## A prova do mundo",
+        "",
+        'Perguntas fechadas sobre as regras ocultas, com "não sei" (que não conta contra). A '
+        "mente faz a prova antes de o mundo começar, com a memória vazia (o que o modelo supõe), "
+        "e no fim, com o que lembra: antes → depois. O script 3 e o oráculo não respondem: o "
+        "avaliador lê a crença deles e escolhe a opção que ela sustenta, só nas perguntas que o "
+        "modelo deles cobre; o oráculo, com a verdade no lugar da crença, confere o gabarito. As "
+        "perguntas e o gabarito ficam em `cartridges/<cartucho>/eval/prova.yaml`.",
+        "",
+        _table(["Pergunta", "Gabarito", *(r.name for r in runs)], rows),
+        "",
+    ]
 
 
 def _exploration_section(runs: Sequence[Run]) -> list[str]:

@@ -31,6 +31,7 @@ from campsverso_budget.service import BudgetService
 from campsverso_cartridge_api import ControllerRef
 from campsverso_controller_runner.replay import Recorded, ReplayRunner
 from campsverso_controller_runner.runner import (
+    Controller,
     ControllerRunner,
     SimTime,
     load_controller,
@@ -119,9 +120,11 @@ class Pipeline:
         )
         self.runner: ControllerRunner | ReplayRunner | None = None
         self.mind: LlmController | None = None
+        self.script: Controller | None = None  # o fazendeiro-script (a prova lê o modelo dele)
         self.guard: BudgetService | None = None
         if controller == "script":
             farmer = load_controller(script)
+            self.script = farmer
             # O avatar nasce com o script do cartucho; outro script (o 3, o oráculo) pede a posse.
             core.configure_controllers({"camps": ControllerRef("script", farmer.controller_id)})
             self.runner = ControllerRunner(

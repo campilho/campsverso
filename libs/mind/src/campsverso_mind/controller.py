@@ -94,6 +94,15 @@ class LlmController:
     def system(self) -> list[dict[str, Any]]:
         return [dict(b) for b in self._system]
 
+    @property
+    def model(self) -> str:
+        return self._model
+
+    @property
+    def identity(self) -> str:
+        """O cartão e as notas do mundo, sem as instruções do jogo (a prova, ADR-0070)."""
+        return self._identity
+
     def observe(self, delivery: Mapping[str, Any]) -> None:
         """Uma entrega que não pede chamada (pedido superado): só entra na janela."""
         self.window.observe(delivery)

@@ -31,6 +31,7 @@ from campsverso_ports import MemoryPort, ModelPort
 from campsverso_testkit.fita import LIMITS, summary
 from campsverso_testkit.nats_server import REPO
 from campsverso_testkit.pipeline import MODEL, DeadlockError, Pipeline
+from campsverso_testkit.prova import exam_of, examine
 from campsverso_tools.arena import east_signals
 from campsverso_tools.metrics import compute, table
 
@@ -54,6 +55,8 @@ class Spec:
     model: str = MODEL
     days: int | None = None  # os dias da corrida (a rodada da Boa Vista); sem isto, os de --days
     limits: BudgetLimits | None = None  # o teto da corrida; sem isto, o do Haiku (LIMITS)
+    script: str | None = None  # o fazendeiro-script; sem isto, o do cartucho (ADR-0070)
+    map: str | None = None  # a variante do mapa (ADR-0070); sem isto, o mapa de hoje
 
 
 SPECS: tuple[Spec, ...] = (
@@ -105,11 +108,13 @@ async def run_spec(
 ) -> dict[str, Any]:
     """Roda uma corrida e grava a pasta dela: `summary.json` (o resumo, o `spec`, os totais da
     bíblia e os sinais do leste ou do rio), `metrics.txt`, `archive.jsonl` e, com modelo,
-    `llm.jsonl` (a fita inteira) e `memory.sqlite`. Devolve o resumo. Se a mente desistir (três
-    falhas seguidas), a corrida para no dia em que isso aconteceu, marcado em `aborted_day`; se
-    bater no teto de orçamento, idem, em `budget_day`. `port` troca a API por uma porta falsa
-    (só os testes). O `archive.jsonl` cresce a cada dia simulado, e o `estado.json` diz o dia e se
-    a corrida terminou: é o que o modo de assistir lê ao vivo (ADR-0068)."""
+    `llm.jsonl` (a fita inteira) e `memory.sqlite`; no mundo com prova (ADR-0070), `prova.json`,
+    com a prova da mente antes e depois, ou a do script 3 no fim. Devolve o resumo. Se a mente
+    desistir (três falhas seguidas), a corrida para no dia em que isso aconteceu, marcado em
+    `aborted_day`; se bater no teto de orçamento, idem, em `budget_day`. `port` troca a API por
+    uma porta falsa (só os testes). O `archive.jsonl` cresce a cada dia simulado, e o
+    `estado.json` diz o dia e se a corrida terminou: é o que o modo de assistir lê ao vivo
+    (ADR-0068)."""
     out.mkdir(parents=True, exist_ok=True)
     log = out / "progresso.txt"
     archive = out / "archive.jsonl"
@@ -144,7 +149,13 @@ async def run_spec(
         memory=notebook,
         cartridge=spec.cartridge,
         model=spec.model,
+        map_variant=spec.map,
+        script=spec.script,
     )
+    exam = exam_of(spec.cartridge)
+    prova: dict[str, Any] = {}  # a prova do mundo (ADR-0070): antes, com a memória vazia
+    if exam is not None and (taken := await examine(pipeline, exam, port)) is not None:
+        prova["before"] = taken
     started = datetime.now(UTC)
     _say(
         f"{spec.name}: {days} dia(s), {spec.controller}, memória "
@@ -186,6 +197,8 @@ async def run_spec(
             budget_day = day
             _say(f"{spec.name}: bateu no teto de orçamento no dia {day}; a corrida para aqui", log)
             break
+    if exam is not None and (taken := await examine(pipeline, exam, port, end=True)) is not None:
+        prova["after"] = taken  # e no fim, com o bloco de abertura e o caderno
     if api is not None:
         await api.aclose()  # antes de o laço desta corrida fechar
     report = compute(pipeline.envelopes)
@@ -198,6 +211,15 @@ async def run_spec(
         "totals": report.totals(),
         "east": east_signals(pipeline.envelopes),
     }
+    if exam is not None and prova:  # a nota no resumo; o gabarito e as respostas em prova.json
+        result["prova"] = {
+            when: {k: v for k, v in taken.items() if k != "answers"}
+            for when, taken in prova.items()
+        }
+        key = {q.id: q.answer for q in exam.questions}
+        (out / "prova.json").write_text(
+            json.dumps({"key": key, **prova}, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
     (out / "summary.json").write_text(
         json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
     )

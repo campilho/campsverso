@@ -341,6 +341,7 @@ class Memory:
         self.attempts: dict[int, int] = {}  # tentativas de reflexão por dia; o teto evita o laço
         self.fresh = False  # há uma reflexão nova que a próxima entrega precisa mostrar
         self.in_view: set[str] = set()  # o que a última entrega mostrou (ADR-0067)
+        self.clock: Clock | None = None  # o relógio da última entrega (a prova do fim, ADR-0070)
         self.notebook = FieldNotebook(port, avatar_id, self.settings.hunger_need)
 
     def adopt(self, mind: Mind) -> None:
@@ -406,6 +407,7 @@ class Memory:
         """O que aconteceu desde a última entrega vira episódios; a foto não (é estado). As coisas
         vistas viram lugares lembrados (ADR-0067)."""
         clock = clock_of(delivery)
+        self.clock = clock
         self._places(clock, delivery)
         if self.settings.field_notebook:
             places = {p.entity_id: p for p in self.port.places()}

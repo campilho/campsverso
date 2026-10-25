@@ -361,3 +361,46 @@ def test_as_heuristicas_da_boa_vista_nao_confundem_lucro_nem_rotina() -> None:
     assert east["rules"]["tomate"] == {"first_note": None, "first_belief": None}
     assert east["rules"]["bau"]["first_note"] is None
     assert east["rules"]["bau"]["first_belief"]["belief_id"] == "bel-0002"
+
+
+# ----------------------------------------------------------------- a prova do mundo (ADR-0070)
+
+
+def test_o_relatorio_mostra_a_prova_antes_e_depois(tmp_path: Path) -> None:
+    arena = tmp_path / "20261025-2000"
+    quiet = [
+        ev(0, "world.session.started.v1", tick_seconds=60),
+        ev(0, "world.item.created.v1", item="moeda", qty=100, container_id="camps"),
+        ev(1440, "world.clock.phase_changed.v1"),
+    ]
+    llm = {"name": "haiku-memoria", "controller": "llm", "memory": True, "seed": 1}
+    _run(arena, "haiku-memoria", llm, quiet)
+    _run(arena, "script3", {"name": "script3", "controller": "script", "seed": 1}, quiet)
+    _run(arena, "script2", {"name": "script2", "controller": "script", "seed": 1}, quiet)
+    key = {"agua": "perto", "fadiga": "devagar"}
+
+    def taken(answers: dict[str, str], right: int, wrong: int, cost: float = 0.0) -> Any:
+        unknown = len(key) - right - wrong
+        return {"right": right, "wrong": wrong, "unknown": unknown, "answers": answers} | (
+            {"cost_usd": cost} if cost else {}
+        )
+
+    exams = {
+        "haiku-memoria": {
+            "key": key,
+            "before": taken({"agua": "longe", "fadiga": "nao_sei"}, 0, 1, 0.002),
+            "after": taken({"agua": "perto", "fadiga": "devagar"}, 2, 0, 0.003),
+        },
+        "script3": {"key": key, "after": taken({"agua": "nao_sei", "fadiga": "devagar"}, 1, 0)},
+    }
+    for name, exam in exams.items():
+        (arena / name / "prova.json").write_text(json.dumps(exam), encoding="utf-8")
+    out = tmp_path / "relatorio.md"
+    assert main([str(arena), "--out", str(out)]) == 0
+    text = out.read_text(encoding="utf-8")
+    assert "## A prova do mundo" in text
+    assert "| Pergunta | Gabarito | script2 | haiku-memoria | script3 |" in text
+    assert "| agua | perto | - | longe ✗ → perto ✓ | não sei |" in text  # o script 2 não tem prova
+    assert "| fadiga | devagar | - | não sei → devagar ✓ | devagar ✓ |" in text
+    assert "| Acertos / erros / não sei |  | - | 0 / 1 / 1 → 2 / 0 / 0 | 1 / 0 / 1 |" in text
+    assert "| Custo da prova (US$) |  | - | 0,0050 | - |" in text
