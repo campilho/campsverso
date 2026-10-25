@@ -271,6 +271,14 @@ class Player:
         )
 
 
+def _holder(player: Player) -> str | None:
+    """Quem controla o Camps; `None` enquanto o estado ainda não trouxe os controladores (o CI
+    de 25/out viu a boas-vindas chegar antes deles)."""
+    controllers: dict[str, Any] = player.state.get("controllers") or {}
+    camps: dict[str, Any] = controllers.get("camps") or {}
+    return camps.get("type")
+
+
 def _forged_script_command() -> Message:
     """Um comando do script enquanto o humano tem a posse: o kernel recusa (not_in_control)."""
     return {
@@ -306,7 +314,7 @@ async def test_a9_humano_joga_pela_ui_e_devolve(tmp_path: Path, nats: NatsServer
             await player.start()
             assert player.state["session"]["affordances"]
             await player.ask(POSSESS, {"avatar_id": "camps"})
-            await player.until(lambda p: p.state["controllers"]["camps"]["type"] == "human")
+            await player.until(lambda p: _holder(p) == "human")
             # O trabalho que o script deixou em andamento não se cancela (ADR-0052): espera acabar.
             await player.until(lambda p: "camps" not in p.state["actions"])
 
@@ -343,7 +351,7 @@ async def test_a9_humano_joga_pela_ui_e_devolve(tmp_path: Path, nats: NatsServer
 
             mark = len(player.events)
             await player.ask(RELEASE, {"avatar_id": "camps"})
-            await player.until(lambda p: p.state["controllers"]["camps"]["type"] == "script")
+            await player.until(lambda p: _holder(p) == "script")
             await player.until(lambda p: p.saw("action.accepted.v1", mark))  # o script voltou
     finally:
         processes.stop("kernel")
