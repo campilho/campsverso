@@ -23,7 +23,7 @@ def document(core: KernelCore, version: Mapping[str, Any], next_seq: int) -> dic
     """`next_seq` é o primeiro seq depois do snapshot (o próprio aviso de snapshot já conta)."""
     state = core.export_state()
     state["next_seq"] = next_seq
-    return {
+    doc: dict[str, Any] = {
         "format": FORMAT,
         "worldid": core.config.worldid,
         "seed": core.config.seed,
@@ -31,6 +31,9 @@ def document(core: KernelCore, version: Mapping[str, Any], next_seq: int) -> dic
         "version": dict(version),
         "state": state,
     }
+    if core.config.map is not None:  # só quem tem variante: os snapshots de antes não mudam
+        doc["map"] = core.config.map
+    return doc
 
 
 def encode(doc: Mapping[str, Any]) -> bytes:
@@ -46,12 +49,12 @@ def decode(data: bytes) -> dict[str, Any]:
 
 def restore(definition: WorldDefinition, config: WorldConfig, doc: Mapping[str, Any]) -> KernelCore:
     """Núcleo montado a partir dos cartuchos, com o estado do snapshot por cima."""
-    expected = (config.worldid, config.seed, config.start.isoformat())
-    found = (doc["worldid"], doc["seed"], doc["start"])
+    expected = (config.worldid, config.seed, config.start.isoformat(), config.map)
+    found = (doc["worldid"], doc["seed"], doc["start"], doc.get("map"))
     if found != expected:
         raise SnapshotError(
             f"o snapshot é do mundo {found}, mas a configuração diz {expected}; "
-            "um mundo existente não muda de id, seed nem data-base"
+            "um mundo existente não muda de id, seed, data-base nem mapa"
         )
     rules: Sequence[RuleConfig] = ()
     core = KernelCore(definition, config, rules, rules_source="snapshot")

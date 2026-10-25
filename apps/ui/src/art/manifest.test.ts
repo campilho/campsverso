@@ -11,6 +11,7 @@ import {
   rooted,
   shadeOf,
   tileLook,
+  visualMapFor,
   weatherEffect,
   type ArtManifest,
 } from "./manifest.ts";
@@ -60,6 +61,18 @@ describe("manifesto de arte (ADR-0053)", () => {
     expect(art.visual_map).toBe("/content/art/farm_camps/map-visual.tmj");
     expect(art.credits).toBe("/content/art/farm_camps/CREDITS.csv");
     expect(art.kinds?.plot?.variants).toHaveLength(2);
+  });
+
+  it("cada variante do mapa tem o seu mapa visual, pelo id do mapa (ADR-0070)", () => {
+    const morada: ArtManifest = {
+      version: 1,
+      visual_map: "map-visual.tmj",
+      visual_maps: { "farm_morada_do_sol-b": "map-visual-b.tmj" },
+    };
+    const art = mergeManifests([rooted(GENRE, "/content/art/farm"), rooted(morada, "/content/art/farm_morada_do_sol")]);
+    expect(visualMapFor(art, "farm_morada_do_sol-b")).toBe("/content/art/farm_morada_do_sol/map-visual-b.tmj");
+    expect(visualMapFor(art, "farm_morada_do_sol")).toBe("/content/art/farm_morada_do_sol/map-visual.tmj");
+    expect(visualMapFor(art, undefined)).toBe("/content/art/farm_morada_do_sol/map-visual.tmj");
   });
 
   it("a aparência sai da variante que bate, com as sobreposições por cima", () => {

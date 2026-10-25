@@ -47,6 +47,16 @@ def test_mundo_da_fazenda() -> None:
     assert camps.cassette_mode == "record"
 
 
+def test_as_variantes_do_mapa_da_morada_do_sol() -> None:
+    worlds = REPO / "config" / "worlds"
+    base = load_world(worlds / "farm-morada-do-sol-01.yaml", root=REPO)
+    assert base.map is None  # o mapa do cartucho
+    for number, variant in (("02", "b"), ("03", "c")):  # ADR-0070
+        world = load_world(worlds / f"farm-morada-do-sol-{number}.yaml", root=REPO)
+        assert (world.cartridge, world.map, world.seed) == (base.cartridge, variant, base.seed)
+        assert world.worldid == f"farm-morada-do-sol-{number}"
+
+
 def test_unidades() -> None:
     assert duration_seconds("30d") == 30 * 86400
     assert size_bytes("256MiB") == 256 * 1024 * 1024

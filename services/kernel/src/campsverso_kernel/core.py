@@ -63,6 +63,7 @@ class WorldConfig:
     worldid: str
     seed: int
     start: datetime  # data-base do calendário, com fuso (ADR-0038)
+    map: str | None = None  # a variante do mapa (ADR-0070); None: o mapa do cartucho
 
 
 class KernelCore:

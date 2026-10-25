@@ -1,5 +1,6 @@
 """Montagem do mundo a partir da cadeia de cartuchos (ADR-0031, ADR-0036)."""
 
+import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, cast
@@ -28,6 +29,8 @@ from campsverso_kernel.pipeline import DEFAULT_STAGES
 from campsverso_kernel.space import GridMap
 
 KERNEL_ACTIONS = frozenset({"move", "wait"})  # física do espaço e do tempo (ADR-0038)
+# O nome de uma variante entra no id do mapa (`farm_morada_do_sol-b`), que o contrato limita.
+MAP_VARIANT = re.compile(r"[a-z0-9_]{1,16}")
 
 
 @dataclass(frozen=True)
@@ -111,6 +114,7 @@ class DefinitionBuilder:
     systems: dict[str, SystemSpec] = field(default_factory=dict[str, SystemSpec])
     rule_impls: dict[str, RuleImpl] = field(default_factory=dict[str, RuleImpl])
     tiled: Mapping[str, Any] | None = None
+    map_variants: dict[str, Mapping[str, Any]] = field(default_factory=dict[str, Mapping[str, Any]])
     spawns: dict[str, SpawnDef] = field(default_factory=dict[str, SpawnDef])
     avatars: dict[str, AvatarDef] = field(default_factory=dict[str, AvatarDef])
     initial_items: list[tuple[str, str, int]] = field(default_factory=list[tuple[str, str, int]])
@@ -203,6 +207,11 @@ class DefinitionBuilder:
     def set_map(self, tiled: Mapping[str, Any]) -> None:
         self.tiled = tiled
 
+    def add_map_variant(self, name: str, tiled: Mapping[str, Any]) -> None:
+        if not MAP_VARIANT.fullmatch(name):
+            raise DefinitionError(f"nome de variante do mapa inválido: {name!r}")
+        self.map_variants[name] = tiled
+
     def spawn(self, entity: SpawnDef, *, override: bool = False) -> None:
         _register(self.spawns, entity.entity_id, entity, override=override, what="entidade")
 
@@ -242,12 +251,23 @@ class DefinitionBuilder:
                 )
         return tuple(self.affordances)
 
-    def build(self, chain: Sequence[CartridgeManifest]) -> WorldDefinition:
+    def build(
+        self, chain: Sequence[CartridgeManifest], map_variant: str | None = None
+    ) -> WorldDefinition:
+        """`map_variant` troca o mapa pela variante com esse nome (ADR-0070)."""
         if self.clock is None:
             raise DefinitionError("nenhuma camada configurou o relógio")
-        if self.tiled is None:
+        tiled, map_id = self.tiled, chain[-1].id
+        if map_variant is not None:
+            if map_variant not in self.map_variants:
+                known = ", ".join(sorted(self.map_variants)) or "nenhuma"
+                raise DefinitionError(
+                    f"o cartucho {map_id!r} não tem a variante de mapa {map_variant!r} ({known})"
+                )
+            tiled, map_id = self.map_variants[map_variant], f"{map_id}-{map_variant}"
+        if tiled is None:
             raise DefinitionError("nenhuma camada definiu o mapa")
-        grid = GridMap.from_tiled(self.tiled, chain[-1].id)
+        grid = GridMap.from_tiled(tiled, map_id)
         for obj in grid.objects:  # objetos nomeados do mapa viram entidades
             self.spawn(
                 SpawnDef(

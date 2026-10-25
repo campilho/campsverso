@@ -2,6 +2,10 @@
   "version": 1,
   "credits": "CREDITS.csv",
   "visual_map": "map-visual.tmj",
+  "visual_maps": {
+    "farm_morada_do_sol-b": "map-visual-b.tmj",
+    "farm_morada_do_sol-c": "map-visual-c.tmj"
+  },
   "kinds": {
     "scarecrow": {
       "sheet": "morada-objects",

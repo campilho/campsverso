@@ -22,7 +22,7 @@ NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR BUDGET MIND
 
 .DEFAULT_GOAL := help
 .PHONY: help setup contracts check lint fmt types test arch contracts-check compat \
-        up stop run ui ui-build sandbox soak replay metrics ui-e2e mapa-visual sessoes tools secrets fita corrida \
+        up stop run ui ui-build sandbox soak replay metrics ui-e2e mapa-visual mapa-variantes sessoes tools secrets fita corrida \
         arena arena-report arena-humano assistir
 
 help: ## lista os alvos
@@ -166,6 +166,9 @@ llm-smoke: ## uma chamada real pela porta de modelo, medida e publicada pelo con
 
 ui-e2e: tools ui-build ## a tela no navegador (Playwright): a fazenda 1 (8799), a Morada do Sol (8798) e a arena (8797) [MUNDO=farm-boavista-01]
 	pnpm --filter @campsverso/ui exec playwright test
+
+mapa-variantes: ## regrava as variantes do mapa da Morada do Sol a partir das receitas (ADR-0070); depois, make mapa-visual
+	$(PY) python -m campsverso_tools.map_variants
 
 mapa-visual: ## regrava o mapa visual da fazenda a partir do mapa lógico (ADR-0053)
 	$(PY) python -m campsverso_tools.visual_map

@@ -57,7 +57,7 @@ Cada variante é uma receita curta num arquivo do cartucho: onde passa a água, 
 | Variante | A água | O que ela pergunta |
 |---|---|---|
 | **a — o rio** | a de hoje: a lagoa no morro, na linha dos corvos, e o rio na borda leste | a terra boa fica longe e no caminho dos corvos: rende com espantalho |
-| **b — o córrego** | um córrego de norte a sul a uns 14 tiles da porta; a estrada passa por cima dele, numa ponte. Sem rio e sem lagoa | a terra boa fica perto e a salvo dos corvos, e começa a 2 tiles do poço, onde o script 2 cava: quem não testa passa raspando |
+| **b — o córrego** | um córrego de norte a sul a uns 14 tiles da porta; a estrada passa por cima dele, numa ponte. Sem rio e sem lagoa | a terra boa fica perto, a maior parte a salvo dos corvos, e começa a 3 tiles do poço, onde o script 2 cava: quem não testa passa raspando |
 | **c — as lagoas** | três lagoas pequenas, no morro, na clareira e a leste, todas a mais de 22 tiles da porta; sem rio | a terra boa só existe longe: sem espantalho, metade das maduras vira comida de corvo |
 | **d — reservada** | desenhada só no M21, com outra receita | nunca entra nos testes do script 3: prova que ele não decorou os três mapas |
 

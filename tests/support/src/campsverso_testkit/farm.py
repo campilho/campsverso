@@ -29,14 +29,19 @@ def rules(*, river_bonus: bool = True, cartridge: str = "farm_camps") -> tuple[R
 
 
 def make_core(
-    seed: int = 20261010, *, river_bonus: bool = True, cartridge: str = "farm_camps"
+    seed: int = 20261010,
+    *,
+    river_bonus: bool = True,
+    cartridge: str = "farm_camps",
+    map_variant: str | None = None,
 ) -> KernelCore:
-    """A Fazenda do Camps por padrão; `cartridge="farm_boavista"` monta a Fazenda Boa Vista."""
-    definition = build_world(cartridge)
+    """A Fazenda do Camps por padrão; `cartridge="farm_boavista"` monta a Fazenda Boa Vista, e
+    `map_variant` escolhe uma variante do mapa do cenário (ADR-0070)."""
+    definition = build_world(cartridge, map_variant=map_variant)
     world = WORLD if cartridge == "farm_camps" else f"{cartridge.replace('_', '-')}-01"
     core = KernelCore(
         definition,
-        WorldConfig(world, seed, START),
+        WorldConfig(world, seed, START, map_variant),
         rules(river_bonus=river_bonus, cartridge=cartridge),
         "test",
     )

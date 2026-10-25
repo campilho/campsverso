@@ -18,6 +18,7 @@ import {
   seasonTint,
   shadeOf,
   tileLook,
+  visualMapFor,
   weatherEffect,
   type ArtManifest,
   type AvatarArt,
@@ -39,7 +40,8 @@ const SEEN_ALPHA = 0.5;
 const HAZE = [0.5, 0.22]; // o véu do anel de fora da vista e o do seguinte, em fração da névoa
 const LIGHT_RINGS = 20; // anéis da luz à noite, do mais largo ao mais estreito (sem degraus à vista)
 const FONT = "ui-monospace, monospace";
-const MAP_KEY = "visual-map";
+// Um mapa visual por endereço: as variantes do mapa (ADR-0070) têm cada uma o seu.
+const mapKey = (url: string): string => `visual-map:${url}`;
 // A tela mostra no máximo 32 × 18 tiles; um mapa maior (a Morada do Sol, ADR-0067) rola com a câmera.
 const VIEW = { width: 32, height: 18 };
 const DRAG = 6; // pixels de arrasto antes de virar arrastar, e não clique
@@ -240,6 +242,8 @@ class WorldScene extends Phaser.Scene {
   private fog = new FogMemory();
   private fogDrawn = false;
   private visual: Phaser.Tilemaps.Tilemap | undefined;
+  private mapId: string | undefined; // o id do mapa do `session.started`, que escolhe o mapa visual
+  private visualUrl: string | undefined; // o endereço do mapa visual desenhado agora
   private ground: Phaser.Tilemaps.TilemapLayer | Phaser.Tilemaps.TilemapGPULayer | undefined;
   private tinted: string | undefined;
   private season: string | undefined; // a estação já desenhada nas folhas do mapa visual
@@ -279,8 +283,9 @@ class WorldScene extends Phaser.Scene {
         pending = true;
       }
     }
-    if (this.art.visual_map !== undefined && !this.cache.tilemap.exists(MAP_KEY)) {
-      this.load.tilemapTiledJSON(MAP_KEY, this.art.visual_map);
+    const url = visualMapFor(this.art, this.mapId);
+    if (url !== undefined && !this.cache.tilemap.exists(mapKey(url))) {
+      this.load.tilemapTiledJSON(mapKey(url), url);
       pending = true;
     }
     if (pending) {
@@ -303,6 +308,12 @@ class WorldScene extends Phaser.Scene {
       return;
     }
     const { state } = frame;
+    const mapId = state.session?.map?.id;
+    if (mapId !== this.mapId) {
+      this.mapId = mapId; // uma variante do mapa: o mapa visual dela (ADR-0070)
+      this.loadArt();
+      this.terrainDirty = true;
+    }
     this.drawAvatars(frame, time);
     this.drawThings(this.fogged(state));
     this.aim();
@@ -342,8 +353,14 @@ class WorldScene extends Phaser.Scene {
   /** O mapa visual do cartucho, quando há; senão, uma cor por tipo de tile do mapa lógico. */
   private drawTerrain(): void {
     this.terrain.clear();
-    if (this.visual === undefined && this.cache.tilemap.exists(MAP_KEY)) {
-      const map = this.make.tilemap({ key: MAP_KEY });
+    const url = visualMapFor(this.art, this.mapId);
+    if (this.visual !== undefined && this.visualUrl !== url) {
+      this.visual.destroy(); // outro mapa: as camadas do anterior saem
+      this.visual = undefined;
+      this.ground = undefined;
+    }
+    if (this.visual === undefined && url !== undefined && this.cache.tilemap.exists(mapKey(url))) {
+      const map = this.make.tilemap({ key: mapKey(url) });
       const tilesets = map.tilesets
         .map((tileset) => (this.textures.exists(tileset.name) ? map.addTilesetImage(tileset.name, tileset.name) : null))
         .filter((tileset): tileset is Phaser.Tilemaps.Tileset => tileset !== null);
@@ -355,6 +372,7 @@ class WorldScene extends Phaser.Scene {
           }
         });
         this.visual = map;
+        this.visualUrl = url;
         this.tinted = undefined; // a camada nova ainda não tem o tom da estação
         this.season = undefined;
       } else {

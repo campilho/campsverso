@@ -55,9 +55,11 @@ def build_world(
     top: str,
     cartridges: Mapping[str, Cartridge] | None = None,
     stages: tuple[str, ...] = DEFAULT_STAGES,
+    map_variant: str | None = None,
 ) -> WorldDefinition:
+    """`map_variant` escolhe uma variante do mapa do cartucho do topo (ADR-0070)."""
     chain = resolve_chain(top, cartridges if cartridges is not None else discover())
     builder = DefinitionBuilder(stages=stages)
     for cartridge in chain:
         cartridge.contribute(builder)
-    return builder.build([c.manifest for c in chain])
+    return builder.build([c.manifest for c in chain], map_variant)

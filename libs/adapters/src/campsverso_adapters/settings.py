@@ -134,6 +134,7 @@ class WorldSettings:
     budget: BudgetSettings | None = None  # tetos de gasto com modelos (ADR-0058)
     minds: Mapping[str, MindSettings] = field(default_factory=dict[str, MindSettings])  # ADR-0059
     script: str = "farmer"  # o fazendeiro-script deste mundo (entry point campsverso.controllers)
+    map: str | None = None  # a variante do mapa do cartucho (ADR-0070); None: o mapa dele
 
 
 def _read(path: Path) -> Mapping[str, Any]:
@@ -251,6 +252,7 @@ def load_world(path: Path, root: Path | None = None) -> WorldSettings:
         worldid=str(doc["worldid"]),
         cartridge=str(doc["cartridge"]),
         script=str(doc.get("script") or "farmer"),
+        map=None if doc.get("map") is None else str(doc["map"]),
         seed=int(doc["seed"]),
         start=start,
         mode=mode,

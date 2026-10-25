@@ -5,7 +5,7 @@ import pytest
 
 from campsverso_cartridge_api import CartridgeManifest, ItemDef, MetricDef, WorldBuilder
 from campsverso_kernel import DefinitionError, RealTimePacer, build_world, resolve_chain
-from campsverso_kernel.testing import LabCartridge
+from campsverso_kernel.testing import LabCartridge, lab_map
 
 
 @dataclass(frozen=True)
@@ -114,3 +114,44 @@ def test_tick_antecipado_desconta_do_tempo_real_e_so_um_por_vez() -> None:
     assert pacer.ticks_for(50) == 0  # completaria o primeiro tick: ele já rodou antes da hora
     assert pacer.ticks_for(60) == 1  # o segundo vem na hora normal
     assert pacer.advance_early() is True  # dívida paga: pode antecipar de novo
+
+
+# ----------------------------------------------------------------- variantes do mapa (ADR-0070)
+
+
+@dataclass(frozen=True)
+class Variants:
+    """Um cenário sobre o laboratório que oferece outro mapa: o mesmo, sem a caixa."""
+
+    manifest: CartridgeManifest = field(
+        default_factory=lambda: CartridgeManifest("sitio", "1.0.0", ("lab",))
+    )
+
+    def contribute(self, world: WorldBuilder) -> None:
+        other = lab_map()
+        other["layers"][1]["objects"] = other["layers"][1]["objects"][:1]
+        world.add_map_variant("b", other)
+
+    def rules_file(self) -> Path | None:
+        return None
+
+
+def test_o_mundo_escolhe_a_variante_do_mapa_pelo_nome() -> None:
+    chain = {"lab": LabCartridge(), "sitio": Variants()}
+    base = build_world("sitio", chain)
+    assert base.grid.map_id == "sitio"
+    assert "box" in base.spawns
+    variant = build_world("sitio", chain, map_variant="b")
+    assert variant.grid.map_id == "sitio-b"
+    assert "box" not in variant.spawns
+    with pytest.raises(DefinitionError, match="não tem a variante de mapa 'z' \\(b\\)"):
+        build_world("sitio", chain, map_variant="z")
+
+
+def test_o_nome_da_variante_cabe_no_id_do_mapa() -> None:
+    class Bad(Variants):
+        def contribute(self, world: WorldBuilder) -> None:
+            world.add_map_variant("Rio Leste", lab_map())
+
+    with pytest.raises(DefinitionError, match="nome de variante do mapa inválido"):
+        build_world("sitio", {"lab": LabCartridge(), "sitio": Bad()})

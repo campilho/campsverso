@@ -57,13 +57,13 @@ class Prepared:
 def prepare(env: EnvSettings, world: WorldSettings) -> Prepared:
     """Tudo o que define o mundo, igual no processo e nos testes que comparam com ele."""
     cartridges = discover()
-    definition = build_world(world.cartridge, cartridges)
+    definition = build_world(world.cartridge, cartridges, map_variant=world.map)
     rules_path = world.rules_file or cartridges[world.cartridge].rules_file()
     rules = YamlFlags(rules_path).rules() if rules_path is not None else ()
     source = "(nenhum)" if rules_path is None else f"{world.cartridge}/{rules_path.name}"
     return Prepared(
         definition=definition,
-        config=WorldConfig(world.worldid, world.seed, world.start),
+        config=WorldConfig(world.worldid, world.seed, world.start, world.map),
         rules=rules,
         rules_source=source,
         version=run_version(world.cartridge, env.snapshot_every_ticks, cartridges),

@@ -66,6 +66,17 @@ def test_snapshot_recusa_mundo_com_outra_seed() -> None:
         restore(core.definition, other, decode(encode(_doc(core))))
 
 
+def test_snapshot_recusa_mundo_com_outro_mapa() -> None:
+    core = _busy_core()
+    doc = decode(encode(_doc(core)))
+    assert "map" not in doc  # sem variante, o snapshot fica como era antes do ADR-0070
+    other = WorldConfig("lab-01", 7, START, "b")
+    with pytest.raises(SnapshotError, match="nem mapa"):
+        restore(core.definition, other, doc)
+    with_map = {**doc, "map": "b"}
+    assert restore(core.definition, other, with_map).config.map == "b"
+
+
 # ----------------------------------------------------------------- serviço e recuperação
 
 

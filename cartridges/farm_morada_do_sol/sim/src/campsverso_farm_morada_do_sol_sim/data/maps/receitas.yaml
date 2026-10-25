@@ -1,0 +1,51 @@
+# As variantes do mapa da Fazenda Morada do Sol (ADR-0070): receitas sobre o mapa de hoje
+# (`../map.tmj`, a variante a). `make mapa-variantes` aplica cada receita, grava `<nome>.tmj` aqui
+# e confere o que ela promete; o arquivo do mundo escolhe a variante com `map: <nome>`.
+#
+# A casa, o centro, a estrada e a entrada ficam no lugar: muda a água e a mata em volta dela.
+# As operações, na ordem: `fill` pinta um retângulo [x0, y0, x1, y1]; `line` pinta um caminho de
+# pontos [[x, y], ...], com `width` tiles para leste.
+# `keep` diz que tipos de tile a operação não cobre (a estrada passa por cima do córrego numa ponte).
+# A água precisa de dois tiles de largura, ou a margem não se desenha; as lagoas são retângulos,
+# porque a margem tem os quatro cantos de fora, e não os de dentro.
+#
+# `promete` é conferido no mapa gravado, com os números das regras lidos do cartucho: a terra boa
+# (a grama perto da água) fica a uma distância da porta entre `min` e `max`, e `a_salvo` é a
+# fração dela que fica perto da casa, onde os corvos não chegam; `longe_de` dá a distância mínima
+# da terra boa a uma construção.
+
+b:
+  nome: o córrego
+  ops:
+    - {fill: [60, 8, 61, 38], tile: grass}  # o rio sai: a várzea vira campo
+    - {fill: [60, 0, 63, 7], tile: tree}  # a mata do morro vai até a borda
+    - {fill: [60, 39, 63, 39], tile: tree}  # e a da borda sul
+    - {fill: [62, 8, 63, 38], tile: tree}  # e a borda leste vira mata
+    - {fill: [24, 3, 29, 5], tile: grass}  # a lagoa do morro sai
+    - {fill: [19, 10, 22, 13], tile: grass}  # o capão que o córrego cortaria
+    - {fill: [19, 9, 23, 9], tile: path}  # o vau do norte, antes do córrego
+    - line: [[20, 0], [20, 7], [21, 12], [21, 32]]
+      width: 2
+      tile: river
+      keep: [path]  # a ponte da estrada e o vau
+    - {fill: [19, 33, 23, 35], tile: river}  # a lagoinha onde o córrego acaba
+  promete:
+    fertil_da_porta: {min: 9, max: 22}
+    a_salvo: {min: 0.6}
+    longe_de: {well: 3}  # o script 2 cava em volta do poço: quem não testa passa raspando
+
+c:
+  nome: as lagoas
+  ops:
+    - {fill: [60, 8, 61, 38], tile: grass}  # o rio sai: a várzea vira campo
+    - {fill: [60, 0, 63, 7], tile: tree}  # a mata do morro vai até a borda
+    - {fill: [60, 39, 63, 39], tile: tree}  # e a da borda sul
+    - {fill: [62, 8, 63, 38], tile: tree}  # e a borda leste vira mata
+    - {fill: [24, 3, 29, 5], tile: grass}  # a lagoa do morro sai
+    - {fill: [35, 2, 44, 7], tile: grass}  # uma clareira nova no morro, mais a leste
+    - {fill: [38, 3, 42, 5], tile: river}  # a lagoa do morro
+    - {fill: [45, 31, 49, 33], tile: river}  # a lagoa da clareira
+    - {fill: [51, 12, 56, 15], tile: river}  # a lagoa do leste
+  promete:
+    fertil_da_porta: {min: 23}
+    a_salvo: {max: 0.0}

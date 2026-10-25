@@ -5,10 +5,10 @@
   "name": "terrain",
   "image": "terrain.png",
   "imagewidth": 256,
-  "imageheight": 192,
+  "imageheight": 224,
   "tilewidth": 32,
   "tileheight": 32,
-  "tilecount": 43,
+  "tilecount": 50,
   "columns": 8,
   "margin": 0,
   "spacing": 0,
@@ -184,6 +184,34 @@
     {
       "id": 42,
       "type": "wall-br"
+    },
+    {
+      "id": 43,
+      "type": "water-r"
+    },
+    {
+      "id": 44,
+      "type": "water-t"
+    },
+    {
+      "id": 45,
+      "type": "water-b"
+    },
+    {
+      "id": 46,
+      "type": "water-tl"
+    },
+    {
+      "id": 47,
+      "type": "water-tr"
+    },
+    {
+      "id": 48,
+      "type": "water-bl"
+    },
+    {
+      "id": 49,
+      "type": "water-br"
     }
   ]
 }

@@ -97,6 +97,11 @@ class WorldBuilder(Protocol):
         """Mapa no formato JSON do Tiled; objetos nomeados viram entidades."""
         ...
 
+    def add_map_variant(self, name: str, tiled: Mapping[str, Any]) -> None:
+        """Outro mapa do mesmo cenário (ADR-0070): o arquivo do mundo escolhe uma variante pelo
+        nome (`map:`) no lugar do mapa de `set_map`, e o id do mapa vira `<cartucho>-<nome>`."""
+        ...
+
     def spawn(self, entity: SpawnDef, *, override: bool = False) -> None: ...
 
     def add_avatar(self, avatar: AvatarDef, *, override: bool = False) -> None:

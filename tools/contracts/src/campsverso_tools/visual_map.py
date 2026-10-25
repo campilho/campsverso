@@ -31,6 +31,16 @@ def visual_map(scenario: str) -> Path:
     return REPO / f"cartridges/{scenario}/art/map-visual.tmj"
 
 
+def maps_of(scenario: str) -> list[tuple[Path, Path]]:
+    """O mapa lógico e o visual do cenário, e os de cada variante do mapa (ADR-0070): a variante
+    `maps/b.tmj` vira `map-visual-b.tmj`, ao lado do mapa visual de hoje."""
+    base = logic_map(scenario)
+    pairs = [(base, visual_map(scenario))]
+    for variant in sorted((base.parent / "maps").glob("*.tmj")):
+        pairs.append((variant, visual_map(scenario).with_name(f"map-visual-{variant.stem}.tmj")))
+    return pairs
+
+
 LOGIC = logic_map("farm_camps")
 OUT = visual_map("farm_camps")
 TILESET_IMAGE = "../../farm/art/terrain.png"  # relativo ao mapa visual, para abrir no Tiled
@@ -92,15 +102,18 @@ def _ground(types: Grid, x: int, y: int) -> str:
     kind = types[y][x]
     height, width = len(types), len(types[0])
 
-    def same(cx: int, cy: int) -> bool:
-        return 0 <= cx < width and 0 <= cy < height and types[cy][cx] == kind
-
     if kind in ("grass", "tree"):
         return f"grass-{_variant(x, y, 3)}"
     if kind in PATHS:
         return f"dirt-{_variant(x, y, 3)}"
     if kind == "river":
-        return "water-c" if same(x - 1, y) else "water-l"
+        # A margem do lado que dá para a terra; fora do mapa conta como água, então o rio que corre
+        # na borda (as fazendas 1 e 2, a Morada do Sol) só tem a margem de dentro. As lagoas e o
+        # córrego das variantes (ADR-0070) têm margem dos quatro lados.
+        def water(cx: int, cy: int) -> bool:
+            return not (0 <= cx < width and 0 <= cy < height) or types[cy][cx] == "river"
+
+        return "water-" + _nine(*_sides(water, x, y))
     if kind == "soil":
         # Terra arada inteira em cada canteiro: as bordas do pacote têm grama dentro do tile, e a
         # planta ficaria em cima da grama.
@@ -242,6 +255,9 @@ def render(doc: Mapping[str, Any]) -> str:
     blocks: dict[str, str] = {}
     layers: list[dict[str, Any]] = []
     for i, layer in enumerate(doc["layers"]):
+        if "data" not in layer:  # a camada de objetos do mapa lógico (as variantes, ADR-0070)
+            layers.append(dict(layer))
+            continue
         data: Sequence[int] = layer["data"]
         rows = [", ".join(str(v) for v in data[r : r + width]) for r in range(0, len(data), width)]
         mark = f"__layer_{i}__"
@@ -260,21 +276,22 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     tileset = json.loads(TILESET.read_text(encoding="utf-8"))
     for scenario in [args.scenario] if args.scenario else SCENARIOS:
-        source, out = logic_map(scenario), visual_map(scenario)
-        if not out.parent.exists():
-            continue  # o cenário ainda não tem pasta de arte
-        logic = json.loads(source.read_text(encoding="utf-8"))
-        text = render(build(logic, tileset, trees=scenario in TREE_SCENARIOS))
-        if args.check:
-            if not out.exists() or out.read_text(encoding="utf-8") != text:
-                print(
-                    f"{out.relative_to(REPO)} desatualizado: rode make mapa-visual", file=sys.stderr
-                )
-                return 1
-            print(f"mapa visual de {scenario} em dia")
-            continue
-        out.write_text(text, encoding="utf-8")
-        print(f"mapa visual gravado em {out.relative_to(REPO)}")
+        for source, out in maps_of(scenario):
+            if not out.parent.exists():
+                continue  # o cenário ainda não tem pasta de arte
+            logic = json.loads(source.read_text(encoding="utf-8"))
+            text = render(build(logic, tileset, trees=scenario in TREE_SCENARIOS))
+            if args.check:
+                if not out.exists() or out.read_text(encoding="utf-8") != text:
+                    print(
+                        f"{out.relative_to(REPO)} desatualizado: rode make mapa-visual",
+                        file=sys.stderr,
+                    )
+                    return 1
+                print(f"mapa visual {out.name} de {scenario} em dia")
+                continue
+            out.write_text(text, encoding="utf-8")
+            print(f"mapa visual gravado em {out.relative_to(REPO)}")
     return 0
 
 

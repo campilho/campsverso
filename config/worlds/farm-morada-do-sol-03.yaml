@@ -1,0 +1,33 @@
+# Mundo farm-morada-do-sol-03: a Fazenda Morada do Sol na variante c do mapa, as lagoas longe da casa
+# (ADR-0070). O mesmo cenário e a mesma seed do -01: a diferença entre eles é só o mapa.
+# Vale para criar o mundo. Um mundo que já existe continua do seu snapshot: mudar a seed ou a
+# data-base aqui não o altera, e o kernel recusa a diferença.
+
+worldid: farm-morada-do-sol-03
+cartridge: farm_morada_do_sol
+map: c  # a variante do mapa (data/maps/c.tmj do cartucho); um mundo criado não troca de mapa
+script: farmer2  # o fazendeiro-script 2, adaptado às estações (M16): o controlador que o make run sobe
+seed: 20261022  # o dia em que a fazenda foi desenhada
+start: "2026-09-22T06:00:00-03:00"  # o primeiro dia da primavera; o ano acelerado parte daqui
+
+clock:  # estado inicial do relógio; depois, só por comandos
+  mode: continuous
+  scale: 72  # 1 dia simulado em 20 minutos reais; o ano de 28 dias em umas 9 horas
+  paused: false
+
+rules_file: null  # null: o arquivo de regras do cartucho (R-001 e R-003; os corvos vêm dos dados)
+
+budget:  # tetos de gasto com modelos (ADR-0058); ao chegar a 100%, a guarda pausa o mundo
+  usd_per_sim_day: 0.60
+  usd_total: 10.00
+
+minds:  # controladores LLM, um por avatar (ADR-0059); o processo `mind` assume o avatar ao subir
+  camps:
+    id: llm/camps
+    mind: camps_morada  # entry point do grupo campsverso.minds (cartridges/farm_morada_do_sol/mind)
+    model: claude-haiku-5-5
+    effort: low
+    max_tokens: 1024
+    cassette: {path: data/llm/farm-morada-do-sol-03.jsonl, mode: record}  # live | record | replay
+    memory: {enabled: true}
+    reflection: {effort: medium, max_tokens: 16384}

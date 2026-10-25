@@ -95,6 +95,8 @@ export interface ArtManifest {
   readonly weather?: Readonly<Record<string, { readonly effect: "rain" }>>;
   /** O mapa visual (Tiled), desenhado no lugar das cores dos tiles. */
   readonly visual_map?: string;
+  /** O mapa visual de cada variante do mapa (ADR-0070), pelo id que vem no `session.started`. */
+  readonly visual_maps?: Readonly<Record<string, string>>;
   readonly avatars?: Readonly<Record<string, AvatarArt>>;
   /** O ícone de cada item no inventário do HUD (ADR-0068): um quadro de uma folha. */
   readonly items?: Readonly<Record<string, Look>>;
@@ -124,12 +126,21 @@ export function rooted(manifest: ArtManifest, root: string): ArtManifest {
   const sheets = Object.fromEntries(
     Object.entries(manifest.sheets ?? {}).map(([name, sheet]) => [name, { ...sheet, image: `${root}/${sheet.image}` }]),
   );
+  const variants = Object.fromEntries(
+    Object.entries(manifest.visual_maps ?? {}).map(([id, path]) => [id, `${root}/${path}`]),
+  );
   return {
     ...manifest,
     ...(manifest.sheets === undefined ? {} : { sheets }),
     ...(manifest.visual_map === undefined ? {} : { visual_map: `${root}/${manifest.visual_map}` }),
+    ...(manifest.visual_maps === undefined ? {} : { visual_maps: variants }),
     ...(manifest.credits === undefined ? {} : { credits: `${root}/${manifest.credits}` }),
   };
+}
+
+/** O mapa visual do mapa com este id: o da variante, quando há (ADR-0070); senão, o do cenário. */
+export function visualMapFor(manifest: ArtManifest, mapId: string | undefined): string | undefined {
+  return (mapId === undefined ? undefined : manifest.visual_maps?.[mapId]) ?? manifest.visual_map;
 }
 
 /** Junta as camadas na ordem: a de cima cobre a de baixo; listas são trocadas, não somadas. */
