@@ -1,0 +1,34 @@
+# O gabarito feito à mão do juiz (ADR-0070, decisão 13), marcado em 25/out/2026 antes de o juiz
+# rodar, lendo o mesmo dossiê que ele lê (`campsverso_tools.judge.dossier`: as crenças ativas no
+# fim, com as evidências e a trajetória, e as retiradas) e com as mesmas rubricas
+# (`cartridges/<cartucho>/eval/juiz.yaml`). As 12 corridas com memória do M12 (fazenda 1, uma
+# regra) e do M14 (Boa Vista, seis regras): 47 vereditos.
+#
+# Saíram todos `nao`: nenhuma corrida terminou com uma crença ativa, com confiança de 0,5 ou mais,
+# que diga uma regra oculta. Os casos de fronteira:
+# - M12 haiku-memoria-s2, bel-0026: no dia 24 dizia que a abóbora amadurece em 6 dias "nos
+#   canteiros do leste (e-01 a e-03)" (0,80, seria `lugar`); no fim ficou "6 a 8 dias, dependendo
+#   do canteiro", a 0,50, sem dizer qual: vago demais para guiar uma decisão.
+# - M12 haiku-memoria, bel-0019: "quatro dos oito do leste não tiveram evento de crescimento",
+#   retirada no dia 18; fala do leste mais lento, o contrário da regra.
+# - M12 haiku-memoria-s3, bel-0027: "o oeste ficou parado enquanto o leste avançou" é a rega (o
+#   oeste não foi regado), não a regra.
+# - M14 haiku-memoria, bel-0006: "o baú guarda as colheitas com a validade original": contradiz a
+#   regra do baú.
+# - M14 opus-memoria, bel-0017: "o baú, que guarda bem" repete o manual.
+# - M14: o tomate, o alho e o adubo só aparecem no estoque do quiosque, nos preços, na validade e
+#   nos dias até amadurecer da tabela; o ensopado e o rio não aparecem em crença nenhuma.
+
+runs:
+  20261019-0725/haiku-memoria: {agua: nao}
+  20261019-0725/haiku-memoria-s2: {agua: nao}
+  20261019-0725/haiku-memoria-s3: {agua: nao}
+  20261019-0725/haiku-memoria-s4: {agua: nao}
+  20261019-0725/haiku-memoria-sem-regra: {agua: nao}
+  20261020-233814/haiku-memoria: {agua: nao, tomate: nao, alho: nao, bau: nao, ensopado: nao, adubo: nao}
+  20261020-233814/haiku-memoria-s2: {agua: nao, tomate: nao, alho: nao, bau: nao, ensopado: nao, adubo: nao}
+  20261020-233814/haiku-memoria-s3: {agua: nao, tomate: nao, alho: nao, bau: nao, ensopado: nao, adubo: nao}
+  20261020-233814/haiku-memoria-s4: {agua: nao, tomate: nao, alho: nao, bau: nao, ensopado: nao, adubo: nao}
+  20261020-233814/haiku-memoria-sem-regra: {agua: nao, tomate: nao, alho: nao, bau: nao, ensopado: nao, adubo: nao}
+  20261020-233814/sonnet-memoria: {agua: nao, tomate: nao, alho: nao, bau: nao, ensopado: nao, adubo: nao}
+  20261020-233814/opus-memoria: {agua: nao, tomate: nao, alho: nao, bau: nao, ensopado: nao, adubo: nao}

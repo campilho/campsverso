@@ -23,7 +23,7 @@ NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR BUDGET MIND
 .DEFAULT_GOAL := help
 .PHONY: help setup contracts check lint fmt types test arch contracts-check compat \
         up stop run ui ui-build sandbox soak replay metrics ui-e2e mapa-visual mapa-variantes sessoes tools secrets fita corrida \
-        arena arena-report arena-humano assistir
+        arena arena-report arena-humano assistir juiz
 
 help: ## lista os alvos
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-16s %s\n", $$1, $$2}'
@@ -135,6 +135,10 @@ assistir: ui-build ## assistir as corridas de uma rodada da arena na tela, ao vi
 arena-humano: ## a partida de um humano no sandbox como corrida da arena: make arena-humano SANDBOX=data/sandbox/<pasta> [PASTA=rodada] [NOME=humano]
 	@test -n "$(SANDBOX)" || { echo "uso: make arena-humano SANDBOX=data/sandbox/<pasta> [PASTA=data/arena/<rodada>]"; exit 1; }
 	$(PY) python -m campsverso_tools.arena_humano $(SANDBOX) $(if $(PASTA),--arena $(PASTA),) $(if $(NOME),--name $(NOME),)
+
+juiz: ## o juiz das crenças (ADR-0070): os vereditos das corridas com memória de PASTA=data/arena/<rodada> em juiz.json [SO=nome]; PASTA=data/arena CONFERIR=docs/arena/juiz-gabarito.yaml confere com o gabarito, sem chamar a API
+	@test -n "$(PASTA)" || { echo "uso: make juiz PASTA=data/arena/<rodada> [SO=nome] [CONFERIR=gabarito]"; exit 1; }
+	uv run --locked --env-file .env python -m campsverso_tools.judge $(PASTA) $(foreach s,$(SO),--only $(s)) $(if $(CONFERIR),--conferir $(CONFERIR),)
 
 arena-report: ## o relatório da arena em docs/arena/AAAA-MM-DD.md, da arena mais recente ou de PASTA=data/arena/x
 	$(PY) python -m campsverso_tools.arena $(PASTA)

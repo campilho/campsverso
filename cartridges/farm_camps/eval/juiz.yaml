@@ -1,0 +1,20 @@
+# A rubrica do juiz da Fazenda do Camps (ADR-0070, decisão 13): a verdade da regra oculta, com o
+# que conta como a causa e como só o lugar. Fica fora do pacote da mente e nunca entra no prompt
+# de quem joga. O juiz classifica o que as crenças afirmam, como se a regra valesse.
+world: >-
+  Uma fazenda com dois grupos de canteiros iguais: o oeste (plot-w-*) e o leste (plot-e-*), este
+  colado ao rio. O poço fica mais ou menos no meio. O manual dá os dias até amadurecer (rabanete
+  3, batata 5, abóbora 8) e não fala de nenhuma diferença entre os canteiros.
+
+rules:
+  - id: agua
+    rule: >-
+      R-001: canteiros a até 4 tiles do rio crescem 1,5 ponto por dia regado em vez de 1,0, então
+      a planta amadurece antes (rabanete em 2 dias em vez de 3, batata em 4 em vez de 5, abóbora
+      em 6 em vez de 8). Os canteiros do leste são os que ficam perto do rio.
+    cause: >-
+      a crença liga o crescimento mais rápido à proximidade da água ou do rio (perto do rio, na
+      beira do rio, ao lado da água), o que serviria num mapa em que o rio está noutro lugar.
+    place: >-
+      a crença diz que o leste, os canteiros plot-e ou um lado do mapa amadurecem antes (ou rendem
+      mais por isso), sem dizer que é pela água.

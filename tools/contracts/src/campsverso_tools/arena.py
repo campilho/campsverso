@@ -345,6 +345,7 @@ class Run:
     leaks: tuple[int, int] | None = None  # reflexões com marcação no resumo, de quantas (a fita)
     exploration: Exploration | None = None  # as métricas de exploração (ADR-0070)
     exam: dict[str, Any] | None = None  # a prova do mundo (ADR-0070): o gabarito e as respostas
+    judge: dict[str, Any] | None = None  # os vereditos do juiz (ADR-0070), lidos de juiz.json
 
     @property
     def spec(self) -> dict[str, Any]:
@@ -404,11 +405,12 @@ def load_run(folder: Path) -> Run:
         beliefs_at_end(envelopes),
         reflection_leaks(folder / "llm.jsonl"),
         explore(envelopes),
-        _exam(folder / "prova.json"),
+        _optional(folder / "prova.json"),
+        _optional(folder / "juiz.json"),
     )
 
 
-def _exam(path: Path) -> dict[str, Any] | None:
+def _optional(path: Path) -> dict[str, Any] | None:
     return (
         cast(dict[str, Any], json.loads(path.read_text(encoding="utf-8")))
         if path.is_file()
@@ -875,6 +877,7 @@ def render(runs: Sequence[Run], *, source: str, date: str) -> str:
             for b in r.beliefs[:3]
         ] or ["- nenhuma"]
         lines.append("")
+    lines += _judge_section(runs)
     lines += _exploration_section(runs)
     lines += _exam_section(runs)
     lines += _coins_section(runs)
@@ -887,6 +890,47 @@ def render(runs: Sequence[Run], *, source: str, date: str) -> str:
 
 
 UNKNOWN = "nao_sei"  # a opção "não sei" da prova
+
+
+VERDICTS = {"causa": "a causa", "lugar": "só o lugar", "nao": "não"}
+
+
+def _judge_section(runs: Sequence[Run]) -> list[str]:
+    """Os vereditos do juiz (ADR-0070) ao lado das heurísticas: a causa, só o lugar ou não, com a
+    crença que os sustenta."""
+    judged = [r for r in runs if r.judge is not None and r.judge.get("rules")]
+    if not judged:
+        return []
+    rules = list(cast(Mapping[str, Any], judged[0].judge["rules"]) if judged[0].judge else {})
+
+    def cell(r: Run, rule: str) -> str:
+        given = cast(Mapping[str, Any], (r.judge or {}).get("rules") or {})
+        if rule not in given:
+            return EMPTY
+        mark = cast(Mapping[str, str], given[rule])
+        told = VERDICTS.get(mark["verdict"], mark["verdict"])
+        belief = f" ({mark['belief_id']})" if mark.get("belief_id") else ""
+        off = " (regra desligada)" if rule == "agua" and not r.spec.get("river_bonus", True) else ""
+        return f"{told}{belief}{off}"
+
+    cost = sum(float((r.judge or {}).get("cost_usd", 0)) for r in judged)
+    model = str((judged[0].judge or {}).get("model", ""))
+    return [
+        "## O juiz",
+        "",
+        f"O {MODEL_NAMES.get(model, model)} lê as crenças do fim de cada corrida com memória, sem "
+        "saber de quem são, e dá um veredito por regra oculta: **a causa** (a crença diz o "
+        "mecanismo e serviria num mapa novo), **só o lugar** (um lugar é melhor, sem o porquê) ou "
+        '**não**. Numa corrida com a regra desligada, "a causa" é uma descoberta falsa. A '
+        "rubrica fica em `cartridges/<cartucho>/eval/juiz.yaml`, e cada chamada na fita "
+        f"`juiz.jsonl` da corrida. Custo: US$ {_n(cost, 2)}.",
+        "",
+        _table(
+            ["Regra", *(r.name for r in runs)],
+            [[rule, *(cell(r, rule) for r in runs)] for rule in rules],
+        ),
+        "",
+    ]
 
 
 type Taken = Mapping[str, Any] | None  # uma prova feita (a nota e as respostas), ou nenhuma

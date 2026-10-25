@@ -1,0 +1,48 @@
+# A rubrica do juiz da Fazenda Boa Vista (ADR-0070, decisão 13): as regras ocultas da bíblia 2
+# (§10), com o que conta como a causa e, nas regras de lugar, como só o lugar. Fica fora do
+# pacote da mente e nunca entra no prompt de quem joga. O juiz classifica o que as crenças
+# afirmam, como se as regras valessem.
+world: >-
+  Uma fazenda sem canteiros no começo: o fazendeiro cava onde quiser, na grama. Um rio corre do
+  lado leste; o poço e a casa ficam a oeste dele. O manual dá os dias até amadurecer de cada
+  cultura, diz que cada cultura reage à seca do seu jeito, que o baú guarda o que não se quer
+  carregar, que o adubo faz a planta seguinte crescer melhor e que quanto cada prato mata a fome
+  só comendo se descobre.
+
+rules:
+  - id: agua
+    rule: >-
+      R-001: canteiros a até 4 tiles do rio crescem 1,5 ponto por dia regado em vez de 1,0, então
+      a planta amadurece um ou dois dias antes.
+    cause: >-
+      a crença liga o crescimento mais rápido à proximidade da água ou do rio (perto do rio, na
+      beira do rio, ao lado da água).
+    place: >-
+      a crença diz que um lugar (um canteiro, um grupo de canteiros, um lado do mapa) amadurece
+      antes, sem dizer que é pela água.
+  - id: tomate
+    rule: O tomate murcha se passar um único dia sem rega e sem chuva (as outras culturas, dois).
+    cause: >-
+      a crença diz que o tomate murcha (ou morre) com um dia sem rega, ou que não aguenta nem um
+      dia seco. Dizer só que é bom regar o tomate todo dia, sem a murcha, não conta.
+  - id: alho
+    rule: O alho cresce sem rega, e avança todo dia, regado ou não.
+    cause: >-
+      a crença diz que o alho cresce (ou amadurece) sem rega, ou que não precisa ser regado.
+  - id: bau
+    rule: O que fica no baú dura o dobro do que fica no inventário antes de estragar.
+    cause: >-
+      a crença diz que o que está no baú estraga depois, dura mais ou se conserva melhor do que no
+      inventário. Usar o baú para guardar coisas, sem esse efeito, não conta.
+  - id: ensopado
+    rule: O ensopado deixa o fazendeiro satisfeito por 8 horas, e a fome sobe mais devagar.
+    cause: >-
+      a crença diz que o ensopado segura a fome por mais tempo, faz a fome subir mais devagar ou
+      sacia por horas. Dizer só quanto de fome ele tira na hora não conta.
+  - id: adubo
+    rule: >-
+      O adubo vale meio ponto a mais por dia: a planta adubada cresce 1,5 vez mais rápido e
+      amadurece um ou dois dias antes.
+    cause: >-
+      a crença diz quanto o adubo ajuda: em dias a menos ou numa proporção. Repetir o manual (o
+      adubo faz crescer melhor, ajuda a planta) não conta.

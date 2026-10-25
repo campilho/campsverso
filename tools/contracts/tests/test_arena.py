@@ -404,3 +404,27 @@ def test_o_relatorio_mostra_a_prova_antes_e_depois(tmp_path: Path) -> None:
     assert "| fadiga | devagar | - | não sei → devagar ✓ | devagar ✓ |" in text
     assert "| Acertos / erros / não sei |  | - | 0 / 1 / 1 → 2 / 0 / 0 | 1 / 0 / 1 |" in text
     assert "| Custo da prova (US$) |  | - | 0,0050 | - |" in text
+
+
+def test_o_relatorio_mostra_o_juiz_ao_lado_das_heuristicas(tmp_path: Path) -> None:
+    arena = tmp_path / "20261025-2100"
+    quiet = [ev(0, "world.session.started.v1", tick_seconds=60)]
+    spec = {"name": "haiku-memoria", "controller": "llm", "memory": True, "seed": 1}
+    _run(arena, "haiku-memoria", spec, quiet)
+    _run(arena, "haiku-memoria-sem-regra", {**spec, "river_bonus": False}, quiet)
+    verdicts = {
+        "agua": {"verdict": "lugar", "belief_id": "bel-0026", "why": "o leste"},
+        "tomate": {"verdict": "nao", "belief_id": "", "why": "nada"},
+    }
+    for name in ("haiku-memoria", "haiku-memoria-sem-regra"):
+        given = {"model": "claude-opus-5-5", "rules": verdicts, "cost_usd": 0.12}
+        (arena / name / "juiz.json").write_text(json.dumps(given), encoding="utf-8")
+    out = tmp_path / "relatorio.md"
+    assert main([str(arena), "--out", str(out)]) == 0
+    text = out.read_text(encoding="utf-8")
+    assert "## O juiz" in text
+    assert "O Opus 5.5 lê as crenças do fim" in text
+    assert "Custo: US$ 0,24." in text
+    row = "| agua | só o lugar (bel-0026) | só o lugar (bel-0026) (regra desligada) |"
+    assert row in text
+    assert "| tomate | não | não |" in text

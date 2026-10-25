@@ -1,0 +1,77 @@
+# A rubrica do juiz da Fazenda Morada do Sol (ADR-0070, decisão 13): as regras ocultas da bíblia 3
+# (§8) e as que vêm da Boa Vista (bíblia 2, §10), com o que conta como a causa e, nas regras de
+# lugar, como só o lugar. Fica fora do pacote da mente e nunca entra no prompt de quem joga. O juiz
+# classifica o que as crenças afirmam, como se as regras valessem.
+world: >-
+  Uma fazenda grande que o fazendeiro só vê num raio em volta dele, com um ano de estações. Não há
+  canteiros no começo: ele cava na grama, e o canteiro abandonado volta a ser grama. Há água (um
+  rio, um córrego ou lagoas, conforme o mapa), mata e caminhos. O manual dá os dias até
+  amadurecer, diz que cada cultura reage à seca do seu jeito, que o baú guarda o que não se quer
+  carregar, que o adubo faz a planta seguinte crescer melhor, que o espantalho existe e que há um
+  quadro de pedidos.
+
+rules:
+  - id: agua
+    rule: >-
+      R-001: canteiros a até 4 tiles de qualquer água (rio, córrego, lagoa) crescem 1,5 vez mais
+      rápido, então a planta amadurece antes.
+    cause: >-
+      a crença liga o crescimento mais rápido à proximidade da água (perto do rio, da lagoa, na
+      beira da água).
+    place: >-
+      a crença diz que um lugar (um canteiro, um grupo de canteiros, um canto do mapa) amadurece
+      antes, sem dizer que é pela água.
+  - id: corvos
+    rule: >-
+      R-002: toda manhã, cada planta madura a mais de 18 tiles da porta de casa e sem espantalho a
+      até 6 tiles pode amanhecer comida pelos corvos (1 chance em 2); o canteiro fica vazio.
+    cause: >-
+      a crença liga a perda das plantas maduras à distância da casa (longe da casa, longe da
+      porta) ou à falta de espantalho por perto, ou diz que o espantalho protege as plantas em
+      volta dele.
+    place: >-
+      a crença diz que as plantas de um lugar (um canteiro, um grupo, um canto do mapa) somem ou
+      são comidas, sem dizer que é pela distância da casa nem pelo espantalho.
+  - id: fadiga
+    rule: >-
+      R-003: plantar no canteiro a mesma cultura que acabou de sair dele faz a planta crescer mais
+      devagar (0,6 do ritmo); trocar de cultura recupera.
+    cause: >-
+      a crença diz que repetir a cultura no mesmo canteiro atrasa (ou cansa o solo), ou que
+      revezar as culturas faz crescer mais rápido.
+    place: >-
+      a crença diz que um canteiro (ou um grupo) ficou mais lento, sem dizer que é por repetir a
+      cultura.
+  - id: reputacao
+    rule: >-
+      R-004: entregar os pedidos do quadro no prazo traz mais pedidos e pagamentos maiores; deixar
+      vencer um pedido aceito traz menos.
+    cause: >-
+      a crença diz que entregar no prazo aumenta os pedidos ou o que eles pagam, ou que deixar
+      vencer diminui.
+  - id: tomate
+    rule: O tomate murcha se passar um único dia sem rega e sem chuva (as outras culturas, dois).
+    cause: >-
+      a crença diz que o tomate murcha (ou morre) com um dia sem rega, ou que não aguenta nem um
+      dia seco. Dizer só que é bom regar o tomate todo dia, sem a murcha, não conta.
+  - id: alho
+    rule: O alho cresce sem rega, e avança todo dia, regado ou não.
+    cause: >-
+      a crença diz que o alho cresce (ou amadurece) sem rega, ou que não precisa ser regado.
+  - id: bau
+    rule: O que fica no baú dura o dobro do que fica no inventário antes de estragar.
+    cause: >-
+      a crença diz que o que está no baú estraga depois, dura mais ou se conserva melhor do que no
+      inventário. Usar o baú para guardar coisas, sem esse efeito, não conta.
+  - id: ensopado
+    rule: O ensopado deixa o fazendeiro satisfeito por 8 horas, e a fome sobe mais devagar.
+    cause: >-
+      a crença diz que o ensopado segura a fome por mais tempo, faz a fome subir mais devagar ou
+      sacia por horas. Dizer só quanto de fome ele tira na hora não conta.
+  - id: adubo
+    rule: >-
+      O adubo vale meio ponto a mais por dia: a planta adubada cresce 1,5 vez mais rápido e
+      amadurece um ou dois dias antes.
+    cause: >-
+      a crença diz quanto o adubo ajuda: em dias a menos ou numa proporção. Repetir o manual (o
+      adubo faz crescer melhor, ajuda a planta) não conta.
