@@ -1344,7 +1344,7 @@ class FarmCropMaturedV1(BaseModel):
 
 class FarmCropWitheredV1(BaseModel):
     """
-    Planta murchou por falta de água.
+    Planta murchou por falta de água ou, madura, porque ninguém a colheu.
     """
 
     model_config = ConfigDict(
@@ -1364,9 +1364,9 @@ class FarmCropWitheredV1(BaseModel):
     """
     Dia simulado (dia agrícola, ADR-0018), começando em 1.
     """
-    dry_days: Annotated[int, Field(ge=1)]
+    dry_days: Annotated[int, Field(ge=0)]
     """
-    Viradas seguidas sem rega.
+    Viradas seguidas sem rega; 0 quando a planta madura murchou porque ninguém a colheu (ADR-0062).
     """
 
 

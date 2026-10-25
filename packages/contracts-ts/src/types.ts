@@ -1072,7 +1072,7 @@ export interface FarmCropMaturedV1 {
   days: number;
 }
 /**
- * Planta murchou por falta de água.
+ * Planta murchou por falta de água ou, madura, porque ninguém a colheu.
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
  * via the `definition` "FarmCropWitheredV1".
@@ -1082,7 +1082,7 @@ export interface FarmCropWitheredV1 {
   crop: ItemId;
   day: Day;
   /**
-   * Viradas seguidas sem rega.
+   * Viradas seguidas sem rega; 0 quando a planta madura murchou porque ninguém a colheu (ADR-0062).
    */
   dry_days: number;
 }

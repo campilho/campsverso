@@ -2,7 +2,11 @@
 
 Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão maior, só entram campos opcionais novos; mudança incompatível vira um tipo novo (`.v2`). A checagem `make compat` confere isso a cada commit.
 
-## Não publicado (M18)
+## Não publicado (M19)
+
+- **A madura que murcha sem colher** (ADR-0062; achado no M19): `farm.crop.withered.v1` aceita `dry_days: 0`, a planta madura que murchou porque ninguém a colheu em 3 dias na Boa Vista e na Morada do Sol. O código publicava 0 desde o M13, e o leitor das métricas contava as murchas da madura por ele, mas o mínimo do schema era 1: a primeira madura esquecida derrubava o barramento que valida. Relaxar o mínimo é compatível (`make compat`).
+
+## M18 (publicado em 25/out, antes de uma versão)
 
 - **A métrica que soma** (ADR-0069): `metric` ganha o campo opcional `field`: num `count`, o campo numérico do evento que se soma no lugar de contar (as moedas recebidas por canal).
 - **O clima com previsão** (ADR-0069): `world.weather.changed.v1` ganha `forecast` (o tempo de um dia que ainda não chegou), e as condições novas `storm` e `drought` cabem no `condition`, que já é texto aberto; a foto (`perception.delivered.v1`, `view.weather`) e o delta (`seen_weather`) ganham `tomorrow`, o tempo de amanhã quando a previsão já saiu; e um tipo novo, `campsverso.farm.crop.knocked_down.v1` (`world`, produtor `kernel`, publicado pelo cartucho farm): a planta madura que a tempestade derrubou (`plot_id`, `crop`, `day`).

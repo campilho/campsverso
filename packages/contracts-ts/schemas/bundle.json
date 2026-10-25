@@ -1837,7 +1837,7 @@
     },
     "FarmCropWitheredV1": {
       "title": "FarmCropWitheredV1",
-      "description": "Planta murchou por falta de água.",
+      "description": "Planta murchou por falta de água ou, madura, porque ninguém a colheu.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -1858,8 +1858,8 @@
         },
         "dry_days": {
           "type": "integer",
-          "minimum": 1,
-          "description": "Viradas seguidas sem rega."
+          "minimum": 0,
+          "description": "Viradas seguidas sem rega; 0 quando a planta madura murchou porque ninguém a colheu (ADR-0062)."
         }
       }
     },

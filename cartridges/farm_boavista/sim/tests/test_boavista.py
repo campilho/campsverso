@@ -133,6 +133,8 @@ def test_a_madura_murcha_depois_de_tres_dias_sem_colher() -> None:
     assert world.entity("plot-01").attributes["stage"] == "madura"
     _morning(farmer)
     assert world.entity("plot-01").attributes["stage"] == "murcha"
+    # A madura esquecida murcha sem nenhum dia seco: o contrato aceita o 0 desde o M19.
+    assert of_type(farmer.facts, "farm.crop.withered.v1")[-1]["dry_days"] == 0
 
 
 def test_a_colheita_tem_validade() -> None:

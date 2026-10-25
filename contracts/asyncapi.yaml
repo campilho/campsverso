@@ -2748,7 +2748,7 @@ components:
           description: Dias entre o plantio e a maturidade.
     FarmCropWitheredV1:
       title: FarmCropWitheredV1
-      description: Planta murchou por falta de água.
+      description: Planta murchou por falta de água ou, madura, porque ninguém a colheu.
       type: object
       additionalProperties: false
       required:
@@ -2765,8 +2765,9 @@ components:
           $ref: '#/components/schemas/Day'
         dry_days:
           type: integer
-          minimum: 1
-          description: Viradas seguidas sem rega.
+          minimum: 0
+          description: Viradas seguidas sem rega; 0 quando a planta madura murchou porque ninguém a colheu
+            (ADR-0062).
     LlmCallCompletedV1:
       title: LlmCallCompletedV1
       description: 'Uma chamada de modelo terminou (ADR-0058): quem chamou, qual modelo, tokens, custo
@@ -4849,7 +4850,7 @@ components:
     FarmCropWitheredV1:
       name: campsverso.farm.crop.withered.v1
       title: FarmCropWitheredV1
-      summary: Planta murchou por falta de água.
+      summary: Planta murchou por falta de água ou, madura, porque ninguém a colheu.
       contentType: application/json
       payload:
         $ref: '#/components/schemas/FarmCropWitheredV1'

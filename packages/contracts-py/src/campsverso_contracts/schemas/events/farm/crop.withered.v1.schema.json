@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "contracts://events/farm/crop.withered.v1",
   "title": "FarmCropWitheredV1",
-  "description": "Planta murchou por falta de água.",
+  "description": "Planta murchou por falta de água ou, madura, porque ninguém a colheu.",
   "x-type": "campsverso.farm.crop.withered.v1",
   "x-visibility": "world",
   "x-producer": "kernel",
@@ -26,8 +26,8 @@
     },
     "dry_days": {
       "type": "integer",
-      "minimum": 1,
-      "description": "Viradas seguidas sem rega."
+      "minimum": 0,
+      "description": "Viradas seguidas sem rega; 0 quando a planta madura murchou porque ninguém a colheu (ADR-0062)."
     }
   }
 }
