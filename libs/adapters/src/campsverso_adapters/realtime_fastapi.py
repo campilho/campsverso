@@ -26,6 +26,11 @@ VIEWS: tuple[View, ...] = ("player", "operator")
 POLICY_VIOLATION = 1008  # código WebSocket para pedido fora das regras
 
 
+# Os mapas e a arte mudam com o repositório (as margens da água do ADR-0070 ficaram pretas numa
+# tela com o terrain.png antigo no cache): o navegador confere a cada vez, e o ETag responde 304.
+REVALIDATE = {"Cache-Control": "no-cache"}
+
+
 class _WsConnection:
     def __init__(self, websocket: WebSocket, view: View, run: str | None = None) -> None:
         self._ws = websocket
@@ -106,7 +111,7 @@ class FastApiRealtime:
             path = self._maps.get(name.removesuffix(".tmj"))
             if path is None or not path.is_file():
                 raise HTTPException(status_code=404, detail=f"mapa {name!r} desconhecido")
-            return FileResponse(path, media_type="application/json")
+            return FileResponse(path, media_type="application/json", headers=REVALIDATE)
 
         @app.get("/content/art/index.json")
         async def art_index() -> dict[str, list[str]]:  # pyright: ignore[reportUnusedFunction]
@@ -120,7 +125,7 @@ class FastApiRealtime:
                 raise HTTPException(status_code=404, detail=f"arte {layer}/{path} desconhecida")
             if not target.is_file():
                 raise HTTPException(status_code=404, detail=f"arte {layer}/{path} desconhecida")
-            return FileResponse(target)
+            return FileResponse(target, headers=REVALIDATE)
 
         @app.get("/health")
         async def health() -> dict[str, bool]:  # pyright: ignore[reportUnusedFunction]

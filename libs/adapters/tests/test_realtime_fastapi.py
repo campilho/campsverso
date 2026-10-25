@@ -98,3 +98,13 @@ async def test_arte_em_camadas_sem_sair_da_pasta(server: str) -> None:
     assert (await asyncio.to_thread(get, "/content/art/farm/art.json"))[0] == 404
     assert (await asyncio.to_thread(get, "/content/art/farm/..%2Fsegredo.txt"))[0] == 404
     assert (await asyncio.to_thread(get, "/content/art/outra/art.json"))[0] == 404
+
+
+async def test_mapas_e_arte_se_conferem_a_cada_vez(server: str) -> None:
+    # Um terrain.png antigo no cache do navegador deixou pretas as margens novas da água (ADR-0070).
+    def cache_control(path: str) -> str | None:
+        with urllib.request.urlopen(f"http://{server}{path}", timeout=5) as response:
+            return response.headers.get("Cache-Control")
+
+    assert await asyncio.to_thread(cache_control, "/content/maps/farm_camps.tmj") == "no-cache"
+    assert await asyncio.to_thread(cache_control, "/content/art/farm/tiles/grass.png") == "no-cache"
