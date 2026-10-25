@@ -1,0 +1,73 @@
+# Fazendeiro-script 3 (ADR-0070; plano do M19, §2): planeja o capital e experimenta, sem saber
+# nenhuma regra oculta. Herda do script 2 (farmer2.yaml) o que o manual diz: as culturas, a
+# comida, o calendário, o sono, a exploração. Aqui fica só o que é dele: quantos canteiros
+# cuidar, como pesar o caminho e a energia, e o modelo que aprende onde e como a planta rende.
+# Nenhum número daqui é de regra oculta: os atributos são o que qualquer um vê no mapa, e as
+# faixas de distância são as mesmas para todos (1, 2, 4, 8, 16 tiles).
+
+id: script/farmer3-v1
+seed: 20261025  # o sorteio da amostragem de Thompson: com a mesma seed, a mesma corrida
+
+# O manual: o ano de 28 dias, 7 por estação, começando na primavera.
+year: {season_days: 7, seasons: [primavera, verao, outono, inverno]}
+
+# Quantos canteiros cuidar: começa com 16, como o script 2, e cresce um a cada 60 moedas, até 28.
+plots: {start: 16, max: 28, coins_per_plot: 60}
+dig: {min_energy: 40, until: "16:00"}
+plant_until: "18:00"  # plantar mais tarde perde a rega do dia
+# As regras de sobrevivência (ADR-0070, nota do usuário de 25/out), as mesmas do manual da mente:
+# a fome de um dia pelo ritmo do manual (acordado das 06:00 às 22:00); comer com a fome em 60, longe
+# dos 80 em que cada ação gasta o dobro; M canteiros de comida (semente de até 20 moedas) que matam
+# a fome do dia com 40% de folga, e os outros N para vender; o caixa da semente da comida do próximo
+# ciclo não se investe; dois dias de comida guardados não se vendem.
+survival:
+  hunger_per_hour: {awake: 2, asleep: 1}  # a Morada do Sol (o manual dela)
+  awake_hours: 16
+  margin: 1.4
+  food_seed_max: 20
+hunger_eat_at: 60
+# Investir nos canteiros de vender só com folga: o caixa acima da reserva e do caixa da comida, mais
+# 40 moedas. A semente da comida usa o caixa todo, porque é o meio de produzir.
+invest_floor: 40
+# O rodízio: quando o modelo acha, com 90% de confiança, que repetir a cultura no canteiro deixa
+# a planta mais lenta (o efeito abaixo de 0,9x), o canteiro troca para a segunda comida da estação.
+rotation: {below: 0.9}
+# Mudar a fazenda: com 10 plantios medidos, o canteiro que rende menos que 70% do melhor lugar
+# novo (pelo mundo médio da crença) fica vazio e volta a ser grama.
+move: {min_measured: 10, keep_ratio: 0.7}
+
+# A conta de cada lugar: um ponto de energia vale 2 moedas (o que um canteiro rende por energia),
+# e andar gasta 1 de energia a cada 20 tiles (o manual). A rega diária de um canteiro longe pesa
+# a caminhada até ele, dividida pelos canteiros que estão juntos.
+energy_price: 2.0
+walk_energy_per_tile: 0.05
+water_energy: 2
+share: 4  # canteiros que dividem uma ida para regar
+
+# O que se vê no mercado (ADR-0069): o preço da caixa cai a cada unidade vendida e se recupera aos
+# poucos; o script conta as unidades que já estão crescendo de cada cultura para não afundar o
+# preço da colheita, e vende enquanto o preço de agora passa de 70% da tabela.
+market: {buy_step: 0.03, sell_step: 0.02, floor: 0.4}
+sell: {min_price: 0.7, fair_min_units: 4}
+orders: {max_taken: 2, min_premium: 1.1}
+
+# Os investimentos: o espantalho quando a perda esperada num grupo de canteiros longe passa do
+# preço dele; o adubo da composteira com os restos; o regador grande como no script 2.
+scarecrow: {item: espantalho, kind: scarecrow, price: 60, min_loss: 0.2, group: 6}
+compost: {kind: composteira, recipe: adubo, item: resto, qty: 3}
+fertilizer: {item: adubo, price: 15}
+
+# O modelo (ADR-0070, decisão 4): o logaritmo do ritmo de cada plantio (os dias que o manual e a
+# estação prometem, divididos pelos que levou) como a soma dos efeitos dos atributos, com uma
+# crença larga no começo; e a chance de perder a planta madura, por faixa de distância da porta e
+# do espantalho mais perto.
+model:
+  bins: [2, 4, 8, 16]  # as faixas de distância de um atributo: até 2, até 4, até 8, até 16, mais
+  distances: [agua, mata, caminho, porta]  # os atributos do tile (os que não importam ficam perto de zero)
+  prior_sd: 0.25  # a crença de cada efeito: de 0,78x a 1,28x num desvio
+  intercept_sd: 0.15
+  noise_sd: 0.15  # os dias são inteiros: a medida do ritmo tem esse erro
+  loss_door: [8, 16, 32]  # as faixas de distância da porta para as perdas
+  loss_guard: [4, 8]  # e as do espantalho mais perto
+  test_pairs: 3  # os primeiros canteiros vão em pares: um no lugar de sempre, outro onde se sabe menos
+  test_every: 4  # depois, um canteiro em cada quatro continua como teste

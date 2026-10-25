@@ -12,6 +12,8 @@ dependencies = [
 [project.entry-points."campsverso.controllers"]
 farmer = "campsverso_farm_script:controller"
 farmer2 = "campsverso_farm_script:controller2"
+farmer3 = "campsverso_farm_script:controller3"
+oracle = "campsverso_farm_script:oracle"
 
 [build-system]
 requires = ["uv_build>=0.13,<0.14"]

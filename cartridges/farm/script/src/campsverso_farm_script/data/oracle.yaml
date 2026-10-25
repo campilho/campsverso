@@ -1,0 +1,14 @@
+# O oráculo (ADR-0070, decisão 6): o fazendeiro-script 3 sabendo as regras ocultas da Morada do Sol,
+# com os números da bíblia 3 (§8) e da bíblia 2 (§10). É o mesmo código do script 3, com a crença
+# trocada pela verdade: não testa nada e não aprende nada. Um teste confere este arquivo com os
+# dados do cartucho (rules.yaml e morada.yaml), para que o oráculo nunca fique para trás de uma
+# mudança das regras.
+
+id: script/oracle-v1
+model:
+  test_pairs: 0  # quem sabe não precisa testar
+truth:
+  water: {radius: 4, multiplier: 1.5}  # R-001: a até 4 tiles da água, o ponto do dia vale 1,5
+  fatigue: 0.6  # R-003: repetir a cultura do canteiro multiplica o ponto por 0,6
+  fertilizer_points: 0.5  # o adubo da Boa Vista: meio ponto a mais por dia regado (como ritmo, 1,5x)
+  crows: {distance: 18, scarecrow_radius: 6, chance: 0.5}  # R-002: longe da porta, sem espantalho

@@ -121,10 +121,13 @@ class Pipeline:
         self.mind: LlmController | None = None
         self.guard: BudgetService | None = None
         if controller == "script":
+            farmer = load_controller(script)
+            # O avatar nasce com o script do cartucho; outro script (o 3, o oráculo) pede a posse.
+            core.configure_controllers({"camps": ControllerRef("script", farmer.controller_id)})
             self.runner = ControllerRunner(
                 worldid,
                 "camps",
-                load_controller(script),
+                farmer,
                 self.bus,
                 self.ids,
                 self.clock,

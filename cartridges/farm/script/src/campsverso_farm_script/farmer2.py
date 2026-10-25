@@ -64,9 +64,8 @@ class Farmer2Script:
             self.last.clear()
         self.bounds["tick"] = tick
         self._learn_terrain(view)
-        turn = _Turn(self.config, view, self._remember(view), self)
-        proposal = turn.decide()
-        if _reason(view) == "action_rejected" and proposal == self.last.get("proposal"):
+        proposal = self._turn(view, self._remember(view)).decide()
+        if reason_of(view) == "action_rejected" and proposal == self.last.get("proposal"):
             # A mesma proposta acabou de ser recusada (um preço que subiu, um custo que mudou):
             # esperar um pouco em vez de repetir, e o mundo anda.
             proposal = {
@@ -78,6 +77,10 @@ class Farmer2Script:
         self.bounds["exploring"] = int(proposal.get("intent") == EXPLORE)
         return proposal
 
+    def _turn(self, view: View, entities: Sequence[Mapping[str, Any]]) -> Turn2:
+        """A decisão desta foto; o script 3 a troca pela dele (ADR-0070)."""
+        return Turn2(self.config, view, entities, self)
+
     def _learn_terrain(self, view: View) -> None:
         """Guarda o recorte de terreno da foto e deduz as bordas do mapa. O recorte é centrado no
         avatar e cortado nas bordas: o raio sai de um lado esquerdo ou de cima que não foi cortado,
@@ -87,7 +90,7 @@ class Farmer2Script:
         terrain = cast(Mapping[str, Any] | None, view.get("map"))
         if terrain is None:
             return
-        if self.bounds.get("exploring") and _reason(view) == "action_rejected":
+        if self.bounds.get("exploring") and reason_of(view) == "action_rejected":
             target = self.bounds.get("target_x"), self.bounds.get("target_y")
             if target[0] is not None and target[1] is not None:
                 self.unreachable.add((target[0], target[1]))
@@ -160,7 +163,7 @@ class Farmer2Script:
 EXPLORE = "explorar a fazenda"
 
 
-def _reason(view: View) -> str:
+def reason_of(view: View) -> str:
     return str(cast(Mapping[str, Any], view.get("decision") or {}).get("reason", ""))
 
 
@@ -195,7 +198,9 @@ def _tile_kind(view: View, x: int, y: int) -> str | None:
     return None if entry is None else str(entry.get("kind"))
 
 
-class _Turn:
+class Turn2:
+    """Uma decisão do script 2: as prioridades da bíblia 2, §11; o script 3 a estende (ADR-0070)."""
+
     def __init__(
         self,
         config: Mapping[str, Any],
