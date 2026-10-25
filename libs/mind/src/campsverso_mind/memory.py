@@ -6,6 +6,7 @@ que ela devolve ao modelo é texto montado só com isso, determinístico, para a
 """
 
 import json
+import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -31,6 +32,9 @@ NOTE_DESCRIPTION = (
 )
 NOTE_MAX = 500
 REFLECT = "reflect"
+# Marcação de ferramenta que o modelo às vezes escreve dentro de um texto da reflexão, com o plano
+# repetido depois (`</summary> <parameter name="plan">`; ADR-0070): o texto acaba antes dela.
+TOOL_MARKUP = re.compile(r"</|<(?:parameter|invoke|function_calls)\b")
 MAX_ATTEMPTS = 2  # reflexões tentadas por dia: a da noite e, se falhar, uma de manhã
 
 # A importância por tabela (decisão 4): sem chamada ao modelo, e a mesma em qualquer execução.
@@ -114,6 +118,13 @@ def clock_of(delivery: Mapping[str, Any]) -> Clock:
         int(raw.get("day", 1)),
         str(raw.get("sim_time", "")),
     )
+
+
+def _clean(text: object, limit: int) -> str:
+    """Um texto da reflexão numa linha, cortado na primeira marcação de ferramenta e no tamanho."""
+    flat = " ".join(str(text).split())
+    found = TOOL_MARKUP.search(flat)
+    return (flat if found is None else flat[: found.start()].rstrip())[:limit]
 
 
 def _box(terrain: Mapping[str, Any] | None) -> tuple[int, int, int, int] | None:
@@ -533,8 +544,8 @@ class Memory:
                     belief_id,
                 )
             )
-        summary = " ".join(str(given.get("summary", "")).split())[:2000] or "(sem resumo)"
-        plan = " ".join(str(given.get("plan", "")).split())[:1000] or None
+        summary = _clean(given.get("summary", ""), 2000) or "(sem resumo)"
+        plan = _clean(given.get("plan", ""), 1000) or None
         reflection = Reflection(
             day, clock.tick, summary, plan, tuple(revisions), request_sha256(request)
         )

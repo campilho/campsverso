@@ -178,6 +178,27 @@ def test_o_relatorio_poe_as_corridas_lado_a_lado(tmp_path: Path) -> None:
             ev(5760, "world.clock.phase_changed.v1"),
         ],
     )
+    reflections = [
+        {"summary": 'Plantei.</summary> <parameter name="plan">Colher.', "plan": "Colher."},
+        {"summary": "Reguei.", "plan": "Vender."},
+    ]
+    (arena / "haiku-memoria" / "llm.jsonl").write_text(
+        "".join(
+            json.dumps(
+                {
+                    "sha256": str(i),
+                    "response": {
+                        "content": [{"type": "tool_use", "name": "reflect", "input": given}]
+                    },
+                }
+            )
+            + "\n"
+            for i, given in enumerate(reflections)
+        )
+        + json.dumps({"sha256": "d", "response": {"content": [{"type": "text", "text": "</"}]}})
+        + "\n",
+        encoding="utf-8",
+    )
     (arena / "vazia").mkdir()  # uma corrida que não terminou não entra
     assert [r.name for r in load_runs(arena)] == ["script", "haiku-memoria"]
     out = tmp_path / "relatorio.md"
@@ -187,6 +208,7 @@ def test_o_relatorio_poe_as_corridas_lado_a_lado(tmp_path: Path) -> None:
     assert "| Métrica | script | haiku-memoria |" in text
     assert "| Moedas ao fim | 120 | 100 |" in text
     assert "| Custo (US$) | - | 0,01 |" in text
+    assert "| Resumos com marcação de ferramenta (na fita) | - | 1 de 2 |" in text
     assert "| Primeira anotação que cita o leste | sem memória | dia 1, 09:20 |" in text
     assert "| Primeira anotação que nota a vantagem do leste | sem memória | dia 1, 09:20 |" in text
     assert "## Colheitas por dia" in text
@@ -197,7 +219,7 @@ def test_o_relatorio_poe_as_corridas_lado_a_lado(tmp_path: Path) -> None:
     assert "dia 2 a 3, retirada" in text
     assert "## Moedas por dia" in text
     assert "| 3 | 120 | 100 |" in text  # o dia 2 não tem fato em nenhuma das duas: fica "-"
-    assert "haiku-memoria/` com `archive.jsonl`, `summary.json`" in text
+    assert "haiku-memoria/` com `archive.jsonl`, `llm.jsonl`, `summary.json`" in text
 
 
 def test_sem_corridas_avisa(tmp_path: Path) -> None:

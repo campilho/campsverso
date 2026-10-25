@@ -482,6 +482,30 @@ def test_a_reflexao_vira_crencas_e_eventos_na_ordem() -> None:
     assert events[0]["data"]["beliefs"] == {"formed": 1, "updated": 1, "retracted": 0, "total": 2}
 
 
+def test_o_resumo_acaba_na_marcacao_de_ferramenta() -> None:
+    # Os textos de verdade do Haiku na corrida do M18 (ADR-0070): o resumo trazia o fecho da
+    # marcação e o plano repetido.
+    mem = memory()
+    clock = Clock(900, 1, "2026-10-10T21:00:00-03:00")
+    leaked = (
+        "Colhi dois rabanetes; plot-005 deve ter crescido no amanhecer; preciso verificar isso de "
+        'perto.</summary> <parameter name="plan">Ao acordar às 06:00, ir até plot-001 e plot-002.'
+    )
+    reflection = mem.apply_reflection(
+        mem.reflect_request("x", clock, 1, "m"),
+        response(reflect_use(leaked, 'Colher plot-001.<parameter name="beliefs">[]')),
+        clock,
+        1,
+    )
+    assert reflection is not None
+    assert reflection.summary == (
+        "Colhi dois rabanetes; plot-005 deve ter crescido no amanhecer; preciso verificar isso de "
+        "perto."
+    )
+    assert reflection.plan == "Colher plot-001."
+    assert mem.drain_events()[0]["data"]["summary"] == reflection.summary
+
+
 def test_a_reflexao_cortada_no_max_tokens_nao_se_guarda() -> None:
     mem = memory()
     clock = Clock(900, 1, "2026-10-10T21:00:00-03:00")

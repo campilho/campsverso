@@ -70,6 +70,9 @@ RULES: dict[str, tuple[re.Pattern[str], re.Pattern[str]]] = {
         ),
     ),
 }
+# A marcação de ferramenta que o modelo às vezes escreve dentro do resumo da reflexão; a mente corta
+# o texto nela (ADR-0070), e a fita guarda a resposta crua, que é onde se conta.
+TOOL_MARKUP = re.compile(r"</|<(?:parameter|invoke|function_calls)\b")
 WORLDS = {
     "farm_camps": "farm-camps-01",
     "farm_boavista": "farm-boavista-01",
@@ -338,6 +341,7 @@ class Run:
     report: Report
     east: dict[str, Any]
     beliefs: list[dict[str, Any]]
+    leaks: tuple[int, int] | None = None  # reflexões com marcação no resumo, de quantas (a fita)
 
     @property
     def spec(self) -> dict[str, Any]:
@@ -365,6 +369,26 @@ def read_envelopes(path: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
 
 
+def reflection_leaks(tape: Path) -> tuple[int, int] | None:
+    """Quantas respostas da reflexão na fita trazem marcação de ferramenta no resumo ou no plano,
+    e de quantas; `None` sem fita."""
+    if not tape.is_file():
+        return None
+    leaked = total = 0
+    for line in tape.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        content = cast(Mapping[str, Any], json.loads(line).get("response") or {}).get("content")
+        for block in cast(Sequence[Mapping[str, Any]], content or ()):
+            if block.get("type") != "tool_use" or block.get("name") != "reflect":
+                continue
+            given = cast(Mapping[str, Any], block.get("input") or {})
+            total += 1
+            texts = (str(given.get("summary", "")), str(given.get("plan", "")))
+            leaked += any(TOOL_MARKUP.search(text) for text in texts)
+    return leaked, total
+
+
 def load_run(folder: Path) -> Run:
     summary: dict[str, Any] = json.loads((folder / "summary.json").read_text(encoding="utf-8"))
     envelopes = read_envelopes(folder / "archive.jsonl")
@@ -375,6 +399,7 @@ def load_run(folder: Path) -> Run:
         compute(envelopes),
         east_signals(envelopes),
         beliefs_at_end(envelopes),
+        reflection_leaks(folder / "llm.jsonl"),
     )
 
 
@@ -505,6 +530,10 @@ def _bible_rows(runs: Sequence[Run]) -> list[list[str]]:
     row("Custo por dia (US$)", lambda r: llm(r, "cost_usd_per_day", 3))
     row("Latência mediana (ms)", lambda r: llm(r, "latency_ms_median"))
     row("Reflexões", lambda r: str(r.summary.get("reflections", 0)) if r.has_memory else EMPTY)
+    row(
+        "Resumos com marcação de ferramenta (na fita)",
+        lambda r: f"{r.leaks[0]} de {r.leaks[1]}" if r.has_memory and r.leaks else EMPTY,
+    )
     row("Anotações", lambda r: str(r.summary.get("notes", 0)) if r.has_memory else EMPTY)
     row(
         "Crenças ao fim (formadas / revisadas / retiradas)",
