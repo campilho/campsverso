@@ -144,6 +144,24 @@ def script_answers(exam: Exam, effects: Effects, loss: Loss) -> dict[str, str]:
     return answers
 
 
+def script_model(script: object) -> dict[str, Any] | None:
+    """O modelo do script 3 no fim (ou a verdade do oráculo): o efeito de cada atributo, com o
+    intervalo de 90% e os plantios que o mediram, e a perda medida por faixa (`modelo.json`)."""
+    knows: Any = getattr(getattr(script, "book", None), "beliefs", None)
+    if knows is None:
+        return None
+    effects = [
+        {"name": e.name, "mean": e.mean, "low": e.low, "high": e.high, "measured": e.measured}
+        for e in knows.effects()
+    ]
+    rates = cast(Mapping[tuple[int, int], tuple[float, int]], knows.loss_rates())
+    loss = [
+        {"door": door, "guard": guard, "rate": rate, "measured": seen}
+        for (door, guard), (rate, seen) in rates.items()
+    ]
+    return {"effects": effects, "loss": loss}
+
+
 def script_exam(exam: Exam, script: object) -> dict[str, Any] | None:
     """A prova do fim de um script, lida no modelo dele; `None` sem modelo (o script 2)."""
     known = knowledge_of(script)

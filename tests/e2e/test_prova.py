@@ -75,6 +75,10 @@ async def test_a_corrida_do_script_3_grava_a_prova_do_fim(tmp_path: Path) -> Non
     assert prova["key"]["agua"] == "perto"
     assert set(result["prova"]) == {"after"}
     assert "answers" not in result["prova"]["after"]  # as respostas ficam só no prova.json
+    model = json.loads((tmp_path / "script3" / "modelo.json").read_text(encoding="utf-8"))
+    names = [e["name"] for e in model["effects"]]
+    assert names[0] == "base"
+    assert {"agua<=2", "repetida", "adubada"} <= set(names)
 
 
 class ExamPort:

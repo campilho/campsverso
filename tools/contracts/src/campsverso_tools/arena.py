@@ -79,6 +79,13 @@ WORLDS = {
     "farm_boavista": "farm-boavista-01",
     "farm_morada_do_sol": "farm-morada-do-sol-01",
 }
+SCRIPT_NAMES = {
+    "farmer": "script",
+    "farmer2": "script 2",
+    "farmer3": "script 3",
+    "oracle": "oráculo",
+}
+MORADA = "farm_morada_do_sol"
 MODEL_NAMES = {
     "claude-haiku-5-5": "Haiku 5.5",
     "claude-sonnet-5-5": "Sonnet 5.5",
@@ -95,6 +102,8 @@ DISCOVERY = re.compile(
 ORDER = (
     "script",
     "script2",
+    *(f"{who}-{m}" for who in ("script2", "script3", "oraculo") for m in "abc"),
+    "script3-sem-regras",
     "humano",
     "haiku",
     "haiku-memoria",
@@ -346,6 +355,9 @@ class Run:
     exploration: Exploration | None = None  # as métricas de exploração (ADR-0070)
     exam: dict[str, Any] | None = None  # a prova do mundo (ADR-0070): o gabarito e as respostas
     judge: dict[str, Any] | None = None  # os vereditos do juiz (ADR-0070), lidos de juiz.json
+    model: dict[str, Any] | None = (
+        None  # o que o script 3 aprendeu, ou o oráculo sabe (modelo.json)
+    )
 
     @property
     def spec(self) -> dict[str, Any]:
@@ -407,6 +419,7 @@ def load_run(folder: Path) -> Run:
         explore(envelopes),
         _optional(folder / "prova.json"),
         _optional(folder / "juiz.json"),
+        _optional(folder / "modelo.json"),
     )
 
 
@@ -778,9 +791,31 @@ def _controller_name(spec: Mapping[str, Any]) -> str:
     if spec.get("controller") == "human":
         return "humano"
     if spec.get("controller") != "llm":
-        return str(spec.get("controller"))
+        return SCRIPT_NAMES.get(str(spec.get("script")), str(spec.get("controller")))
     model = str(spec.get("model", "claude-haiku-5-5"))
     return MODEL_NAMES.get(model, model)
+
+
+def _runs_table(runs: Sequence[Run], *, maps: bool) -> str:
+    """As corridas; na Morada do Sol, com o mapa, e a regra é a água e a fadiga (as do arquivo)."""
+    header = ["Corrida", "Controlador", *(["Mapa"] if maps else []), "Memória"]
+    header += ["Regras R-001 e R-003" if maps else "Regra R-001", "Seed", "Dias"]
+    header += ["Teto US$ (dia · total)", "Tempo real"]
+    rows = [
+        [
+            r.name,
+            _controller_name(r.spec),
+            *([str(r.spec.get("map") or "a")] if maps else []),
+            "sim" if r.has_memory else "não",
+            "ligada" if r.spec.get("river_bonus", True) else "desligada",
+            str(r.spec.get("seed", "?")),
+            str(r.report.totals()["days"]),
+            _limits(r.spec),
+            _duration(float(r.summary.get("real_seconds", 0))),
+        ]
+        for r in runs
+    ]
+    return _table(header, rows)
 
 
 def _limits(spec: Mapping[str, Any]) -> str:
@@ -820,31 +855,7 @@ def render(runs: Sequence[Run], *, source: str, date: str) -> str:
         "",
         "## As corridas",
         "",
-        _table(
-            [
-                "Corrida",
-                "Controlador",
-                "Memória",
-                "Regra R-001",
-                "Seed",
-                "Dias",
-                "Teto US$ (dia · total)",
-                "Tempo real",
-            ],
-            [
-                [
-                    r.name,
-                    _controller_name(r.spec),
-                    "sim" if r.has_memory else "não",
-                    "ligada" if r.spec.get("river_bonus", True) else "desligada",
-                    str(r.spec.get("seed", "?")),
-                    str(r.report.totals()["days"]),
-                    _limits(r.spec),
-                    _duration(float(r.summary.get("real_seconds", 0))),
-                ]
-                for r in runs
-            ],
-        ),
+        _runs_table(runs, maps=cartridge == MORADA),
         "",
         "## A tabela da bíblia §13, lado a lado",
         "",
@@ -877,6 +888,8 @@ def render(runs: Sequence[Run], *, source: str, date: str) -> str:
             for b in r.beliefs[:3]
         ] or ["- nenhuma"]
         lines.append("")
+    lines += _knowing_section(runs)
+    lines += _learned_section(runs)
     lines += _judge_section(runs)
     lines += _exploration_section(runs)
     lines += _exam_section(runs)
@@ -890,6 +903,107 @@ def render(runs: Sequence[Run], *, source: str, date: str) -> str:
 
 
 UNKNOWN = "nao_sei"  # a opção "não sei" da prova
+
+
+# A água, um distrator de cada (o efeito verdadeiro é 1) e o histórico do canteiro.
+LEARNED = (
+    "agua<=2",
+    "agua<=4",
+    "agua<=8",
+    "agua<=16",
+    "mata<=2",
+    "caminho<=2",
+    "porta<=2",
+    "repetida",
+    "adubada",
+)
+
+
+def _hungry_days(r: Run) -> int:
+    return sum(1 for d in r.report.complete_days if d.hunger_peak >= 100)
+
+
+def _knowing_section(runs: Sequence[Run]) -> list[str]:
+    """O valor de saber (ADR-0070): o script 2 não sabe, o script 3 aprende e o oráculo sabe, em
+    cada mapa da Morada do Sol."""
+    by: dict[tuple[str, str], Run] = {}
+    for r in runs:
+        if r.spec.get("cartridge") == MORADA and r.spec.get("river_bonus", True):
+            who = str(r.spec.get("script") or r.spec.get("controller"))
+            by[(who, str(r.spec.get("map") or "a"))] = r
+    if not any(who == "oracle" for who, _ in by):
+        return []
+    maps = sorted({m for _, m in by})
+
+    def cell(r: Run | None) -> str:
+        if r is None:
+            return EMPTY
+        totals = r.report.totals()
+        harvests = sum(cast(Mapping[str, int], totals["harvests"]).values())
+        return f"{totals['coins_end']} moedas · {harvests} colheitas · {_hungry_days(r)} dias"
+
+    rows = [
+        [label, *(cell(by.get((who, m))) for m in maps)]
+        for who, label in (
+            ("farmer2", "script 2 (não sabe)"),
+            ("farmer3", "script 3 (aprende)"),
+            ("oracle", "oráculo (sabe)"),
+            ("llm", "Haiku 5.5 com memória"),
+        )
+        if any((who, m) in by for m in maps)
+    ]
+
+    def gap(m: str) -> str:
+        blind, knows = by.get(("farmer2", m)), by.get(("oracle", m))
+        if blind is None or knows is None:
+            return EMPTY
+        coins = int(knows.report.totals()["coins_end"]) - int(blind.report.totals()["coins_end"])
+        return f"{coins:+d} moedas, {_hungry_days(blind) - _hungry_days(knows):+d} dias sem fome"
+
+    rows.append(["o valor de saber (oráculo menos script 2)", *(gap(m) for m in maps)])
+    return [
+        "## O valor de saber",
+        "",
+        "As três réguas em cada mapa: o script 2 não sabe as regras ocultas e não aprende, o "
+        "script 3 aprende pelo caderno de campo e o oráculo é o mesmo código sabendo as regras. "
+        "Cada célula traz as moedas no fim, as colheitas e os dias com a fome em 100. A distância "
+        "entre o oráculo e o script 2 é o que saber vale naquele mapa; onde o script 3 fica nessa "
+        "distância é o que aprender captou.",
+        "",
+        _table(["Quem", *(f"Mapa {m}" for m in maps)], rows),
+        "",
+    ]
+
+
+def _learned_section(runs: Sequence[Run]) -> list[str]:
+    """O que o script 3 aprendeu (`modelo.json`): o efeito de cada atributo no ritmo da planta,
+    em vezes, com o intervalo de 90% e os plantios que o mediram."""
+    learners = [r for r in runs if r.model is not None and r.spec.get("script") == "farmer3"]
+    if not learners:
+        return []
+
+    def cell(r: Run, name: str) -> str:
+        effects = cast(Sequence[Mapping[str, Any]], (r.model or {}).get("effects") or ())
+        found = next((e for e in effects if e.get("name") == name), None)
+        if found is None:
+            return EMPTY
+        low, high = _n(found["low"], 2), _n(found["high"], 2)
+        return f"{_n(found['mean'], 2)} ({low} a {high}) · {found['measured']}"
+
+    return [
+        "## O que o script 3 aprendeu",
+        "",
+        "O efeito de cada atributo no ritmo da planta, em vezes, com o intervalo de 90% e quantos "
+        "plantios o mediram. A verdade: a até 4 tiles da água, 1,5 (R-001); repetir a cultura, "
+        "0,6 (R-003); o adubo, 1,5. A mata, o caminho e a porta são distratores: o efeito "
+        "verdadeiro é 1. Um efeito conta como aprendido quando o intervalo não inclui o 1.",
+        "",
+        _table(
+            ["Atributo", *(r.name for r in learners)],
+            [[name, *(cell(r, name) for r in learners)] for name in LEARNED],
+        ),
+        "",
+    ]
 
 
 VERDICTS = {"causa": "a causa", "lugar": "só o lugar", "nao": "não"}

@@ -13,6 +13,7 @@ from campsverso_testkit.arena import (
     SEED_BOAVISTA,
     SPECS,
     SPECS_BOAVISTA,
+    SPECS_MORADA,
     Spec,
     main,
     run_spec,
@@ -116,7 +117,35 @@ def test_as_corridas_da_boa_vista() -> None:
         "sonnet-memoria",
         "opus-memoria",
     ]
-    assert ROUNDS == {"camps": SPECS, "boavista": SPECS_BOAVISTA}
+    assert ROUNDS == {"camps": SPECS, "boavista": SPECS_BOAVISTA, "morada": SPECS_MORADA}
+
+
+def test_a_rodada_de_verificacao_da_morada_do_sol() -> None:
+    """ADR-0070, decisão 14: as três réguas nos três mapas, o script 3 sem as regras do arquivo e
+    o Haiku com memória no mapa a, um ano cada, na seed do mundo."""
+    by = {s.name: s for s in SPECS_MORADA}
+    assert list(by) == [
+        "script2-a",
+        "script2-b",
+        "script2-c",
+        "script3-a",
+        "script3-b",
+        "script3-c",
+        "oraculo-a",
+        "oraculo-b",
+        "oraculo-c",
+        "script3-sem-regras",
+        "haiku-memoria",
+    ]
+    assert {(s.cartridge, s.seed, s.days) for s in SPECS_MORADA} == {
+        ("farm_morada_do_sol", 20261022, 28)
+    }
+    assert (by["script3-a"].script, by["script3-a"].map) == ("farmer3", None)
+    assert (by["oraculo-c"].script, by["oraculo-c"].map) == ("oracle", "c")
+    assert by["script2-b"].script == "farmer2"
+    assert not by["script3-sem-regras"].river_bonus
+    assert (by["haiku-memoria"].controller, by["haiku-memoria"].memory) == ("llm", True)
+    assert by["haiku-memoria"].map is None
 
 
 def test_a_reserva_ao_comecar_e_o_script_2_na_boa_vista(

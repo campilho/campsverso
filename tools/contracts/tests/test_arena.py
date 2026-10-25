@@ -428,3 +428,46 @@ def test_o_relatorio_mostra_o_juiz_ao_lado_das_heuristicas(tmp_path: Path) -> No
     row = "| agua | só o lugar (bel-0026) | só o lugar (bel-0026) (regra desligada) |"
     assert row in text
     assert "| tomate | não | não |" in text
+
+
+def test_na_morada_o_relatorio_mostra_o_valor_de_saber_e_o_que_o_script_3_aprendeu(
+    tmp_path: Path,
+) -> None:
+    arena = tmp_path / "20261025-morada"
+    morada = {"cartridge": "farm_morada_do_sol", "seed": 20261022, "river_bonus": True}
+
+    def year(coins: int, hungry: bool) -> list[dict[str, Any]]:
+        need = 100 if hungry else 40
+        return [
+            ev(0, "world.session.started.v1", tick_seconds=60),
+            ev(0, "world.item.created.v1", item="moeda", qty=coins, container_id="camps"),
+            ev(10, "world.need.changed.v1", avatar_id="camps", need="fome", value=need),
+            ev(1440, "world.clock.phase_changed.v1"),
+        ]
+
+    for name, script, coins, hungry in (
+        ("script2-a", "farmer2", 14, True),
+        ("script3-a", "farmer3", 20, False),
+        ("oraculo-a", "oracle", 300, False),
+    ):
+        spec = {"name": name, "controller": "script", "script": script, "map": None, **morada}
+        _run(arena, name, spec, year(coins, hungry))
+    effects = [
+        {"name": "agua<=2", "mean": 1.42, "low": 1.21, "high": 1.66, "measured": 14},
+        {"name": "repetida", "mean": 0.55, "low": 0.47, "high": 0.64, "measured": 9},
+    ]
+    model = {"effects": effects, "loss": []}
+    (arena / "script3-a" / "modelo.json").write_text(json.dumps(model), encoding="utf-8")
+    out = tmp_path / "relatorio.md"
+    assert main([str(arena), "--out", str(out)]) == 0
+    text = out.read_text(encoding="utf-8")
+    assert "| Corrida | Controlador | Mapa | Memória | Regras R-001 e R-003 |" in text
+    assert "| script3-a | script 3 | a | não | ligada |" in text
+    assert "## O valor de saber" in text
+    assert "| script 2 (não sabe) | 14 moedas · 0 colheitas · 1 dias |" in text
+    assert "| oráculo (sabe) | 300 moedas · 0 colheitas · 0 dias |" in text
+    assert "| o valor de saber (oráculo menos script 2) | +286 moedas, +1 dias sem fome |" in text
+    assert "## O que o script 3 aprendeu" in text
+    assert "| agua<=2 | 1,42 (1,21 a 1,66) · 14 |" in text
+    assert "| repetida | 0,55 (0,47 a 0,64) · 9 |" in text
+    assert "| mata<=2 | - |" in text

@@ -1,6 +1,6 @@
 """A arena (ADR-0061): as corridas de 30 dias em processo, uma por controlador, lado a lado.
 
-    uv run --env-file .env python -m campsverso_testkit.arena --days 30 [--rodada boavista]
+    uv run --env-file .env python -m campsverso_testkit.arena --days 30 [--rodada boavista|morada]
         [--only NOME] [--out PASTA]
 
 Sobre o `make corrida` do M11: o pipeline em memória (kernel, percepção, mente, medidor e guarda),
@@ -9,7 +9,9 @@ sua pasta. A rodada `camps` (M12) é a fazenda 1: o script da bíblia §11, o Ha
 (M10), o Haiku 5.5 com memória (M11) em quatro seeds e o Haiku 5.5 com memória sem a regra R-001,
 como controle. A rodada `boavista` (M14, ADR-0063) é a Fazenda Boa Vista: o fazendeiro-script 2,
 o Haiku com memória em quatro seeds e sem a regra, o Sonnet e o Opus, cada corrida com os seus
-dias e o seu teto de orçamento. Uma pasta com `summary.json` é uma corrida feita, e uma pasta que
+dias e o seu teto de orçamento. A rodada `morada` (M19, ADR-0070) é a verificação na Morada do
+Sol: o script 2, o script 3 e o oráculo nos mapas a, b e c, o script 3 sem a água e a fadiga e o
+Haiku com memória, um ano cada. Uma pasta com `summary.json` é uma corrida feita, e uma pasta que
 existe é uma corrida tomada: rodar de novo só completa as que faltam, e dois processos em paralelo
 dividem a rodada sozinhos. Depois, `make arena-report` escreve o relatório. O CI nunca roda isto.
 """
@@ -31,13 +33,16 @@ from campsverso_ports import MemoryPort, ModelPort
 from campsverso_testkit.fita import LIMITS, summary
 from campsverso_testkit.nats_server import REPO
 from campsverso_testkit.pipeline import MODEL, DeadlockError, Pipeline
-from campsverso_testkit.prova import exam_of, examine
+from campsverso_testkit.prova import exam_of, examine, script_model
 from campsverso_tools.arena import east_signals
 from campsverso_tools.metrics import compute, table
 
 SEED = 20261010  # o mesmo dos testes e do mundo oficial
 SEED_BOAVISTA = 20261019  # o do mundo farm-boavista-01
 BOAVISTA = "farm_boavista"
+SEED_MORADA = 20261022  # o do mundo farm-morada-do-sol-01
+MORADA = "farm_morada_do_sol"
+YEAR = 28  # o ano acelerado da Morada do Sol
 SONNET = "claude-sonnet-5-5"
 OPUS = "claude-opus-5-5"
 
@@ -94,7 +99,33 @@ SPECS_BOAVISTA: tuple[Spec, ...] = (
     _boavista("sonnet-memoria", model=SONNET, limits=BudgetLimits(1.50, 25.0)),
     _boavista("opus-memoria", model=OPUS, limits=BudgetLimits(2.50, 35.0)),
 )
-ROUNDS: dict[str, tuple[Spec, ...]] = {"camps": SPECS, "boavista": SPECS_BOAVISTA}
+
+
+def _morada(name: str, controller: Literal["script", "llm"], **overrides: Any) -> Spec:
+    """Uma corrida da Morada do Sol: um ano (28 dias), na seed do mundo."""
+    base: dict[str, Any] = {"seed": SEED_MORADA, "cartridge": MORADA, "days": YEAR}
+    return Spec(name, controller, **(base | overrides))
+
+
+# A rodada de verificação do M19 (ADR-0070, decisão 14): as três réguas nos três mapas, de graça,
+# o script 3 com a água e a fadiga desligadas (o controle: não pode descobrir o que não existe) e
+# uma corrida do Haiku com memória, caderno de campo e experimento no mapa a.
+SPECS_MORADA: tuple[Spec, ...] = (
+    *(
+        _morada(
+            f"{name}-{variant}", "script", script=script, map=None if variant == "a" else variant
+        )
+        for name, script in (("script2", "farmer2"), ("script3", "farmer3"), ("oraculo", "oracle"))
+        for variant in ("a", "b", "c")
+    ),
+    _morada("script3-sem-regras", "script", script="farmer3", river_bonus=False),
+    _morada("haiku-memoria", "llm", memory=True),
+)
+ROUNDS: dict[str, tuple[Spec, ...]] = {
+    "camps": SPECS,
+    "boavista": SPECS_BOAVISTA,
+    "morada": SPECS_MORADA,
+}
 
 
 def _say(line: str, log: Path) -> None:
@@ -109,12 +140,12 @@ async def run_spec(
     """Roda uma corrida e grava a pasta dela: `summary.json` (o resumo, o `spec`, os totais da
     bíblia e os sinais do leste ou do rio), `metrics.txt`, `archive.jsonl` e, com modelo,
     `llm.jsonl` (a fita inteira) e `memory.sqlite`; no mundo com prova (ADR-0070), `prova.json`,
-    com a prova da mente antes e depois, ou a do script 3 no fim. Devolve o resumo. Se a mente
-    desistir (três falhas seguidas), a corrida para no dia em que isso aconteceu, marcado em
-    `aborted_day`; se bater no teto de orçamento, idem, em `budget_day`. `port` troca a API por
-    uma porta falsa (só os testes). O `archive.jsonl` cresce a cada dia simulado, e o
-    `estado.json` diz o dia e se a corrida terminou: é o que o modo de assistir lê ao vivo
-    (ADR-0068)."""
+    com a prova da mente antes e depois, ou a do script 3 no fim; com o script 3 ou o oráculo,
+    `modelo.json`, o que ele aprendeu (ou sabe). Devolve o resumo. Se a mente desistir (três
+    falhas seguidas), a corrida para no dia em que isso aconteceu, marcado em `aborted_day`; se
+    bater no teto de orçamento, idem, em `budget_day`. `port` troca a API por uma porta falsa
+    (só os testes). O `archive.jsonl` cresce a cada dia simulado, e o `estado.json` diz o dia e
+    se a corrida terminou: é o que o modo de assistir lê ao vivo (ADR-0068)."""
     out.mkdir(parents=True, exist_ok=True)
     log = out / "progresso.txt"
     archive = out / "archive.jsonl"
@@ -199,6 +230,11 @@ async def run_spec(
             break
     if exam is not None and (taken := await examine(pipeline, exam, port, end=True)) is not None:
         prova["after"] = taken  # e no fim, com o bloco de abertura e o caderno
+    model = script_model(pipeline.script) if pipeline.script is not None else None
+    if model is not None:  # o que o script 3 aprendeu, ou a verdade do oráculo (ADR-0070)
+        (out / "modelo.json").write_text(
+            json.dumps(model, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
     if api is not None:
         await api.aclose()  # antes de o laço desta corrida fechar
     report = compute(pipeline.envelopes)
@@ -235,7 +271,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--rodada",
         choices=sorted(ROUNDS),
         default="camps",
-        help="a lista de corridas: camps (a fazenda 1, M12) ou boavista (a fazenda 2, M14)",
+        help="a lista de corridas: camps (a fazenda 1, M12), boavista (a fazenda 2, M14) ou "
+        "morada (a verificação do M19)",
     )
     parser.add_argument(
         "--only",
