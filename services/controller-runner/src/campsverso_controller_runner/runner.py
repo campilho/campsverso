@@ -330,7 +330,10 @@ class ControllerRunner:
             if perception["type"] != DELIVERED:
                 return None  # script e replay só entendem a foto
             script = cast(Controller, self.controller)
-            return dict(script.decide(cast(Mapping[str, Any], data["view"])))
+            # A foto e o motivo do pedido (uma recusa, um despertar): o script 2 não repete uma
+            # proposta recusada, e o 3 anota o que a última ação fez (ADR-0070).
+            view = {**cast(Mapping[str, Any], data["view"]), "decision": decision}
+            return dict(script.decide(view))
         published = _parse(perception.get("time"))
         if (
             self._last_proposal_at is not None
