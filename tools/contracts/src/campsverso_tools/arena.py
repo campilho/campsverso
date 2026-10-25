@@ -20,6 +20,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, cast
 
+from campsverso_tools.exploration import ZONES, Exploration, explore
 from campsverso_tools.metrics import Report, compute, group_of, plot_groups
 
 REPO = Path(__file__).resolve().parents[4]
@@ -342,6 +343,7 @@ class Run:
     east: dict[str, Any]
     beliefs: list[dict[str, Any]]
     leaks: tuple[int, int] | None = None  # reflexões com marcação no resumo, de quantas (a fita)
+    exploration: Exploration | None = None  # as métricas de exploração (ADR-0070)
 
     @property
     def spec(self) -> dict[str, Any]:
@@ -400,6 +402,7 @@ def load_run(folder: Path) -> Run:
         east_signals(envelopes),
         beliefs_at_end(envelopes),
         reflection_leaks(folder / "llm.jsonl"),
+        explore(envelopes),
     )
 
 
@@ -862,6 +865,7 @@ def render(runs: Sequence[Run], *, source: str, date: str) -> str:
             for b in r.beliefs[:3]
         ] or ["- nenhuma"]
         lines.append("")
+    lines += _exploration_section(runs)
     lines += _coins_section(runs)
     lines += _harvests_section(runs)
     lines += ["## Os arquivos", ""]
@@ -869,6 +873,48 @@ def render(runs: Sequence[Run], *, source: str, date: str) -> str:
         files = ", ".join(f"`{p.name}`" for p in sorted(r.folder.iterdir()) if p.is_file())
         lines.append(f"- **{r.name}**: `{source}/{r.name}/` com {files}")
     return "\n".join(lines) + "\n"
+
+
+def _exploration_section(runs: Sequence[Run]) -> list[str]:
+    """A exploração lado a lado (ADR-0070), nos mundos em que se vê só um raio."""
+    if not any(r.exploration is not None and r.exploration.limited_view for r in runs):
+        return []
+    names = [r.name for r in runs]
+
+    def cell(r: Run, show: Callable[[Exploration], str]) -> str:
+        return EMPTY if r.exploration is None else show(r.exploration)
+
+    def zones(counts: Mapping[str, int]) -> str:
+        return " / ".join(str(counts.get(z, 0)) for z in ZONES)
+
+    def share(pair: tuple[int, int]) -> str:
+        return f"{pair[0]} de {pair[1]}"
+
+    rows: list[tuple[str, Callable[[Exploration], str]]] = [
+        ("Tiles vistos", lambda x: f"{x.seen_tiles} ({x.seen_fraction:.0%})"),
+        ("Viu 90% do mapa no dia", lambda x: str(x.seen_most_day or EMPTY)),
+        ("A primeira água à vista", lambda x: x.first_water or "nunca"),
+        ("Canteiros cavados (" + " / ".join(ZONES) + ")", lambda x: zones(x.plots_by_zone)),
+        ("Plantios (" + " / ".join(ZONES) + ")", lambda x: zones(x.plantings_by_zone)),
+        ("Plantios na várzea depois de ver a água", lambda x: share(x.fertile_after_water)),
+        ("Plantios longe sem espantalho", lambda x: str(x.exposed)),
+        ("Distância média dos canteiros à porta", lambda x: _n(x.door_distance, 1)),
+        ("Repetiram a cultura do canteiro", lambda x: share(x.repeats)),
+    ]
+    return [
+        "## A exploração",
+        "",
+        "Lida do arquivo: o que o avatar viu (as fotos e os deltas da percepção) e onde cavou e "
+        "plantou. As zonas usam a verdade das regras ocultas, que o avaliador pode saber: a "
+        "várzea fica a até 4 tiles da água (R-001) e longe é a mais de 18 tiles da porta, onde os "
+        "corvos comem sem espantalho a até 6 tiles (R-002); repetir a cultura do canteiro é a "
+        "fadiga do solo (R-003).",
+        "",
+        _table(
+            ["Métrica", *names], [[label, *(cell(r, show) for r in runs)] for label, show in rows]
+        ),
+        "",
+    ]
 
 
 def _date_of(folder: Path) -> str:

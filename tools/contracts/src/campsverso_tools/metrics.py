@@ -24,6 +24,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, cast
 
+from campsverso_tools.exploration import explore
+from campsverso_tools.exploration import lines as exploration_lines
+
 # Grupos de canteiros da Fazenda do Camps (bíblia §4): o leste fica perto do rio (R-001).
 GROUPS = {"plot-w-": "oeste", "plot-e-": "leste"}
 # Na Fazenda Boa Vista o canteiro nasce onde se cava, sem grupo nem rótulo (ADR-0062): é o
@@ -437,18 +440,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--json", action="store_true", help="saída em JSON")
     args = parser.parse_args(argv)
-    report = compute(read_archive(args.archive))
+    envelopes = list(read_archive(args.archive))
+    report = compute(envelopes)
+    found = explore(envelopes)  # a exploração (ADR-0070), nos mundos em que se vê só um raio
+    shown = found if found is not None and found.limited_view else None
     if args.json:
-        print(
-            json.dumps(
-                {"days": [asdict(d) for d in report.days], "totals": report.totals()},
-                ensure_ascii=False,
-                indent=2,
-            )
-        )
+        doc: dict[str, Any] = {"days": [asdict(d) for d in report.days], "totals": report.totals()}
+        if shown is not None:
+            doc["exploration"] = shown.as_dict()
+        print(json.dumps(doc, ensure_ascii=False, indent=2))
     else:
         print(table(report))
         print(json.dumps(report.totals(), ensure_ascii=False))
+        if shown is not None:
+            print("\n".join(["", *exploration_lines(shown)]))
     return 0
 
 
