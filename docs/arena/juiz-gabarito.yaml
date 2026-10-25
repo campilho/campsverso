@@ -1,5 +1,5 @@
-# O gabarito feito à mão do juiz (ADR-0070, decisão 13), marcado em 25/out/2026 antes de o juiz
-# rodar, lendo o mesmo dossiê que ele lê (`campsverso_tools.judge.dossier`: as crenças ativas no
+# O gabarito feito à mão do juiz (ADR-0070, decisões 13 e 18), marcado em 25/out/2026 antes de o
+# juiz rodar, lendo o mesmo dossiê que ele lê (`campsverso_tools.judge.dossier`: as crenças ativas no
 # fim, com as evidências e a trajetória, e as retiradas) e com as mesmas rubricas
 # (`cartridges/<cartucho>/eval/juiz.yaml`). As 12 corridas com memória do M12 (fazenda 1, uma
 # regra) e do M14 (Boa Vista, seis regras): 47 vereditos.
@@ -13,6 +13,11 @@
 #   retirada no dia 18; fala do leste mais lento, o contrário da regra.
 # - M12 haiku-memoria-s3, bel-0027: "o oeste ficou parado enquanto o leste avançou" é a rega (o
 #   oeste não foi regado), não a regra.
+# - M12 haiku-memoria-s2, bel-0018 (0,90): "o rabanete amadurece em cerca de 2 dias; o tempo varia
+#   entre canteiros", e M12 haiku-memoria-s3, bel-0023 (0,60): "a abóbora amadurece em 6 a 8 dias;
+#   o tempo exato varia". As evidências citam só canteiros do leste (e-04, e-05...) com o tempo
+#   menor, mas o enunciado não diz onde: pela rubrica, julga-se o enunciado, e a evidência não
+#   acrescenta a descoberta que ele não faz.
 # - M14 haiku-memoria, bel-0006: "o baú guarda as colheitas com a validade original": contradiz a
 #   regra do baú.
 # - M14 opus-memoria, bel-0017: "o baú, que guarda bem" repete o manual.
@@ -20,15 +25,190 @@
 #   nos dias até amadurecer da tabela; o ensopado e o rio não aparecem em crença nenhuma.
 
 runs:
-  20261019-0725/haiku-memoria: {agua: nao}
-  20261019-0725/haiku-memoria-s2: {agua: nao}
-  20261019-0725/haiku-memoria-s3: {agua: nao}
-  20261019-0725/haiku-memoria-s4: {agua: nao}
-  20261019-0725/haiku-memoria-sem-regra: {agua: nao}
-  20261020-233814/haiku-memoria: {agua: nao, tomate: nao, alho: nao, bau: nao, ensopado: nao, adubo: nao}
-  20261020-233814/haiku-memoria-s2: {agua: nao, tomate: nao, alho: nao, bau: nao, ensopado: nao, adubo: nao}
-  20261020-233814/haiku-memoria-s3: {agua: nao, tomate: nao, alho: nao, bau: nao, ensopado: nao, adubo: nao}
-  20261020-233814/haiku-memoria-s4: {agua: nao, tomate: nao, alho: nao, bau: nao, ensopado: nao, adubo: nao}
-  20261020-233814/haiku-memoria-sem-regra: {agua: nao, tomate: nao, alho: nao, bau: nao, ensopado: nao, adubo: nao}
-  20261020-233814/sonnet-memoria: {agua: nao, tomate: nao, alho: nao, bau: nao, ensopado: nao, adubo: nao}
-  20261020-233814/opus-memoria: {agua: nao, tomate: nao, alho: nao, bau: nao, ensopado: nao, adubo: nao}
+  arena/20261019-0725/haiku-memoria: {agua: nao}
+  arena/20261019-0725/haiku-memoria-s2: {agua: nao}
+  arena/20261019-0725/haiku-memoria-s3: {agua: nao}
+  arena/20261019-0725/haiku-memoria-s4: {agua: nao}
+  arena/20261019-0725/haiku-memoria-sem-regra: {agua: nao}
+  arena/20261020-233814/haiku-memoria: {agua: nao, tomate: nao, alho: nao, bau: nao, ensopado: nao, adubo: nao}
+  arena/20261020-233814/haiku-memoria-s2: {agua: nao, tomate: nao, alho: nao, bau: nao, ensopado: nao, adubo: nao}
+  arena/20261020-233814/haiku-memoria-s3: {agua: nao, tomate: nao, alho: nao, bau: nao, ensopado: nao, adubo: nao}
+  arena/20261020-233814/haiku-memoria-s4: {agua: nao, tomate: nao, alho: nao, bau: nao, ensopado: nao, adubo: nao}
+  arena/20261020-233814/haiku-memoria-sem-regra: {agua: nao, tomate: nao, alho: nao, bau: nao, ensopado: nao, adubo: nao}
+  arena/20261020-233814/sonnet-memoria: {agua: nao, tomate: nao, alho: nao, bau: nao, ensopado: nao, adubo: nao}
+  arena/20261020-233814/opus-memoria: {agua: nao, tomate: nao, alho: nao, bau: nao, ensopado: nao, adubo: nao}
+
+# Os controles (ADR-0070, decisão 18): como as 47 marcações acima são todas `nao`, elas só medem se
+# o juiz inventa descobertas. Os controles medem se ele reconhece uma. Um é real: a s2 do M12 lida
+# até o dia 25, quando a bel-0026 dizia, a 0,85, que a abóbora amadurece em 6 dias "nos canteiros
+# do leste" (só o lugar; no dia 28 ela voltou ao manual). Os outros são dossiês de corridas reais
+# com crenças acrescentadas à mão (`inject`), que entram com os ids seguintes aos da base, com a
+# confiança, as evidências e a trajetória dadas aqui; o juiz não sabe quais são. As crenças da
+# base continuam valendo: as da Boa Vista estão marcadas acima, e a corrida de 7 dias do Haiku na
+# Morada do Sol (M18) não tem crença nenhuma sobre as nove regras. A pasta de cada controle fica
+# em data/juiz-controles/<nome>, com o dossiê, a fita e o veredito.
+controls:
+  - name: m12-s2-dia-25
+    base: arena/20261019-0725/haiku-memoria-s2
+    until_day: 25
+    expected: {agua: lugar}
+  - name: boavista-causas
+    base: arena/20261020-233814/haiku-memoria
+    inject:
+      - statement: >-
+          Os canteiros a até 3 ou 4 tiles do rio amadurecem um dia antes dos que ficam longe dele:
+          o rabanete em 2 dias, a batata em 4.
+        confidence: 0.85
+        evidence:
+          - plot-21 e plot-22, ao lado do rio, deram rabanete em 2 dias; o plot-03, perto do poço, em 3
+          - a batata do plot-23 (x 26) ficou madura em 4 dias; a do plot-05 (x 12), em 5
+        steps: dia 12 formada 0,60; dia 16 revisada 0,75; dia 21 revisada 0,85
+      - statement: O tomate murcha se passar um dia sem rega; as outras culturas aguentam dois.
+        confidence: 0.80
+        evidence:
+          - o tomate do plot-07 ficou sem rega no dia 14 e amanheceu murcho no dia 15
+          - o rabanete do plot-08, também sem rega no dia 14, só não cresceu
+        steps: dia 15 formada 0,70; dia 19 revisada 0,80
+      - statement: O alho cresce mesmo sem rega; não preciso gastar carga do regador com ele.
+        confidence: 0.80
+        evidence:
+          - o alho do plot-11 avançou nos dias 9, 10 e 11 sem rega nem chuva
+        steps: dia 12 formada 0,65; dia 14 revisada 0,80
+      - statement: >-
+          Colheitas guardadas no baú vencem bem depois das que ficam no inventário: duram cerca
+          do dobro.
+        confidence: 0.75
+        evidence:
+          - rabanetes colhidos no dia 10 venceram no inventário no dia 14; os do baú mostram expires_day 18
+        steps: dia 11 formada 0,60; dia 15 revisada 0,75
+      - statement: Depois de comer o ensopado, a fome sobe mais devagar por umas 8 horas.
+        confidence: 0.80
+        evidence:
+          - comi o ensopado ao meio-dia, e a fome foi de 0 a 12 até as 20:00, em vez de 24
+        steps: dia 18 formada 0,70; dia 22 revisada 0,80
+      - statement: >-
+          Um canteiro adubado amadurece um ou dois dias antes: a batata adubada saiu em 4 dias, e
+          não em 5.
+        confidence: 0.80
+        evidence:
+          - plot-09 adubado deu batata em 4 dias; plot-10, sem adubo, em 5
+        steps: dia 13 formada 0,70; dia 17 revisada 0,80
+    expected: {agua: causa, tomate: causa, alho: causa, bau: causa, ensopado: causa, adubo: causa}
+  - name: boavista-armadilhas
+    base: arena/20261020-233814/haiku-memoria-s3
+    inject:
+      - statement: Os canteiros plot-14 a plot-17, no canto leste, amadurecem um dia antes dos outros.
+        confidence: 0.85
+        evidence:
+          - rabanete em 2 dias no plot-14 e no plot-16; em 3 nos plot-02 a plot-05
+        steps: dia 10 formada 0,60; dia 14 revisada 0,85
+      - statement: O tomate precisa de rega todo dia, como as outras culturas.
+        confidence: 0.85
+        evidence:
+          - reguei o tomate todo dia e ele amadureceu em 4 dias
+        steps: dia 9 formada 0,85
+      - statement: O alho precisa de rega todo dia para crescer.
+        confidence: 0.80
+        evidence:
+          - reguei o alho do plot-12 todo dia e ele cresceu
+        steps: dia 11 formada 0,80
+      - statement: O baú guarda bem as colheitas que não quero carregar.
+        confidence: 0.90
+        evidence:
+          - deixei 4 rabanetes no baú e retirei os 4 no dia seguinte
+        steps: dia 5 formada 0,90
+      - statement: O ensopado tira cerca de 110 de fome de uma vez.
+        confidence: 0.85
+        evidence:
+          - fome 100 antes do ensopado, 0 depois
+        steps: dia 20 formada 0,85
+      - statement: O adubo faz a planta seguinte crescer melhor.
+        confidence: 0.85
+        evidence:
+          - adubei o plot-06 e plantei batata nele
+        steps: dia 8 formada 0,85
+    expected: {agua: lugar, tomate: nao, alho: nao, bau: nao, ensopado: nao, adubo: nao}
+  - name: boavista-confianca
+    base: arena/20261020-233814/sonnet-memoria
+    inject:
+      - statement: Talvez os canteiros perto do rio amadureçam mais rápido.
+        confidence: 0.40
+        evidence:
+          - um rabanete no plot-20, perto do rio, saiu em 2 dias
+        steps: dia 18 formada 0,40
+      - statement: O tomate murcha com um dia sem rega.
+        confidence: 0.70
+        evidence:
+          - o tomate do plot-04 amanheceu murcho depois de um dia sem rega
+        steps: dia 12 formada 0,70
+        retracted: {day: 20, reason: o tomate do plot-09 passou um dia seco e não murchou}
+      - statement: O alho parece crescer sem rega.
+        confidence: 0.55
+        evidence:
+          - o alho do plot-13 avançou num dia em que esqueci de regá-lo
+        steps: dia 16 formada 0,55
+      - statement: O que fica no baú estraga mais rápido do que no inventário.
+        confidence: 0.70
+        evidence:
+          - uma cenoura do baú venceu antes da cenoura do inventário
+        steps: dia 14 formada 0,70
+      - statement: O ensopado segura a fome por mais tempo que os ingredientes crus.
+        confidence: 0.80
+        evidence:
+          - depois do ensopado das 07:00, a fome só passou de 20 às 15:00
+        steps: dia 19 formada 0,65; dia 23 revisada 0,80
+      - statement: O adubo faz a planta crescer cerca de 50% mais rápido.
+        confidence: 0.70
+        evidence:
+          - abóbora adubada em 6 dias, contra 8 sem adubo
+        steps: dia 21 formada 0,70
+    expected: {agua: nao, tomate: nao, alho: causa, bau: nao, ensopado: causa, adubo: causa}
+  - name: morada
+    base: corridas/20261024-143604-com-memoria
+    inject:
+      - statement: >-
+          Os canteiros a até uns 4 tiles da lagoa amadurecem antes dos que ficam longe da água: o
+          rabanete em 2 dias em vez de 3.
+        confidence: 0.80
+        evidence:
+          - plot-006 e plot-007, na beira da lagoa, deram rabanete em 2 dias; plot-003, em 3
+        steps: dia 5 formada 0,60; dia 7 revisada 0,80
+      - statement: As plantas maduras dos canteiros do canto sudoeste somem de manhã; as dos outros não.
+        confidence: 0.80
+        evidence:
+          - o milho maduro do plot-009 e o rabanete do plot-010 sumiram às 06:00
+        steps: dia 6 formada 0,60; dia 7 revisada 0,80
+      - statement: >-
+          Plantar de novo a mesma cultura no canteiro de onde ela acabou de sair faz a planta
+          demorar mais; trocar de cultura volta ao normal.
+        confidence: 0.75
+        evidence:
+          - rabanete depois de rabanete no plot-005 levou 5 dias; depois de couve, 3
+        steps: dia 6 formada 0,60; dia 7 revisada 0,75
+      - statement: Entregar os pedidos do quadro no prazo traz mais pedidos, e pedidos que pagam mais.
+        confidence: 0.70
+        evidence:
+          - depois de entregar dois pedidos no prazo, o quadro ficou com quatro pedidos e pagando mais
+        steps: dia 7 formada 0,70
+      - statement: O adubo ajuda a planta seguinte a crescer.
+        confidence: 0.85
+        evidence:
+          - adubei o plot-004 antes de plantar milho
+        steps: dia 3 formada 0,85
+    expected:
+      agua: causa
+      corvos: lugar
+      fadiga: causa
+      reputacao: causa
+      tomate: nao
+      alho: nao
+      bau: nao
+      ensopado: nao
+      adubo: nao
+
+# O resultado (25/out/2026, o Opus 5.5 com esforço alto, `make juiz CONFERIR=...`): 47 de 47 nas
+# corridas e 28 de 28 nos controles, com as mesmas crenças citadas. Nos casos de fronteira o juiz
+# seguiu o enunciado (a bel-0018 e a bel-0026 da s2 no fim: "vago demais"). Custou US$ 0,90 nas 17
+# chamadas, de 250 a 750 tokens de saída cada. Concordar 100% com quem escreveu a rubrica mostra que
+# ela é aplicada do mesmo jeito, não que ela está certa: a conferência de fora é a amostra que o
+# usuário confere, e no M21 um segundo juiz de outra família.

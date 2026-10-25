@@ -1,7 +1,8 @@
 """O juiz das crenças (ADR-0070, decisão 13).
 
-    uv run --env-file .env python -m campsverso_tools.judge PASTA [--only NOME]
-    uv run python -m campsverso_tools.judge PASTA --conferir docs/arena/juiz-gabarito.yaml
+    uv run --env-file .env python -m campsverso_tools.judge julgar data/arena/<rodada> [--only NOME]
+    uv run --env-file .env python -m campsverso_tools.judge controles docs/arena/juiz-gabarito.yaml
+    uv run python -m campsverso_tools.judge conferir docs/arena/juiz-gabarito.yaml
 
 Lê as crenças do fim de cada corrida com memória (com as evidências, a trajetória e as que foram
 retiradas) e dá, para cada regra oculta do mundo, um veredito: **a causa** (a crença diz o
@@ -15,8 +16,10 @@ no cartucho (`cartridges/<cartucho>/eval/juiz.yaml`), com a verdade das regras.
 O juiz classifica o que as crenças afirmam, como se a regra valesse: numa corrida com a regra
 desligada, "a causa" é uma descoberta falsa, e quem lê o relatório sabe disso pelo `spec`.
 
-`--conferir` compara os vereditos gravados com o gabarito feito à mão e imprime a concordância e
-as discordâncias, sem chamar nada.
+`controles` julga os controles do gabarito (decisão 18): dossiês de corridas reais, cortados num
+dia ou com crenças acrescentadas à mão, cada um em `data/juiz-controles/<nome>`. `conferir`
+compara os vereditos gravados com o gabarito feito à mão e imprime a concordância e as
+discordâncias, nas corridas e nos controles, sem chamar nada.
 """
 
 import argparse
@@ -42,7 +45,9 @@ from campsverso_adapters import (
 from campsverso_ports import ModelCallError, ModelPort, ModelRequest, ModelResponse
 
 REPO = Path(__file__).resolve().parents[4]
+DATA = REPO / "data"
 ENV = REPO / "config" / "env" / "local.yaml"
+CONTROLS = "juiz-controles"  # a pasta dos controles, dentro de data/
 MODEL = "claude-opus-5-5"
 VERDICT = "verdicts"
 CAUSE, PLACE, NONE = "causa", "lugar", "nao"
@@ -112,9 +117,13 @@ def beliefs_of(
 def dossier(envelopes: Iterable[Mapping[str, Any]], until_day: int | None = None) -> str:
     """O que o juiz lê: as crenças ativas (enunciado, confiança, evidências e trajetória) e as
     retiradas, sem nada que diga de quem são; com `until_day`, as daquele dia."""
-    beliefs = sorted(beliefs_of(envelopes, until_day).values(), key=lambda b: b.belief_id)
-    active = [b for b in beliefs if b.retracted is None]
-    gone = [b for b in beliefs if b.retracted is not None]
+    return render(beliefs_of(envelopes, until_day).values())
+
+
+def render(beliefs: Iterable[Belief]) -> str:
+    ordered = sorted(beliefs, key=lambda b: b.belief_id)
+    active = [b for b in ordered if b.retracted is None]
+    gone = [b for b in ordered if b.retracted is not None]
     lines = [f"## As crenças ativas no fim ({len(active)})", ""]
     for b in active:
         lines.append(f"### {b.belief_id} (confiança {_pct(b.confidence)})")
@@ -347,6 +356,72 @@ async def judge_arena(arena: Path, only: Sequence[str] = (), *, model: str = MOD
     return spent
 
 
+# ----------------------------------------------------------------------------- os controles
+
+
+def _id_number(belief_id: str) -> int:
+    digits = "".join(c for c in belief_id if c.isdigit())
+    return int(digits) if digits else 0
+
+
+def control_dossier(control: Mapping[str, Any], root: Path = DATA) -> tuple[str, str]:
+    """O dossiê de um controle (ADR-0070, decisão 18): a corrida da base, cortada num dia ou não,
+    com as crenças acrescentadas à mão nos ids seguintes aos da base. Devolve o cartucho e o
+    texto."""
+    base = root / str(control["base"])
+    until = control.get("until_day")
+    envelopes = read_envelopes((base / "archive.jsonl").read_text(encoding="utf-8"))
+    beliefs = beliefs_of(envelopes, None if until is None else int(until))
+    last = max((_id_number(b) for b in beliefs), default=0)
+    for n, given in enumerate(cast(Sequence[Mapping[str, Any]], control.get("inject") or ())):
+        belief_id = f"bel-{last + n + 1:04d}"
+        statement = _flat(given["statement"])
+        steps = [step.strip() for step in str(given["steps"]).split(";")]
+        gone = cast(Mapping[str, Any] | None, given.get("retracted"))
+        retracted = None
+        if gone is not None:
+            retracted = (int(gone["day"]), _flat(gone["reason"]))
+            steps.append(f"dia {retracted[0]} retirada")
+        beliefs[belief_id] = Belief(
+            belief_id,
+            statement,
+            statement,
+            float(given["confidence"]),
+            [_flat(e) for e in cast(Sequence[Any], given.get("evidence") or ())],
+            steps,
+            retracted,
+        )
+    return str(_spec(base).get("cartridge") or "farm_camps"), render(beliefs.values())
+
+
+async def judge_controls(
+    key: Path, port: ModelPort, root: Path = DATA, *, model: str = MODEL
+) -> float:
+    """Julga os controles do gabarito, cada um em data/juiz-controles/<nome>: o dossiê, a fita e
+    o veredito."""
+    doc = cast(Mapping[str, Any], yaml.safe_load(key.read_text(encoding="utf-8")))
+    spent = 0.0
+    for control in cast(Sequence[Mapping[str, Any]], doc.get("controls") or ()):
+        cartridge, text = control_dossier(control, root)
+        rubric = load_rubric(cartridge)
+        if rubric is None:
+            raise ValueError(f"controle {control['name']}: {cartridge} não tem rubrica")
+        folder = root / CONTROLS / str(control["name"])
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / "dossie.md").write_text(text, encoding="utf-8")
+        taped = RecordingModel(port, folder / "juiz.jsonl", "record", clock=SystemWallClock())
+        prices = load_env(ENV).models.get(model)
+        result = await judge(taped, rubric, text, model=model, prices=prices)
+        (folder / "juiz.json").write_text(
+            json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        spent += float(result.get("cost_usd", 0.0)) if not result.get("replayed") else 0.0
+        verdicts = cast(Mapping[str, Mapping[str, str]], result["rules"])
+        told = ", ".join(f"{k} {v['verdict']}" for k, v in verdicts.items())
+        print(f"{control['name']}: {told or result.get('error')}", flush=True)
+    return spent
+
+
 # ----------------------------------------------------------------------------- a conferência
 
 
@@ -357,50 +432,91 @@ def _marked(mark: Any) -> str:
     return str(mark)
 
 
-def agreement(key: Path, root: Path) -> tuple[int, int, list[str]]:
-    """O gabarito feito à mão contra os vereditos gravados: concordâncias, total e cada
-    discordância numa linha. `root` é a pasta das arenas."""
+@dataclass
+class Agreement:
+    """A conferência de um grupo (as corridas ou os controles)."""
+
+    agreed: int = 0
+    total: int = 0
+    differ: list[str] = field(default_factory=list[str])
+
+
+def agreement(key: Path, root: Path = DATA) -> dict[str, Agreement]:
+    """O gabarito feito à mão contra os vereditos gravados, nas corridas (`runs`, relativas a
+    `root`) e nos controles (em `root/juiz-controles`), com cada discordância numa linha."""
     doc = cast(Mapping[str, Any], yaml.safe_load(key.read_text(encoding="utf-8")))
-    agreed = total = 0
-    differ: list[str] = []
-    for run, expected in cast(Mapping[str, Mapping[str, Any]], doc["runs"]).items():
-        path = root / run / "juiz.json"
-        given: Mapping[str, Mapping[str, str]] = {}
-        if path.is_file():
-            given = cast(Mapping[str, Any], json.loads(path.read_text(encoding="utf-8")))["rules"]
-        for rule, mark in expected.items():
-            want = _marked(mark)
-            got = str(given.get(rule, {}).get("verdict", "sem veredito"))
-            total += 1
-            if got == want:
-                agreed += 1
-            else:
-                why = given.get(rule, {}).get("why", "")
-                differ.append(f"{run} {rule}: à mão {want}, o juiz {got}. {why}".rstrip())
-    return agreed, total, differ
+    groups: dict[str, list[tuple[str, Path, Mapping[str, Any]]]] = {
+        "corridas": [
+            (run, root / run, expected)
+            for run, expected in cast(
+                Mapping[str, Mapping[str, Any]], doc.get("runs") or {}
+            ).items()
+        ],
+        "controles": [
+            (str(c["name"]), root / CONTROLS / str(c["name"]), c["expected"])
+            for c in cast(Sequence[Mapping[str, Any]], doc.get("controls") or ())
+        ],
+    }
+    found: dict[str, Agreement] = {}
+    for group, items in groups.items():
+        counted = found[group] = Agreement()
+        for name, folder, expected in items:
+            path = folder / "juiz.json"
+            given: Mapping[str, Mapping[str, str]] = {}
+            if path.is_file():
+                given = cast(Mapping[str, Any], json.loads(path.read_text("utf-8")))["rules"]
+            for rule, mark in expected.items():
+                want = _marked(mark)
+                got = str(given.get(rule, {}).get("verdict", "sem veredito"))
+                counted.total += 1
+                if got == want:
+                    counted.agreed += 1
+                else:
+                    told = given.get(rule, {})
+                    why = f" ({told.get('belief_id')}) {told.get('why', '')}" if told else ""
+                    counted.differ.append(
+                        f"{name} {rule}: à mão {want}, o juiz {got}.{why}".rstrip()
+                    )
+    return found
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="campsverso_tools.judge")
-    parser.add_argument("arena", type=Path, help="a pasta da arena (data/arena/<rodada>)")
-    parser.add_argument("--only", action="append", help="só esta corrida (repetível)")
     parser.add_argument("--model", default=MODEL)
-    parser.add_argument(
-        "--conferir", type=Path, help="o gabarito feito à mão: confere, sem chamar nada"
-    )
+    parser.add_argument("--dados", type=Path, default=DATA, help="a pasta data/")
+    commands = parser.add_subparsers(dest="command", required=True)
+    run = commands.add_parser("julgar", help="julga as corridas com memória de uma arena")
+    run.add_argument("arena", type=Path, help="a pasta da arena (data/arena/<rodada>)")
+    run.add_argument("--only", action="append", help="só esta corrida (repetível)")
+    controls = commands.add_parser("controles", help="julga os controles do gabarito")
+    controls.add_argument("gabarito", type=Path)
+    check = commands.add_parser("conferir", help="confere com o gabarito, sem chamar nada")
+    check.add_argument("gabarito", type=Path)
     args = parser.parse_args(argv)
-    if args.conferir is not None:
-        agreed, total, differ = agreement(args.conferir, args.arena)
-        print(f"concordância: {agreed} de {total} ({agreed / max(total, 1):.0%})")
-        for line in differ:
-            print(f"- {line}")
+    if args.command == "conferir":
+        for group, counted in agreement(args.gabarito, args.dados).items():
+            share = counted.agreed / max(counted.total, 1)
+            print(f"{group}: {counted.agreed} de {counted.total} ({share:.0%})")
+            for line in counted.differ:
+                print(f"- {line}")
         return 0
     if not os.environ.get("ANTHROPIC_API_KEY"):
         print("ANTHROPIC_API_KEY ausente: rode com --env-file .env (ADR-0058)", file=sys.stderr)
         return 2
-    spent = asyncio.run(judge_arena(args.arena, list(args.only or []), model=args.model))
+    if args.command == "julgar":
+        spent = asyncio.run(judge_arena(args.arena, list(args.only or []), model=args.model))
+    else:
+        spent = asyncio.run(_controls(args.gabarito, args.dados, args.model))
     print(f"custo do juiz: US$ {spent:.2f}")
     return 0
+
+
+async def _controls(key: Path, root: Path, model: str) -> float:
+    api = AnthropicModel(clock=SystemWallClock())
+    try:
+        return await judge_controls(key, api, root, model=model)
+    finally:
+        await api.aclose()
 
 
 if __name__ == "__main__":

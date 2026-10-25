@@ -4,12 +4,16 @@ import json
 from pathlib import Path
 from typing import Any, cast
 
+from campsverso_adapters import FakeWallClock, RecordingModel
 from campsverso_ports import ModelCapabilities, ModelRequest, ModelResponse, ModelUsage
 from campsverso_tools.judge import (
     INSTRUCTIONS,
     MODEL,
     agreement,
+    control_dossier,
     dossier,
+    judge,
+    judge_controls,
     judge_request,
     judge_run,
     judged_runs,
@@ -170,20 +174,93 @@ async def test_o_juiz_grava_a_fita_e_o_veredito_e_repete_de_graca(tmp_path: Path
     assert port.calls == 1  # a fita respondeu
 
 
-def test_a_conferencia_conta_as_concordancias(tmp_path: Path, capsys: Any) -> None:
+def test_a_conferencia_conta_as_corridas_e_os_controles(tmp_path: Path, capsys: Any) -> None:
     arena = _arena(tmp_path)
     given = {"rules": {"agua": {"verdict": "lugar", "belief_id": "bel-0001", "why": "o leste"}}}
     (arena / "haiku-memoria" / "juiz.json").write_text(json.dumps(given), encoding="utf-8")
+    control = tmp_path / "juiz-controles" / "leste"
+    control.mkdir(parents=True)
+    (control / "juiz.json").write_text(json.dumps(given), encoding="utf-8")
     key = tmp_path / "gabarito.yaml"
     key.write_text(
-        "runs:\n  haiku-memoria: {agua: nao}\n  outra: {agua: {verdict: nao, belief: ''}}\n",
+        "runs:\n"
+        "  arena/haiku-memoria: {agua: nao}\n"
+        "  arena/outra: {agua: {verdict: nao, belief: ''}}\n"
+        "controls:\n"
+        "  - {name: leste, base: arena/haiku-memoria, expected: {agua: lugar}}\n",
         encoding="utf-8",
     )
-    agreed, total, differ = agreement(key, arena)
-    assert (agreed, total) == (0, 2)
-    assert differ == [
-        "haiku-memoria agua: à mão nao, o juiz lugar. o leste",
-        "outra agua: à mão nao, o juiz sem veredito.",
+    found = agreement(key, tmp_path)
+    assert (found["corridas"].agreed, found["corridas"].total) == (0, 2)
+    assert found["corridas"].differ == [
+        "arena/haiku-memoria agua: à mão nao, o juiz lugar. (bel-0001) o leste",
+        "arena/outra agua: à mão nao, o juiz sem veredito.",
     ]
-    assert main([str(arena), "--conferir", str(key)]) == 0
-    assert "concordância: 0 de 2 (0%)" in capsys.readouterr().out
+    assert (found["controles"].agreed, found["controles"].total) == (1, 1)
+    assert main(["--dados", str(tmp_path), "conferir", str(key)]) == 0
+    out = capsys.readouterr().out
+    assert "corridas: 0 de 2 (0%)" in out
+    assert "controles: 1 de 1 (100%)" in out
+
+
+def test_o_controle_corta_a_base_e_acrescenta_crencas_nos_ids_seguintes(tmp_path: Path) -> None:
+    _arena(tmp_path / "data")
+    control: dict[str, Any] = {
+        "name": "teste",
+        "base": "arena/haiku-memoria",
+        "until_day": 2,
+        "inject": [
+            {
+                "statement": "Perto do rio\n  cresce mais rápido.",
+                "confidence": 0.8,
+                "evidence": ["e-01 em 2 dias"],
+                "steps": "dia 2 formada 0,60; dia 2 revisada 0,80",
+            },
+            {
+                "statement": "O tomate murcha.",
+                "confidence": 0.7,
+                "evidence": list[str](),
+                "steps": "dia 1 formada 0,70",
+                "retracted": {"day": 2, "reason": "não murchou"},
+            },
+        ],
+    }
+    cartridge, text = control_dossier(control, tmp_path / "data")
+    assert cartridge == "farm_camps"
+    assert "## As crenças ativas no fim (3)" in text  # bel-0002 ainda não fora retirada no dia 2
+    assert "### bel-0003 (confiança 0,80)\nEnunciado: Perto do rio cresce mais rápido." in text
+    assert "Trajetória: dia 2 formada 0,60; dia 2 revisada 0,80" in text
+    assert "- bel-0004, retirada no dia 2: O tomate murcha. Por quê: não murchou" in text
+
+
+async def test_os_controles_gravam_o_dossie_a_fita_e_o_veredito(tmp_path: Path) -> None:
+    _arena(tmp_path)
+    key = tmp_path / "gabarito.yaml"
+    key.write_text(
+        "controls:\n  - {name: leste, base: arena/haiku-memoria, expected: {agua: lugar}}\n",
+        encoding="utf-8",
+    )
+    port = JudgePort()
+    await judge_controls(key, port, tmp_path)
+    folder = tmp_path / "juiz-controles" / "leste"
+    assert {p.name for p in folder.iterdir()} == {"dossie.md", "juiz.jsonl", "juiz.json"}
+    assert agreement(key, tmp_path)["controles"].agreed == 1
+
+
+FIXTURES = Path(__file__).resolve().parents[3] / "tests" / "fixtures" / "llm"
+
+
+async def test_a_fita_do_controle_real_reproduz_o_veredito(tmp_path: Path) -> None:
+    """A fita pequena do CI (o plano do M19, §8): o controle real, a s2 do M12 no dia 25, julgado
+    pelo Opus. Mudou a rubrica, as instruções ou o dossiê? O pedido muda, a fita não o tem, e é
+    hora de regravar (`make juiz CONTROLES=...` e copiar a fita magra para cá)."""
+    rubric = load_rubric("farm_camps")
+    assert rubric is not None
+    text = (FIXTURES / "juiz-m12-s2-dia-25.md").read_text(encoding="utf-8")
+    tape = tmp_path / "juiz.jsonl"
+    tape.write_bytes((FIXTURES / "juiz-m12-s2-dia-25.jsonl").read_bytes())
+    port = RecordingModel(JudgePort(), tape, "replay", clock=FakeWallClock())
+    result = await judge(port, rubric, text)
+    assert result["replayed"] is True
+    assert result["rules"]["agua"]["verdict"] == "lugar"
+    assert result["rules"]["agua"]["belief_id"] == "bel-0026"

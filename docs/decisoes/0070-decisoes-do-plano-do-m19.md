@@ -57,6 +57,14 @@ O script 3 mostrou que, na Morada do Sol com a economia do M18, ninguém comia d
 16. **A fome da Morada do Sol calibrada em 2 por hora acordado** (era 3), nos dados do cenário (`needs`), sem mudar as fazendas 1 e 2. Com 2, o oráculo atravessa o ano sem fome nos três mapas, e quem ainda aprende passa fome: a diferença é o valor de aprender (a tabela está na bíblia 3, §15).
 17. **As regras de sobrevivência são explícitas para todos:** comer cedo, separar os canteiros da comida (M) dos de vender (N), guardar comida para dois dias e não investir o dinheiro da semente da comida. Estão no manual da mente da Morada do Sol e na configuração do script 3 e do oráculo; o script 2 fica como era, a linha de base cega. Com moedas sobrando, o fazendeiro compara o custo das comidas e anota o que descobre dos pratos no caderno.
 
+O gabarito feito à mão do juiz (decisão 13), marcado antes de o juiz rodar, saiu com os 47 vereditos em "não": nenhuma das 12 corridas com memória do M12 e do M14 terminou com uma crença ativa que diga uma regra oculta. Assim a conferência só mediria se o juiz inventa descobertas, e não se ele reconhece uma. Decisão do usuário:
+
+18. **O juiz é conferido também contra controles,** marcados no gabarito antes de ele rodar (`docs/arena/juiz-gabarito.yaml`). São dois tipos:
+    - **Um controle real:** a s2 do M12 lida até o dia 25, quando uma crença dizia, a 0,85, que a abóbora amadurece em 6 dias "nos canteiros do leste" (só o lugar).
+    - **Quatro dossiês de corridas reais com crenças acrescentadas à mão:** uma causa por regra da Boa Vista; as armadilhas (repetir o manual, contradizer a regra, só o lugar); a confiança baixa e a crença retirada; e as regras novas da Morada do Sol.
+
+    Ao todo, 28 vereditos, 15 deles positivos. A concordância conta à parte nas corridas e nos controles, e os dois números vão para o relatório.
+
 ## Consequências
 
 - **O kernel ganha só a escolha do mapa pelo arquivo do mundo,** sem primitiva nova.
