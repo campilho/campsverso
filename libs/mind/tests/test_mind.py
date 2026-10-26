@@ -240,7 +240,7 @@ def test_a_camada_de_cima_troca_o_cartao() -> None:
 def test_o_playbook_e_o_metodo_e_o_oficio_do_genero() -> None:
     farmer = replace(MIND, craft="**O ofício.** Compare dois canteiros.")
     text = playbook(farmer)
-    assert text.startswith("## O playbook\n\n**O método.**\n1. O mais valioso")
+    assert text.startswith("## O playbook\n\n**O método.**\n1. A surpresa é o que mais ensina")
     assert text.endswith("**O ofício.** Compare dois canteiros.")
     assert "O ofício" not in playbook(MIND)  # um mundo sem ofício recebe só o método
     camps = farmer.extend(card="Você é o Camps, da Fazenda do Camps.")

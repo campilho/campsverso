@@ -822,7 +822,8 @@ def _controller_name(spec: Mapping[str, Any]) -> str:
     if spec.get("controller") != "llm":
         return SCRIPT_NAMES.get(str(spec.get("script")), str(spec.get("controller")))
     model = str(spec.get("model", "claude-haiku-5-5"))
-    playbook = " com o playbook" if spec.get("playbook") else ""  # ADR-0071
+    version = int(spec.get("playbook") or 0)  # ADR-0071; `true` nas corridas da versão 1
+    playbook = f" com o playbook {version}" if version else ""
     return MODEL_NAMES.get(model, model) + playbook
 
 
@@ -997,7 +998,8 @@ def _knowing_section(runs: Sequence[Run]) -> list[str]:
             who = str(r.spec.get("script") or "")
             if r.spec.get("controller") == "llm":
                 model = _controller_name({**r.spec, "playbook": False})
-                who = f"{model} com memória" + (" e o playbook" if r.spec.get("playbook") else "")
+                version = int(r.spec.get("playbook") or 0)
+                who = f"{model} com memória" + (f" e o playbook {version}" if version else "")
                 minds += [who] if who not in minds else []
             by[(who, str(r.spec.get("map") or "a"))] = r
     if not any(who == "oracle" for who, _ in by):

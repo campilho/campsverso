@@ -36,7 +36,7 @@ async def test_a_corrida_do_script_grava_a_pasta(tmp_path: Path) -> None:
         "limits": None,
         "script": None,
         "map": None,
-        "playbook": False,
+        "playbook": 0,
     }
     assert result["totals"]["days"] == 2
     assert (result["calls"], result["gave_up"], result["aborted_day"]) == (0, False, None)
@@ -160,11 +160,15 @@ def test_a_rodada_do_agricultor_treinado() -> None:
     dias com teto de US$ 15, todos com memória, na Morada do Sol."""
     by = {s.name: s for s in SPECS_PLAYBOOK}
     assert [(s.name, s.map, s.playbook) for s in SPECS_PLAYBOOK] == [
-        ("haiku-playbook", None, True),
-        ("haiku-memoria-b", "b", False),
-        ("haiku-playbook-b", "b", True),
-        ("sonnet-memoria-14d", None, False),
-        ("sonnet-playbook-14d", None, True),
+        ("haiku-playbook", None, 1),
+        ("haiku-memoria-b", "b", 0),
+        ("haiku-playbook-b", "b", 1),
+        ("haiku-playbook2", None, 2),
+        ("haiku-playbook2-r2", None, 2),
+        ("haiku-playbook2-b", "b", 2),
+        ("haiku-playbook2-b-r2", "b", 2),
+        ("sonnet-memoria-14d", None, 0),
+        ("sonnet-playbook-14d", None, 2),
     ]
     assert all(s.memory and s.cartridge == "farm_morada_do_sol" for s in SPECS_PLAYBOOK)
     assert {s.days for s in SPECS_PLAYBOOK if s.model == "claude-haiku-5-5"} == {28}
@@ -174,6 +178,15 @@ def test_a_rodada_do_agricultor_treinado() -> None:
         14,
         BudgetLimits(1.5, 15.0),
     )
+
+
+async def test_um_playbook_antigo_nao_roda_mais(tmp_path: Path) -> None:
+    """ADR-0071: a corrida grava a versão do playbook; uma versão que saiu do código é recusada
+    antes de gastar, e as antigas ficam no git."""
+    old = Spec("velho", "llm", memory=True, cartridge="farm_morada_do_sol", playbook=1)
+    with pytest.raises(ValueError, match="o playbook 1 não está mais no código"):
+        await run_spec(old, 1, tmp_path / "velho")
+    assert not (tmp_path / "velho").exists()
 
 
 def test_a_reserva_ao_comecar_e_o_script_2_na_boa_vista(

@@ -1,7 +1,8 @@
 **O método.**
-1. O mais valioso que você vê é a surpresa: o que saiu diferente do manual ou da sua crença. Anote-a no mesmo dia e procure a causa antes de seguir em frente.
-2. Uma causa se procura comparando: dois casos parecidos que deram resultados diferentes. Liste no que eles diferem; cada diferença é uma suspeita.
-3. Teste uma suspeita de cada vez, com um controle: dois casos que só diferem nela. Um experimento que muda duas coisas não ensina nenhuma.
-4. Separe o que você viu do que supõe. Uma crença com uma observação só fica com a confiança baixa; ela sobe quando a comparação se repete.
-5. Experimente barato: o teste não pode pôr em risco a comida nem o dinheiro dos próximos dias.
-6. Quando uma crença se confirma, use-a: mude o que você faz, e confira se o resultado mudou.
+1. A surpresa é o que mais ensina: um resultado diferente do manual, da tabela ou da sua crença. Toda noite, antes de propor o experimento, procure no caderno a maior surpresa dos últimos dias.
+2. Para explicar uma surpresa, ache um caso parecido que não a teve e compare os dois, item por item. Cada item em que eles diferem é uma suspeita: escreva a lista inteira antes de escolher.
+3. O experimento da noite testa uma suspeita dessa lista, com um controle: dois casos que só diferem nela. Prefira a suspeita que você ainda não testou.
+4. Não troque de assunto antes de resolver: se a previsão falhou, a surpresa continua de pé. Volte à lista e teste a próxima suspeita.
+5. Separe o que você viu do que supõe. Uma crença com uma observação só fica com a confiança baixa; ela sobe quando a comparação se repete.
+6. Experimente barato: o teste não pode pôr em risco a comida nem o dinheiro dos próximos dias.
+7. Quando uma crença se confirma, use-a: mude o que você faz, e confira se o resultado mudou.

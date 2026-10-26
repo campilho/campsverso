@@ -31,6 +31,7 @@ from typing import Any, Literal
 
 from campsverso_adapters import AnthropicModel, RecordingModel, SqliteMemory, SystemWallClock
 from campsverso_budget.ledger import BudgetLimits
+from campsverso_mind import PLAYBOOK_VERSION
 from campsverso_ports import MemoryPort, ModelPort
 from campsverso_testkit.fita import LIMITS, summary
 from campsverso_testkit.nats_server import REPO
@@ -64,7 +65,7 @@ class Spec:
     limits: BudgetLimits | None = None  # o teto da corrida; sem isto, o do Haiku (LIMITS)
     script: str | None = None  # o fazendeiro-script; sem isto, o do cartucho (ADR-0070)
     map: str | None = None  # a variante do mapa (ADR-0070); sem isto, o mapa de hoje
-    playbook: bool = False  # o método e o ofício no prompt da mente (ADR-0071)
+    playbook: int = 0  # a versão do playbook no prompt da mente (ADR-0071); 0 é sem playbook
 
 
 SPECS: tuple[Spec, ...] = (
@@ -124,13 +125,21 @@ SPECS_MORADA: tuple[Spec, ...] = (
     _morada("script3-sem-regras", "script", script="farmer3", river_bonus=False),
     _morada("haiku-memoria", "llm", memory=True),
 )
-# O agricultor treinado (ADR-0071): o Haiku com o playbook no mapa a (a corrida sem ele é a da
-# rodada morada) e sem e com no mapa b; o Sonnet sem e com, 14 dias no mapa a, só se o Haiku mudar.
+# O agricultor treinado (ADR-0071): o Haiku com o playbook 1 no mapa a (a corrida sem ele é a da
+# rodada morada) e sem e com no mapa b; o playbook 2 duas vezes em cada mapa; o Sonnet sem e com,
+# 14 dias no mapa a, só se o Haiku mudar.
 SONNET_TETO = BudgetLimits(usd_per_sim_day=1.50, usd_total=15.0)
 SPECS_PLAYBOOK: tuple[Spec, ...] = (
-    _morada("haiku-playbook", "llm", memory=True, playbook=True),
+    _morada("haiku-playbook", "llm", memory=True, playbook=1),
     _morada("haiku-memoria-b", "llm", memory=True, map="b"),
-    _morada("haiku-playbook-b", "llm", memory=True, map="b", playbook=True),
+    _morada("haiku-playbook-b", "llm", memory=True, map="b", playbook=1),
+    # O playbook 2 (ADR-0071, a revisão): duas corridas iguais por mapa, porque o modelo sorteia;
+    # o mundo é o mesmo (a seed), e a diferença entre elas é a do próprio modelo.
+    *(
+        _morada(f"haiku-playbook2{suffix}{rep}", "llm", memory=True, map=variant, playbook=2)
+        for variant, suffix in ((None, ""), ("b", "-b"))
+        for rep in ("", "-r2")
+    ),
     _morada("sonnet-memoria-14d", "llm", memory=True, model=SONNET, days=14, limits=SONNET_TETO),
     _morada(
         "sonnet-playbook-14d",
@@ -139,7 +148,7 @@ SPECS_PLAYBOOK: tuple[Spec, ...] = (
         model=SONNET,
         days=14,
         limits=SONNET_TETO,
-        playbook=True,
+        playbook=2,
     ),
 )
 ROUNDS: dict[str, tuple[Spec, ...]] = {
@@ -168,6 +177,11 @@ async def run_spec(
     bater no teto de orçamento, idem, em `budget_day`. `port` troca a API por uma porta falsa
     (só os testes). O `archive.jsonl` cresce a cada dia simulado, e o `estado.json` diz o dia e
     se a corrida terminou: é o que o modo de assistir lê ao vivo (ADR-0068)."""
+    if spec.playbook and spec.playbook != PLAYBOOK_VERSION:
+        raise ValueError(
+            f"{spec.name}: o playbook {spec.playbook} não está mais no código "
+            f"(a versão de agora é a {PLAYBOOK_VERSION}; as antigas ficam no git)"
+        )
     out.mkdir(parents=True, exist_ok=True)
     log = out / "progresso.txt"
     archive = out / "archive.jsonl"
@@ -204,7 +218,7 @@ async def run_spec(
         model=spec.model,
         map_variant=spec.map,
         script=spec.script,
-        playbook=spec.playbook,
+        playbook=spec.playbook > 0,
     )
     exam = exam_of(spec.cartridge)
     prova: dict[str, Any] = {}  # a prova do mundo (ADR-0070): antes, com a memória vazia
@@ -215,7 +229,8 @@ async def run_spec(
         f"{spec.name}: {days} dia(s), {spec.controller}, memória "
         f"{'ligada' if spec.memory else 'desligada'}, regra "
         f"{'ligada' if spec.river_bonus else 'desligada'}, seed {spec.seed}"
-        f"{f', mapa {spec.map}' if spec.map else ''}{', com o playbook' if spec.playbook else ''}, "
+        f"{f', mapa {spec.map}' if spec.map else ''}"
+        f"{f', com o playbook {spec.playbook}' if spec.playbook else ''}, "
         f"em {out}",
         log,
     )

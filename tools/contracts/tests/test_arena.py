@@ -428,7 +428,7 @@ def test_o_relatorio_mostra_o_juiz_ao_lado_das_heuristicas(tmp_path: Path) -> No
     row = "| agua | só o lugar (bel-0026) | só o lugar (bel-0026) (regra desligada) |"
     assert row in text
     assert "| tomate | não | não |" in text
-    assert "| haiku-memoria-sem-regra | Haiku 5.5 com o playbook |" in text  # ADR-0071
+    assert "| haiku-memoria-sem-regra | Haiku 5.5 com o playbook 1 |" in text  # ADR-0071
 
 
 def test_na_morada_o_relatorio_mostra_o_valor_de_saber_e_o_que_o_script_3_aprendeu(
@@ -509,10 +509,10 @@ def test_o_valor_de_saber_separa_cada_modelo_com_e_sem_o_playbook(tmp_path: Path
         quiet,
     )
     _run(arena, "haiku-memoria", {**base, "name": "haiku-memoria", "controller": "llm"}, quiet)
-    trained = {**base, "name": "haiku-playbook", "controller": "llm", "playbook": True}
+    trained = {**base, "name": "haiku-playbook", "controller": "llm", "playbook": 2}
     _run(arena, "haiku-playbook", trained, quiet)
     out = tmp_path / "relatorio.md"
     assert main([str(arena), "--out", str(out)]) == 0
     text = out.read_text(encoding="utf-8")
     assert "| Haiku 5.5 com memória | 0 moedas" in text
-    assert "| Haiku 5.5 com memória e o playbook | 0 moedas" in text
+    assert "| Haiku 5.5 com memória e o playbook 2 | 0 moedas" in text
