@@ -48,11 +48,23 @@ export const CONTRACT_TYPES = {
     producer: "kernel",
     dataschema: "contracts://events/avatar/decision_requested.v1",
   },
+  "campsverso.avatar.entered.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/avatar/entered.v1",
+  },
   "campsverso.avatar.fainted.v1": {
     kind: "event",
     visibility: "world",
     producer: "kernel",
     dataschema: "contracts://events/avatar/fainted.v1",
+  },
+  "campsverso.avatar.left.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/avatar/left.v1",
   },
   "campsverso.avatar.possessed.v1": {
     kind: "event",
@@ -431,7 +443,9 @@ export interface PayloadByType {
   "campsverso.action.failed.v1": T.ActionFailedV1;
   "campsverso.action.rejected.v1": T.ActionRejectedV1;
   "campsverso.avatar.decision_requested.v1": T.AvatarDecisionRequestedV1;
+  "campsverso.avatar.entered.v1": T.AvatarEnteredV1;
   "campsverso.avatar.fainted.v1": T.AvatarFaintedV1;
+  "campsverso.avatar.left.v1": T.AvatarLeftV1;
   "campsverso.avatar.possessed.v1": T.AvatarPossessedV1;
   "campsverso.avatar.released.v1": T.AvatarReleasedV1;
   "campsverso.avatar.sleep.ended.v1": T.AvatarSleepEndedV1;

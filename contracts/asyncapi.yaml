@@ -92,6 +92,17 @@ channels:
     messages:
       AvatarDecisionRequestedV1:
         $ref: '#/components/messages/AvatarDecisionRequestedV1'
+  AvatarEnteredV1:
+    address: campsverso.{worldid}.world.avatar.entered.v1
+    title: campsverso.avatar.entered.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      AvatarEnteredV1:
+        $ref: '#/components/messages/AvatarEnteredV1'
   AvatarFaintedV1:
     address: campsverso.{worldid}.world.avatar.fainted.v1
     title: campsverso.avatar.fainted.v1
@@ -103,6 +114,17 @@ channels:
     messages:
       AvatarFaintedV1:
         $ref: '#/components/messages/AvatarFaintedV1'
+  AvatarLeftV1:
+    address: campsverso.{worldid}.world.avatar.left.v1
+    title: campsverso.avatar.left.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      AvatarLeftV1:
+        $ref: '#/components/messages/AvatarLeftV1'
   AvatarPossessedV1:
     address: campsverso.{worldid}.world.avatar.possessed.v1
     title: campsverso.avatar.possessed.v1
@@ -852,12 +874,26 @@ operations:
     messages:
     - $ref: '#/channels/AvatarDecisionRequestedV1/messages/AvatarDecisionRequestedV1'
     x-producer: kernel
+  sendAvatarEnteredV1:
+    action: send
+    channel:
+      $ref: '#/channels/AvatarEnteredV1'
+    messages:
+    - $ref: '#/channels/AvatarEnteredV1/messages/AvatarEnteredV1'
+    x-producer: kernel
   sendAvatarFaintedV1:
     action: send
     channel:
       $ref: '#/channels/AvatarFaintedV1'
     messages:
     - $ref: '#/channels/AvatarFaintedV1/messages/AvatarFaintedV1'
+    x-producer: kernel
+  sendAvatarLeftV1:
+    action: send
+    channel:
+      $ref: '#/channels/AvatarLeftV1'
+    messages:
+    - $ref: '#/channels/AvatarLeftV1/messages/AvatarLeftV1'
     x-producer: kernel
   sendAvatarPossessedV1:
     action: send
@@ -2363,6 +2399,25 @@ components:
           description: Valores exatos no momento do pedido.
         position:
           $ref: '#/components/schemas/Position'
+    AvatarEnteredV1:
+      title: AvatarEnteredV1
+      description: 'O avatar entrou no mundo (ADR-0072): um avatar declarado fora dele, como o ajudante
+        que chega para trabalhar, aparece numa posição e passa a receber pedidos de decisão.'
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - position
+      - reason
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+        position:
+          $ref: '#/components/schemas/Position'
+          description: Onde ele aparece.
+        reason:
+          $ref: '#/components/schemas/Token'
+          description: 'Por que entrou, nos termos do cartucho (ex.: `work_day`).'
     AvatarFaintedV1:
       title: AvatarFaintedV1
       description: 'O avatar desmaiou: acordado às 02:00 ou sem energia (ADR-0014).'
@@ -2382,6 +2437,24 @@ components:
           - exhausted
         position:
           $ref: '#/components/schemas/Position'
+    AvatarLeftV1:
+      title: AvatarLeftV1
+      description: 'O avatar saiu do mundo (ADR-0072): some do mapa, a ação em andamento é cancelada,
+        as necessidades param, e ele não recebe pedidos de decisão até entrar de novo.'
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - reason
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+        position:
+          $ref: '#/components/schemas/Position'
+          description: De onde ele saiu.
+        reason:
+          $ref: '#/components/schemas/Token'
+          description: 'Por que saiu, nos termos do cartucho (ex.: `end_of_day`, `dismissed`).'
     AvatarPossessedV1:
       title: AvatarPossessedV1
       description: Posse do avatar assumida por um controlador.
@@ -4651,6 +4724,16 @@ components:
         $ref: '#/components/schemas/AvatarDecisionRequestedV1'
       x-visibility: agent
       x-producer: kernel
+    AvatarEnteredV1:
+      name: campsverso.avatar.entered.v1
+      title: AvatarEnteredV1
+      summary: 'O avatar entrou no mundo (ADR-0072): um avatar declarado fora dele, como o ajudante que
+        chega para trabalhar, aparece numa posição e passa a receber pedidos de decisão.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/AvatarEnteredV1'
+      x-visibility: world
+      x-producer: kernel
     AvatarFaintedV1:
       name: campsverso.avatar.fainted.v1
       title: AvatarFaintedV1
@@ -4658,6 +4741,16 @@ components:
       contentType: application/json
       payload:
         $ref: '#/components/schemas/AvatarFaintedV1'
+      x-visibility: world
+      x-producer: kernel
+    AvatarLeftV1:
+      name: campsverso.avatar.left.v1
+      title: AvatarLeftV1
+      summary: 'O avatar saiu do mundo (ADR-0072): some do mapa, a ação em andamento é cancelada, as necessidades
+        param, e ele não recebe pedidos de decisão até entrar de novo.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/AvatarLeftV1'
       x-visibility: world
       x-producer: kernel
     AvatarPossessedV1:

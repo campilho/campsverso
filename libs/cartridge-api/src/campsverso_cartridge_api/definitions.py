@@ -82,9 +82,30 @@ class SpawnDef:
 
 
 @dataclass(frozen=True, slots=True)
+class AvatarTraits:
+    """O que distingue um avatar dos outros no corpo (ADR-0072), em fatores sobre o mundo: o
+    kernel aplica sem saber o que é uma plantadeira. O padrão é um avatar como os outros."""
+
+    speed: float = 1.0  # fator nos tiles por tick ao andar
+    action_time: Mapping[str, float] = field(default_factory=dict[str, float])  # ação ou "*"
+    need_rates: Mapping[str, float] = field(default_factory=dict[str, float])  # fator no ritmo
+    energy_cost: float = 1.0  # fator no que as ações gastam da necessidade de energia
+    capacity: float | None = None  # o peso que carrega; sem isto, o do tipo
+    faints: bool = True  # False: nunca desmaia
+    vision: float = 1.0  # fator no raio da percepção
+    night_vision: bool = False  # enxerga à noite com o raio do dia
+
+    def time_factor(self, action: str) -> float:
+        return float(self.action_time.get(action, self.action_time.get("*", 1.0)))
+
+
+@dataclass(frozen=True, slots=True)
 class AvatarDef:
     entity_id: str
     default_controller: ControllerRef
+    traits: AvatarTraits = field(default_factory=AvatarTraits)
+    # Fora do mundo no começo (ADR-0072): sem posição, sem pedidos de decisão, até `enter`.
+    present: bool = True
 
 
 type ChoiceSource = Literal["any", "inventory", "target"]

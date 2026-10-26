@@ -911,6 +911,30 @@ class AvatarDecisionRequestedV1(BaseModel):
     position: Position
 
 
+class AvatarEnteredV1(BaseModel):
+    """
+    O avatar entrou no mundo (ADR-0072): um avatar declarado fora dele, como o ajudante que chega para trabalhar, aparece numa posição e passa a receber pedidos de decisão.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    position: Position
+    """
+    Onde ele aparece.
+    """
+    reason: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Por que entrou, nos termos do cartucho (ex.: `work_day`).
+    """
+
+
 class AvatarFaintedV1(BaseModel):
     """
     O avatar desmaiou: acordado às 02:00 ou sem energia (ADR-0014).
@@ -927,6 +951,30 @@ class AvatarFaintedV1(BaseModel):
     """
     reason: Literal["late_night", "exhausted"]
     position: Position
+
+
+class AvatarLeftV1(BaseModel):
+    """
+    O avatar saiu do mundo (ADR-0072): some do mapa, a ação em andamento é cancelada, as necessidades param, e ele não recebe pedidos de decisão até entrar de novo.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    position: Position | None = None
+    """
+    De onde ele saiu.
+    """
+    reason: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Por que saiu, nos termos do cartucho (ex.: `end_of_day`, `dismissed`).
+    """
 
 
 class AvatarPossessedV1(BaseModel):

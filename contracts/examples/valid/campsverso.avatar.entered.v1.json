@@ -1,0 +1,24 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c2b-73a8-95e1-f4e1cbc15400",
+  "source": "/kernel/farm-morada-do-sol-01",
+  "type": "campsverso.avatar.entered.v1",
+  "time": "2026-10-11T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/avatar/entered.v1",
+  "worldid": "farm-morada-do-sol-01",
+  "cartridge": "farm_morada_do_sol",
+  "tick": 1440,
+  "simtime": "2026-09-23T06:00:00-03:00",
+  "seq": 900,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "avatar_id": "dita",
+    "position": {
+      "x": 33,
+      "y": 38
+    },
+    "reason": "work_day"
+  }
+}

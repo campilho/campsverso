@@ -763,3 +763,18 @@ def test_a_metrica_com_campo_soma_em_vez_de_contar() -> None:
         "order_payment": 270,
         "fair_payment": 80,
     }
+
+
+def test_o_avatar_que_entra_e_sai_ganha_e_perde_a_posicao() -> None:
+    """ADR-0072: o ajudante declarado fora do mundo aparece ao entrar e some ao sair."""
+    p = started()
+    p.apply("world", ev(2, 0, "world.entity.spawned.v1", entity_id="dita", kind="avatar"))
+    assert "position" not in p.entities["dita"]
+    p.apply(
+        "world",
+        ev(3, 60, "avatar.entered.v1", avatar_id="dita", position={"x": 33, "y": 38}, reason="dia"),
+    )
+    assert p.entities["dita"]["position"] == {"x": 33, "y": 38}
+    p.apply("world", ev(4, 700, "avatar.left.v1", avatar_id="dita", reason="end_of_day"))
+    assert "position" not in p.entities["dita"]
+    assert "dita" not in p.motion

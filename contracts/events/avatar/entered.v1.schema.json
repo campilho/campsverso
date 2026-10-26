@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/avatar/entered.v1",
+  "title": "AvatarEnteredV1",
+  "description": "O avatar entrou no mundo (ADR-0072): um avatar declarado fora dele, como o ajudante que chega para trabalhar, aparece numa posição e passa a receber pedidos de decisão.",
+  "x-type": "campsverso.avatar.entered.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "avatar_id",
+    "position",
+    "reason"
+  ],
+  "properties": {
+    "avatar_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "position": {
+      "$ref": "contracts://common/defs.v1#/$defs/position",
+      "description": "Onde ele aparece."
+    },
+    "reason": {
+      "$ref": "contracts://common/defs.v1#/$defs/token",
+      "description": "Por que entrou, nos termos do cartucho (ex.: `work_day`)."
+    }
+  }
+}

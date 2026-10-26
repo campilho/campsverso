@@ -88,7 +88,13 @@ class WorldView(Protocol):
 
     def is_asleep(self, avatar_id: str) -> bool: ...
 
-    def avatars(self) -> Sequence[str]: ...
+    def avatars(self) -> Sequence[str]:
+        """Os avatares que estão no mundo agora (ADR-0072): os de fora não aparecem."""
+        ...
+
+    def present(self, avatar_id: str) -> bool:
+        """Se o avatar está no mundo (ADR-0072)."""
+        ...
 
     def tiles_with(self, tile_property: str) -> Sequence[Position]: ...
 
@@ -145,6 +151,22 @@ class WorldOps(Protocol):
         """Multiplica a taxa de uma necessidade por `factor` durante `ticks` (ADR-0062): o
         ensopado que segura a fome. `label` é o atributo visível do avatar que mostra até quando
         (hora do mundo); um modificador novo com o mesmo rótulo substitui o anterior."""
+        ...
+
+    def enter(
+        self,
+        avatar_id: str,
+        position: Position,
+        reason: str,
+        needs: Mapping[str, float] | None = None,
+    ) -> None:
+        """O avatar de fora entra no mundo numa posição (ADR-0072), com as necessidades dadas, e
+        passa a receber pedidos de decisão."""
+        ...
+
+    def leave(self, avatar_id: str, reason: str) -> None:
+        """O avatar sai do mundo (ADR-0072): a ação em andamento é cancelada, as necessidades
+        param, e ele não recebe pedidos até entrar de novo. O que ele carrega vai com ele."""
         ...
 
     def set_weather(self, condition: str, day: int, *, forecast: bool = False) -> None:

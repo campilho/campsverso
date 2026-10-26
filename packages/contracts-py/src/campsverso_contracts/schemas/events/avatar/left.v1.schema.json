@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/avatar/left.v1",
+  "title": "AvatarLeftV1",
+  "description": "O avatar saiu do mundo (ADR-0072): some do mapa, a ação em andamento é cancelada, as necessidades param, e ele não recebe pedidos de decisão até entrar de novo.",
+  "x-type": "campsverso.avatar.left.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "avatar_id",
+    "reason"
+  ],
+  "properties": {
+    "avatar_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "position": {
+      "$ref": "contracts://common/defs.v1#/$defs/position",
+      "description": "De onde ele saiu."
+    },
+    "reason": {
+      "$ref": "contracts://common/defs.v1#/$defs/token",
+      "description": "Por que saiu, nos termos do cartucho (ex.: `end_of_day`, `dismissed`)."
+    }
+  }
+}

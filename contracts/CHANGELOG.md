@@ -2,6 +2,13 @@
 
 Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão maior, só entram campos opcionais novos; mudança incompatível vira um tipo novo (`.v2`). A checagem `make compat` confere isso a cada commit.
 
+## Não publicado (M20)
+
+- **A presença do avatar** (ADR-0072), dois tipos novos de visibilidade `world`, produtor `kernel`:
+  - `campsverso.avatar.entered.v1`: o avatar entrou no mundo (`avatar_id`, `position`, `reason`), como o ajudante que chega para trabalhar; passa a receber pedidos de decisão;
+  - `campsverso.avatar.left.v1`: o avatar saiu do mundo (`avatar_id`, `position?`, `reason`); some do mapa, a ação em andamento é cancelada, as necessidades param, e ele não recebe pedidos até entrar de novo.
+  - Só um mundo com avatares declarados fora dele (os ajudantes da Morada do Sol) os publica.
+
 ## Não publicado (M19)
 
 - **O experimento da noite** (ADR-0070): `memory.reflected.v1` ganha os campos opcionais `experiment` (a hipótese, o teste e a previsão que a reflexão propôs para o dia seguinte) e `experiment_result` (`cumpriu`, `falhou` ou `inconclusivo`: o veredito sobre o experimento da noite anterior). Só a mente que usa experimentos (a da Morada do Sol) os publica.

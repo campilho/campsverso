@@ -335,6 +335,20 @@ class Projection:
 
     _on_avatar_released = _on_avatar_possessed
 
+    def _on_avatar_entered(self, data: Mapping[str, Any]) -> None:
+        """O avatar de fora entrou no mundo (ADR-0072): ganha a posição."""
+        entity = self.entities.get(str(data["avatar_id"]))
+        if entity is not None:
+            entity["position"] = _position(data["position"])
+
+    def _on_avatar_left(self, data: Mapping[str, Any]) -> None:
+        """O avatar saiu do mundo (ADR-0072): some do mapa, e o movimento para."""
+        avatar_id = str(data["avatar_id"])
+        entity = self.entities.get(avatar_id)
+        if entity is not None:
+            entity.pop("position", None)
+        self.motion.pop(avatar_id, None)
+
     # ------------------------------------------------------------- sessão e relógio
 
     def _on_world_session_started(self, data: Mapping[str, Any]) -> None:

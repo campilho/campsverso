@@ -6,7 +6,7 @@ Não lê relógio de parede, não faz IO e não conhece fazendas: só o modelo d
 import math
 from collections import deque
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import Any, Literal, cast
 
@@ -634,7 +634,8 @@ class KernelCore:
             data |= {"date": self.world.date(day), "season": season}
         self.world.emit_fact("campsverso.world.clock.phase_changed.v1", data)
         for avatar in self.world.avatar_map.values():
-            avatar.add_pending("phase_changed")
+            if avatar.present:  # quem está fora do mundo não decide nada (ADR-0072)
+                avatar.add_pending("phase_changed")
 
     def _stage_needs(self) -> None:
         self.world.integrate_needs(1)
@@ -673,6 +674,9 @@ class KernelCore:
 
     def _stage_decisions(self) -> None:
         for avatar_id, avatar in sorted(self.world.avatar_map.items()):
+            if not avatar.present:  # fora do mundo: nada a decidir até entrar (ADR-0072)
+                avatar.pending.clear()
+                continue
             if avatar.pending and avatar.idle:
                 reason = next(r for r in REASON_PRECEDENCE if r in avatar.pending)
                 position = self.world.position_of(avatar_id)
@@ -727,6 +731,8 @@ class KernelCore:
 
         if command.get("controllerid") != avatar.controller.id:
             return reject("not_in_control")
+        if not avatar.present:
+            return reject("absent", "o avatar está fora do mundo")  # ADR-0072
         at_tick = data.get("at_tick")
         if at_tick is not None:
             if avatar.controller.type != "replay" or self.mode != "max":
@@ -790,7 +796,7 @@ class KernelCore:
                     "waypoints": [position_data(p) for p in corners(trajectory.path)],
                     "depart_tick": self.tick,
                     "arrival_tick": action.end_tick,
-                    "tiles_per_tick": self.tiles_per_tick,
+                    "tiles_per_tick": trajectory.tiles_per_tick,
                 },
                 caused_by=command_id,
                 correlation=correlation,
@@ -812,6 +818,10 @@ class KernelCore:
         result = spec.validate(ActionContext(avatar.avatar_id, action_id, params, self.world))
         if isinstance(result, Accepted) and result.duration_ticks < 1:
             raise ValueError(f"a ação {name} declarou duração {result.duration_ticks} (mínimo 1)")
+        factor = self.world.traits(avatar.avatar_id).time_factor(name)  # a ficha (ADR-0072)
+        if isinstance(result, Accepted) and factor != 1.0:
+            ticks = max(1, math.ceil(result.duration_ticks * factor - 1e-9))
+            result = replace(result, duration_ticks=ticks)
         return result, None
 
     def _validate_move(
@@ -854,8 +864,9 @@ class KernelCore:
         path = find_path(origin, target, self.world.walkable)
         if path is None:
             return Rejection("unreachable"), None
-        duration = max(1, math.ceil((len(path) - 1) / self.tiles_per_tick - 1e-9))
-        trajectory = Trajectory(origin, tuple(path), self.tick, self.tiles_per_tick)
+        speed = self.tiles_per_tick * self.world.traits(avatar.avatar_id).speed  # ADR-0072
+        duration = max(1, math.ceil((len(path) - 1) / speed - 1e-9))
+        trajectory = Trajectory(origin, tuple(path), self.tick, speed)
         return Accepted(duration, "cancel"), trajectory
 
     def _near_spot(self, near: Any) -> Position | None:
@@ -912,7 +923,11 @@ class KernelCore:
         """Próximo tick em que algo pode acontecer; os ticks antes dele só integram necessidades."""
         now = self.tick
         world = self.world
-        if self._queue or self._triggered or any(a.pending for a in world.avatar_map.values()):
+        if (
+            self._queue
+            or self._triggered
+            or any(a.pending and a.present for a in world.avatar_map.values())
+        ):
             return now
         candidates_scheduled = [tick for tick, _ in self._scheduled if tick >= now]
         minutes = (
@@ -927,6 +942,8 @@ class KernelCore:
         candidates += candidates_scheduled
         candidates += [tick for tick in world.modifier_expiries() if tick >= now]
         for avatar_id, avatar in world.avatar_map.items():
+            if not avatar.present:  # fora do mundo, nada acontece com ele (ADR-0072)
+                continue
             if avatar.action is not None:
                 candidates.append(avatar.action.end_tick)
             if avatar.wake_tick is not None:

@@ -324,7 +324,11 @@ class DefinitionBuilder:
         for spawn in self.spawns.values():
             if spawn.kind not in self.kinds:
                 problems.append(f"entidade {spawn.entity_id}: tipo {spawn.kind!r} indefinido")
-            if (spawn.position is None) == (spawn.container_id is None):
+            avatar = self.avatars.get(spawn.entity_id)
+            if avatar is not None and not avatar.present:  # fora do mundo (ADR-0072)
+                if spawn.position is not None or spawn.container_id is not None:
+                    problems.append(f"avatar {spawn.entity_id} fora do mundo não tem posição")
+            elif (spawn.position is None) == (spawn.container_id is None):
                 problems.append(f"entidade {spawn.entity_id}: precisa de posição ou de contêiner")
             if spawn.position is not None and not grid.in_bounds(spawn.position):
                 problems.append(f"entidade {spawn.entity_id} fora do mapa")

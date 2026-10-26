@@ -15,6 +15,7 @@ from typing import Any, Literal, cast
 from campsverso_cartridge_api import (
     ActionContext,
     Attributes,
+    AvatarTraits,
     ControllerRef,
     EntityView,
     Interrupt,
@@ -31,6 +32,8 @@ from campsverso_kernel.errors import WorldRuleError
 from campsverso_kernel.facts import FactLog
 from campsverso_kernel.rng import RngStreams, SplitMix64
 from campsverso_kernel.rules import Contribution, RulesEngine
+
+DEFAULT_TRAITS = AvatarTraits()  # o corpo de um avatar sem ficha (ADR-0072)
 
 SCALE = 120  # unidades por ponto de necessidade (ADR-0038)
 ENTITY_ID = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")  # o `entity_id` dos contratos
@@ -110,6 +113,7 @@ class Avatar:
     awaiting: bool = False  # pediu decisão e o controlador ainda não respondeu (lockstep)
     # Modificadores de necessidade (ADR-0062): {need, factor, until_tick, label}, por ordem.
     modifiers: list[dict[str, Any]] = field(default_factory=list[dict[str, Any]])
+    present: bool = True  # no mundo; fora dele, sem posição nem pedidos de decisão (ADR-0072)
 
     @property
     def idle(self) -> bool:
@@ -162,6 +166,14 @@ class World:
         self.blocked: frozenset[Position] = frozenset()
         self._context = _Context()
         self.rates = self._unit_rates()
+        for avatar in self.definition.avatars.values():  # a ficha dá unidades inteiras? (ADR-0072)
+            for need, factor in avatar.traits.need_rates.items():
+                for per_tick in self.rates.get(need, {}).values():
+                    if abs(per_tick * factor - round(per_tick * factor)) > 1e-9:
+                        raise WorldRuleError(
+                            f"{avatar.entity_id}: o fator {factor} de {need} não dá unidades "
+                            "inteiras por tick"
+                        )
 
     # ------------------------------------------------------------- montagem
 
@@ -186,7 +198,19 @@ class World:
         avatar = self.avatar_map[avatar_id]
         if avatar.asleep and need in avatar.sleep_rates:
             return avatar.sleep_rates[need]
-        return self.rates[need].get("asleep" if avatar.asleep else "awake", 0)
+        base = self.rates[need].get("asleep" if avatar.asleep else "awake", 0)
+        factor = self.traits(avatar_id).need_rates.get(need, 1.0)  # a ficha (ADR-0072)
+        if factor == 1.0 or base == 0:
+            return base
+        exact = base * factor
+        if abs(exact - round(exact)) > 1e-9:
+            raise WorldRuleError(f"o fator {factor} de {need} não dá unidades inteiras por tick")
+        return round(exact)
+
+    def traits(self, avatar_id: str) -> AvatarTraits:
+        """O que distingue o corpo deste avatar (ADR-0072); o padrão, sem ficha."""
+        avatar = self.definition.avatars.get(avatar_id)
+        return avatar.traits if avatar is not None else DEFAULT_TRAITS
 
     def rate(self, avatar_id: str, need: str, at_tick: int | None = None) -> int:
         """Unidades por tick no tick dado (o atual, por padrão), com os modificadores ativos
@@ -254,7 +278,10 @@ class World:
             self.create_item(item, qty, container, "initial")
         for avatar in self.definition.avatars.values():
             self.avatar_map[avatar.entity_id] = Avatar(
-                avatar.entity_id, avatar.default_controller, avatar.default_controller
+                avatar.entity_id,
+                avatar.default_controller,
+                avatar.default_controller,
+                present=avatar.present,
             )
             units = {n.need: to_units(n.initial) for n in self.definition.needs.values()}
             self.needs[avatar.entity_id] = dict(sorted(units.items()))
@@ -267,6 +294,14 @@ class World:
         attributes: dict[str, Scalar] = {**kind.attributes, **spawn.attributes}
         if kind.capacity is not None:
             attributes.setdefault("capacity", kind.capacity)
+        if spawn.entity_id in self.definition.avatars:  # a ficha à vista (ADR-0072)
+            traits = self.traits(spawn.entity_id)
+            if traits.capacity is not None:
+                attributes["capacity"] = traits.capacity
+            if traits.vision != 1.0:
+                attributes["vision"] = traits.vision
+            if traits.night_vision:
+                attributes["night_vision"] = True
         entity = Entity(
             entity_id=spawn.entity_id,
             kind=spawn.kind,
@@ -532,7 +567,10 @@ class World:
         return self.avatar_map[avatar_id].asleep
 
     def avatars(self) -> Sequence[str]:
-        return sorted(self.avatar_map)
+        return sorted(a for a, avatar in self.avatar_map.items() if avatar.present)
+
+    def present(self, avatar_id: str) -> bool:
+        return self.avatar_map[avatar_id].present
 
     def tiles_with(self, tile_property: str) -> Sequence[Position]:
         return self.definition.grid.tiles_with(tile_property)
@@ -633,6 +671,10 @@ class World:
         entity = self.entity_map.get(container_id)
         if entity is None:
             return None
+        if container_id in self.avatar_map:
+            own = self.traits(container_id).capacity  # a ficha (ADR-0072)
+            if own is not None:
+                return own
         return self.definition.kinds[entity.kind].capacity
 
     def fits(self, item: str, qty: int, container_id: str) -> bool:
@@ -798,7 +840,13 @@ class World:
     # ------------------------------------------------------------- WorldOps: necessidades
 
     def change_need(self, avatar_id: str, need: str, delta: float) -> None:
+        cost = self.traits(avatar_id).energy_cost
+        if delta < 0 and cost != 1.0 and need == self._energy_need():  # a ficha (ADR-0072)
+            delta *= cost
         self.set_need_units(avatar_id, need, self.needs[avatar_id][need] + to_units(delta))
+
+    def _energy_need(self) -> str | None:
+        return next((n.need for n in self.definition.needs.values() if n.role == "energy"), None)
 
     def set_need_units(self, avatar_id: str, need: str, units: int) -> None:
         units = max(0, min(MAX_UNITS, units))
@@ -832,6 +880,8 @@ class World:
         start, end = self.tick, self.tick + ticks
         for avatar_id in sorted(self.avatar_map):
             avatar = self.avatar_map[avatar_id]
+            if not avatar.present:  # fora do mundo, as necessidades param (ADR-0072)
+                continue
             cuts = sorted(
                 {end}
                 | {
@@ -971,6 +1021,54 @@ class World:
         )
         return action.action_id
 
+    def enter(
+        self,
+        avatar_id: str,
+        position: Position,
+        reason: str,
+        needs: Mapping[str, float] | None = None,
+    ) -> None:
+        """WorldOps: o avatar de fora entra no mundo (ADR-0072)."""
+        avatar = self.avatar_map.get(avatar_id)
+        if avatar is None:
+            raise WorldRuleError(f"avatar inexistente: {avatar_id}")
+        if avatar.present:
+            raise WorldRuleError(f"{avatar_id} já está no mundo")
+        if not self.walkable(position):
+            raise WorldRuleError(f"{avatar_id} não entra num tile que não se pisa: {position}")
+        for need, value in sorted((needs or {}).items()):
+            if need not in self.needs[avatar_id]:
+                raise WorldRuleError(f"necessidade indefinida: {need}")
+            self.set_need_units(avatar_id, need, to_units(value))
+            self.reported_needs[avatar_id][need] = self.needs[avatar_id][need]
+        avatar.present = True
+        self.entity_map[avatar_id].position = position
+        self.emit_fact(
+            "campsverso.avatar.entered.v1",
+            {"avatar_id": avatar_id, "position": position_data(position), "reason": reason},
+        )
+        avatar.add_pending("woke_up")  # chegou: o controlador decide o primeiro passo
+
+    def leave(self, avatar_id: str, reason: str) -> None:
+        """WorldOps: o avatar sai do mundo (ADR-0072)."""
+        avatar = self.avatar_map.get(avatar_id)
+        if avatar is None:
+            raise WorldRuleError(f"avatar inexistente: {avatar_id}")
+        if not avatar.present:
+            raise WorldRuleError(f"{avatar_id} já está fora do mundo")
+        self.interrupt_action(avatar_id, "cancelled")
+        position = self.position_of(avatar_id)
+        avatar.asleep, avatar.sleep_cause, avatar.bed_id, avatar.wake_tick = False, None, None, None
+        avatar.wake_needs, avatar.sleep_rates = {}, {}
+        avatar.pending.clear()
+        avatar.awaiting = False
+        avatar.present = False
+        self.entity_map[avatar_id].position = None
+        data: dict[str, Any] = {"avatar_id": avatar_id, "reason": reason}
+        if position is not None:
+            data["position"] = position_data(position)
+        self.emit_fact("campsverso.avatar.left.v1", data)
+
     def faint(
         self,
         avatar_id: str,
@@ -978,8 +1076,8 @@ class World:
         wake_in_ticks: int,
         wake_needs: Mapping[str, float],
     ) -> None:
-        if self.avatar_map[avatar_id].asleep:
-            return
+        if self.avatar_map[avatar_id].asleep or not self.traits(avatar_id).faints:
+            return  # quem a ficha diz que não desmaia segue acordado (ADR-0072)
         self.interrupt_action(avatar_id, "fainted")
         position = self.position_of(avatar_id)
         assert position is not None
@@ -1136,6 +1234,8 @@ def _avatar_data(a: Avatar) -> dict[str, Any]:
         "pending": list(a.pending),
         "awaiting": a.awaiting,
         "modifiers": [dict(m) for m in a.modifiers],
+        # Só quando está fora: os snapshots dos mundos sem ajudantes ficam como eram (ADR-0072).
+        **({"present": False} if not a.present else {}),
     }
 
 
@@ -1154,6 +1254,7 @@ def _avatar_from(raw: Mapping[str, Any]) -> Avatar:
         pending=list(raw["pending"]),
         awaiting=bool(raw["awaiting"]),
         modifiers=[dict(m) for m in cast(list[Mapping[str, Any]], raw.get("modifiers") or [])],
+        present=bool(raw.get("present", True)),
     )
 
 

@@ -1335,6 +1335,30 @@
         }
       }
     },
+    "AvatarEnteredV1": {
+      "title": "AvatarEnteredV1",
+      "description": "O avatar entrou no mundo (ADR-0072): um avatar declarado fora dele, como o ajudante que chega para trabalhar, aparece numa posição e passa a receber pedidos de decisão.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "avatar_id",
+        "position",
+        "reason"
+      ],
+      "properties": {
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "position": {
+          "$ref": "#/$defs/Position",
+          "description": "Onde ele aparece."
+        },
+        "reason": {
+          "$ref": "#/$defs/Token",
+          "description": "Por que entrou, nos termos do cartucho (ex.: `work_day`)."
+        }
+      }
+    },
     "AvatarFaintedV1": {
       "title": "AvatarFaintedV1",
       "description": "O avatar desmaiou: acordado às 02:00 ou sem energia (ADR-0014).",
@@ -1358,6 +1382,29 @@
         },
         "position": {
           "$ref": "#/$defs/Position"
+        }
+      }
+    },
+    "AvatarLeftV1": {
+      "title": "AvatarLeftV1",
+      "description": "O avatar saiu do mundo (ADR-0072): some do mapa, a ação em andamento é cancelada, as necessidades param, e ele não recebe pedidos de decisão até entrar de novo.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "avatar_id",
+        "reason"
+      ],
+      "properties": {
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "position": {
+          "$ref": "#/$defs/Position",
+          "description": "De onde ele saiu."
+        },
+        "reason": {
+          "$ref": "#/$defs/Token",
+          "description": "Por que saiu, nos termos do cartucho (ex.: `end_of_day`, `dismissed`)."
         }
       }
     },

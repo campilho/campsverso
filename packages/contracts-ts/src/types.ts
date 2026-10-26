@@ -850,6 +850,17 @@ export interface AvatarDecisionRequestedV1 {
   position: Position;
 }
 /**
+ * O avatar entrou no mundo (ADR-0072): um avatar declarado fora dele, como o ajudante que chega para trabalhar, aparece numa posição e passa a receber pedidos de decisão.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "AvatarEnteredV1".
+ */
+export interface AvatarEnteredV1 {
+  avatar_id: EntityId;
+  position: Position;
+  reason: Token;
+}
+/**
  * O avatar desmaiou: acordado às 02:00 ou sem energia (ADR-0014).
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
@@ -859,6 +870,17 @@ export interface AvatarFaintedV1 {
   avatar_id: EntityId;
   reason: "late_night" | "exhausted";
   position: Position;
+}
+/**
+ * O avatar saiu do mundo (ADR-0072): some do mapa, a ação em andamento é cancelada, as necessidades param, e ele não recebe pedidos de decisão até entrar de novo.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "AvatarLeftV1".
+ */
+export interface AvatarLeftV1 {
+  avatar_id: EntityId;
+  position?: Position;
+  reason: Token;
 }
 /**
  * Posse do avatar assumida por um controlador.

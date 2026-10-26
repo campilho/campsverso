@@ -76,12 +76,28 @@ CONTRACT_TYPES: Final[dict[str, ContractType]] = {
             models.AvatarDecisionRequestedV1,
         ),
         ContractType(
+            "campsverso.avatar.entered.v1",
+            "event",
+            "world",
+            "kernel",
+            "contracts://events/avatar/entered.v1",
+            models.AvatarEnteredV1,
+        ),
+        ContractType(
             "campsverso.avatar.fainted.v1",
             "event",
             "world",
             "kernel",
             "contracts://events/avatar/fainted.v1",
             models.AvatarFaintedV1,
+        ),
+        ContractType(
+            "campsverso.avatar.left.v1",
+            "event",
+            "world",
+            "kernel",
+            "contracts://events/avatar/left.v1",
+            models.AvatarLeftV1,
         ),
         ContractType(
             "campsverso.avatar.possessed.v1",
