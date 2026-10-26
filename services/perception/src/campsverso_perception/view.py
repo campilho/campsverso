@@ -90,16 +90,32 @@ class PerceptionState(Projection):
 
     def radius(self, avatar_id: str | None = None) -> int | None:
         """O raio da hora (ADR-0068): o da fase, se o cartucho declarou, ou o de sempre; um item de
-        luz no inventário do avatar garante o raio dele. None é o mapa inteiro."""
+        luz no inventário do avatar garante o raio dele. A ficha do avatar (ADR-0072) multiplica o
+        raio (`vision`), e quem enxerga à noite (`night_vision`) usa o raio de sempre em qualquer
+        fase. None é o mapa inteiro."""
         perception = cast(Mapping[str, Any], (self.session or {}).get("perception") or {})
         value = perception.get("radius")
         if not isinstance(value, int):
             return None
+        traits = cast(
+            Mapping[str, Any], self.entities.get(avatar_id or "", {}).get("attributes") or {}
+        )
         by_phase = cast(Mapping[str, int], perception.get("by_phase") or {})
-        radius = int(by_phase.get(self.phase, value))
+        radius = value if traits.get("night_vision") else int(by_phase.get(self.phase, value))
+        vision = traits.get("vision")
+        if isinstance(vision, int | float) and vision != 1:
+            radius = round(radius * float(vision))
         lights = cast(Mapping[str, int], perception.get("lights") or {})
         held = self.containers.get(avatar_id or "", {})
         return max([radius, *(int(r) for item, r in lights.items() if held.get(item, 0) > 0)])
+
+    def _other_avatar(self, entity_id: str | None, avatar_id: str) -> bool:
+        """Outro avatar (ADR-0072): o inventário dele, e o que ele guarda, não aparecem."""
+        return (
+            entity_id is not None
+            and entity_id != avatar_id
+            and self.entities.get(entity_id, {}).get("kind") == "avatar"
+        )
 
     def landmarks(self) -> frozenset[str]:
         """Os tipos que se veem além do raio (ADR-0067): as construções fixas da fazenda."""
@@ -138,9 +154,16 @@ class PerceptionState(Projection):
         def near(entity_id: str) -> bool:
             """Dentro do raio: pela posição, ou pela do contêiner que a guarda; o próprio avatar
             e o que não tem lugar conhecido entram sempre."""
-            if radius is None or center is None or entity_id == avatar_id:
+            if entity_id == avatar_id:
                 return True
-            if self.entities.get(entity_id, {}).get("kind") in landmarks:
+            entity = self.entities.get(entity_id, {})
+            if entity.get("kind") == "avatar" and self.position_at(entity_id, tick) is None:
+                return False  # o avatar fora do mundo não está em lugar nenhum (ADR-0072)
+            if self._other_avatar(entity.get("container_id"), avatar_id):
+                return False  # o que outro avatar carrega não se vê (ADR-0072)
+            if radius is None or center is None:
+                return True
+            if entity.get("kind") in landmarks:
                 return True  # a construção fixa: quem mora ali sabe onde fica
             where = self.position_at(entity_id, tick)
             if where is None:
@@ -179,7 +202,7 @@ class PerceptionState(Projection):
                     "items": [self.stack(container, i, q) for i, q in sorted(stock.items())],
                 }
                 for container, stock in sorted(self.containers.items())
-                if stock and near(container)
+                if stock and near(container) and not self._other_avatar(container, avatar_id)
             ],
             "entities": entities,
         }

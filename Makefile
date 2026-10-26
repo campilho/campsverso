@@ -18,7 +18,7 @@ NATS_DIR := .tools/nats-server-v$(NATS_VERSION)
 NATS_BIN := .tools/bin/nats-server
 NATS_PID := data/nats/nats-server.pid
 NATS_LOG := data/nats/nats-server.log
-NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR BUDGET MIND
+NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR BUDGET MIND HELPERS
 
 .DEFAULT_GOAL := help
 .PHONY: help setup contracts check lint fmt types test arch contracts-check compat \

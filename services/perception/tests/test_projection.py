@@ -432,3 +432,71 @@ def test_a_foto_traz_o_tempo_de_amanha_quando_a_previsao_sai() -> None:
         "world", ev(7, 720, "world.weather.changed.v1", condition="storm", day=2, forecast=True)
     )
     assert p.view("camps")["weather"] == {"condition": "sun", "day": 1, "tomorrow": "storm"}
+
+
+def _with_helper(p: Projection, *, present: bool = True) -> None:
+    """A Nina (ADR-0072): a ficha à vista (o dobro do raio e a noite), a enxada e as moedas."""
+    p.apply(
+        "world",
+        ev(
+            20,
+            0,
+            "world.entity.spawned.v1",
+            entity_id="nina",
+            kind="avatar",
+            attributes={"vision": 2.0, "night_vision": True},
+        ),
+    )
+    p.apply(
+        "world",
+        ev(21, 0, "world.entity.spawned.v1", entity_id="hoe", kind="hoe", container_id="nina"),
+    )
+    created = ev(22, 0, "world.item.created.v1", item="moeda", qty=7, container_id="nina")
+    p.apply("world", created)
+    if present:
+        entered = ev(23, 60, "avatar.entered.v1", avatar_id="nina", position={"x": 2, "y": 1})
+        p.apply("world", entered)
+
+
+def test_o_ajudante_de_fora_nao_aparece_e_o_que_ele_carrega_tambem_nao() -> None:
+    """ADR-0072: um avatar fora do mundo não está em lugar nenhum; no mundo, o Camps o vê, mas não
+    o inventário dele, e a Nina vê o dela."""
+    p = world()
+    _with_helper(p, present=False)
+    seen = {e["entity_id"] for e in p.view("camps")["entities"]}
+    assert "nina" not in seen
+    assert "hoe" not in seen
+    p.apply("world", ev(23, 60, "avatar.entered.v1", avatar_id="nina", position={"x": 2, "y": 1}))
+    view = p.view("camps")
+    seen = {e["entity_id"] for e in view["entities"]}
+    assert "nina" in seen
+    assert "hoe" not in seen
+    assert [c["container_id"] for c in view["containers"]] == ["camps"]
+    own = p.view("nina")
+    assert {"hoe", "camps"} <= {e["entity_id"] for e in own["entities"]}
+    assert [c["container_id"] for c in own["containers"]] == ["nina"]  # não o do Camps
+
+
+def test_a_ficha_dobra_o_raio_e_enxerga_a_noite() -> None:
+    """ADR-0072: `vision` multiplica o raio, e `night_vision` usa o raio de sempre à noite."""
+    p = world()
+    p.apply(
+        "world",
+        ev(
+            6,
+            0,
+            "world.session.started.v1",
+            cartridge_version="0.1.0",
+            seed=1,
+            tick_seconds=60,
+            mode="continuous",
+            scale=72.0,
+            paused=False,
+            resumed=False,
+            perception={"radius": 3, "by_phase": {"noite": 1}},
+        ),
+    )
+    _with_helper(p)
+    assert (p.radius("camps"), p.radius("nina")) == (3, 6)
+    p.apply("world", ev(30, 1200, "world.clock.phase_changed.v1", phase="noite", day=1))
+    assert (p.radius("camps"), p.radius("nina")) == (1, 6)

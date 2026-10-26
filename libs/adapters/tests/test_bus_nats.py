@@ -124,9 +124,30 @@ async def test_gateway_le_os_quatro_streams_do_avatar(nats: NatsServer) -> None:
     ):
         consumer = await gateway.consume(pattern, durable, Collector())
         await consumer.unsubscribe()
-    with pytest.raises(PermissionDeniedError):  # só o avatar da v0.1 (ADR-0022)
-        await gateway.consume("campsverso.w.agent.outro.>", "g-outro", Collector())
+    helper = await gateway.consume("campsverso.w.agent.dita.>", "g-dita", Collector())
+    await helper.unsubscribe()  # o operador vê todos os avatares (ADR-0072)
     await gateway.close()
+
+
+async def test_os_ajudantes_so_leem_o_que_e_de_cada_um(nats: NatsServer) -> None:
+    """ADR-0072: o runner dos ajudantes lê a percepção deles, e nunca a do Camps."""
+    await (await _connect(nats, "kernel", manage=True)).close()
+    helpers = await _connect(nats, "helpers")
+    for avatar in ("dita", "ze-graudo", "nina", "seu-bento", "tiao"):
+        consumer = await helpers.consume(
+            f"campsverso.w.agent.{avatar}.>", f"h-{avatar}", Collector()
+        )
+        await consumer.unsubscribe()
+    for pattern in (
+        "campsverso.w.agent.camps.>",
+        "campsverso.w.world.>",
+        "campsverso.w.internal.>",
+    ):
+        with pytest.raises(PermissionDeniedError):
+            await helpers.subscribe(pattern, _ignore)
+    with pytest.raises(PermissionDeniedError):
+        await helpers.consume("campsverso.w.agent.camps.>", "h-espiao", Collector())
+    await helpers.close()
 
 
 async def test_gateway_so_publica_relogio_e_comandos_do_humano(nats: NatsServer) -> None:
