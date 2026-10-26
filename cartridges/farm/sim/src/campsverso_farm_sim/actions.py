@@ -18,6 +18,7 @@ from campsverso_cartridge_api import (
     WorldView,
 )
 from campsverso_economy import after_delivery, refuse_delivery, refuse_take
+from campsverso_farm_sim import helpers
 from campsverso_farm_sim.config import ENERGY, HUNGER, optional, section, ticks_per_hour
 from campsverso_farm_sim.fair import apply_sale, check_sale, fair_stall
 from campsverso_farm_sim.market import buy_from, memory_market, sell_to
@@ -79,6 +80,13 @@ def watering_can(view: WorldView, avatar_id: str) -> EntityView | None:
     cans = watering_cans(view, avatar_id)
     with_charge = [c for c in cans if int(c.attributes.get("charges") or 0) > 0]
     return (with_charge or cans)[0] if cans else None
+
+
+def tool_weight(view: WorldView, tool: EntityView) -> float:
+    """O peso de uma ferramenta, pelo tipo dela nos dados do cenário."""
+    kinds = optional(view, "kinds") or {}
+    info = cast(Mapping[str, Any], kinds.get(tool.kind) or {})
+    return float(info.get("weight", 0.0))
 
 
 def has_plow(view: WorldView, avatar_id: str) -> bool:
@@ -199,7 +207,15 @@ class Plant(FarmAction):
     def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
         crop = str(ctx.params["crop"])
         target = str(ctx.params["target"])
-        ops.consume_item(str(section(ctx.view, "crops", crop)["seed"]), 1, ctx.avatar_id, "plant")
+        seed = str(section(ctx.view, "crops", crop)["seed"])
+        ops.consume_item(seed, 1, ctx.avatar_id, "plant")
+        loss = ctx.view.entity(ctx.avatar_id).hidden.get("perde_semente")  # a ficha (ADR-0072)
+        if (
+            isinstance(loss, int | float)
+            and ctx.view.items(ctx.avatar_id).get(seed, 0) >= 1
+            and ctx.view.rng("helpers").random() < float(loss)
+        ):
+            ops.consume_item(seed, 1, ctx.avatar_id, "seed_lost")
         rained = wet(ctx.view, ctx.view.day)  # chuva conta como rega (ADR-0039)
         visible: dict[str, Any] = {"crop": crop, "stage": "semente", "watered_today": rained}
         hidden: dict[str, Any] = {"growth_points": 0.0, "planted_day": ctx.view.day, "dry_days": 0}
@@ -360,6 +376,10 @@ class MoveItems(FarmAction):
         source, target = self._ends(ctx, container)
         tool = tool_in(ctx.view, source, ctx.params.get("item"))
         if tool is not None and self.only_category is None:  # uma ferramenta, pelo id (ADR-0062)
+            limit = ctx.view.entity(ctx.avatar_id).hidden.get("peso_max_ferramenta")  # ADR-0072
+            heavy = isinstance(limit, int | float) and tool_weight(ctx.view, tool) > float(limit)
+            if target == ctx.avatar_id and heavy:
+                return Rejection("too_heavy")
             return None if ctx.view.fits_entity(tool.kind, target) else Rejection("too_heavy")
         qty = quantity(ctx.params)
         if isinstance(qty, Rejection):
@@ -386,7 +406,8 @@ class MoveItems(FarmAction):
         item, qty = str(ctx.params["item"]), int(ctx.params.get("qty", 1))
         ops.transfer_item(item, qty, source, target, self.reason)
         if self.reason == "sell":  # quem recebe o pagamento às 06:00 (ADR-0039)
-            hidden: dict[str, Any] = {"payee": ctx.avatar_id}
+            # O que o ajudante vende é do patrão (ADR-0072).
+            hidden: dict[str, Any] = {"payee": helpers.payee(ctx.view, ctx.avatar_id)}
             if memory_market(ctx.view) is not None:  # a caixa que lembra (ADR-0069)
                 trade = sell_to(ctx.view, container, item, qty)
                 owed = float(container.hidden.get(f"value_{item}") or 0.0) + trade.total
@@ -904,6 +925,180 @@ class DeliverOrder(FarmAction):
         )
 
 
+def _helper_target(ctx: ActionContext) -> EntityView | Rejection:
+    """O ajudante pedido (ADR-0072), à vista e na fazenda."""
+    target = ctx.params.get("target")
+    if not isinstance(target, str) or not helpers.is_helper(ctx.view, target):
+        return Rejection("invalid_params", "o alvo não é um ajudante")
+    if not ctx.view.present(target):
+        return Rejection("absent", "o ajudante não está na fazenda")
+    return ctx.view.entity(target)
+
+
+@dataclass(frozen=True)
+class HireHelper(FarmAction):
+    """Contrata um ajudante no quadro, por alguns dias, pago adiantado; ele chega na manhã
+    seguinte (ADR-0072)."""
+
+    name: str = "hire_helper"
+
+    def _found(self, ctx: ActionContext) -> tuple[EntityView, str, int, int] | Rejection:
+        data = helpers.config(ctx.view)
+        if data is None:
+            return Rejection("invalid_params", "não há ajudantes neste mundo")
+        found = helpers.board(ctx.view, ctx.params.get("target"))
+        if found is None:
+            return Rejection("invalid_params", "o alvo não é o quadro de ajudantes")
+        if not adjacent(ctx.view, ctx.avatar_id, found):
+            return Rejection("not_adjacent")
+        helper, days = ctx.params.get("helper"), ctx.params.get("days")
+        if not isinstance(helper, str) or helper not in helpers.roster(data):
+            return Rejection("invalid_params", "ajudante desconhecido")
+        if days not in cast(list[int], data["contract_days"]) or not isinstance(days, int):
+            return Rejection("invalid_params", f"dias em {data['contract_days']}")
+        wage = int(cast(int, ctx.view.entity(helper).attributes["diaria"]))
+        return found, helper, days, wage
+
+    def check(self, ctx: ActionContext) -> Rejection | None:
+        found = self._found(ctx)
+        if isinstance(found, Rejection):
+            return found
+        _, helper, days, wage = found
+        if helpers.is_helper(ctx.view, ctx.avatar_id):
+            return Rejection("invalid_params", "um ajudante não contrata")
+        if helpers.employer(ctx.view, helper) is not None:
+            return Rejection("helper_busy")
+        if ctx.view.items(ctx.avatar_id).get(helpers.COIN, 0) < wage * days:
+            return Rejection("insufficient_funds")
+        return None
+
+    def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
+        found = self._found(ctx)
+        assert not isinstance(found, Rejection)
+        _, helper, days, wage = found
+        first = ctx.view.day + 1
+        ops.consume_item(helpers.COIN, wage * days, ctx.avatar_id, "wage")
+        ops.set_attributes(
+            helper,
+            visible={"patrao": ctx.avatar_id, "dias": days, "ordem": "cuidar"},
+            hidden={"primeiro_dia": first, "ultimo_dia": first + days - 1},
+        )
+        helpers.show_on_board(ctx.view, ops, [helper])
+        ops.emit(
+            "campsverso.economy.labor.hired.v1",
+            {
+                "helper": helper,
+                "employer": ctx.avatar_id,
+                "days": days,
+                "wage": wage,
+                "total": wage * days,
+                "first_day": first,
+                "day": ctx.view.day,
+            },
+        )
+
+
+@dataclass(frozen=True)
+class OrderHelper(FarmAction):
+    """Dá uma ordem ao ajudante, ao lado dele; a ordem fica até ser trocada (ADR-0072)."""
+
+    name: str = "order_helper"
+
+    def check(self, ctx: ActionContext) -> Rejection | None:
+        helper = _helper_target(ctx)
+        if isinstance(helper, Rejection):
+            return helper
+        if helpers.employer(ctx.view, helper.entity_id) != ctx.avatar_id:
+            return Rejection("not_employer")
+        if not adjacent(ctx.view, ctx.avatar_id, helper):
+            return Rejection("not_adjacent")
+        data = section(ctx.view, helpers.HELPERS)
+        task = ctx.params.get("task")
+        if task not in cast(list[str], data["tasks"]):
+            return Rejection("invalid_params", f"ordem em {data['tasks']}")
+        if task == "plantar" and ctx.params.get("crop") not in section(ctx.view, "crops"):
+            return Rejection("invalid_params", "plantar pede a cultura")
+        if task == "vender" and item_info(ctx.view, ctx.params.get("item")) is None:
+            return Rejection("invalid_params", "vender pede o item")
+        n = ctx.params.get("n")
+        if task == "cavar" and (not isinstance(n, int) or not 1 <= n <= int(data["max_dig"])):
+            return Rejection("invalid_params", f"cavar pede n de 1 a {data['max_dig']}")
+        return None
+
+    def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
+        task = str(ctx.params["task"])
+        here = ctx.view.entity(ctx.avatar_id).position
+        visible: dict[str, Any] = {
+            "ordem": task,
+            "ordem_cultura": ctx.params.get("crop") if task == "plantar" else None,
+            "ordem_item": ctx.params.get("item") if task == "vender" else None,
+            "ordem_n": ctx.params.get("n") if task == "cavar" else None,
+        }
+        hidden: dict[str, Any] = {}
+        if task == "cavar" and here is not None:  # cava em volta de onde o patrão deu a ordem
+            hidden = {"ordem_x": here.x, "ordem_y": here.y}
+        ops.set_attributes(str(ctx.params["target"]), visible=visible, hidden=hidden)
+
+
+@dataclass(frozen=True)
+class DismissHelper(FarmAction):
+    """Dispensa o ajudante, ao lado dele ou no quadro: ele vai embora, e os dias pagos não voltam
+    (ADR-0072)."""
+
+    name: str = "dismiss_helper"
+
+    def _helper(self, ctx: ActionContext) -> str | Rejection:
+        target = ctx.params.get("target")
+        found = helpers.board(ctx.view, target)
+        if found is not None:
+            helper = ctx.params.get("helper")
+            if not isinstance(helper, str) or not helpers.is_helper(ctx.view, helper):
+                return Rejection("invalid_params", "ajudante desconhecido")
+            return helper if adjacent(ctx.view, ctx.avatar_id, found) else Rejection("not_adjacent")
+        entity = _helper_target(ctx)
+        if isinstance(entity, Rejection):
+            return entity
+        if not adjacent(ctx.view, ctx.avatar_id, entity):
+            return Rejection("not_adjacent")
+        return entity.entity_id
+
+    def check(self, ctx: ActionContext) -> Rejection | None:
+        helper = self._helper(ctx)
+        if isinstance(helper, Rejection):
+            return helper
+        if helpers.employer(ctx.view, helper) != ctx.avatar_id:
+            return Rejection("not_employer")
+        return None
+
+    def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
+        helper = self._helper(ctx)
+        assert not isinstance(helper, Rejection)
+        left = int(cast(int, ctx.view.entity(helper).attributes.get("dias") or 0))
+        if ctx.view.present(helper):
+            helpers.leave_farm(ctx.view, ops, helper, "dismissed")
+        helpers.end_contract(ctx.view, ops, helper)
+        helpers.show_on_board(ctx.view, ops, [helper])
+        ops.emit(
+            "campsverso.economy.labor.dismissed.v1",
+            {"helper": helper, "employer": ctx.avatar_id, "days_left": left, "day": ctx.view.day},
+        )
+
+
+@dataclass(frozen=True)
+class GoHome(FarmAction):
+    """O ajudante vai embora mais cedo (sem comida no baú, por exemplo); o dia conta (ADR-0072)."""
+
+    name: str = "go_home"
+
+    def check(self, ctx: ActionContext) -> Rejection | None:
+        if not helpers.is_helper(ctx.view, ctx.avatar_id):
+            return Rejection("invalid_params", "só um ajudante vai para casa no meio do dia")
+        return None
+
+    def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
+        helpers.leave_farm(ctx.view, ops, ctx.avatar_id, "went_home")
+
+
 EXTRA_ACTIONS: tuple[FarmAction, ...] = (  # só com dados do cenário
     Dig(),
     Fertilize(),
@@ -912,6 +1107,10 @@ EXTRA_ACTIONS: tuple[FarmAction, ...] = (  # só com dados do cenário
     AcceptOrder(),
     DeliverOrder(),
     Process(),
+    HireHelper(),
+    OrderHelper(),
+    DismissHelper(),
+    GoHome(),
 )
 
 ALL_ACTIONS: tuple[FarmAction, ...] = (

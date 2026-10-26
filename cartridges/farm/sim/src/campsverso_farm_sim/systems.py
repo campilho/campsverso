@@ -24,6 +24,8 @@ from campsverso_farm_sim.config import (
     section,
 )
 from campsverso_farm_sim.fair import fair_hours
+from campsverso_farm_sim.helpers import helpers_arrive, helpers_board, helpers_leave
+from campsverso_farm_sim.helpers import times as helper_times
 from campsverso_farm_sim.market import memory_market, turnover
 from campsverso_farm_sim.orders import orders_daily
 from campsverso_farm_sim.processing import HOURS, machines_hourly
@@ -433,6 +435,17 @@ def build_extension_systems(data: Mapping[str, Any]) -> tuple[FarmSystem, ...]:
     if "processing" in data:
         systems.append(
             FarmSystem("machines_hourly", "scheduled", 18, (DailyAt(HOURS),), machines_hourly)
+        )
+    if "helpers" in data:  # os ajudantes (ADR-0072): a chegada e a saída no horário de cada ficha
+        arrivals, departures = helper_times(cast(Mapping[str, Any], data["helpers"]))
+        systems.append(
+            FarmSystem("helpers_board", "scheduled", 30, (OnSessionStart(),), helpers_board)
+        )
+        systems.append(
+            FarmSystem("helpers_arrive", "scheduled", 31, (DailyAt(arrivals),), helpers_arrive)
+        )
+        systems.append(
+            FarmSystem("helpers_leave", "scheduled", 32, (DailyAt(departures),), helpers_leave)
         )
     if "fair" in data:
         fair = data["fair"]

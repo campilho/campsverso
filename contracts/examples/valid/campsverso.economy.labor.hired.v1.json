@@ -1,0 +1,25 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c2b-73a8-95e1-f4e1cbc15410",
+  "source": "/kernel/farm-morada-do-sol-01",
+  "type": "campsverso.economy.labor.hired.v1",
+  "time": "2026-10-24T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/economy/labor.hired.v1",
+  "worldid": "farm-morada-do-sol-01",
+  "cartridge": "farm_morada_do_sol",
+  "tick": 4321,
+  "simtime": "2026-10-03T06:00:00-03:00",
+  "seq": 1901,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "helper": "dita",
+    "employer": "camps",
+    "days": 3,
+    "wage": 40,
+    "total": 120,
+    "first_day": 6,
+    "day": 5
+  }
+}

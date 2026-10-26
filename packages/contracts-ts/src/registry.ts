@@ -156,6 +156,24 @@ export const CONTRACT_TYPES = {
     producer: "operator",
     dataschema: "contracts://commands/rules/toggle.v1",
   },
+  "campsverso.economy.labor.dismissed.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/economy/labor.dismissed.v1",
+  },
+  "campsverso.economy.labor.ended.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/economy/labor.ended.v1",
+  },
+  "campsverso.economy.labor.hired.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/economy/labor.hired.v1",
+  },
   "campsverso.economy.order.accepted.v1": {
     kind: "event",
     visibility: "world",
@@ -461,6 +479,9 @@ export interface PayloadByType {
   "campsverso.cmd.clock.set_scale.v1": T.CmdClockSetScaleV1;
   "campsverso.cmd.clock.step.v1": T.CmdClockStepV1;
   "campsverso.cmd.rules.toggle.v1": T.CmdRulesToggleV1;
+  "campsverso.economy.labor.dismissed.v1": T.EconomyLaborDismissedV1;
+  "campsverso.economy.labor.ended.v1": T.EconomyLaborEndedV1;
+  "campsverso.economy.labor.hired.v1": T.EconomyLaborHiredV1;
   "campsverso.economy.order.accepted.v1": T.EconomyOrderAcceptedV1;
   "campsverso.economy.order.delivered.v1": T.EconomyOrderDeliveredV1;
   "campsverso.economy.order.expired.v1": T.EconomyOrderExpiredV1;

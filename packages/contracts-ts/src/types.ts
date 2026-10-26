@@ -963,6 +963,56 @@ export interface AvatarSleepStartedV2 {
   wake_at_tick: Tick;
 }
 /**
+ * Quem contratou dispensou o ajudante antes do fim (ADR-0072): ele vai embora, e os dias pagos não voltam.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "EconomyLaborDismissedV1".
+ */
+export interface EconomyLaborDismissedV1 {
+  helper: EntityId;
+  employer: EntityId;
+  /**
+   * Os dias pagos que ficaram sem trabalho.
+   */
+  days_left: number;
+  day: Day;
+}
+/**
+ * O contrato do ajudante terminou (ADR-0072): ele trabalhou o último dia pago e volta a ficar livre no quadro.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "EconomyLaborEndedV1".
+ */
+export interface EconomyLaborEndedV1 {
+  helper: EntityId;
+  employer: EntityId;
+  day: Day;
+}
+/**
+ * Alguém contratou um ajudante no quadro (ADR-0072): por `days` dias, pago adiantado; ele chega na manhã de `first_day`.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "EconomyLaborHiredV1".
+ */
+export interface EconomyLaborHiredV1 {
+  helper: EntityId;
+  employer: EntityId;
+  /**
+   * Os dias contratados.
+   */
+  days: number;
+  /**
+   * A diária, em moedas.
+   */
+  wage: number;
+  /**
+   * O que se pagou na hora: a diária vezes os dias.
+   */
+  total: number;
+  first_day: Day;
+  day: Day;
+}
+/**
  * Alguém aceitou um pedido do quadro (ADR-0069): o pedido fica com ele até a entrega ou o prazo.
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema

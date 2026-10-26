@@ -8,7 +8,7 @@
  "tilewidth": 32,
  "tileheight": 32,
  "nextlayerid": 3,
- "nextobjectid": 13,
+ "nextobjectid": 14,
  "tilesets": [
   {
    "firstgid": 1,
@@ -2976,6 +2976,24 @@
        "name": "display_name",
        "type": "string",
        "value": "Poço"
+      }
+     ]
+    },
+    {
+     "id": 13,
+     "name": "helper-board",
+     "type": "helper_board",
+     "x": 1152,
+     "y": 1216,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Quadro de ajudantes"
       }
      ]
     }

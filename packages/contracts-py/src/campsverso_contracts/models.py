@@ -1124,6 +1124,104 @@ class AvatarSleepStartedV2(BaseModel):
     """
 
 
+class EconomyLaborDismissedV1(BaseModel):
+    """
+    Quem contratou dispensou o ajudante antes do fim (ADR-0072): ele vai embora, e os dias pagos não voltam.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    helper: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    employer: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    days_left: Annotated[int, Field(ge=0)]
+    """
+    Os dias pagos que ficaram sem trabalho.
+    """
+    day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+
+
+class EconomyLaborEndedV1(BaseModel):
+    """
+    O contrato do ajudante terminou (ADR-0072): ele trabalhou o último dia pago e volta a ficar livre no quadro.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    helper: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    employer: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+
+
+class EconomyLaborHiredV1(BaseModel):
+    """
+    Alguém contratou um ajudante no quadro (ADR-0072): por `days` dias, pago adiantado; ele chega na manhã de `first_day`.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    helper: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O ajudante: um avatar.
+    """
+    employer: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Quem contratou: o avatar.
+    """
+    days: Annotated[int, Field(ge=1)]
+    """
+    Os dias contratados.
+    """
+    wage: Annotated[int, Field(ge=0)]
+    """
+    A diária, em moedas.
+    """
+    total: Annotated[int, Field(ge=0)]
+    """
+    O que se pagou na hora: a diária vezes os dias.
+    """
+    first_day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    O primeiro dia de trabalho.
+    """
+    day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+
+
 class EconomyOrderAcceptedV1(BaseModel):
     """
     Alguém aceitou um pedido do quadro (ADR-0069): o pedido fica com ele até a entrega ou o prazo.

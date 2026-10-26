@@ -1590,6 +1590,103 @@
         }
       }
     },
+    "EconomyLaborDismissedV1": {
+      "title": "EconomyLaborDismissedV1",
+      "description": "Quem contratou dispensou o ajudante antes do fim (ADR-0072): ele vai embora, e os dias pagos não voltam.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "helper",
+        "employer",
+        "days_left",
+        "day"
+      ],
+      "properties": {
+        "helper": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "employer": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "days_left": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Os dias pagos que ficaram sem trabalho."
+        },
+        "day": {
+          "$ref": "#/$defs/Day"
+        }
+      }
+    },
+    "EconomyLaborEndedV1": {
+      "title": "EconomyLaborEndedV1",
+      "description": "O contrato do ajudante terminou (ADR-0072): ele trabalhou o último dia pago e volta a ficar livre no quadro.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "helper",
+        "employer",
+        "day"
+      ],
+      "properties": {
+        "helper": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "employer": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "day": {
+          "$ref": "#/$defs/Day"
+        }
+      }
+    },
+    "EconomyLaborHiredV1": {
+      "title": "EconomyLaborHiredV1",
+      "description": "Alguém contratou um ajudante no quadro (ADR-0072): por `days` dias, pago adiantado; ele chega na manhã de `first_day`.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "helper",
+        "employer",
+        "days",
+        "wage",
+        "total",
+        "first_day",
+        "day"
+      ],
+      "properties": {
+        "helper": {
+          "$ref": "#/$defs/EntityId",
+          "description": "O ajudante: um avatar."
+        },
+        "employer": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Quem contratou: o avatar."
+        },
+        "days": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Os dias contratados."
+        },
+        "wage": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "A diária, em moedas."
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "O que se pagou na hora: a diária vezes os dias."
+        },
+        "first_day": {
+          "$ref": "#/$defs/Day",
+          "description": "O primeiro dia de trabalho."
+        },
+        "day": {
+          "$ref": "#/$defs/Day"
+        }
+      }
+    },
     "EconomyOrderAcceptedV1": {
       "title": "EconomyOrderAcceptedV1",
       "description": "Alguém aceitou um pedido do quadro (ADR-0069): o pedido fica com ele até a entrega ou o prazo.",

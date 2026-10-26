@@ -254,3 +254,79 @@ tools:
       planta crescer, o quiosque abrir ou o dia virar.
     params:
       - {name: ticks, type: integer, description: "quantos minutos, de 1 a 60"}
+  # Os ajudantes (ADR-0072): contratar no quadro de ajudantes; mandar e dispensar ao lado dele.
+  - name: hire_helper
+    strict: false  # a gramática das estritas tem teto; esta é simples
+    description: >-
+      Contratar um ajudante no quadro de ajudantes ao seu lado, por 1, 3 ou 7 dias, pagando agora a
+      diária vezes os dias. Ele chega na manhã seguinte pela entrada da fazenda e cuida dos
+      canteiros (rega e colhe para o baú) até você mandar outra coisa. Ajudantes: dita, ze-graudo,
+      nina, seu-bento, tiao (as fichas e as diárias estão no manual e no quadro).
+    duration: 5
+    energy: 0
+    params:
+      - {name: target, type: string, description: "o id do quadro de ajudantes (helper-board)"}
+      - name: helper
+        type: string
+        description: "o ajudante"
+        enum: [dita, ze-graudo, nina, seu-bento, tiao]
+      - {name: days, type: integer, description: "1, 3 ou 7 dias"}
+  - name: order_helper
+    strict: false  # a gramática das estritas tem teto; esta é simples
+    description: >-
+      Dar uma ordem ao seu ajudante, ao lado dele: cuidar (regar o que precisa e colher o que está
+      maduro, guardando no baú), regar, colher ou parar. A ordem vale até você dar outra.
+    duration: 2
+    energy: 0
+    params:
+      - {name: target, type: string, description: "o id do ajudante"}
+      - name: task
+        type: string
+        description: "a ordem"
+        enum: [cuidar, regar, colher, parar]
+  - name: order_helper_plant
+    strict: false  # a gramática das estritas tem teto; esta é simples
+    action: order_helper
+    description: >-
+      Mandar o seu ajudante, ao lado dele, plantar uma cultura nos canteiros vazios, com as
+      sementes do baú (ele pega lá).
+    duration: 2
+    energy: 0
+    params:
+      - {name: target, type: string, description: "o id do ajudante"}
+      - {name: crop, type: string, description: "a cultura (rabanete, batata, milho...)"}
+    shape: {target: $target, task: plantar, crop: $crop}
+  - name: order_helper_dig
+    strict: false  # a gramática das estritas tem teto; esta é simples
+    action: order_helper
+    description: >-
+      Mandar o seu ajudante, ao lado dele, cavar canteiros novos em volta de onde você está agora,
+      de 1 a 8.
+    duration: 2
+    energy: 0
+    params:
+      - {name: target, type: string, description: "o id do ajudante"}
+      - {name: n, type: integer, description: "quantos canteiros, de 1 a 8"}
+    shape: {target: $target, task: cavar, n: $n}
+  - name: order_helper_sell
+    strict: false  # a gramática das estritas tem teto; esta é simples
+    action: order_helper
+    description: >-
+      Mandar o seu ajudante, ao lado dele, levar do baú para a caixa de vendas tudo o que houver de
+      um item; o pagamento vem para você.
+    duration: 2
+    energy: 0
+    params:
+      - {name: target, type: string, description: "o id do ajudante"}
+      - {name: item, type: string, description: "o item a vender (rabanete, geleia...)"}
+    shape: {target: $target, task: vender, item: $item}
+  - name: dismiss_helper
+    strict: false  # a gramática das estritas tem teto; esta é simples
+    description: >-
+      Dispensar o seu ajudante, ao lado dele ou no quadro de ajudantes: ele vai embora agora, e os
+      dias pagos não voltam.
+    duration: 2
+    energy: 0
+    params:
+      - {name: target, type: string, description: "o id do ajudante, ou o do quadro de ajudantes"}
+      - {name: helper, type: string, description: "o ajudante (o mesmo do alvo, se o alvo é ele)"}

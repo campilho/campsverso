@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/economy/labor.hired.v1",
+  "title": "EconomyLaborHiredV1",
+  "description": "Alguém contratou um ajudante no quadro (ADR-0072): por `days` dias, pago adiantado; ele chega na manhã de `first_day`.",
+  "x-type": "campsverso.economy.labor.hired.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "helper",
+    "employer",
+    "days",
+    "wage",
+    "total",
+    "first_day",
+    "day"
+  ],
+  "properties": {
+    "helper": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "O ajudante: um avatar."
+    },
+    "employer": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "Quem contratou: o avatar."
+    },
+    "days": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Os dias contratados."
+    },
+    "wage": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "A diária, em moedas."
+    },
+    "total": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "O que se pagou na hora: a diária vezes os dias."
+    },
+    "first_day": {
+      "$ref": "contracts://common/defs.v1#/$defs/day",
+      "description": "O primeiro dia de trabalho."
+    },
+    "day": {
+      "$ref": "contracts://common/defs.v1#/$defs/day"
+    }
+  }
+}

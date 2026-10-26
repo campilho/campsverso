@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/economy/labor.ended.v1",
+  "title": "EconomyLaborEndedV1",
+  "description": "O contrato do ajudante terminou (ADR-0072): ele trabalhou o último dia pago e volta a ficar livre no quadro.",
+  "x-type": "campsverso.economy.labor.ended.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "helper",
+    "employer",
+    "day"
+  ],
+  "properties": {
+    "helper": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "employer": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "day": {
+      "$ref": "contracts://common/defs.v1#/$defs/day"
+    }
+  }
+}

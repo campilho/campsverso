@@ -18,7 +18,7 @@ needs:
 perception:
   radius: 12  # script e LLM veem 12 tiles em volta; a névoa na tela é do M17
   # As construções fixas se veem além do raio: quem mora na fazenda sabe onde ficam (ADR-0067).
-  landmarks: [bed, door, chest, stove, well, sell_box, kiosk, order_board, fair_stall, composteira]
+  landmarks: [bed, door, chest, stove, well, sell_box, kiosk, order_board, fair_stall, composteira, helper_board]
   # A noite enxerga menos, e a lanterna no inventário garante 10 (ADR-0068); visível, no manual.
   by_phase: {amanhecer: 12, meio_dia: 12, entardecer: 7, noite: 5, madrugada: 5}
   lights: {lanterna: 10}
@@ -47,6 +47,7 @@ market:  # o mercado que lembra (ADR-0069), sobre a libs/economy; a Boa Vista vo
 kinds:
   scarecrow: {blocking: true}
   order_board: {blocking: true, capacity: 100}  # o quadro de encomendas: os pedidos ficam dentro dele
+  helper_board: {blocking: true}  # o quadro de ajudantes (ADR-0072): a situação de cada um à vista
   order: {weight: 0}  # um pedido do quadro (ADR-0069)
   fair_stall: {blocking: true}  # a barraca da feira, na entrada da fazenda
   tacho: {blocking: true, capacity: 30}  # comprado e fincado; o produto espera dentro dele
@@ -151,8 +152,61 @@ kiosk_cycle:  # as sementes novas no ciclo; a semente parada na estação some d
     semente_couve: [1, 2, 3, 4, 5, 6]
   always: [adubo, espantalho, lanterna, tacho]
 
+helpers:  # os ajudantes (ADR-0072): contratados no quadro, por dias, pagos adiantado
+  board_kind: helper_board
+  arrive_at: {x: 33, y: 38}  # a entrada da fazenda, no caminho
+  arrival_needs: {fome: 0, energia: 100}  # jantaram e dormiram em casa
+  shift: {arrive: "06:00", leave: "18:00"}
+  contract_days: [1, 3, 7]
+  max_dig: 8  # canteiros numa ordem de cavar
+  tasks: [cuidar, regar, colher, plantar, cavar, vender, parar]
+  tools: {regador: watering_can, pa: spade}  # cada um traz as suas: <id>-regador e <id>-pa
+  roster:  # as fichas de 21/out; as diárias calibradas pelo oráculo (o plano do M20, §4)
+    dita:
+      nome: Dita
+      especialidade: a plantadeira
+      bom: planta e colhe duas vezes mais rápido
+      ruim: anda devagar, cada passo leva o dobro
+      diaria: 40
+      traits: {speed: 0.5, action_time: {plant: 0.5, harvest: 0.5}}
+    ze-graudo:
+      nome: Zé Graúdo
+      especialidade: o carregador
+      bom: carrega o dobro e cava mais rápido
+      ruim: come o dobro, a fome sobe duas vezes mais rápido
+      diaria: 40
+      traits: {capacity: 40, action_time: {dig: 0.5}, need_rates: {fome: 2.0}}
+    nina:
+      nome: Nina
+      especialidade: a batedora
+      bom: vê o dobro do raio e enxerga à noite
+      ruim: cansa rápido (50% mais energia) e não carrega ferramenta pesada
+      diaria: 30
+      tool_max_weight: 4  # o regador pequeno e a pá, e nada mais pesado
+      traits: {vision: 2.0, night_vision: true, energy_cost: 1.5}
+    seu-bento:
+      nome: Seu Bento
+      especialidade: o veterano
+      bom: faz tudo 20% mais rápido e não desmaia
+      ruim: a diária mais cara, e só trabalha das 8h às 16h
+      diaria: 70
+      shift: {arrive: "08:00", leave: "16:00"}
+      traits: {speed: 1.25, action_time: {"*": 0.8}, faints: false}
+    tiao:
+      nome: Tião
+      especialidade: o aprendiz
+      bom: a diária mais barata
+      ruim: faz tudo 50% mais devagar e perde uma semente em cada dez plantios
+      diaria: 20
+      seed_loss: 0.1
+      traits: {speed: 0.6667, action_time: {"*": 1.5}}
+
 actions:
   place: {duration: 10, energy: 3, interrupt: never}
+  hire_helper: {duration: 5, energy: 0, interrupt: never}
+  order_helper: {duration: 2, energy: 0, interrupt: never}
+  dismiss_helper: {duration: 2, energy: 0, interrupt: never}
+  go_home: {duration: 1, energy: 0, interrupt: never}
   accept_order: {duration: 2, energy: 0, interrupt: never}
   deliver_order: {duration: 5, energy: 1, interrupt: never}
   process: {duration: 5, energy: 1, interrupt: never}
@@ -211,6 +265,54 @@ affordances:
     label: Fincar aqui
     kinds: [grass]
     params: [{name: item, label: Item, choices: [espantalho, tacho], source: inventory}]
+  # Os ajudantes (ADR-0072): contratar no quadro; mandar e dispensar ao lado do ajudante.
+  - action: hire_helper
+    label: Contratar ajudante
+    kinds: [helper_board]
+    params:
+      - {name: helper, label: Ajudante, choices: [dita, ze-graudo, nina, seu-bento, tiao]}
+      - {name: days, label: Dias (1, 3 ou 7), minimum: 1, default: 1}
+  - action: dismiss_helper
+    label: Dispensar ajudante
+    kinds: [helper_board]
+    params: [{name: helper, label: Ajudante, choices: [dita, ze-graudo, nina, seu-bento, tiao]}]
+  - action: order_helper
+    label: Mandar cuidar
+    kinds: [avatar]
+    params: [{name: task, label: Ordem, choices: [cuidar]}]
+  - action: order_helper
+    label: Mandar regar
+    kinds: [avatar]
+    params: [{name: task, label: Ordem, choices: [regar]}]
+  - action: order_helper
+    label: Mandar colher
+    kinds: [avatar]
+    params: [{name: task, label: Ordem, choices: [colher]}]
+  - action: order_helper
+    label: Mandar plantar
+    kinds: [avatar]
+    params:
+      - {name: task, label: Ordem, choices: [plantar]}
+      - {name: crop, label: Cultura, choices: [rabanete, batata, abobora, cenoura, morango, tomate, alho, milho, melancia, mandioca, couve]}
+  - action: order_helper
+    label: Mandar cavar
+    kinds: [avatar]
+    params:
+      - {name: task, label: Ordem, choices: [cavar]}
+      - {name: n, label: Canteiros, minimum: 1, default: 4}
+  - action: order_helper
+    label: Mandar vender
+    kinds: [avatar]
+    params:
+      - {name: task, label: Ordem, choices: [vender]}
+      - {name: item, label: O quê, choices: {category: [colheita, produto]}}
+  - action: order_helper
+    label: Mandar parar
+    kinds: [avatar]
+    params: [{name: task, label: Ordem, choices: [parar]}]
+  - action: dismiss_helper
+    label: Dispensar
+    kinds: [avatar]
   - action: buy
     label: Comprar
     kinds: [kiosk]
@@ -234,3 +336,8 @@ metrics:  # além das da Boa Vista
      event: campsverso.world.item.created.v1, where: {reason: process}, by: {field: item}}
   - {id: derrubadas, label: Plantas derrubadas pela tempestade, kind: count,
      event: campsverso.farm.crop.knocked_down.v1}
+  # Os ajudantes (ADR-0072): o que se pagou e quem se contratou.
+  - {id: diarias_pagas, label: Diárias pagas (moedas), kind: count, field: total,
+     event: campsverso.economy.labor.hired.v1}
+  - {id: ajudantes_contratados, label: Ajudantes contratados, kind: count,
+     event: campsverso.economy.labor.hired.v1, by: {field: helper}}

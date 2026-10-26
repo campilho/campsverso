@@ -290,6 +290,39 @@ channels:
     messages:
       CmdRulesToggleV1:
         $ref: '#/components/messages/CmdRulesToggleV1'
+  EconomyLaborDismissedV1:
+    address: campsverso.{worldid}.world.economy.labor.dismissed.v1
+    title: campsverso.economy.labor.dismissed.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      EconomyLaborDismissedV1:
+        $ref: '#/components/messages/EconomyLaborDismissedV1'
+  EconomyLaborEndedV1:
+    address: campsverso.{worldid}.world.economy.labor.ended.v1
+    title: campsverso.economy.labor.ended.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      EconomyLaborEndedV1:
+        $ref: '#/components/messages/EconomyLaborEndedV1'
+  EconomyLaborHiredV1:
+    address: campsverso.{worldid}.world.economy.labor.hired.v1
+    title: campsverso.economy.labor.hired.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      EconomyLaborHiredV1:
+        $ref: '#/components/messages/EconomyLaborHiredV1'
   EconomyOrderAcceptedV1:
     address: campsverso.{worldid}.world.economy.order.accepted.v1
     title: campsverso.economy.order.accepted.v1
@@ -1000,6 +1033,27 @@ operations:
     messages:
     - $ref: '#/channels/CmdRulesToggleV1/messages/CmdRulesToggleV1'
     x-producer: operator
+  sendEconomyLaborDismissedV1:
+    action: send
+    channel:
+      $ref: '#/channels/EconomyLaborDismissedV1'
+    messages:
+    - $ref: '#/channels/EconomyLaborDismissedV1/messages/EconomyLaborDismissedV1'
+    x-producer: kernel
+  sendEconomyLaborEndedV1:
+    action: send
+    channel:
+      $ref: '#/channels/EconomyLaborEndedV1'
+    messages:
+    - $ref: '#/channels/EconomyLaborEndedV1/messages/EconomyLaborEndedV1'
+    x-producer: kernel
+  sendEconomyLaborHiredV1:
+    action: send
+    channel:
+      $ref: '#/channels/EconomyLaborHiredV1'
+    messages:
+    - $ref: '#/channels/EconomyLaborHiredV1/messages/EconomyLaborHiredV1'
+    x-producer: kernel
   sendEconomyOrderAcceptedV1:
     action: send
     channel:
@@ -2593,6 +2647,83 @@ components:
           $ref: '#/components/schemas/Position'
         wake_at_tick:
           $ref: '#/components/schemas/Tick'
+    EconomyLaborDismissedV1:
+      title: EconomyLaborDismissedV1
+      description: 'Quem contratou dispensou o ajudante antes do fim (ADR-0072): ele vai embora, e os
+        dias pagos não voltam.'
+      type: object
+      additionalProperties: false
+      required:
+      - helper
+      - employer
+      - days_left
+      - day
+      properties:
+        helper:
+          $ref: '#/components/schemas/EntityId'
+        employer:
+          $ref: '#/components/schemas/EntityId'
+        days_left:
+          type: integer
+          minimum: 0
+          description: Os dias pagos que ficaram sem trabalho.
+        day:
+          $ref: '#/components/schemas/Day'
+    EconomyLaborEndedV1:
+      title: EconomyLaborEndedV1
+      description: 'O contrato do ajudante terminou (ADR-0072): ele trabalhou o último dia pago e volta
+        a ficar livre no quadro.'
+      type: object
+      additionalProperties: false
+      required:
+      - helper
+      - employer
+      - day
+      properties:
+        helper:
+          $ref: '#/components/schemas/EntityId'
+        employer:
+          $ref: '#/components/schemas/EntityId'
+        day:
+          $ref: '#/components/schemas/Day'
+    EconomyLaborHiredV1:
+      title: EconomyLaborHiredV1
+      description: 'Alguém contratou um ajudante no quadro (ADR-0072): por `days` dias, pago adiantado;
+        ele chega na manhã de `first_day`.'
+      type: object
+      additionalProperties: false
+      required:
+      - helper
+      - employer
+      - days
+      - wage
+      - total
+      - first_day
+      - day
+      properties:
+        helper:
+          $ref: '#/components/schemas/EntityId'
+          description: 'O ajudante: um avatar.'
+        employer:
+          $ref: '#/components/schemas/EntityId'
+          description: 'Quem contratou: o avatar.'
+        days:
+          type: integer
+          minimum: 1
+          description: Os dias contratados.
+        wage:
+          type: integer
+          minimum: 0
+          description: A diária, em moedas.
+        total:
+          type: integer
+          minimum: 0
+          description: 'O que se pagou na hora: a diária vezes os dias.'
+        first_day:
+          $ref: '#/components/schemas/Day'
+          description: O primeiro dia de trabalho.
+        day:
+          $ref: '#/components/schemas/Day'
     EconomyOrderAcceptedV1:
       title: EconomyOrderAcceptedV1
       description: 'Alguém aceitou um pedido do quadro (ADR-0069): o pedido fica com ele até a entrega
@@ -4889,6 +5020,36 @@ components:
         $ref: '#/components/schemas/CmdRulesToggleV1'
       x-visibility: observer
       x-producer: operator
+    EconomyLaborDismissedV1:
+      name: campsverso.economy.labor.dismissed.v1
+      title: EconomyLaborDismissedV1
+      summary: 'Quem contratou dispensou o ajudante antes do fim (ADR-0072): ele vai embora, e os dias
+        pagos não voltam.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/EconomyLaborDismissedV1'
+      x-visibility: world
+      x-producer: kernel
+    EconomyLaborEndedV1:
+      name: campsverso.economy.labor.ended.v1
+      title: EconomyLaborEndedV1
+      summary: 'O contrato do ajudante terminou (ADR-0072): ele trabalhou o último dia pago e volta a
+        ficar livre no quadro.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/EconomyLaborEndedV1'
+      x-visibility: world
+      x-producer: kernel
+    EconomyLaborHiredV1:
+      name: campsverso.economy.labor.hired.v1
+      title: EconomyLaborHiredV1
+      summary: 'Alguém contratou um ajudante no quadro (ADR-0072): por `days` dias, pago adiantado; ele
+        chega na manhã de `first_day`.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/EconomyLaborHiredV1'
+      x-visibility: world
+      x-producer: kernel
     EconomyOrderAcceptedV1:
       name: campsverso.economy.order.accepted.v1
       title: EconomyOrderAcceptedV1

@@ -295,6 +295,12 @@ labels:
   - {event: campsverso.economy.order.posted.v1, text: "pedido novo no quadro: {client} quer {qty} {item} até o dia {due_day}, paga {reward}"}
   - {event: campsverso.economy.order.accepted.v1, text: "{taker} aceitou o {order_id}"}
   - {event: campsverso.economy.order.delivered.v1, text: "{taker} entregou a encomenda de {client}: {qty} {item}, {reward} moedas"}
+  # os ajudantes (ADR-0072)
+  - {event: campsverso.economy.labor.hired.v1, text: "{employer} contratou {helper} por {days} dia(s), {total} moedas; chega no dia {first_day}"}
+  - {event: campsverso.economy.labor.dismissed.v1, text: "{employer} dispensou {helper}"}
+  - {event: campsverso.economy.labor.ended.v1, text: "o contrato de {helper} com {employer} terminou"}
+  - {event: campsverso.avatar.entered.v1, text: "{avatar_id} chegou na fazenda"}
+  - {event: campsverso.avatar.left.v1, text: "{avatar_id} foi embora"}
   - {event: campsverso.economy.order.expired.v1, text: "venceu nas mãos de {taker} o pedido de {client} ({qty} {item})"}
   - {event: campsverso.economy.order.expired.v1, text: "o pedido de {client} ({qty} {item}) saiu do quadro sem ninguém"}
   # a mente e quem joga (os eventos da plataforma, até haver uma camada comum a todos os cartuchos)

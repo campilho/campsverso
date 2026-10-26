@@ -20,6 +20,7 @@ from campsverso_cartridge_api import (
 )
 from campsverso_economy import Recurring, Trade, sell, unit_price
 from campsverso_farm_sim.config import optional, section
+from campsverso_farm_sim.helpers import payee
 from campsverso_farm_sim.market import crop_reference, factor, memory_market, rules
 
 
@@ -104,7 +105,8 @@ def apply_sale(ctx: ActionContext, ops: WorldOps, stall: EntityView) -> None:
     item, qty = str(ctx.params["item"]), int(ctx.params.get("qty", 1))
     trade = _trade(ctx.view, stall, item, qty)
     ops.consume_item(item, qty, ctx.avatar_id, "fair_sale")
-    ops.create_item("moeda", trade.total, ctx.avatar_id, "fair_payment")
+    # O que o ajudante vende na barraca é do patrão (ADR-0072).
+    ops.create_item("moeda", trade.total, payee(ctx.view, ctx.avatar_id), "fair_payment")
     ops.set_attributes(
         stall.entity_id,
         visible={f"preco_{item}": trade.next_price},

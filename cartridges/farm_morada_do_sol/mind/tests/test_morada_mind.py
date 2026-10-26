@@ -132,7 +132,7 @@ def test_o_catalogo_tem_o_espantalho_e_as_culturas_novas() -> None:
     plant = next(t for t in mind.tools if t.name == "plant")
     for crop in ("milho", "melancia", "mandioca", "couve"):
         assert crop in plant.description, crop
-    assert sum(not t.strict for t in mind.tools) == 14  # as simples, para caber na gramática
+    assert sum(not t.strict for t in mind.tools) == 20  # as simples, para caber na gramática
 
 
 def test_duracao_e_energia_vem_do_cartucho() -> None:

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/economy/labor.dismissed.v1",
+  "title": "EconomyLaborDismissedV1",
+  "description": "Quem contratou dispensou o ajudante antes do fim (ADR-0072): ele vai embora, e os dias pagos não voltam.",
+  "x-type": "campsverso.economy.labor.dismissed.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "helper",
+    "employer",
+    "days_left",
+    "day"
+  ],
+  "properties": {
+    "helper": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "employer": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "days_left": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Os dias pagos que ficaram sem trabalho."
+    },
+    "day": {
+      "$ref": "contracts://common/defs.v1#/$defs/day"
+    }
+  }
+}

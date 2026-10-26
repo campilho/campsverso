@@ -8,6 +8,10 @@ Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão 
   - `campsverso.avatar.entered.v1`: o avatar entrou no mundo (`avatar_id`, `position`, `reason`), como o ajudante que chega para trabalhar; passa a receber pedidos de decisão;
   - `campsverso.avatar.left.v1`: o avatar saiu do mundo (`avatar_id`, `position?`, `reason`); some do mapa, a ação em andamento é cancelada, as necessidades param, e ele não recebe pedidos até entrar de novo.
   - Só um mundo com avatares declarados fora dele (os ajudantes da Morada do Sol) os publica.
+- **O contrato de trabalho** (ADR-0072), três tipos novos no domínio de biblioteca `economy`, de visibilidade `world`, produtor `kernel`, publicados pelo cartucho que liga os ajudantes:
+  - `campsverso.economy.labor.hired.v1`: alguém contratou um ajudante no quadro (`helper`, `employer`, `days`, `wage`, `total`, `first_day`, `day`), pago adiantado;
+  - `campsverso.economy.labor.dismissed.v1`: dispensado antes do fim (`helper`, `employer`, `days_left`, `day`); os dias pagos não voltam;
+  - `campsverso.economy.labor.ended.v1`: o contrato terminou (`helper`, `employer`, `day`).
 
 ## Não publicado (M19)
 

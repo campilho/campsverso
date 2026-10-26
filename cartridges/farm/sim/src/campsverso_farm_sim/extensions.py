@@ -13,6 +13,7 @@ from campsverso_cartridge_api import ItemDef, KindDef, NeedDef, WorldBuilder, Ye
 from campsverso_farm_sim import config
 from campsverso_farm_sim.actions import ALL_ACTIONS, EXTRA_ACTIONS, INTERRUPTS
 from campsverso_farm_sim.cartridge import affordances, labels, metrics
+from campsverso_farm_sim.helpers import helper_avatars, helper_spawns
 from campsverso_farm_sim.systems import build_extension_systems, build_systems
 
 
@@ -96,6 +97,13 @@ def contribute_extensions(
         world.add_action(action)
     if "orders" in data:  # as encomendas publicam os eventos da biblioteca de economia (ADR-0069)
         world.use_domain("economy")
+    if "helpers" in data:  # os ajudantes (ADR-0072): avatares fora do mundo, com as ferramentas
+        helpers_data = cast(Mapping[str, Any], data["helpers"])
+        world.use_domain("economy")  # o contrato de trabalho
+        for avatar in helper_avatars(helpers_data):
+            world.add_avatar(avatar)
+        for spawn in helper_spawns(helpers_data):
+            world.spawn(spawn)
     lower_systems = {system.name for system in build_extension_systems(lower)}
     genre_systems = {system.name for system in build_systems(base)}
     for system in build_extension_systems(data):

@@ -16,6 +16,11 @@
       "sheet": "morada-economia",
       "frame": 0
     },
+    "helper_board": {
+      "sheet": "morada-economia",
+      "frame": 0,
+      "label": "Quadro de ajudantes"
+    },
     "fair_stall": {
       "sheet": "morada-economia",
       "frame": 1,

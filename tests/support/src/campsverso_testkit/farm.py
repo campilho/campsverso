@@ -74,20 +74,22 @@ class Farmer:
     def until(self, hhmm: str) -> None:
         self.run(self.core.calendar.ticks_until(self.core.tick, int(hhmm[:2]) * 60 + int(hhmm[3:])))
 
-    def do(self, action: str, **params: Any) -> list[Fact]:
+    def do(self, action: str, *, avatar: str = "camps", **params: Any) -> list[Fact]:
+        """Propõe pelo controlador do avatar (o Camps, ou um ajudante; ADR-0072) e espera."""
         self._n += 1
         start = len(self.facts)
+        body = self.core.world.avatar_map[avatar]
+        controller = self.controller_id if avatar == "camps" else body.controller.id
         self.core.submit(
             {
                 "id": f"cmd-{self._n}",
                 "type": "campsverso.cmd.action.propose.v1",
-                "controllerid": self.controller_id,
-                "data": {"avatar_id": "camps", "action": action, "params": params},
+                "controllerid": controller,
+                "data": {"avatar_id": avatar, "action": action, "params": params},
             }
         )
         self.run(1)
-        avatar = self.core.world.avatar_map["camps"]
-        while avatar.action is not None:
+        while body.action is not None:
             self.run(1)
         return self.facts[start:]
 
