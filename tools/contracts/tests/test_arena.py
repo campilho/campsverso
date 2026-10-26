@@ -496,3 +496,23 @@ def test_os_experimentos_da_noite_com_o_veredito_da_noite_seguinte(tmp_path: Pat
     assert "### haiku-memoria: 2 experimentos (1 cumpriu, 1 sem veredito)" in text
     assert "| 1 | A chuva rega / tudo. | cumpriu |" in text
     assert "| 2 | O baú conserva. | - |" in text
+
+
+def test_o_valor_de_saber_separa_cada_modelo_com_e_sem_o_playbook(tmp_path: Path) -> None:
+    arena = tmp_path / "20261025-playbook"
+    base = {"cartridge": "farm_morada_do_sol", "seed": 1, "map": None, "memory": True}
+    quiet = [ev(0, "world.session.started.v1", tick_seconds=60)]
+    _run(
+        arena,
+        "oraculo-a",
+        {**base, "name": "oraculo-a", "controller": "script", "script": "oracle"},
+        quiet,
+    )
+    _run(arena, "haiku-memoria", {**base, "name": "haiku-memoria", "controller": "llm"}, quiet)
+    trained = {**base, "name": "haiku-playbook", "controller": "llm", "playbook": True}
+    _run(arena, "haiku-playbook", trained, quiet)
+    out = tmp_path / "relatorio.md"
+    assert main([str(arena), "--out", str(out)]) == 0
+    text = out.read_text(encoding="utf-8")
+    assert "| Haiku 5.5 com memória | 0 moedas" in text
+    assert "| Haiku 5.5 com memória e o playbook | 0 moedas" in text

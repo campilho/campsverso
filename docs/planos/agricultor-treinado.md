@@ -88,3 +88,24 @@ O script 3 tem esse método escrito em código: uma lista de suspeitas para cada
 - **3:** fica para depois o agente que joga de novo com o que aprendeu (30 dias, depois mais 30 com a memória, N vezes) e as técnicas de prompt: exemplos (one-shot, few-shot), cadeia de raciocínio e papel.
 - **4:** por que três? Não é para tirar a aleatoriedade do modelo; a resposta está na ADR-0071.
 - **5:** o saldo da Console era de US$ 54,25.
+
+## 7. A primeira rodada (25/out, à noite)
+
+As três corridas do Haiku rodaram em paralelo em `data/arena/20261025-playbook`, junto com cópias das corridas de referência do M19, e o relatório está em `docs/arena/2026-10-25-playbook.md`. Custaram US$ 1,81, mais US$ 0,01 da prova e US$ 0,23 do juiz.
+
+| Corrida | Moedas | Colheitas | Dias com a fome em 100 | Canteiros cavados | Repetiu a cultura | O juiz | A prova (depois) |
+|---|---|---|---|---|---|---|---|
+| sem playbook, mapa a (M19) | 91 | 45 | 5 | 12 | 41 de 44 | só o lugar da fadiga | 2 certas, sem crença que as sustente |
+| com playbook, mapa a | 0 | 21 | 17 | 7 | 13 de 15 | nada | fadiga certa, tomate errado, sem crença |
+| sem playbook, mapa b | 5 | 34 | 19 | 11 | 19 de 30 | nada | fadiga certa, sem crença |
+| com playbook, mapa b | 6 | 17 | 18 | 5 | 14 de 14 | nada | tudo "não sei" |
+
+- **Pelo critério da §2, o Haiku não mudou:** o juiz não achou descoberta nova, a prova não subiu com crença que sustente, e ninguém plantou na terra boa. O Sonnet não roda, e o playbook é revisto antes (decisão 5).
+- **O playbook mudou a forma dos experimentos, e não o assunto.** Os testes passaram a ter controle ("o plot-001 regado, o plot-002 sem rega"), mas os 56 experimentos das duas corridas com playbook foram sobre a rega, a chuva, o sono e a estação, como os 55 das duas sem ele. Nenhum comparou lugares, e nenhum fez o teste do canteiro novo contra o usado que o ofício sugere.
+- **A fadiga voltou a se disfarçar.** No mapa b, com o playbook, o Haiku repetiu a cultura em 14 de 14 plantios e passou 7 noites testando que "crescendo só vira madura depois de dois dias seguidos de rega", uma causa inventada para a planta que demorava. O método foi seguido à letra (uma suspeita por vez, com previsão), mas a lista de suspeitas que ele mesmo montou não tinha o histórico do canteiro.
+- **O playbook custou na economia, numa corrida por condição:** cavou menos canteiros, plantou menos e passou mais fome. Uma corrida por condição não separa isso do acaso: sem playbook, o mesmo Haiku fez 91 moedas no mapa a e 5 no mapa b.
+
+**A revisão proposta** (o playbook 2): trocar o conselho geral por um procedimento, como o script 3 faz em código, e um exemplo (a nota do usuário sobre o few-shot):
+- quando um plantio levar mais ou menos dias que a tabela, compará-lo, na tabela do caderno, com outro da mesma cultura que não levou, e escrever no que os dois diferem, coluna por coluna (o lugar, o que havia antes, o adubo, a rega, a estação);
+- a cada semana, um par de teste: dois canteiros que só diferem numa dessas colunas;
+- um exemplo de experimento bem feito, contado do começo ao fim, sobre uma mecânica visível (a chuva rega?), para mostrar a forma sem tocar em regra oculta.

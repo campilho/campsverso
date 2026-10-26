@@ -991,9 +991,14 @@ def _knowing_section(runs: Sequence[Run]) -> list[str]:
     """O valor de saber (ADR-0070): o script 2 não sabe, o script 3 aprende e o oráculo sabe, em
     cada mapa da Morada do Sol."""
     by: dict[tuple[str, str], Run] = {}
+    minds: list[str] = []  # cada modelo, com e sem o playbook, é uma linha (ADR-0071)
     for r in runs:
         if r.spec.get("cartridge") == MORADA and r.spec.get("river_bonus", True):
-            who = str(r.spec.get("script") or r.spec.get("controller"))
+            who = str(r.spec.get("script") or "")
+            if r.spec.get("controller") == "llm":
+                model = _controller_name({**r.spec, "playbook": False})
+                who = f"{model} com memória" + (" e o playbook" if r.spec.get("playbook") else "")
+                minds += [who] if who not in minds else []
             by[(who, str(r.spec.get("map") or "a"))] = r
     if not any(who == "oracle" for who, _ in by):
         return []
@@ -1012,7 +1017,7 @@ def _knowing_section(runs: Sequence[Run]) -> list[str]:
             ("farmer2", "script 2 (não sabe)"),
             ("farmer3", "script 3 (aprende)"),
             ("oracle", "oráculo (sabe)"),
-            ("llm", "Haiku 5.5 com memória"),
+            *((m, m) for m in minds),
         )
         if any((who, m) in by for m in maps)
     ]
