@@ -1,6 +1,6 @@
 # CLAUDE.md — Campsverso
 
-Campsverso é uma plataforma de simulação orientada a eventos para agentes de IA autônomos que vivem em mundos 2D. Cada mundo é um **cartucho** (fazenda, estúdio, startup…) rodando sobre um **kernel** genérico. A versão publicada é a **v0.2.0 "A possessão"** (`docs/versoes/v0.2.0.md`; aceite em `docs/aceite-v0.2.md`): o controlador LLM (ADR-0059) com memória baseline (ADR-0060), a arena (ADR-0061), a Fazenda Boa Vista, a fazenda 2 (ADR-0062), e duas rodadas da arena, a segunda com Sonnet e Opus (ADR-0063); o fechamento é a ADR-0065. A v0.1.0 "Fazenda do Camps" foi a primeira: um avatar, nenhum LLM, controladores humano, script e replay. A próxima, a **v0.3, é a fazenda sofisticada** (ADR-0064; `docs/planos/v0.3-macro.md`): as decisões estão na ADR-0066 (o cenário novo é a Fazenda Morada do Sol; o visual antes das outras famílias de modelos). O M16 (a Fazenda Morada do Sol, ADR-0067; `docs/planos/m16-morada-do-sol.md`) e o M17 (ver e assistir: a névoa, a noite e a lanterna, o modo de assistir e a página da arena, os menus do humano e os rótulos da linha do tempo; ADR-0068; `docs/planos/m17-ver-e-assistir.md`) estão feitos, o M18 (a economia nas bibliotecas `libs/economy` e `libs/climate`, que cada mundo escolhe usar: o mercado nos dois sentidos, as encomendas com a reputação, a feira, o tacho e a composteira, a previsão com tempestade e seca; ADR-0069; `docs/planos/m18-a-economia.md`) e o M19 (os controladores e a medição: as variantes do mapa, o fazendeiro-script 3 que aprende e o oráculo que sabe, o caderno de campo e o experimento da noite, a prova do mundo e o juiz; ADR-0070; `docs/planos/m19-os-controladores-e-a-medicao.md`) também. O próximo é o M20 (os ajudantes); antes, decidir com o usuário o agricultor treinado (um playbook de método para o Haiku, `futuro.md`). A rodada do humano na Boa Vista espera uma noite livre do usuário. O escritório vai para a v0.4.
+Campsverso é uma plataforma de simulação orientada a eventos para agentes de IA autônomos que vivem em mundos 2D. Cada mundo é um **cartucho** (fazenda, estúdio, startup…) rodando sobre um **kernel** genérico. A versão publicada é a **v0.2.0 "A possessão"** (`docs/versoes/v0.2.0.md`; aceite em `docs/aceite-v0.2.md`): o controlador LLM (ADR-0059) com memória baseline (ADR-0060), a arena (ADR-0061), a Fazenda Boa Vista, a fazenda 2 (ADR-0062), e duas rodadas da arena, a segunda com Sonnet e Opus (ADR-0063); o fechamento é a ADR-0065. A v0.1.0 "Fazenda do Camps" foi a primeira: um avatar, nenhum LLM, controladores humano, script e replay. A próxima, a **v0.3, é a fazenda sofisticada** (ADR-0064; `docs/planos/v0.3-macro.md`): as decisões estão na ADR-0066 (o cenário novo é a Fazenda Morada do Sol; o visual antes das outras famílias de modelos). O M16 (a Fazenda Morada do Sol, ADR-0067; `docs/planos/m16-morada-do-sol.md`) e o M17 (ver e assistir: a névoa, a noite e a lanterna, o modo de assistir e a página da arena, os menus do humano e os rótulos da linha do tempo; ADR-0068; `docs/planos/m17-ver-e-assistir.md`) estão feitos, o M18 (a economia nas bibliotecas `libs/economy` e `libs/climate`, que cada mundo escolhe usar: o mercado nos dois sentidos, as encomendas com a reputação, a feira, o tacho e a composteira, a previsão com tempestade e seca; ADR-0069; `docs/planos/m18-a-economia.md`) o M19 (os controladores e a medição: as variantes do mapa, o fazendeiro-script 3 que aprende e o oráculo que sabe, o caderno de campo e o experimento da noite, a prova do mundo e o juiz; ADR-0070; `docs/planos/m19-os-controladores-e-a-medicao.md`), o agricultor treinado (ADR-0071) e o M20 (os ajudantes: vários avatares, a presença e a ficha no kernel, cada avatar vê o que está à volta, cinco ajudantes contratáveis com script próprio, a visão do jogador pela percepção; ADR-0072; `docs/planos/m20-os-ajudantes.md`; a medida mostrou que nesta Morada o ajudante não paga, ADR-0073) também. O próximo é o M21 (a terceira arena). A rodada do humano na Boa Vista espera uma noite livre do usuário. O escritório vai para a v0.4.
 
 O projeto também é material de aprendizado e de publicações. Clareza, testes e registro das decisões importam tanto quanto o código.
 
@@ -69,14 +69,14 @@ campsverso/
   services/
     kernel/                   # relógio, ECS, grid, ações, regras, outbox
     perception/               # filtro de percepção
-    controller-runner/        # controladores script e replay
+    controller-runner/        # controladores script e replay; --helpers serve os ajudantes do mundo, um script cada (ADR-0072)
     gateway/                  # FastAPI + WebSocket; entrada do controlador humano
     archiver/                 # JetStream -> JSONL
     budget/                   # guarda de orçamento: soma o custo das chamadas de modelo e pausa o mundo no teto (ADR-0058)
   cartridges/                 # em camadas: gênero → cenário (ADR-0031)
     farm/                     # gênero: mecânicas genéricas de fazenda
       sim/                    # itens, culturas, ações, sistemas, regras (carregado pelo kernel)
-      script/                 # fazendeiros-script 1, 2 e 3 e o oráculo (ADR-0070); dependem só dos contratos (carregados pelo controller-runner)
+      script/                 # fazendeiros-script 1, 2 e 3, o oráculo (ADR-0070) e o ajudante (ADR-0072); dependem só dos contratos (carregados pelo controller-runner)
       mind/                   # o que a mente sabe da fazenda: notas do mundo e descrições das ferramentas (ADR-0059)
       art/                    # arte LPC do gênero e o manifesto art.json, com CREDITS.csv (ADR-0053)
     farm_camps/               # cenário da v0.1: estende farm
@@ -137,7 +137,7 @@ make tools        # baixa o nats-server com versão e sha256 fixados (.tools/)
 make secrets      # gera em .env (fora do git) as senhas do NATS que faltam
 make up           # sobe o NATS em segundo plano
 make stop         # derruba o NATS
-make run          # sobe o NATS e o Procfile (honcho): kernel, percepção, script, arquivador e gateway
+make run          # sobe o NATS e o Procfile (honcho): kernel, percepção, script, ajudantes, arquivador, gateway e orçamento
 make sandbox      # mundo descartável com tudo ligado, em data/sandbox/<data-hora> (não toca no oficial); MENTE=camps põe o LLM no Camps (ADR-0059; na Boa Vista, MENTE=camps_boavista; na Morada do Sol, MENTE=camps_morada); PAUSADO=1 começa com o relógio parado
 make ui-build     # compila a UI em apps/ui/dist; o gateway a serve em http://127.0.0.1:8765
 make ui           # a UI em modo desenvolvimento (Vite), com proxy para o gateway
@@ -149,7 +149,7 @@ make percepcao    # fotos e deltas da percepção por dia, em bytes e tokens est
 make llm-smoke    # uma chamada real pela porta de modelo, numa fita nova a cada vez, medida e publicada pelo contrato (ADR-0058); pede ANTHROPIC_API_KEY no .env
 make fita DIAS=2  # grava em processo a fita de teste do controlador LLM, chamando a API (ADR-0059); o CI só a reproduz; CARTUCHO=farm_boavista grava a da fazenda 2, CARTUCHO=farm_morada_do_sol a da fazenda 3
 make corrida DIAS=7   # N dias em processo com a mente sobre a API, com ou sem memória (ADR-0060); o mundo espera o modelo; CARTUCHO=farm_morada_do_sol escolhe a fazenda
-make arena DIAS=30    # as corridas da arena, em sequência, em data/arena/<data>-<rodada> (ADR-0061); SO=nome roda uma só; RODADA=boavista é a segunda rodada (M14), RODADA=morada a verificação do M19; vários em paralelo no mesmo dia dividem as corridas
+make arena DIAS=30    # as corridas da arena, em sequência, em data/arena/<data>-<rodada> (ADR-0061); SO=nome roda uma só; RODADA=boavista é a segunda rodada (M14), RODADA=morada a verificação do M19, RODADA=ajudantes a contratação forçada (ADR-0073); vários em paralelo no mesmo dia dividem as corridas
 make juiz PASTA=data/arena/<rodada>  # o juiz das crenças (ADR-0070): o Opus dá a causa, só o lugar ou não por regra oculta; CONTROLES=docs/arena/juiz-gabarito.yaml julga os controles; CONFERIR=docs/arena/juiz-gabarito.yaml confere sem chamar a API
 make arena-report     # o relatório da arena (tabela da bíblia lado a lado, o leste pela memória, a exploração, a prova, o juiz, o valor de saber) em docs/arena/
 make arena-humano SANDBOX=data/sandbox/<pasta>  # a partida de um humano no sandbox como mais uma corrida da rodada (ADR-0066); PASTA= escolhe a rodada

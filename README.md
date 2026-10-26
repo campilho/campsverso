@@ -63,8 +63,8 @@ A pergunta: **num mundo maior, com estações, encomendas e regras escondidas em
 | M17: ver e assistir | a névoa, a noite e a lanterna; a visão arena, com as corridas ao vivo e gravadas; os menus do humano | concluído em 24/out/2026 ([plano](docs/planos/m17-ver-e-assistir.md), ADR-0068) |
 | M18: a economia | um módulo de economia reaproveitável: oferta e demanda, encomendas com prazo, a feira, processamento, clima | concluído em 24/out/2026 ([plano](docs/planos/m18-a-economia.md), ADR-0069) |
 | M19: os controladores e a medição | o fazendeiro-script 3, o oráculo, o caderno de campo, a prova do mundo e o juiz, as variantes do mapa | concluído em 25/out/2026 ([plano](docs/planos/m19-os-controladores-e-a-medicao.md), ADR-0070, [a rodada de verificação](docs/arena/2026-10-25.md)) |
-| M20: os ajudantes | vários avatares; cinco personagens contratáveis, cada um com a sua ficha | próximo |
-| M21: a terceira arena | a rodada do humano da v0.3; Claude, script 3 e oráculo; depois GPT e Gemini | a fazer |
+| M20: os ajudantes | vários avatares; cinco personagens contratáveis, cada um com a sua ficha; a visão do jogador pela percepção do avatar | concluído em 26/out/2026 ([plano](docs/planos/m20-os-ajudantes.md), ADR-0072, ADR-0073: nesta Morada o ajudante não paga, e virou um teste de julgamento) |
+| M21: a terceira arena | a rodada do humano da v0.3; Claude, script 3 e oráculo; depois GPT e Gemini | próximo |
 | M22: fechamento | critérios de aceite, diário, notas e a tag `v0.3.0` | a fazer |
 
 ## Depois: v0.4.0 — O escritório que constrói a si mesmo

@@ -249,3 +249,35 @@ Ele esquece tudo quando o processo reinicia, e cada corrida começa do zero: lem
 - **Sem a água e a fadiga** (`river_bonus=False`), no mapa a, ele faz 246 moedas e não descobre a água; mas vê a repetição acelerar um pouco (1,07, de 1,01 a 1,14): um intervalo de 90% com 19 atributos às vezes exclui o 1 por acaso.
 - **O valor de saber** (o oráculo menos o script 2) vai de 170 moedas no mapa c a 573 no b. O script 3, num ano só, ganha em colheitas e em fome nos mapas a e b, mas ainda não em moedas.
 - **O script 2 não depende do mapa:** cava em volta do poço e nunca chega perto da água.
+
+## 17. Os ajudantes (M20)
+
+Escritos em 26/out/2026 (ADR-0072 e ADR-0073). Os números ficam na seção `helpers` de `morada.yaml`, e o script do ajudante em `cartridges/farm/script/.../helper.py`.
+
+| Ficha | Diária | Horário | O bom | O ruim |
+|---|---|---|---|---|
+| Dita, a plantadeira | 40 | 06:00-18:00 | planta e colhe duas vezes mais rápido | anda devagar, cada passo leva o dobro |
+| Zé Graúdo, o carregador | 40 | 06:00-18:00 | carrega o dobro e cava mais rápido | come o dobro, a fome sobe duas vezes mais rápido |
+| Nina, a batedora | 30 | 06:00-18:00 | vê o dobro do raio e enxerga à noite | cansa rápido (50% mais energia) e não carrega ferramenta acima de 4 |
+| Seu Bento, o veterano | 70 | 08:00-16:00 | faz tudo 20% mais rápido e não desmaia | a diária mais cara e o turno mais curto |
+| Tião, o aprendiz | 20 | 06:00-18:00 | a diária mais barata | faz tudo 50% mais devagar e perde uma semente em cada dez plantios |
+
+| | |
+|---|---|
+| O quadro | `helper-board`, em (36, 38), ao lado do de encomendas; mostra quem está livre (`livre` ou `com camps até o dia N`) e a diária de cada um (`diaria_<id>`) |
+| O contrato | 1, 3 ou 7 dias, pago adiantado; o ajudante chega pela entrada (33, 38) na manhã seguinte, com fome 0 e energia 100, e sai no fim do turno deixando no baú o que carrega; o último dia encerra o contrato; dispensar não devolve os dias |
+| As ordens | dadas ao lado do ajudante, só pelo patrão: cuidar (o padrão: colher, regar e guardar no baú), regar, colher, plantar (a semente do baú), cavar (até 8 canteiros em volta de onde a ordem foi dada), vender (o item do baú na caixa, pago ao patrão) e parar |
+| A comida | come do baú com a fome em 60; sem comida no baú, vai para casa mais cedo |
+| Dois no mesmo lugar | a ação que outro avatar desfez no meio (o canteiro já colhido, o item que saiu do baú) falha na conclusão, e o avatar decide de novo |
+| A visão | cada avatar vê o que está à volta dele; o inventário de outro avatar não aparece |
+
+**Quanto vale um ajudante:** nada, nesta Morada (ADR-0073). O Camps trabalha umas 2 das 16 horas acordado, e o oráculo, sabendo as regras, só cresce a fazenda com o caixa. Com as diárias das fichas, todo contrato forçado de 1, 3 ou 7 dias perdeu dinheiro no ano, e o de 7 dias quase nunca coube no caixa. O ajudante é um teste de julgamento: contratar por impulso dá prejuízo.
+
+**A rodada de verificação** (26/out, [o relatório](../arena/2026-10-26.md)), um ano nos mapas a e b, com a contratação forçada a partir do dia 8:
+
+| Quem | O que pagou | O que mudou no ano |
+|---|---|---|
+| oráculo | de 1 a 8 contratos, de 120 a 320 moedas | de −74 a −282 moedas, de −3 a +6 colheitas |
+| script 3 | só 2 contratos de 1 dia no mapa a (o caixa não pagava mais) | de +1 a +5 moedas, −4 e −5 colheitas |
+
+Os ajudantes do oráculo regaram de 24 a 63 vezes e colheram de 4 a 21 no ano; o trabalho que fizeram, o Camps faria esperando menos.

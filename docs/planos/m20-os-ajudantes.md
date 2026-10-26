@@ -212,3 +212,31 @@ Cada passo vira um ou mais commits, com `make check` antes de cada um e um push 
 - **13:** testar contratar por 1, 3 e 7 dias, e conferir a calibragem: com o ajudante, o resultado deve ser melhor do que sem.
 - **A decisão 10** (a mente) ficou sem resposta e segue a recomendação.
 - **Sem push por enquanto:** os commits vão para o GitHub no fim do dia.
+
+## 12. Como ficou
+
+Feito em 26/out, numa sessão longa, com as decisões 1 a 13 da ADR-0072 e a ADR-0073, que nasceu da medida.
+
+- **O kernel:**
+  - a presença do avatar (`present`, `WorldOps.enter` e `leave`, os eventos `avatar.entered` e `avatar.left`); fora da fazenda, sem pedido de decisão, sem segurar o relógio e com as necessidades paradas;
+  - os traços da ficha (`AvatarTraits`): a velocidade, o tempo das ações, o ritmo das necessidades, o gasto de energia, a capacidade, o desmaio e a visão;
+  - a reconferência na conclusão (`Rechecked`): a ação que outro avatar desfez no meio sai como `action.failed` com `precondition_lost`.
+- **A percepção e o NATS:** cada avatar vê o que está à volta dele, com o raio da ficha, sem o inventário dos outros; o usuário `helpers` lê só os cinco ajudantes. A regra de quem vê o quê passou para a projeção comum (`Projection.seer`), e o gateway a usa.
+- **O cenário:** as cinco fichas, o quadro com a situação e a diária, o contrato de 1, 3 ou 7 dias pago adiantado, o dia das 6 às 18 (o Seu Bento, das 8 às 16), as sete ordens, a venda que paga ao patrão, a semente perdida do Tião e o limite da Nina.
+- **O ajudante** é um script (`ajudante`, uma fábrica, uma instância por ajudante) que obedece à ordem e lembra o dia em que viu cada canteiro; o runner serve os cinco num processo (`--helpers`), e o Procfile, o sandbox, o soak e o pipeline de testes os sobem.
+- **O script 3** contrata pela conta e, com o tempo de hoje, não contrata (ADR-0073). Com um contrato, busca no baú a colheita fresca do ajudante e não aprende perdas nos dias em que um ajudante trabalhou.
+- **A tela:** as cinco folhas montadas com peças do gerador LPC (131 peças baixadas com a sua permissão, 299 KB), o HUD com os outros avatares à vista, os textos sem "Camps" fixo; o jogador recebe só o que o avatar dele percebe, e o operador, tudo.
+- **A medição:** as métricas por avatar (o pico de fome e os desmaios são do avatar principal; os ajudantes ficam num bloco à parte), a seção dos ajudantes no relatório e a rodada `ajudantes`.
+- **A rodada de verificação:** A rodada `ajudantes` ([o relatório](../arena/2026-10-26.md)): 20 corridas de um ano nos mapas a e b, de graça. As réguas sem ajudante repetem o M19 número por número. O oráculo pagou de 1 a 8 contratos e perdeu de 74 a 282 moedas no ano, com de −3 a +6 colheitas; os ajudantes dele regaram de 24 a 63 vezes e colheram de 4 a 21, com de 5 a 26 conflitos (a ação que o outro desfez no meio). O script 3 só teve caixa para 2 contratos de 1 dia no mapa a (a Dita e o Tião, que regaram 3 e 6 vezes) e nenhum no mapa b.
+- **As fazendas 1 e 2 não mudaram:** as resistências de 30 dias repetem 1.175 e 220 moedas (`data/soak/20261026-191536` e `-191539`), e as fitas delas não foram regravadas.
+- **O que mudou em relação ao plano:**
+  - **O ajudante não paga** (ADR-0073). O Camps trabalha umas 2 das 16 horas acordado, e o tamanho da fazenda do script 3 e do oráculo vem do caixa, não dos braços. As ações mais longas foram tentadas (de 4 a 12 vezes) e desfeitas. O ajudante virou um teste de julgamento, e a nota 13 (melhor com o ajudante do que sem) não se cumpre nesta Morada.
+  - **O critério do marco** ("um ano com o script 3 contratando") virou a contratação forçada, com o replay de um dia com dois avatares igual ao arquivo.
+  - **A mente** (o passo 7) foi feita junto com o cenário, no passo 4.
+- **O que se achou no caminho:**
+  - dois avatares no mesmo canteiro derrubavam o kernel quando o segundo terminava a colheita do que o primeiro já tinha colhido;
+  - o ajudante lembrava como regados os canteiros de outro dia e esperava o dia inteiro; e insistia num canteiro lembrado que tinha voltado a ser grama, até esquecê-lo na recusa;
+  - a colheita do ajudante rodava entre o baú e a mão do Camps, e a encomenda não a via;
+  - o caderno do script 3 aprendia corvos com a colheita do ajudante;
+  - o manifesto de arte de um avatar precisa do mapa ação → animação, e não só das animações.
+- **O custo:** uns US$ 0,10 de API (a fita da Morada regravada duas vezes no passo 5, uma por engano, e uma no passo 4). O desenvolvimento levou 237 minutos ativos em 32 turnos, numa sessão só, contra as três a quatro sessões previstas.
