@@ -991,7 +991,7 @@ def _hungry_days(r: Run) -> int:
 def _knowing_section(runs: Sequence[Run]) -> list[str]:
     """O valor de saber (ADR-0070): o script 2 não sabe, o script 3 aprende e o oráculo sabe, em
     cada mapa da Morada do Sol."""
-    by: dict[tuple[str, str], Run] = {}
+    by: dict[tuple[str, str], list[Run]] = {}  # as repetições ficam juntas na mesma célula
     minds: list[str] = []  # cada modelo, com e sem o playbook, é uma linha (ADR-0071)
     for r in runs:
         if r.spec.get("cartridge") == MORADA and r.spec.get("river_bonus", True):
@@ -1001,17 +1001,21 @@ def _knowing_section(runs: Sequence[Run]) -> list[str]:
                 version = int(r.spec.get("playbook") or 0)
                 who = f"{model} com memória" + (f" e o playbook {version}" if version else "")
                 minds += [who] if who not in minds else []
-            by[(who, str(r.spec.get("map") or "a"))] = r
+            by.setdefault((who, str(r.spec.get("map") or "a")), []).append(r)
     if not any(who == "oracle" for who, _ in by):
         return []
     maps = sorted({m for _, m in by})
 
-    def cell(r: Run | None) -> str:
-        if r is None:
+    def cell(found: Sequence[Run] | None) -> str:
+        if not found:
             return EMPTY
-        totals = r.report.totals()
-        harvests = sum(cast(Mapping[str, int], totals["harvests"]).values())
-        return f"{totals['coins_end']} moedas · {harvests} colheitas · {_hungry_days(r)} dias"
+        coins = [str(r.report.totals()["coins_end"]) for r in found]
+        harvests = [
+            str(sum(cast(Mapping[str, int], r.report.totals()["harvests"]).values())) for r in found
+        ]
+        hungry = [str(_hungry_days(r)) for r in found]
+        joined = " e ".join
+        return f"{joined(coins)} moedas · {joined(harvests)} colheitas · {joined(hungry)} dias"
 
     rows = [
         [label, *(cell(by.get((who, m))) for m in maps)]
@@ -1025,9 +1029,10 @@ def _knowing_section(runs: Sequence[Run]) -> list[str]:
     ]
 
     def gap(m: str) -> str:
-        blind, knows = by.get(("farmer2", m)), by.get(("oracle", m))
-        if blind is None or knows is None:
+        blinds, knowers = by.get(("farmer2", m)), by.get(("oracle", m))
+        if not blinds or not knowers:
             return EMPTY
+        blind, knows = blinds[0], knowers[0]
         coins = int(knows.report.totals()["coins_end"]) - int(blind.report.totals()["coins_end"])
         return f"{coins:+d} moedas, {_hungry_days(blind) - _hungry_days(knows):+d} dias sem fome"
 
@@ -1037,7 +1042,8 @@ def _knowing_section(runs: Sequence[Run]) -> list[str]:
         "",
         "As três réguas em cada mapa: o script 2 não sabe as regras ocultas e não aprende, o "
         "script 3 aprende pelo caderno de campo e o oráculo é o mesmo código sabendo as regras. "
-        "Cada célula traz as moedas no fim, as colheitas e os dias com a fome em 100. A distância "
+        "Cada célula traz as moedas no fim, as colheitas e os dias com a fome em 100, uma corrida "
+        "depois da outra quando há repetições. A distância "
         "entre o oráculo e o script 2 é o que saber vale naquele mapa; onde o script 3 fica nessa "
         "distância é o que aprender captou.",
         "",

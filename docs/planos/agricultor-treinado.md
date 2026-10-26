@@ -109,3 +109,29 @@ As três corridas do Haiku rodaram em paralelo em `data/arena/20261025-playbook`
 - quando um plantio levar mais ou menos dias que a tabela, compará-lo, na tabela do caderno, com outro da mesma cultura que não levou, e escrever no que os dois diferem, coluna por coluna (o lugar, o que havia antes, o adubo, a rega, a estação);
 - a cada semana, um par de teste: dois canteiros que só diferem numa dessas colunas;
 - um exemplo de experimento bem feito, contado do começo ao fim, sobre uma mecânica visível (a chuva rega?), para mostrar a forma sem tocar em regra oculta.
+
+## 8. O playbook 2 (25 e 26/out, de madrugada)
+
+A revisão aprovada pelo usuário, com repetições (commit eb5c78a):
+- **o método virou um procedimento:** toda noite, a maior surpresa do caderno; comparar com um caso parecido, item por item, e escrever a lista de suspeitas; testar uma da lista com controle; não trocar de assunto antes de resolver;
+- **o ofício ganhou** a tabela do caderno como laboratório, o par de teste semanal e um experimento bem feito do começo ao fim, sobre a chuva que rega;
+- **a corrida grava a versão do playbook** (`playbook: 2`; a versão 1 fica no git, em 7cd7e06).
+
+Quatro corridas do Haiku, duas por mapa, com o mesmo mundo, por US$ 2,45, mais US$ 0,31 do juiz. As oito corridas da rodada (moedas · colheitas · dias com a fome em 100, e os experimentos da noite por assunto):
+
+| Corrida | Mapa a | Mapa b | Experimentos sobre a rega e a chuva | Sobre o adubo | Sobre o lugar ou o histórico |
+|---|---|---|---|---|---|
+| sem playbook | 91 · 45 · 5 | 5 · 34 · 19 | 43 de 55 | 0 | 0 |
+| playbook 1 | 0 · 21 · 17 | 6 · 17 · 18 | 46 de 56 | 0 | 0 |
+| playbook 2 | 8 · 30 · 15 e 7 · 19 · 16 | 7 · 19 · 19 e 9 · 29 · 15 | 93 de 112 | 8 | 0 |
+
+- **O Haiku não mudou também com o playbook 2:** o juiz não achou descoberta em nenhuma das quatro corridas, e a prova repete os mesmos palpites antes e depois (a reputação "mais", o tomate e o alho "para"), sem crença que os sustente. O Sonnet não roda (decisão 5).
+- **O playbook 2 mudou um pouco o assunto:** no mapa a, as duas corridas testaram o adubo em pares (8 experimentos), uma das colunas do ofício; ficaram inconclusivos. O lugar e o histórico do canteiro não apareceram em nenhum dos 223 experimentos das oito corridas, mesmo com o caderno mostrando a cultura de antes em cada linha.
+- **A fixação na rega.** Quatro de cada cinco experimentos são sobre como a rega e a chuva fazem a planta avançar. O resultado parece ruidoso para o Haiku, porque a estação e a fadiga, que ele não suspeita, mudam os dias; ele refaz a hipótese e testa de novo. A regra "não troque de assunto antes de resolver" pode ter reforçado isso: a surpresa nunca se resolve quando a causa não está na lista.
+- **A economia:** com o playbook, de 0 a 9 moedas, de 17 a 30 colheitas, de 15 a 19 dias com fome e de 2 a 8 desmaios; sem ele, 91 e 5 moedas. As repetições mostram que a corrida de 91 moedas é a exceção, e não a regra; os desmaios sobem com o playbook (há experimentos de ficar acordado para medir a energia).
+
+**O que fica para decidir** (no `futuro.md`):
+- **o conselheiro** (o advisor tool) na reflexão da noite, no M21;
+- **uma ferramenta de comparação:** código que lê o caderno e lista os plantios que fugiram do esperado e as colunas em que diferem dos parecidos (a conta que o script 3 faz), deixando ao modelo escolher o teste. Separa o raciocínio do trabalho com os dados;
+- **o playbook no Sonnet e no Opus** como braço da arena do M21, em vez de uma dupla agora.
+- **O passo custou uns US$ 4,80** (as sete corridas, as provas e o juiz).
