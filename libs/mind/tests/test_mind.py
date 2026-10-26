@@ -1,6 +1,7 @@
 """A mente com uma porta falsa: a janela, as ferramentas, as recusas, as falhas (ADR-0059)."""
 
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, cast
 
@@ -14,6 +15,7 @@ from campsverso_mind import (
     ToolDef,
     Window,
     load_tools,
+    playbook,
     proposal_from,
     reason_text,
     tool_specs,
@@ -230,6 +232,37 @@ def test_a_camada_de_cima_troca_o_cartao() -> None:
     assert camps.tools == TOOLS
     assert camps.tool("plant") is TOOLS[0]
     assert camps.tool("x") is None
+
+
+# ------------------------------------------------------------- o playbook (ADR-0071)
+
+
+def test_o_playbook_e_o_metodo_e_o_oficio_do_genero() -> None:
+    farmer = replace(MIND, craft="**O ofício.** Compare dois canteiros.")
+    text = playbook(farmer)
+    assert text.startswith("## O playbook\n\n**O método.**\n1. O mais valioso")
+    assert text.endswith("**O ofício.** Compare dois canteiros.")
+    assert "O ofício" not in playbook(MIND)  # um mundo sem ofício recebe só o método
+    camps = farmer.extend(card="Você é o Camps, da Fazenda do Camps.")
+    assert camps.craft == farmer.craft  # a camada de cima mantém o ofício do gênero
+
+
+def test_o_playbook_entra_depois_do_manual_so_quando_a_corrida_pede() -> None:
+    farmer = replace(MIND, craft="**O ofício.** Compare dois canteiros.")
+    plain = LlmController(
+        farmer, ScriptedModel(), controller_id="llm/camps", avatar_id="camps", model="m"
+    )
+    trained = LlmController(
+        farmer,
+        ScriptedModel(),
+        controller_id="llm/camps",
+        avatar_id="camps",
+        model="m",
+        with_playbook=True,
+    )
+    assert "## O playbook" not in plain.identity  # o padrão: o pedido de sempre, as fitas valem
+    assert trained.identity == f"{plain.identity}\n\n{playbook(farmer)}"
+    assert trained.system[0]["text"].startswith(trained.identity)
 
 
 # ------------------------------------------------------------- a janela

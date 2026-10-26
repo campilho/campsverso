@@ -46,6 +46,7 @@ class Mind:
     # O caderno de campo e o experimento da noite (ADR-0070): a mente de cada cenário diz se os usa.
     field_notebook: bool = False
     experiments: bool = False
+    craft: str = ""  # o ofício do gênero, a segunda camada do playbook (ADR-0071)
 
     def extend(self, *, card: str | None = None, notes: str | None = None) -> Mind:
         """Uma camada por cima (ADR-0031): o cenário troca o cartão, ou as notas, do gênero."""

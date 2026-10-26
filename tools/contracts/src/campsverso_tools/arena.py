@@ -822,7 +822,8 @@ def _controller_name(spec: Mapping[str, Any]) -> str:
     if spec.get("controller") != "llm":
         return SCRIPT_NAMES.get(str(spec.get("script")), str(spec.get("controller")))
     model = str(spec.get("model", "claude-haiku-5-5"))
-    return MODEL_NAMES.get(model, model)
+    playbook = " com o playbook" if spec.get("playbook") else ""  # ADR-0071
+    return MODEL_NAMES.get(model, model) + playbook
 
 
 def _runs_table(runs: Sequence[Run], *, maps: bool) -> str:

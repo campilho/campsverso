@@ -81,12 +81,13 @@ class Pipeline:
         model: str = MODEL,
         map_variant: str | None = None,
         script: str | None = None,
+        playbook: bool = False,
     ) -> None:
         """`memory=True` dá à mente um caderno SQLite em memória (ADR-0060); `False` é o M10;
         uma porta pronta (um arquivo) serve ao teste de reinício. `cartridge` escolhe o mundo
         (a Fazenda do Camps ou a Boa Vista), com o script e a mente de cada um (ADR-0062);
         `map_variant` escolhe a variante do mapa, e `script` troca o fazendeiro-script
-        (ADR-0070)."""
+        (ADR-0070); `playbook` dá à mente o método e o ofício (ADR-0071)."""
         worldid, default_script, default_mind = WORLDS[cartridge]
         script = script or default_script
         self.worldid, self.cartridge = worldid, cartridge
@@ -178,6 +179,7 @@ class Pipeline:
                 model=model,
                 telemetry=self.telemetry,
                 memory=notebook,
+                with_playbook=playbook,
             )
             self.runner = ControllerRunner(
                 worldid,

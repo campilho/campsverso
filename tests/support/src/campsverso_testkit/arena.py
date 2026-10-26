@@ -11,9 +11,11 @@ como controle. A rodada `boavista` (M14, ADR-0063) é a Fazenda Boa Vista: o faz
 o Haiku com memória em quatro seeds e sem a regra, o Sonnet e o Opus, cada corrida com os seus
 dias e o seu teto de orçamento. A rodada `morada` (M19, ADR-0070) é a verificação na Morada do
 Sol: o script 2, o script 3 e o oráculo nos mapas a, b e c, o script 3 sem a água e a fadiga e o
-Haiku com memória, um ano cada. Uma pasta com `summary.json` é uma corrida feita, e uma pasta que
-existe é uma corrida tomada: rodar de novo só completa as que faltam, e dois processos em paralelo
-dividem a rodada sozinhos. Depois, `make arena-report` escreve o relatório. O CI nunca roda isto.
+Haiku com memória, um ano cada. A rodada `playbook` (ADR-0071) é o agricultor treinado: o Haiku
+com o playbook no mapa a, sem e com no mapa b, e o Sonnet sem e com, 14 dias, se o Haiku mudar.
+Uma pasta com `summary.json` é uma corrida feita, e uma pasta que existe é uma corrida tomada:
+rodar de novo só completa as que faltam, e dois processos em paralelo dividem a rodada sozinhos.
+Depois, `make arena-report` escreve o relatório. O CI nunca roda isto.
 """
 
 import argparse
@@ -62,6 +64,7 @@ class Spec:
     limits: BudgetLimits | None = None  # o teto da corrida; sem isto, o do Haiku (LIMITS)
     script: str | None = None  # o fazendeiro-script; sem isto, o do cartucho (ADR-0070)
     map: str | None = None  # a variante do mapa (ADR-0070); sem isto, o mapa de hoje
+    playbook: bool = False  # o método e o ofício no prompt da mente (ADR-0071)
 
 
 SPECS: tuple[Spec, ...] = (
@@ -121,10 +124,29 @@ SPECS_MORADA: tuple[Spec, ...] = (
     _morada("script3-sem-regras", "script", script="farmer3", river_bonus=False),
     _morada("haiku-memoria", "llm", memory=True),
 )
+# O agricultor treinado (ADR-0071): o Haiku com o playbook no mapa a (a corrida sem ele é a da
+# rodada morada) e sem e com no mapa b; o Sonnet sem e com, 14 dias no mapa a, só se o Haiku mudar.
+SONNET_TETO = BudgetLimits(usd_per_sim_day=1.50, usd_total=15.0)
+SPECS_PLAYBOOK: tuple[Spec, ...] = (
+    _morada("haiku-playbook", "llm", memory=True, playbook=True),
+    _morada("haiku-memoria-b", "llm", memory=True, map="b"),
+    _morada("haiku-playbook-b", "llm", memory=True, map="b", playbook=True),
+    _morada("sonnet-memoria-14d", "llm", memory=True, model=SONNET, days=14, limits=SONNET_TETO),
+    _morada(
+        "sonnet-playbook-14d",
+        "llm",
+        memory=True,
+        model=SONNET,
+        days=14,
+        limits=SONNET_TETO,
+        playbook=True,
+    ),
+)
 ROUNDS: dict[str, tuple[Spec, ...]] = {
     "camps": SPECS,
     "boavista": SPECS_BOAVISTA,
     "morada": SPECS_MORADA,
+    "playbook": SPECS_PLAYBOOK,
 }
 
 
@@ -182,6 +204,7 @@ async def run_spec(
         model=spec.model,
         map_variant=spec.map,
         script=spec.script,
+        playbook=spec.playbook,
     )
     exam = exam_of(spec.cartridge)
     prova: dict[str, Any] = {}  # a prova do mundo (ADR-0070): antes, com a memória vazia
@@ -191,7 +214,9 @@ async def run_spec(
     _say(
         f"{spec.name}: {days} dia(s), {spec.controller}, memória "
         f"{'ligada' if spec.memory else 'desligada'}, regra "
-        f"{'ligada' if spec.river_bonus else 'desligada'}, seed {spec.seed}, em {out}",
+        f"{'ligada' if spec.river_bonus else 'desligada'}, seed {spec.seed}"
+        f"{f', mapa {spec.map}' if spec.map else ''}{', com o playbook' if spec.playbook else ''}, "
+        f"em {out}",
         log,
     )
     await pipeline.start()
@@ -271,8 +296,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--rodada",
         choices=sorted(ROUNDS),
         default="camps",
-        help="a lista de corridas: camps (a fazenda 1, M12), boavista (a fazenda 2, M14) ou "
-        "morada (a verificação do M19)",
+        help="a lista de corridas: camps (a fazenda 1, M12), boavista (a fazenda 2, M14), "
+        "morada (a verificação do M19) ou playbook (o agricultor treinado, ADR-0071)",
     )
     parser.add_argument(
         "--only",

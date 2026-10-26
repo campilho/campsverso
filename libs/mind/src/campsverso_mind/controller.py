@@ -10,6 +10,7 @@ from typing import Any, cast
 
 from campsverso_mind.memory import Clock, Memory, clock_of
 from campsverso_mind.mind import Mind, ToolDef
+from campsverso_mind.playbook import playbook
 from campsverso_mind.tools import INTENT, NOTE, intent_text, proposal_from, tool_specs
 from campsverso_mind.window import CACHE, Window, is_snapshot
 from campsverso_ports import Effort, ModelCallError, ModelPort, ModelRequest, Telemetry
@@ -55,6 +56,7 @@ class LlmController:
         max_failures: int = 3,
         telemetry: Telemetry | None = None,
         memory: Memory | None = None,
+        with_playbook: bool = False,
     ) -> None:
         self.mind = mind
         self.memory = memory
@@ -73,6 +75,8 @@ class LlmController:
         self._tools: dict[str, ToolDef] = {t.name: t for t in mind.tools}
         self._specs = tool_specs(mind.tools, with_note=memory is not None)
         self._identity = f"{mind.card.strip()}\n\n{mind.notes.strip()}"
+        if with_playbook:  # o método e o ofício, depois do manual (ADR-0071)
+            self._identity += f"\n\n{playbook(mind)}"
         self._system = [
             {
                 "type": "text",

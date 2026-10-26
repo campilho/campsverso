@@ -9,11 +9,18 @@ from campsverso_mind import Mind, load_tools
 DATA = Path(__file__).parent / "data"
 NOTES = DATA / "fazenda.md"
 TOOLS = DATA / "tools.yaml"
+CRAFT = DATA / "oficio.md"  # o ofício do agricultor, a camada do gênero no playbook (ADR-0071)
 
 
 def mind() -> Mind:
     """A mente do gênero, sem cartão: o cenário a estende com o seu."""
-    return Mind("farm", card="", notes=NOTES.read_text(encoding="utf-8"), tools=load_tools(TOOLS))
+    return Mind(
+        "farm",
+        card="",
+        notes=NOTES.read_text(encoding="utf-8"),
+        tools=load_tools(TOOLS),
+        craft=CRAFT.read_text(encoding="utf-8"),
+    )
 
 
-__all__ = ["DATA", "NOTES", "TOOLS", "mind"]
+__all__ = ["CRAFT", "DATA", "NOTES", "TOOLS", "mind"]

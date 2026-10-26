@@ -14,6 +14,7 @@ from campsverso_testkit.arena import (
     SPECS,
     SPECS_BOAVISTA,
     SPECS_MORADA,
+    SPECS_PLAYBOOK,
     Spec,
     main,
     run_spec,
@@ -35,6 +36,7 @@ async def test_a_corrida_do_script_grava_a_pasta(tmp_path: Path) -> None:
         "limits": None,
         "script": None,
         "map": None,
+        "playbook": False,
     }
     assert result["totals"]["days"] == 2
     assert (result["calls"], result["gave_up"], result["aborted_day"]) == (0, False, None)
@@ -117,7 +119,12 @@ def test_as_corridas_da_boa_vista() -> None:
         "sonnet-memoria",
         "opus-memoria",
     ]
-    assert ROUNDS == {"camps": SPECS, "boavista": SPECS_BOAVISTA, "morada": SPECS_MORADA}
+    assert ROUNDS == {
+        "camps": SPECS,
+        "boavista": SPECS_BOAVISTA,
+        "morada": SPECS_MORADA,
+        "playbook": SPECS_PLAYBOOK,
+    }
 
 
 def test_a_rodada_de_verificacao_da_morada_do_sol() -> None:
@@ -146,6 +153,27 @@ def test_a_rodada_de_verificacao_da_morada_do_sol() -> None:
     assert not by["script3-sem-regras"].river_bonus
     assert (by["haiku-memoria"].controller, by["haiku-memoria"].memory) == ("llm", True)
     assert by["haiku-memoria"].map is None
+
+
+def test_a_rodada_do_agricultor_treinado() -> None:
+    """ADR-0071: o Haiku com o playbook no mapa a, sem e com no mapa b, e a dupla do Sonnet de 14
+    dias com teto de US$ 15, todos com memória, na Morada do Sol."""
+    by = {s.name: s for s in SPECS_PLAYBOOK}
+    assert [(s.name, s.map, s.playbook) for s in SPECS_PLAYBOOK] == [
+        ("haiku-playbook", None, True),
+        ("haiku-memoria-b", "b", False),
+        ("haiku-playbook-b", "b", True),
+        ("sonnet-memoria-14d", None, False),
+        ("sonnet-playbook-14d", None, True),
+    ]
+    assert all(s.memory and s.cartridge == "farm_morada_do_sol" for s in SPECS_PLAYBOOK)
+    assert {s.days for s in SPECS_PLAYBOOK if s.model == "claude-haiku-5-5"} == {28}
+    sonnet = by["sonnet-playbook-14d"]
+    assert (sonnet.model, sonnet.days, sonnet.limits) == (
+        "claude-sonnet-5-5",
+        14,
+        BudgetLimits(1.5, 15.0),
+    )
 
 
 def test_a_reserva_ao_comecar_e_o_script_2_na_boa_vista(

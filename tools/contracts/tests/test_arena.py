@@ -411,7 +411,7 @@ def test_o_relatorio_mostra_o_juiz_ao_lado_das_heuristicas(tmp_path: Path) -> No
     quiet = [ev(0, "world.session.started.v1", tick_seconds=60)]
     spec = {"name": "haiku-memoria", "controller": "llm", "memory": True, "seed": 1}
     _run(arena, "haiku-memoria", spec, quiet)
-    _run(arena, "haiku-memoria-sem-regra", {**spec, "river_bonus": False}, quiet)
+    _run(arena, "haiku-memoria-sem-regra", {**spec, "river_bonus": False, "playbook": True}, quiet)
     verdicts = {
         "agua": {"verdict": "lugar", "belief_id": "bel-0026", "why": "o leste"},
         "tomate": {"verdict": "nao", "belief_id": "", "why": "nada"},
@@ -428,6 +428,7 @@ def test_o_relatorio_mostra_o_juiz_ao_lado_das_heuristicas(tmp_path: Path) -> No
     row = "| agua | só o lugar (bel-0026) | só o lugar (bel-0026) (regra desligada) |"
     assert row in text
     assert "| tomate | não | não |" in text
+    assert "| haiku-memoria-sem-regra | Haiku 5.5 com o playbook |" in text  # ADR-0071
 
 
 def test_na_morada_o_relatorio_mostra_o_valor_de_saber_e_o_que_o_script_3_aprendeu(
