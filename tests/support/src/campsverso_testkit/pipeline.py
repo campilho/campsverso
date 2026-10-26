@@ -13,8 +13,8 @@ orçamento. O relógio fica no modo contínuo, porque o máximo é só de script
 em memória não faz diferença: o barramento entrega e espera a resposta antes do próximo tick.
 """
 
-from collections.abc import Sequence
-from typing import Any, Literal
+from collections.abc import Mapping, Sequence
+from typing import Any, Literal, cast
 
 from campsverso_adapters import (
     ContractValidator,
@@ -86,12 +86,14 @@ class Pipeline:
         map_variant: str | None = None,
         script: str | None = None,
         playbook: bool = False,
+        script_config: Mapping[str, Any] | None = None,
     ) -> None:
         """`memory=True` dá à mente um caderno SQLite em memória (ADR-0060); `False` é o M10;
         uma porta pronta (um arquivo) serve ao teste de reinício. `cartridge` escolhe o mundo
         (a Fazenda do Camps ou a Boa Vista), com o script e a mente de cada um (ADR-0062);
         `map_variant` escolhe a variante do mapa, e `script` troca o fazendeiro-script
-        (ADR-0070); `playbook` dá à mente o método e o ofício (ADR-0071)."""
+        (ADR-0070); `playbook` dá à mente o método e o ofício (ADR-0071); `script_config` troca
+        chaves do arquivo do script 3 (a contratação forçada; ADR-0073)."""
         worldid, default_script, default_mind = WORLDS[cartridge]
         script = script or default_script
         self.worldid, self.cartridge = worldid, cartridge
@@ -129,6 +131,11 @@ class Pipeline:
         self.guard: BudgetService | None = None
         if controller == "script":
             farmer = load_controller(script)
+            if script_config:
+                configured = getattr(farmer, "configured", None)
+                if configured is None:
+                    raise ValueError(f"o script {script!r} não aceita configuração")
+                farmer = cast(Controller, configured(script_config))
             self.script = farmer
             # O avatar nasce com o script do cartucho; outro script (o 3, o oráculo) pede a posse.
             core.configure_controllers({"camps": ControllerRef("script", farmer.controller_id)})

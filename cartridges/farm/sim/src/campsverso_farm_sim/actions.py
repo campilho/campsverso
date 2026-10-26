@@ -3,7 +3,7 @@
 import math
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any, ClassVar, cast
 
 from campsverso_cartridge_api import (
     Accepted,
@@ -127,9 +127,16 @@ INTERRUPTS: tuple[Interrupt, ...] = ("never", "cancel", "partial")
 @dataclass(frozen=True)
 class FarmAction:
     name: str = ""
+    # O que outro avatar pode desfazer no meio da ação (o canteiro, o baú, o lugar de cavar): a
+    # conferência se repete na conclusão (ADR-0072). O que muda com a hora (o quiosque que fecha,
+    # a feira) fica de fora: com um avatar só, a ação conclui como sempre concluiu.
+    shared: ClassVar[bool] = False
 
     def check(self, ctx: ActionContext) -> Rejection | None:
         raise NotImplementedError
+
+    def recheck(self, ctx: ActionContext) -> Rejection | None:
+        return self.check(ctx) if self.shared else None
 
     def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
         raise NotImplementedError
@@ -189,6 +196,7 @@ def _plot(ctx: ActionContext) -> EntityView | Rejection:
 @dataclass(frozen=True)
 class Plant(FarmAction):
     name: str = "plant"
+    shared: ClassVar[bool] = True
 
     def check(self, ctx: ActionContext) -> Rejection | None:
         plot = _plot(ctx)
@@ -234,6 +242,7 @@ class Plant(FarmAction):
 @dataclass(frozen=True)
 class Water(FarmAction):
     name: str = "water"
+    shared: ClassVar[bool] = True
 
     def check(self, ctx: ActionContext) -> Rejection | None:
         plot = _plot(ctx)
@@ -280,6 +289,7 @@ class Refill(FarmAction):
 @dataclass(frozen=True)
 class Harvest(FarmAction):
     name: str = "harvest"
+    shared: ClassVar[bool] = True
 
     def check(self, ctx: ActionContext) -> Rejection | None:
         plot = _plot(ctx)
@@ -301,6 +311,7 @@ class Harvest(FarmAction):
 @dataclass(frozen=True)
 class Clear(FarmAction):
     name: str = "clear"
+    shared: ClassVar[bool] = True
 
     def check(self, ctx: ActionContext) -> Rejection | None:
         plot = _plot(ctx)
@@ -346,6 +357,7 @@ class Eat(FarmAction):
 class MoveItems(FarmAction):
     """Base de depositar, retirar e vender: transfere itens entre o avatar e um contêiner."""
 
+    shared: ClassVar[bool] = True  # o baú é de todos: o item pode ter saído, o espaço acabado
     kind: str = ""
     to_container: bool = True
     reason: str = ""
@@ -597,6 +609,7 @@ class Dig(FarmAction):
     """Cava um canteiro num tile de grama ao lado do avatar, ou no dele, com a pá (ADR-0062)."""
 
     name: str = "dig"
+    shared: ClassVar[bool] = True
 
     def check(self, ctx: ActionContext) -> Rejection | None:
         digging = optional(ctx.view, "digging")
@@ -653,6 +666,7 @@ class Fertilize(FarmAction):
     """Aduba um canteiro vazio: o próximo plantio cresce mais (ADR-0062)."""
 
     name: str = "fertilize"
+    shared: ClassVar[bool] = True
 
     def check(self, ctx: ActionContext) -> Rejection | None:
         fertilizer = optional(ctx.view, "fertilizer")
@@ -732,6 +746,7 @@ class Place(FarmAction):
     espantalho (ADR-0067). O cenário diz em `placeables` o tipo de entidade de cada item."""
 
     name: str = "place"
+    shared: ClassVar[bool] = True
 
     def check(self, ctx: ActionContext) -> Rejection | None:
         placeables = optional(ctx.view, "placeables")
@@ -776,6 +791,7 @@ class Process(FarmAction):
     espera dentro dela (ADR-0069)."""
 
     name: str = "process"
+    shared: ClassVar[bool] = True
 
     def _found(
         self, ctx: ActionContext
@@ -819,6 +835,8 @@ class Process(FarmAction):
 class Sell(MoveItems):
     """Vender: na caixa de vendas, que o comprador paga de manhã, ou, num cenário com feira, na
     barraca aberta, que paga na hora (ADR-0069)."""
+
+    shared: ClassVar[bool] = False  # vende o que carrega; a barraca da feira fecha com a hora
 
     def categories(self, ctx: ActionContext) -> tuple[str, ...] | None:
         """O que o comprador da caixa leva: as colheitas e, num cenário com o tacho, os produtos."""
@@ -941,6 +959,7 @@ class HireHelper(FarmAction):
     seguinte (ADR-0072)."""
 
     name: str = "hire_helper"
+    shared: ClassVar[bool] = True
 
     def _found(self, ctx: ActionContext) -> tuple[EntityView, str, int, int] | Rejection:
         data = helpers.config(ctx.view)

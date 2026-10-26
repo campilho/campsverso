@@ -74,10 +74,9 @@ class Farmer:
     def until(self, hhmm: str) -> None:
         self.run(self.core.calendar.ticks_until(self.core.tick, int(hhmm[:2]) * 60 + int(hhmm[3:])))
 
-    def do(self, action: str, *, avatar: str = "camps", **params: Any) -> list[Fact]:
-        """Propõe pelo controlador do avatar (o Camps, ou um ajudante; ADR-0072) e espera."""
+    def propose(self, action: str, *, avatar: str = "camps", **params: Any) -> None:
+        """Propõe pelo controlador do avatar (o Camps, ou um ajudante; ADR-0072), sem esperar."""
         self._n += 1
-        start = len(self.facts)
         body = self.core.world.avatar_map[avatar]
         controller = self.controller_id if avatar == "camps" else body.controller.id
         self.core.submit(
@@ -88,6 +87,12 @@ class Farmer:
                 "data": {"avatar_id": avatar, "action": action, "params": params},
             }
         )
+
+    def do(self, action: str, *, avatar: str = "camps", **params: Any) -> list[Fact]:
+        """Propõe e espera o avatar ficar ocioso."""
+        start = len(self.facts)
+        self.propose(action, avatar=avatar, **params)
+        body = self.core.world.avatar_map[avatar]
         self.run(1)
         while body.action is not None:
             self.run(1)

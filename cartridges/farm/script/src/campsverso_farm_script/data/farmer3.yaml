@@ -48,7 +48,7 @@ share: 4  # canteiros que dividem uma ida para regar
 # poucos; o script conta as unidades que já estão crescendo de cada cultura para não afundar o
 # preço da colheita, e vende enquanto o preço de agora passa de 70% da tabela.
 market: {buy_step: 0.03, sell_step: 0.02, floor: 0.4}
-sell: {min_price: 0.7, fair_min_units: 4}
+sell: {min_price: 0.7, fair_min_units: 4, fetch_max: 6}  # fetch_max: o que busca no baú de uma vez
 orders: {max_taken: 2, min_premium: 1.1}
 
 # Os investimentos: o espantalho quando a perda esperada num grupo de canteiros longe passa do
@@ -71,3 +71,21 @@ model:
   loss_guard: [4, 8]  # e as do espantalho mais perto
   test_pairs: 3  # os primeiros canteiros vão em pares: um no lugar de sempre, outro onde se sabe menos
   test_every: 4  # depois, um canteiro em cada quatro continua como teste
+
+# Os ajudantes (ADR-0072, ADR-0073): contratar quando os canteiros que o caixa pede passam dos que
+# o Camps cuida sozinho e o que os canteiros a mais rendem paga a diária, com 20% de folga. A
+# diária e quem está livre vêm do quadro; quantos canteiros cada um cuida é a leitura das fichas
+# públicas. Só no mundo com quadro de ajudantes; o script 2 nunca contrata. Com o tempo das ações
+# do manual, o Camps trabalha umas 2 horas por dia: cuida sozinho de todos os canteiros que o
+# caixa paga, e a conta nunca contrata. `force` contrata uma ficha por uns dias sempre que pode
+# (a medida dos contratos de 1, 3 e 7 dias).
+helpers:
+  enabled: true
+  board_kind: helper_board
+  solo: 28  # os canteiros que o Camps cuida sozinho: o teto de plots, com o tempo do manual
+  plots: {dita: 8, ze-graudo: 6, nina: 6, seu-bento: 8, tiao: 4}
+  days: [1, 3, 7]
+  margin: 1.2
+  from: "06:00"
+  until: "16:00"
+  from_day: 8  # depois da primeira semana, quando a fazenda já se paga

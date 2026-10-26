@@ -5,6 +5,7 @@ dependem do que o Camps faz na fazenda (plantar, regar, colher) têm testes de u
 
 from typing import Any
 
+from campsverso_kernel.replay import replay_day
 from campsverso_testkit.pipeline import DAY, Pipeline
 
 MORADA = "farm_morada_do_sol"
@@ -69,3 +70,43 @@ async def test_parar_so_espera() -> None:
     mine = [p for p in pipeline.of_type("cmd.action.propose.v1") if p["avatar_id"] == "seu-bento"]
     assert mine
     assert {p["action"] for p in mine} == {"wait"}
+
+
+async def test_o_script_3_contrata_e_o_dia_com_dois_avatares_se_reproduz() -> None:
+    # A contratação forçada (ADR-0073): o Tião por 3 dias, assim que o caixa paga; a conta do
+    # script 3 sozinha nunca contrata com o tempo de hoje.
+    force = {"helpers": {"force": {"helper": "tiao", "days": 3}, "from_day": 1}}
+    pipeline = Pipeline(cartridge=MORADA, script="farmer3", script_config=force)
+    await pipeline.start()
+    await pipeline.run_days(8)
+    (hired, *_) = pipeline.of_type("economy.labor.hired.v1")
+    assert (hired["helper"], hired["days"], hired["total"]) == ("tiao", 3, 60)
+    days = [
+        int(e["tick"]) // DAY + 1
+        for e in pipeline.envelopes
+        if e["type"] == "campsverso.avatar.entered.v1"
+    ]
+    first = int(hired["first_day"])
+    assert days[:3] == [first, first + 1, first + 2]  # os três dias pagos
+    assert _done(pipeline, "tiao")  # trabalhou
+    core = pipeline.core
+    result = replay_day(
+        core.definition,
+        core.config,
+        pipeline.version,
+        pipeline.store,
+        pipeline.blobs,
+        pipeline.envelopes,
+        first + 1,
+        pipeline.validator,
+    )
+    assert result.equal, result.first_difference()
+    assert len(result.recorded) > 100  # o dia do meio do contrato, com o Tião na fazenda
+
+
+async def test_sem_forcar_a_conta_do_script_3_nao_contrata() -> None:
+    # Com o tempo de hoje, o Camps cuida sozinho de tudo o que o caixa paga (ADR-0073).
+    pipeline = Pipeline(cartridge=MORADA, script="farmer3")
+    await pipeline.start()
+    await pipeline.run_days(10)
+    assert pipeline.of_type("economy.labor.hired.v1") == []

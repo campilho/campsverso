@@ -30,6 +30,7 @@ def view(
     plots: list[dict[str, Any]] | None = None,
     charges: int = 10,
     refused: bool = False,
+    day: int = 2,
 ) -> dict[str, Any]:
     me = {
         "entity_id": "dita",
@@ -49,7 +50,7 @@ def view(
         "attributes": {"charges": charges, "capacity": 10},
     }
     doc: dict[str, Any] = {
-        "clock": {"tick": 0, "sim_time": "2026-09-23T10:00:00-03:00", "day": 2, "phase": "manha"},
+        "clock": {"tick": 0, "sim_time": "2026-09-23T10:00:00-03:00", "day": day, "phase": "manha"},
         "weather": {"condition": "sol", "day": 2},
         "self": {
             "entity_id": "dita",
@@ -165,3 +166,11 @@ def test_parar_espera_e_sem_comida_no_bau_vai_para_casa() -> None:
     assert eats == {"action": "eat", "params": {"item": "batata"}, "intent": "comer"}
     home = script.decide(view(hunger=60))
     assert home["action"] == "go_home"
+
+
+def test_o_canteiro_lembrado_de_ontem_perdeu_a_rega_e_ela_vai_ver() -> None:
+    script = helper("dita")
+    watered = [plot("plot-01", 6, 3, crop="rabanete", stage="broto", watered_today=True)]
+    assert script.decide(view(at=(6, 2), plots=watered))["intent"] == "tudo cuidado"
+    tomorrow = script.decide(view(at=(0, 0), day=3))  # longe, sem o canteiro à vista
+    assert tomorrow == {"action": "move", "params": {"near": "plot-01"}, "intent": "ir regar"}

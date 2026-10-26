@@ -13,6 +13,10 @@ regra oculta. Sobre a base do script 2 (a lembrança, o terreno, a exploração,
   e outro no lugar em que a crença é mais incerta, com a mesma cultura.
 - **A economia:** vende sem afundar o preço (conta o que já está crescendo de cada cultura),
   guarda para a feira, aceita a encomenda que dá para cumprir, faz adubo com os restos.
+- **Os ajudantes** (ADR-0072): contrata quando os canteiros que o caixa pede passam dos que ele
+  cuida sozinho e o que os canteiros a mais rendem paga a diária, com folga; a diária e quem está
+  livre vêm do quadro. Busca no baú a colheita fresca que o ajudante deixa lá, e não aprende
+  nada sobre perdas nos dias em que um ajudante trabalhou (não sabe quem colheu).
 
 O oráculo (§3) é este mesmo script com o modelo trocado pela verdade.
 """
@@ -100,6 +104,12 @@ class Notebook:
     world: World | None = None
     distances: dict[str, dict[Tile, int]] = field(default_factory=dict[str, dict[Tile, int]])
     distances_key: tuple[int, Tile | None] = (0, None)
+    # Os ajudantes (ADR-0072): os contratos (quem, o primeiro e o último dia).
+    contracts: list[tuple[str, int, int]] = field(default_factory=list[tuple[str, int, int]])
+
+    def helper_on(self, day: int) -> str | None:
+        """O ajudante contratado para o dia, se houver."""
+        return next((h for h, first, last in self.contracts if first <= day <= last), None)
 
 
 class Farmer3Script(Farmer2Script):
@@ -120,6 +130,11 @@ class Farmer3Script(Farmer2Script):
     def oracle(cls) -> Farmer3Script:
         """O oráculo (ADR-0070, decisão 6): o mesmo script, com a verdade no lugar da crença."""
         return cls(load_config(ORACLE))
+
+    def configured(self, overrides: Mapping[str, Any]) -> Farmer3Script:
+        """Uma instância nova, com o arquivo trocado chave por chave (ex.: a contratação forçada
+        das medidas de 1, 3 e 7 dias; ADR-0073)."""
+        return type(self)(_merged(self.config, overrides))
 
     def _fresh(self) -> Notebook:
         beliefs = Beliefs(cast(Mapping[str, Any], self.config["model"]))
@@ -215,6 +230,9 @@ class Farmer3Script(Farmer2Script):
             book.fertilized.add(target)
         elif done and last["action"] == "clear" and target in book.active:
             self._close(book.active.pop(target), "murcha", day)
+        elif done and last["action"] == "hire_helper":
+            first = day + 1  # o ajudante chega na manhã seguinte
+            book.contracts.append((str(params["helper"]), first, first + int(params["days"]) - 1))
         needs = cast(Mapping[str, float], view["self"]["needs"])
         now = float(needs.get(str(self.config["needs"]["hunger"]), 0))
         if done and last["action"] == "eat" and book.hunger is not None:
@@ -248,6 +266,9 @@ class Farmer3Script(Farmer2Script):
         book.closed.append(planting)
         if outcome == "perdida" and day in book.storm_days:
             return  # a tempestade está à vista: não é uma regra do lugar
+        if outcome == "perdida" and book.helper_on(day) is not None:
+            planting.outcome = "sumiu"  # um ajudante pode ter colhido: não se sabe quem levou
+            return
         if outcome in ("colhida", "perdida"):
             door, guard = self.place_of(planting.tile)
             book.beliefs.learn_loss(door, guard, outcome == "perdida")
@@ -361,7 +382,9 @@ class Turn3(Turn2):
             self.compost,
             self.collect,
             self.store,
+            self.fetch,
             self.sell,
+            self.hire,
             self.buy,
             self.dig,
             self.explore,
@@ -712,7 +735,118 @@ class Turn3(Turn2):
         self.book.abandoned.add(pid)
         return True
 
+    # ------------------------------------------------------------- os ajudantes (ADR-0072)
+
+    def helper_plots(self, helper: str | None) -> int:
+        """Os canteiros que a ficha cuida, pela leitura dele das fichas públicas."""
+        rules = cast(Mapping[str, Any] | None, self.c.get("helpers"))
+        if helper is None or rules is None:
+            return 0
+        return int(cast(Mapping[str, int], rules["plots"]).get(helper, 0))
+
+    def plot_value(self) -> float:
+        """O que um canteiro de vender rende por dia, hoje, no lugar de sempre."""
+        crops = [c for c in cast(Mapping[str, Any], self.c["crops"]) if self._pace(c) > 0]
+        home = self._home()
+        return max((self.value(c, home) for c in crops), default=0.0)
+
+    def helper_gain(self, helper: str) -> float:
+        """O que o ajudante rende por dia: os canteiros que o caixa pede e que o Camps não dá
+        conta de cuidar sozinho, até os que a ficha cuida, pelo que um canteiro rende."""
+        rules = cast(Mapping[str, Any], self.c["helpers"])
+        plots = cast(Mapping[str, Any], self.c["plots"])
+        grown = int(plots["start"]) + self.mine("moeda") // int(plots["coins_per_plot"])
+        wanted = min(int(plots["max"]), grown)
+        extra = min(self.helper_plots(helper), max(0, wanted - int(rules["solo"])))
+        return extra * max(0.0, self.plot_value())
+
+    def hire(self) -> Proposal | None:
+        """Contrata no quadro quando o ajudante rende mais que a diária, com a folga do arquivo,
+        e o caixa paga o contrato inteiro sem tocar na reserva, no caixa da comida e na folga de
+        investir. Entre as fichas livres e os contratos que cabem no ano, o que mais sobra. Com
+        `force`, contrata aquela ficha por aqueles dias sempre que pode (os experimentos)."""
+        rules = cast(Mapping[str, Any] | None, self.c.get("helpers"))
+        if rules is None or not rules.get("enabled"):
+            return None
+        board = self.nearest(self.of_kind(str(rules["board_kind"])))
+        if board is None or self.book.helper_on(self.day + 1) is not None:
+            return None  # sem quadro, ou amanhã já tem ajudante
+        if not minutes(str(rules["from"])) <= self.now < minutes(str(rules["until"])):
+            return None
+        if self.day < int(rules["from_day"]):
+            return None  # a primeira semana é a do caixa mais apertado: contratar ali é apostar
+        year = cast(Mapping[str, Any], self.c["year"])
+        left = int(year["season_days"]) * len(cast(Sequence[str], year["seasons"])) - self.day
+        cash = (
+            self.mine("moeda")
+            - int(self.c["coins_reserve"])
+            - self.food_cash()
+            - int(self.c["invest_floor"])
+        )
+        force = cast(Mapping[str, Any] | None, rules.get("force"))
+        attributes = cast(Mapping[str, Any], board["attributes"])
+        best: tuple[float, str, int] | None = None
+        for helper in sorted(cast(Mapping[str, int], rules["plots"])):
+            key = helper.replace("-", "_")
+            wage = attributes.get(f"diaria_{key}")
+            if attributes.get(key) != "livre" or not isinstance(wage, int | float):
+                continue
+            if force is not None and helper != force["helper"]:
+                continue
+            gain = self.helper_gain(helper)
+            for days in cast(Sequence[int], rules["days"]):
+                if days > left or wage * days > cash:
+                    continue
+                if force is not None:
+                    if days == int(force["days"]):
+                        best = (0.0, helper, days)
+                    continue
+                if gain < float(rules["margin"]) * wage:
+                    continue
+                net = (gain - wage) * days
+                if best is None or net > best[0]:
+                    best = (net, helper, days)
+        if best is None:
+            return None
+        _, helper, days = best
+        return self.at(
+            board,
+            "hire_helper",
+            f"contratar {helper} por {days} dia(s)",
+            target=board["entity_id"],
+            helper=helper,
+            days=days,
+        )
+
     # ------------------------------------------------------------- vender e encomendas
+
+    def fetch(self) -> Proposal | None:
+        """Com um ajudante contratado, a colheita fresca que ele deixou no baú (ADR-0072) volta
+        para a mão, para vender e entregar como a dele. A comida que vence amanhã fica: é a que
+        o script 2 guarda lá, e buscá-la só a faria voltar."""
+        chest = self.nearest(self.of_kind("chest"))
+        if not self.book.contracts or chest is None:
+            return None
+        foods = cast(Mapping[str, Mapping[str, int]], self.c["foods"])
+        held = cast(Sequence[Mapping[str, Any]], self.view["containers"])
+        inside = [c["items"] for c in held if c["container_id"] == chest["entity_id"]]
+        stacks = cast(Sequence[Mapping[str, Any]], inside[0] if inside else [])
+        fresh: dict[str, int] = {}
+        for stack in stacks:
+            item, left = str(stack["item"]), stack.get("expires_in_days")
+            if item in foods and (not isinstance(left, int) or left > 1):
+                fresh[item] = int(stack["qty"])
+        for item in sorted(fresh, key=lambda f: (-foods[f]["sale"], f)):
+            qty = min(fresh[item], int(self.c["sell"]["fetch_max"]))
+            return self.at(
+                chest,
+                "withdraw",
+                f"pegar {qty} {item} no baú",
+                target=chest["entity_id"],
+                item=item,
+                qty=qty,
+            )
+        return None
 
     def _fair(self) -> Mapping[str, Any] | None:
         return self.nearest(self.of_kind("fair_stall"))

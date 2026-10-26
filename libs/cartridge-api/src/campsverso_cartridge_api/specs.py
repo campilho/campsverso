@@ -2,7 +2,7 @@
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Literal, Protocol
+from typing import Any, Literal, Protocol, runtime_checkable
 
 from campsverso_cartridge_api.model import Direction, EntityView, Scalar
 from campsverso_cartridge_api.world import WorldOps, WorldView
@@ -52,6 +52,16 @@ class ActionSpec(Protocol):
     def interrupted(self, ctx: ActionContext, ops: WorldOps, elapsed_ticks: int) -> None:
         """Só nas ações `partial`: grava o trabalho feito em `elapsed_ticks` (ADR-0052)."""
         ...
+
+
+@runtime_checkable
+class Rechecked(Protocol):
+    """Uma ação que, na conclusão, confere se outro avatar não a desfez no meio (ADR-0072): o
+    canteiro que ele colheu antes, a semente que ele plantou no mesmo lugar, o item que ele tirou
+    do baú. Se não vale mais, o kernel publica `action.failed` (`precondition_lost`) em vez de
+    concluir. Só o que outro avatar pode mudar: o que muda com a hora não entra aqui."""
+
+    def recheck(self, ctx: ActionContext) -> Rejection | None: ...
 
 
 @dataclass(frozen=True, slots=True)

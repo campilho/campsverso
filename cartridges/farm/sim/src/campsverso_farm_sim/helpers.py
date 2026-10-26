@@ -12,7 +12,8 @@ que carrega. O que ele vende vai para o patrão.
 
 Na entidade do ajudante, à vista: a ficha, `patrao`, `dias` (os que faltam) e a ordem (`ordem`,
 `ordem_cultura`, `ordem_item`, `ordem_n` e o ponto `ordem_x`, `ordem_y` de onde cavar). No quadro,
-à vista, a situação de cada ajudante, com o id em snake_case (`ze_graudo`).
+à vista, a situação e a diária de cada ajudante, com o id em snake_case (`ze_graudo` e
+`diaria_ze_graudo`).
 """
 
 from collections.abc import Mapping, Sequence
@@ -176,9 +177,14 @@ def board_key(helper: str) -> str:
 
 
 def show_on_board(view: WorldView, ops: WorldOps, helpers: Sequence[str]) -> None:
+    """A situação de cada ajudante no quadro, e a diária dele (`diaria_<id>`)."""
     found = board(view)
     if found is not None and helpers:
-        visible = {board_key(h): status(view, h) for h in helpers}
+        visible: dict[str, Any] = {}
+        for helper in helpers:
+            key = board_key(helper)
+            visible[key] = status(view, helper)
+            visible[f"diaria_{key}"] = view.entity(helper).attributes.get("diaria")
         ops.set_attributes(found.entity_id, visible=visible)
 
 

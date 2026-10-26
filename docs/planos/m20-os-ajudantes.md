@@ -105,6 +105,7 @@ Mapeei o código atrás de tudo o que supõe um avatar só.
   - o manual da Morada do Sol conta o quadro, as fichas, o contrato e as ordens; as fichas são públicas;
   - a fita da Morada do Sol é regravada.
 - **A diária é calibrada pelo oráculo:** com um ajudante, ele só ganha mais do que sozinho a partir de uns 20 canteiros. Contratar por impulso dá prejuízo, como o plano macro pediu. A faixa esperada vai de umas 20 moedas (o Tião) a umas 70 (o Seu Bento).
+  - **A medida (ADR-0073):** o Camps trabalha umas 2 das 16 horas, e nem ações mais longas deram valor ao ajudante. As diárias ficam, o ajudante vira um teste de julgamento, e a conta do script 3 não contrata.
 
 ## 5. A plataforma com vários avatares
 

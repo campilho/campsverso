@@ -18,6 +18,7 @@ from campsverso_cartridge_api import (
     OnSessionStart,
     OnThreshold,
     Position,
+    Rechecked,
     Rejection,
     SystemContext,
     SystemSpec,
@@ -901,10 +902,23 @@ class KernelCore:
                 if cost is not None and cost[1] and tiles > 0:  # andar gasta (ADR-0062)
                     world.change_need(avatar.avatar_id, cost[0], -(cost[1] * tiles))
             spec = self.definition.actions.get(action.name)
-            if spec is not None:
-                spec.complete(
-                    ActionContext(avatar.avatar_id, action.action_id, action.params, world), world
+            ctx = ActionContext(avatar.avatar_id, action.action_id, action.params, world)
+            if isinstance(spec, Rechecked) and spec.recheck(ctx) is not None:
+                # Outro avatar desfez a ação no meio (ADR-0072): ela não conclui.
+                world.emit_fact(
+                    "campsverso.action.failed.v1",
+                    {
+                        "action_id": action.action_id,
+                        "avatar_id": avatar.avatar_id,
+                        "action": action.name,
+                        "reason": "precondition_lost",
+                        "elapsed_ticks": self.tick - action.applied_tick,
+                    },
                 )
+                avatar.add_pending("action_interrupted")
+                return
+            if spec is not None:
+                spec.complete(ctx, world)
             world.emit_fact(
                 "campsverso.action.completed.v1",
                 {

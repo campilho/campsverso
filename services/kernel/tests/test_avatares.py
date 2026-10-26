@@ -1,6 +1,7 @@
-"""Vários avatares (ADR-0072): um avatar declarado fora do mundo, que entra e sai, e a ficha que
+"""Vários avatares (ADR-0072): um avatar declarado fora do mundo, que entra e sai, a ficha que
 distingue o corpo dele (a velocidade, o tempo das ações, o ritmo das necessidades, o gasto de
-energia, a capacidade, o desmaio e a visão), num laboratório próprio."""
+energia, a capacidade, o desmaio e a visão) e a ação que outro avatar desfaz no meio, num
+laboratório próprio."""
 
 import re
 from collections.abc import Sequence
@@ -23,6 +24,7 @@ from campsverso_cartridge_api import (
     KindDef,
     NeedDef,
     Position,
+    Rejection,
     SpawnDef,
     SystemContext,
     Validation,
@@ -64,6 +66,25 @@ class Work:
         pass
 
 
+@dataclass(frozen=True)
+class Take:
+    """Pega a pedra da caixa, que é dos dois: confere de novo na conclusão (`Rechecked`)."""
+
+    name: str = "take"
+
+    def validate(self, ctx: ActionContext) -> Validation:
+        return self.recheck(ctx) or Accepted(int(ctx.params["ticks"]), "never")
+
+    def recheck(self, ctx: ActionContext) -> Rejection | None:
+        return None if ctx.view.items("box").get("pedra") else Rejection("empty")
+
+    def complete(self, ctx: ActionContext, ops: WorldOps) -> None:
+        ops.transfer_item("pedra", 1, "box", ctx.avatar_id, "take")
+
+    def interrupted(self, ctx: ActionContext, ops: WorldOps, elapsed_ticks: int) -> None:
+        pass
+
+
 def _arrive(ctx: SystemContext, ops: WorldOps) -> None:
     ops.enter("bia", Position(2, 1), "work_day", {"fome": 0, "energia": 100})
 
@@ -91,6 +112,7 @@ class Lab3:
         world.define_need(NeedDef("energia", 100, {"asleep": 12}, role="energy"))
         world.define_need(NeedDef("fome", 10, {"awake": 3, "asleep": 1}))
         world.add_action(Work())
+        world.add_action(Take())
         world.add_system(LabSystem("arrive", "scheduled", 10, (DailyAt(("08:00",)),), _arrive))
         world.add_system(LabSystem("home", "scheduled", 10, (DailyAt(("18:00",)),), _go_home))
         world.add_avatar(AvatarDef("ana", SCRIPT))
@@ -214,3 +236,24 @@ def test_a_definicao_confere_o_avatar_de_fora_e_a_ficha() -> None:
     odd = Lab3(bia=AvatarDef("bia", HELPER, AvatarTraits(need_rates={"fome": 1.3}), False))
     with pytest.raises(WorldRuleError, match="não dá unidades inteiras"):
         make_core(odd)
+
+
+def test_a_acao_que_outro_avatar_desfez_no_meio_falha_na_conclusao() -> None:
+    core = make_core()
+    _run(core, 121)  # a Bia chegou
+    core.world.create_item("pedra", 1, "box", "test")
+    core.submit(command("take", {"ticks": 6}))  # a Ana leva 6 minutos
+    core.submit(_as_bia("take", {"ticks": 1}))  # a Bia, 2 (a ficha dobra o tempo)
+    facts = _run(core, 8)
+    assert len(_only(facts, "action.accepted")) == 2  # as duas valiam na proposta
+    (done,) = _only(facts, "action.completed")
+    assert done["avatar_id"] == "bia"
+    (failed,) = _only(facts, "action.failed")
+    assert (failed["avatar_id"], failed["action"], failed["reason"]) == (
+        "ana",
+        "take",
+        "precondition_lost",
+    )
+    assert core.world.items("bia") == {"pedra": 1}
+    asked = [d for d in _only(facts, "avatar.decision_requested") if d["avatar_id"] == "ana"]
+    assert asked[-1]["reason"] == "action_interrupted"

@@ -1,6 +1,7 @@
 """Os ajudantes da Morada do Sol (ADR-0072), no mundo real: o quadro, o contrato pago adiantado, a
 chegada na manhã seguinte, a ordem dada ao lado, a saída no fim do turno com o que carrega indo
-para o baú, o fim do contrato, a dispensa, a venda que paga ao patrão e a semente do Tião."""
+para o baú, o fim do contrato, a dispensa, a venda que paga ao patrão, a semente do Tião e os dois
+no mesmo canteiro."""
 
 from campsverso_farm_sim import helpers
 from campsverso_testkit.farm import Farmer, make_core, of_type
@@ -41,6 +42,7 @@ def test_os_ajudantes_comecam_fora_com_as_ferramentas_e_o_quadro_os_mostra() -> 
     assert world.avatars() == ["camps"]
     assert sorted(a for a in world.avatar_map if a != "camps") == sorted(CREW)
     assert world.entity(BOARD).attributes["dita"] == "livre"
+    assert world.entity(BOARD).attributes["diaria_ze_graudo"] == 40  # a diária, à vista no quadro
     dita = world.entity("dita")
     assert (dita.attributes["nome"], dita.attributes["diaria"], dita.position) == ("Dita", 40, None)
     assert {e.entity_id for e in world.entities() if e.container_id == "dita"} == {
@@ -154,3 +156,29 @@ def test_o_tiao_perde_semente_e_a_nina_nao_pega_ferramenta_pesada() -> None:
     assert world.items("tiao").get("semente_rabanete", 0) == 1
     nina = world.entity("nina")
     assert nina.hidden["peso_max_ferramenta"] == 4.0
+
+
+def test_dois_no_mesmo_canteiro_o_mais_rapido_colhe_e_o_outro_falha() -> None:
+    farmer = _farmer()
+    world = farmer.core.world
+    _give(farmer, "moeda", 100)
+    _at_board(farmer)
+    farmer.do("hire_helper", target=BOARD, helper="tiao", days=1)
+    _until_day(farmer, world.day + 1, "06:01")
+    _give(farmer, "semente_rabanete", 1, to="tiao")
+    farmer.do("dig", target={"x": 34, "y": 38}, avatar="tiao")
+    plot = max(e.entity_id for e in world.entities("plot"))
+    farmer.do("plant", target=plot, crop="rabanete", avatar="tiao")
+    world.set_attributes(plot, visible={"stage": "madura"})  # madura, para o teste
+    farmer.walk(35, 38)
+    start = len(farmer.facts)
+    farmer.propose("harvest", target=plot, avatar="tiao")  # o Tião faz tudo 50% mais devagar
+    farmer.propose("harvest", target=plot)
+    farmer.run(10)
+    facts = farmer.facts[start:]
+    (done,) = of_type(facts, "action.completed")
+    assert done["avatar_id"] == "camps"
+    (failed,) = of_type(facts, "action.failed")
+    assert (failed["avatar_id"], failed["reason"]) == ("tiao", "precondition_lost")
+    assert world.items("camps").get("rabanete") == 1
+    assert world.items("tiao").get("rabanete", 0) == 0

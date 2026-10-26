@@ -52,6 +52,7 @@ class HelperScript:
     avatar_id: str
     config: Mapping[str, Any] = field(default_factory=load_config)
     plots: dict[str, dict[str, Any]] = field(default_factory=dict[str, dict[str, Any]])
+    seen: dict[str, int] = field(default_factory=dict[str, int])  # o dia em que viu cada canteiro
     order_key: tuple[Any, ...] = ()
     dug: int = 0
     last: str | None = None  # a ação da última proposta, para saber o que uma recusa recusou
@@ -81,6 +82,7 @@ class HelperTurn:
         needs = cast(Mapping[str, float], me["needs"])
         self.hunger = float(needs.get(str(self.c["needs"]["hunger"]), 0))
         self.entities = cast(Sequence[Mapping[str, Any]], view["entities"])
+        self.today = int(cast(Mapping[str, Any], view["clock"])["day"])
         self.stock = {
             str(c["container_id"]): {str(i["item"]): int(i["qty"]) for i in c["items"]}
             for c in cast(Sequence[Mapping[str, Any]], view["containers"])
@@ -98,6 +100,7 @@ class HelperTurn:
         plot = self.kinds["plot"]
         seen = {str(e["entity_id"]): e for e in self.entities if e.get("kind") == plot}
         for plot_id, entity in seen.items():
+            self.s.seen[plot_id] = self.today
             self.s.plots[plot_id] = {
                 "position": dict(cast(Mapping[str, int], entity["position"])),
                 **dict(cast(Mapping[str, Any], entity.get("attributes") or {})),
@@ -206,12 +209,14 @@ class HelperTurn:
         return sorted(p for p, a in self.s.plots.items() if a.get("stage") == "madura")
 
     def dry(self) -> list[str]:
+        """Os que pedem rega: os vistos hoje sem rega, e os lembrados de outro dia, cuja rega
+        daquele dia já passou (vai ver)."""
         return sorted(
             p
             for p, a in self.s.plots.items()
             if a.get("crop") is not None
             and a.get("stage") not in ("madura", "murcha")
-            and not a.get("watered_today")
+            and (not a.get("watered_today") or self.s.seen.get(p, 0) < self.today)
         )
 
     def harvest_one(self) -> Proposal | None:
