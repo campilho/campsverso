@@ -1,6 +1,6 @@
 # CLAUDE.md — Campsverso
 
-Campsverso é uma plataforma de simulação orientada a eventos para agentes de IA autônomos que vivem em mundos 2D. Cada mundo é um **cartucho** (fazenda, estúdio, startup…) rodando sobre um **kernel** genérico. A versão publicada é a **v0.2.0 "A possessão"** (`docs/versoes/v0.2.0.md`; aceite em `docs/aceite-v0.2.md`): o controlador LLM (ADR-0059) com memória baseline (ADR-0060), a arena (ADR-0061), a Fazenda Boa Vista, a fazenda 2 (ADR-0062), e duas rodadas da arena, a segunda com Sonnet e Opus (ADR-0063); o fechamento é a ADR-0065. A v0.1.0 "Fazenda do Camps" foi a primeira: um avatar, nenhum LLM, controladores humano, script e replay. A próxima, a **v0.3, é a fazenda sofisticada** (ADR-0064; `docs/planos/v0.3-macro.md`): as decisões estão na ADR-0066 (o cenário novo é a Fazenda Morada do Sol; o visual antes das outras famílias de modelos). O M16 (a Fazenda Morada do Sol, ADR-0067; `docs/planos/m16-morada-do-sol.md`) e o M17 (ver e assistir: a névoa, a noite e a lanterna, o modo de assistir e a página da arena, os menus do humano e os rótulos da linha do tempo; ADR-0068; `docs/planos/m17-ver-e-assistir.md`) estão feitos, e o M18 (a economia nas bibliotecas `libs/economy` e `libs/climate`, que cada mundo escolhe usar: o mercado nos dois sentidos, as encomendas com a reputação, a feira, o tacho e a composteira, a previsão com tempestade e seca; ADR-0069; `docs/planos/m18-a-economia.md`) também; o próximo é o M19 (os controladores e a medição), e a rodada do humano na Boa Vista espera uma noite livre do usuário. O escritório vai para a v0.4.
+Campsverso é uma plataforma de simulação orientada a eventos para agentes de IA autônomos que vivem em mundos 2D. Cada mundo é um **cartucho** (fazenda, estúdio, startup…) rodando sobre um **kernel** genérico. A versão publicada é a **v0.2.0 "A possessão"** (`docs/versoes/v0.2.0.md`; aceite em `docs/aceite-v0.2.md`): o controlador LLM (ADR-0059) com memória baseline (ADR-0060), a arena (ADR-0061), a Fazenda Boa Vista, a fazenda 2 (ADR-0062), e duas rodadas da arena, a segunda com Sonnet e Opus (ADR-0063); o fechamento é a ADR-0065. A v0.1.0 "Fazenda do Camps" foi a primeira: um avatar, nenhum LLM, controladores humano, script e replay. A próxima, a **v0.3, é a fazenda sofisticada** (ADR-0064; `docs/planos/v0.3-macro.md`): as decisões estão na ADR-0066 (o cenário novo é a Fazenda Morada do Sol; o visual antes das outras famílias de modelos). O M16 (a Fazenda Morada do Sol, ADR-0067; `docs/planos/m16-morada-do-sol.md`) e o M17 (ver e assistir: a névoa, a noite e a lanterna, o modo de assistir e a página da arena, os menus do humano e os rótulos da linha do tempo; ADR-0068; `docs/planos/m17-ver-e-assistir.md`) estão feitos, o M18 (a economia nas bibliotecas `libs/economy` e `libs/climate`, que cada mundo escolhe usar: o mercado nos dois sentidos, as encomendas com a reputação, a feira, o tacho e a composteira, a previsão com tempestade e seca; ADR-0069; `docs/planos/m18-a-economia.md`) e o M19 (os controladores e a medição: as variantes do mapa, o fazendeiro-script 3 que aprende e o oráculo que sabe, o caderno de campo e o experimento da noite, a prova do mundo e o juiz; ADR-0070; `docs/planos/m19-os-controladores-e-a-medicao.md`) também. O próximo é o M20 (os ajudantes); antes, decidir com o usuário o agricultor treinado (um playbook de método para o Haiku, `futuro.md`). A rodada do humano na Boa Vista espera uma noite livre do usuário. O escritório vai para a v0.4.
 
 O projeto também é material de aprendizado e de publicações. Clareza, testes e registro das decisões importam tanto quanto o código.
 
@@ -15,7 +15,7 @@ Leia antes de qualquer tarefa não trivial, nesta ordem:
 5. `docs/arquitetura/pesquisa-componentes-plataforma-simulacao.md` — bibliotecas avaliadas
 6. `docs/arquitetura/catalogo-eventos-v0.1.md` — eventos e comandos da v0.1 (depois do M0, guia de leitura dos schemas em `contracts/`)
 7. `docs/arquitetura/fazenda-boa-vista-biblia.md` — a fazenda 2 do M13: números, regras visíveis e ocultas, o fazendeiro-script 2
-8. `docs/arquitetura/fazenda-morada-do-sol-biblia.md` — a fazenda 3 do M16: o ano e as estações, o mapa com raio e marcos, os canteiros que voltam a ser grama, as regras ocultas R-001 a R-003
+8. `docs/arquitetura/fazenda-morada-do-sol-biblia.md` — a fazenda 3 do M16: o ano e as estações, o mapa com raio e marcos e as variantes b e c (M19), os canteiros que voltam a ser grama, as regras ocultas R-001 a R-004, o fazendeiro-script 3 e o oráculo (§16)
 9. `docs/decisoes/README.md` — índice das ADRs. **Uma ADR aceita prevalece sobre o texto dos documentos acima.**
 
 Se dois documentos conflitarem, ou se faltar uma decisão: **pare e pergunte**. Depois registre a decisão como ADR curto em `docs/decisoes/NNNN-titulo.md`.
@@ -76,7 +76,7 @@ campsverso/
   cartridges/                 # em camadas: gênero → cenário (ADR-0031)
     farm/                     # gênero: mecânicas genéricas de fazenda
       sim/                    # itens, culturas, ações, sistemas, regras (carregado pelo kernel)
-      script/                 # fazendeiro-script; depende só dos contratos (carregado pelo controller-runner)
+      script/                 # fazendeiros-script 1, 2 e 3 e o oráculo (ADR-0070); dependem só dos contratos (carregados pelo controller-runner)
       mind/                   # o que a mente sabe da fazenda: notas do mundo e descrições das ferramentas (ADR-0059)
       art/                    # arte LPC do gênero e o manifesto art.json, com CREDITS.csv (ADR-0053)
     farm_camps/               # cenário da v0.1: estende farm
@@ -88,7 +88,8 @@ campsverso/
       art/                    # o mapa visual; o resto vem das camadas farm e farm_camps
       mind/                   # o manual e o catálogo da fazenda 2 sobre o cartão do Camps; entry point camps_boavista
     farm_morada_do_sol/       # a Fazenda Morada do Sol, a fazenda 3 do M16 (ADR-0067): estende farm_boavista
-      sim/                    # mapa 64 x 40, morada.yaml (o ano, as estações, os canteiros que voltam, o espantalho, os corvos), R-001 e R-003
+      sim/                    # mapa 64 x 40 e as variantes por receita (M19), morada.yaml (o ano, as estações, os canteiros que voltam, o espantalho, os corvos), R-001 e R-003
+      eval/                   # a prova do mundo e a rubrica do juiz (ADR-0070), fora da mente; farm_camps e farm_boavista têm a rubrica
       art/                    # o mapa visual com as árvores LPC por estação e o espantalho
       mind/                   # o manual e o catálogo da fazenda 3; entry point camps_morada
   apps/
@@ -106,13 +107,13 @@ campsverso/
     planos/                   # plano de cada marco, aprovado antes do código; futuro.md: tarefas sem marco
     design/                   # referências visuais (Claude Design)
     custos/                   # tempo e tokens por marco (make sessoes), só números
-    arena/                    # os relatórios da arena (make arena-report), um por data (ADR-0061)
+    arena/                    # os relatórios da arena (make arena-report), um por data (ADR-0061); o gabarito e os controles do juiz (ADR-0070)
     versoes/                  # notas de cada versão (v0.1.0, v0.2.0)
     imagens/                  # um print de cada versão, para o README
   tests/
     e2e/                      # resistência, determinismo, replay, recuperação
     support/                  # campsverso_testkit: mundos e roteiros para testes (ADR-0040)
-    fixtures/llm/           # fitas de teste do controlador LLM, magras: hash do pedido e resposta (ADR-0059)
+    fixtures/llm/           # fitas de teste do controlador LLM e do juiz, magras: hash do pedido e resposta (ADR-0059)
 ```
 
 ## Convenções
@@ -148,11 +149,13 @@ make percepcao    # fotos e deltas da percepção por dia, em bytes e tokens est
 make llm-smoke    # uma chamada real pela porta de modelo, numa fita nova a cada vez, medida e publicada pelo contrato (ADR-0058); pede ANTHROPIC_API_KEY no .env
 make fita DIAS=2  # grava em processo a fita de teste do controlador LLM, chamando a API (ADR-0059); o CI só a reproduz; CARTUCHO=farm_boavista grava a da fazenda 2, CARTUCHO=farm_morada_do_sol a da fazenda 3
 make corrida DIAS=7   # N dias em processo com a mente sobre a API, com ou sem memória (ADR-0060); o mundo espera o modelo; CARTUCHO=farm_morada_do_sol escolhe a fazenda
-make arena DIAS=30    # as corridas da arena, em sequência, em data/arena/<data>-<rodada> (ADR-0061); SO=nome roda uma só; RODADA=boavista é a segunda rodada (M14); vários em paralelo no mesmo dia dividem as corridas
-make arena-report     # o relatório da arena (tabela da bíblia lado a lado, o leste pela memória) em docs/arena/
+make arena DIAS=30    # as corridas da arena, em sequência, em data/arena/<data>-<rodada> (ADR-0061); SO=nome roda uma só; RODADA=boavista é a segunda rodada (M14), RODADA=morada a verificação do M19; vários em paralelo no mesmo dia dividem as corridas
+make juiz PASTA=data/arena/<rodada>  # o juiz das crenças (ADR-0070): o Opus dá a causa, só o lugar ou não por regra oculta; CONTROLES=docs/arena/juiz-gabarito.yaml julga os controles; CONFERIR=docs/arena/juiz-gabarito.yaml confere sem chamar a API
+make arena-report     # o relatório da arena (tabela da bíblia lado a lado, o leste pela memória, a exploração, a prova, o juiz, o valor de saber) em docs/arena/
 make arena-humano SANDBOX=data/sandbox/<pasta>  # a partida de um humano no sandbox como mais uma corrida da rodada (ADR-0066); PASTA= escolhe a rodada
 make assistir PASTA=data/arena/<rodada>  # o gateway no modo de assistir: as corridas da rodada em http://127.0.0.1:8765/?view=arena, ao vivo ou gravadas, montadas dos fatos (ADR-0068)
 make mapa-visual  # regrava o mapa visual da fazenda a partir do mapa lógico (ADR-0053)
+make mapa-variantes  # regrava as variantes do mapa da Morada do Sol a partir das receitas e confere as promessas (ADR-0070)
 make sessoes      # tempo e tokens do Claude Code por turno e por marco em docs/custos (MARCO=M5)
 ```
 

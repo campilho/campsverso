@@ -62,8 +62,8 @@ A pergunta: **num mundo maior, com estações, encomendas e regras escondidas em
 | M16: a Fazenda Morada do Sol | o cenário novo com o mapa maior e a câmera que rola, canteiros sem teto, o ano acelerado com as quatro estações, as regras ocultas novas, a arte | concluído em 23/out/2026 ([plano](docs/planos/m16-morada-do-sol.md), ADR-0067, [bíblia](docs/arquitetura/fazenda-morada-do-sol-biblia.md)) |
 | M17: ver e assistir | a névoa, a noite e a lanterna; a visão arena, com as corridas ao vivo e gravadas; os menus do humano | concluído em 24/out/2026 ([plano](docs/planos/m17-ver-e-assistir.md), ADR-0068) |
 | M18: a economia | um módulo de economia reaproveitável: oferta e demanda, encomendas com prazo, a feira, processamento, clima | concluído em 24/out/2026 ([plano](docs/planos/m18-a-economia.md), ADR-0069) |
-| M19: os controladores e a medição | o fazendeiro-script 3, o oráculo, o caderno de campo, a prova do mundo e o juiz, as variantes do mapa | próximo |
-| M20: os ajudantes | vários avatares; cinco personagens contratáveis, cada um com a sua ficha | a fazer |
+| M19: os controladores e a medição | o fazendeiro-script 3, o oráculo, o caderno de campo, a prova do mundo e o juiz, as variantes do mapa | concluído em 25/out/2026 ([plano](docs/planos/m19-os-controladores-e-a-medicao.md), ADR-0070, [a rodada de verificação](docs/arena/2026-10-25.md)) |
+| M20: os ajudantes | vários avatares; cinco personagens contratáveis, cada um com a sua ficha | próximo |
 | M21: a terceira arena | a rodada do humano da v0.3; Claude, script 3 e oráculo; depois GPT e Gemini | a fazer |
 | M22: fechamento | critérios de aceite, diário, notas e a tag `v0.3.0` | a fazer |
 

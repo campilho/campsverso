@@ -1,6 +1,6 @@
 # Bíblia da Fazenda Morada do Sol (a fazenda 3, M16)
 
-**Status:** escrita em 23/out/2026, ao fim do M16, a partir do plano do marco e da ADR-0067; a noite e a lanterna entraram no M17 (ADR-0068), e a economia e o clima no M18 (ADR-0069, §11 a §14). É a fonte dos números e das regras do cenário `farm_morada_do_sol` e do mundo `farm-morada-do-sol-01`. O cenário estende a Fazenda Boa Vista: o que esta bíblia não diz vale como na bíblia 2 (`fazenda-boa-vista-biblia.md`) e, abaixo dela, na bíblia da v0.1. Isso inclui as ferramentas, o baú, o mercado que satura, o fogão, a validade, o sono e o desmaio.
+**Status:** escrita em 23/out/2026, ao fim do M16, a partir do plano do marco e da ADR-0067; a noite e a lanterna entraram no M17 (ADR-0068), a economia e o clima no M18 (ADR-0069, §11 a §14), e as variantes do mapa, o fazendeiro-script 3, o oráculo e a fome em 2 por hora no M19 (ADR-0070, §3, §9, §10, §15 e §16). É a fonte dos números e das regras do cenário `farm_morada_do_sol` e dos mundos `farm-morada-do-sol-01`, `-02` e `-03`. O cenário estende a Fazenda Boa Vista: o que esta bíblia não diz vale como na bíblia 2 (`fazenda-boa-vista-biblia.md`) e, abaixo dela, na bíblia da v0.1. Isso inclui as ferramentas, o baú, o mercado que satura, o fogão, a validade, o sono e o desmaio.
 
 ## 1. Conceito
 
@@ -42,6 +42,17 @@ São 64 × 40 tiles, quatro vezes a área da Boa Vista, com os nove tipos de ter
 | Bosques | soltos no campo | manchas de mata que bloqueiam o caminho reto |
 
 O mapa lógico é gerado por script a partir desta tabela e editado no Tiled daqui em diante. O mapa visual vem do `make mapa-visual`, com árvores LPC por cima da mata, que trocam de cor com a estação (verde, laranja no outono e marrom no inverno seco).
+
+**As variantes (M19, ADR-0070).** O mapa acima é a variante `a`. As outras são receitas sobre ele (`data/maps/receitas.yaml`): a casa, o centro, a estrada e a entrada ficam no lugar, e mudam a água e as matas. `make mapa-variantes` aplica cada receita, grava o mapa e confere o que ela promete; o arquivo do mundo escolhe a variante com `map:`, o id do mapa fica no snapshot, e a tela escolhe o mapa visual pelo id.
+
+| Variante | Mundo | A água | A terra boa (até 4 tiles da água) |
+|---|---|---|---|
+| **a, o rio** | `farm-morada-do-sol-01` | o rio na borda leste e a lagoa do morro | longe da casa, no caminho dos corvos |
+| **b, o córrego** | `farm-morada-do-sol-02` | um córrego de norte a sul na coluna 20, com a ponte da estrada e uma lagoinha no fim; sem rio | de 9 a 22 tiles da porta, 60% ou mais a salvo dos corvos, a 3 tiles do poço ou mais |
+| **c, as lagoas** | `farm-morada-do-sol-03` | três lagoas pequenas, no morro, na clareira e a leste; sem rio | só a mais de 22 tiles da porta: toda no caminho dos corvos |
+| **d** | (M21) | reservada, com outra receita | nunca entra nos testes do script 3 |
+
+Os três mundos têm a mesma seed (20261022): a diferença entre eles é só o mapa. A água precisa de dois tiles de largura para a margem se desenhar, e as lagoas são retângulos.
 
 ## 4. A percepção
 
@@ -121,7 +132,7 @@ O mesmo script da Boa Vista, com o que só age onde há estação e recorte:
 - **A exploração:** sem nada para fazer, das 08:00 às 17:00, com energia de 45 ou mais e fome abaixo de 55, anda até a fronteira do que já viu. No soak do ano, viu o mapa inteiro entre os dias 2 e 3.
 - **O calendário:** não planta nem compra a cultura parada na estação, conta a fraca como duas vezes mais lenta e escolhe a base de comida da estação (rabanete, couve ou milho, a primeira que cresce no ritmo cheio).
 
-Ele não sabe nenhuma regra oculta, e sofre com elas: repete o rabanete nos mesmos canteiros, e a fadiga do solo leva o rabanete de 3 para uns 5,5 dias. É a linha de base cega até o fazendeiro-script 3, no M19.
+Ele não sabe nenhuma regra oculta, e sofre com elas: repete o rabanete nos mesmos canteiros, e a fadiga do solo leva o rabanete de 3 para uns 5,5 dias. Continua a linha de base cega, ao lado do fazendeiro-script 3 e do oráculo (§16).
 
 **Na economia (M18), só no essencial:** não repete uma proposta que acabou de ser recusada; conta o preço da semente que sobe com a compra; na seca, rega com as 2 cargas; perto do quadro, aceita o pedido que já pode cumprir com o que carrega e entrega na hora. A feira e o tacho ficam para o script 3. No soak de um ano com a economia e o clima, ele vive sem desmaio nem recusa: 48 plantios, 38 colheitas, 17 moedas ao fim e 1 encomenda entregue (de 20 que apareceram).
 
@@ -138,7 +149,17 @@ As da Boa Vista (bíblia 2, §13), mais duas:
 | Feito no tacho e na composteira | quanto se agregou de valor |
 | Plantas derrubadas pela tempestade | quanto custou não ler a previsão |
 
-As de exploração (tiles vistos, distância dos canteiros à casa, canteiros por zona) ficam para o M19, com as variantes do mapa.
+**As do avaliador (M19, ADR-0070),** lidas do arquivo da corrida, nunca do kernel:
+
+| Métrica | Por quê |
+|---|---|
+| Tiles vistos, o dia em que viu 90% do mapa, a primeira água à vista | quanto e quando explorou |
+| Canteiros cavados e plantios por zona: a várzea (até 4 tiles da água e até 18 da porta), a várzea longe (a mais de 18 da porta), longe (fora da várzea, a mais de 18 da porta) e o resto | onde plantou, pela verdade das regras, que o avaliador pode saber |
+| Plantios na várzea depois de ver a água, plantios longe sem espantalho, a distância média dos canteiros à porta, quantas vezes repetiu a cultura do canteiro | se o que viu mudou o que fez |
+| A prova do mundo (`eval/prova.yaml`): 11 perguntas fechadas sobre as regras ocultas, com "não sei", antes e depois | o que aprendeu, separado do que já supunha |
+| O juiz (`eval/juiz.yaml`): a causa, só o lugar ou não, por regra oculta, nas crenças do fim | o que as crenças mostram, com a crença que sustenta o veredito |
+| O modelo do script 3 (`modelo.json`): o efeito de cada atributo com o intervalo de 90% | o que o script aprendeu |
+| Os experimentos da noite: a hipótese e o veredito da noite seguinte | como a mente experimenta |
 
 ## 11. O clima e a previsão
 
@@ -192,6 +213,39 @@ Calibradas em 25/out/2026, no começo do script 3 (ADR-0070, decisões 16 e 17).
 | | |
 |---|---|
 | A fome | sobe 2 por hora acordado e 1 dormindo, uns 40 por dia (nas fazendas 1 e 2, 3 por hora: uns 56); o cenário troca o ritmo do gênero com a seção `needs` |
-| Por quê | com 3 por hora, nem quem sabe as regras ocultas comia direito: o script 2 passava 16 dos 28 dias com a fome em 100, e o oráculo, de 16 a 17 nos mapas a e c. Com 2, o oráculo atravessa o ano sem fome nos três mapas, e o script 3, que ainda aprende, passa de 10 a 12 dias com fome nos mapas a e c: a diferença é o valor de aprender |
+| Por quê | com 3 por hora, nem quem sabe as regras ocultas comia direito: o script 2 passava 16 dos 28 dias com a fome em 100, e o oráculo, de 16 a 17 nos mapas a e c. Com 2, o oráculo atravessa o ano quase sem fome nos três mapas (de 0 a 4 dias com a fome em 100), o script 2 passa 13 dias, e o script 3, que ainda aprende, de 4 a 14: a diferença é o valor de saber, e onde o script 3 fica nela é o que aprender captou (§16) |
 | As regras no manual | comer com a fome em 60; separar os canteiros da comida dos de vender (o rabanete na primavera mata uns 8 de fome por dia: uns 5 canteiros pagam o dia, 7 dão folga; na estação fraca da comida, o dobro); guardar comida para dois dias e não vendê-la; não investir o dinheiro da semente da próxima leva dos canteiros de comida; com moedas sobrando, comparar o custo das comidas e anotar o que se descobre dos pratos |
 | Quem segue | o script 3 e o oráculo, pelos números do manual; o fazendeiro LLM, pelo manual. O script 2 fica como era: é a linha de base cega das rodadas anteriores |
+
+## 16. O fazendeiro-script 3 e o oráculo (M19)
+
+Escritos em 25/out/2026 (ADR-0070, decisões 4 a 7, 15 e 17). Os números ficam em `cartridges/farm/script/.../data/farmer3.yaml` e `oracle.yaml`.
+
+**O script 3** herda do script 2 o que o manual diz (as culturas, a comida, o calendário, o sono, a exploração) e não sabe nenhuma regra oculta. Vê o que o LLM vê e acrescenta:
+
+| | |
+|---|---|
+| O caderno de campo | cada plantio: onde, a cultura, a anterior do canteiro, o adubo, os dias de rega, quando amadureceu e o que houve (colhida, comida, derrubada, murcha, sumida); e a fome que cada comida tirou |
+| O modelo do ritmo | o logaritmo do ritmo de cada plantio (os dias que o manual e a estação prometem, divididos pelos que levou) como a soma dos efeitos: a faixa de distância à água, à mata, ao caminho e à porta (até 2, 4, 8, 16 tiles, ou mais), a cultura repetida e o adubo. Regressão bayesiana, com a crença larga no começo (0,78 a 1,28 vez num desvio). A mata, o caminho e a porta são distratores |
+| O modelo da perda | a chance de perder a madura por faixa de distância da porta (até 8, 16, 32, ou mais) e do espantalho mais perto (até 4, 8, ou mais), numa beta por faixa |
+| Onde cavar | a cada manhã sorteia um mundo da crença (amostragem de Thompson) e cava onde esse mundo rende mais por moeda; os primeiros canteiros vão em 3 pares (um no lugar de sempre, outro onde se sabe menos), e depois um canteiro em cada quatro continua como teste |
+| O que plantar | pelo mundo médio da crença; troca a cultura do canteiro quando o efeito da repetição fica abaixo de 0,9 com 90% de confiança; deixa voltar a grama o canteiro que rende menos de 70% do melhor lugar novo, com 10 plantios medidos |
+| A sobrevivência | as regras do manual (§15): comer com a fome em 60, o prato pronto primeiro e depois a comida mais barata por ponto de fome; os canteiros da comida separados, com 40% de folga; o caixa da semente da comida não se investe; dois dias de comida guardados |
+| O dinheiro | os canteiros de vender pelo retorno por moeda por dia, com o caixa acima da reserva e mais 40 moedas; o espantalho quando 6 canteiros ou mais estão onde o mundo do dia perde 20% das maduras ou mais; a composteira com os restos |
+
+Ele esquece tudo quando o processo reinicia, e cada corrida começa do zero: lembrar de outro mapa seria trapaça.
+
+**O oráculo** é o mesmo código com a verdade no lugar da crença (`oracle.yaml`, conferido contra os dados do cartucho por um teste): a água a até 4 tiles, 1,5; a repetição, 0,6; o adubo, 1,5; os corvos a mais de 18 tiles da porta, 1 em 2, sem espantalho a até 6. A diferença entre os dois é só saber.
+
+**Um ano em cada mapa** (seed 20261022, a fome em 2 por hora; moedas, colheitas e dias com a fome em 100):
+
+| Quem | Mapa a | Mapa b | Mapa c |
+|---|---|---|---|
+| script 2 (não sabe) | 14 · 41 · 13 | 14 · 41 · 13 | 14 · 41 · 13 |
+| script 3 (aprende) | 2 · 59 · 4 | 8 · 48 · 6 | 6 · 29 · 14 |
+| oráculo (sabe) | 321 · 78 · 3 | 587 · 95 · 0 | 184 · 69 · 4 |
+
+- **O que o script 3 aprende:** a fadiga nos três mapas (0,51 a 0,54) e a água nos mapas a e b (1,3 a 1,4, com o intervalo acima de 1). No mapa c, com as lagoas longe, quase não planta perto da água e não aprende.
+- **Sem a água e a fadiga** (`river_bonus=False`), no mapa a, ele faz 246 moedas e não descobre a água; mas vê a repetição acelerar um pouco (1,07, de 1,01 a 1,14): um intervalo de 90% com 19 atributos às vezes exclui o 1 por acaso.
+- **O valor de saber** (o oráculo menos o script 2) vai de 170 moedas no mapa c a 573 no b. O script 3, num ano só, ganha em colheitas e em fome nos mapas a e b, mas ainda não em moedas.
+- **O script 2 não depende do mapa:** cava em volta do poço e nunca chega perto da água.

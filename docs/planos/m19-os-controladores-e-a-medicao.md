@@ -1,6 +1,6 @@
 # Plano do M19 — Os controladores e a medição
 
-*Proposto em 25/out/2026, depois do fechamento do M18. É o marco da medição da v0.3 (ADR-0066): o fazendeiro-script 3 e o oráculo, o caderno de campo da mente, a prova do mundo e o juiz, as métricas de exploração e as variantes do mapa, cujo desenho a ADR-0066 (decisão 18) deixou para este plano. Aprovado em 25/out/2026 (ADR-0070), com as notas do usuário no fim da §14 e a composteira incluída no script 3.*
+*Proposto em 25/out/2026, depois do fechamento do M18. É o marco da medição da v0.3 (ADR-0066): o fazendeiro-script 3 e o oráculo, o caderno de campo da mente, a prova do mundo e o juiz, as métricas de exploração e as variantes do mapa, cujo desenho a ADR-0066 (decisão 18) deixou para este plano. Aprovado em 25/out/2026 (ADR-0070), com as notas do usuário no fim da §14 e a composteira incluída no script 3. Feito no mesmo dia: o que ficou está na §15.*
 
 **Pronto quando:**
 - **As variantes do mapa:** a Morada do Sol existe em três mapas, o de hoje e dois com a água em outro lugar. A casa, o centro e a entrada da fazenda ficam onde estão. O arquivo do mundo escolhe o mapa, e a tela desenha o certo. Uma quarta variante fica reservada para a arena final.
@@ -324,3 +324,57 @@ Cada passo vira um ou mais commits, com `make check` antes de cada um.
 - **13:** o Opus julgando o próprio Opus. O juiz tem outro papel: lê crenças sem saber de quem são, com a verdade das regras e uma rubrica fechada, e é conferido contra o gabarito feito à mão, que inclui a corrida do Opus no M14. No M21, as corridas do Opus ganham um segundo juiz, de outra família ou o Sonnet, e as discordâncias vão para o relatório.
 - **14:** nem Opus nem Sonnet jogando agora; o Opus só como juiz.
 - **Para depois da corrida do Haiku:** um agricultor "treinado". Um playbook com o método (planejar, comparar custo e benefício, anotar e medir) e com o saber do ofício (água perto ajuda, repetir a cultura cansa a terra, sem dizer quanto), e o Haiku medido sem ele e com ele. Fica registrado no `futuro.md` para decidirmos juntos.
+
+## 15. Como ficou
+
+Feito em 25/out, numa sessão longa, com as decisões 1 a 15 da ADR-0070 e mais três tomadas no caminho: a fome da Morada do Sol em 2 por hora (16), as regras de sobrevivência explícitas para todos (17) e os controles do juiz (18).
+
+- **As variantes do mapa:**
+  - receitas sobre o mapa de hoje (`receitas.yaml`) com promessas conferidas por teste;
+  - o mapa b (o córrego perto da casa) e o c (as lagoas longe), e os mundos `-02` e `-03`;
+  - o `map:` no arquivo do mundo, o id no snapshot, e a tela que escolhe o mapa visual pelo id;
+  - as margens da água desenhadas no tileset.
+- **O fazendeiro-script 3:**
+  - vê o que o LLM vê e anota cada plantio num caderno de campo;
+  - aprende uma crença bayesiana sobre o ritmo (as faixas de distância à água, à mata, ao caminho e à porta, a repetição e o adubo) e sobre a perda da madura;
+  - escolhe onde cavar pela amostragem de Thompson e testa onde o modelo sabe menos;
+  - come pelo custo-benefício e anota a fome que cada comida tirou;
+  - segue as regras de sobrevivência do manual.
+- **O oráculo** é o mesmo código com a verdade (`oracle.yaml`, conferido contra o cartucho).
+- **A mente da Morada do Sol** ganhou:
+  - o caderno de campo, montado só das entregas, com os plantios e a comida;
+  - o experimento da noite: a hipótese, o teste e a previsão, com o veredito na noite seguinte;
+  - o resumo da reflexão cortado na marcação de ferramenta, para todas as mentes.
+- **A medição:**
+  - as métricas de exploração, lidas do arquivo;
+  - a prova do mundo: 11 perguntas, antes e depois, com a leitura do modelo do script 3;
+  - o juiz Opus, conferido contra o gabarito feito à mão e contra controles;
+  - o relatório da arena com o valor de saber, o que o script 3 aprendeu, os experimentos da noite, a prova e o juiz.
+- **Os testes:** 530 em Python. O script 3 e o oráculo rodam o ano no CI (uns 100 s, o dobro do previsto: a validação de contrato da percepção pesa mais que o script).
+- **Os números** (um ano, seed 20261022; moedas · colheitas · dias com a fome em 100):
+
+  | Quem | Mapa a | Mapa b | Mapa c |
+  |---|---|---|---|
+  | script 2 (não sabe) | 14 · 41 · 13 | 14 · 41 · 13 | 14 · 41 · 13 |
+  | script 3 (aprende) | 2 · 59 · 4 | 8 · 48 · 6 | 6 · 29 · 14 |
+  | oráculo (sabe) | 321 · 78 · 3 | 587 · 95 · 0 | 184 · 69 · 4 |
+  | Haiku com memória | 91 · 45 · 5 | - | - |
+
+  - **O script 3 aprende a fadiga nos três mapas** (0,51 a 0,54; a verdade é 0,6) e **a água nos mapas a e b** (1,3 a 1,4; a verdade é 1,5). No mapa c, com as lagoas longe, quase não planta perto da água e não aprende.
+  - **O script 3 não ganha do script 2 em moedas;** ganha em colheitas e em fome nos mapas a e b, e não no c. O plano esperava que ganhasse nos três. Saber vale de 170 a 573 moedas por mapa; aprender, num ano só, ainda capta pouco disso.
+  - **Sem as regras, o script 3 faz 246 moedas,** e não descobre a água; mas vê a repetição acelerar um pouco (1,07, de 1,01 a 1,14), um falso positivo do intervalo de 90% com 19 atributos.
+  - **A corrida do Haiku** (28 dias no mapa a, US$ 0,71): 27 experimentos da noite, nenhum sobre uma regra oculta; o juiz achou "só o lugar" da fadiga; a prova foi de 0 a 2 acertos, sem crença que os sustente.
+  - **O juiz** concordou com o gabarito em 47 de 47 e nos controles em 28 de 28 (US$ 0,99 com a rodada).
+- **O que mudou em relação ao plano:**
+  - **A fome da Morada do Sol** caiu de 3 para 2 por hora, e as regras de sobrevivência foram para o manual, o script 3 e o oráculo (decisões 16 e 17): com 3, nem o oráculo comia direito.
+  - **O juiz ganhou controles** (decisão 18), porque o gabarito feito à mão saiu todo "não".
+  - **A arena grava o modelo do script** (`modelo.json`) e o relatório mostra o que ele aprendeu.
+  - **O critério "o script 3 ganha do script 2 nos três mapas"** não foi cumprido: ficou registrado, e o teste confere colheitas e fome nos mapas a e b.
+  - **O CI leva uns 100 s com o script 3,** e não os 50 s previstos.
+- **O que se achou no caminho:**
+  - **O runner entregava ao script só a foto,** sem o motivo do pedido; o script 2 do M18 lia o motivo só nos testes de unidade.
+  - **A madura que murcha sem colher** publicava `dry_days: 0`, fora do contrato.
+  - **As margens novas da água saíam pretas** com o tileset antigo no cache do navegador: o gateway passou a pedir que o navegador confira.
+  - **O CI teve uma falha intermitente** no teste da posse pela UI, que lia o estado antes de ele chegar.
+  - **A leitura dos corvos na prova** pede 25% de perda a 30 tiles, e a faixa do modelo do script vai de 16 a 32, misturando tiles com e sem corvos: o script 3 ficou em "não sei". A leitura ficou como estava antes da rodada.
+- **O custo:** uns US$ 1,80 de API (as fitas, o juiz com os controles, a prova e a corrida do Haiku), dentro do previsto. O desenvolvimento levou 244 minutos ativos numa sessão, e não os dois dias previstos.
