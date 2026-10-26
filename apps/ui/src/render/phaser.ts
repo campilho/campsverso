@@ -620,9 +620,9 @@ export class PhaserRenderer implements WorldRenderer {
   private fogMode: "always" | "toggle" | "off" = "off";
 
   constructor() {
-    this.followButton = el("button", { className: "map-button" }, "Seguir o Camps");
+    this.followButton = el("button", { className: "map-button" }, "Seguir o avatar");
     this.wholeButton = el("button", { className: "map-button" }, "Mapa inteiro");
-    this.fogButton = el("button", { className: "map-button" }, "Ver como o Camps");
+    this.fogButton = el("button", { className: "map-button" }, "Ver como o avatar");
     this.element = el(
       "div",
       { className: "phaser" },
@@ -682,7 +682,7 @@ export class PhaserRenderer implements WorldRenderer {
 
   private buttons(): void {
     this.fogButton.hidden = this.fogMode !== "toggle" || this.fogButton.hidden;
-    this.fogButton.textContent = this.scene.fogOn ? "Ver tudo" : "Ver como o Camps";
+    this.fogButton.textContent = this.scene.fogOn ? "Ver tudo" : "Ver como o avatar";
     const big = this.big();
     this.followButton.hidden = !big || (this.scene.following && !this.scene.whole);
     this.wholeButton.hidden = !big || this.scene.whole;

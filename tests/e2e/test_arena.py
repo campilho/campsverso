@@ -37,6 +37,8 @@ async def test_a_corrida_do_script_grava_a_pasta(tmp_path: Path) -> None:
         "script": None,
         "map": None,
         "playbook": 0,
+        "hire": None,
+        "hire_from": 8,
     }
     assert result["totals"]["days"] == 2
     assert (result["calls"], result["gave_up"], result["aborted_day"]) == (0, False, None)

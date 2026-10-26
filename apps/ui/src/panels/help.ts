@@ -1,5 +1,5 @@
 /** Os comandos de quem joga (ADR-0068): aparecem sozinhos na primeira vez que o humano assume o
- * Camps, e depois pelo botão "Comandos" ou pela tecla "?". Quem já viu fica guardado no navegador;
+ * avatar, e depois pelo botão "Comandos" ou pela tecla "?". Quem já viu fica guardado no navegador;
  * sem acesso ao armazenamento, a dica aparece de novo, e nada quebra. */
 import { button, el } from "../dom.ts";
 
@@ -7,12 +7,12 @@ const SEEN = "campsverso.comandos.v1";
 
 const COMMANDS: readonly (readonly [string, string])[] = [
   ["clique esquerdo", "anda até o tile"],
-  ["clique direito", "abre o menu da coisa, da grama ou do Camps"],
-  ["shift com o clique", "põe a ação na fila, que o Camps faz em ordem"],
+  ["clique direito", "abre o menu da coisa, da grama ou do seu avatar"],
+  ["shift com o clique", "põe a ação na fila, que o avatar faz em ordem"],
   ["Esc", "esvazia a fila"],
   ["setas ou WASD", "um passo"],
-  ["espaço", "volta a seguir o Camps"],
-  ["E", "abre o menu do Camps"],
+  ["espaço", "volta a seguir o avatar"],
+  ["E", "abre o menu do seu avatar"],
   ["arrastar", "rola o mapa"],
 ];
 
@@ -55,7 +55,7 @@ export class CommandsHelp {
     remember();
   }
 
-  /** Na primeira vez que o humano assume o Camps. */
+  /** Na primeira vez que o humano assume o avatar. */
   firstTime(): void {
     if (!seen()) {
       this.show();

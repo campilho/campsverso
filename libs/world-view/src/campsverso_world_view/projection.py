@@ -7,7 +7,7 @@ fora de `internal`, e quem a usa (percepção, gateway) não aplica eventos `int
 """
 
 import math
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import Any, cast
 
 NOTES_KEPT = 20  # anotações do caderno que a tela guarda (ADR-0060)
@@ -404,6 +404,73 @@ class Projection:
         path = cast(list[dict[str, int]], motion["path"])
         steps = math.floor((tick - motion["depart_tick"]) * motion["tiles_per_tick"] + 1e-9)
         return path[max(0, min(len(path) - 1, steps))]
+
+    # ------------------------------------------------------------- o que um avatar vê
+
+    def radius(self, avatar_id: str | None = None) -> int | None:
+        """O raio da hora (ADR-0068): o da fase, se o cartucho declarou, ou o de sempre; um item de
+        luz no inventário do avatar garante o raio dele. A ficha do avatar (ADR-0072) multiplica o
+        raio (`vision`), e quem enxerga à noite (`night_vision`) usa o raio de sempre em qualquer
+        fase. None é o mapa inteiro."""
+        perception = cast(Mapping[str, Any], (self.session or {}).get("perception") or {})
+        value = perception.get("radius")
+        if not isinstance(value, int):
+            return None
+        traits = cast(
+            Mapping[str, Any], self.entities.get(avatar_id or "", {}).get("attributes") or {}
+        )
+        by_phase = cast(Mapping[str, int], perception.get("by_phase") or {})
+        radius = value if traits.get("night_vision") else int(by_phase.get(self.phase, value))
+        vision = traits.get("vision")
+        if isinstance(vision, int | float) and vision != 1:
+            radius = round(radius * float(vision))
+        lights = cast(Mapping[str, int], perception.get("lights") or {})
+        held = self.containers.get(avatar_id or "", {})
+        return max([radius, *(int(r) for item, r in lights.items() if held.get(item, 0) > 0)])
+
+    def other_avatar(self, entity_id: str | None, avatar_id: str) -> bool:
+        """Outro avatar (ADR-0072): o inventário dele, e o que ele guarda, não aparecem."""
+        return (
+            entity_id is not None
+            and entity_id != avatar_id
+            and self.entities.get(entity_id, {}).get("kind") == "avatar"
+        )
+
+    def landmarks(self) -> frozenset[str]:
+        """Os tipos que se veem além do raio (ADR-0067): as construções fixas da fazenda."""
+        perception = cast(Mapping[str, Any], (self.session or {}).get("perception") or {})
+        return frozenset(str(k) for k in cast(list[Any], perception.get("landmarks") or []))
+
+    def seer(self, avatar_id: str, tick: int) -> Callable[[str], bool]:
+        """O que o avatar vê no tick (a percepção e a visão do jogador; ADR-0072): dentro do raio,
+        pela posição ou pela do contêiner que guarda a coisa; o próprio avatar e o que não tem
+        lugar conhecido entram sempre; as construções fixas, de longe; o avatar fora do mundo e o
+        que outro avatar carrega, nunca."""
+        radius = self.radius(avatar_id)
+        landmarks = self.landmarks()
+        center = self.position_at(avatar_id, tick)
+
+        def sees(entity_id: str) -> bool:
+            if entity_id == avatar_id:
+                return True
+            entity = self.entities.get(entity_id, {})
+            if entity.get("kind") == "avatar" and self.position_at(entity_id, tick) is None:
+                return False  # o avatar fora do mundo não está em lugar nenhum
+            if self.other_avatar(entity.get("container_id"), avatar_id):
+                return False  # o que outro avatar carrega não se vê
+            if radius is None or center is None:
+                return True
+            if entity.get("kind") in landmarks:
+                return True  # a construção fixa: quem mora ali sabe onde fica
+            where = self.position_at(entity_id, tick)
+            if where is None:
+                holder = self.entities.get(entity_id, {}).get("container_id")
+                where = self.position_at(str(holder), tick) if holder else None
+            if where is None:
+                return True
+            return max(abs(center["x"] - where["x"]), abs(center["y"] - where["y"])) <= radius
+
+        return sees
 
     # ------------------------------------------------------------- métricas do dia (ADR-0054)
 

@@ -93,3 +93,19 @@ def test_as_arvores_trocam_com_a_estacao() -> None:
     assert [t["name"] for t in visual["tilesets"]] == ["terrain", "trees"]
     trees = next(layer for layer in visual["layers"] if layer["name"] == "trees")
     assert sum(1 for gid in trees["data"] if gid) >= 12 * 30  # dezenas de árvores na mata
+
+
+def test_os_ajudantes_tem_folha_no_leiaute_do_camps_e_credito() -> None:
+    # ADR-0072: cada ficha do quadro tem a sua folha, com o mesmo mapa ação → animação do Camps.
+    morada = _art(LAYER)
+    camps = _art(CARTRIDGES / "farm_camps" / "art")["avatars"]["camps"]
+    roster = yaml.safe_load((DATA / "morada.yaml").read_text(encoding="utf-8"))["helpers"]["roster"]
+    credits = (LAYER / "CREDITS.csv").read_text(encoding="utf-8")
+    for helper in roster:
+        art = morada["avatars"][helper]
+        assert {k: v for k, v in art.items() if k != "sheet"} == {
+            k: v for k, v in camps.items() if k != "sheet"
+        }
+        image = LAYER / morada["sheets"][art["sheet"]]["image"]
+        assert _png_size(image) == (576, 832)  # estocada, andar, parado e caído, como o camps.png
+        assert f"{helper}.png," in credits

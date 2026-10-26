@@ -122,7 +122,8 @@ canvas {
     "portrait clock"
     "portrait avatar"
     "needs needs"
-    "items items";
+    "items items"
+    "others others";
   gap: 6px 12px;
   align-items: center;
   margin-top: 10px;
@@ -168,6 +169,18 @@ canvas {
   grid-area: items;
   flex-wrap: wrap;
   white-space: normal;
+}
+
+/* Os outros avatares à vista (os ajudantes, ADR-0072); some quando não há ninguém. */
+.hud-others {
+  grid-area: others;
+  flex-wrap: wrap;
+  white-space: normal;
+  font-size: 0.9em;
+}
+
+.hud-others:empty {
+  display: none;
 }
 
 .hud-time {

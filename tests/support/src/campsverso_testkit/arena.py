@@ -66,6 +66,8 @@ class Spec:
     script: str | None = None  # o fazendeiro-script; sem isto, o do cartucho (ADR-0070)
     map: str | None = None  # a variante do mapa (ADR-0070); sem isto, o mapa de hoje
     playbook: int = 0  # a versão do playbook no prompt da mente (ADR-0071); 0 é sem playbook
+    hire: str | None = None  # a contratação forçada do script 3, "ficha:dias" (ADR-0073)
+    hire_from: int = 8  # o primeiro dia em que contrata (o do arquivo do script 3)
 
 
 SPECS: tuple[Spec, ...] = (
@@ -159,6 +161,15 @@ ROUNDS: dict[str, tuple[Spec, ...]] = {
 }
 
 
+def _hiring(spec: Spec) -> dict[str, Any] | None:
+    """A contratação forçada (ADR-0073): a ficha e os dias, sempre que o caixa paga."""
+    if spec.hire is None:
+        return None
+    helper, days = spec.hire.split(":")
+    force = {"helper": helper, "days": int(days)}
+    return {"helpers": {"force": force, "from_day": spec.hire_from}}
+
+
 def _say(line: str, log: Path) -> None:
     print(line, flush=True)
     with log.open("a", encoding="utf-8") as handle:
@@ -219,6 +230,7 @@ async def run_spec(
         map_variant=spec.map,
         script=spec.script,
         playbook=spec.playbook > 0,
+        script_config=_hiring(spec),
     )
     exam = exam_of(spec.cartridge)
     prova: dict[str, Any] = {}  # a prova do mundo (ADR-0070): antes, com a memória vazia
@@ -230,7 +242,8 @@ async def run_spec(
         f"{'ligada' if spec.memory else 'desligada'}, regra "
         f"{'ligada' if spec.river_bonus else 'desligada'}, seed {spec.seed}"
         f"{f', mapa {spec.map}' if spec.map else ''}"
-        f"{f', com o playbook {spec.playbook}' if spec.playbook else ''}, "
+        f"{f', com o playbook {spec.playbook}' if spec.playbook else ''}"
+        f"{f', contratando {spec.hire} desde o dia {spec.hire_from}' if spec.hire else ''}, "
         f"em {out}",
         log,
     )

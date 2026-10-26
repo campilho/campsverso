@@ -11,7 +11,7 @@ test("o operador vê o mapa desenhado, assume o Camps, anda e devolve", async ({
   await page.waitForTimeout(2_000); // a arte carrega depois da primeira foto do mundo
   await page.screenshot({ path: `${SHOTS}/operador.png` });
 
-  await page.getByRole("button", { name: "Assumir o Camps" }).click();
+  await page.getByRole("button", { name: "Assumir Camps" }).click();
   await expect(page.getByRole("button", { name: "Devolver ao script" })).toBeVisible();
   await page.locator(".commands").getByRole("button", { name: "Entendi" }).click(); // a primeira vez (ADR-0068)
   await expect(hud).toContainText("parado", { timeout: 45_000 }); // o que o script deixou em andamento termina
@@ -30,7 +30,7 @@ test("o operador vê o mapa desenhado, assume o Camps, anda e devolve", async ({
   await page.getByRole("button", { name: "Retomar" }).click();
 
   await page.getByRole("button", { name: "Devolver ao script" }).click();
-  await expect(page.getByRole("button", { name: "Assumir o Camps" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Assumir Camps" })).toBeVisible();
 });
 
 test("o jogador vê o retrato do Camps e os créditos da arte", async ({ page }) => {

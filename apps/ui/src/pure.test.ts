@@ -6,7 +6,7 @@ import { applyMergePatch } from "./patch.ts";
 import { entityColor, tileColor } from "./render/skin.ts";
 import { DisplayClock, MAX_AHEAD, clockText, isLive } from "./simclock.ts";
 import { Store } from "./store.ts";
-import { doingText } from "./panels/hud.ts";
+import { doingText, othersText } from "./panels/hud.ts";
 import { matches, shortType, summarize } from "./timeline.ts";
 import { parseTiledMap, tileAt } from "./tiled.ts";
 
@@ -253,6 +253,20 @@ describe("linha do tempo", () => {
     expect(summarize(accepted)).toBe("avatar_id=camps · action=plant · intent=Plantar rabanete no plot-w-02. · action_id=act-1");
     expect(doingText("plant")).toBe("fazendo: plant");
     expect(doingText("plant", "Plantar rabanete no plot-w-02.")).toBe("fazendo: plant · Plantar rabanete no plot-w-02.");
+  });
+
+  it("o HUD mostra os outros avatares à vista, com a ordem e o que fazem (ADR-0072)", () => {
+    const seen = state({
+      entities: {
+        camps: { kind: "avatar", display_name: "Camps", position: { x: 1, y: 1 }, attributes: {} },
+        dita: { kind: "avatar", display_name: "Dita", position: { x: 2, y: 1 }, attributes: { ordem: "regar" } },
+        nina: { kind: "avatar", display_name: "Nina", attributes: {} },
+      },
+      actions: {
+        dita: { action_id: "a-1", action: "water", params: {}, end_tick: 3, intent: "regar" },
+      },
+    });
+    expect(othersText(seen, "camps")).toEqual(["Dita · regar · fazendo: water · regar"]); // a Nina está em casa
   });
 
   it("cor do canteiro vem do estágio", () => {

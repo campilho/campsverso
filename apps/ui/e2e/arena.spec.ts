@@ -18,6 +18,6 @@ test("a arena mostra as duas corridas, acelera e abre uma", async ({ page }) => 
   await cards.filter({ hasText: "script-gravada" }).click();
   await expect(page).toHaveURL(/view=operator&run=script-gravada/);
   await expect(page.locator(".control")).toContainText("Assistindo à corrida script-gravada", { timeout: 15_000 });
-  await expect(page.getByRole("button", { name: "Assumir o Camps" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Assumir Camps" })).toHaveCount(0);
   await expect(page.locator(".hud")).toContainText("Dia 1", { timeout: 15_000 });
 });

@@ -1,4 +1,5 @@
-/** HUD das duas visões: relógio, clima, avatar, necessidades e inventário (escopo §6). */
+/** HUD das duas visões: relógio, clima, avatar, necessidades, inventário (escopo §6) e os outros
+ * avatares à vista, com a ordem e o que estão fazendo (os ajudantes, ADR-0072). */
 import type { ObserverState } from "@campsverso/contracts";
 
 import { el } from "../dom.ts";
@@ -60,6 +61,19 @@ function itemChip(item: string, qty: number, icon?: IconOf): HTMLElement {
   return chip;
 }
 
+/** Os outros avatares na tela: o nome, a ordem que receberam (quando têm) e o que fazem agora. */
+export function othersText(state: ObserverState, avatarId: string): string[] {
+  return Object.entries(state.entities)
+    .filter(([id, e]) => id !== avatarId && e?.kind === "avatar" && e.position !== undefined)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([id, e]) => {
+      const order = e?.attributes["ordem"];
+      const action = state.actions[id];
+      const doing = action === undefined ? "parado" : doingText(action.action, action.intent);
+      return `${e?.display_name ?? id}${typeof order === "string" ? ` · ${order}` : ""} · ${doing}`;
+    });
+}
+
 export function renderHud(
   root: HTMLElement,
   state: ObserverState,
@@ -118,6 +132,11 @@ export function renderHud(
       el("label", {}, "inventário"),
       ...items.map(([item, qty]) => itemChip(item, qty ?? 0, icon)),
       ...held.map((text) => el("span", { className: "item held" }, text)),
+    ),
+    el(
+      "div",
+      { className: "hud-others" },
+      ...othersText(state, avatarId).map((text) => el("span", { className: "other" }, text)),
     ),
   );
 }

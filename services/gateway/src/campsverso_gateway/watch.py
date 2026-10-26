@@ -229,7 +229,7 @@ class WatchService:
         if run is None:
             await connection.close()
             return
-        client = _Client(connection)
+        client = _Client(connection, "camps")  # o modo de assistir vê como o operador
         if not run.clients and not run.state:
             self.advance(run, 0.0)
             run.state = self._state(run)

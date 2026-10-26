@@ -23,7 +23,7 @@ test("o humano cava pela grama: o Camps anda até o lado do tile e o canteiro ap
   const hud = page.locator(".hud");
   await expect(hud).toContainText("pausado", { timeout: 30_000 });
   await page.waitForTimeout(2_000); // o mapa e a arte chegam depois da primeira foto
-  await page.getByRole("button", { name: "Assumir o Camps" }).click();
+  await page.getByRole("button", { name: "Assumir Camps" }).click();
   const commands = page.locator(".commands");
   await expect(commands).toBeVisible(); // a primeira vez: os comandos na tela
   await commands.getByRole("button", { name: "Entendi" }).click();

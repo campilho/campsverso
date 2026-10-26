@@ -53,6 +53,35 @@ def observer_state(
     )
 
 
+# Por avatar: o jogador vê o que está à vista (a ação, o trajeto) e o corpo só do avatar dele.
+_VISIBLE_KEYED = ("motion", "actions")
+_OWN_KEYED = ("needs", "asleep", "sleep", "controllers", "decisions", "memory")
+
+
+def player_state(
+    projection: Projection, avatar_id: str, pulse: Mapping[str, Any] | None = None
+) -> dict[str, Any]:
+    """A visão do jogador (ADR-0072, decisão 8): o que o avatar dele percebe, com a mesma regra da
+    percepção (o raio da hora, as construções de longe, nada do que outro avatar carrega). O
+    terreno e o relógio são os de todos."""
+    state = observer_state(projection, pulse)
+    sees = projection.seer(avatar_id, projection.tick)
+    entities = {k: v for k, v in state.get("entities", {}).items() if sees(k)}
+    state["entities"] = entities
+    state["containers"] = {
+        k: v
+        for k, v in state.get("containers", {}).items()
+        if sees(k) and not projection.other_avatar(k, avatar_id)
+    }
+    for key in _VISIBLE_KEYED:
+        if key in state:
+            state[key] = {k: v for k, v in state[key].items() if k in entities}
+    for key in _OWN_KEYED:
+        if key in state:
+            state[key] = {k: v for k, v in state[key].items() if k == avatar_id}
+    return state
+
+
 def merge_diff(old: Mapping[str, Any], new: Mapping[str, Any]) -> dict[str, Any]:
     """O merge patch que leva `old` a `new`. Vazio quando não mudou nada."""
     patch: dict[str, Any] = {key: None for key in old if key not in new}

@@ -1,7 +1,7 @@
 /** A UI do Campsverso (M4 a M6; ADR-0050, ADR-0051, ADR-0053): o mundo pelo gateway.
  *
  * `?view=player` (padrão) mostra o mapa e o HUD; `?view=operator` acrescenta o painel do operador.
- * Nas duas visões dá para assumir o Camps e jogar: o clique esquerdo anda, o direito abre o menu, o
+ * Nas duas visões dá para assumir o avatar do jogador e jogar: o clique esquerdo anda, o direito abre o menu, o
  * shift enfileira, e o teclado anda e abre o menu (ADR-0068).
  * O mapa é desenhado pelo Phaser com a arte dos cartuchos; `?render=debug` volta ao canvas de
  * depuração, com ids e rótulos.
@@ -124,6 +124,11 @@ function avatarId(): string {
   return store.welcome?.avatar_id ?? "camps";
 }
 
+/** O nome do avatar do jogador, como o mundo o mostra (ADR-0072: o Camps não é o único avatar). */
+function avatarName(state: ObserverState | undefined = store.state): string {
+  return state?.entities[avatarId()]?.display_name ?? avatarId();
+}
+
 function say(text: string): void {
   notice.textContent = text;
   notice.hidden = false;
@@ -206,7 +211,7 @@ function assume(state: ObserverState): void {
 function renderControl(state: ObserverState): void {
   if (run !== null) {
     if (lastControl === "") {
-      // Assistir não muda o mundo: no lugar de assumir o Camps, o que é esta tela e a volta à arena.
+      // Assistir não muda o mundo: no lugar de assumir o avatar, o que é esta tela e a volta à arena.
       lastControl = "assistindo";
       const back = el("a", {}, "voltar à arena");
       back.href = "/?view=arena";
@@ -224,14 +229,14 @@ function renderControl(state: ObserverState): void {
   }
   lastControl = key;
   const hint = !mine
-    ? `O Camps está com ${controller === undefined ? "ninguém" : controller.id}. Assuma para jogar.`
+    ? `${avatarName(state)} está com ${controller === undefined ? "ninguém" : controller.id}. Assuma para jogar.`
     : busy
-      ? "Você controla o Camps."
+      ? `Você controla ${avatarName(state)}.`
       : "Sua vez: clique esquerdo anda; clique direito abre o menu; shift enfileira.";
   control.replaceChildren(
     mine
       ? button("Devolver ao script", () => { connection.send(RELEASE, { avatar_id: avatarId() }); }, store.status === "open")
-      : button("Assumir o Camps", () => { assume(state); }, store.status === "open"),
+      : button(`Assumir ${avatarName(state)}`, () => { assume(state); }, store.status === "open"),
     el("span", { className: "hint" }, hint),
     ...(mine ? [button("Comandos", () => { help.show(); })] : []),
   );
@@ -300,7 +305,7 @@ map.element.addEventListener("click", (event) => {
     return;
   }
   if (!inControl(state, avatarId())) {
-    say("Assuma o controle do Camps para jogar.");
+    say(`Assuma o controle de ${avatarName(state)} para jogar.`);
     return;
   }
   act(walkStep(state, tile), event.shiftKey);
@@ -314,13 +319,13 @@ map.element.addEventListener("contextmenu", (event) => {
     return;
   }
   if (!inControl(state, avatarId())) {
-    say("Assuma o controle do Camps para jogar.");
+    say(`Assuma o controle de ${avatarName(state)} para jogar.`);
     return;
   }
   openMenu(state, tile, event.pageX, event.pageY, event.shiftKey);
 });
 
-/** O menu do clique direito: o do Camps, o da coisa no tile, o do terreno vazio, ou só andar. */
+/** O menu do clique direito: o do avatar, o da coisa no tile, o do terreno vazio, ou só andar. */
 function openMenu(state: ObserverState, tile: Tile, pageX: number, pageY: number, queued: boolean): void {
   if (map.sight?.(tile.x, tile.y) === "unseen") {
     act(walkStep(state, tile), queued); // sob a nuvem não há menu: o jogador não sabe o que tem lá

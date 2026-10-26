@@ -1,7 +1,10 @@
 """Gateway: o mundo para a UI e os comandos do operador para o kernel (ADR-0022, ADR-0050).
 
-- Lê `world`, `agent` do avatar, `internal` e `observer` com consumidores duráveis. Só `world` e
-  `agent` entram na projeção; `internal` e `observer` só vão para a linha do tempo do operador.
+- Lê `world`, `agent` de todos os avatares, `internal` e `observer` com consumidores duráveis. Só
+  `world` e `agent` entram na projeção; `internal` e `observer` só vão para a linha do tempo do
+  operador.
+- O operador vê tudo; o jogador vê o que o avatar dele percebe (ADR-0072, decisão 8): o estado
+  recortado pela regra da percepção e, do `agent`, só os eventos do avatar dele.
 - A projeção e o que já foi visto vão para um arquivo antes de cada confirmação, como na
   percepção: se o gateway cair, volta de onde parou.
 - Cada conexão recebe um `welcome` com o estado e a linha do tempo recente, filtrada pela visão,
@@ -20,7 +23,7 @@ from functools import partial
 from typing import Any, cast
 
 from campsverso_contracts import CONTRACT_TYPES, subject
-from campsverso_gateway.state import merge_diff, observer_state
+from campsverso_gateway.state import merge_diff, observer_state, player_state
 from campsverso_ports import (
     BlobStore,
     BusUnavailableError,
@@ -79,6 +82,7 @@ PULSES_TO_SILENCE = 3  # pulsos perdidos até o kernel ficar "sem sinal" (ADR-00
 @dataclass(eq=False)
 class _Client:
     connection: RealtimeConnection
+    avatar_id: str  # o avatar do jogador: só os eventos `agent` dele chegam à visão do jogador
     queue: asyncio.Queue[Message] = field(
         default_factory=lambda: asyncio.Queue[Message](QUEUE_LIMIT)
     )
@@ -91,9 +95,10 @@ class _Client:
     def sees(self, envelope: Envelope) -> bool:
         """O que a visão vê, mais a recusa dos próprios comandos: quem joga precisa saber por que
         o kernel não aceitou o seu "Assumir", mesmo sem ver os eventos `observer` (ADR-0051)."""
-        if envelope["visibility"] in VISIBLE[self.view]:
-            return True
         data: Mapping[str, Any] = envelope["data"]
+        if envelope["visibility"] in VISIBLE[self.view]:
+            mine = data.get("avatar_id") in (None, self.avatar_id)
+            return self.view == "operator" or envelope["visibility"] != "agent" or mine
         return envelope["type"] == COMMAND_REJECTED and data.get("command_id") in self.sent
 
 
@@ -132,13 +137,13 @@ class GatewayService:
         self._seen: dict[str, int] = {}  # último seq por source, nos streams fora da projeção
         self._out_seq = 0  # seq dos comandos publicados pelo gateway
         self._load()
-        self._state = observer_state(self.projection)  # como ficou no último flush
         self._timeline: deque[Envelope] = deque(maxlen=timeline)
         self._pending: list[Envelope] = []
         self._clients: set[_Client] = set()
         self._consumers: list[Consumer] = []
         self._live: Subscription | None = None
         self._pulse: dict[str, Any] | None = None  # o último pulso e quando chegou
+        self._states = self._views()  # como ficou no último flush, por visão
         self._flusher: asyncio.Task[None] | None = None
         self.failure: BaseException | None = None
 
@@ -168,15 +173,15 @@ class GatewayService:
         w = self._worldid
         patterns = {
             "world": f"campsverso.{w}.world.>",
-            "agent": f"campsverso.{w}.agent.{self._avatar}.>",
+            "agent": f"campsverso.{w}.agent.*.>",  # todos os avatares (ADR-0072)
             "internal": f"campsverso.{w}.internal.>",
             "observer": f"campsverso.{w}.observer.>",
         }
         for stream, pattern in patterns.items():
             handler = partial(self._on_batch, stream)
-            self._consumers.append(
-                await self._bus.consume(pattern, f"gateway-{w}-{stream}", handler)
-            )
+            # O consumidor do agent mudou de filtro com os ajudantes: outro nome, outro durável.
+            durable = f"gateway-{w}-{'agents' if stream == 'agent' else stream}"
+            self._consumers.append(await self._bus.consume(pattern, durable, handler))
         self._live = await self._bus.subscribe(f"campsverso.{w}.live.kernel", self._on_pulse)
         self._flusher = asyncio.create_task(self._flush_loop())
 
@@ -249,17 +254,25 @@ class GatewayService:
             await asyncio.sleep(self._flush_seconds)
             self.flush()
 
+    def _views(self) -> dict[View, dict[str, Any]]:
+        pulse = self._pulse_state()
+        return {
+            "operator": observer_state(self.projection, pulse),
+            "player": player_state(self.projection, self._avatar, pulse),
+        }
+
     def flush(self) -> None:
         """Manda o que mudou desde o último flush. Sem `await`: conexão nova não entra no meio."""
-        state = observer_state(self.projection, self._pulse_state())
-        patch = merge_diff(self._state, state)
+        states = self._views()
+        patches = {view: merge_diff(self._states[view], states[view]) for view in states}
         events = sorted(self._pending, key=_order)
         self._pending = []
-        if not patch and not events:
+        if not any(patches.values()) and not events:
             return
-        self._state = state
+        self._states = states
         self._timeline.extend(events)
         for client in list(self._clients):
+            patch = patches[client.view]
             visible = [e for e in events if client.sees(e)]
             if patch or visible:
                 self._enqueue(client, {"type": UPDATE, "patch": patch, "events": visible})
@@ -268,7 +281,7 @@ class GatewayService:
 
     async def handle(self, connection: RealtimeConnection) -> None:
         """Uma UI conectada: welcome, updates e os comandos que ela mandar, até desconectar."""
-        client = _Client(connection)
+        client = _Client(connection, self._avatar)
         view = client.view
         welcome: Message = {
             "type": WELCOME,
@@ -276,8 +289,8 @@ class GatewayService:
             "view": view,
             "avatar_id": self._avatar,
             "commands": list(COMMANDS[view]),
-            "state": self._state,
-            "events": [e for e in self._timeline if e["visibility"] in VISIBLE[view]],
+            "state": self._states[view],
+            "events": [e for e in self._timeline if client.sees(e)],
         }
         client.queue.put_nowait(welcome)
         self._clients.add(client)  # sem await desde o welcome: o próximo flush já vale para ela
