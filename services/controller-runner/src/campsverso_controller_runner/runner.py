@@ -93,12 +93,20 @@ class SimTime:
         return self.tick, self.simtime
 
 
-def load_controller(name: str) -> Controller:
-    """Controladores instalados, registrados no grupo `campsverso.controllers` (ADR-0011)."""
+def load_controller(name: str, avatar_id: str | None = None) -> Controller:
+    """Controladores instalados, registrados no grupo `campsverso.controllers` (ADR-0011).
+
+    O entry point é um controlador pronto ou uma fábrica que recebe o avatar e dá uma instância
+    só dele (ADR-0072): os ajudantes, que são vários num processo, cada um com a sua lembrança."""
     found = {ep.name: ep for ep in entry_points(group=ENTRY_POINT_GROUP)}
     if name not in found:
         raise LookupError(f"controlador {name!r} não encontrado ({sorted(found)})")
-    return cast(Controller, found[name].load())
+    loaded = found[name].load()
+    if hasattr(loaded, "decide"):
+        return cast(Controller, loaded)
+    if avatar_id is None:
+        raise LookupError(f"o controlador {name!r} é uma fábrica: falta o avatar")
+    return cast(Controller, loaded(avatar_id))
 
 
 def load_mind(name: str) -> Mind:
@@ -191,6 +199,10 @@ class ControllerRunner:
         self.possessing = False
         self.released = 0
         self.failure: BaseException | None = None
+
+    @property
+    def avatar_id(self) -> str:
+        return self._avatar
 
     @property
     def is_mind(self) -> bool:

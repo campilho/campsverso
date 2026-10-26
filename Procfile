@@ -4,6 +4,8 @@
 kernel: uv run --locked python -m campsverso_kernel.main --env config/env/local.yaml --world config/worlds/${MUNDO:-farm-camps-01}.yaml
 perception: uv run --locked python -m campsverso_perception.main --env config/env/local.yaml --world config/worlds/${MUNDO:-farm-camps-01}.yaml
 controller: uv run --locked python -m campsverso_controller_runner.main --env config/env/local.yaml --world config/worlds/${MUNDO:-farm-camps-01}.yaml --controller ${SCRIPT:-farmer}
+# Os ajudantes (ADR-0072): os scripts dos avatares em `helpers.avatars` do mundo; num mundo sem ajudantes, o processo só espera.
+helpers: uv run --locked python -m campsverso_controller_runner.main --env config/env/local.yaml --world config/worlds/${MUNDO:-farm-camps-01}.yaml --helpers
 archiver: uv run --locked python -m campsverso_archiver.main --env config/env/local.yaml
 gateway: uv run --locked python -m campsverso_gateway.main --env config/env/local.yaml --world config/worlds/${MUNDO:-farm-camps-01}.yaml
 budget: uv run --locked python -m campsverso_budget.main --env config/env/local.yaml --world config/worlds/${MUNDO:-farm-camps-01}.yaml

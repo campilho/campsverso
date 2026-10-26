@@ -106,6 +106,7 @@ def run(
         finally:
             processes.stop("kernel")  # parada elegante primeiro: o último snapshot vai ao arquivo
             processes.stop(*[n for n in ("mind", "budget") if n in processes.running])
+            processes.stop(*[n for n in ("helpers",) if n in processes.running])
             processes.stop("gateway", "controller", "perception", "archiver")
     return code
 

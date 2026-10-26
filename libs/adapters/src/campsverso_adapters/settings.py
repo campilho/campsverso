@@ -135,6 +135,8 @@ class WorldSettings:
     minds: Mapping[str, MindSettings] = field(default_factory=dict[str, MindSettings])  # ADR-0059
     script: str = "farmer"  # o fazendeiro-script deste mundo (entry point campsverso.controllers)
     map: str | None = None  # a variante do mapa do cartucho (ADR-0070); None: o mapa dele
+    helpers: tuple[str, ...] = ()  # os ajudantes do processo `helpers` (ADR-0072)
+    helper_script: str = "ajudante"  # o script deles (entry point campsverso.controllers)
 
 
 def _read(path: Path) -> Mapping[str, Any]:
@@ -248,7 +250,10 @@ def load_world(path: Path, root: Path | None = None) -> WorldSettings:
     budget = cast(Mapping[str, Any] | None, doc.get("budget"))
     if start.tzinfo is None:
         raise ValueError("start precisa de fuso horário (ex.: 2026-10-10T06:00:00-03:00)")
+    helpers = cast(Mapping[str, Any], doc.get("helpers") or {})
     return WorldSettings(
+        helpers=tuple(str(a) for a in cast(list[Any], helpers.get("avatars") or [])),
+        helper_script=str(helpers.get("script") or "ajudante"),
         worldid=str(doc["worldid"]),
         cartridge=str(doc["cartridge"]),
         script=str(doc.get("script") or "farmer"),

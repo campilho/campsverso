@@ -1,11 +1,14 @@
-"""Controller-runner: gravação do replay e a trava contra repetir uma proposta recusada."""
+"""Controller-runner: gravação do replay, a trava contra repetir uma proposta recusada e os
+controladores carregados como instância ou fábrica."""
 
 from collections.abc import Mapping
 from typing import Any
 
+import pytest
+
 from campsverso_adapters import FakeWallClock, InMemoryBus, MemoryTelemetry, SequentialUuid7Ids
 from campsverso_controller_runner.replay import recorded_proposals
-from campsverso_controller_runner.runner import ControllerRunner
+from campsverso_controller_runner.runner import ControllerRunner, load_controller
 
 PROPOSE = "campsverso.cmd.action.propose.v1"
 
@@ -139,3 +142,15 @@ async def test_o_script_recebe_a_foto_com_o_motivo_do_pedido() -> None:
         },
     )
     assert script.views == [{"clock": {"tick": 5}, "decision": decision}]
+
+
+def test_o_controlador_vem_pronto_ou_de_uma_fabrica_por_avatar() -> None:
+    farmer = load_controller("farmer2", "camps")  # instância pronta: o avatar não muda nada
+    assert farmer.controller_id == "script/farmer2-v1"
+    dita, nina = load_controller("ajudante", "dita"), load_controller("ajudante", "nina")
+    assert (dita.controller_id, nina.controller_id) == (
+        "script/ajudante-dita",
+        "script/ajudante-nina",
+    )  # uma instância por ajudante (ADR-0072)
+    with pytest.raises(LookupError, match="fábrica"):
+        load_controller("ajudante")

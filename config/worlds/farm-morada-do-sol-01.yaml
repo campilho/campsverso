@@ -15,6 +15,10 @@ clock:  # estado inicial do relógio; depois, só por comandos
 
 rules_file: null  # null: o arquivo de regras do cartucho (R-001 e R-003; os corvos vêm dos dados)
 
+helpers:  # os ajudantes (ADR-0072): o processo `helpers` controla todos, um script por avatar
+  script: ajudante  # entry point campsverso.controllers (cartridges/farm/script)
+  avatars: [dita, nina, seu-bento, tiao, ze-graudo]
+
 budget:  # tetos de gasto com modelos (ADR-0058); ao chegar a 100%, a guarda pausa o mundo
   usd_per_sim_day: 0.60
   usd_total: 10.00

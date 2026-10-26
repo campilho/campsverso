@@ -55,6 +55,12 @@ def test_as_variantes_do_mapa_da_morada_do_sol() -> None:
         world = load_world(worlds / f"farm-morada-do-sol-{number}.yaml", root=REPO)
         assert (world.cartridge, world.map, world.seed) == (base.cartridge, variant, base.seed)
         assert world.worldid == f"farm-morada-do-sol-{number}"
+        assert world.helpers == base.helpers  # os mesmos ajudantes nos três mapas (ADR-0072)
+    assert (base.helper_script, base.helpers) == (
+        "ajudante",
+        ("dita", "nina", "seu-bento", "tiao", "ze-graudo"),
+    )
+    assert load_world(worlds / "farm-camps-01.yaml", root=REPO).helpers == ()
 
 
 def test_unidades() -> None:

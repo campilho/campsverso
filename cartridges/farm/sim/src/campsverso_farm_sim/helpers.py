@@ -11,8 +11,8 @@ ajudante entra pela entrada da fazenda no horário dele e sai no fim do turno, d
 que carrega. O que ele vende vai para o patrão.
 
 Na entidade do ajudante, à vista: a ficha, `patrao`, `dias` (os que faltam) e a ordem (`ordem`,
-`ordem_cultura`, `ordem_item`, `ordem_n`). No quadro, à vista, a situação de cada ajudante, com o
-id em snake_case (`ze_graudo`).
+`ordem_cultura`, `ordem_item`, `ordem_n` e o ponto `ordem_x`, `ordem_y` de onde cavar). No quadro,
+à vista, a situação de cada ajudante, com o id em snake_case (`ze_graudo`).
 """
 
 from collections.abc import Mapping, Sequence
@@ -33,6 +33,7 @@ from campsverso_farm_sim.config import optional, section
 
 HELPERS = "helpers"
 COIN = "moeda"
+ORDER = ("ordem", "ordem_cultura", "ordem_item", "ordem_n", "ordem_x", "ordem_y")
 
 
 # ----------------------------------------------------------------------------- os dados
@@ -195,7 +196,7 @@ def leave_farm(view: WorldView, ops: WorldOps, helper: str, reason: str) -> None
 def end_contract(view: WorldView, ops: WorldOps, helper: str) -> None:
     ops.set_attributes(
         helper,
-        visible={"patrao": None, "dias": 0, "ordem": None, "ordem_cultura": None, "ordem_n": None},
+        visible={"patrao": None, "dias": 0, **dict.fromkeys(ORDER, None)},
         hidden={"primeiro_dia": None, "ultimo_dia": None},
     )
 

@@ -4,6 +4,9 @@ Tudo passa pelo barramento em memória com validação de contrato, como passari
 serviços não se conhecem, só trocam envelopes. Serve aos testes rápidos do M3; os processos de
 verdade ficam para os testes com NATS e para o `make soak`.
 
+Os ajudantes do mundo (ADR-0072) entram como o processo `helpers`: um runner por avatar, com o
+script de cada um, pela lista do arquivo do mundo.
+
 Com `controller="llm"` entra a mente (ADR-0059) sobre uma porta de modelo dada pelo teste (uma
 porta falsa, ou a fita em `replay`), medida pelo `MeteredModel`, e opcionalmente a guarda de
 orçamento. O relógio fica no modo contínuo, porque o máximo é só de script e replay (princípio 7);
@@ -25,6 +28,7 @@ from campsverso_adapters import (
     SqliteWorldStore,
     ValidatingBus,
     load_env,
+    load_world,
 )
 from campsverso_budget.ledger import BudgetLimits
 from campsverso_budget.service import BudgetService
@@ -192,6 +196,20 @@ class Pipeline:
                 cartridge=cartridge,
                 sim_time=sim_time,
             )
+        # Os ajudantes (ADR-0072), como o processo `helpers`: um runner e um script por avatar.
+        world_file = load_world(REPO / "config" / "worlds" / f"{worldid}.yaml", REPO)
+        self.helpers = [
+            ControllerRunner(
+                worldid,
+                avatar,
+                load_controller(world_file.helper_script, avatar),
+                self.bus,
+                self.ids,
+                self.clock,
+                self.telemetry,
+            )
+            for avatar in world_file.helpers
+        ]
         if budget is not None:
             self.guard = BudgetService(
                 worldid, budget, self.bus, MemoryBlobStore(), self.clock, self.ids, self.telemetry
@@ -203,6 +221,8 @@ class Pipeline:
         await self.perception.start()
         if self.runner is not None:
             await self.runner.start()
+        for helper in self.helpers:
+            await helper.start()
         await self.kernel.start()
 
     async def run_until(self, tick: int) -> None:

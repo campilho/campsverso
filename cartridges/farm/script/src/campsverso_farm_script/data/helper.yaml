@@ -1,0 +1,15 @@
+# O fazendeiro-ajudante (ADR-0072): o script que obedece às ordens de quem o contratou. Ele não
+# decide o que plantar nem quando vender, e não sabe nenhuma regra oculta: faz a ordem do patrão
+# com o que vê e com o que lembra dos canteiros que já viu.
+
+needs: {hunger: fome, energy: energia}
+eat_at: 60  # o manual: comer com a fome em 60
+# O que ele come do baú, na ordem: os pratos primeiro, depois as colheitas que matam mais fome.
+foods: [ensopado, sopa_de_batata, pure_de_abobora, mandioca, melancia, abobora, batata, milho,
+        rabanete, cenoura, couve, morango, tomate]
+harvests: [rabanete, batata, abobora, cenoura, morango, tomate, alho, milho, melancia, mandioca, couve]
+carry: 6  # com tantas colheitas no inventário, guarda no baú antes de seguir
+dig_radius: 4  # cavar em volta do ponto da ordem, até esta distância
+wait: 15  # minutos de espera quando não há o que fazer
+look_near: well  # sem canteiro na lembrança, vai ver em volta do poço, onde a fazenda planta
+kinds: {plot: plot, chest: chest, well: well, sell_box: sell_box, can: watering_can}

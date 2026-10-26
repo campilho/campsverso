@@ -70,6 +70,10 @@ class ReplayRunner:
         self.sent = 0
         self.failure: BaseException | None = None
 
+    @property
+    def avatar_id(self) -> str:
+        return self._avatar
+
     async def start(self) -> None:
         w, a = self._worldid, self._avatar
         self._consumer = await self._bus.consume(

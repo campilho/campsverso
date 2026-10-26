@@ -114,6 +114,10 @@ class Processes:
             "--controller",
             load_world(self.world).script,  # o fazendeiro-script do mundo (bíblia 2, §11)
         )
+        if load_world(self.world).helpers:  # os ajudantes da Morada do Sol (ADR-0072)
+            self.spawn(
+                "helpers", "campsverso_controller_runner.main", "--world", world, "--helpers"
+            )
         self.spawn("kernel", "campsverso_kernel.main", "--world", world, "--data-dir", data)
 
     def dead(self) -> list[str]:
@@ -199,6 +203,7 @@ async def run(
             result.ticks = latest["tick"]
             processes.stop("kernel")  # parada elegante primeiro: o último snapshot vai ao arquivo
             await _archive_settled(out / "archive")
+            processes.stop(*[n for n in ("helpers",) if n in processes.running])
             processes.stop("controller", "perception", "archiver")
             with contextlib.suppress(Exception):
                 await bus.close()

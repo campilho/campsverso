@@ -1028,16 +1028,16 @@ class OrderHelper(FarmAction):
     def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
         task = str(ctx.params["task"])
         here = ctx.view.entity(ctx.avatar_id).position
+        digging = task == "cavar" and here is not None  # em volta de onde o patrão deu a ordem
         visible: dict[str, Any] = {
             "ordem": task,
             "ordem_cultura": ctx.params.get("crop") if task == "plantar" else None,
             "ordem_item": ctx.params.get("item") if task == "vender" else None,
             "ordem_n": ctx.params.get("n") if task == "cavar" else None,
+            "ordem_x": here.x if digging and here is not None else None,
+            "ordem_y": here.y if digging and here is not None else None,
         }
-        hidden: dict[str, Any] = {}
-        if task == "cavar" and here is not None:  # cava em volta de onde o patrão deu a ordem
-            hidden = {"ordem_x": here.x, "ordem_y": here.y}
-        ops.set_attributes(str(ctx.params["target"]), visible=visible, hidden=hidden)
+        ops.set_attributes(str(ctx.params["target"]), visible=visible)
 
 
 @dataclass(frozen=True)
