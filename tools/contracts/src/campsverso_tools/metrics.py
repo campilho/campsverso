@@ -129,6 +129,13 @@ class DayMetrics:
     withered_ripe: int = 0  # maduras que murcharam sem colher
     sales: int = 0  # unidades postas na caixa
     sales_below_floor: int = 0  # delas, as vendidas com o preço do dia abaixo de 80% da tabela
+    # Os ajudantes (ADR-0072): as ações concluídas de cada um, os contratos e as diárias pagas, os
+    # dias que cada um passou na fazenda e as ações que outro avatar desfez no meio.
+    helper_actions: dict[str, dict[str, int]] = field(default_factory=dict[str, dict[str, int]])
+    contracts: dict[str, int] = field(default_factory=dict[str, int])
+    wages_paid: int = 0
+    helper_days: dict[str, int] = field(default_factory=dict[str, int])
+    conflicts: int = 0
 
 
 @dataclass
@@ -184,7 +191,31 @@ class Report:
             "faints": sum(d.faints for d in days),
             "real_seconds_per_day": round(sum(d.real_seconds for d in days) / max(1, len(days)), 3),
             **self.extra_totals(days),
+            **self.helper_totals(days),
             **self.llm_totals(days),
+        }
+
+    @staticmethod
+    def helper_totals(days: Sequence[DayMetrics]) -> dict[str, Any]:
+        """Os ajudantes (ADR-0072), só quando houve contrato: o resumo de sempre não muda."""
+        if not any(d.contracts or d.helper_actions for d in days):
+            return {}
+        contracts = Counter[str]()
+        present = Counter[str]()
+        actions: dict[str, Counter[str]] = {}
+        for d in days:
+            contracts.update(d.contracts)
+            present.update(d.helper_days)
+            for helper, done in d.helper_actions.items():
+                actions.setdefault(helper, Counter[str]()).update(done)
+        return {
+            "helpers": {
+                "contracts": dict(sorted(contracts.items())),
+                "wages_paid": sum(d.wages_paid for d in days),
+                "days_on_farm": dict(sorted(present.items())),
+                "actions": {h: dict(sorted(a.items())) for h, a in sorted(actions.items())},
+                "conflicts": sum(d.conflicts for d in days),
+            }
         }
 
     @staticmethod
@@ -295,6 +326,10 @@ def compute(envelopes: Iterable[Mapping[str, Any]], avatar: str = AVATAR) -> Rep
                 _bump(metrics.tools_bought, entity_kind)
         elif kind == "campsverso.action.completed.v1":
             action, params = str(data["action"]), cast(Mapping[str, Any], data["params"])
+            if (
+                data.get("avatar_id", avatar) != avatar
+            ):  # um ajudante (ADR-0072): as ações dele, à parte
+                _bump(metrics.helper_actions.setdefault(str(data.get("avatar_id")), {}), action)
             if action in ("harvest", "plant"):
                 group = _group(str(params["target"]), groups)
                 counter = metrics.harvests if action == "harvest" else metrics.plantings
@@ -313,12 +348,26 @@ def compute(envelopes: Iterable[Mapping[str, Any]], avatar: str = AVATAR) -> Rep
                 metrics.withered_ripe += 1
         elif kind == "campsverso.action.rejected.v1":
             _bump(metrics.rejections, data["reason"])
-        elif kind == "campsverso.avatar.fainted.v1":
+        elif kind == "campsverso.avatar.fainted.v1" and data.get("avatar_id", avatar) == avatar:
             metrics.faints += 1
-        elif kind == "campsverso.world.need.changed.v1" and data["need"] == "fome":
+        elif (
+            kind == "campsverso.world.need.changed.v1"
+            and data["need"] == "fome"
+            and data.get("avatar_id", avatar) == avatar
+        ):
             metrics.hunger_peak = max(metrics.hunger_peak, float(data["value"]))
-        elif kind == "campsverso.avatar.decision_requested.v1":
+        elif (
+            kind == "campsverso.avatar.decision_requested.v1"
+            and data.get("avatar_id", avatar) == avatar
+        ):
             metrics.hunger_peak = max(metrics.hunger_peak, float(data["needs"].get("fome", 0)))
+        elif kind == "campsverso.economy.labor.hired.v1" and data["employer"] == avatar:
+            _bump(metrics.contracts, data["helper"])
+            metrics.wages_paid += int(data["total"])
+        elif kind == "campsverso.avatar.entered.v1":
+            _bump(metrics.helper_days, data["avatar_id"])
+        elif kind == "campsverso.action.failed.v1" and data.get("reason") == "precondition_lost":
+            metrics.conflicts += 1
         elif kind == "campsverso.world.entity.state_changed.v1":
             changes = cast(Mapping[str, Any], data.get("changes") or {})
             for key, value in changes.items():

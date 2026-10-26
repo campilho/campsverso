@@ -820,7 +820,9 @@ def _controller_name(spec: Mapping[str, Any]) -> str:
     if spec.get("controller") == "human":
         return "humano"
     if spec.get("controller") != "llm":
-        return SCRIPT_NAMES.get(str(spec.get("script")), str(spec.get("controller")))
+        name = SCRIPT_NAMES.get(str(spec.get("script")), str(spec.get("controller")))
+        hire = spec.get("hire")  # a contratação forçada (ADR-0073)
+        return f"{name} contratando {hire}" if hire else name
     model = str(spec.get("model", "claude-haiku-5-5"))
     version = int(spec.get("playbook") or 0)  # ADR-0071; `true` nas corridas da versão 1
     playbook = f" com o playbook {version}" if version else ""
@@ -924,6 +926,7 @@ def render(runs: Sequence[Run], *, source: str, date: str) -> str:
         lines.append("")
     lines += _experiments_section(runs)
     lines += _knowing_section(runs)
+    lines += _helpers_section(runs)
     lines += _learned_section(runs)
     lines += _judge_section(runs)
     lines += _exploration_section(runs)
@@ -994,7 +997,8 @@ def _knowing_section(runs: Sequence[Run]) -> list[str]:
     by: dict[tuple[str, str], list[Run]] = {}  # as repetições ficam juntas na mesma célula
     minds: list[str] = []  # cada modelo, com e sem o playbook, é uma linha (ADR-0071)
     for r in runs:
-        if r.spec.get("cartridge") == MORADA and r.spec.get("river_bonus", True):
+        hired = r.spec.get("hire") is not None  # a contratação forçada fica na seção dela
+        if r.spec.get("cartridge") == MORADA and r.spec.get("river_bonus", True) and not hired:
             who = str(r.spec.get("script") or "")
             if r.spec.get("controller") == "llm":
                 model = _controller_name({**r.spec, "playbook": False})
@@ -1048,6 +1052,62 @@ def _knowing_section(runs: Sequence[Run]) -> list[str]:
         "distância é o que aprender captou.",
         "",
         _table(["Quem", *(f"Mapa {m}" for m in maps)], rows),
+        "",
+    ]
+
+
+def _helpers_section(runs: Sequence[Run]) -> list[str]:
+    """Os ajudantes (ADR-0072, ADR-0073): cada corrida com a contratação forçada contra a mesma
+    régua sem ajudante, no mesmo mapa: quantos contratos couberam no caixa, as diárias pagas, os
+    dias e o trabalho dos ajudantes, os conflitos e o que mudou nas moedas e nas colheitas."""
+    hired = [r for r in runs if r.spec.get("hire")]
+    if not hired:
+        return []
+    alone = {
+        (str(r.spec.get("script")), str(r.spec.get("map") or "a")): r
+        for r in runs
+        if not r.spec.get("hire") and r.spec.get("controller") == "script"
+    }
+
+    def harvests(r: Run) -> int:
+        return sum(cast(Mapping[str, int], r.report.totals()["harvests"]).values())
+
+    rows: list[list[str]] = []
+    for r in hired:
+        totals = r.report.totals()
+        helpers = cast(Mapping[str, Any], totals.get("helpers") or {})
+        work = Counter[str]()
+        for done in cast(Mapping[str, Mapping[str, int]], helpers.get("actions") or {}).values():
+            work.update(done)
+        base = alone.get((str(r.spec.get("script")), str(r.spec.get("map") or "a")))
+        delta = EMPTY
+        if base is not None:
+            coins = int(totals["coins_end"]) - int(base.report.totals()["coins_end"])
+            delta = f"{coins:+d} moedas · {harvests(r) - harvests(base):+d} colheitas"
+        rows.append(
+            [
+                r.name,
+                str(r.spec.get("map") or "a"),
+                str(r.spec.get("hire")),
+                str(sum(cast(Mapping[str, int], helpers.get("contracts") or {}).values())),
+                str(helpers.get("wages_paid", 0)),
+                str(sum(cast(Mapping[str, int], helpers.get("days_on_farm") or {}).values())),
+                _counts({k: v for k, v in work.items() if k in ("harvest", "water", "plant")}),
+                str(helpers.get("conflicts", 0)),
+                delta,
+            ]
+        )
+    header = ["Corrida", "Mapa", "Contrato", "Contratos", "Diárias pagas", "Dias na fazenda"]
+    header += ["Trabalho do ajudante", "Conflitos", "Contra a mesma régua sem ajudante"]
+    return [
+        "## Os ajudantes",
+        "",
+        "A contratação forçada (ADR-0073): a régua contrata aquela ficha por aqueles dias sempre "
+        "que o caixa paga, a partir do dia em que a corrida diz. A última coluna compara com a "
+        "mesma régua, no mesmo mapa, sem ajudante. Os conflitos são as ações que outro avatar "
+        "desfez no meio (o canteiro já colhido, o item que saiu do baú).",
+        "",
+        _table(header, rows),
         "",
     ]
 

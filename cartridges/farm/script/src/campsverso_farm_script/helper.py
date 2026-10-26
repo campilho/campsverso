@@ -56,6 +56,7 @@ class HelperScript:
     order_key: tuple[Any, ...] = ()
     dug: int = 0
     last: str | None = None  # a ação da última proposta, para saber o que uma recusa recusou
+    last_target: str | None = None  # e a coisa lembrada que ela buscava
 
     @property
     def controller_type(self) -> str:
@@ -68,6 +69,9 @@ class HelperScript:
     def decide(self, view: View) -> Proposal:
         proposal = HelperTurn(self, view).decide()
         self.last = str(proposal["action"])
+        params = cast(Mapping[str, Any], proposal["params"])
+        target = params.get("near", params.get("target"))
+        self.last_target = target if isinstance(target, str) else None
         return proposal
 
 
@@ -89,6 +93,9 @@ class HelperTurn:
         }
         decision = cast(Mapping[str, Any], view.get("decision") or {})
         self.refused = decision.get("reason") == "action_rejected"
+        if self.refused and script.last_target in script.plots:
+            # O canteiro lembrado sumiu fora da vista (voltou a ser grama): esquecer.
+            del script.plots[str(script.last_target)]
         own = next((e for e in self.entities if e.get("entity_id") == self.me), None)
         self.order = cast(Mapping[str, Any], (own or {}).get("attributes") or {})
         self.kinds = cast(Mapping[str, str], self.c["kinds"])
@@ -238,9 +245,21 @@ class HelperTurn:
         return self.at_plot(plot, "water", "regar")
 
     def look(self) -> Proposal | None:
-        """Sem canteiro na lembrança: ir ver em volta do poço, onde a fazenda planta."""
+        """Sem canteiro na lembrança: ir até o patrão, quando o vê (é onde a fazenda trabalha);
+        senão, ver em volta do poço."""
         if self.s.plots:
             return None
+        boss = next(
+            (
+                e
+                for e in self.entities
+                if e.get("entity_id") == self.order.get("patrao") and e.get("position")
+            ),
+            None,
+        )
+        if boss is not None:
+            where = cast(Mapping[str, int], boss["position"])
+            return None if _far(where, self.pos) <= 2 else self.go(boss, "ir até o patrão")
         well = self.one(str(self.c["look_near"]))
         if well is None or self.near(cast(Mapping[str, int], well["position"])):
             return None

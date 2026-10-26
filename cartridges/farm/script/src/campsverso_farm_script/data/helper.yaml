@@ -11,5 +11,5 @@ harvests: [rabanete, batata, abobora, cenoura, morango, tomate, alho, milho, mel
 carry: 6  # com tantas colheitas no inventário, guarda no baú antes de seguir
 dig_radius: 4  # cavar em volta do ponto da ordem, até esta distância
 wait: 15  # minutos de espera quando não há o que fazer
-look_near: well  # sem canteiro na lembrança, vai ver em volta do poço, onde a fazenda planta
+look_near: well  # sem canteiro na lembrança e sem o patrão à vista, vai ver em volta do poço
 kinds: {plot: plot, chest: chest, well: well, sell_box: sell_box, can: watering_can}

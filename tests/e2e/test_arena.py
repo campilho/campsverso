@@ -12,6 +12,7 @@ from campsverso_testkit.arena import (
     SEED,
     SEED_BOAVISTA,
     SPECS,
+    SPECS_AJUDANTES,
     SPECS_BOAVISTA,
     SPECS_MORADA,
     SPECS_PLAYBOOK,
@@ -126,7 +127,19 @@ def test_as_corridas_da_boa_vista() -> None:
         "boavista": SPECS_BOAVISTA,
         "morada": SPECS_MORADA,
         "playbook": SPECS_PLAYBOOK,
+        "ajudantes": SPECS_AJUDANTES,
     }
+
+
+def test_a_rodada_dos_ajudantes_compara_cada_contrato_com_a_mesma_regua() -> None:
+    # ADR-0073: o script 3 e o oráculo nos mapas a e b, sem ajudante e com a contratação forçada.
+    names = [s.name for s in SPECS_AJUDANTES]
+    assert len(names) == 20
+    assert {"script3-a", "oraculo-b", "oraculo-a-tiao7", "script3-b-dita1"} <= set(names)
+    hired = [s for s in SPECS_AJUDANTES if s.hire is not None]
+    assert {s.hire for s in hired} == {"tiao:1", "tiao:7", "nina:3", "dita:1"}
+    assert {s.hire_from for s in hired} == {8}
+    assert {s.days for s in SPECS_AJUDANTES} == {28}
 
 
 def test_a_rodada_de_verificacao_da_morada_do_sol() -> None:

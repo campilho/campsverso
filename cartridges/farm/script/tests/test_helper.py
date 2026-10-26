@@ -174,3 +174,26 @@ def test_o_canteiro_lembrado_de_ontem_perdeu_a_rega_e_ela_vai_ver() -> None:
     assert script.decide(view(at=(6, 2), plots=watered))["intent"] == "tudo cuidado"
     tomorrow = script.decide(view(at=(0, 0), day=3))  # longe, sem o canteiro à vista
     assert tomorrow == {"action": "move", "params": {"near": "plot-01"}, "intent": "ir regar"}
+
+
+def test_sem_canteiro_na_lembranca_vai_ate_o_patrao_quando_o_ve() -> None:
+    script = helper("dita")
+    camps = {"entity_id": "camps", "kind": "avatar", "position": {"x": 7, "y": 3}, "attributes": {}}
+    seen = view(at=(0, 0))
+    seen["entities"].append(camps)
+    assert script.decide(seen) == {
+        "action": "move",
+        "params": {"near": "camps"},
+        "intent": "ir até o patrão",
+    }
+
+
+def test_o_canteiro_lembrado_que_sumiu_e_esquecido_na_recusa() -> None:
+    script = helper("dita")
+    watered = [plot("plot-01", 7, 3, crop="rabanete", stage="broto", watered_today=True)]
+    script.decide(view(at=(6, 2), plots=watered))
+    going = script.decide(view(at=(0, 0), day=3))
+    assert going["params"] == {"near": "plot-01"}
+    refused = script.decide(view(at=(0, 0), day=3, refused=True))  # não existe mais
+    assert "plot-01" not in script.plots
+    assert refused["intent"] == "ir ver os canteiros"  # volta a procurar

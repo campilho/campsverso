@@ -153,11 +153,28 @@ SPECS_PLAYBOOK: tuple[Spec, ...] = (
         playbook=2,
     ),
 )
+# A verificação dos ajudantes (ADR-0072, decisão 12; ADR-0073): o script 3 e o oráculo nos mapas a
+# e b, sem ajudante e com a contratação forçada a partir do dia 8, de graça. O Tião por 1 e por 7
+# dias (o mais barato), a Nina por 3 e a Dita por 1 (a plantadeira).
+HIRES = ("tiao:1", "tiao:7", "nina:3", "dita:1")
+SPECS_AJUDANTES: tuple[Spec, ...] = tuple(
+    _morada(
+        f"{name}-{variant}" + (f"-{hire.replace(':', '')}" if hire else ""),
+        "script",
+        script=script,
+        map=None if variant == "a" else variant,
+        hire=hire,
+    )
+    for name, script in (("script3", "farmer3"), ("oraculo", "oracle"))
+    for variant in ("a", "b")
+    for hire in (None, *HIRES)
+)
 ROUNDS: dict[str, tuple[Spec, ...]] = {
     "camps": SPECS,
     "boavista": SPECS_BOAVISTA,
     "morada": SPECS_MORADA,
     "playbook": SPECS_PLAYBOOK,
+    "ajudantes": SPECS_AJUDANTES,
 }
 
 
@@ -325,7 +342,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         choices=sorted(ROUNDS),
         default="camps",
         help="a lista de corridas: camps (a fazenda 1, M12), boavista (a fazenda 2, M14), "
-        "morada (a verificação do M19) ou playbook (o agricultor treinado, ADR-0071)",
+        "morada (a verificação do M19), playbook (o agricultor treinado, ADR-0071) ou ajudantes "
+        "(a contratação forçada, ADR-0073)",
     )
     parser.add_argument(
         "--only",
