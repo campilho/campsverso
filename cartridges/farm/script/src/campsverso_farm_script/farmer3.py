@@ -38,6 +38,7 @@ from campsverso_farm_script.knowledge import Beliefs, Knowledge, Spot, Tile, Tru
 
 DATA = Path(__file__).parent / "data" / "farmer3.yaml"
 ORACLE = Path(__file__).parent / "data" / "oracle.yaml"
+FIXED = Path(__file__).parent / "data" / "fixo.yaml"
 WATER = frozenset({"river"})
 TREES = frozenset({"tree"})
 PATHS = frozenset({"path", "entrance"})
@@ -131,6 +132,15 @@ class Farmer3Script(Farmer2Script):
         """O oráculo (ADR-0070, decisão 6): o mesmo script, com a verdade no lugar da crença."""
         return cls(load_config(ORACLE))
 
+    @classmethod
+    def fixed(cls) -> Farmer3Script:
+        """A régua do meio (ADR-0074, decisão 4): o mesmo script, com a crença presa no começo."""
+        return cls(load_config(FIXED))
+
+    @property
+    def learns(self) -> bool:
+        return bool(cast(Mapping[str, Any], self.config["model"]).get("learn", True))
+
     def configured(self, overrides: Mapping[str, Any]) -> Farmer3Script:
         """Uma instância nova, com o arquivo trocado chave por chave (ex.: a contratação forçada
         das medidas de 1, 3 e 7 dias; ADR-0073)."""
@@ -158,7 +168,8 @@ class Farmer3Script(Farmer2Script):
         return book.world
 
     def sample(self, book: Notebook) -> World:
-        return book.beliefs.world(book.rng)
+        """Um mundo sorteado da crença; sem aprender, o mundo médio dela, sempre o mesmo."""
+        return book.beliefs.world(book.rng if self.learns else None)
 
     def decide(self, view: View) -> Proposal:
         tick = int(view["clock"]["tick"])
@@ -269,7 +280,7 @@ class Farmer3Script(Farmer2Script):
         if outcome == "perdida" and book.helper_on(day) is not None:
             planting.outcome = "sumiu"  # um ajudante pode ter colhido: não se sabe quem levou
             return
-        if outcome in ("colhida", "perdida"):
+        if outcome in ("colhida", "perdida") and self.learns:
             door, guard = self.place_of(planting.tile)
             book.beliefs.learn_loss(door, guard, outcome == "perdida")
 
@@ -277,6 +288,8 @@ class Farmer3Script(Farmer2Script):
         """O ritmo de um plantio que amadureceu à vista, com todos os dias regados."""
         book = self.book
         assert planting.ripe_day is not None
+        if not self.learns:
+            return
         days = range(planting.day, planting.ripe_day)
         if any(d not in planting.watered and d not in book.rain_days for d in days):
             return  # um dia sem rega: a medida não diz nada do lugar

@@ -14,6 +14,7 @@ farmer = "campsverso_farm_script:controller"
 farmer2 = "campsverso_farm_script:controller2"
 farmer3 = "campsverso_farm_script:controller3"
 oracle = "campsverso_farm_script:oracle"
+farmer3-fixo = "campsverso_farm_script:fixed"  # a régua do meio (ADR-0074)
 ajudante = "campsverso_farm_script:helper"  # uma fábrica: um script por ajudante (ADR-0072)
 
 [build-system]

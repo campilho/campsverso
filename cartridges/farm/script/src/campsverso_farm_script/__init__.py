@@ -9,6 +9,7 @@ controller = FarmerScript.load()  # entry point campsverso.controllers: farmer
 controller2 = Farmer2Script.load()  # entry point campsverso.controllers: farmer2 (bíblia 2, §11)
 controller3 = Farmer3Script.load()  # entry point campsverso.controllers: farmer3 (ADR-0070)
 oracle = Farmer3Script.oracle()  # entry point campsverso.controllers: oracle (ADR-0070)
+fixed = Farmer3Script.fixed()  # entry point campsverso.controllers: farmer3-fixo (ADR-0074)
 # entry point campsverso.controllers: ajudante, a fábrica `helper(avatar_id)` (ADR-0072)
 
 __all__ = [
@@ -19,6 +20,7 @@ __all__ = [
     "controller",
     "controller2",
     "controller3",
+    "fixed",
     "helper",
     "oracle",
 ]

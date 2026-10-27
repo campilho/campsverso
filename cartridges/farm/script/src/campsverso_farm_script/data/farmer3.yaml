@@ -62,6 +62,7 @@ fertilizer: {item: adubo, price: 15}
 # crença larga no começo; e a chance de perder a planta madura, por faixa de distância da porta e
 # do espantalho mais perto.
 model:
+  learn: true  # false: a crença fica no ponto de partida (a régua do meio, fixo.yaml; ADR-0074)
   bins: [2, 4, 8, 16]  # as faixas de distância de um atributo: até 2, até 4, até 8, até 16, mais
   distances: [agua, mata, caminho, porta]  # os atributos do tile (os que não importam ficam perto de zero)
   prior_sd: 0.25  # a crença de cada efeito: de 0,78x a 1,28x num desvio

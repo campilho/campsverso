@@ -8,13 +8,14 @@ cartucho. As corridas são curtas e sem API (uma porta falsa responde a prova).
 import json
 import math
 from pathlib import Path
+from typing import Any
 
 from campsverso_farm_script import Farmer3Script
-from campsverso_farm_script.knowledge import Spot
+from campsverso_farm_script.knowledge import Beliefs, Spot
 from campsverso_mind import Exam
 from campsverso_ports import ModelCapabilities, ModelRequest, ModelResponse, ModelUsage
 from campsverso_testkit.arena import Spec, run_spec
-from campsverso_testkit.prova import exam_of, knowledge_of, script_answers
+from campsverso_testkit.prova import exam_of, knowledge_of, reread, script_answers
 
 MORADA = "farm_morada_do_sol"
 SEED = 20261022  # a do mundo farm-morada-do-sol-01
@@ -55,16 +56,71 @@ def test_o_script_3_responde_o_que_a_crenca_sustenta() -> None:
         beliefs.learn_growth(Spot(near_water), math.log(1.5))
         beliefs.learn_growth(Spot(far, repeat=True), math.log(0.6))
     for lost in (True, True, False, True, True):
-        beliefs.learn_loss(30, None, lost)
+        beliefs.learn_loss(40, None, lost)
     for _ in range(4):
         beliefs.learn_loss(5, None, False)
-        beliefs.learn_loss(30, 1, False)  # ao lado do espantalho
+        beliefs.learn_loss(40, 1, False)  # ao lado do espantalho
     answers = _answers(script)
     assert answers["agua"] == "perto"
     assert answers["agua_alcance"] == "um"  # só mediu colado na água: não sabe que vai até 4
     assert answers["fadiga"] == "devagar"
     assert (answers["corvos_longe"], answers["corvos_perto"]) == ("comida", "sem_risco")
     assert answers["espantalho"] == "lado"  # protegeu ao lado; a 6 tiles, nunca mediu
+
+
+def test_a_leitura_corrigida_nao_ve_efeito_onde_so_ha_acaso() -> None:
+    # Um efeito pequeno, do tamanho do acaso: a repetição "acelera" 1,07 vezes, e o intervalo de
+    # 90% já exclui o 1, como no M19 (de 1,01 a 1,14). Com a correção pelos 18 atributos
+    # (ADR-0074), a leitura diz "não sei".
+    script = Farmer3Script.load()
+    beliefs = script.book.beliefs
+    far = (30, 30, 30, 30)
+    for _ in range(40):
+        beliefs.learn_growth(Spot(far), 0.0)
+        beliefs.learn_growth(Spot(far, repeat=True), math.log(1.07))
+    repeat = next(e for e in beliefs.effects() if e.name == "repetida")
+    assert repeat.low > 1.0  # o intervalo de 90%: o falso positivo do M19
+    assert _answers(script)["fadiga"] == "nao_sei"
+
+
+def test_a_releitura_de_uma_rodada_antiga(tmp_path: Path) -> None:
+    # Um script 3 gravado como no M19: a fadiga "rápida" pelo intervalo de 90%, e os corvos
+    # lidos na faixa de 16 a 32, com pouca perda. Relido, a fadiga vira "não sei" e os corvos,
+    # lidos além dos 32, viram "comida". Nada é regravado.
+    exam = _exam()
+    names = Beliefs(Farmer3Script.load().config["model"]).names
+    effects: list[dict[str, Any]] = [
+        {"name": n, "mean": 1.0, "low": 0.8, "high": 1.25, "measured": 3} for n in names
+    ]
+    effects[names.index("repetida")] = {
+        "name": "repetida",
+        "mean": 1.07,
+        "low": 1.01,
+        "high": 1.14,
+        "measured": 20,
+    }
+    loss = [
+        {"door": 2, "guard": 2, "rate": 0.17, "measured": 12},  # de 16 a 32, sem espantalho
+        {"door": 3, "guard": 2, "rate": 0.41, "measured": 9},  # além dos 32
+    ]
+    folder = tmp_path / "20261025-morada" / "script3-sem-regras"
+    folder.mkdir(parents=True)
+    old = {q.id: exam.unknown for q in exam.questions} | {"fadiga": "rapido"}
+    files: dict[str, Any] = {
+        "summary.json": {"spec": {"script": "farmer3"}},
+        "prova.json": {"after": {"right": 0, "wrong": 1, "unknown": 7, "answers": old}},
+        "modelo.json": {"effects": effects, "loss": loss},
+    }
+    for name, doc in files.items():
+        (folder / name).write_text(json.dumps(doc), encoding="utf-8")
+    before = {name: (folder / name).read_text(encoding="utf-8") for name in files}
+    [row] = reread(folder.parent, exam)
+    assert row["changed"] == {
+        "fadiga": ("rapido", "nao_sei"),
+        "corvos_longe": ("nao_sei", "comida"),
+    }
+    assert (row["now"]["right"], row["now"]["wrong"]) == (1, 0)
+    assert {name: (folder / name).read_text(encoding="utf-8") for name in files} == before
 
 
 async def test_a_corrida_do_script_3_grava_a_prova_do_fim(tmp_path: Path) -> None:
@@ -79,6 +135,7 @@ async def test_a_corrida_do_script_3_grava_a_prova_do_fim(tmp_path: Path) -> Non
     names = [e["name"] for e in model["effects"]]
     assert names[0] == "base"
     assert {"agua<=2", "repetida", "adubada"} <= set(names)
+    assert model["bins"] == {"loss_door": [8, 16, 32], "loss_guard": [4, 8]}  # para a releitura
 
 
 class ExamPort:

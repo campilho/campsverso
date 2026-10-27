@@ -6,15 +6,27 @@ memória vazia (o que o modelo supõe), e no fim, com o bloco de abertura e o ca
 nunca vê a prova enquanto joga.
 
 O script 3 e o oráculo não respondem: o avaliador lê a crença deles (o efeito de cada atributo,
-com o intervalo de 90%, e a perda medida por faixa de distância) e escolhe a opção que a crença
-sustenta, pela regra que cada pergunta declara em `script`; sem como ler, ou sem dado bastante,
-"não sei". O oráculo passa pela mesma leitura com a verdade no lugar da crença, e tirar o gabarito
-nessas perguntas confere que o gabarito bate com as regras do cartucho. O script 2 não tem modelo
-e fica sem prova.
+com o intervalo corrigido pelas comparações múltiplas, e a perda medida por faixa de distância) e
+escolhe a opção que a crença sustenta, pela regra que cada pergunta declara em `script`; sem como
+ler, ou sem dado bastante, "não sei". O oráculo passa pela mesma leitura com a verdade no lugar da
+crença, e tirar o gabarito nessas perguntas confere que o gabarito bate com as regras do cartucho.
+O script 2 não tem modelo e fica sem prova.
+
+A leitura mudou no M21 (ADR-0074, decisão 13): o intervalo de 90% virou o corrigido, e a pergunta
+dos corvos passou de 30 para 40 tiles. `reread` relê as rodadas antigas pelo `modelo.json`, sem
+regravar nada:
+
+    uv run python -m campsverso_testkit.prova data/arena/<rodada> [...]
 """
 
+import argparse
+import json
+import sys
 from collections.abc import Callable, Mapping, Sequence
+from pathlib import Path
 from typing import Any, cast
+
+import yaml
 
 from campsverso_adapters import cost_usd, load_env
 from campsverso_mind import Clock, Exam, LlmController, Question, exam_request, grade, load_exam
@@ -22,16 +34,18 @@ from campsverso_mind import read_answers as read_given
 from campsverso_ports import ModelCallError, ModelPort
 from campsverso_testkit.nats_server import REPO
 from campsverso_testkit.pipeline import ENV, Pipeline
+from campsverso_tools.arena import corrected
 
-type Effects = Mapping[str, tuple[float, float]]  # o atributo e o intervalo de 90%, em vezes
+type Effects = Mapping[str, tuple[float, float]]  # o atributo e o intervalo corrigido, em vezes
 type Loss = Callable[[int, int | None], tuple[float, int]]  # (porta, espantalho) -> (perda, vezes)
 
 EXAM = "eval/prova.yaml"  # a prova de um cartucho, fora do pacote da mente
-FAR, NEAR = 30, 5  # as distâncias da porta nas perguntas dos corvos
+FAR, NEAR = 40, 5  # as distâncias da porta nas perguntas dos corvos (40: além da última faixa)
 GUARD_AT = (1, 6)  # a distância ao espantalho de cada faixa da pergunta do espantalho
 MIN_SEEN = 3  # plantios maduros medidos para uma perda contar
 HIGH, LOW = 0.25, 0.1  # perda alta e perda baixa
 SURE = 1_000_000  # as "medidas" da verdade, no oráculo
+FARMER3 = REPO / "cartridges/farm/script/src/campsverso_farm_script/data/farmer3.yaml"
 
 
 def exam_of(cartridge: str) -> Exam | None:
@@ -77,12 +91,18 @@ async def examine(
 # ----------------------------------------------------------------------------- o script
 
 
+def _corrected(effects: Sequence[tuple[str, float, float]]) -> Effects:
+    """O intervalo de 90% de cada atributo, corrigido pelos atributos do modelo (sem a base)."""
+    attributes = sum(1 for name, _, _ in effects if name != "base")
+    return {name: corrected(low, high, attributes) for name, low, high in effects}
+
+
 def knowledge_of(script: object) -> tuple[Effects, Loss] | None:
     """A crença do script 3 (ou a verdade do oráculo), lida do caderno dele; `None` sem modelo."""
     knows: Any = getattr(getattr(script, "book", None), "beliefs", None)
     if knows is None:
         return None
-    effects = {str(e.name): (float(e.low), float(e.high)) for e in knows.effects()}
+    effects = _corrected([(str(e.name), float(e.low), float(e.high)) for e in knows.effects()])
     truth = getattr(knows, "loss", None)  # o oráculo sabe a chance, sem medir
     if callable(truth):
         known = cast(Callable[[int, int | None], float], truth)
@@ -159,7 +179,9 @@ def script_model(script: object) -> dict[str, Any] | None:
         {"door": door, "guard": guard, "rate": rate, "measured": seen}
         for (door, guard), (rate, seen) in rates.items()
     ]
-    return {"effects": effects, "loss": loss}
+    config = cast(Mapping[str, Any], getattr(getattr(knows, "beliefs", knows), "config", {}))
+    bins = {name: [int(b) for b in config.get(name, ())] for name in ("loss_door", "loss_guard")}
+    return {"effects": effects, "loss": loss, "bins": bins}
 
 
 def script_exam(exam: Exam, script: object) -> dict[str, Any] | None:
@@ -168,3 +190,85 @@ def script_exam(exam: Exam, script: object) -> dict[str, Any] | None:
     if known is None:
         return None
     return grade(exam, script_answers(exam, *known)).as_dict()
+
+
+# ----------------------------------------------------------------------------- a releitura
+
+
+def _bins(model: Mapping[str, Any]) -> tuple[list[int], list[int]]:
+    """As faixas da perda: as do `modelo.json`, ou, nas rodadas de antes do M21, as do arquivo."""
+    bins = cast(Mapping[str, Sequence[int]] | None, model.get("bins"))
+    if bins is None:
+        config = cast(Mapping[str, Any], yaml.safe_load(FARMER3.read_text(encoding="utf-8")))
+        bins = cast(Mapping[str, Sequence[int]], config["model"])
+    return [int(b) for b in bins["loss_door"]], [int(b) for b in bins["loss_guard"]]
+
+
+def model_knowledge(model: Mapping[str, Any]) -> tuple[Effects, Loss]:
+    """A crença gravada de um script 3 (`modelo.json`), na leitura de hoje."""
+    found = cast(Sequence[Mapping[str, Any]], model["effects"])
+    effects = _corrected([(str(e["name"]), float(e["low"]), float(e["high"])) for e in found])
+    doors, guards = _bins(model)
+    rates = {
+        (int(e["door"]), int(e["guard"])): (float(e["rate"]), int(e["measured"]))
+        for e in cast(Sequence[Mapping[str, Any]], model["loss"])
+    }
+
+    def loss(door: int, guard: int | None) -> tuple[float, int]:
+        d = next((i for i, b in enumerate(doors) if door <= b), len(doors))
+        g = (
+            len(guards)
+            if guard is None
+            else next((i for i, b in enumerate(guards) if guard <= b), len(guards))
+        )
+        return rates.get((d, g), (0.0, 0))
+
+    return effects, loss
+
+
+def reread(arena: Path, exam: Exam) -> list[dict[str, Any]]:
+    """A prova do fim de cada script 3 de uma rodada, gravada e relida (ADR-0074, decisão 13): o
+    nome, a nota de antes e a de agora, e as perguntas cuja resposta mudou. Não regrava nada."""
+    rows: list[dict[str, Any]] = []
+    for folder in sorted(p for p in arena.iterdir() if (p / "modelo.json").is_file()):
+        summary = json.loads((folder / "summary.json").read_text(encoding="utf-8"))
+        if summary["spec"].get("script") != "farmer3" or not (folder / "prova.json").is_file():
+            continue
+        given = json.loads((folder / "prova.json").read_text(encoding="utf-8"))["after"]
+        model = json.loads((folder / "modelo.json").read_text(encoding="utf-8"))
+        now = grade(exam, script_answers(exam, *model_knowledge(model))).as_dict()
+        before = cast(Mapping[str, str], given["answers"])
+        changed = {
+            q: (before.get(q, exam.unknown), a)
+            for q, a in now["answers"].items()
+            if before.get(q, exam.unknown) != a
+        }
+        rows.append({"name": folder.name, "before": given, "now": now, "changed": changed})
+    return rows
+
+
+def _score(taken: Mapping[str, Any]) -> str:
+    return f"{taken['right']} certas, {taken['wrong']} erradas, {taken['unknown']} não sei"
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="a prova dos scripts 3, relida (ADR-0074)")
+    parser.add_argument("arenas", nargs="+", type=Path)
+    parser.add_argument("--cartucho", default="farm_morada_do_sol")
+    args = parser.parse_args(argv)
+    exam = exam_of(args.cartucho)
+    if exam is None:
+        print(f"{args.cartucho}: sem prova", file=sys.stderr)
+        return 1
+    print("| Rodada | Corrida | Gravada | Relida | O que mudou |")
+    print("|---|---|---|---|---|")
+    for arena in args.arenas:
+        for row in reread(arena, exam):
+            changed = "; ".join(f"{q}: {a} → {b}" for q, (a, b) in row["changed"].items())
+            cells = (arena.name, row["name"], _score(row["before"]), _score(row["now"]))
+            print(f"| {' | '.join(cells)} | {changed or 'nada'} |")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -5,9 +5,11 @@
 #
 # Cada pergunta tem as opções, o gabarito (`answer`) e, quando dá, como ler a resposta de um
 # script no modelo dele (`script`): o efeito de um atributo (`effect`, com a opção quando o
-# intervalo de 90% fica acima de 1 e quando fica abaixo), o alcance (`reach`, a faixa mais longe
-# que ainda ajuda) ou as perdas (`loss`, longe e perto da porta, com e sem espantalho, e a opção
-# que a perda sustenta em `means`). Sem como ler, o script responde "não sei".
+# intervalo corrigido pelas comparações múltiplas fica acima de 1 e quando fica abaixo; ADR-0074),
+# o alcance (`reach`, a faixa mais longe que ainda ajuda) ou as perdas (`loss`, longe e perto da
+# porta, com e sem espantalho, e a opção que a perda sustenta em `means`). Sem como ler, o script
+# responde "não sei". A pergunta dos corvos fala de 40 tiles, além da última faixa do modelo do
+# script 3 (32), onde só há corvos; até o M20, falava de 30, numa faixa que misturava os dois.
 
 unknown: nao_sei  # a opção "não sei" de todas as perguntas: vale zero, nem acerto nem erro
 
@@ -35,7 +37,7 @@ questions:
     script: {reach: {agua<=2: um, agua<=4: quatro, agua<=8: dez, agua<=16: dez}}
   - id: corvos_longe
     text: >-
-      Uma planta madura passa a noite num canteiro a 30 tiles da porta de casa, sem nada por perto.
+      Uma planta madura passa a noite num canteiro a 40 tiles da porta de casa, sem nada por perto.
       O que pode acontecer de manhã?
     options:
       nada: nada de diferente

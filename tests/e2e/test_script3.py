@@ -3,12 +3,13 @@
 Em processo, no modo máximo, uns 15 s por ano. O script 3 não sabe nenhuma regra oculta e tem de
 descobrir pelo caderno de campo; o oráculo é o mesmo código sabendo as regras; o script 2 é a
 régua cega. Com as regras do arquivo desligadas (`river_bonus=False`: a água e a fadiga), o
-script 3 não pode "descobrir" o que não existe.
+script 3 não pode "descobrir" o que não existe. O script 3 fixo (ADR-0074) é a régua do meio:
+planeja como o script 3, com a crença presa no começo.
 """
 
 from collections.abc import Mapping
 
-from campsverso_farm_script import controller3
+from campsverso_farm_script import controller3, fixed
 from campsverso_farm_script.knowledge import Effect
 from campsverso_testkit.pipeline import Pipeline
 from campsverso_tools.metrics import Report, compute
@@ -77,3 +78,13 @@ async def test_o_oraculo_atravessa_o_ano_das_lagoas_sem_quase_passar_fome() -> N
     report = await _year("oracle", "c")
     assert _hungry(report) <= 5 < _hungry(blind)
     assert report.totals()["coins_end"] > blind.totals()["coins_end"]
+
+
+async def test_o_script_3_fixo_planeja_sem_aprender_nem_testar() -> None:
+    blind = await _blind()
+    report = await _year("farmer3-fixo", None)
+    book = fixed.book
+    assert sum(book.beliefs.counts) == 0  # nenhum plantio medido
+    assert not book.beliefs.loss_rates()  # nenhuma perda anotada
+    assert not book.tests  # nenhum canteiro de teste
+    assert _harvests(report) > _harvests(blind)  # planejar vale, mesmo sem saber

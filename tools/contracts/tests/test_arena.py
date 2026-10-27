@@ -6,7 +6,9 @@ from typing import Any
 
 from campsverso_tools.arena import (
     beliefs_at_end,
+    corrected,
     east_signals,
+    learned,
     load_runs,
     main,
     notes_east_advantage,
@@ -469,9 +471,21 @@ def test_na_morada_o_relatorio_mostra_o_valor_de_saber_e_o_que_o_script_3_aprend
     assert "| oráculo (sabe) | 300 moedas · 0 colheitas · 0 dias |" in text
     assert "| o valor de saber (oráculo menos script 2) | +286 moedas, +1 dias sem fome |" in text
     assert "## O que o script 3 aprendeu" in text
-    assert "| agua<=2 | 1,42 (1,21 a 1,66) · 14 |" in text
-    assert "| repetida | 0,55 (0,47 a 0,64) · 9 |" in text
+    assert "| agua<=2 | 1,42 (1,21 a 1,66) · 14 ✓ |" in text
+    assert "| repetida | 0,55 (0,47 a 0,64) · 9 ✓ |" in text
     assert "| mata<=2 | - |" in text
+
+
+def test_a_correcao_das_comparacoes_multiplas_tira_o_falso_positivo() -> None:
+    # O falso positivo da rodada do M19: sem a fadiga, a repetição "acelerou" (1,07, de 1,01 a
+    # 1,14). Com um atributo só, o intervalo de 90% basta; com os 18 do modelo, não.
+    assert learned({"low": 1.01, "high": 1.14}, 1)
+    assert not learned({"low": 1.01, "high": 1.14}, 18)
+    assert learned({"low": 1.21, "high": 1.66}, 18)  # a água de verdade continua aprendida
+    low, high = corrected(1.01, 1.14, 18)
+    assert 0.96 < low < 0.98
+    assert 1.18 < high < 1.20
+    assert corrected(1.5, 1.5, 18) == (1.5, 1.5)  # a verdade do oráculo, sem intervalo
 
 
 def test_os_experimentos_da_noite_com_o_veredito_da_noite_seguinte(tmp_path: Path) -> None:

@@ -1,0 +1,10 @@
+# A régua do meio (ADR-0074, decisão 4): o fazendeiro-script 3 com a crença presa no ponto de
+# partida. Planeja o capital e usa a feira, as encomendas e o tacho como o script 3, mas escolhe
+# pelo mundo médio da crença inicial (o que o manual diz) e não testa nem aprende. O script 3 fixo
+# menos o script 2 é o que vale planejar; o script 3 (ou uma mente) menos o fixo, o que vale
+# aprender; e o oráculo menos o fixo, o que vale saber.
+
+id: script/farmer3-fixo-v1
+model:
+  learn: false  # a crença não muda: nem o ritmo, nem a perda
+  test_pairs: 0  # quem não aprende não tem por que testar

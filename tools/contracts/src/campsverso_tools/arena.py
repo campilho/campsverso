@@ -12,12 +12,14 @@ mais recente de `data/arena/`.
 
 import argparse
 import json
+import math
 import re
 import sys
 from collections import Counter
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from statistics import NormalDist
 from typing import Any, cast
 
 from campsverso_tools.exploration import ZONES, Exploration, explore
@@ -941,6 +943,27 @@ def render(runs: Sequence[Run], *, source: str, date: str) -> str:
 
 
 UNKNOWN = "nao_sei"  # a opção "não sei" da prova
+Z90 = 1.645  # o intervalo que o modelo do script 3 grava em `modelo.json`: 90%
+FAMILY_ERROR = 0.10  # o erro aceito na leitura inteira, repartido entre os atributos
+
+
+def corrected(low: float, high: float, attributes: int) -> tuple[float, float]:
+    """O intervalo de um efeito (em vezes) para dizer "aprendeu" (ADR-0074, decisão 13): o de 90%,
+    alargado pela correção das comparações múltiplas (Bonferroni). Com 18 atributos, algum
+    intervalo de 90% exclui o 1 por acaso; repartindo os 10% entre eles, o de cada um vai a uns
+    99,5%. Sem intervalo (a verdade do oráculo), fica como está."""
+    if not 0 < low < high:
+        return low, high
+    center = (math.log(low) + math.log(high)) / 2
+    spread = (math.log(high) - math.log(low)) / 2 / Z90
+    z = NormalDist().inv_cdf(1 - FAMILY_ERROR / (2 * max(attributes, 1)))
+    return math.exp(center - z * spread), math.exp(center + z * spread)
+
+
+def learned(effect: Mapping[str, Any], attributes: int) -> bool:
+    """O efeito gravado conta como aprendido: o intervalo corrigido não inclui o 1."""
+    low, high = corrected(float(effect["low"]), float(effect["high"]), attributes)
+    return low > 1.0 or high < 1.0
 
 
 # A água, um distrator de cada (o efeito verdadeiro é 1) e o histórico do canteiro.
@@ -1125,7 +1148,8 @@ def _learned_section(runs: Sequence[Run]) -> list[str]:
         if found is None:
             return EMPTY
         low, high = _n(found["low"], 2), _n(found["high"], 2)
-        return f"{_n(found['mean'], 2)} ({low} a {high}) · {found['measured']}"
+        mark = " ✓" if learned(found, sum(1 for e in effects if e.get("name") != "base")) else ""
+        return f"{_n(found['mean'], 2)} ({low} a {high}) · {found['measured']}{mark}"
 
     return [
         "## O que o script 3 aprendeu",
@@ -1133,7 +1157,9 @@ def _learned_section(runs: Sequence[Run]) -> list[str]:
         "O efeito de cada atributo no ritmo da planta, em vezes, com o intervalo de 90% e quantos "
         "plantios o mediram. A verdade: a até 4 tiles da água, 1,5 (R-001); repetir a cultura, "
         "0,6 (R-003); o adubo, 1,5. A mata, o caminho e a porta são distratores: o efeito "
-        "verdadeiro é 1. Um efeito conta como aprendido quando o intervalo não inclui o 1.",
+        "verdadeiro é 1. Um efeito conta como aprendido (✓) quando o intervalo, corrigido pelas "
+        "comparações múltiplas (o erro de 10% repartido entre os atributos do modelo: uns 99,5% "
+        "em vez de 90%), não inclui o 1 (ADR-0074).",
         "",
         _table(
             ["Atributo", *(r.name for r in learners)],
