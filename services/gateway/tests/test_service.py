@@ -27,9 +27,16 @@ MESSAGES = MessageValidator(catalog.load(CONTRACTS))
 
 
 class Rig:
-    def __init__(self, pipeline: Pipeline, blobs: MemoryBlobStore | None = None) -> None:
+    def __init__(
+        self,
+        pipeline: Pipeline,
+        blobs: MemoryBlobStore | None = None,
+        *,
+        player_clock: bool = False,
+    ) -> None:
         self.pipeline = pipeline
         self.blobs = blobs or MemoryBlobStore()
+        self.player_clock = player_clock
         self.gateway = self.new_gateway()
         self.realtime = MemoryRealtime()
 
@@ -46,6 +53,7 @@ class Rig:
             MemoryTelemetry(),
             p.validator,
             flush_seconds=3600,  # os testes chamam flush() na hora certa
+            player_clock=self.player_clock,
         )
 
     async def connect(self, view: str) -> tuple[MemoryClient, dict[str, Any]]:
@@ -150,6 +158,34 @@ async def test_operador_pausa_e_o_kernel_responde(rig: Rig) -> None:
     update = await operator.receive_until("update")
     assert update["patch"]["clock"] == {"paused": True}
     assert "world.clock.paused.v1" in _types(update)
+
+
+async def test_no_sandbox_o_jogador_pausa_e_muda_a_velocidade() -> None:
+    """ADR-0074, decisão 16: quem joga o sandbox também opera o relógio, menos o passo a passo."""
+    pipeline = Pipeline()
+    rig = Rig(pipeline, player_clock=True)
+    await rig.gateway.start()
+    serving = asyncio.create_task(rig.realtime.serve(rig.gateway.handle))
+    await pipeline.start()
+    try:
+        player, welcome = await rig.connect("player")
+        clock = {c for c in welcome["commands"] if ".clock." in c}
+        assert clock == {
+            "campsverso.cmd.clock.pause.v1",
+            "campsverso.cmd.clock.resume.v1",
+            "campsverso.cmd.clock.set_scale.v1",
+        }
+        base = {"type": "campsverso.realtime.command.v1", "request_id": "ui-1"}
+        pause = {"command": "campsverso.cmd.clock.pause.v1", "data": {"reason": "debug"}}
+        await player.send({**base, **pause})
+        assert (await player.receive_until("reply"))["ok"] is True
+        step = {"command": "campsverso.cmd.clock.step.v1", "data": {"ticks": 1}}
+        await player.send({**base, "request_id": "ui-2", **step})
+        assert (await player.receive_until("reply"))["error"]["code"] == "not_allowed"
+    finally:
+        await rig.realtime.stop()
+        await rig.gateway.stop()
+        serving.cancel()
 
 
 async def test_comandos_recusados_pelo_gateway(rig: Rig) -> None:

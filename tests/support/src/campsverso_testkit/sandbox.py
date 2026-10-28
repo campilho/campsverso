@@ -11,6 +11,13 @@ orçamento; a fita da mente fica em `<out>/llm.jsonl`, gravando. Precisa de ANTH
 
 Com `--pausado`, o relógio começa parado: quem vai jogar assume o Camps antes do script agir e
 retoma o relógio pela tela (a rodada do humano, ADR-0066).
+
+Com `--retomar`, a pasta `--out` já tem um mundo: o sandbox sobe sobre ela, sem regravar o arquivo
+do mundo, e o kernel continua do último snapshot e do diário de entradas (a recuperação da
+ADR-0044), com o relógio como estava. Quem pausa antes do Ctrl+C volta pausado: é como o humano
+joga um ano em várias noites (ADR-0074, decisão 16).
+
+    make sandbox RETOMAR=data/sandbox/<pasta>
 """
 
 import argparse
@@ -45,6 +52,24 @@ def _world_file(
     return path
 
 
+def world_of(
+    out: Path,
+    mind: str | None = None,
+    source: Path = WORLD,
+    *,
+    paused: bool = False,
+    resume: bool = False,
+) -> Path:
+    """O arquivo do mundo do sandbox: o de uma pasta que já tem mundo (`resume`), ou um novo."""
+    if resume:
+        world = out / "world.yaml"
+        if not world.is_file():
+            raise FileNotFoundError(f"{out} não tem um mundo de sandbox para retomar")
+        return world
+    out.mkdir(parents=True, exist_ok=True)
+    return _world_file(out, mind, source, paused=paused)
+
+
 def run(
     out: Path,
     port: int = PORT,
@@ -52,9 +77,9 @@ def run(
     source: Path = WORLD,
     *,
     paused: bool = False,
+    resume: bool = False,
 ) -> int:
-    out.mkdir(parents=True, exist_ok=True)
-    world = _world_file(out, mind, source, paused=paused)
+    world = world_of(out, mind, source, paused=paused, resume=resume)
     stop = {"now": False}
 
     def interrupt(_signum: int, _frame: object) -> None:
@@ -74,6 +99,7 @@ def run(
             str(out / "data"),
             "--port",
             str(port),
+            "--relogio-do-jogador",  # quem joga o sandbox também pausa (ADR-0074)
         )
         if mind is not None:
             processes.spawn(
@@ -91,7 +117,7 @@ def run(
                 f"  mente: {mind} assume o Camps ao conectar (fita em {out / 'llm.jsonl'})",
                 flush=True,
             )
-        print(f"sandbox em {out}", flush=True)
+        print(f"sandbox {'retomado ' if resume else ''}em {out}", flush=True)
         print(f"  operador: http://127.0.0.1:{port}/?view=operator", flush=True)
         print(f"  jogador:  http://127.0.0.1:{port}/?view=player", flush=True)
         print("  Ctrl+C para parar (os logs ficam na pasta)", flush=True)
@@ -118,8 +144,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--mind", help="a mente que assume o Camps, ex.: camps (ADR-0059)")
     parser.add_argument("--world", type=Path, default=WORLD, help="o arquivo do mundo")
     parser.add_argument("--pausado", action="store_true", help="o relógio começa parado")
+    parser.add_argument(
+        "--retomar", action="store_true", help="continua o mundo que já está em --out"
+    )
     args = parser.parse_args(argv)
-    return run(args.out, args.port, args.mind, args.world, paused=args.pausado)
+    return run(args.out, args.port, args.mind, args.world, paused=args.pausado, resume=args.retomar)
 
 
 if __name__ == "__main__":

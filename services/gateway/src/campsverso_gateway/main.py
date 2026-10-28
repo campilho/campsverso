@@ -46,6 +46,11 @@ def _parse(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument(
         "--watch", type=Path, help="assistir as corridas de uma rodada da arena (ADR-0068)"
     )
+    parser.add_argument(
+        "--relogio-do-jogador",
+        action="store_true",
+        help="o jogador pausa e muda a velocidade (o sandbox; ADR-0074)",
+    )
     return parser.parse_args(argv)
 
 
@@ -111,6 +116,7 @@ async def run(args: argparse.Namespace) -> int:
         Uuid7Ids(),
         telemetry,
         ContractValidator(),
+        player_clock=args.relogio_do_jogador,
     )
     settings = env.gateway
     port = args.port or settings.port

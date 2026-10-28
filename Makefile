@@ -100,8 +100,8 @@ ui-build: ## compila a UI em apps/ui/dist, que o gateway serve
 ui: ## UI em modo desenvolvimento (Vite em http://127.0.0.1:5173), ligada ao gateway de make run ou sandbox
 	$(PNPM) --filter @campsverso/ui dev
 
-sandbox: tools ui-build ## mundo descartável com tudo ligado, em data/sandbox/<data-hora>; MENTE=camps põe o LLM no Camps (ADR-0059; na Boa Vista, MENTE=camps_boavista); PAUSADO=1 começa parado; Ctrl+C para parar
-	$(if $(MENTE),uv run --locked --env-file .env,$(PY)) python -m campsverso_testkit.sandbox --world config/worlds/$(MUNDO).yaml --out data/sandbox/$$(date +%Y%m%d-%H%M%S) $(if $(MENTE),--mind $(MENTE),) $(if $(PAUSADO),--pausado,)
+sandbox: tools ui-build ## mundo descartável com tudo ligado, em data/sandbox/<data-hora>; MENTE=camps põe o LLM no Camps (ADR-0059; na Boa Vista, MENTE=camps_boavista); PAUSADO=1 começa parado; RETOMAR=data/sandbox/<pasta> continua um sandbox de onde parou (pause antes do Ctrl+C para voltar pausado; ADR-0074); Ctrl+C para parar
+	$(if $(MENTE),uv run --locked --env-file .env,$(PY)) python -m campsverso_testkit.sandbox --world config/worlds/$(MUNDO).yaml --out $(or $(RETOMAR),data/sandbox/$$(date +%Y%m%d-%H%M%S)) $(if $(RETOMAR),--retomar,) $(if $(MENTE),--mind $(MENTE),) $(if $(PAUSADO),--pausado,)
 
 DIAS ?= 1
 

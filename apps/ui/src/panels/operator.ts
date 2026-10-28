@@ -146,6 +146,7 @@ export class OperatorPanel {
         { className: "buttons" },
         pace(1),
         pace(72),
+        pace(144),
         pace(720),
         button(
           "Máximo",

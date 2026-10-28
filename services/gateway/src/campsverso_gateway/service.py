@@ -60,6 +60,9 @@ COMMANDS: Mapping[View, tuple[str, ...]] = {
     "player": PLAY_COMMANDS,
     "operator": (*CLOCK_COMMANDS, *PLAY_COMMANDS),
 }
+# No sandbox, quem joga também opera: pausar e mudar a velocidade pela tela do jogador (ADR-0074,
+# decisão 16). Avançar tick a tick e trocar o modo seguem só do operador.
+PLAYER_CLOCK = tuple(f"campsverso.cmd.clock.{verb}.v1" for verb in ("pause", "resume", "set_scale"))
 # Quem joga pelo browser. Na v0.1 é sempre a mesma pessoa, nas duas visões (ADR-0051).
 HUMAN_ID = "human/camps-browser"
 ACTORS: Mapping[View, str] = {"player": "human/jogador", "operator": "human/operador"}
@@ -121,7 +124,12 @@ class GatewayService:
         *,
         flush_seconds: float = 0.1,
         timeline: int = 500,
+        player_clock: bool = False,
     ) -> None:
+        self._commands: Mapping[View, tuple[str, ...]] = {
+            **COMMANDS,
+            "player": (*PLAYER_CLOCK, *PLAY_COMMANDS) if player_clock else PLAY_COMMANDS,
+        }
         self._worldid = worldid
         self._avatar = avatar_id
         self._cartridge = cartridge
@@ -288,7 +296,7 @@ class GatewayService:
             "worldid": self._worldid,
             "view": view,
             "avatar_id": self._avatar,
-            "commands": list(COMMANDS[view]),
+            "commands": list(self._commands[view]),
             "state": self._states[view],
             "events": [e for e in self._timeline if client.sees(e)],
         }
@@ -343,7 +351,7 @@ class GatewayService:
             return self._reply(request_id, "invalid_message", "esperado um command com `command`")
         if not isinstance(data, Mapping):
             return self._reply(request_id, "invalid_message", "`data` precisa ser um objeto")
-        if command not in COMMANDS[view]:
+        if command not in self._commands[view]:
             return self._reply(request_id, "not_allowed", f"a visão {view} não manda {command}")
         envelope = self._envelope(view, command, dict(cast(Mapping[str, Any], data)))
         problems = self._validator.validate(envelope)

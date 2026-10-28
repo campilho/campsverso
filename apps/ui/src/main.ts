@@ -223,7 +223,9 @@ function renderControl(state: ObserverState): void {
   const mine = inControl(state, avatarId());
   const controller = state.controllers[avatarId()];
   const busy = state.actions[avatarId()] !== undefined || state.asleep[avatarId()] === true;
-  const key = JSON.stringify([mine, controller, busy, store.status, state.clock.mode]);
+  const clockable = playerClock();
+  const { paused, scale } = state.clock;
+  const key = JSON.stringify([mine, controller, busy, store.status, state.clock.mode, clockable, paused, scale]);
   if (key === lastControl) {
     return; // refazer o botão sem mudança engoliria cliques
   }
@@ -239,11 +241,41 @@ function renderControl(state: ObserverState): void {
       : button(`Assumir ${avatarName(state)}`, () => { assume(state); }, store.status === "open"),
     el("span", { className: "hint" }, hint),
     ...(mine ? [button("Comandos", () => { help.show(); })] : []),
+    ...(clockable ? clockButtons(state) : []),
   );
   if (mine && !wasInControl) {
     help.firstTime();
   }
   wasInControl = mine;
+}
+
+// ---------------------------------------------------------------- o relógio do jogador (ADR-0074)
+
+const CLOCK = "campsverso.cmd.clock.";
+const PACES = [72, 144, 720] as const;
+
+/** No sandbox, quem joga também opera o relógio: o gateway diz se aceita (`--relogio-do-jogador`). */
+function playerClock(): boolean {
+  return view === "player" && (store.welcome?.commands ?? []).includes(`${CLOCK}pause.v1`);
+}
+
+function togglePause(state: ObserverState): void {
+  if (state.clock.paused === true) {
+    connection.send(`${CLOCK}resume.v1`, {});
+  } else {
+    connection.send(`${CLOCK}pause.v1`, { reason: "debug" });
+  }
+}
+
+/** Pausar ou retomar (tecla P) e as velocidades: 72x para o dia, 144x para andar mais rápido, 720x
+ * para a noite dormindo. */
+function clockButtons(state: ObserverState): HTMLElement[] {
+  const open = store.status === "open";
+  const pause = button(state.clock.paused === true ? "Retomar (P)" : "Pausar (P)", () => { togglePause(state); }, open);
+  const paces = PACES.map((value) =>
+    button(`${String(value)}×`, () => { connection.send(`${CLOCK}set_scale.v1`, { scale: value, reason: "human" }); }, open, state.clock.scale === value),
+  );
+  return [el("span", { className: "clock-buttons" }, pause, ...paces)];
 }
 
 // ---------------------------------------------------------------- a fila (ADR-0068)
@@ -388,6 +420,10 @@ document.addEventListener("keydown", (event) => {
   }
   if (key === "?") {
     help.show();
+    return;
+  }
+  if (key === "p" && store.state !== undefined && playerClock()) {
+    togglePause(store.state);
     return;
   }
   if (key === "Escape") {

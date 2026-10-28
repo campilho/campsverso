@@ -9,6 +9,7 @@ export default defineConfig(
       "**/node_modules/**",
       "**/dist/**",
       "**/.venv/**",
+      ".claude/**", // local de cada máquina: os worktrees das tarefas do Claude Code
       "packages/contracts-ts/src/**", // GERADO a partir de contracts/
     ],
   },

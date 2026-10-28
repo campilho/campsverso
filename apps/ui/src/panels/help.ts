@@ -14,6 +14,7 @@ const COMMANDS: readonly (readonly [string, string])[] = [
   ["espaço", "volta a seguir o avatar"],
   ["E", "abre o menu do seu avatar"],
   ["arrastar", "rola o mapa"],
+  ["P", "pausa e retoma o relógio, quando a tela pode (no sandbox)"],
 ];
 
 function seen(): boolean {
