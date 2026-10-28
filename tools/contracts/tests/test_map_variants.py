@@ -35,7 +35,7 @@ def _far(path: Path) -> list[int]:
 
 def test_as_variantes_gravadas_estao_em_dia_e_cumprem_o_que_prometem() -> None:
     assert map_variants.main(["--check"]) == 0
-    assert sorted(recipes()) == ["b", "c"]  # a d fica para o M21, sem receita no repositório
+    assert sorted(recipes()) == ["b", "c", "d"]  # a d é a do M21 (ADR-0074)
 
 
 def test_a_variante_muda_so_a_agua_e_a_mata() -> None:
@@ -65,6 +65,14 @@ def test_cada_mapa_poe_a_terra_boa_num_lugar() -> None:
     # c: só longe, toda além da linha dos corvos
     assert min(ponds) > crows
 
+    # d: num lugar que nenhum dos outros três usou (quem aprendeu só o lugar erra)
+    def good(path: Path) -> set[tuple[int, int]]:
+        return set(fertile(grid_of(_json(path)), rules().water_radius))
+
+    surprise = good(MAPS / "d.tmj")
+    for other in (BASE, MAPS / "b.tmj", MAPS / "c.tmj"):
+        assert not surprise & good(other), other.name
+
 
 def test_uma_receita_que_estraga_o_mapa_e_recusada() -> None:
     base = _json(BASE)
@@ -85,6 +93,7 @@ def test_o_mapa_visual_de_cada_variante_combina_com_o_logico() -> None:
         "map-visual.tmj",
         "map-visual-b.tmj",
         "map-visual-c.tmj",
+        "map-visual-d.tmj",
     ]
     for logic_path, visual_path in pairs:
         logic = logical_types(_json(logic_path))

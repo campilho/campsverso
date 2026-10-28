@@ -85,6 +85,7 @@ SCRIPT_NAMES = {
     "farmer": "script",
     "farmer2": "script 2",
     "farmer3": "script 3",
+    "farmer3-fixo": "script 3 fixo",
     "oracle": "oráculo",
 }
 MORADA = "farm_morada_do_sol"

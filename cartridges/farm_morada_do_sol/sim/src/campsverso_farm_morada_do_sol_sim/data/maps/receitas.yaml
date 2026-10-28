@@ -12,7 +12,9 @@
 # `promete` é conferido no mapa gravado, com os números das regras lidos do cartucho: a terra boa
 # (a grama perto da água) fica a uma distância da porta entre `min` e `max`, e `a_salvo` é a
 # fração dela que fica perto da casa, onde os corvos não chegam; `longe_de` dá a distância mínima
-# da terra boa a uma construção.
+# da terra boa a uma construção. `saber_vale` (ADR-0074) não se confere no mapa, e sim num ano de
+# cada régua (tests/e2e/test_mapa_d.py): o oráculo passa o script 3 fixo por pelo menos tantas
+# moedas e tantas colheitas.
 
 b:
   nome: o córrego
@@ -49,3 +51,21 @@ c:
   promete:
     fertil_da_porta: {min: 23}
     a_salvo: {max: 0.0}
+
+# A variante do M21 (ADR-0070, decisão 2; ADR-0074, decisões 2 e 22): desenhada sem que o
+# usuário a veja antes de jogar, num lugar que nenhum dos outros mapas usou, onde quem aprendeu
+# só o lugar erra, e onde saber vale.
+d:
+  nome: a surpresa
+  ops:
+    - {fill: [60, 8, 61, 38], tile: grass}  # o rio sai: a várzea vira campo
+    - {fill: [60, 0, 63, 7], tile: tree}  # a mata do morro vai até a borda
+    - {fill: [60, 39, 63, 39], tile: tree}  # e a da borda sul
+    - {fill: [62, 8, 63, 38], tile: tree}  # e a borda leste vira mata
+    - {fill: [24, 3, 29, 5], tile: grass}  # a lagoa do morro sai
+    - {fill: [3, 31, 8, 34], tile: river}  # a lagoa nova
+  promete:
+    fertil_da_porta: {min: 9, max: 20}
+    a_salvo: {min: 0.7}
+    longe_de: {well: 6}  # longe de onde o script 2 cava
+    saber_vale: {moedas: 150, colheitas: 15}

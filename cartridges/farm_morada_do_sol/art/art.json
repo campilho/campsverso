@@ -4,7 +4,8 @@
   "visual_map": "map-visual.tmj",
   "visual_maps": {
     "farm_morada_do_sol-b": "map-visual-b.tmj",
-    "farm_morada_do_sol-c": "map-visual-c.tmj"
+    "farm_morada_do_sol-c": "map-visual-c.tmj",
+    "farm_morada_do_sol-d": "map-visual-d.tmj"
   },
   "kinds": {
     "scarecrow": {

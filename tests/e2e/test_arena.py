@@ -16,6 +16,7 @@ from campsverso_testkit.arena import (
     SPECS_BOAVISTA,
     SPECS_MORADA,
     SPECS_PLAYBOOK,
+    SPECS_TERCEIRA,
     Spec,
     main,
     run_spec,
@@ -128,6 +129,7 @@ def test_as_corridas_da_boa_vista() -> None:
         "morada": SPECS_MORADA,
         "playbook": SPECS_PLAYBOOK,
         "ajudantes": SPECS_AJUDANTES,
+        "terceira": SPECS_TERCEIRA,
     }
 
 
@@ -168,6 +170,17 @@ def test_a_rodada_de_verificacao_da_morada_do_sol() -> None:
     assert not by["script3-sem-regras"].river_bonus
     assert (by["haiku-memoria"].controller, by["haiku-memoria"].memory) == ("llm", True)
     assert by["haiku-memoria"].map is None
+
+
+def test_a_terceira_rodada_poe_as_quatro_reguas_nos_quatro_mapas() -> None:
+    """ADR-0074: o script 2, o script 3, o script 3 fixo e o oráculo nos mapas a, b, c e d."""
+    by = {s.name: s for s in SPECS_TERCEIRA}
+    assert len(by) == 16
+    assert (by["script3-fixo-d"].script, by["script3-fixo-d"].map) == ("farmer3-fixo", "d")
+    assert (by["oraculo-a"].script, by["oraculo-a"].map) == ("oracle", None)
+    assert {(s.cartridge, s.seed, s.days, s.controller) for s in SPECS_TERCEIRA} == {
+        ("farm_morada_do_sol", 20261022, 28, "script")
+    }
 
 
 def test_a_rodada_do_agricultor_treinado() -> None:

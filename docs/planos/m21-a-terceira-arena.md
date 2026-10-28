@@ -94,7 +94,8 @@
 - **O que a receita promete,** conferido pelo teste no mapa gravado:
   - a terra boa (até 4 tiles da água) fica num lugar que nenhum dos três mapas usou;
   - quem aprendeu só o lugar erra: o d não tem água nem no leste do mapa a, nem na coluna do córrego do b, nem nas lagoas do c;
-  - um explorador alcança a terra boa na primeira estação.
+  - um explorador alcança a terra boa na primeira estação;
+  - **saber vale** (decisão 22): num ano, o oráculo passa o script 3 fixo por pelo menos 150 moedas e 15 colheitas, conferido por um teste com um ano de cada.
 - **Este plano não diz onde fica a água,** porque o usuário vai jogar nesse mapa. A receita fica no repositório, e o print vai para a aprovação dele depois da partida (decisão 2).
 - **O mundo é o `farm-morada-do-sol-04`,** com a mesma seed dos outros três, então a diferença entre eles é só o mapa. O mapa visual e o modo de assistir funcionam como nas outras variantes.
 - **O script 3 vê o d pela primeira vez na rodada.** O mapa nunca entra nos testes do script 3: é o conjunto de teste que ninguém viu.
@@ -176,6 +177,12 @@ Todas na seed da Morada (20261022), sem playbook (decisão 6). As corridas dos m
   - **saber:** o oráculo menos o script 3 fixo, que é o teto.
 - **A fração do valor de saber capturada** é (o controlador − o fixo) ÷ (o oráculo − o fixo), em moedas e em colheitas. Abaixo de zero, o controlador foi pior que não aprender.
 - **É de graça,** como as outras réguas.
+- **O que a medida mostrou** (28/out, adendo da ADR-0074). Num ano, o fixo fez 267 moedas, 72 colheitas e 5 dias de fome, igual nos três mapas:
+  - planejar vale muito: o fixo fica 253 moedas acima do script 2;
+  - aprender, do jeito do script 3, custa mais do que rende num ano: ele fica umas 260 moedas abaixo do fixo;
+  - o oráculo fica 54 moedas acima do fixo no mapa a, 320 acima no b e 83 abaixo no c.
+
+  Por isso a fração vale como medida principal só no mapa d, que promete que saber vale (decisão 22). Nos mapas a, b e c, o relatório põe as quatro réguas lado a lado.
 
 ## 5. A ferramenta de comparação
 
@@ -240,7 +247,7 @@ Todas na seed da Morada (20261022), sem playbook (decisão 6). As corridas dos m
   - a leitura nova é refeita nas corridas do M19 e do playbook, e o relatório diz o que mudou.
 - **O relatório final da v0.3** (`docs/arena/<data>.md`) traz:
   - a tabela principal no mapa d, com todos lado a lado e as réguas;
-  - a fração do valor de saber capturada (§4), em moedas e em colheitas;
+  - a fração do valor de saber capturada (§4), em moedas e em colheitas, no mapa d;
   - os scripts nos quatro mapas, para ver se o script 3 vai tão bem no d quanto nos outros;
   - a prova antes e depois, os dois juízes, as métricas de exploração e os experimentos da noite;
   - os ajudantes: quem contratou, por quantos dias e quanto perdeu;
@@ -376,3 +383,4 @@ Aprovadas em 27/out. As notas do usuário estão na ADR-0074.
 19. **Os braços nos outros modelos** se decidem depois dos braços do Haiku, para a rodada do playbook.
 20. **A rodada controlada do playbook** no fim do M21: o playbook 3, os modelos da rodada principal, o mesmo mapa e a mesma seed, e o comprimento pelos custos reais.
 21. **O teto da v0.3** sobe de US$ 150 para 300, com cada passo pago aprovado com o custo real.
+22. **O mapa d promete que saber vale,** e a fração do valor de saber capturada é a medida principal só nele (28/out, depois da medida da régua do meio).

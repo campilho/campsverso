@@ -169,12 +169,27 @@ SPECS_AJUDANTES: tuple[Spec, ...] = tuple(
     for variant in ("a", "b")
     for hire in (None, *HIRES)
 )
+# A terceira arena (ADR-0074): as quatro réguas nos quatro mapas, de graça, com o script 3 fixo (a
+# régua do meio, decisão 4); o d é o mapa do M21. As corridas dos modelos entram aqui uma por vez,
+# no mapa d, com o ok do usuário (decisão 17).
+RULERS = (
+    ("script2", "farmer2"),
+    ("script3", "farmer3"),
+    ("script3-fixo", "farmer3-fixo"),
+    ("oraculo", "oracle"),
+)
+SPECS_TERCEIRA: tuple[Spec, ...] = tuple(
+    _morada(f"{name}-{variant}", "script", script=script, map=None if variant == "a" else variant)
+    for name, script in RULERS
+    for variant in ("a", "b", "c", "d")
+)
 ROUNDS: dict[str, tuple[Spec, ...]] = {
     "camps": SPECS,
     "boavista": SPECS_BOAVISTA,
     "morada": SPECS_MORADA,
     "playbook": SPECS_PLAYBOOK,
     "ajudantes": SPECS_AJUDANTES,
+    "terceira": SPECS_TERCEIRA,
 }
 
 

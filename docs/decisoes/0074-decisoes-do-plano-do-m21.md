@@ -81,6 +81,21 @@ A prova também tem dois defeitos de leitura. Os preços do dia mostraram que o 
 - **12:** o GPT-6 Astra julga o Opus 5.5. Documentar sempre o modelo exato, a versão e o harness, se houver.
 - **15:** a Console estava com US$ 49,34 e ganhou US$ 100; a OpenRouter já tem US$ 50.
 
+## Adendo de 28/out: a régua do meio e a decisão 22
+
+O script 3 fixo, medido no passo 2, fez num ano 267 moedas, 72 colheitas e 5 dias de fome. Fez o mesmo nos três mapas, porque planta perto de casa, e o mapa só muda a água e a mata longe dela. Nas moedas, isso derrubou a premissa da decisão 4:
+- **planejar vale muito:** o fixo fica 253 moedas acima do script 2;
+- **aprender, do jeito do script 3, custa mais do que rende num ano:** ele fica umas 260 moedas abaixo do fixo. Sem as regras ocultas, o mesmo script 3 fez 246 moedas;
+- **saber não é um teto em moedas:** o oráculo fica 54 moedas acima do fixo no mapa a, 320 acima no b e 83 abaixo no c. A fração (o controlador − o fixo) ÷ (o oráculo − o fixo) fica com o denominador negativo no c e frágil no a.
+
+22. **O mapa d promete que saber vale** (a opção A, escolhida pelo usuário):
+    - num ano, o oráculo passa o script 3 fixo por pelo menos 150 moedas e 15 colheitas, conferido por um teste com um ano de cada (`tests/e2e/test_mapa_d.py`), como já acontece no mapa b;
+    - a fração do valor de saber capturada é a medida principal só no d;
+    - nos mapas a, b e c, o relatório põe as quatro réguas lado a lado, com a explicação do adendo;
+    - os scripts não mudam, e os números do M19 e do M20 continuam valendo.
+
+    Ficaram de fora consertar o planejador para o oráculo nunca ficar abaixo do fixo (B) e tirar a fração (C).
+
 ## Consequências
 
 - **O orçamento da v0.3 dobra,** e o plano passa a gastar por passos aprovados, não por rodada.
