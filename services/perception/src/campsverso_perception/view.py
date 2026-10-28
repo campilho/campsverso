@@ -27,6 +27,9 @@ class PerceptionState(Projection):
         self.pending: dict[str, list[dict[str, Any]]] = {
             k: list(v) for k, v in raw.get("pending", {}).items()
         }
+        # As entregas gravadas antes de sair, como o outbox do kernel (ADR-0044): o que ficar aqui
+        # numa queda sai de novo, igual, quando a percepção voltar.
+        self.outbox: list[dict[str, Any]] = [dict(e) for e in raw.get("outbox", [])]
 
     def export(self) -> dict[str, Any]:
         return {
@@ -34,6 +37,7 @@ class PerceptionState(Projection):
             "out_seq": self.out_seq,
             "delivered": self.delivered,
             "pending": self.pending,
+            "outbox": self.outbox,
         }
 
     # ------------------------------------------------------------- eventos

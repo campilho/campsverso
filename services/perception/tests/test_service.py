@@ -3,6 +3,8 @@
 from collections.abc import Mapping
 from typing import Any
 
+import pytest
+
 from campsverso_adapters import (
     FakeWallClock,
     InMemoryBus,
@@ -13,6 +15,7 @@ from campsverso_adapters import (
 )
 from campsverso_contracts import subject
 from campsverso_perception.service import DELIVERED, UPDATED, PerceptionPolicy, PerceptionService
+from campsverso_ports import Envelope, EventBus
 
 WORLD = "lab-01"
 ids = SequentialUuid7Ids()
@@ -49,20 +52,45 @@ def decision(seq: int, tick: int, reason: str, controller: str) -> dict[str, Any
     )
 
 
+class Killed(BaseException):
+    """O `kill -9`: nada mais roda no processo, nem o `except Exception` do serviço."""
+
+
+class DyingBus(ValidatingBus):
+    """O barramento de um processo que morre ao publicar a entrega `seq`: antes de a mensagem
+    chegar ao servidor ou depois, sem ver a resposta."""
+
+    def __init__(self, server: InMemoryBus, seq: int, *, stored: bool) -> None:
+        super().__init__(server)
+        self.server, self.seq, self.stored = server, seq, stored
+
+    async def publish(self, subject: str, envelope: Envelope) -> None:
+        if envelope["type"] == DELIVERED and envelope["seq"] == self.seq:
+            if self.stored:
+                self.server.published.append((subject, envelope))  # guardada, ninguém leu ainda
+            raise Killed
+        await super().publish(subject, envelope)
+
+
 class Lab:
     def __init__(self, policy: PerceptionPolicy | None = None) -> None:
         self.inner = InMemoryBus()
-        self.service = PerceptionService(
+        self.blobs = MemoryBlobStore()
+        self.service = self.spawn(ValidatingBus(self.inner), policy)
+        self.world_seq = 0
+        self.agent_seq = 0
+
+    def spawn(self, bus: EventBus, policy: PerceptionPolicy | None = None) -> PerceptionService:
+        """Um processo da percepção; o arquivo da projeção é o mesmo de um processo para outro."""
+        return PerceptionService(
             WORLD,
-            ValidatingBus(self.inner),
-            MemoryBlobStore(),
+            bus,
+            self.blobs,
             FakeWallClock(),
             SequentialUuid7Ids(),
             MemoryTelemetry(),
             policy,
         )
-        self.world_seq = 0
-        self.agent_seq = 0
 
     async def start(self) -> None:
         await self.service.start()
@@ -102,12 +130,20 @@ class Lab:
         self.world_seq += 1
         await self.inner.publish(subject(envelope["type"], WORLD), envelope)
 
+    def request(self, tick: int, reason: str, controller: str) -> dict[str, Any]:
+        """O próximo pedido de decisão do kernel, ainda sem publicar."""
+        envelope = decision(self.agent_seq, tick, reason, controller)
+        self.agent_seq += 1
+        return envelope
+
+    async def ask(self, envelope: Mapping[str, Any]) -> None:
+        await self.inner.publish(subject(str(envelope["type"]), WORLD, "ana"), envelope)
+
     async def decide(self, tick: int, reason: str, controller: str) -> Mapping[str, Any]:
         """Publica o pedido e devolve a entrega que a percepção respondeu."""
         before = len(self.inner.published)
-        envelope = decision(self.agent_seq, tick, reason, controller)
-        self.agent_seq += 1
-        await self.inner.publish(subject(envelope["type"], WORLD, "ana"), envelope)
+        envelope = self.request(tick, reason, controller)
+        await self.ask(envelope)
         delivered = [
             e for _, e in self.inner.published[before:] if e["type"] in (DELIVERED, UPDATED)
         ]
@@ -167,3 +203,33 @@ async def test_script_recebe_sempre_a_foto() -> None:
         delivered = await lab.decide(tick, reason, "script/farmer-v1")
         assert delivered["type"] == DELIVERED
         assert delivered["data"]["kind"] == "snapshot"
+
+
+@pytest.mark.parametrize("stored", [False, True], ids=["antes-do-servidor", "depois-do-servidor"])
+async def test_a_queda_na_entrega_nao_repete_o_seq_nem_perde_a_foto(stored: bool) -> None:
+    """O A6 da percepção sem corrida: o processo morre publicando a terceira foto, antes de o
+    servidor guardá-la ou depois. O que volta segue do seq seguinte, e cada pedido tem uma foto.
+
+    Com o seq gravado só depois do publish, a volta reusava o 2 (o e2e do A6 viu isso uma vez,
+    em 28/out); com o pedido dado por visto antes do publish, a foto se perdia."""
+    lab = Lab()
+    lab.service = lab.spawn(DyingBus(lab.inner, 2, stored=stored))
+    await lab.start()
+    asked = [await lab.decide(tick, "action_completed", "script/farmer-v1") for tick in (1, 2)]
+    third = lab.request(3, "action_completed", "script/farmer-v1")
+    with pytest.raises(Killed):
+        await lab.ask(third)
+    await lab.service.stop()
+
+    lab.service = lab.spawn(ValidatingBus(lab.inner))
+    await lab.service.start()
+    fourth = await lab.decide(4, "action_completed", "script/farmer-v1")
+    # O JetStream só reentrega o pedido sem confirmação depois do ack_wait, atrás dos novos.
+    await lab.ask(third)
+
+    sent = [e for _, e in lab.inner.published if e["type"] == DELIVERED]
+    photos = {e["id"]: e for e in sent}  # o JetStream descarta o id repetido (Nats-Msg-Id)
+    assert all(e == photos[e["id"]] for e in sent)  # repetida, só a mesma entrega
+    assert sorted(e["seq"] for e in photos.values()) == [0, 1, 2, 3]
+    answered = sorted(str(e["causationid"]) for e in photos.values())  # uma foto por pedido
+    assert answered == sorted([*(str(e["causationid"]) for e in [*asked, fourth]), third["id"]])

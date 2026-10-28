@@ -5,6 +5,10 @@ Lê `world` e `agent` com consumidores duráveis. A projeção vai para um arqui
 aplicado de cada stream, antes de cada confirmação: se o processo cair, volta do arquivo e o
 JetStream entrega o resto. Antes de montar a foto de um pedido, alcança o stream `world`, para que
 tudo o que o kernel publicou antes do pedido já esteja na projeção.
+
+Cada entrega entra na caixa de saída do arquivo, com o seq que gasta, antes de ir ao barramento
+(o outbox do kernel, ADR-0044). Ao voltar de uma queda, a percepção publica de novo o que ficou na
+caixa, com o mesmo id, e segue do seq seguinte: nenhum seq se repete e nenhuma foto se perde.
 """
 
 import json
@@ -75,6 +79,10 @@ class PerceptionService:
         self._blobs.put(self._key, data.encode())
 
     async def start(self) -> None:
+        if self.projection.outbox:  # caiu com uma entrega gravada: ela sai antes de tudo
+            for envelope in list(self.projection.outbox):
+                await self._send(envelope)
+            self._save()
         w = self._worldid
         self._world = await self._bus.consume(
             f"campsverso.{w}.world.>", f"perception-{w}-world", self._on_world
@@ -163,6 +171,16 @@ class PerceptionService:
         }
         if decision.get("correlationid"):
             envelope["correlationid"] = decision["correlationid"]
-        await self._bus.publish(subject(event_type, self._worldid, avatar_id), envelope)
         projection.deliver(avatar_id, str(controller["id"]), snapshot=snapshot)
+        # Gravada antes de sair: a queda depois do publish não reusa o seq na volta, e a de antes
+        # não perde a foto de um pedido que o arquivo já dá por visto.
+        projection.outbox.append(envelope)
+        self._save()
+        await self._send(envelope)
         self.delivered += 1
+
+    async def _send(self, envelope: dict[str, Any]) -> None:
+        """Publica uma entrega da caixa de saída e a tira dela; a gravação seguinte a esvazia."""
+        avatar_id = str(envelope["data"]["avatar_id"])
+        await self._bus.publish(subject(str(envelope["type"]), self._worldid, avatar_id), envelope)
+        self.projection.outbox.remove(envelope)
