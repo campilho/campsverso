@@ -20,6 +20,11 @@ desligada, "a causa" é uma descoberta falsa, e quem lê o relatório sabe disso
 dia ou com crenças acrescentadas à mão, cada um em `data/juiz-controles/<nome>`. `conferir`
 compara os vereditos gravados com o gabarito feito à mão e imprime a concordância e as
 discordâncias, nas corridas e nos controles, sem chamar nada.
+
+Com `--model`, julga outro juiz (ADR-0074, decisão 12: o GPT-6 Astra, pela OpenRouter, quando o
+modelo tem rota na tabela do ambiente). A fita é a mesma (o hash do pedido tem o modelo), e o
+veredito vai para um arquivo com o nome do modelo (`juiz-gpt-6-astra.json`), ao lado do de
+referência; `conferir --model` confere esse.
 """
 
 import argparse
@@ -36,12 +41,13 @@ from typing import Any, cast
 import yaml
 
 from campsverso_adapters import (
-    AnthropicModel,
     ModelPrices,
     RecordingModel,
     SystemWallClock,
     cost_usd,
+    key_variable,
     load_env,
+    model_port,
 )
 from campsverso_ports import ModelCallError, ModelPort, ModelRequest, ModelResponse, request_sha256
 from campsverso_tools.ficha import judge_card
@@ -298,16 +304,23 @@ async def judge(
         response = await port.complete(request)
     except ModelCallError as error:
         return {"model": model, "error": error.kind, "message": error.message, "rules": {}}
-    return {
+    if response.usage.cost_usd is not None:  # o que a OpenRouter disse ter cobrado (ADR-0074)
+        cost = response.usage.cost_usd
+    else:
+        cost = cost_usd(response.usage, prices) if prices is not None else 0.0
+    result: dict[str, Any] = {
         "model": model,
         "answered": response.model,  # a ficha (ADR-0074): o id que a resposta trouxe
         "route": port.provider,
         "prompt_sha256": request_sha256(request),
         "rules": read_verdicts(rubric, response),
         "usage": response.usage.as_dict(),
-        "cost_usd": cost_usd(response.usage, prices) if prices is not None else 0.0,
+        "cost_usd": cost,
         "replayed": response.replayed,
     }
+    if response.served_by:
+        result["served_by"] = response.served_by
+    return result
 
 
 # ----------------------------------------------------------------------------- a arena
@@ -328,15 +341,16 @@ def judged_runs(arena: Path, only: Sequence[str] = ()) -> list[Path]:
     return [f for f in found if not only or f.name in only]
 
 
-def _card(cartridge: str) -> dict[str, Any]:
+def _card(cartridge: str, model: str) -> dict[str, Any]:
     """A ficha do veredito (ADR-0074): a data, a rubrica do mundo e o harness."""
     rubric = REPO / "cartridges" / cartridge / "eval" / "juiz.yaml"
-    return judge_card(date=datetime.now(UTC).isoformat(), rubric=rubric, root=REPO)
+    routed = model in load_env(ENV).routes
+    return judge_card(date=datetime.now(UTC).isoformat(), rubric=rubric, root=REPO, routed=routed)
 
 
 async def judge_run(folder: Path, port: ModelPort, *, model: str = MODEL) -> dict[str, Any] | None:
-    """Julga uma corrida: a fita em `juiz.jsonl` e o veredito em `juiz.json`. Uma fita que já
-    tem o pedido responde de graça."""
+    """Julga uma corrida: a fita em `juiz.jsonl` e o veredito em `juiz.json` (ou no arquivo do
+    modelo, `verdict_file`). Uma fita que já tem o pedido responde de graça."""
     rubric = load_rubric(str(_spec(folder).get("cartridge") or "farm_camps"))
     if rubric is None:
         return None
@@ -344,15 +358,15 @@ async def judge_run(folder: Path, port: ModelPort, *, model: str = MODEL) -> dic
     clock = SystemWallClock()
     taped = RecordingModel(port, folder / "juiz.jsonl", "record", clock=clock)
     result = await judge(taped, rubric, text, model=model, prices=load_env(ENV).models.get(model))
-    result["card"] = _card(str(_spec(folder).get("cartridge") or "farm_camps"))
-    (folder / "juiz.json").write_text(
+    result["card"] = _card(str(_spec(folder).get("cartridge") or "farm_camps"), model)
+    (folder / verdict_file(model)).write_text(
         json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     return result
 
 
 async def judge_arena(arena: Path, only: Sequence[str] = (), *, model: str = MODEL) -> float:
-    api = AnthropicModel(clock=SystemWallClock())
+    api = model_port(model, routes=load_env(ENV).routes, clock=SystemWallClock())
     spent = 0.0
     try:
         for folder in judged_runs(arena, only):
@@ -425,8 +439,8 @@ async def judge_controls(
         taped = RecordingModel(port, folder / "juiz.jsonl", "record", clock=SystemWallClock())
         prices = load_env(ENV).models.get(model)
         result = await judge(taped, rubric, text, model=model, prices=prices)
-        result["card"] = _card(cartridge)
-        (folder / "juiz.json").write_text(
+        result["card"] = _card(cartridge, model)
+        (folder / verdict_file(model)).write_text(
             json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
         )
         spent += float(result.get("cost_usd", 0.0)) if not result.get("replayed") else 0.0
@@ -437,6 +451,12 @@ async def judge_controls(
 
 
 # ----------------------------------------------------------------------------- a conferência
+
+
+def verdict_file(model: str) -> str:
+    """O arquivo do veredito: `juiz.json` para o juiz de referência; o de outro juiz leva o nome
+    do modelo, para os dois ficarem lado a lado (ADR-0074, decisão 12)."""
+    return "juiz.json" if model == MODEL else f"juiz-{model.rsplit('/', 1)[-1]}.json"
 
 
 def _marked(mark: Any) -> str:
@@ -455,9 +475,10 @@ class Agreement:
     differ: list[str] = field(default_factory=list[str])
 
 
-def agreement(key: Path, root: Path = DATA) -> dict[str, Agreement]:
-    """O gabarito feito à mão contra os vereditos gravados, nas corridas (`runs`, relativas a
-    `root`) e nos controles (em `root/juiz-controles`), com cada discordância numa linha."""
+def agreement(key: Path, root: Path = DATA, *, model: str = MODEL) -> dict[str, Agreement]:
+    """O gabarito feito à mão contra os vereditos gravados do juiz `model`, nas corridas (`runs`,
+    relativas a `root`) e nos controles (em `root/juiz-controles`), com cada discordância numa
+    linha."""
     doc = cast(Mapping[str, Any], yaml.safe_load(key.read_text(encoding="utf-8")))
     groups: dict[str, list[tuple[str, Path, Mapping[str, Any]]]] = {
         "corridas": [
@@ -475,7 +496,7 @@ def agreement(key: Path, root: Path = DATA) -> dict[str, Agreement]:
     for group, items in groups.items():
         counted = found[group] = Agreement()
         for name, folder, expected in items:
-            path = folder / "juiz.json"
+            path = folder / verdict_file(model)
             given: Mapping[str, Mapping[str, str]] = {}
             if path.is_file():
                 given = cast(Mapping[str, Any], json.loads(path.read_text("utf-8")))["rules"]
@@ -508,14 +529,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     check.add_argument("gabarito", type=Path)
     args = parser.parse_args(argv)
     if args.command == "conferir":
-        for group, counted in agreement(args.gabarito, args.dados).items():
+        for group, counted in agreement(args.gabarito, args.dados, model=args.model).items():
             share = counted.agreed / max(counted.total, 1)
             print(f"{group}: {counted.agreed} de {counted.total} ({share:.0%})")
             for line in counted.differ:
                 print(f"- {line}")
         return 0
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        print("ANTHROPIC_API_KEY ausente: rode com --env-file .env (ADR-0058)", file=sys.stderr)
+    key = key_variable(args.model, load_env(ENV).routes)  # a Anthropic ou a OpenRouter
+    if not os.environ.get(key):
+        print(f"{key} ausente: rode com --env-file .env (ADR-0058)", file=sys.stderr)
         return 2
     if args.command == "julgar":
         spent = asyncio.run(judge_arena(args.arena, list(args.only or []), model=args.model))
@@ -526,7 +548,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 async def _controls(key: Path, root: Path, model: str) -> float:
-    api = AnthropicModel(clock=SystemWallClock())
+    api = model_port(model, routes=load_env(ENV).routes, clock=SystemWallClock())
     try:
         return await judge_controls(key, api, root, model=model)
     finally:

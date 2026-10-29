@@ -159,6 +159,30 @@ Ficou assim:
   - o Fable 5.1 entra a US$ 10 e 50 (cache lido a 0,25), para a corrida dele pela API da Anthropic;
   - acima de 100 mil tokens de prompt, o Haiku 5.5 custa cinco vezes mais. Nenhum pedido da fazenda chega lá.
 
+## Adendo de 29/out: o adaptador da OpenRouter (o passo 8, a parte de graça)
+
+- **O `httpx2`, não o `httpx`.** É a biblioteca HTTP deste ambiente: vem com o SDK da Anthropic e já estava na lista de SDKs que só os adaptadores importam. O `OpenRouterModel` fica em `libs/adapters/model_openrouter.py`.
+- **A tradução,** que é parte do harness e entra na ficha:
+  - o `tool_use` vira `tool_calls`, e cada `tool_result`, uma mensagem `tool` logo depois. O texto do usuário vai numa mensagem depois delas;
+  - o `tool_result` com `is_error` ganha a marca `(erro)` no começo, porque o formato de chat não tem o campo;
+  - o raciocínio volta num bloco `reasoning`, com os `reasoning_details` como vieram, e a janela o devolve sem mudança, como a OpenRouter pede quando há ferramentas;
+  - o `tool_use` guarda os argumentos como o modelo os escreveu (`arguments`), e é esse texto que volta. Argumentos que não são JSON viram uma entrada vazia;
+  - as ferramentas estritas continuam estritas (`function.strict`). Os 33 esquemas da Morada (29 ferramentas de decisão, a reflexão, a comparação, a prova e o juiz) cumprem as regras do modo estrito da OpenAI, conferidos de graça;
+  - o esforço vai como `reasoning.effort`, e uma ação por vez, como `parallel_tool_calls: false`;
+  - os marcadores de cache vão nas partes de texto (o sistema e o texto do usuário). A mensagem `tool` é só texto e não leva marcador.
+- **O provedor fixo fica na tabela de preços do ambiente:** a chave `openrouter:` no modelo. A composição escolhe o adaptador pelo modelo (`model_port`), e um modelo sem rota é recusado antes de sair. A lista de 29/out:
+  - o GPT-6 Astra (`openai/gpt-6-astra`) pelo provedor `openai`, a US$ 10 e 50 por milhão (cache lido a 1,00 e gravado a 12,50);
+  - o Gemini 4 Argon (`google/gemini-4-argon`) pelo `google-ai-studio`, a US$ 2 e 10 (cache lido a 0,10 e gravado a 0,1875);
+  - **os dois têm também um provedor `flex` pela metade do preço** (`openai/flex` a 5 e 25; `google-ai-studio/flex` a 1 e 5), mais lento e às vezes indisponível. Como o mundo espera o modelo na arena, o flex pode cortar à metade o custo do Astra e do Gemini. A escolha fica para o usuário antes das corridas pagas.
+- **O custo vem da resposta** (`usage.cost`) e vai em `ModelUsage.cost_usd`. O medidor e o juiz o usam no lugar da tabela, e a fita o guarda. A tabela continua sendo a guarda (modelo sem preço é recusado) e a estimativa.
+- **O evento `llm.call.completed.v1` ganha dois campos opcionais:**
+  - `response_model`, o id que a resposta disse ser, publicado em toda chamada;
+  - `served_by`, quem atendeu na OpenRouter, lido do campo `provider` da resposta. A referência da API não documenta esse campo; a fumaça confirma.
+- **Os erros** são classificados como na Anthropic: o 402 (sem créditos) e o 403 contam como `auth`. Como o SDK de lá, o adaptador repete o 408, o 429, os 5xx e as falhas de rede até duas vezes, com a espera que o servidor pede. Um erro que chega num 200 (no corpo ou na escolha) também é erro. A OpenRouter não conta tokens sem gerar.
+- **A ficha:** a rota diz quem atendeu (`openrouter: OpenAI`), e o SDK do harness é o `httpx2`.
+- **O segundo juiz:** `make juiz JUIZ=openai/gpt-6-astra` julga com o Astra. A fita é a mesma (o hash do pedido tem o modelo), e o veredito vai para `juiz-gpt-6-astra.json`, ao lado do `juiz.json` do Opus; `CONFERIR=` com o mesmo `JUIZ=` confere esse.
+- **A fumaça é `make llm-smoke MODEL=openai/gpt-6-astra`,** em vez do `PROVEDOR=openrouter` do plano, porque a rota sai da tabela. Pela OpenRouter, a fumaça dá também o segundo turno, com o resultado da ferramenta e a resposta inteira de volta, que é a tradução que mais pode falhar. Ela pede `OPENROUTER_API_KEY` no `.env`; o `make secrets` deixa a linha comentada para o usuário preencher.
+
 ## Consequências
 
 - **O orçamento da v0.3 dobra,** e o plano passa a gastar por passos aprovados, não por rodada.

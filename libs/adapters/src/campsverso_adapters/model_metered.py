@@ -2,9 +2,11 @@
 
 É o decorador, não o adaptador do provedor, que publica `llm.call.completed.v1` ou
 `llm.call.failed.v1` (contratos §12.1). O custo sai de uma tabela de preços que é dado do
-ambiente; um modelo sem preço é recusado antes de gastar. O prompt nunca sai: vai o hash. O
-conselheiro (ADR-0074) é cobrado na tarifa dele, e o `cost_usd` do evento é o total; o campo
-`advisor` diz quanto foi dele.
+ambiente; um modelo sem preço é recusado antes de gastar. Quando o provedor diz o que cobrou (a
+OpenRouter, ADR-0074), vale o que ele disse. O prompt nunca sai: vai o hash. O conselheiro
+(ADR-0074) é cobrado na tarifa dele, e o `cost_usd` do evento é o total; o campo `advisor` diz
+quanto foi dele. O evento leva também o modelo que a resposta disse ser e, num roteador, quem
+atendeu.
 """
 
 from collections.abc import Callable, Mapping
@@ -118,7 +120,11 @@ class MeteredModel:
                 },
             )
             raise
-        cost = cost_usd(response.usage, self._prices[request.model])
+        cost = (
+            round(response.usage.cost_usd, 8)
+            if response.usage.cost_usd is not None
+            else cost_usd(response.usage, self._prices[request.model])
+        )
         advised: dict[str, Any] | None = None
         if response.advisor is not None:
             advisor = response.advisor
@@ -141,6 +147,10 @@ class MeteredModel:
         }
         if response.request_id:
             data["request_id"] = response.request_id
+        if response.model:
+            data["response_model"] = response.model[:128]
+        if response.served_by:
+            data["served_by"] = response.served_by[:128]
         if request.effort is not None:
             data["effort"] = request.effort
         if advised is not None:

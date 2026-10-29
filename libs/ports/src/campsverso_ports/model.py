@@ -37,10 +37,15 @@ class ModelRequest:
 
 @dataclass(frozen=True, slots=True)
 class ModelUsage:
+    """Os tokens, no sentido da Messages API: a entrada sem o que foi lido ou gravado no cache.
+    `cost_usd` é o que o provedor disse ter cobrado, quando diz (a OpenRouter, ADR-0074); sem
+    ele, o custo sai da tabela de preços. Não entra em `as_dict`, que é o `llm_usage` do evento."""
+
     input_tokens: int
     output_tokens: int
     cache_read_input_tokens: int = 0
     cache_creation_input_tokens: int = 0
+    cost_usd: float | None = None
 
     def as_dict(self) -> dict[str, int]:
         return {
@@ -71,6 +76,7 @@ class ModelResponse:
     request_id: str | None = None
     replayed: bool = False  # veio da fita: ninguém pagou
     advisor: SubCall | None = None  # o conselheiro consultado dentro da chamada (ADR-0074)
+    served_by: str | None = None  # quem atendeu, quando a porta é um roteador (ADR-0074)
 
     def tool_uses(self) -> list[Mapping[str, Any]]:
         return [block for block in self.content if block.get("type") == "tool_use"]

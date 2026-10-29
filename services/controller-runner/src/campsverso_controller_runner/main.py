@@ -24,7 +24,6 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from campsverso_adapters import (
-    AnthropicModel,
     JsonTelemetry,
     MeteredModel,
     NatsBus,
@@ -33,8 +32,10 @@ from campsverso_adapters import (
     SystemWallClock,
     Uuid7Ids,
     ValidatingBus,
+    key_variable,
     load_env,
     load_world,
+    model_port,
     read_world_archive,
 )
 from campsverso_controller_runner.replay import ReplayRunner, recorded_proposals
@@ -139,15 +140,18 @@ async def run(args: argparse.Namespace) -> int:
             )
             await nats.close()
             return 2
-        if settings.cassette_mode != "replay" and not os.environ.get("ANTHROPIC_API_KEY"):
-            telemetry.error("mind.no_api_key", hint="ANTHROPIC_API_KEY no .env (ADR-0058)")
+        key = key_variable(settings.model, env.routes)  # a Anthropic ou a OpenRouter (ADR-0074)
+        if settings.cassette_mode != "replay" and not os.environ.get(key):
+            telemetry.error("mind.no_api_key", hint=f"{key} no .env (ADR-0058)")
             await nats.close()
             return 2
         sim_time = SimTime()
         ref = {"type": "llm", "id": settings.id}
         # Em replay a fita basta: nem chave nem rede.
         inner: ModelPort | None = (
-            None if settings.cassette_mode == "replay" else AnthropicModel(clock=clock)
+            None
+            if settings.cassette_mode == "replay"
+            else model_port(settings.model, routes=env.routes, clock=clock)
         )
         recorder = RecordingModel(
             inner, settings.cassette_path, settings.cassette_mode, clock=clock

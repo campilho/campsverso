@@ -20,6 +20,7 @@ from campsverso_tools.judge import (
     load_rubric,
     main,
     read_verdicts,
+    verdict_file,
     verdict_tool,
 )
 
@@ -180,6 +181,46 @@ async def test_o_juiz_grava_a_fita_e_o_veredito_e_repete_de_graca(tmp_path: Path
     assert port.calls == 1  # a fita respondeu
 
 
+class RoutedJudgePort(JudgePort):
+    """O segundo juiz pela OpenRouter (ADR-0074): a resposta traz o custo e quem atendeu."""
+
+    provider = "openrouter"
+
+    async def complete(self, request: ModelRequest) -> ModelResponse:
+        answered = await super().complete(request)
+        return ModelResponse(
+            answered.content,
+            "tool_use",
+            ModelUsage(5000, 2000, 0, 0, cost_usd=0.15),
+            "openai/gpt-6-astra",
+            1,
+            served_by="OpenAI",
+        )
+
+
+async def test_o_segundo_juiz_grava_ao_lado_e_cobra_o_que_a_resposta_diz(tmp_path: Path) -> None:
+    arena = _arena(tmp_path)
+    folder = arena / "haiku-memoria"
+    await judge_run(folder, JudgePort())
+    port = RoutedJudgePort()
+    second = await judge_run(folder, port, model="openai/gpt-6-astra")
+    assert second is not None
+    assert verdict_file("openai/gpt-6-astra") == "juiz-gpt-6-astra.json"
+    assert json.loads((folder / "juiz-gpt-6-astra.json").read_text(encoding="utf-8")) == second
+    assert json.loads((folder / "juiz.json").read_text(encoding="utf-8"))["model"] == MODEL
+    assert (second["route"], second["served_by"], second["cost_usd"]) == (
+        "openrouter",
+        "OpenAI",
+        0.15,
+    )
+    assert second["card"]["harness"]["sdk"].startswith("httpx2 ")  # a rota da tabela do ambiente
+    # A mesma fita guarda os dois juízes: o hash do pedido tem o modelo.
+    again = await judge_run(folder, port, model="openai/gpt-6-astra")
+    assert again is not None
+    assert (again["replayed"], port.calls) == (True, 1)
+    assert len((folder / "juiz.jsonl").read_text(encoding="utf-8").splitlines()) == 2
+
+
 def test_a_conferencia_conta_as_corridas_e_os_controles(tmp_path: Path, capsys: Any) -> None:
     arena = _arena(tmp_path)
     given = {"rules": {"agua": {"verdict": "lugar", "belief_id": "bel-0001", "why": "o leste"}}}
@@ -207,6 +248,9 @@ def test_a_conferencia_conta_as_corridas_e_os_controles(tmp_path: Path, capsys: 
     out = capsys.readouterr().out
     assert "corridas: 0 de 2 (0%)" in out
     assert "controles: 1 de 1 (100%)" in out
+    # O segundo juiz confere o arquivo dele (ADR-0074): sem veredito gravado, nada concorda.
+    second = agreement(key, tmp_path, model="openai/gpt-6-astra")
+    assert (second["controles"].agreed, second["controles"].total) == (0, 1)
 
 
 def test_o_controle_corta_a_base_e_acrescenta_crencas_nos_ids_seguintes(tmp_path: Path) -> None:

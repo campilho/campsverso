@@ -99,6 +99,10 @@ class RecordingModel:
                 "request_id": response.request_id,
             },
         }
+        if response.usage.cost_usd is not None:  # o custo que o provedor disse (ADR-0074)
+            entry["response"]["usage"]["cost_usd"] = response.usage.cost_usd
+        if response.served_by is not None:  # quem atendeu na OpenRouter (ADR-0074)
+            entry["response"]["served_by"] = response.served_by
         if response.advisor is not None:  # o conselheiro (ADR-0074): só quando houve
             advisor = response.advisor
             entry["response"]["advisor"] = {
@@ -112,12 +116,14 @@ class RecordingModel:
         self._entries[key] = entry
 
 
-def _usage(recorded: Mapping[str, int]) -> ModelUsage:
+def _usage(recorded: Mapping[str, float]) -> ModelUsage:
+    cost = recorded.get("cost_usd")
     return ModelUsage(
         input_tokens=int(recorded["input_tokens"]),
         output_tokens=int(recorded["output_tokens"]),
         cache_read_input_tokens=int(recorded.get("cache_read_input_tokens", 0)),
         cache_creation_input_tokens=int(recorded.get("cache_creation_input_tokens", 0)),
+        cost_usd=None if cost is None else float(cost),
     )
 
 
@@ -126,16 +132,17 @@ def _response_from(recorded: Mapping[str, Any]) -> ModelResponse:
     return ModelResponse(
         content=[dict(block) for block in cast(list[Mapping[str, Any]], recorded["content"])],
         stop_reason=str(recorded["stop_reason"]),
-        usage=_usage(cast(Mapping[str, int], recorded["usage"])),
+        usage=_usage(cast(Mapping[str, float], recorded["usage"])),
         model=str(recorded["model"]),
         latency_ms=int(recorded["latency_ms"]),
         request_id=cast(str | None, recorded.get("request_id")),
         replayed=True,
+        served_by=cast(str | None, recorded.get("served_by")),
         advisor=None
         if advisor is None
         else SubCall(
             str(advisor["model"]),
             int(advisor["calls"]),
-            _usage(cast(Mapping[str, int], advisor["usage"])),
+            _usage(cast(Mapping[str, float], advisor["usage"])),
         ),
     )

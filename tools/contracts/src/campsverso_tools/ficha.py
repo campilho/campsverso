@@ -2,11 +2,13 @@
 
 - **O modelo:** o pedido e o que as respostas disseram ser (o id exato, da fita), com o conselheiro.
 - **A data** em que a corrida começou, e **a rota:** o provedor de cada chamada, pelos eventos
-  `llm.call.completed` (a API da Anthropic; com a OpenRouter, o passo 8 acrescenta quem atendeu).
+  `llm.call.completed` (a API da Anthropic, ou a OpenRouter e quem atendeu lá: `openrouter:
+  OpenAI`).
 - **O esforço** pedido em cada tipo de chamada (a decisão, a reflexão, a prova).
 - **O harness**, o que este repositório põe em volta do modelo: o commit (e se havia mudança fora
-  dele), a versão do SDK, o hash do prompt de sistema e o das ferramentas, a memória, o playbook e
-  os braços. No juiz, o hash da rubrica e o do pedido.
+  dele), a versão do SDK (pela OpenRouter, a do `httpx2`, com a tradução deste repositório), o
+  hash do prompt de sistema e o das ferramentas, a memória, o playbook e os braços. No juiz, o
+  hash da rubrica e o do pedido.
 
 Nada aqui chama um modelo: a ficha é lida do que a corrida já gravou.
 """
@@ -20,6 +22,7 @@ from pathlib import Path
 from typing import Any, cast
 
 COMPLETED = "campsverso.llm.call.completed.v1"
+ROUTER = "openrouter"
 
 
 def sha256_of(value: Any) -> str:
@@ -46,6 +49,11 @@ def source_state(root: Path) -> dict[str, Any]:
     except OSError, subprocess.CalledProcessError:
         return {"commit": None}
     return {"commit": head, "dirty": bool(changed)}
+
+
+def sdk_package(routed: bool) -> str:
+    """O pacote que fala com o provedor: o SDK da Anthropic, ou o `httpx2` na OpenRouter."""
+    return "httpx2" if routed else "anthropic"
 
 
 def sdk_version(package: str = "anthropic") -> str | None:
@@ -80,7 +88,8 @@ def calls_of(envelopes: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
         if envelope.get("type") != COMPLETED:
             continue
         data = cast(Mapping[str, Any], envelope.get("data") or {})
-        providers.add(str(data.get("provider")))
+        served = f": {data['served_by']}" if data.get("served_by") else ""
+        providers.add(f"{data.get('provider')}{served}")
         purpose = efforts.setdefault(str(data.get("purpose")), set())
         if data.get("effort"):
             purpose.add(str(data["effort"]))
@@ -108,7 +117,8 @@ def run_card(
         card |= calls_of(envelopes)
         if spec.get("advisor"):
             card["advisor"] = spec["advisor"]
-        harness["sdk"] = sdk_version()
+        routed = any(str(r).startswith(ROUTER) for r in card["route"])
+        harness["sdk"] = sdk_version(sdk_package(routed))
         if mind is not None:
             harness |= {
                 "mind": mind.get("name"),
@@ -127,11 +137,11 @@ def run_card(
     return card
 
 
-def judge_card(*, date: str, rubric: Path, root: Path) -> dict[str, Any]:
+def judge_card(*, date: str, rubric: Path, root: Path, routed: bool = False) -> dict[str, Any]:
     """O que a ficha de um veredito acrescenta ao que a chamada já diz (o modelo que respondeu, a
     rota e o hash do pedido): a data, a rubrica e o harness."""
     return {
         "date": date[:10],
         "rubric_sha256": sha256_of(rubric.read_text(encoding="utf-8")),
-        "harness": {**source_state(root), "sdk": sdk_version()},
+        "harness": {**source_state(root), "sdk": sdk_version(sdk_package(routed))},
     }

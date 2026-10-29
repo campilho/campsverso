@@ -37,6 +37,24 @@ def test_a_rota_e_o_esforco_vem_dos_eventos() -> None:
         "route": ["anthropic"],
         "effort": {"decision": ["low"], "reflection": ["medium"]},
     }
+    # Pela OpenRouter, a rota diz quem atendeu (ADR-0074).
+    routed = _call("decision", "low", "openrouter")
+    routed["data"]["served_by"] = "OpenAI"
+    assert calls_of([routed])["route"] == ["openrouter: OpenAI"]
+
+
+def test_a_ficha_de_uma_corrida_pela_openrouter(tmp_path: Path) -> None:
+    routed = _call("decision", "low", "openrouter")
+    routed["data"]["served_by"] = "OpenAI"
+    card = run_card(
+        started="2026-10-29T01:00:00+00:00",
+        spec={"controller": "llm", "model": "openai/gpt-6-astra", "memory": True},
+        envelopes=[routed],
+        tape=_tape(tmp_path / "llm.jsonl", {"model": "openai/gpt-6-astra"}),
+        root=REPO,
+    )
+    assert (card["route"], card["answered"]) == (["openrouter: OpenAI"], ["openai/gpt-6-astra"])
+    assert card["harness"]["sdk"].startswith("httpx2 ")
 
 
 def test_a_ficha_da_mente_e_a_do_script(tmp_path: Path) -> None:

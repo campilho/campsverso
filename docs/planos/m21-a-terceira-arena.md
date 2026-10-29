@@ -214,7 +214,7 @@ Todas na seed da Morada (20261022), sem playbook (decisão 6). As corridas dos m
 
 ## 7. A OpenRouter
 
-- **É um segundo adaptador da porta de modelo** (`model_openrouter.py`, só em `libs/adapters`), com `httpx`:
+- **É um segundo adaptador da porta de modelo** (`model_openrouter.py`, só em `libs/adapters`), com o `httpx2`, a biblioteca HTTP deste ambiente (o adendo do passo 8 na ADR-0074):
   - ele traduz os blocos da Messages API para o formato de chat (as mensagens, as `tool_calls` e a mensagem da ferramenta) e de volta;
   - ele leva as ferramentas estritas, o esforço como `reasoning.effort` e os marcadores de cache onde o provedor aceita;
   - o custo vem da resposta (`usage.cost`): a `ModelUsage` ganha um `cost_usd` opcional, que o medidor usa no lugar da tabela.
@@ -224,7 +224,7 @@ Todas na seed da Morada (20261022), sem playbook (decisão 6). As corridas dos m
   - o provedor fica fixo em cada modelo (`provider.order`, sem `allow_fallbacks`), e cada chamada grava quem atendeu, porque a OpenRouter pode mandar o mesmo modelo para provedores diferentes.
 - **A conta e a chave são do usuário.**
   - Ele já tem US$ 50 em créditos e põe `OPENROUTER_API_KEY` no `.env` (eu não leio o `.env`).
-  - Antes da rodada, `make llm-smoke PROVEDOR=openrouter` faz uma chamada de centavos.
+  - Antes da rodada, `make llm-smoke MODEL=openai/gpt-6-astra` faz uma chamada de centavos, com o segundo turno.
 - **Os modelos** (decisão 11), escolhidos pelo usuário em 27/out:
   - o GPT-6 Astra (`openai/gpt-6-astra`) e o Gemini 4 Argon (`google/gemini-4-argon`);
   - são os mais bem colocados no índice de inteligência da Artificial Analysis depois dos três Claude, do Muse Wonder (sem API) e do Kimi K3.1 Pro (fora do escopo de longo prazo);

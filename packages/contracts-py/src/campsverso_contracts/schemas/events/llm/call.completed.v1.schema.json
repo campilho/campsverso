@@ -56,13 +56,25 @@
       "maxLength": 128,
       "description": "O id do pedido no provedor, para suporte."
     },
+    "response_model": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "O id do modelo que a resposta disse ser (ADR-0074), que pode ser mais exato que o pedido."
+    },
+    "served_by": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "Quem atendeu de fato, quando o provedor é um roteador: o provedor que a OpenRouter usou (ADR-0074)."
+    },
     "usage": {
       "$ref": "contracts://common/defs.v1#/$defs/llm_usage"
     },
     "cost_usd": {
       "type": "number",
       "minimum": 0,
-      "description": "Custo nominal pela tabela de preços do ambiente; com conselheiro, o total."
+      "description": "Custo nominal pela tabela de preços do ambiente, ou o que o provedor disse ter cobrado, quando diz (a OpenRouter); com conselheiro, o total."
     },
     "advisor": {
       "type": "object",

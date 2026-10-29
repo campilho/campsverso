@@ -136,11 +136,11 @@ arena-humano: ## a partida de um humano no sandbox como corrida da arena: make a
 	@test -n "$(SANDBOX)" || { echo "uso: make arena-humano SANDBOX=data/sandbox/<pasta> [PASTA=data/arena/<rodada>]"; exit 1; }
 	$(PY) python -m campsverso_tools.arena_humano $(SANDBOX) $(if $(PASTA),--arena $(PASTA),) $(if $(NOME),--name $(NOME),)
 
-juiz: ## o juiz das crenças (ADR-0070): make juiz PASTA=data/arena/<rodada> [SO=nome] julga as corridas com memória; make juiz CONTROLES=docs/arena/juiz-gabarito.yaml julga os controles; make juiz CONFERIR=docs/arena/juiz-gabarito.yaml confere, sem chamar a API
-	@test -n "$(PASTA)$(CONTROLES)$(CONFERIR)" || { echo "uso: make juiz PASTA=data/arena/<rodada> | CONTROLES=gabarito | CONFERIR=gabarito"; exit 1; }
-	$(if $(PASTA),uv run --locked --env-file .env python -m campsverso_tools.judge julgar $(PASTA) $(foreach s,$(SO),--only $(s)),)
-	$(if $(CONTROLES),uv run --locked --env-file .env python -m campsverso_tools.judge controles $(CONTROLES),)
-	$(if $(CONFERIR),$(PY) python -m campsverso_tools.judge conferir $(CONFERIR),)
+juiz: ## o juiz das crenças (ADR-0070): make juiz PASTA=data/arena/<rodada> [SO=nome] julga as corridas com memória; make juiz CONTROLES=docs/arena/juiz-gabarito.yaml julga os controles; make juiz CONFERIR=docs/arena/juiz-gabarito.yaml confere, sem chamar a API; JUIZ=openai/gpt-6-astra troca o juiz (ADR-0074)
+	@test -n "$(PASTA)$(CONTROLES)$(CONFERIR)" || { echo "uso: make juiz PASTA=data/arena/<rodada> | CONTROLES=gabarito | CONFERIR=gabarito [JUIZ=modelo]"; exit 1; }
+	$(if $(PASTA),uv run --locked --env-file .env python -m campsverso_tools.judge $(if $(JUIZ),--model $(JUIZ),) julgar $(PASTA) $(foreach s,$(SO),--only $(s)),)
+	$(if $(CONTROLES),uv run --locked --env-file .env python -m campsverso_tools.judge $(if $(JUIZ),--model $(JUIZ),) controles $(CONTROLES),)
+	$(if $(CONFERIR),$(PY) python -m campsverso_tools.judge $(if $(JUIZ),--model $(JUIZ),) conferir $(CONFERIR),)
 
 arena-report: ## o relatório da arena em docs/arena/AAAA-MM-DD.md, da arena mais recente ou de PASTA=data/arena/x
 	$(PY) python -m campsverso_tools.arena $(PASTA)
@@ -166,7 +166,7 @@ metrics: ## métricas da bíblia §13 a partir do arquivo: make metrics [ARCHIVE
 percepcao: ## tokens da percepção por dia a partir do arquivo (ADR-0056): make percepcao [ARCHIVE=pasta] [EVERY=20] [CONTAR=20]
 	$(if $(CONTAR),uv run --locked --env-file .env,$(PY)) python -m campsverso_tools.perception_budget $(ARCHIVE) --every $(EVERY) $(if $(CONTAR),--contar $(CONTAR),)
 
-llm-smoke: ## uma chamada real pela porta de modelo, medida e publicada pelo contrato (ADR-0058): make llm-smoke [MODEL=claude-haiku-5-5] [CONSELHEIRO=claude-opus-4-8]
+llm-smoke: ## uma chamada real pela porta de modelo, medida e publicada pelo contrato (ADR-0058): make llm-smoke [MODEL=claude-haiku-5-5] [CONSELHEIRO=claude-opus-4-8]; um modelo com rota na tabela (MODEL=openai/gpt-6-astra) vai pela OpenRouter e pede OPENROUTER_API_KEY (ADR-0074)
 	uv run --locked --env-file .env python -m campsverso_tools.llm_smoke --model $(or $(MODEL),claude-haiku-5-5) \
 	  --cassette data/llm/smoke-$$(date +%Y%m%d-%H%M%S).jsonl $(if $(CONSELHEIRO),--advisor $(CONSELHEIRO),)
 
@@ -188,6 +188,7 @@ secrets: ## gera em .env (fora do git) as senhas do NATS que ainda faltam
 	  grep -q "^NATS_$${role}_PASSWORD=" .env || echo "NATS_$${role}_PASSWORD=$$(openssl rand -hex 24)" >> .env; \
 	done
 	@grep -q "ANTHROPIC_API_KEY=" .env || { echo "# ANTHROPIC_API_KEY=cole-aqui-a-chave-da-console (ADR-0058; o make llm-smoke, o CONTAR=20, o make fita e o sandbox com MENTE usam)" >> .env; echo "aviso: ANTHROPIC_API_KEY ausente em .env; o make llm-smoke precisa dela"; }
+	@grep -q "OPENROUTER_API_KEY=" .env || echo "# OPENROUTER_API_KEY=cole-aqui-a-chave-da-openrouter (ADR-0074; o GPT-6 Astra e o Gemini 4 Argon)" >> .env
 
 tools: $(NATS_DIR)/nats-server ## baixa ferramentas locais com versão fixa (nats-server), conferindo o sha256
 

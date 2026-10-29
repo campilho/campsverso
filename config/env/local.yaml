@@ -28,6 +28,11 @@ models:  # dólares por milhão de tokens, tabela conferida em 28/out/2026 (ADR-
   claude-opus-4-8: {input_per_mtok: 5.00, output_per_mtok: 25.00, cache_read_per_mtok: 0.50, cache_write_per_mtok: 6.25}
   # O Fable 5.1 (ADR-0074, decisão 18), pela API da Anthropic.
   claude-fable-5-1: {input_per_mtok: 10.00, output_per_mtok: 50.00, cache_read_per_mtok: 0.25, cache_write_per_mtok: 12.50}
+  # As outras famílias, pela OpenRouter (ADR-0074, decisões 10 e 11): `openrouter` é o provedor fixo,
+  # sem fallback. O custo de cada chamada vem da resposta; a tabela é a guarda e a estimativa.
+  # Lista de 29/out/2026, em https://openrouter.ai/api/v1/models/<id>/endpoints.
+  openai/gpt-6-astra: {input_per_mtok: 10.00, output_per_mtok: 50.00, cache_read_per_mtok: 1.00, cache_write_per_mtok: 12.50, openrouter: openai}
+  google/gemini-4-argon: {input_per_mtok: 2.00, output_per_mtok: 10.00, cache_read_per_mtok: 0.10, cache_write_per_mtok: 0.1875, openrouter: google-ai-studio}
 
 perception:  # foto ou delta por tipo de controlador (ADR-0056)
   deltas_for: [llm]  # script e replay recebem sempre a foto

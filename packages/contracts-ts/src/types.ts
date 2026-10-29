@@ -1179,9 +1179,17 @@ export interface LlmCallCompletedV1 {
    * O id do pedido no provedor, para suporte.
    */
   request_id?: string;
+  /**
+   * O id do modelo que a resposta disse ser (ADR-0074), que pode ser mais exato que o pedido.
+   */
+  response_model?: string;
+  /**
+   * Quem atendeu de fato, quando o provedor é um roteador: o provedor que a OpenRouter usou (ADR-0074).
+   */
+  served_by?: string;
   usage: LlmUsage;
   /**
-   * Custo nominal pela tabela de preços do ambiente; com conselheiro, o total.
+   * Custo nominal pela tabela de preços do ambiente, ou o que o provedor disse ter cobrado, quando diz (a OpenRouter); com conselheiro, o total.
    */
   cost_usd: number;
   /**

@@ -29,13 +29,22 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
-from campsverso_adapters import AnthropicModel, RecordingModel, SqliteMemory, SystemWallClock
+from campsverso_adapters import (
+    AnthropicModel,
+    OpenRouterModel,
+    RecordingModel,
+    SqliteMemory,
+    SystemWallClock,
+    key_variable,
+    load_env,
+    model_port,
+)
 from campsverso_budget.ledger import BudgetLimits
 from campsverso_mind import PLAYBOOK_VERSION
 from campsverso_ports import MemoryPort, ModelPort
 from campsverso_testkit.fita import LIMITS, summary
 from campsverso_testkit.nats_server import REPO
-from campsverso_testkit.pipeline import MODEL, DeadlockError, Pipeline
+from campsverso_testkit.pipeline import ENV, MODEL, DeadlockError, Pipeline
 from campsverso_testkit.prova import exam_of, examine, script_model
 from campsverso_tools.arena import east_signals
 from campsverso_tools.ficha import run_card
@@ -244,11 +253,15 @@ async def run_spec(
         (out / "estado.json").write_text(json.dumps(state), encoding="utf-8")
 
     clock = SystemWallClock()
-    api: AnthropicModel | None = None
+    api: AnthropicModel | OpenRouterModel | None = None
     notebook: MemoryPort | bool = False
     if spec.controller == "llm":
-        inner: ModelPort = port if port is not None else AnthropicModel(clock=clock)
-        api = inner if isinstance(inner, AnthropicModel) else None
+        # A API da Anthropic, ou a OpenRouter quando o modelo tem rota na tabela (ADR-0074).
+        routes = load_env(ENV).routes
+        inner: ModelPort = (
+            port if port is not None else model_port(spec.model, routes=routes, clock=clock)
+        )
+        api = inner if isinstance(inner, AnthropicModel | OpenRouterModel) else None
         port = RecordingModel(inner, out / "llm.jsonl", "record", clock=clock)
         notebook = SqliteMemory(out / "memory.sqlite") if spec.memory else False
     else:
@@ -392,8 +405,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     if unknown := sorted(set(only) - set(names)):
         parser.error(f"corrida(s) fora da rodada {args.rodada}: {', '.join(unknown)}")
     specs = [s for s in ROUNDS[args.rodada] if not only or s.name in only]
-    if any(s.controller == "llm" for s in specs) and not os.environ.get("ANTHROPIC_API_KEY"):
-        print("ANTHROPIC_API_KEY ausente: rode com --env-file .env (ADR-0058)", file=sys.stderr)
+    routes = load_env(ENV).routes
+    keys = sorted({key_variable(s.model, routes) for s in specs if s.controller == "llm"})
+    if missing := [k for k in keys if not os.environ.get(k)]:
+        print(f"{', '.join(missing)} ausente: rode com --env-file .env (ADR-0058)", file=sys.stderr)
         return 2
     out: Path = args.out or REPO / "data" / "arena" / datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
     for spec in specs:

@@ -46,3 +46,21 @@ async def test_a_chamada_real_e_a_gravada_passam_pelo_mesmo_contrato(tmp_path: P
     assert (first["data"]["charged"], second["data"]["charged"]) == (True, False)
     assert first["data"]["purpose"] == "probe"
     assert result["spent_usd"] == first["data"]["cost_usd"] == 0.00002
+
+
+async def test_o_segundo_turno_devolve_o_resultado_da_ferramenta(tmp_path: Path) -> None:
+    """Na OpenRouter (ADR-0074), a fumaça dá também o turno com o resultado da ferramenta."""
+    result = await smoke(
+        FakeModel(),
+        {"claude-haiku-5-5": ModelPrices(0.10, 0.50, 0.01, 0.125)},
+        model="claude-haiku-5-5",
+        prompt="oi",
+        cassette=tmp_path / "fita.jsonl",
+        clock=FakeWallClock(),
+        ids=SequentialUuid7Ids(),
+        follow=True,
+    )
+    assert result["follow"]["tool_uses"][0]["input"] == {"action": "harvest"}
+    assert result["follow"]["cost_by_table_usd"] == 0.00002
+    *_, last = result["events"]
+    assert (len(result["events"]), last["data"]["charged"]) == (3, True)

@@ -11,6 +11,12 @@ Com uma fita que já tem o pedido, a primeira resposta também vem dela e nada �
 o `make llm-smoke` passa uma fita nova a cada execução (`--cassette`). Com `--advisor MODELO`, o
 pedido oferece o conselheiro (ADR-0074) e pede uma consulta antes de propor: a fumaça mostra o
 conselho, o uso dele e o custo na tarifa dele.
+
+Um modelo com rota na tabela do ambiente (`openrouter:`) vai pela OpenRouter (ADR-0074) e pede
+OPENROUTER_API_KEY. Ali a fumaça dá também o segundo turno: o resultado da ferramenta volta com
+a resposta inteira (o raciocínio e os argumentos como vieram), que é a tradução que mais pode
+falhar; e mostra quem atendeu, o modelo que a resposta disse ser e o custo que ela trouxe ao
+lado do da tabela.
 """
 
 import argparse
@@ -26,13 +32,16 @@ from campsverso_adapters import (
     InMemoryBus,
     MeteredModel,
     ModelPrices,
+    OpenRouterModel,
     RecordingModel,
     SystemWallClock,
     Uuid7Ids,
     ValidatingBus,
+    cost_usd,
     load_env,
+    model_port,
 )
-from campsverso_ports import IdGenerator, ModelPort, ModelRequest, WallClock
+from campsverso_ports import IdGenerator, ModelPort, ModelRequest, ModelResponse, WallClock
 
 SYSTEM = (
     "Você é o Camps, um fazendeiro numa fazenda pequena. Responda chamando a ferramenta "
@@ -68,8 +77,11 @@ async def smoke(
     clock: WallClock,
     ids: IdGenerator,
     advisor: str | None = None,
+    follow: bool = False,
+    max_tokens: int = 256,
 ) -> dict[str, Any]:
-    """Duas vezes o mesmo pedido: a primeira ao vivo e gravada, a segunda da fita."""
+    """Duas vezes o mesmo pedido: a primeira ao vivo e gravada, a segunda da fita. Com `follow`,
+    um segundo turno ao vivo, com o resultado da ferramenta."""
     bus = InMemoryBus()
     metered = MeteredModel(
         RecordingModel(port, cassette, "record", clock=clock),
@@ -100,20 +112,15 @@ async def smoke(
         system=SYSTEM + (ADVISED if advisor is not None else ""),
         messages=[{"role": "user", "content": prompt}],
         tools=tools,
-        max_tokens=256 if advisor is None else 2048,
+        max_tokens=max_tokens if advisor is None else 2048,
         effort="low",
         purpose="probe",
     )
     live = await metered.complete(request)
     replayed = await metered.complete(request)
-    return {
+    result: dict[str, Any] = {
         "live": {
-            "stop_reason": live.stop_reason,
-            "tool_uses": live.tool_uses(),
-            "text": live.text(),
-            "usage": live.usage.as_dict(),
-            "latency_ms": live.latency_ms,
-            "request_id": live.request_id,
+            **_seen(live, prices[model]),
             "advisor": None
             if live.advisor is None
             else {
@@ -128,8 +135,47 @@ async def smoke(
             },
         },
         "replayed": replayed.replayed,
-        "spent_usd": metered.spent_usd,
-        "events": [envelope for _, envelope in bus.published],
+    }
+    if follow and live.tool_uses():
+        answer = {
+            "type": "tool_result",
+            "tool_use_id": str(live.tool_uses()[0]["id"]),
+            "content": "Feito. Agora é meio-dia, o sol está forte e a cesta está cheia.",
+        }
+        after = ModelRequest(
+            model=model,
+            system=SYSTEM,
+            messages=[
+                *request.messages,
+                {"role": "assistant", "content": [dict(b) for b in live.content]},
+                {"role": "user", "content": [answer]},
+            ],
+            tools=tools,
+            max_tokens=max_tokens,
+            effort="low",
+            purpose="probe",
+        )
+        result["follow"] = _seen(await metered.complete(after), prices[model])
+    result["spent_usd"] = metered.spent_usd
+    result["events"] = [envelope for _, envelope in bus.published]
+    return result
+
+
+def _seen(response: ModelResponse, prices: ModelPrices) -> dict[str, Any]:
+    """O que uma resposta ao vivo mostra: a parada, a ferramenta, os tokens, quem atendeu e o
+    custo que ela trouxe ao lado do da tabela."""
+    return {
+        "stop_reason": response.stop_reason,
+        "tool_uses": response.tool_uses(),
+        "text": response.text(),
+        "blocks": [str(b.get("type")) for b in response.content],
+        "usage": response.usage.as_dict(),
+        "cost_reported_usd": response.usage.cost_usd,
+        "cost_by_table_usd": cost_usd(response.usage, prices),
+        "model": response.model,
+        "served_by": response.served_by,
+        "latency_ms": response.latency_ms,
+        "request_id": response.request_id,
     }
 
 
@@ -146,6 +192,7 @@ def _parse(argv: Sequence[str] | None) -> argparse.Namespace:
     )
     parser.add_argument("--cassette", type=Path, default=Path("data/llm/smoke.jsonl"))
     parser.add_argument("--advisor", default=None, help="o conselheiro (ADR-0074), se houver")
+    parser.add_argument("--max-tokens", type=int, default=None, help="256; 1024 na OpenRouter")
     return parser.parse_args(argv)
 
 
@@ -153,20 +200,33 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _parse(argv)
     env = load_env(args.env)
     clock = SystemWallClock()
+    model = str(args.model)
+    routed = model in env.routes  # pela OpenRouter (ADR-0074): o raciocínio conta no max_tokens
     result = asyncio.run(
-        smoke(
-            AnthropicModel(clock=clock),
+        _run(
+            model_port(model, routes=env.routes, clock=clock),
             env.models,
-            model=str(args.model),
+            model=model,
             prompt=str(args.prompt),
             cassette=args.cassette,
             clock=clock,
-            ids=Uuid7Ids(),
             advisor=args.advisor,
+            follow=routed,
+            max_tokens=args.max_tokens or (1024 if routed else 256),
         )
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
+
+
+async def _run(
+    port: AnthropicModel | OpenRouterModel, prices: Mapping[str, ModelPrices], **options: Any
+) -> dict[str, Any]:
+    """A fumaça e o fechamento do cliente HTTP no mesmo laço."""
+    try:
+        return await smoke(port, prices, ids=Uuid7Ids(), **options)
+    finally:
+        await port.aclose()
 
 
 if __name__ == "__main__":

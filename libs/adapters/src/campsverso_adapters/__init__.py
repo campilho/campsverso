@@ -12,7 +12,9 @@ from campsverso_adapters.ids import SequentialUuid7Ids, Uuid7Ids
 from campsverso_adapters.memory_sqlite import SqliteMemory
 from campsverso_adapters.model_anthropic import AnthropicModel
 from campsverso_adapters.model_metered import MeteredModel, ModelPrices, cost_usd
+from campsverso_adapters.model_openrouter import OpenRouterModel
 from campsverso_adapters.model_recording import RecordingMode, RecordingModel
+from campsverso_adapters.model_routes import key_variable, model_port
 from campsverso_adapters.realtime_memory import MemoryClient, MemoryRealtime
 from campsverso_adapters.settings import (
     BudgetSettings,
@@ -46,6 +48,7 @@ __all__ = [
     "MindSettings",
     "ModelPrices",
     "NatsBus",
+    "OpenRouterModel",
     "Problem",
     "RecordingMode",
     "RecordingModel",
@@ -59,8 +62,10 @@ __all__ = [
     "WorldSettings",
     "YamlFlags",
     "cost_usd",
+    "key_variable",
     "load_env",
     "load_world",
+    "model_port",
     "read_world_archive",
     "subject_matches",
 ]

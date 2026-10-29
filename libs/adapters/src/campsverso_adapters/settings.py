@@ -91,6 +91,7 @@ class EnvSettings:
     pulse_seconds: float = 1.0  # pulso do kernel (ADR-0051); 0 desliga
     perception: PerceptionSettings = field(default_factory=PerceptionSettings)
     models: Mapping[str, ModelPrices] = field(default_factory=dict[str, ModelPrices])  # ADR-0058
+    routes: Mapping[str, str] = field(default_factory=dict[str, str])  # OpenRouter (ADR-0074)
 
 
 type ClockMode = Literal["continuous", "max"]
@@ -206,6 +207,9 @@ def load_env(path: Path, root: Path | None = None) -> EnvSettings:
                 cache_write_per_mtok=float(p["cache_write_per_mtok"]),
             )
             for name, p in models.items()
+        },
+        routes={
+            str(name): str(p["openrouter"]) for name, p in models.items() if p.get("openrouter")
         },
     )
 
