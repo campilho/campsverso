@@ -104,6 +104,11 @@ class LlmController:
         return self._model
 
     @property
+    def tool_specs(self) -> list[dict[str, Any]]:
+        """As ferramentas das decisões, como vão no pedido (a ficha da corrida, ADR-0074)."""
+        return [dict(t) for t in self._specs]
+
+    @property
     def identity(self) -> str:
         """O cartão e as notas do mundo, sem as instruções do jogo (a prova, ADR-0070)."""
         return self._identity

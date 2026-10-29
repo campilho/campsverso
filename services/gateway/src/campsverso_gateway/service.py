@@ -41,7 +41,7 @@ from campsverso_ports import (
     View,
     WallClock,
 )
-from campsverso_world_view import Projection
+from campsverso_world_view import OBSERVER_PROJECTED, Projection
 
 WELCOME = "campsverso.realtime.welcome.v1"
 UPDATE = "campsverso.realtime.update.v1"
@@ -74,9 +74,8 @@ VISIBLE: Mapping[View, frozenset[str]] = {
 # As fotos da percepção são para os controladores: pesadas e sem uso na tela.
 SKIPPED = frozenset({"campsverso.perception.delivered.v1"})
 PROJECTED = ("world", "agent")
-# Do observer, só o caderno entra na projeção (ADR-0060): o stream mistura fontes com `seq`
-# próprios, então a deduplicação continua por fonte, e os outros tipos nem têm handler.
-NOTEBOOK = "campsverso.memory."
+# Do observer, só o caderno e o custo entram na projeção (ADR-0060, ADR-0074; a lista é da
+# world-view): o stream mistura fontes com `seq` próprios, então a deduplicação continua por fonte.
 QUEUE_LIMIT = 2000  # mensagens esperando uma UI lenta; acima disso, a conexão cai
 PULSE = "campsverso.live.kernel.v1"
 COMMAND_REJECTED = "campsverso.world.command.rejected.v1"
@@ -222,7 +221,7 @@ class GatewayService:
                     self.projection.apply(stream, envelope)
                 else:
                     self._seen[str(envelope["source"])] = int(envelope["seq"])
-                    if str(envelope["type"]).startswith(NOTEBOOK):
+                    if str(envelope["type"]).startswith(OBSERVER_PROJECTED):
                         self.projection.apply(stream, envelope)
                 self._pending.append(envelope)
             self._save()

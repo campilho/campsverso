@@ -38,6 +38,7 @@ from campsverso_testkit.nats_server import REPO
 from campsverso_testkit.pipeline import MODEL, DeadlockError, Pipeline
 from campsverso_testkit.prova import exam_of, examine, script_model
 from campsverso_tools.arena import east_signals
+from campsverso_tools.ficha import run_card
 from campsverso_tools.metrics import compute, table
 
 SEED = 20261010  # o mesmo dos testes e do mundo oficial
@@ -338,6 +339,17 @@ async def run_spec(
         "totals": report.totals(),
         "east": east_signals(pipeline.envelopes),
     }
+    mind = pipeline.mind  # a ficha da corrida (ADR-0074): o modelo, a rota, o esforço, o harness
+    result["card"] = run_card(
+        started=started.isoformat(),
+        spec=result["spec"],
+        envelopes=pipeline.envelopes,
+        tape=out / "llm.jsonl",
+        root=REPO,
+        mind=None
+        if mind is None
+        else {"name": mind.mind.name, "system": mind.system, "tools": mind.tool_specs},
+    )
     if exam is not None and prova:  # a nota no resumo; o gabarito e as respostas em prova.json
         result["prova"] = {
             when: {k: v for k, v in taken.items() if k != "answers"}

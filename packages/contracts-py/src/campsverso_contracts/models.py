@@ -3219,6 +3219,84 @@ class ObserverMemory(BaseModel):
     notes: Annotated[list[ObserverNote], Field(max_length=50)]
 
 
+class ObserverMindCost(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str | None,
+        Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId"),
+    ] = None
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    model: Annotated[str | None, Field(max_length=128)] = None
+    day: Annotated[int, Field(ge=1, title="Day")]
+    """
+    O último dia com chamadas cobradas.
+    """
+    day_usd: Annotated[float, Field(ge=0.0)]
+    """
+    O gasto desse dia.
+    """
+    total_usd: Annotated[float, Field(ge=0.0)]
+    """
+    O gasto desde o começo.
+    """
+    calls: Annotated[int, Field(ge=0)]
+    """
+    Chamadas cobradas.
+    """
+    advisor_usd: Annotated[float | None, Field(ge=0.0)] = None
+    """
+    Do total, o que foi do conselheiro.
+    """
+
+
+class ObserverBudget(BaseModel):
+    """
+    O último aviso da guarda de orçamento (ADR-0058).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    scope: Annotated[str, Field(max_length=64)]
+    day: Annotated[int | None, Field(ge=1, title="Day")] = None
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+    spent_usd: Annotated[float, Field(ge=0.0)]
+    limit_usd: Annotated[float, Field(ge=0.0)]
+    threshold_pct: Annotated[float | None, Field(ge=0.0)] = None
+    exceeded: bool
+    """
+    Bateu no teto.
+    """
+    paused: bool | None = None
+    """
+    A guarda pausou o mundo.
+    """
+
+
+class ObserverCosts(BaseModel):
+    """
+    O que as chamadas de modelo custaram (ADR-0074), projetado dos eventos llm.call.completed cobrados e dos avisos ops.budget.*: por controlador, o gasto do último dia com chamadas e o total; e o último aviso do orçamento. Só a visão do operador o vê.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    minds: dict[str, ObserverMindCost] | None = None
+    """
+    Por id de controlador (llm/camps…).
+    """
+    budget: Annotated[ObserverBudget | None, Field(title="ObserverBudget")] = None
+    """
+    O último aviso da guarda de orçamento (ADR-0058).
+    """
+
+
 class ObserverDecision(BaseModel):
     """
     Último pedido de decisão do avatar.
@@ -3310,6 +3388,10 @@ class ObserverState(BaseModel):
     memory: dict[str, ObserverMemory] | None = None
     """
     O caderno de cada avatar com controlador LLM (ADR-0060): as crenças atuais, as últimas anotações e a última reflexão, projetados dos eventos memory.*.
+    """
+    costs: Annotated[ObserverCosts | None, Field(title="ObserverCosts")] = None
+    """
+    O que as chamadas de modelo custaram (ADR-0074), projetado dos eventos llm.call.completed cobrados e dos avisos ops.budget.*: por controlador, o gasto do último dia com chamadas e o total; e o último aviso do orçamento. Só a visão do operador o vê.
     """
     decisions: dict[str, ObserverDecision]
     metrics: dict[str, dict[str, float | dict[str, float]]] | None = None

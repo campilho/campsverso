@@ -531,3 +531,53 @@ def test_o_valor_de_saber_separa_cada_modelo_com_e_sem_o_playbook(tmp_path: Path
     text = out.read_text(encoding="utf-8")
     assert "| Haiku 5.5 com memória | 0 moedas" in text
     assert "| Haiku 5.5 com memória e o playbook 2 | 0 e 0 moedas · 0 e 0 colheitas" in text
+
+
+def test_o_relatorio_traz_a_ficha_de_cada_corrida(tmp_path: Path) -> None:
+    """ADR-0074, decisão 12: o modelo pedido e o que respondeu, a rota, o esforço e o harness."""
+    arena = tmp_path / "20261029-010000"
+    spec = {"name": "haiku", "controller": "llm", "memory": True, "river_bonus": True, "seed": 1}
+    _run(arena, "haiku", spec, MEMORY_RUN)
+    _run(arena, "script", {"name": "script", "controller": "script", "seed": 1}, MEMORY_RUN)
+    cards = {
+        "haiku": {
+            "date": "2026-10-29",
+            "controller": "llm",
+            "model": "claude-haiku-5-5",
+            "answered": ["claude-haiku-5-5", "claude-opus-4-8"],
+            "advisor": "claude-opus-4-8",
+            "route": ["anthropic"],
+            "effort": {"decision": ["low"], "reflection": ["medium"]},
+            "harness": {
+                "commit": "a" * 40,
+                "dirty": False,
+                "sdk": "anthropic 1.15.0",
+                "mind": "camps_morada",
+                "prompt_sha256": "b" * 64,
+                "tools": 22,
+                "tools_sha256": "c" * 64,
+                "memory": True,
+                "playbook": 0,
+                "compare": False,
+            },
+        },
+        "script": {
+            "date": "2026-10-29",
+            "controller": "script",
+            "harness": {"commit": "d" * 40, "dirty": True, "script": "farmer3-fixo"},
+        },
+    }
+    for name, card in cards.items():
+        path = arena / name / "summary.json"
+        summary = json.loads(path.read_text(encoding="utf-8"))
+        path.write_text(json.dumps({**summary, "card": card}), encoding="utf-8")
+    out = tmp_path / "relatorio.md"
+    assert main([str(arena), "--out", str(out)]) == 0
+    text = out.read_text(encoding="utf-8")
+    assert "## A ficha de cada corrida" in text
+    assert (
+        "| haiku | claude-haiku-5-5 → claude-haiku-5-5, claude-opus-4-8; conselheiro "
+        "claude-opus-4-8 | anthropic | decision low; reflection medium | `aaaaaaa`, anthropic "
+        "1.15.0, mente camps_morada, prompt `bbbbbbbb`, 22 ferramentas `cccccccc`, memória |"
+    ) in text
+    assert "| script | script `farmer3-fixo` | - | - | `ddddddd` (com mudança) |" in text

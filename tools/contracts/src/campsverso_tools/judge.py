@@ -29,6 +29,7 @@ import os
 import sys
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
@@ -42,7 +43,8 @@ from campsverso_adapters import (
     cost_usd,
     load_env,
 )
-from campsverso_ports import ModelCallError, ModelPort, ModelRequest, ModelResponse
+from campsverso_ports import ModelCallError, ModelPort, ModelRequest, ModelResponse, request_sha256
+from campsverso_tools.ficha import judge_card
 
 REPO = Path(__file__).resolve().parents[4]
 DATA = REPO / "data"
@@ -291,12 +293,16 @@ async def judge(
     prices: ModelPrices | None = None,
 ) -> dict[str, Any]:
     """Uma chamada: os vereditos, o uso e o custo; uma chamada que falha não tem veredito."""
+    request = judge_request(rubric, text, model=model)
     try:
-        response = await port.complete(judge_request(rubric, text, model=model))
+        response = await port.complete(request)
     except ModelCallError as error:
         return {"model": model, "error": error.kind, "message": error.message, "rules": {}}
     return {
         "model": model,
+        "answered": response.model,  # a ficha (ADR-0074): o id que a resposta trouxe
+        "route": port.provider,
+        "prompt_sha256": request_sha256(request),
         "rules": read_verdicts(rubric, response),
         "usage": response.usage.as_dict(),
         "cost_usd": cost_usd(response.usage, prices) if prices is not None else 0.0,
@@ -322,6 +328,12 @@ def judged_runs(arena: Path, only: Sequence[str] = ()) -> list[Path]:
     return [f for f in found if not only or f.name in only]
 
 
+def _card(cartridge: str) -> dict[str, Any]:
+    """A ficha do veredito (ADR-0074): a data, a rubrica do mundo e o harness."""
+    rubric = REPO / "cartridges" / cartridge / "eval" / "juiz.yaml"
+    return judge_card(date=datetime.now(UTC).isoformat(), rubric=rubric, root=REPO)
+
+
 async def judge_run(folder: Path, port: ModelPort, *, model: str = MODEL) -> dict[str, Any] | None:
     """Julga uma corrida: a fita em `juiz.jsonl` e o veredito em `juiz.json`. Uma fita que já
     tem o pedido responde de graça."""
@@ -332,6 +344,7 @@ async def judge_run(folder: Path, port: ModelPort, *, model: str = MODEL) -> dic
     clock = SystemWallClock()
     taped = RecordingModel(port, folder / "juiz.jsonl", "record", clock=clock)
     result = await judge(taped, rubric, text, model=model, prices=load_env(ENV).models.get(model))
+    result["card"] = _card(str(_spec(folder).get("cartridge") or "farm_camps"))
     (folder / "juiz.json").write_text(
         json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
     )
@@ -412,6 +425,7 @@ async def judge_controls(
         taped = RecordingModel(port, folder / "juiz.jsonl", "record", clock=SystemWallClock())
         prices = load_env(ENV).models.get(model)
         result = await judge(taped, rubric, text, model=model, prices=prices)
+        result["card"] = _card(cartridge)
         (folder / "juiz.json").write_text(
             json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
         )

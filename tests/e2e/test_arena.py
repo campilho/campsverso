@@ -48,6 +48,9 @@ async def test_a_corrida_do_script_grava_a_pasta(tmp_path: Path) -> None:
         "advisor": None,
     }
     assert result["totals"]["days"] == 2
+    card = result["card"]  # a ficha (ADR-0074): o script e o commit
+    assert (card["controller"], card["harness"]["script"]) == ("script", "o do cartucho")
+    assert len(card["harness"]["commit"]) == 40
     assert (result["calls"], result["gave_up"], result["aborted_day"]) == (0, False, None)
     assert result["budget_day"] is None
     assert "plantings" in result["totals"]

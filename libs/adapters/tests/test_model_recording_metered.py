@@ -180,7 +180,10 @@ def test_tabela_de_precos_do_ambiente() -> None:
         "claude-sonnet-5-5",
         "claude-opus-5-5",
         "claude-opus-4-8",  # o conselheiro (ADR-0074)
+        "claude-fable-5-1",
     }
+    # A tabela conferida em 28/out (ADR-0074): o cache lido do Sonnet 5.5 é 0,10, não 0,20.
+    assert env.models["claude-sonnet-5-5"] == ModelPrices(2.00, 10.00, 0.10, 2.50)
 
 
 OPUS48 = ModelPrices(5.00, 25.00, 0.50, 6.25)

@@ -135,6 +135,25 @@ Ficou assim:
   - o `disable_parallel_tool_use` convive com a ferramenta do servidor.
 - **A conta da corrida:** com a reflexão de uns 15 mil tokens, cada noite custa uns US$ 0,10 a 0,18 de conselheiro. O braço fica nos US$ 3 a 6 do plano.
 
+## Adendo de 28/out: o custo no painel, a ficha e a tabela de preços (o passo 7)
+
+- **O custo das mentes na tela:**
+  - a projeção da `libs/world-view` passa a ler, do stream `observer`, os `llm.call.completed` cobrados e os avisos `ops.budget.*`, além do caderno, e o gateway e o modo de assistir usam a mesma lista;
+  - o estado da tela ganha o campo opcional `costs` (contrato `realtime/welcome.v1`): por controlador, o gasto do último dia com chamadas, o total, as chamadas e a parte do conselheiro, e o último aviso do orçamento;
+  - o painel do operador mostra o cartão "Custo", e a página da arena, o custo de cada corrida até o ponto da reprodução. A visão do jogador não o vê;
+  - conferido no modo de assistir: a corrida do Haiku de 25/out soma US$ 0,7104 em 1.030 chamadas, como o resumo dela.
+- **A ficha de cada corrida** fica no `summary.json` (`card`):
+  - o modelo pedido e os ids que as respostas trouxeram, da fita, com o conselheiro;
+  - a data e a rota: o provedor de cada chamada, pelos eventos;
+  - o esforço por tipo de chamada;
+  - o harness: o commit, se havia mudança fora dele, a versão do SDK, a mente, o hash do prompt de sistema e o das ferramentas, a memória, o playbook e os braços.
+
+  O veredito do juiz ganha o modelo que respondeu, a rota, o hash do pedido e o da rubrica. O relatório da arena tem uma seção com a ficha. O provedor que atendeu na OpenRouter entra no passo 8.
+- **A tabela de preços conferida em 28/out:**
+  - o cache lido do Sonnet 5.5 é US$ 0,10 por milhão, não 0,20. O M14 contou esse cache em dobro, e os relatórios antigos ficam como estão;
+  - o Fable 5.1 entra a US$ 10 e 50 (cache lido a 0,25), para a corrida dele pela API da Anthropic;
+  - acima de 100 mil tokens de prompt, o Haiku 5.5 custa cinco vezes mais. Nenhum pedido da fazenda chega lá.
+
 ## Consequências
 
 - **O orçamento da v0.3 dobra,** e o plano passa a gastar por passos aprovados, não por rodada.

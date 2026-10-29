@@ -93,6 +93,8 @@ MODEL_NAMES = {
     "claude-haiku-5-5": "Haiku 5.5",
     "claude-sonnet-5-5": "Sonnet 5.5",
     "claude-opus-5-5": "Opus 5.5",
+    "claude-opus-4-8": "Opus 4.8",
+    "claude-fable-5-1": "Fable 5.1",
 }
 # O que faz de uma crença (ou anotação) sobre o leste uma descoberta, e não só uma menção: um
 # comparativo de tempo ou de vantagem, ou o rio. "Madura em 3 dias" não conta: é o manual. É uma
@@ -936,6 +938,7 @@ def render(runs: Sequence[Run], *, source: str, date: str) -> str:
     lines += _exam_section(runs)
     lines += _coins_section(runs)
     lines += _harvests_section(runs)
+    lines += _card_section(runs)
     lines += ["## Os arquivos", ""]
     for r in runs:
         files = ", ".join(f"`{p.name}`" for p in sorted(r.folder.iterdir()) if p.is_file())
@@ -1171,6 +1174,69 @@ def _learned_section(runs: Sequence[Run]) -> list[str]:
 
 
 VERDICTS = {"causa": "a causa", "lugar": "só o lugar", "nao": "não"}
+
+
+def _card_cells(r: Run) -> list[str]:
+    """Uma linha da ficha (ADR-0074): o modelo pedido e o que respondeu, a rota, o esforço e o
+    harness, com os hashes curtos (os inteiros ficam no summary.json)."""
+    card = cast(Mapping[str, Any], r.summary["card"])
+    harness = cast(Mapping[str, Any], card.get("harness") or {})
+    dirty = " (com mudança)" if harness.get("dirty") else ""
+    commit = f"`{str(harness.get('commit') or '?')[:7]}`{dirty}"
+    if card.get("controller") != "llm":
+        return [r.name, f"script `{harness.get('script')}`", EMPTY, EMPTY, commit]
+    answered = ", ".join(str(m) for m in cast(list[Any], card.get("answered") or [])) or "?"
+    model = f"{card.get('model')} → {answered}"
+    if card.get("advisor"):
+        model += f"; conselheiro {card['advisor']}"
+    effort = cast(Mapping[str, Sequence[str]], card.get("effort") or {})
+    efforts = "; ".join(f"{k} {'/'.join(v) or '?'}" for k, v in effort.items()) or "?"
+    arms = [
+        f"playbook {harness['playbook']}" if harness.get("playbook") else "",
+        "comparação" if harness.get("compare") else "",
+        "memória" if harness.get("memory") else "sem memória",
+    ]
+    detail = (
+        f"{commit}, {harness.get('sdk') or '?'}, mente {harness.get('mind') or '?'}, prompt "
+        f"`{str(harness.get('prompt_sha256') or '?')[:8]}`, {harness.get('tools', '?')} "
+        f"ferramentas `{str(harness.get('tools_sha256') or '?')[:8]}`, "
+        + ", ".join(a for a in arms if a)
+    )
+    route = ", ".join(str(x) for x in cast(list[Any], card.get("route") or [])) or "?"
+    return [r.name, model, route, efforts, detail]
+
+
+def _card_section(runs: Sequence[Run]) -> list[str]:
+    """A ficha de cada corrida (ADR-0074, decisão 12): o que jogou e com o quê."""
+    carded = [r for r in runs if r.summary.get("card")]
+    if not carded:
+        return []
+    date = str(cast(Mapping[str, Any], carded[0].summary["card"]).get("date") or "?")
+    lines = [
+        "## A ficha de cada corrida",
+        "",
+        "O modelo pedido e o id que as respostas trouxeram, a rota (o provedor de cada chamada), "
+        "o esforço por tipo de chamada e o harness: o commit, o SDK, a mente, o hash do prompt "
+        f"de sistema e o das ferramentas, e os braços. Corridas começadas em {date}.",
+        "",
+        _table(
+            ["Corrida", "Modelo", "Rota", "Esforço", "Harness"], [_card_cells(r) for r in carded]
+        ),
+        "",
+    ]
+    judged = [r for r in runs if r.judge is not None and r.judge.get("card")]
+    if judged:
+        judge = cast(Mapping[str, Any], judged[0].judge)
+        card = cast(Mapping[str, Any], judge["card"])
+        harness = cast(Mapping[str, Any], card.get("harness") or {})
+        lines += [
+            f"O juiz: {judge.get('model')} → {judge.get('answered', '?')}, pela rota "
+            f"{judge.get('route', '?')}, com a rubrica `{str(card.get('rubric_sha256'))[:8]}`, "
+            f"no commit `{str(harness.get('commit') or '?')[:7]}` "
+            f"({harness.get('sdk') or '?'}), em {card.get('date')}.",
+            "",
+        ]
+    return lines
 
 
 def _judge_section(runs: Sequence[Run]) -> list[str]:

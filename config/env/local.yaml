@@ -17,13 +17,17 @@ nats:
 kernel:
   pulse_seconds: 1  # pulso do kernel em tempo real (ADR-0051); 5 ou 10 se pesar; 0 desliga
 
-models:  # dólares por milhão de tokens, tabela de 18/out/2026 (ADR-0058): o custo de cada chamada sai daqui
+models:  # dólares por milhão de tokens, tabela conferida em 28/out/2026 (ADR-0058, ADR-0074): o custo de cada chamada sai daqui
   # Cache gravado = 1,25 × a entrada (5 min). Conferir em https://platform.claude.com/docs/en/about-claude/pricing
+  # O Haiku 5.5 até 100 mil tokens de prompt; acima disso, cinco vezes mais (nenhum pedido da fazenda chega lá).
   claude-haiku-5-5: {input_per_mtok: 0.10, output_per_mtok: 0.50, cache_read_per_mtok: 0.01, cache_write_per_mtok: 0.125}
-  claude-sonnet-5-5: {input_per_mtok: 2.00, output_per_mtok: 10.00, cache_read_per_mtok: 0.20, cache_write_per_mtok: 2.50}
+  # O cache lido do Sonnet 5.5 é 0,10 (0,05 da entrada); a tabela de 18/out dizia 0,20, e o M14 contou esse cache em dobro.
+  claude-sonnet-5-5: {input_per_mtok: 2.00, output_per_mtok: 10.00, cache_read_per_mtok: 0.10, cache_write_per_mtok: 2.50}
   claude-opus-5-5: {input_per_mtok: 4.00, output_per_mtok: 20.00, cache_read_per_mtok: 0.20, cache_write_per_mtok: 5.00}
   # O conselheiro do Haiku (ADR-0074, decisão 9), pela tabela de 28/out/2026.
   claude-opus-4-8: {input_per_mtok: 5.00, output_per_mtok: 25.00, cache_read_per_mtok: 0.50, cache_write_per_mtok: 6.25}
+  # O Fable 5.1 (ADR-0074, decisão 18), pela API da Anthropic.
+  claude-fable-5-1: {input_per_mtok: 10.00, output_per_mtok: 50.00, cache_read_per_mtok: 0.25, cache_write_per_mtok: 12.50}
 
 perception:  # foto ou delta por tipo de controlador (ADR-0056)
   deltas_for: [llm]  # script e replay recebem sempre a foto

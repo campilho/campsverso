@@ -168,6 +168,12 @@ async def test_o_juiz_grava_a_fita_e_o_veredito_e_repete_de_graca(tmp_path: Path
     assert first["rules"]["agua"]["verdict"] == "lugar"
     assert first["cost_usd"] == 0.06  # 5 mil de entrada e 2 mil de saída no preço do Opus
     assert json.loads((folder / "juiz.json").read_text(encoding="utf-8")) == first
+    # A ficha (ADR-0074): o modelo que respondeu, a rota, o pedido, a rubrica e o harness.
+    assert (first["answered"], first["route"]) == ("claude-opus-5-5", "fake")
+    assert len(first["prompt_sha256"]) == 64
+    card = first["card"]
+    assert len(card["rubric_sha256"]) == 64
+    assert len(card["harness"]["commit"]) == 40
     again = await judge_run(folder, port)
     assert again is not None
     assert again["replayed"] is True

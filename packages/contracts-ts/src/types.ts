@@ -2042,6 +2042,7 @@ export interface ObserverState {
   memory?: {
     [k: string]: ObserverMemory | undefined;
   };
+  costs?: ObserverCosts;
   decisions: {
     [k: string]: ObserverDecision | undefined;
   };
@@ -2152,6 +2153,57 @@ export interface ObserverBelief {
 export interface ObserverNote {
   tick: Tick;
   text: string;
+}
+/**
+ * O que as chamadas de modelo custaram (ADR-0074), projetado dos eventos llm.call.completed cobrados e dos avisos ops.budget.*: por controlador, o gasto do último dia com chamadas e o total; e o último aviso do orçamento. Só a visão do operador o vê.
+ */
+export interface ObserverCosts {
+  /**
+   * Por id de controlador (llm/camps…).
+   */
+  minds?: {
+    [k: string]: ObserverMindCost | undefined;
+  };
+  budget?: ObserverBudget;
+}
+export interface ObserverMindCost {
+  avatar_id?: EntityId;
+  model?: string;
+  day: Day;
+  /**
+   * O gasto desse dia.
+   */
+  day_usd: number;
+  /**
+   * O gasto desde o começo.
+   */
+  total_usd: number;
+  /**
+   * Chamadas cobradas.
+   */
+  calls: number;
+  /**
+   * Do total, o que foi do conselheiro.
+   */
+  advisor_usd?: number;
+}
+/**
+ * O último aviso da guarda de orçamento (ADR-0058).
+ */
+export interface ObserverBudget {
+  scope: string;
+  day?: Day;
+  spent_usd: number;
+  limit_usd: number;
+  threshold_pct?: number;
+  /**
+   * Bateu no teto.
+   */
+  exceeded: boolean;
+  /**
+   * A guarda pausou o mundo.
+   */
+  paused?: boolean;
 }
 /**
  * Último pedido de decisão do avatar.

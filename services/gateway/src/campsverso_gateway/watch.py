@@ -35,11 +35,10 @@ from campsverso_ports import (
     RealtimeConnection,
     Telemetry,
 )
-from campsverso_world_view import Projection
+from campsverso_world_view import OBSERVER_PROJECTED, Projection
 
 SESSION = "campsverso.world.session.started.v1"
 PROJECTED = frozenset({"world", "agent"})
-NOTEBOOK = "campsverso.memory."
 CLOCK = "campsverso.cmd.clock."
 START_SCALE = 1440.0  # um dia por minuto, a velocidade com que uma corrida gravada começa
 MAX_STEP = 20_000  # eventos aplicados por passada no modo máximo, para a tela não travar
@@ -150,7 +149,7 @@ class WatchService:
             run.worldid = str(envelope.get("worldid") or "")
         visibility = str(envelope.get("visibility"))
         from_kernel = str(envelope.get("source", "")).startswith("/kernel/")
-        if (visibility in PROJECTED and from_kernel) or kind.startswith(NOTEBOOK):
+        if (visibility in PROJECTED and from_kernel) or kind.startswith(OBSERVER_PROJECTED):
             run.projection.apply(visibility, envelope)
         run.pending.append(envelope)
 

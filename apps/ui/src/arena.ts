@@ -4,6 +4,7 @@
 import "./style.css";
 
 import { Connection } from "./connection.ts";
+import { totalCost } from "./costs.ts";
 import { button, el } from "./dom.ts";
 import { MapCanvas } from "./render/canvas.ts";
 import { Store } from "./store.ts";
@@ -89,7 +90,9 @@ function paint(): void {
     target.map.draw(state, state.tick);
     const coins = state.containers.camps?.moeda ?? 0;
     const live = target.info.done ? "gravada" : "ao vivo";
-    target.status.textContent = `Dia ${String(state.day)} · ${state.phase} · ${String(coins)} moedas · ${live}`;
+    const cost = totalCost(state); // o custo até aqui da reprodução (ADR-0074)
+    const spent = cost === undefined ? "" : ` · ${cost}`;
+    target.status.textContent = `Dia ${String(state.day)} · ${state.phase} · ${String(coins)} moedas${spent} · ${live}`;
   }
 }
 

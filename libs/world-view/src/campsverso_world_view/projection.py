@@ -14,6 +14,13 @@ NOTES_KEPT = 20  # anotações do caderno que a tela guarda (ADR-0060)
 BELIEFS_KEPT = 50
 UNKNOWN_PHASE = "desconhecida"
 METRIC_DAYS = 8  # hoje e os 7 anteriores (ADR-0054)
+# Do stream observer, o que entra na projeção: o caderno (ADR-0060) e o custo das chamadas de
+# modelo com os avisos do orçamento (ADR-0074). O resto só vai para a linha do tempo.
+OBSERVER_PROJECTED = (
+    "campsverso.memory.",
+    "campsverso.llm.call.completed.",
+    "campsverso.ops.budget.",
+)
 
 
 def _lookup(data: Mapping[str, Any], path: str) -> Any:
@@ -105,6 +112,9 @@ class Projection:
         self.memory: dict[str, dict[str, Any]] = {
             k: dict(v) for k, v in raw.get("memory", {}).items()
         }
+        # O custo das mentes e o último aviso do orçamento (ADR-0074), dos eventos llm.call.* e
+        # ops.budget.* (observer): também só o gateway o preenche.
+        self.costs: dict[str, Any] = dict(raw.get("costs", {}))
         self._event_tick = self.tick  # o tick do evento sendo aplicado
 
     def export(self) -> dict[str, Any]:
@@ -130,6 +140,7 @@ class Projection:
             "session": self.session,
             "clock": self.clock,
             "memory": self.memory,
+            "costs": self.costs,
             "controllers": self.controllers,
             "decisions": self.decisions,
             "metrics": self.metrics,
@@ -549,6 +560,50 @@ class Projection:
         for metric in items:
             item = str(metric.get("item"))
             values[metric["id"]] = sum(self.containers.get(a, {}).get(item, 0) for a in avatars)
+
+    # ------------------------------------------------------------- o custo (ADR-0074)
+
+    def _on_llm_call_completed(self, data: Mapping[str, Any]) -> None:
+        """Uma chamada cobrada soma no dia e no total do controlador; a da fita não custou nada."""
+        if not data.get("charged"):
+            return
+        controller = cast(Mapping[str, Any], data["controller"])
+        minds = cast(dict[str, dict[str, Any]], self.costs.setdefault("minds", {}))
+        mind = minds.setdefault(
+            str(controller["id"]), {"day": 1, "day_usd": 0.0, "total_usd": 0.0, "calls": 0}
+        )
+        day = int(self._metric_day())
+        if mind["day"] != day:
+            mind["day"], mind["day_usd"] = day, 0.0
+        cost = float(data["cost_usd"])
+        mind["day_usd"] = round(float(mind["day_usd"]) + cost, 6)
+        mind["total_usd"] = round(float(mind["total_usd"]) + cost, 6)
+        mind["calls"] = int(mind["calls"]) + 1
+        mind["model"] = str(data["model"])
+        if data.get("avatar_id"):
+            mind["avatar_id"] = str(data["avatar_id"])
+        advisor = cast(Mapping[str, Any] | None, data.get("advisor"))
+        if advisor is not None:
+            paid = float(mind.get("advisor_usd", 0.0)) + float(advisor["cost_usd"])
+            mind["advisor_usd"] = round(paid, 6)
+
+    def _budget(self, data: Mapping[str, Any], *, exceeded: bool) -> None:
+        notice: dict[str, Any] = {
+            "scope": str(data["scope"]),
+            "spent_usd": float(data["spent_usd"]),
+            "limit_usd": float(data["limit_usd"]),
+            "exceeded": exceeded,
+        }
+        for key in ("day", "threshold_pct", "paused"):
+            if data.get(key) is not None:
+                notice[key] = data[key]
+        self.costs["budget"] = notice
+
+    def _on_ops_budget_threshold_reached(self, data: Mapping[str, Any]) -> None:
+        self._budget(data, exceeded=False)
+
+    def _on_ops_budget_exceeded(self, data: Mapping[str, Any]) -> None:
+        self._budget(data, exceeded=True)
 
     # ------------------------------------------------------------- o caderno (ADR-0060)
 

@@ -485,6 +485,107 @@
             }
           }
         },
+        "costs": {
+          "type": "object",
+          "title": "ObserverCosts",
+          "description": "O que as chamadas de modelo custaram (ADR-0074), projetado dos eventos llm.call.completed cobrados e dos avisos ops.budget.*: por controlador, o gasto do último dia com chamadas e o total; e o último aviso do orçamento. Só a visão do operador o vê.",
+          "additionalProperties": false,
+          "properties": {
+            "minds": {
+              "type": "object",
+              "description": "Por id de controlador (llm/camps…).",
+              "propertyNames": {
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "additionalProperties": {
+                "type": "object",
+                "title": "ObserverMindCost",
+                "additionalProperties": false,
+                "required": [
+                  "day",
+                  "day_usd",
+                  "total_usd",
+                  "calls"
+                ],
+                "properties": {
+                  "avatar_id": {
+                    "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+                  },
+                  "model": {
+                    "type": "string",
+                    "maxLength": 128
+                  },
+                  "day": {
+                    "$ref": "contracts://common/defs.v1#/$defs/day",
+                    "description": "O último dia com chamadas cobradas."
+                  },
+                  "day_usd": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "O gasto desse dia."
+                  },
+                  "total_usd": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "O gasto desde o começo."
+                  },
+                  "calls": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Chamadas cobradas."
+                  },
+                  "advisor_usd": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Do total, o que foi do conselheiro."
+                  }
+                }
+              }
+            },
+            "budget": {
+              "type": "object",
+              "title": "ObserverBudget",
+              "description": "O último aviso da guarda de orçamento (ADR-0058).",
+              "additionalProperties": false,
+              "required": [
+                "scope",
+                "spent_usd",
+                "limit_usd",
+                "exceeded"
+              ],
+              "properties": {
+                "scope": {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                "day": {
+                  "$ref": "contracts://common/defs.v1#/$defs/day"
+                },
+                "spent_usd": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "limit_usd": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "threshold_pct": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "exceeded": {
+                  "type": "boolean",
+                  "description": "Bateu no teto."
+                },
+                "paused": {
+                  "type": "boolean",
+                  "description": "A guarda pausou o mundo."
+                }
+              }
+            }
+          }
+        },
         "decisions": {
           "type": "object",
           "propertyNames": {

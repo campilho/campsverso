@@ -1,11 +1,12 @@
-/** Painel do operador: relógio, controlador, decisão atual, o caderno do avatar, métricas do dia e
- * linha do tempo (escopo §6; ADR-0050, ADR-0054, ADR-0060).
+/** Painel do operador: relógio, controlador, decisão atual, o caderno do avatar, o custo das mentes,
+ * métricas do dia e linha do tempo (escopo §6; ADR-0050, ADR-0054, ADR-0060, ADR-0074).
  *
  * Os botões só pedem: quem aceita ou recusa é o kernel, e a resposta volta como evento. Desabilitar
  * "Avançar" fora da pausa é conforto (ADR-0026), não regra.
  */
 import type { EnvelopeV1, EventLabel, ObserverState, RealtimeReplyV1 } from "@campsverso/contracts";
 
+import { budgetLine, costLines } from "../costs.ts";
 import { button, el } from "../dom.ts";
 import { metricTable } from "../metrics.ts";
 import { clockText } from "../simclock.ts";
@@ -22,11 +23,12 @@ export class OperatorPanel {
   private readonly controls = el("section", { className: "card" });
   private readonly decision = el("section", { className: "card" });
   private readonly notebook = el("section", { className: "card notebook" });
+  private readonly costs = el("section", { className: "card costs" });
   private readonly metrics = el("section", { className: "card metrics" });
   private readonly filters = el("div", { className: "filters" });
   private readonly list = el("ol", { className: "timeline" });
   /** O que cada parte mostrou da última vez: refazer o DOM sem mudança engoliria cliques. */
-  private readonly shown = { controls: "", decision: "", notebook: "", metrics: "", timeline: "" };
+  private readonly shown = { controls: "", decision: "", notebook: "", costs: "", metrics: "", timeline: "" };
 
   private readonly send: Send;
   private readonly onFilter: () => void;
@@ -40,6 +42,7 @@ export class OperatorPanel {
       this.controls,
       this.decision,
       this.notebook,
+      this.costs,
       this.metrics,
       el("section", { className: "card grow" }, el("h3", {}, "Linha do tempo"), this.filters, this.list),
     );
@@ -83,6 +86,7 @@ export class OperatorPanel {
     this.renderControls(state, commands, reply);
     this.renderDecision(state, avatarId);
     this.renderNotebook(state, avatarId);
+    this.renderCosts(state);
     this.renderMetrics(state);
     this.renderTimeline(timeline, state.session?.labels ?? []);
   }
@@ -209,6 +213,23 @@ export class OperatorPanel {
       beliefs.length > 0 ? el("ul", {}, ...beliefs) : el("p", { className: "hint" }, "nenhuma ainda"),
       el("h4", {}, "Anotações"),
       notes.length > 0 ? el("ul", {}, ...notes) : el("p", { className: "hint" }, "nenhuma ainda"),
+    );
+  }
+
+  /** O custo das mentes (ADR-0074): some num mundo sem modelo. */
+  private renderCosts(state: ObserverState): void {
+    const lines = costLines(state);
+    const budget = budgetLine(state);
+    const key = JSON.stringify([lines, budget]);
+    if (key === this.shown.costs) {
+      return;
+    }
+    this.shown.costs = key;
+    this.costs.hidden = lines.length === 0 && budget === undefined;
+    this.costs.replaceChildren(
+      el("h3", {}, "Custo"),
+      el("ul", {}, ...lines.map((line) => el("li", {}, line))),
+      ...(budget === undefined ? [] : [el("p", { className: "hint" }, budget)]),
     );
   }
 

@@ -778,3 +778,61 @@ def test_o_avatar_que_entra_e_sai_ganha_e_perde_a_posicao() -> None:
     p.apply("world", ev(4, 700, "avatar.left.v1", avatar_id="dita", reason="end_of_day"))
     assert "position" not in p.entities["dita"]
     assert "dita" not in p.motion
+
+
+def _call(
+    seq: int, tick: int, cost: float, *, charged: bool = True, **extra: Any
+) -> dict[str, Any]:
+    data = {
+        "controller": {"type": "llm", "id": "llm/camps"},
+        "purpose": "decision",
+        "avatar_id": "camps",
+        "provider": "anthropic",
+        "model": "claude-haiku-5-5",
+        "cost_usd": cost,
+        "charged": charged,
+        **extra,
+    }
+    return ev(seq, tick, "llm.call.completed.v1", **data)
+
+
+def test_o_custo_das_mentes_vem_das_chamadas_cobradas() -> None:
+    """ADR-0074: o gasto do dia e o total de cada controlador, só das chamadas cobradas (a da fita
+    não custou nada), com a parte do conselheiro; e o último aviso do orçamento."""
+    p = started()
+    p.apply("observer", _call(10, 100, 0.0004))
+    p.apply("observer", _call(11, 200, 0.0004, charged=False))  # veio da fita
+    p.apply(
+        "observer",
+        _call(
+            12,
+            900,
+            0.0170,
+            purpose="reflection",
+            advisor={
+                "model": "claude-opus-4-8",
+                "calls": 1,
+                "usage": {"input_tokens": 1, "output_tokens": 1},
+                "cost_usd": 0.0166,
+            },
+        ),
+    )
+    mind = p.costs["minds"]["llm/camps"]
+    assert mind == {
+        "day": 1,
+        "day_usd": 0.0174,
+        "total_usd": 0.0174,
+        "calls": 2,
+        "model": "claude-haiku-5-5",
+        "avatar_id": "camps",
+        "advisor_usd": 0.0166,
+    }
+    p.apply("observer", _call(13, 1500, 0.001))  # o dia 2 recomeça o gasto do dia
+    assert (mind["day"], mind["day_usd"], mind["total_usd"], mind["calls"]) == (2, 0.001, 0.0184, 3)
+    warned = {"scope": "day", "day": 2, "spent_usd": 0.48, "limit_usd": 0.6, "threshold_pct": 80}
+    p.apply("observer", ev(14, 1600, "ops.budget.threshold_reached.v1", **warned))
+    assert p.costs["budget"] == {**warned, "exceeded": False}
+    hit = {"scope": "total", "spent_usd": 10.0, "limit_usd": 10.0, "paused": True}
+    p.apply("observer", ev(15, 1700, "ops.budget.exceeded.v1", **hit))
+    assert p.costs["budget"] == {**hit, "exceeded": True}
+    assert Projection(p.export()).costs == p.costs  # sobrevive à gravação do gateway

@@ -6,12 +6,12 @@ from pathlib import Path
 from typing import Any, cast
 
 from campsverso_adapters import JsonTelemetry, Uuid7Ids
-from campsverso_gateway.service import NOTEBOOK, PROJECTED, SKIPPED
+from campsverso_gateway.service import PROJECTED, SKIPPED
 from campsverso_gateway.state import observer_state
 from campsverso_gateway.watch import WatchService
 from campsverso_ports import Envelope
 from campsverso_testkit.pipeline import Pipeline
-from campsverso_world_view import Projection
+from campsverso_world_view import OBSERVER_PROJECTED, Projection
 
 
 async def _day() -> list[dict[str, Any]]:
@@ -79,14 +79,15 @@ async def test_a_corrida_em_andamento_e_seguida_enquanto_o_arquivo_cresce(tmp_pa
 
 async def test_o_estado_montado_do_arquivo_e_o_mesmo_do_barramento(tmp_path: Path) -> None:
     """Assistir monta do arquivo a mesma tela que o gateway monta do barramento: a projeção do
-    gateway ao vivo recebe os streams world e agent (menos a foto da percepção) e o caderno."""
+    gateway ao vivo recebe os streams world e agent (menos a foto da percepção), o caderno e o
+    custo (ADR-0074)."""
     envelopes = await _day()
     live = Projection()
     for envelope in envelopes:
         stream = str(envelope["visibility"])
         if envelope["type"] in SKIPPED:
             continue
-        if stream in PROJECTED or str(envelope["type"]).startswith(NOTEBOOK):
+        if stream in PROJECTED or str(envelope["type"]).startswith(OBSERVER_PROJECTED):
             live.apply(stream, cast(Envelope, envelope))
     _write(tmp_path / "script", envelopes, done=True)
     service = _service(tmp_path)

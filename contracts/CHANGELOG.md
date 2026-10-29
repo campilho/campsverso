@@ -5,6 +5,7 @@ Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão 
 ## Não publicado (M21)
 
 - **O conselheiro** (ADR-0074): `llm.call.completed.v1` ganha o campo opcional `advisor` (o modelo que o provedor consultou dentro da chamada, quantas vezes, os tokens e o custo dele, na tarifa dele). O `cost_usd` continua sendo o total da chamada. Só uma chamada com a ferramenta do conselheiro o publica.
+- **O custo na tela** (ADR-0074): o estado da tela (`realtime/welcome.v1`, `state`) ganha o campo opcional `costs`: por controlador, o gasto do último dia com chamadas, o total, as chamadas cobradas e a parte do conselheiro; e o último aviso da guarda de orçamento. Projetado dos `llm.call.completed` cobrados e dos `ops.budget.*`; só a visão do operador o recebe.
 
 ## Não publicado (M20)
 

@@ -49,6 +49,7 @@ def observer_state(
             "decisions": p.decisions,
             "metrics": p.metrics,
             "memory": p.memory,
+            "costs": p.costs,  # só o operador (ADR-0074); a visão do jogador o tira
         }
     )
 
@@ -79,6 +80,7 @@ def player_state(
     for key in _OWN_KEYED:
         if key in state:
             state[key] = {k: v for k, v in state[key].items() if k == avatar_id}
+    state.pop("costs", None)  # o custo das mentes é do operador (ADR-0074)
     return state
 
 
