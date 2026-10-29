@@ -10,7 +10,8 @@
 - Cada conexão recebe um `welcome` com o estado e a linha do tempo recente, filtrada pela visão,
   e depois um `update` a cada `flush_seconds` com novidade: merge patch do estado e eventos.
 - Comandos chegam como `campsverso.realtime.command.v1`. O gateway monta o envelope, valida contra
-  o contrato e publica. Quem aceita ou recusa no mundo é o kernel, com um evento.
+  o contrato, grava o seq que ele gasta e publica. Quem aceita ou recusa no mundo é o kernel, com
+  um evento.
 """
 
 import asyncio
@@ -358,12 +359,16 @@ class GatewayService:
         if problems:
             text = "; ".join(str(p) for p in problems)
             return self._reply(request_id, "invalid_command", text)
+        # O seq é gasto e gravado antes de sair: nem a volta de uma queda depois do publish nem
+        # outro comando publicado enquanto este espera o servidor o repetem. Um seq que não saiu
+        # fica de fora. Sem caixa de saída, como a da percepção: quem mandou vê a conexão cair e
+        # manda de novo, e um comando velho não deve sair sozinho depois.
+        self._out_seq += 1
+        self._save()
         try:
             await self._bus.publish(subject(command, self._worldid), envelope)
         except BusUnavailableError as error:
             return self._reply(request_id, "unavailable", f"barramento indisponível: {error}")
-        self._out_seq += 1
-        self._save()
         self._telemetry.info("gateway.command", command=command, id=envelope["id"])
         return {"type": REPLY, "request_id": request_id, "ok": True, "command_id": envelope["id"]}
 

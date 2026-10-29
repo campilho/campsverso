@@ -7,8 +7,16 @@ from typing import Any
 
 import pytest
 
-from campsverso_adapters import MemoryBlobStore, MemoryClient, MemoryRealtime, MemoryTelemetry
+from campsverso_adapters import (
+    InMemoryBus,
+    MemoryBlobStore,
+    MemoryClient,
+    MemoryRealtime,
+    MemoryTelemetry,
+    ValidatingBus,
+)
 from campsverso_gateway.service import (
+    COMMAND,
     HUMAN_ID,
     PLAY_COMMANDS,
     POSSESS,
@@ -17,6 +25,7 @@ from campsverso_gateway.service import (
     GatewayService,
 )
 from campsverso_gateway.state import apply_merge_patch, observer_state
+from campsverso_ports import Envelope, EventBus
 from campsverso_testkit.farm import WORLD
 from campsverso_testkit.pipeline import DAY, Pipeline
 from campsverso_tools.contracts import catalog
@@ -40,13 +49,13 @@ class Rig:
         self.gateway = self.new_gateway()
         self.realtime = MemoryRealtime()
 
-    def new_gateway(self) -> GatewayService:
+    def new_gateway(self, bus: EventBus | None = None) -> GatewayService:
         p = self.pipeline
         return GatewayService(
             WORLD,
             "camps",
             "farm_camps",
-            p.bus,
+            bus or p.bus,
             self.blobs,
             p.clock,
             p.ids,
@@ -61,6 +70,35 @@ class Rig:
         welcome = dict(await client.receive())
         assert MESSAGES.validate(welcome) == []
         return client, welcome
+
+
+class Killed(BaseException):
+    """O `kill -9`: nada mais roda no processo."""
+
+
+class DyingBus(ValidatingBus):
+    """O barramento de um gateway que morre logo depois de o servidor guardar um comando."""
+
+    def __init__(self, server: InMemoryBus) -> None:
+        super().__init__(server)
+        self.server = server
+
+    async def publish(self, subject: str, envelope: Envelope) -> None:
+        if str(envelope["source"]).startswith("/gateway/"):
+            self.server.published.append((subject, envelope))
+            raise Killed
+        await super().publish(subject, envelope)
+
+
+class YieldingBus(ValidatingBus):
+    """Um publish que espera a resposta do servidor, como o do NATS: outro comando passa."""
+
+    async def publish(self, subject: str, envelope: Envelope) -> None:
+        await asyncio.sleep(0)
+        await super().publish(subject, envelope)
+
+
+PAUSE = {"type": COMMAND, "command": "campsverso.cmd.clock.pause.v1", "data": {"reason": "debug"}}
 
 
 @pytest.fixture
@@ -214,6 +252,22 @@ async def test_gateway_volta_do_arquivo_sem_repetir_eventos(rig: Rig) -> None:
     replayed = [e for _, e in rig.pipeline.inner.published if e["visibility"] == "world"]
     await again._on_batch("world", [("x", e) for e in replayed])  # pyright: ignore[reportPrivateUsage]
     assert observer_state(again.projection) == before  # reentrega não muda nada
+
+
+async def test_comando_nunca_repete_o_seq(rig: Rig) -> None:
+    """O seq de um comando é gasto e gravado antes de ele sair: nem a volta de uma queda depois
+    do publish nem dois comandos ao mesmo tempo, de conexões diferentes, o repetem."""
+    dying = rig.new_gateway(DyingBus(rig.pipeline.inner))
+    with pytest.raises(Killed):
+        await dying._command("operator", {**PAUSE, "request_id": "ui-1"})  # pyright: ignore[reportPrivateUsage]
+    again = rig.new_gateway(YieldingBus(rig.pipeline.inner))
+    replies = await asyncio.gather(
+        *(again._command("operator", {**PAUSE, "request_id": f"ui-{n}"}) for n in (2, 3))  # pyright: ignore[reportPrivateUsage]
+    )
+    assert all(reply["ok"] for reply in replies)
+    sent = [e for e in rig.pipeline.envelopes if str(e["source"]).startswith("/gateway/")]
+    assert len({e["id"] for e in sent}) == 3
+    assert sorted(int(e["seq"]) for e in sent) == [0, 1, 2]
 
 
 async def test_pulso_do_kernel_e_sem_sinal(rig: Rig) -> None:
