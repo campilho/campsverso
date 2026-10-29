@@ -46,6 +46,7 @@ gateway:  # o WebSocket da UI (ADR-0050); só local, sem login
     farm_morada_do_sol: cartridges/farm_morada_do_sol/sim/src/campsverso_farm_morada_do_sol_sim/data/map.tmj
     farm_morada_do_sol-b: cartridges/farm_morada_do_sol/sim/src/campsverso_farm_morada_do_sol_sim/data/maps/b.tmj  # as variantes (ADR-0070)
     farm_morada_do_sol-c: cartridges/farm_morada_do_sol/sim/src/campsverso_farm_morada_do_sol_sim/data/maps/c.tmj
+    farm_morada_do_sol-d: cartridges/farm_morada_do_sol/sim/src/campsverso_farm_morada_do_sol_sim/data/maps/d.tmj  # o mapa do M21 (ADR-0074)
   ui_dir: apps/ui/dist  # a UI compilada (make ui-build); sem ela, só pelo Vite (make ui)
   art:  # arte dos cartuchos, do gênero ao cenário; a tela junta os manifestos nesta ordem (ADR-0053)
     - {name: farm, dir: cartridges/farm/art}

@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from campsverso_adapters import load_env
 from campsverso_tools import map_variants, visual_map
 from campsverso_tools.map_variants import (
     BASE,
@@ -113,3 +114,15 @@ def test_a_arte_aponta_o_mapa_visual_de_cada_variante_pelo_id_do_mapa() -> None:
     }
     for path in manifest["visual_maps"].values():
         assert (ART / path).is_file()
+
+
+def test_o_gateway_serve_o_mapa_logico_de_cada_variante() -> None:
+    """O mapa visual vem da arte, mas a grade, a câmera e a névoa da tela vêm do mapa lógico que o
+    gateway serve pelo id do mapa (`/content/maps/<id>.tmj`): uma variante fora da lista abre sem
+    câmera e sem névoa (o mapa d, achado pelo usuário em 28/out)."""
+    root = ART.parents[2]
+    maps = load_env(root / "config" / "env" / "local.yaml", root).gateway.maps
+    for name in recipes():
+        path = maps[f"farm_morada_do_sol-{name}"]
+        assert path == MAPS / f"{name}.tmj", name
+        assert path.is_file()
