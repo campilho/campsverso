@@ -75,7 +75,10 @@ VISIBLE: Mapping[View, frozenset[str]] = {
 SKIPPED = frozenset({"campsverso.perception.delivered.v1"})
 PROJECTED = ("world", "agent")
 # Do observer, só o caderno e o custo entram na projeção (ADR-0060, ADR-0074; a lista é da
-# world-view): o stream mistura fontes com `seq` próprios, então a deduplicação continua por fonte.
+# world-view). Fora da projeção, a reentrega se reconhece pelo id do evento, não pelo seq: no
+# observer, o runner e o medidor do mesmo controlador têm o mesmo source e contadores próprios, e o
+# seq de um controlador volta a zero quando ele reinicia (o sandbox que retoma, ADR-0074).
+RECENT_IDS = 4096  # os ids recentes guardados: a reentrega do JetStream é do que ainda não teve ack
 QUEUE_LIMIT = 2000  # mensagens esperando uma UI lenta; acima disso, a conexão cai
 PULSE = "campsverso.live.kernel.v1"
 COMMAND_REJECTED = "campsverso.world.command.rejected.v1"
@@ -142,7 +145,8 @@ class GatewayService:
         self._flush_seconds = flush_seconds
         self._key = f"{worldid}/gateway.json"
         self.projection = Projection()
-        self._seen: dict[str, int] = {}  # último seq por source, nos streams fora da projeção
+        self._recent: deque[str] = deque(maxlen=RECENT_IDS)  # ids vistos fora da projeção
+        self._recent_ids: set[str] = set()
         self._out_seq = 0  # seq dos comandos publicados pelo gateway
         self._load()
         self._timeline: deque[Envelope] = deque(maxlen=timeline)
@@ -164,13 +168,14 @@ class GatewayService:
             return
         self.projection = Projection(raw)
         own = raw.get("gateway", {})
-        self._seen = {str(k): int(v) for k, v in own.get("seen", {}).items()}
+        for event_id in cast(list[str], own.get("recent", [])):
+            self._remember(str(event_id))
         self._out_seq = int(own.get("out_seq", 0))
 
     def _save(self) -> None:
         document = {
             **self.projection.export(),
-            "gateway": {"seen": self._seen, "out_seq": self._out_seq},
+            "gateway": {"recent": list(self._recent), "out_seq": self._out_seq},
         }
         data = json.dumps(document, ensure_ascii=False, separators=(",", ":"))
         self._blobs.put(self._key, data.encode())
@@ -220,7 +225,7 @@ class GatewayService:
                 if stream in PROJECTED:
                     self.projection.apply(stream, envelope)
                 else:
-                    self._seen[str(envelope["source"])] = int(envelope["seq"])
+                    self._remember(str(envelope["id"]))
                     if str(envelope["type"]).startswith(OBSERVER_PROJECTED):
                         self.projection.apply(stream, envelope)
                 self._pending.append(envelope)
@@ -255,7 +260,13 @@ class GatewayService:
     def _seen_before(self, stream: str, envelope: Envelope) -> bool:
         if stream in PROJECTED:
             return self.projection.seen(stream, envelope)
-        return int(envelope["seq"]) <= self._seen.get(str(envelope["source"]), -1)
+        return str(envelope["id"]) in self._recent_ids
+
+    def _remember(self, event_id: str) -> None:
+        if len(self._recent) == self._recent.maxlen:
+            self._recent_ids.discard(self._recent[0])
+        self._recent.append(event_id)
+        self._recent_ids.add(event_id)
 
     async def _flush_loop(self) -> None:
         while True:

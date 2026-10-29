@@ -357,3 +357,51 @@ async def test_jogador_ve_a_recusa_do_proprio_comando(rig: Rig) -> None:
     assert rejected["data"]["reason"] == "mode_not_allowed"
     seen_by_other = await other.receive_until("update")
     assert all(e["visibility"] in {"world", "agent"} for e in seen_by_other["events"])
+
+
+def _observer(event_id: str, seq: int, kind: str, **data: Any) -> Envelope:
+    return {
+        "id": event_id,
+        "source": "/controller-runner/llm/camps",  # o runner e o medidor: o mesmo source
+        "type": f"campsverso.{kind}",
+        "seq": seq,
+        "tick": 600,
+        "visibility": "observer",
+        "data": data,
+    }
+
+
+def _call(event_id: str, seq: int) -> Envelope:
+    controller = {"type": "llm", "id": "llm/camps"}
+    return _observer(
+        event_id,
+        seq,
+        "llm.call.completed.v1",
+        controller=controller,
+        model="m",
+        cost_usd=0.01,
+        charged=True,
+    )
+
+
+async def test_o_observer_se_deduplica_pelo_id(rig: Rig) -> None:
+    """ADR-0074: no observer, o runner (o caderno) e o medidor (o custo) do mesmo controlador têm
+    o mesmo source e contadores próprios, e o seq volta a zero quando o controlador reinicia. Pelo
+    seq, o gateway jogava fora o evento do contador que estivesse atrás; pelo id, só a reentrega."""
+    batch = [
+        ("x", _call("id-1", 5)),
+        ("x", _observer("id-2", 0, "memory.noted.v1", avatar_id="camps", day=1, text="oi")),
+        ("x", _call("id-3", 6)),
+    ]
+    await rig.gateway._on_batch("observer", batch)  # pyright: ignore[reportPrivateUsage]
+    await rig.gateway._on_batch("observer", batch[:1])  # pyright: ignore[reportPrivateUsage]
+    costs = rig.gateway.projection.costs["minds"]["llm/camps"]
+    assert costs["calls"] == 2  # a reentrega do id-1 não contou de novo
+    assert [n["text"] for n in rig.gateway.projection.memory["camps"]["notes"]] == ["oi"]
+    again = Rig(rig.pipeline, rig.blobs).new_gateway()  # o gateway volta do arquivo
+    restarted = [
+        ("x", _call("id-4", 0)),
+        ("x", _call("id-3", 6)),
+    ]  # o seq recomeçou; e uma reentrega
+    await again._on_batch("observer", restarted)  # pyright: ignore[reportPrivateUsage]
+    assert again.projection.costs["minds"]["llm/camps"]["calls"] == 3

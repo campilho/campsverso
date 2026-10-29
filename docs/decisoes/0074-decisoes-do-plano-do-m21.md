@@ -142,6 +142,11 @@ Ficou assim:
   - o estado da tela ganha o campo opcional `costs` (contrato `realtime/welcome.v1`): por controlador, o gasto do último dia com chamadas, o total, as chamadas e a parte do conselheiro, e o último aviso do orçamento;
   - o painel do operador mostra o cartão "Custo", e a página da arena, o custo de cada corrida até o ponto da reprodução. A visão do jogador não o vê;
   - conferido no modo de assistir: a corrida do Haiku de 25/out soma US$ 0,7104 em 1.030 chamadas, como o resumo dela.
+  - **o gateway passa a deduplicar o `observer` e o `internal` pelo id do evento,** com os 4.096 ids recentes no arquivo dele. Antes, deduplicava por `source` e `seq`, e no `observer` isso falhava de dois jeitos:
+    - o runner (o caderno) e o medidor (o custo) do mesmo controlador têm o mesmo `source`, com contadores próprios, e o gateway ao vivo jogava fora o evento do contador que estivesse atrás;
+    - o `seq` de um controlador volta a zero quando ele reinicia, como no sandbox que retoma.
+
+    O modo de assistir não tinha o defeito, porque lê o arquivo inteiro.
 - **A ficha de cada corrida** fica no `summary.json` (`card`):
   - o modelo pedido e os ids que as respostas trouxeram, da fita, com o conselheiro;
   - a data e a rota: o provedor de cada chamada, pelos eventos;
