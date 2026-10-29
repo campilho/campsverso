@@ -4,12 +4,18 @@ catálogo de ferramentas tem uma ferramenta por ação do cartucho. O cenário p
 
 from pathlib import Path
 
-from campsverso_mind import Mind, load_tools
+from campsverso_mind import Columns, Mind, load_columns, load_tools
 
 DATA = Path(__file__).parent / "data"
 NOTES = DATA / "fazenda.md"
 TOOLS = DATA / "tools.yaml"
 CRAFT = DATA / "oficio.md"  # o ofício do agricultor, a camada do gênero no playbook (ADR-0071)
+COMPARE = DATA / "comparar.yaml"  # as colunas da ferramenta de comparação (ADR-0074)
+
+
+def columns() -> Columns:
+    """O que a ferramenta de comparação mede num mundo de fazenda: o cenário a usa no braço."""
+    return load_columns(COMPARE)
 
 
 def mind() -> Mind:
@@ -23,4 +29,4 @@ def mind() -> Mind:
     )
 
 
-__all__ = ["CRAFT", "DATA", "NOTES", "TOOLS", "mind"]
+__all__ = ["COMPARE", "CRAFT", "DATA", "NOTES", "TOOLS", "columns", "mind"]

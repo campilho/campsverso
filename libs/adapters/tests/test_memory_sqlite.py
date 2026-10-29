@@ -1,5 +1,6 @@
 """A memória em SQLite (ADR-0060): registrar, lembrar, refletir, e sobreviver a um reinício."""
 
+import sqlite3
 from dataclasses import replace
 from pathlib import Path
 
@@ -13,6 +14,7 @@ from campsverso_ports import (
     Place,
     Planting,
     Reflection,
+    Tile,
 )
 
 
@@ -176,3 +178,32 @@ def test_o_caderno_de_campo_volta_ao_reabrir(tmp_path: Path) -> None:
     assert (first.watered_days, first.outcome, second.previous) == ((1, 2), "colhida", "rabanete")
     assert reopened.meals() == [Meal(110, 1, "rabanete", 70.0, 45.0)]
     assert reopened.experiments() == [Experiment(1, "h", "t", "p", "cumpriu", 2)]
+
+
+def test_o_terreno_visto_e_a_estacao_do_plantio(tmp_path: Path) -> None:
+    """ADR-0074: o terreno que a comparação mede, por cima do que havia em cada tile; e uma
+    memória de antes da estação no plantio ganha as colunas ao reabrir (o sandbox retomado)."""
+    memory = SqliteMemory(":memory:")
+    memory.see([Tile(3, 1, "river"), Tile(0, 2, "tree")])
+    memory.see([Tile(3, 1, "river"), Tile(1, 0, "path")])
+    assert memory.terrain() == [Tile(1, 0, "path"), Tile(3, 1, "river"), Tile(0, 2, "tree")]
+    path = tmp_path / "antiga.sqlite"
+    old = sqlite3.connect(path)
+    old.execute(
+        "CREATE TABLE plantings (plot_id TEXT NOT NULL, tick INTEGER NOT NULL, day INTEGER NOT"
+        " NULL, crop TEXT NOT NULL, x INTEGER, y INTEGER, previous TEXT, fertilized INTEGER NOT"
+        " NULL, watered_days TEXT NOT NULL, matured_day INTEGER, outcome TEXT, outcome_day"
+        " INTEGER, PRIMARY KEY (plot_id, tick))"
+    )
+    old.execute(
+        "INSERT INTO plantings VALUES ('plot-1', 5, 1, 'milho', 1, 1, NULL, 0, '[]',"
+        " NULL, NULL, NULL)"
+    )
+    old.commit()
+    old.close()
+    reopened = SqliteMemory(path)
+    (before,) = reopened.plantings()
+    assert (before.crop, before.season) == ("milho", None)
+    reopened.save_planting(replace(before, season="verão", matured_season="outono"))
+    (after,) = reopened.plantings()
+    assert (after.season, after.matured_season) == ("verão", "outono")

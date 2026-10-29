@@ -24,6 +24,7 @@ from campsverso_ports import (
     Planting,
     Reflection,
     SourceKind,
+    Tile,
 )
 
 DECAY_PER_HOUR = 0.9  # a recência do memory stream: a cada hora, 10% a menos
@@ -56,7 +57,11 @@ CREATE TABLE IF NOT EXISTS reflections (
 CREATE TABLE IF NOT EXISTS plantings (
   plot_id TEXT NOT NULL, tick INTEGER NOT NULL, day INTEGER NOT NULL, crop TEXT NOT NULL,
   x INTEGER, y INTEGER, previous TEXT, fertilized INTEGER NOT NULL, watered_days TEXT NOT NULL,
-  matured_day INTEGER, outcome TEXT, outcome_day INTEGER, PRIMARY KEY (plot_id, tick)
+  matured_day INTEGER, outcome TEXT, outcome_day INTEGER, season TEXT, matured_season TEXT,
+  PRIMARY KEY (plot_id, tick)
+);
+CREATE TABLE IF NOT EXISTS terrain (
+  x INTEGER NOT NULL, y INTEGER NOT NULL, kind TEXT NOT NULL, PRIMARY KEY (y, x)
 );
 CREATE TABLE IF NOT EXISTS meals (
   id INTEGER PRIMARY KEY, tick INTEGER NOT NULL, day INTEGER NOT NULL, item TEXT NOT NULL,
@@ -67,6 +72,8 @@ CREATE TABLE IF NOT EXISTS experiments (
   result TEXT, result_day INTEGER
 );
 """
+# As colunas que chegaram depois da tabela: uma memória antiga (um sandbox retomado) as ganha.
+_ADDED = {"plantings": ("season TEXT", "matured_season TEXT")}
 
 
 def _belief(row: sqlite3.Row) -> Belief:
@@ -91,6 +98,11 @@ class SqliteMemory:
         self._db = sqlite3.connect(str(path))
         self._db.row_factory = sqlite3.Row
         self._db.executescript(_SCHEMA)
+        for table, columns in _ADDED.items():
+            have = {str(r["name"]) for r in self._db.execute(f"PRAGMA table_info({table})")}
+            for column in columns:
+                if column.split()[0] not in have:
+                    self._db.execute(f"ALTER TABLE {table} ADD COLUMN {column}")
         self._db.commit()
 
     # ------------------------------------------------------------- registrar
@@ -355,11 +367,26 @@ class SqliteMemory:
         self._db.executemany("DELETE FROM places WHERE entity_id = ?", [(i,) for i in entity_ids])
         self._db.commit()
 
+    # ------------------------------------------------------------- o terreno (ADR-0074)
+
+    def see(self, tiles: Sequence[Tile]) -> None:
+        self._db.executemany(
+            "INSERT OR REPLACE INTO terrain (x, y, kind) VALUES (?, ?, ?)",
+            [(t.x, t.y, t.kind) for t in tiles],
+        )
+        self._db.commit()
+
+    def terrain(self) -> list[Tile]:
+        rows = self._db.execute("SELECT x, y, kind FROM terrain ORDER BY y, x")
+        return [Tile(int(r["x"]), int(r["y"]), str(r["kind"])) for r in rows]
+
     # ------------------------------------------------------------- o caderno de campo (ADR-0070)
 
     def save_planting(self, planting: Planting) -> None:
         self._db.execute(
-            "INSERT OR REPLACE INTO plantings VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO plantings (plot_id, tick, day, crop, x, y, previous,"
+            " fertilized, watered_days, matured_day, outcome, outcome_day, season,"
+            " matured_season) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 planting.plot_id,
                 planting.tick,
@@ -373,6 +400,8 @@ class SqliteMemory:
                 planting.matured_day,
                 planting.outcome,
                 planting.outcome_day,
+                planting.season,
+                planting.matured_season,
             ),
         )
         self._db.commit()
@@ -393,6 +422,8 @@ class SqliteMemory:
                 matured_day=cast(int | None, r["matured_day"]),
                 outcome=cast(str | None, r["outcome"]),
                 outcome_day=cast(int | None, r["outcome_day"]),
+                season=cast(str | None, r["season"]),
+                matured_season=cast(str | None, r["matured_season"]),
             )
             for r in rows
         ]

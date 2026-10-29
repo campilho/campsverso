@@ -23,6 +23,7 @@ def load() -> Mind:
         craft=campsverso_farm_mind.CRAFT.read_text(encoding="utf-8"),  # o ofício (ADR-0071)
         field_notebook=True,  # o caderno de campo e o experimento da noite (ADR-0070)
         experiments=True,
+        columns=campsverso_farm_mind.columns(),  # a comparação, ligada só no braço (ADR-0074)
     )
 
 

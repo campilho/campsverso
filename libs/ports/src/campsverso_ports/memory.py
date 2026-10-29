@@ -4,9 +4,10 @@ Três operações sobre cinco tipos: episódios (o que o agente viu e fez, uma l
 importância), anotações (o que ele mesmo quis guardar), crenças (o que ele acredita, com
 confiança, evidências e origem), reflexões (o fechamento de um dia) e lugares (o último estado
 visto de cada coisa com posição, para lembrar o que saiu do raio de percepção; ADR-0067). O
-caderno de campo (ADR-0070) acrescenta os plantios, as refeições e os experimentos da noite. A
-porta não conhece o modelo nem o cartucho: quem transforma entregas em episódios e quem chama o
-modelo para refletir é a mente; aqui fica só o que persiste.
+caderno de campo (ADR-0070) acrescenta os plantios, as refeições e os experimentos da noite; a
+ferramenta de comparação (ADR-0074), o terreno visto. A porta não conhece o modelo nem o
+cartucho: quem transforma entregas em episódios e quem chama o modelo para refletir é a mente;
+aqui fica só o que persiste.
 """
 
 from collections.abc import Sequence
@@ -104,6 +105,17 @@ class Planting:
     matured_day: int | None = None
     outcome: str | None = None  # colhida, comida, derrubada, murcha, sumiu
     outcome_day: int | None = None
+    season: str | None = None  # a estação do relógio no plantio, num mundo com ano (ADR-0074)
+    matured_season: str | None = None  # e a do dia em que amadureceu
+
+
+@dataclass(frozen=True, slots=True)
+class Tile:
+    """Um tile de terreno visto numa foto (ADR-0074): o tipo dele na legenda."""
+
+    x: int
+    y: int
+    kind: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -175,6 +187,15 @@ class MemoryPort(Protocol):
 
     def forget(self, entity_ids: Sequence[str]) -> None:
         """Esquece o que deixou de existir, ou o que estava à vista e não estava mais lá."""
+        ...
+
+    # ------------------------------------------------------------- o terreno (ADR-0074)
+    def see(self, tiles: Sequence[Tile]) -> None:
+        """Guarda o terreno visto agora, por cima do que havia em cada tile."""
+        ...
+
+    def terrain(self) -> list[Tile]:
+        """O terreno visto, por linha e coluna."""
         ...
 
     # ------------------------------------------------------------- o caderno de campo

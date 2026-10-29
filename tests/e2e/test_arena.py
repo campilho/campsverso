@@ -6,11 +6,13 @@ from pathlib import Path
 import pytest
 
 from campsverso_budget.ledger import BudgetLimits
+from campsverso_mind import Clock
 from campsverso_ports import ModelCapabilities, ModelRequest, ModelResponse, ModelUsage
 from campsverso_testkit.arena import (
     ROUNDS,
     SEED,
     SEED_BOAVISTA,
+    SEED_MORADA,
     SPECS,
     SPECS_AJUDANTES,
     SPECS_BOAVISTA,
@@ -21,6 +23,7 @@ from campsverso_testkit.arena import (
     main,
     run_spec,
 )
+from campsverso_testkit.pipeline import Pipeline
 
 
 async def test_a_corrida_do_script_grava_a_pasta(tmp_path: Path) -> None:
@@ -41,6 +44,7 @@ async def test_a_corrida_do_script_grava_a_pasta(tmp_path: Path) -> None:
         "playbook": 0,
         "hire": None,
         "hire_from": 8,
+        "compare": False,
     }
     assert result["totals"]["days"] == 2
     assert (result["calls"], result["gave_up"], result["aborted_day"]) == (0, False, None)
@@ -283,3 +287,38 @@ async def test_a_corrida_para_no_teto_de_orcamento(tmp_path: Path) -> None:
     assert result["budget_exceeded"] >= 1
     assert result["spec"]["limits"] == {"usd_per_sim_day": 0.5, "usd_total": 0.5}
     assert "bateu no teto" in (tmp_path / "cara" / "progresso.txt").read_text(encoding="utf-8")
+
+
+def test_a_comparacao_liga_por_corrida_e_so_com_memoria() -> None:
+    """ADR-0074, decisão 7: o braço da comparação liga a ferramenta na reflexão da mente da
+    Morada do Sol, com as colunas do gênero; sem memória, não há caderno para ler."""
+    assert Spec("haiku", "llm").compare is False
+    on = Pipeline(
+        SEED_MORADA,
+        controller="llm",
+        port=SpendingPort(),
+        cartridge="farm_morada_do_sol",
+        compare=True,
+    )
+    assert on.mind is not None
+    assert on.mind.memory is not None
+    memory = on.mind.memory
+    assert memory.columns is not None
+    assert set(memory.columns.names) == {"água", "mata", "caminho", "porta", "espantalho"}
+    tools = memory.reflect_request("x", Clock(900, 1, ""), 1, "m").tools
+    assert [t["name"] for t in tools] == ["comparar", "reflect"]
+    off = Pipeline(
+        SEED_MORADA, controller="llm", port=SpendingPort(), cartridge="farm_morada_do_sol"
+    )
+    assert off.mind is not None
+    assert off.mind.memory is not None
+    assert off.mind.memory.columns is None
+    with pytest.raises(ValueError, match="precisa de memória"):
+        Pipeline(
+            SEED_MORADA,
+            controller="llm",
+            port=SpendingPort(),
+            cartridge="farm_morada_do_sol",
+            memory=False,
+            compare=True,
+        )

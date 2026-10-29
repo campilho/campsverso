@@ -68,6 +68,7 @@ class Spec:
     playbook: int = 0  # a versão do playbook no prompt da mente (ADR-0071); 0 é sem playbook
     hire: str | None = None  # a contratação forçada do script 3, "ficha:dias" (ADR-0073)
     hire_from: int = 8  # o primeiro dia em que contrata (o do arquivo do script 3)
+    compare: bool = False  # a ferramenta de comparação na reflexão, o braço do Haiku (ADR-0074)
 
 
 SPECS: tuple[Spec, ...] = (
@@ -263,6 +264,7 @@ async def run_spec(
         script=spec.script,
         playbook=spec.playbook > 0,
         script_config=_hiring(spec),
+        compare=spec.compare,
     )
     exam = exam_of(spec.cartridge)
     prova: dict[str, Any] = {}  # a prova do mundo (ADR-0070): antes, com a memória vazia
@@ -275,6 +277,7 @@ async def run_spec(
         f"{'ligada' if spec.river_bonus else 'desligada'}, seed {spec.seed}"
         f"{f', mapa {spec.map}' if spec.map else ''}"
         f"{f', com o playbook {spec.playbook}' if spec.playbook else ''}"
+        f"{', com a comparação' if spec.compare else ''}"
         f"{f', contratando {spec.hire} desde o dia {spec.hire_from}' if spec.hire else ''}, "
         f"em {out}",
         log,

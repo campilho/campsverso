@@ -69,6 +69,7 @@ def summary(pipeline: Pipeline) -> dict[str, Any]:
         "latency_ms_median": int(statistics.median(latencies)) if latencies else 0,
         "no_tool": mind.no_tool if mind is not None else 0,
         "reflections": mind.reflections if mind is not None else 0,
+        "comparisons": mind.memory.comparisons if mind is not None and mind.memory else 0,
         "gave_up": mind.gave_up if mind is not None else False,
         "notes": len(pipeline.of_type("memory.noted.v1")),
         "beliefs": {

@@ -8,6 +8,7 @@ falha da porta viram `wait`, com o motivo na intenção; na terceira falha segui
 from collections.abc import Mapping
 from typing import Any, cast
 
+from campsverso_mind.compare import COMPARISONS
 from campsverso_mind.memory import Clock, Memory, clock_of
 from campsverso_mind.mind import Mind, ToolDef
 from campsverso_mind.playbook import playbook
@@ -200,6 +201,13 @@ class LlmController:
         request = memory.reflect_request(self._identity, clock, day, self._model)
         try:
             response = await self._port.complete(request)
+            for _ in range(COMPARISONS):  # a comparação, se a corrida a liga (ADR-0074)
+                follow = memory.compared(request, response, day)
+                if follow is None:
+                    break
+                self._telemetry.info("mind.compared", day=day)
+                request = follow
+                response = await self._port.complete(request)
         except ModelCallError as error:
             self._telemetry.warning("mind.reflection_failed", kind=error.kind, day=day)
             memory.reflect_due = None

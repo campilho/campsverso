@@ -30,6 +30,7 @@ from campsverso_ports.memory import (
     Planting,
     Reflection,
     SourceKind,
+    Tile,
 )
 from campsverso_ports.model import (
     RETRYABLE_ERRORS,
@@ -114,6 +115,7 @@ __all__ = [
     "StoreState",
     "Subscription",
     "Telemetry",
+    "Tile",
     "View",
     "WallClock",
     "WorldStore",

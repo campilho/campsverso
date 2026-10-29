@@ -1,0 +1,13 @@
+# As colunas da ferramenta de comparação (ADR-0074): a quantos tiles cada canteiro fica de cada
+# tipo de terreno e de coisa vista. São as suspeitas do script 3 (a água, a mata, o caminho e a
+# porta; ADR-0070), com o espantalho e com distratores: a ferramenta mede todas do mesmo jeito e
+# não diz qual importa (princípio 5). `bins` são as faixas, em tiles, que decidem se dois
+# plantios diferem numa coluna (as mesmas do script 3).
+terrain:
+  água: [river]
+  mata: [tree]
+  caminho: [path, entrance]
+  porta: [door]
+things:
+  espantalho: [scarecrow]
+bins: [2, 4, 8, 16]

@@ -13,7 +13,7 @@ import campsverso_farm_boavista_sim
 import campsverso_farm_morada_do_sol_sim
 import campsverso_farm_sim
 from campsverso_farm_morada_do_sol_mind import NOTES, load, mind
-from campsverso_mind import playbook
+from campsverso_mind import COMPARE_INSTRUCTIONS, COMPARE_TOOL, playbook
 
 GENRE = Path(campsverso_farm_sim.__file__).parent / "data" / "farm.yaml"
 BOAVISTA = Path(campsverso_farm_boavista_sim.__file__).parent / "data" / "boavista.yaml"
@@ -157,8 +157,11 @@ def test_o_cartao_e_o_do_camps() -> None:
 def test_o_manual_conta_o_visivel_e_cala_o_oculto() -> None:
     notes = NOTES.read_text(encoding="utf-8").lower()
     catalog = (NOTES.parent / "tools.yaml").read_text(encoding="utf-8").lower()
-    # As descrições das ferramentas e o playbook (ADR-0071) também são lidos pela mente.
-    for text in (notes, catalog, playbook(mind).lower()):
+    # As descrições das ferramentas, o playbook (ADR-0071) e a ferramenta de comparação, com as
+    # colunas (ADR-0074), também são lidos pela mente.
+    assert mind.columns is not None
+    comparison = " ".join([str(COMPARE_TOOL), COMPARE_INSTRUCTIONS, *mind.columns.names]).lower()
+    for text in (notes, catalog, playbook(mind).lower(), comparison):
         for phrase in FORBIDDEN:
             if phrase.replace(" ", "").isalpha():  # palavra inteira: "ave" não é o de "chave"
                 assert re.search(rf"\b{phrase}\b", text) is None, phrase

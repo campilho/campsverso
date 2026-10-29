@@ -56,15 +56,16 @@ class FieldNotebook:
         delivery: Mapping[str, Any],
         places: Mapping[str, Place],
         in_view: set[str],
+        season: str | None = None,
     ) -> None:
-        """Os fatos de uma entrega entram no caderno."""
+        """Os fatos de uma entrega entram no caderno; `season` é a estação do relógio dela."""
         before = self.hunger
         now = _hunger(delivery, self.hunger_need)
         for event in cast(Sequence[Mapping[str, Any]], delivery.get("events") or ()):
             kind = str(event.get("type", ""))
             data = cast(Mapping[str, Any], event.get("data") or {})
             if kind == "campsverso.action.completed.v1" and data.get("avatar_id") == self.avatar_id:
-                self._action(day, int(event.get("tick", 0)), data, places, before, now)
+                self._action(day, int(event.get("tick", 0)), data, places, before, now, season)
             elif kind == "campsverso.world.weather.changed.v1" and not data.get("forecast"):
                 if data.get("condition") in WET:
                     rained = int(data.get("day", day))
@@ -76,7 +77,9 @@ class FieldNotebook:
                 planting = self._open(str(data.get("plot_id")))
                 if planting is not None and planting.matured_day is None:
                     matured = int(data.get("day", day))
-                    self.port.save_planting(replace(planting, matured_day=matured))
+                    self.port.save_planting(
+                        replace(planting, matured_day=matured, matured_season=season)
+                    )
             elif kind in SEEN_END:
                 self._close(str(data.get("plot_id")), SEEN_END[kind], day)
         for planting in self.port.plantings():  # o canteiro à vista, vazio, sem colheita
@@ -97,6 +100,7 @@ class FieldNotebook:
         places: Mapping[str, Place],
         before: float | None,
         now: float | None,
+        season: str | None,
     ) -> None:
         action = str(data.get("action", ""))
         params = cast(Mapping[str, Any], data.get("params") or {})
@@ -115,6 +119,7 @@ class FieldNotebook:
                     None if seen is None else seen.y,
                     previous=done[-1].crop if done else None,
                     fertilized=plot in self.fertilized,
+                    season=season,
                 )
             )
             self.fertilized.discard(plot)

@@ -8,6 +8,8 @@ from typing import Any, Literal, cast
 
 import yaml
 
+from campsverso_mind.compare import Columns
+
 type ParamType = Literal["string", "integer"]
 
 
@@ -47,6 +49,7 @@ class Mind:
     field_notebook: bool = False
     experiments: bool = False
     craft: str = ""  # o ofício do gênero, a segunda camada do playbook (ADR-0071)
+    columns: Columns | None = None  # o que a ferramenta de comparação mede (ADR-0074)
 
     def extend(self, *, card: str | None = None, notes: str | None = None) -> Mind:
         """Uma camada por cima (ADR-0031): o cenário troca o cartão, ou as notas, do gênero."""
@@ -98,3 +101,8 @@ def load_tools(path: Path) -> tuple[ToolDef, ...]:
     params?, shape?, duration?, energy?, strict?}]`)."""
     doc = cast(Mapping[str, Any], yaml.safe_load(path.read_text(encoding="utf-8")))
     return tools_from(cast(Sequence[Mapping[str, Any]], doc["tools"]))
+
+
+def load_columns(path: Path) -> Columns:
+    """As colunas da ferramenta de comparação de um `comparar.yaml` (ADR-0074)."""
+    return Columns.of(cast(Mapping[str, Any], yaml.safe_load(path.read_text(encoding="utf-8"))))

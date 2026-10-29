@@ -96,6 +96,24 @@ O script 3 fixo, medido no passo 2, fez num ano 267 moedas, 72 colheitas e 5 dia
 
     Ficaram de fora consertar o planejador para o oráculo nunca ficar abaixo do fixo (B) e tirar a fração (C).
 
+## Adendo de 28/out: a ferramenta de comparação (o passo 5)
+
+A decisão 7 deixou abertos onde a ferramenta entra, o que conta como fugir do esperado e de onde vêm as colunas. Ficou assim:
+- **Onde:** só na reflexão da noite, ao lado do `reflect`, com até duas consultas por noite. É ali que a mente escolhe o experimento. Nas decisões, cada ferramenta é uma ação do mundo.
+- **O normal vem do próprio caderno:** é a mediana dos dias de três ou mais plantios maduros da cultura na mesma estação. Um plantio fugiu quando se afasta pelo menos um dia e 20% dela. A ferramenta não lê números do cartucho nem do manual.
+- **Também as perdas,** que o texto da decisão 7 não citava: as plantas maduras que se perderam antes da colheita, ao lado das colhidas mais parecidas. Entram porque o script 3 também aprende a perda, e uma das perguntas da prova é sobre ela.
+- **As colunas são dado do gênero** (`cartridges/farm/mind/.../comparar.yaml`):
+  - a quantos tiles o canteiro fica da água, da mata, do caminho e da porta, no terreno visto, e do espantalho, nas coisas vistas;
+  - as faixas do script 3 (2, 4, 8 e 16 tiles) decidem se dois plantios diferem;
+  - o que havia antes no canteiro, o adubo, a rega e a estação.
+
+  Os parecidos são os que diferem em menos colunas, e a ferramenta lista as colunas em que o plantio difere de todos eles. Ela não diz qual coluna explica nada.
+- **A memória guarda o terreno visto** (`MemoryPort.see` e `terrain`), só os tipos que a comparação mede e só com ela ligada. O `Planting` ganha a estação do plantio e a da maturação, sempre, porque são fatos do relógio que nenhum pedido mostra. Uma memória antiga, como a de um sandbox retomado, ganha as colunas ao reabrir.
+- **Liga por corrida** (`Spec.compare`), e o resumo conta as consultas (`comparisons`).
+- **Os testes:**
+  - a descrição, as instruções e os nomes das colunas passam no teste de palavras proibidas da Morada do Sol;
+  - desligada, o pedido da reflexão é o de antes, e as fitas passam sem regravar.
+
 ## Consequências
 
 - **O orçamento da v0.3 dobra,** e o plano passa a gastar por passos aprovados, não por rodada.

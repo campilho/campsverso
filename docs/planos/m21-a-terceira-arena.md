@@ -192,7 +192,8 @@ Todas na seed da Morada (20261022), sem playbook (decisão 6). As corridas dos m
   - o adubo, a rega e a estação.
 - **O modelo escolhe o teste.** A ferramenta faz a conta que o script 3 faz em código e deixa o raciocínio para o modelo. É a pergunta que a rodada do playbook deixou: o Haiku falha por não saber o método, ou por não conseguir fazer a conta?
 - **Só usa fatos do próprio avatar.** As colunas são as suspeitas do script 3, com distratores, que a ADR-0070 julgou justas (princípio 5). A ferramenta não nomeia regra, e o teste de palavras proibidas lê a descrição dela.
-- **Fica em `libs/mind`, ao lado do caderno,** e só é ligada no braço (`Spec.comparar`). Desligada, o pedido é o de hoje, e as fitas não mudam.
+- **Fica em `libs/mind`, ao lado do caderno,** e só é ligada no braço (`Spec.compare`). Desligada, o pedido é o de hoje, e as fitas não mudam.
+- **Entra só na reflexão da noite,** com até duas consultas, e mostra também as perdas. O normal é a mediana do próprio caderno, e a memória guarda o terreno visto (o adendo do passo 5 na ADR-0074).
 - **Funciona com qualquer modelo,** até pela OpenRouter. Nos outros modelos, ela só entra depois dos braços do Haiku, decidida para a rodada do playbook (decisão 19).
 
 ## 6. O conselheiro

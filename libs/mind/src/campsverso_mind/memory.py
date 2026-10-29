@@ -13,6 +13,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from typing import Any, cast
 
+from campsverso_mind.compare import COMPARE, COMPARE_INSTRUCTIONS, COMPARE_TOOL, Columns, Comparison
 from campsverso_mind.mind import Mind
 from campsverso_mind.notebook import FieldNotebook
 from campsverso_ports import (
@@ -27,6 +28,7 @@ from campsverso_ports import (
     Note,
     Place,
     Reflection,
+    Tile,
     request_sha256,
 )
 
@@ -101,6 +103,8 @@ class MemorySettings:
     experiments: bool = False
     block_plantings: int = 12  # plantios que o bloco de abertura mostra, os mais recentes
     hunger_need: str = "fome"  # a necessidade que a comida mata, para a tabela da comida
+    # A ferramenta de comparação na reflexão (ADR-0074): ligada só no braço; pede o caderno.
+    compare: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -108,6 +112,7 @@ class Clock:
     tick: int
     day: int
     sim_time: str
+    season: str | None = None  # num mundo com ano (ADR-0067)
 
     def at(self, tick: int) -> str:
         """A hora de um tick passado, a partir da hora desta entrega (HH:MM)."""
@@ -122,10 +127,12 @@ def clock_of(delivery: Mapping[str, Any]) -> Clock:
     raw = cast(
         Mapping[str, Any], delivery.get("clock") or delivery.get("view", {}).get("clock") or {}
     )
+    season = raw.get("season")
     return Clock(
         int(raw.get("tick", delivery.get("as_of_tick", 0))),
         int(raw.get("day", 1)),
         str(raw.get("sim_time", "")),
+        None if season is None else str(season),
     )
 
 
@@ -343,14 +350,23 @@ class Memory:
         self.in_view: set[str] = set()  # o que a última entrega mostrou (ADR-0067)
         self.clock: Clock | None = None  # o relógio da última entrega (a prova do fim, ADR-0070)
         self.notebook = FieldNotebook(port, avatar_id, self.settings.hunger_need)
+        self.columns: Columns | None = None  # o que a comparação mede (ADR-0074)
+        self.known: set[tuple[int, int]] = set()  # os tiles que a porta já guarda
+        self.comparisons = 0  # as vezes que a reflexão usou a comparação
 
     def adopt(self, mind: Mind) -> None:
-        """O caderno de campo e o experimento da noite, se a mente do cenário os usa (ADR-0070)."""
+        """O caderno de campo e o experimento da noite, se a mente do cenário os usa (ADR-0070);
+        e as colunas da comparação, quando a corrida a liga (ADR-0074)."""
         self.settings = replace(
             self.settings,
             field_notebook=self.settings.field_notebook or mind.field_notebook,
             experiments=self.settings.experiments or mind.experiments,
         )
+        if self.settings.compare:
+            if mind.columns is None or not self.settings.field_notebook:
+                raise ValueError(f"a mente {mind.name} não tem caderno de campo e colunas")
+            self.columns = mind.columns
+            self.known = {(t.x, t.y) for t in self.port.terrain()}
 
     # ------------------------------------------------------------- registrar
 
@@ -387,6 +403,7 @@ class Memory:
         ids = {p.entity_id for p in places}
         if view is not None:
             self.in_view = {str(e["entity_id"]) for e in seen}
+            self._terrain(cast(Mapping[str, Any] | None, view.get("map")))
             box = _box(cast(Mapping[str, Any] | None, view.get("map")))
             if box is not None:
                 stale = [
@@ -403,6 +420,26 @@ class Memory:
             self.port.forget(gone)
         self.in_view = (self.in_view | ids) - away - set(gone)
 
+    def _terrain(self, terrain: Mapping[str, Any] | None) -> None:
+        """Os tiles da foto que a comparação mede (a água, a mata...), os que ainda não estavam
+        guardados (ADR-0074)."""
+        if self.columns is None or terrain is None:
+            return
+        kinds = frozenset[str]().union(*self.columns.terrain.values())
+        legend = cast(Mapping[str, Mapping[str, Any]], terrain.get("legend") or {})
+        origin = cast(Mapping[str, int], terrain.get("origin") or {"x": 0, "y": 0})
+        x0, y0 = int(origin["x"]), int(origin["y"])
+        fresh: list[Tile] = []
+        for dy, row in enumerate(cast(Sequence[str], terrain.get("rows") or ())):
+            for dx, code in enumerate(row):
+                kind = str((legend.get(code) or {}).get("kind"))
+                tile = (x0 + dx, y0 + dy)
+                if kind in kinds and tile not in self.known:
+                    fresh.append(Tile(tile[0], tile[1], kind))
+                    self.known.add(tile)
+        if fresh:
+            self.port.see(fresh)
+
     def observe(self, delivery: Mapping[str, Any]) -> Clock:
         """O que aconteceu desde a última entrega vira episódios; a foto não (é estado). As coisas
         vistas viram lugares lembrados (ADR-0067)."""
@@ -411,7 +448,7 @@ class Memory:
         self._places(clock, delivery)
         if self.settings.field_notebook:
             places = {p.entity_id: p for p in self.port.places()}
-            self.notebook.observe(clock.day, delivery, places, self.in_view)
+            self.notebook.observe(clock.day, delivery, places, self.in_view, clock.season)
         reason = str(cast(Mapping[str, Any], delivery.get("decision") or {}).get("reason", ""))
         if reason in ("session_started", "possessed"):
             text = "assumi o corpo" if reason == "possessed" else "a sessão começou"
@@ -583,7 +620,9 @@ class Memory:
                     "cache_control": {"type": "ephemeral"},
                 }
             ],
-            tools=[reflect_tool(s.experiments)],
+            tools=[COMPARE_TOOL, reflect_tool(s.experiments)]
+            if self.columns is not None
+            else [reflect_tool(s.experiments)],
             max_tokens=s.reflection_max_tokens,
             effort=s.reflection_effort,
             purpose="reflection",
@@ -591,9 +630,49 @@ class Memory:
         )
 
     def _instructions(self) -> str:
-        if not self.settings.experiments:
-            return REFLECTION_INSTRUCTIONS
-        return f"{REFLECTION_INSTRUCTIONS}\n\n{EXPERIMENT_INSTRUCTIONS}"
+        parts = [REFLECTION_INSTRUCTIONS]
+        if self.settings.experiments:
+            parts.append(EXPERIMENT_INSTRUCTIONS)
+        if self.columns is not None:
+            parts.append(COMPARE_INSTRUCTIONS)
+        return "\n\n".join(parts)
+
+    def compared(
+        self, request: ModelRequest, response: ModelResponse, day: int
+    ) -> ModelRequest | None:
+        """A reflexão pediu a comparação (ADR-0074): o pedido seguinte, com a resposta e o
+        resultado da ferramenta; `None` quando ela não pediu (fechou o dia, ou parou)."""
+        uses = response.tool_uses()
+        names = {str(t.get("name")) for t in uses}
+        if self.columns is None or COMPARE not in names or REFLECT in names:
+            return None
+        if response.stop_reason == "max_tokens":
+            return None
+        comparison = Comparison(
+            self.columns, self.port.plantings(), self.port.terrain(), self.port.places()
+        )
+        results: list[dict[str, Any]] = []
+        for use in uses:
+            given = cast(Mapping[str, Any], use.get("input") or {})
+            if use.get("name") == COMPARE:
+                self.comparisons += 1
+                text = comparison.text(str(given.get("crop") or ""), day)
+                results.append({"type": "tool_result", "tool_use_id": use["id"], "content": text})
+            else:
+                results.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": use["id"],
+                        "content": "Ferramenta desconhecida na reflexão.",
+                        "is_error": True,
+                    }
+                )
+        messages = [
+            *request.messages,
+            {"role": "assistant", "content": [dict(b) for b in response.content]},
+            {"role": "user", "content": results},
+        ]
+        return replace(request, messages=messages)
 
     def _experiment(self, given: Mapping[str, Any], day: int, data: dict[str, Any]) -> None:
         """O veredito do experimento de ontem e o experimento de amanhã (ADR-0070)."""
