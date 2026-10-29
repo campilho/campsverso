@@ -19,7 +19,7 @@ from campsverso_mind import (
     Mind,
     ToolDef,
 )
-from campsverso_mind.memory import REFLECT
+from campsverso_mind.memory import ADVISOR_INSTRUCTIONS, ADVISOR_NOTE, REFLECT
 from campsverso_ports import (
     ModelCapabilities,
     ModelRequest,
@@ -296,3 +296,57 @@ async def test_a_noite_compara_no_maximo_duas_vezes() -> None:
     await mind.decide(snapshot())
     await mind.after_proposal()
     assert (len(model.requests), mem.comparisons, mind.reflections) == (4, 2, 0)
+
+
+# ------------------------------------------------------------- o conselheiro (ADR-0074)
+
+OPUS48 = "claude-opus-4-8"
+
+
+def advised_memory(advisor: str | None = OPUS48) -> Memory:
+    mem = Memory(SqliteMemory(":memory:"), "camps", MemorySettings(advisor=advisor))
+    mem.adopt(MIND)
+    return mem
+
+
+def test_a_reflexao_ganha_o_conselheiro_so_quando_ligado() -> None:
+    night = Clock(900, 1, "2026-10-10T21:00:00-03:00")
+    on = advised_memory().reflect_request("x", night, 1, "m")
+    advisor = on.tools[0]
+    assert advisor == {
+        "type": "advisor_20260301",
+        "name": "advisor",
+        "model": OPUS48,
+        "max_uses": 1,
+        "max_tokens": 4096,
+    }
+    assert on.tools[-1]["name"] == REFLECT
+    assert ADVISOR_INSTRUCTIONS in str(on.system)
+    assert ADVISOR_NOTE in on.messages[0]["content"][0]["text"]
+    off = advised_memory(None).reflect_request("x", night, 1, "m")
+    assert [t.get("name") for t in off.tools] == [REFLECT]
+    assert ADVISOR_INSTRUCTIONS not in str(off.system)
+    assert ADVISOR_NOTE not in off.messages[0]["content"][0]["text"]
+
+
+async def test_a_noite_ouve_o_conselheiro_e_fecha_o_dia() -> None:
+    mem = advised_memory()
+    asked: dict[str, Any] = {
+        "type": "server_tool_use",
+        "id": "srvtoolu_1",
+        "name": "advisor",
+        "input": {},
+    }
+    advice = {
+        "type": "advisor_tool_result",
+        "tool_use_id": "srvtoolu_1",
+        "content": {"type": "advisor_result", "text": "Compare dois canteiros."},
+    }
+    model = ScriptedModel(
+        response({"type": "tool_use", "id": "toolu_s", "name": "sleep_here", "input": {}}),
+        response(asked, advice, reflect_use()),
+    )
+    mind = controller(model, mem)
+    await mind.decide(snapshot())
+    await mind.after_proposal()
+    assert (mind.reflections, mem.advised, len(model.requests)) == (1, 1, 2)

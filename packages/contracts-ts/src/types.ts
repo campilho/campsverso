@@ -1181,9 +1181,18 @@ export interface LlmCallCompletedV1 {
   request_id?: string;
   usage: LlmUsage;
   /**
-   * Custo nominal pela tabela de preços do ambiente.
+   * Custo nominal pela tabela de preços do ambiente; com conselheiro, o total.
    */
   cost_usd: number;
+  /**
+   * O conselheiro que o provedor consultou dentro da chamada (ADR-0074): o modelo, quantas vezes, os tokens dele e o custo na tarifa dele, que já está no cost_usd.
+   */
+  advisor?: {
+    model: string;
+    calls: number;
+    usage: LlmUsage;
+    cost_usd: number;
+  };
   /**
    * Falso quando a resposta veio da fita: ninguém pagou, e a guarda não conta.
    */

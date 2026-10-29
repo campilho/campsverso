@@ -14,6 +14,7 @@ import campsverso_farm_morada_do_sol_sim
 import campsverso_farm_sim
 from campsverso_farm_morada_do_sol_mind import NOTES, load, mind
 from campsverso_mind import COMPARE_INSTRUCTIONS, COMPARE_TOOL, playbook
+from campsverso_mind.memory import ADVISOR_INSTRUCTIONS, ADVISOR_NOTE
 
 GENRE = Path(campsverso_farm_sim.__file__).parent / "data" / "farm.yaml"
 BOAVISTA = Path(campsverso_farm_boavista_sim.__file__).parent / "data" / "boavista.yaml"
@@ -160,7 +161,16 @@ def test_o_manual_conta_o_visivel_e_cala_o_oculto() -> None:
     # As descrições das ferramentas, o playbook (ADR-0071) e a ferramenta de comparação, com as
     # colunas (ADR-0074), também são lidos pela mente.
     assert mind.columns is not None
-    comparison = " ".join([str(COMPARE_TOOL), COMPARE_INSTRUCTIONS, *mind.columns.names]).lower()
+    # E o conselheiro (ADR-0074): as instruções e o pedido de brevidade.
+    comparison = " ".join(
+        [
+            str(COMPARE_TOOL),
+            COMPARE_INSTRUCTIONS,
+            *mind.columns.names,
+            ADVISOR_INSTRUCTIONS,
+            ADVISOR_NOTE,
+        ]
+    ).lower()
     for text in (notes, catalog, playbook(mind).lower(), comparison):
         for phrase in FORBIDDEN:
             if phrase.replace(" ", "").isalpha():  # palavra inteira: "ave" não é o de "chave"

@@ -201,6 +201,8 @@ class LlmController:
         request = memory.reflect_request(self._identity, clock, day, self._model)
         try:
             response = await self._port.complete(request)
+            if memory.heard(response):  # o conselheiro, se a corrida o liga (ADR-0074)
+                self._telemetry.info("mind.advised", day=day)
             for _ in range(COMPARISONS):  # a comparação, se a corrida a liga (ADR-0074)
                 follow = memory.compared(request, response, day)
                 if follow is None:
@@ -208,6 +210,8 @@ class LlmController:
                 self._telemetry.info("mind.compared", day=day)
                 request = follow
                 response = await self._port.complete(request)
+                if memory.heard(response):
+                    self._telemetry.info("mind.advised", day=day)
         except ModelCallError as error:
             self._telemetry.warning("mind.reflection_failed", kind=error.kind, day=day)
             memory.reflect_due = None

@@ -22,6 +22,7 @@ from campsverso_ports import (
     ModelRequest,
     ModelResponse,
     ModelUsage,
+    SubCall,
     request_sha256,
 )
 
@@ -174,4 +175,82 @@ async def test_reproduzida_nao_e_cobrada_e_falha_vira_evento(tmp_path: Path) -> 
 def test_tabela_de_precos_do_ambiente() -> None:
     env = load_env(Path("config/env/local.yaml"), Path.cwd())
     assert env.models["claude-haiku-5-5"] == ModelPrices(0.10, 0.50, 0.01, 0.125)
-    assert set(env.models) == {"claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5"}
+    assert set(env.models) == {
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5",
+        "claude-opus-5-5",
+        "claude-opus-4-8",  # o conselheiro (ADR-0074)
+    }
+
+
+OPUS48 = ModelPrices(5.00, 25.00, 0.50, 6.25)
+ADVICE_USAGE = ModelUsage(823, 1612)
+ADVISOR_TOOL = {"type": "advisor_20260301", "name": "advisor", "model": "claude-opus-4-8"}
+
+
+class AdvisedModel(FakeModel):
+    """A resposta de um pedido com o conselheiro: o uso dele vem à parte (ADR-0074)."""
+
+    async def complete(self, request: ModelRequest) -> ModelResponse:
+        response = await super().complete(request)
+        advisor = SubCall("claude-opus-4-8", 1, ADVICE_USAGE)
+        return ModelResponse(
+            content=response.content,
+            stop_reason=response.stop_reason,
+            usage=response.usage,
+            model=response.model,
+            latency_ms=response.latency_ms,
+            request_id=response.request_id,
+            advisor=advisor,
+        )
+
+
+def _advised(text: str = "Feche o dia.") -> ModelRequest:
+    return ModelRequest(
+        model="claude-haiku-5-5",
+        messages=[{"role": "user", "content": text}],
+        tools=[ADVISOR_TOOL],
+        purpose="reflection",
+        avatar_id="camps",
+    )
+
+
+async def test_o_conselheiro_e_cobrado_na_tarifa_dele_e_vai_no_evento(tmp_path: Path) -> None:
+    inner_bus = InMemoryBus()
+    prices = {"claude-haiku-5-5": HAIKU, "claude-opus-4-8": OPUS48}
+    recorder = RecordingModel(
+        AdvisedModel(), tmp_path / "fita.jsonl", "record", clock=FakeWallClock()
+    )
+    metered = MeteredModel(
+        recorder,
+        bus=ValidatingBus(inner_bus),
+        worldid="farm-camps-01",
+        cartridge="farm_camps",
+        controller={"type": "llm", "id": "llm/haiku"},
+        prices=prices,
+        clock=FakeWallClock(),
+        ids=SequentialUuid7Ids(),
+    )
+    response = await metered.complete(_advised())
+    assert response.advisor == SubCall("claude-opus-4-8", 1, ADVICE_USAGE)
+    ((_, envelope),) = inner_bus.published  # o barramento valida o campo novo pelo contrato
+    advice_cost = cost_usd(ADVICE_USAGE, OPUS48)
+    assert envelope["data"]["advisor"] == {
+        "model": "claude-opus-4-8",
+        "calls": 1,
+        "usage": ADVICE_USAGE.as_dict(),
+        "cost_usd": advice_cost,
+    }
+    assert envelope["data"]["cost_usd"] == round(0.000168 + advice_cost, 8)
+    assert metered.spent_usd == envelope["data"]["cost_usd"]
+    # A fita guarda o uso do conselheiro, e a resposta reproduzida o traz de volta.
+    replayed = await RecordingModel(None, tmp_path / "fita.jsonl", "replay").complete(_advised())
+    assert (replayed.replayed, replayed.advisor) == (True, response.advisor)
+
+
+async def test_conselheiro_sem_preco_e_recusado_antes_de_gastar() -> None:
+    inner = AdvisedModel()
+    with pytest.raises(ModelCallError) as caught:
+        await _metered(inner, ValidatingBus(InMemoryBus())).complete(_advised())
+    assert (caught.value.kind, inner.calls) == ("bad_request", 0)
+    assert "claude-opus-4-8" in caught.value.message

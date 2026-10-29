@@ -42,6 +42,7 @@ from campsverso_ports.model import (
     ModelRequest,
     ModelResponse,
     ModelUsage,
+    SubCall,
     canonical_request,
     request_sha256,
 )
@@ -113,6 +114,7 @@ __all__ = [
     "SnapshotRef",
     "SourceKind",
     "StoreState",
+    "SubCall",
     "Subscription",
     "Telemetry",
     "Tile",

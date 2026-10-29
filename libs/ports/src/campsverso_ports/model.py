@@ -52,14 +52,25 @@ class ModelUsage:
 
 
 @dataclass(frozen=True, slots=True)
+class SubCall:
+    """O uso de um modelo que o provedor chamou dentro da chamada, como o conselheiro (ADR-0074):
+    o modelo, quantas vezes e os tokens somados, cobrados na tarifa dele."""
+
+    model: str
+    calls: int
+    usage: ModelUsage
+
+
+@dataclass(frozen=True, slots=True)
 class ModelResponse:
     content: Sequence[Mapping[str, Any]]  # blocos text, tool_use, thinking, como vieram
     stop_reason: str  # end_turn, tool_use, max_tokens, refusal…
-    usage: ModelUsage
+    usage: ModelUsage  # os tokens de quem respondeu; os do conselheiro ficam em `advisor`
     model: str
     latency_ms: int
     request_id: str | None = None
     replayed: bool = False  # veio da fita: ninguém pagou
+    advisor: SubCall | None = None  # o conselheiro consultado dentro da chamada (ADR-0074)
 
     def tool_uses(self) -> list[Mapping[str, Any]]:
         return [block for block in self.content if block.get("type") == "tool_use"]

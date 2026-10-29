@@ -22,6 +22,8 @@ models:  # dólares por milhão de tokens, tabela de 18/out/2026 (ADR-0058): o c
   claude-haiku-5-5: {input_per_mtok: 0.10, output_per_mtok: 0.50, cache_read_per_mtok: 0.01, cache_write_per_mtok: 0.125}
   claude-sonnet-5-5: {input_per_mtok: 2.00, output_per_mtok: 10.00, cache_read_per_mtok: 0.20, cache_write_per_mtok: 2.50}
   claude-opus-5-5: {input_per_mtok: 4.00, output_per_mtok: 20.00, cache_read_per_mtok: 0.20, cache_write_per_mtok: 5.00}
+  # O conselheiro do Haiku (ADR-0074, decisão 9), pela tabela de 28/out/2026.
+  claude-opus-4-8: {input_per_mtok: 5.00, output_per_mtok: 25.00, cache_read_per_mtok: 0.50, cache_write_per_mtok: 6.25}
 
 perception:  # foto ou delta por tipo de controlador (ADR-0056)
   deltas_for: [llm]  # script e replay recebem sempre a foto

@@ -105,6 +105,10 @@ class MemorySettings:
     hunger_need: str = "fome"  # a necessidade que a comida mata, para a tabela da comida
     # A ferramenta de comparação na reflexão (ADR-0074): ligada só no braço; pede o caderno.
     compare: bool = False
+    # O conselheiro na reflexão (ADR-0074, decisões 8 e 9): o modelo dele, ou None; uma consulta
+    # por reflexão, com a saída dele (raciocínio e texto) limitada.
+    advisor: str | None = None
+    advisor_max_tokens: int = 4096
 
 
 @dataclass(frozen=True, slots=True)
@@ -281,6 +285,27 @@ REFLECT_TOOL: dict[str, Any] = {
 }
 
 EXPERIMENT_RESULTS = ("cumpriu", "falhou", "inconclusivo")
+ADVISOR = "advisor"
+ADVISOR_RESULTS = frozenset({"advisor_result", "advisor_redacted_result"})
+
+
+def advisor_tool(model: str, max_tokens: int) -> dict[str, Any]:
+    """O conselheiro (ADR-0074): a ferramenta do servidor, no beta `advisor-tool-2026-03-01`."""
+    return {
+        "type": "advisor_20260301",
+        "name": ADVISOR,
+        "model": model,
+        "max_uses": 1,
+        "max_tokens": max_tokens,
+    }
+
+
+ADVISOR_INSTRUCTIONS = """\
+Você tem um conselheiro: a ferramenta `advisor` consulta um modelo mais experiente, que lê esta \
+conversa inteira e devolve um conselho. Consulte-o uma vez, antes de revisar as crenças e escolher \
+o experimento de amanhã; pese o conselho com o que você viu, e decida você. Depois feche o dia com \
+`reflect`."""
+ADVISOR_NOTE = "(Conselheiro: responda em português, em até 150 palavras.)"
 
 
 def reflect_tool(experiments: bool) -> dict[str, Any]:
@@ -353,6 +378,7 @@ class Memory:
         self.columns: Columns | None = None  # o que a comparação mede (ADR-0074)
         self.known: set[tuple[int, int]] = set()  # os tiles que a porta já guarda
         self.comparisons = 0  # as vezes que a reflexão usou a comparação
+        self.advised = 0  # os conselhos que a reflexão recebeu (ADR-0074)
 
     def adopt(self, mind: Mind) -> None:
         """O caderno de campo e o experimento da noite, se a mente do cenário os usa (ADR-0070);
@@ -609,7 +635,15 @@ class Memory:
                 f"{trial.hypothesis}; teste: {trial.test}; previsão: {trial.prediction}. Diga se a "
                 "previsão se cumpriu."
             )
+        if s.advisor is not None:
+            parts.append(ADVISOR_NOTE)
         parts.append("Feche o dia com a ferramenta reflect.")
+        tools: list[dict[str, Any]] = []
+        if self.columns is not None:
+            tools.append(COMPARE_TOOL)
+        if s.advisor is not None:
+            tools.append(advisor_tool(s.advisor, s.advisor_max_tokens))
+        tools.append(reflect_tool(s.experiments))
         return ModelRequest(
             model=s.reflection_model or model,
             messages=[{"role": "user", "content": [{"type": "text", "text": "\n".join(parts)}]}],
@@ -620,9 +654,7 @@ class Memory:
                     "cache_control": {"type": "ephemeral"},
                 }
             ],
-            tools=[COMPARE_TOOL, reflect_tool(s.experiments)]
-            if self.columns is not None
-            else [reflect_tool(s.experiments)],
+            tools=tools,
             max_tokens=s.reflection_max_tokens,
             effort=s.reflection_effort,
             purpose="reflection",
@@ -635,7 +667,20 @@ class Memory:
             parts.append(EXPERIMENT_INSTRUCTIONS)
         if self.columns is not None:
             parts.append(COMPARE_INSTRUCTIONS)
+        if self.settings.advisor is not None:
+            parts.append(ADVISOR_INSTRUCTIONS)
         return "\n\n".join(parts)
+
+    def heard(self, response: ModelResponse) -> int:
+        """Os conselhos que uma resposta da reflexão trouxe (ADR-0074); conta e devolve."""
+        found = sum(
+            1
+            for block in response.content
+            if block.get("type") == "advisor_tool_result"
+            and cast(Mapping[str, Any], block.get("content") or {}).get("type") in ADVISOR_RESULTS
+        )
+        self.advised += found
+        return found
 
     def compared(
         self, request: ModelRequest, response: ModelResponse, day: int

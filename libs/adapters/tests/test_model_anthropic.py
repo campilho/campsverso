@@ -9,7 +9,7 @@ import pytest
 from anthropic import AsyncAnthropic, DefaultAsyncHttpxClient
 
 from campsverso_adapters import AnthropicModel, FakeWallClock
-from campsverso_ports import ModelCallError, ModelRequest
+from campsverso_ports import ModelCallError, ModelRequest, ModelUsage, SubCall
 
 TOOL: dict[str, Any] = {
     "name": "propose",
@@ -206,3 +206,132 @@ async def test_fechar_o_cliente_e_idempotente() -> None:
     model = AnthropicModel(_client(handler), clock=FakeWallClock())
     await model.aclose()
     await model.aclose()
+
+
+# ------------------------------------------------------------- o conselheiro (ADR-0074)
+
+ADVISOR: dict[str, Any] = {
+    "type": "advisor_20260301",
+    "name": "advisor",
+    "model": "claude-opus-4-8",
+    "max_uses": 1,
+    "max_tokens": 1024,
+}
+ASKED: dict[str, Any] = {
+    "type": "server_tool_use",
+    "id": "srvtoolu_01",
+    "name": "advisor",
+    "input": {},
+}
+ADVICE = {
+    "type": "advisor_tool_result",
+    "tool_use_id": "srvtoolu_01",
+    "content": {"type": "advisor_result", "text": "Regue antes de colher."},
+}
+PROPOSED = {"type": "tool_use", "id": "toolu_01", "name": "propose", "input": {"action": "water"}}
+
+
+def _iteration(kind: str, tokens_in: int, tokens_out: int, **extra: Any) -> dict[str, Any]:
+    return {
+        "type": kind,
+        "input_tokens": tokens_in,
+        "output_tokens": tokens_out,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 0,
+        **extra,
+    }
+
+
+async def test_o_conselheiro_vai_pela_api_beta_e_o_uso_dele_volta_a_parte() -> None:
+    seen: dict[str, Any] = {}
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        seen["url"] = str(request.url)
+        seen["beta"] = request.headers.get("anthropic-beta")
+        seen["body"] = json.loads(request.content)
+        usage = {
+            "input_tokens": 1760,
+            "output_tokens": 531,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 0,
+            "iterations": [
+                _iteration("message", 412, 89),
+                _iteration("advisor_message", 823, 1612, model="claude-opus-4-8"),
+                _iteration("message", 1348, 442),
+            ],
+        }
+        return httpx2.Response(200, json=_message(content=[ASKED, ADVICE, PROPOSED], usage=usage))
+
+    model = AnthropicModel(_client(handler), clock=FakeWallClock())
+    response = await model.complete(_request(tools=[ADVISOR, TOOL]))
+    assert "beta=true" in seen["url"]
+    assert seen["beta"] == "advisor-tool-2026-03-01"
+    assert seen["body"]["tools"][0] == ADVISOR
+    assert response.content == [ASKED, ADVICE, PROPOSED]  # voltam sem mudança, para a janela
+    assert response.usage == ModelUsage(1760, 531)  # só o de quem respondeu
+    assert response.advisor == SubCall("claude-opus-4-8", 1, ModelUsage(823, 1612))
+    assert response.tool_uses() == [PROPOSED]
+
+
+async def test_sem_conselheiro_o_pedido_nao_vai_pela_beta() -> None:
+    seen: dict[str, Any] = {}
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        seen["url"] = str(request.url)
+        seen["beta"] = request.headers.get("anthropic-beta")
+        return httpx2.Response(200, json=_message())
+
+    response = await AnthropicModel(_client(handler), clock=FakeWallClock()).complete(_request())
+    assert seen["url"].endswith("/v1/messages")
+    assert seen["beta"] is None
+    assert response.advisor is None
+
+
+async def test_o_pause_turn_e_retomado_com_a_resposta_como_veio() -> None:
+    bodies: list[dict[str, Any]] = []
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        bodies.append(json.loads(request.content))
+        if len(bodies) == 1:
+            usage = {"input_tokens": 400, "output_tokens": 30}
+            return httpx2.Response(
+                200, json=_message(content=[ASKED], stop_reason="pause_turn", usage=usage)
+            )
+        usage = {
+            "input_tokens": 900,
+            "output_tokens": 60,
+            "iterations": [
+                _iteration("advisor_message", 800, 300, model="claude-opus-4-8"),
+                _iteration("message", 900, 60),
+            ],
+        }
+        return httpx2.Response(200, json=_message(content=[ADVICE, PROPOSED], usage=usage))
+
+    model = AnthropicModel(_client(handler), clock=FakeWallClock())
+    response = await model.complete(_request(tools=[ADVISOR, TOOL]))
+    assert len(bodies) == 2
+    assert bodies[1]["messages"][:-1] == bodies[0]["messages"]
+    assert bodies[1]["messages"][-1] == {"role": "assistant", "content": [ASKED]}
+    assert bodies[1]["tools"] == bodies[0]["tools"]  # sem o conselheiro, a retomada daria 400
+    assert response.content == [ASKED, ADVICE, PROPOSED]
+    assert response.stop_reason == "tool_use"
+    assert response.usage == ModelUsage(1300, 90)
+    assert response.advisor == SubCall("claude-opus-4-8", 1, ModelUsage(800, 300))
+
+
+async def test_a_conversa_com_blocos_do_conselheiro_vai_pela_beta() -> None:
+    seen: dict[str, Any] = {}
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        seen["beta"] = request.headers.get("anthropic-beta")
+        return httpx2.Response(200, json=_message())
+
+    history: list[dict[str, Any]] = [
+        {"role": "user", "content": "O que fazer?"},
+        {"role": "assistant", "content": [ASKED, ADVICE, PROPOSED]},
+        {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "toolu_01"}]},
+    ]
+    await AnthropicModel(_client(handler), clock=FakeWallClock()).complete(
+        _request(messages=history)
+    )
+    assert seen["beta"] == "advisor-tool-2026-03-01"

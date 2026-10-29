@@ -2066,7 +2066,36 @@
         "cost_usd": {
           "type": "number",
           "minimum": 0,
-          "description": "Custo nominal pela tabela de preços do ambiente."
+          "description": "Custo nominal pela tabela de preços do ambiente; com conselheiro, o total."
+        },
+        "advisor": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "model",
+            "calls",
+            "usage",
+            "cost_usd"
+          ],
+          "description": "O conselheiro que o provedor consultou dentro da chamada (ADR-0074): o modelo, quantas vezes, os tokens dele e o custo na tarifa dele, que já está no cost_usd.",
+          "properties": {
+            "model": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9._:/-]*$",
+              "maxLength": 128
+            },
+            "calls": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "usage": {
+              "$ref": "#/$defs/LlmUsage"
+            },
+            "cost_usd": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
         },
         "charged": {
           "type": "boolean",

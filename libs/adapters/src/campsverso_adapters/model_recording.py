@@ -17,6 +17,7 @@ from campsverso_ports import (
     ModelRequest,
     ModelResponse,
     ModelUsage,
+    SubCall,
     WallClock,
     canonical_request,
     request_sha256,
@@ -98,25 +99,43 @@ class RecordingModel:
                 "request_id": response.request_id,
             },
         }
+        if response.advisor is not None:  # o conselheiro (ADR-0074): só quando houve
+            advisor = response.advisor
+            entry["response"]["advisor"] = {
+                "model": advisor.model,
+                "calls": advisor.calls,
+                "usage": advisor.usage.as_dict(),
+            }
         self._path.parent.mkdir(parents=True, exist_ok=True)
         with self._path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(entry, ensure_ascii=False) + "\n")
         self._entries[key] = entry
 
 
+def _usage(recorded: Mapping[str, int]) -> ModelUsage:
+    return ModelUsage(
+        input_tokens=int(recorded["input_tokens"]),
+        output_tokens=int(recorded["output_tokens"]),
+        cache_read_input_tokens=int(recorded.get("cache_read_input_tokens", 0)),
+        cache_creation_input_tokens=int(recorded.get("cache_creation_input_tokens", 0)),
+    )
+
+
 def _response_from(recorded: Mapping[str, Any]) -> ModelResponse:
-    usage = cast(Mapping[str, int], recorded["usage"])
+    advisor = cast(Mapping[str, Any] | None, recorded.get("advisor"))
     return ModelResponse(
         content=[dict(block) for block in cast(list[Mapping[str, Any]], recorded["content"])],
         stop_reason=str(recorded["stop_reason"]),
-        usage=ModelUsage(
-            input_tokens=int(usage["input_tokens"]),
-            output_tokens=int(usage["output_tokens"]),
-            cache_read_input_tokens=int(usage.get("cache_read_input_tokens", 0)),
-            cache_creation_input_tokens=int(usage.get("cache_creation_input_tokens", 0)),
-        ),
+        usage=_usage(cast(Mapping[str, int], recorded["usage"])),
         model=str(recorded["model"]),
         latency_ms=int(recorded["latency_ms"]),
         request_id=cast(str | None, recorded.get("request_id")),
         replayed=True,
+        advisor=None
+        if advisor is None
+        else SubCall(
+            str(advisor["model"]),
+            int(advisor["calls"]),
+            _usage(cast(Mapping[str, int], advisor["usage"])),
+        ),
     )

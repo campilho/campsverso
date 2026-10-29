@@ -8,7 +8,9 @@ memória com validação de contrato, e repete o mesmo pedido: a segunda respost
 ambiente (o `.env`, carregado pelo `--env-file`); o CI nunca roda isto.
 
 Com uma fita que já tem o pedido, a primeira resposta também vem dela e nada é chamado; por isso
-o `make llm-smoke` passa uma fita nova a cada execução (`--cassette`).
+o `make llm-smoke` passa uma fita nova a cada execução (`--cassette`). Com `--advisor MODELO`, o
+pedido oferece o conselheiro (ADR-0074) e pede uma consulta antes de propor: a fumaça mostra o
+conselho, o uso dele e o custo na tarifa dele.
 """
 
 import argparse
@@ -36,6 +38,10 @@ SYSTEM = (
     "Você é o Camps, um fazendeiro numa fazenda pequena. Responda chamando a ferramenta "
     "`propose` com a próxima ação, e nada mais."
 )
+ADVISED = (
+    " Antes de propor, consulte uma vez o conselheiro (a ferramenta `advisor`) e pese o que ele "
+    "disser. (Conselheiro: responda em português, em até 60 palavras.)"
+)
 PROPOSE_TOOL: dict[str, Any] = {
     "name": "propose",
     "description": "Propõe a próxima ação do avatar.",
@@ -61,6 +67,7 @@ async def smoke(
     cassette: Path,
     clock: WallClock,
     ids: IdGenerator,
+    advisor: str | None = None,
 ) -> dict[str, Any]:
     """Duas vezes o mesmo pedido: a primeira ao vivo e gravada, a segunda da fita."""
     bus = InMemoryBus()
@@ -75,12 +82,25 @@ async def smoke(
         ids=ids,
     )
     metered.assert_priced(model)
+    tools: list[dict[str, Any]] = [PROPOSE_TOOL]
+    if advisor is not None:
+        metered.assert_priced(advisor)
+        tools.insert(
+            0,
+            {
+                "type": "advisor_20260301",
+                "name": "advisor",
+                "model": advisor,
+                "max_uses": 1,
+                "max_tokens": 1024,
+            },
+        )
     request = ModelRequest(
         model=model,
-        system=SYSTEM,
+        system=SYSTEM + (ADVISED if advisor is not None else ""),
         messages=[{"role": "user", "content": prompt}],
-        tools=[PROPOSE_TOOL],
-        max_tokens=256,
+        tools=tools,
+        max_tokens=256 if advisor is None else 2048,
         effort="low",
         purpose="probe",
     )
@@ -94,6 +114,18 @@ async def smoke(
             "usage": live.usage.as_dict(),
             "latency_ms": live.latency_ms,
             "request_id": live.request_id,
+            "advisor": None
+            if live.advisor is None
+            else {
+                "model": live.advisor.model,
+                "calls": live.advisor.calls,
+                "usage": live.advisor.usage.as_dict(),
+                "advice": [
+                    b.get("content")
+                    for b in live.content
+                    if b.get("type") in ("server_tool_use", "advisor_tool_result")
+                ],
+            },
         },
         "replayed": replayed.replayed,
         "spent_usd": metered.spent_usd,
@@ -113,6 +145,7 @@ def _parse(argv: Sequence[str] | None) -> argparse.Namespace:
         ),
     )
     parser.add_argument("--cassette", type=Path, default=Path("data/llm/smoke.jsonl"))
+    parser.add_argument("--advisor", default=None, help="o conselheiro (ADR-0074), se houver")
     return parser.parse_args(argv)
 
 
@@ -129,6 +162,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             cassette=args.cassette,
             clock=clock,
             ids=Uuid7Ids(),
+            advisor=args.advisor,
         )
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))

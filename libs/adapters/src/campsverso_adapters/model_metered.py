@@ -2,7 +2,9 @@
 
 É o decorador, não o adaptador do provedor, que publica `llm.call.completed.v1` ou
 `llm.call.failed.v1` (contratos §12.1). O custo sai de uma tabela de preços que é dado do
-ambiente; um modelo sem preço é recusado antes de gastar. O prompt nunca sai: vai o hash.
+ambiente; um modelo sem preço é recusado antes de gastar. O prompt nunca sai: vai o hash. O
+conselheiro (ADR-0074) é cobrado na tarifa dele, e o `cost_usd` do evento é o total; o campo
+`advisor` diz quanto foi dele.
 """
 
 from collections.abc import Callable, Mapping
@@ -48,6 +50,15 @@ def cost_usd(usage: ModelUsage, prices: ModelPrices) -> float:
     return round(total / 1_000_000, 8)
 
 
+def _advisors(request: ModelRequest) -> list[str]:
+    """Os modelos de conselheiro que o pedido oferece (ADR-0074): precisam de preço também."""
+    return [
+        str(t["model"])
+        for t in request.tools
+        if str(t.get("type", "")).startswith("advisor_") and t.get("model")
+    ]
+
+
 class MeteredModel:
     def __init__(
         self,
@@ -87,10 +98,11 @@ class MeteredModel:
             raise LookupError(f"modelo sem preço na tabela do ambiente: {model}")
 
     async def complete(self, request: ModelRequest) -> ModelResponse:
-        if request.model not in self._prices:
-            raise ModelCallError(
-                "bad_request", f"modelo sem preço na tabela: {request.model}", retryable=False
-            )
+        for model in (request.model, *_advisors(request)):
+            if model not in self._prices:
+                raise ModelCallError(
+                    "bad_request", f"modelo sem preço na tabela: {model}", retryable=False
+                )
         started = self._clock.monotonic()
         try:
             response = await self._inner.complete(request)
@@ -107,6 +119,17 @@ class MeteredModel:
             )
             raise
         cost = cost_usd(response.usage, self._prices[request.model])
+        advised: dict[str, Any] | None = None
+        if response.advisor is not None:
+            advisor = response.advisor
+            paid = cost_usd(advisor.usage, self._prices[advisor.model])
+            advised = {
+                "model": advisor.model,
+                "calls": advisor.calls,
+                "usage": advisor.usage.as_dict(),
+                "cost_usd": paid,
+            }
+            cost = round(cost + paid, 8)
         charged = not response.replayed
         if charged:
             self.spent_usd += cost
@@ -120,6 +143,8 @@ class MeteredModel:
             data["request_id"] = response.request_id
         if request.effort is not None:
             data["effort"] = request.effort
+        if advised is not None:
+            data["advisor"] = advised
         await self._publish(COMPLETED, request, response.latency_ms, data)
         return response
 

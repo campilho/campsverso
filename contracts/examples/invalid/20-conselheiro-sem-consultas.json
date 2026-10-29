@@ -1,0 +1,54 @@
+{
+  "expect_error": "payload_schema",
+  "description": "O conselheiro sem o número de consultas.",
+  "event": {
+    "specversion": "1.0",
+    "id": "01a12d2b-6c34-7b20-8a00-1e6802771b74",
+    "source": "/controller-runner/llm/haiku",
+    "type": "campsverso.llm.call.completed.v1",
+    "time": "2026-10-18T03:00:00Z",
+    "datacontenttype": "application/json",
+    "dataschema": "contracts://events/llm/call.completed.v1",
+    "worldid": "farm-camps-01",
+    "cartridge": "farm_camps",
+    "tick": 506,
+    "simtime": "2026-03-02T14:26:00-03:00",
+    "seq": 58,
+    "provenance": "simulated",
+    "visibility": "observer",
+    "actor": "system/controller-runner",
+    "data": {
+      "controller": {
+        "type": "llm",
+        "id": "llm/haiku"
+      },
+      "purpose": "reflection",
+      "avatar_id": "camps",
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "request_id": "req_018EeWyXxfu5pfWkrYcMdjWG",
+      "prompt_sha256": "9c1f9c1f9c1f9c1f9c1f9c1f9c1f9c1f9c1f9c1f9c1f9c1f9c1f9c1f9c1f9c1f",
+      "latency_ms": 1840,
+      "usage": {
+        "input_tokens": 9200,
+        "output_tokens": 1400,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 0
+      },
+      "cost_usd": 0.0651,
+      "charged": true,
+      "stop_reason": "tool_use",
+      "effort": "medium",
+      "advisor": {
+        "model": "claude-opus-4-8",
+        "usage": {
+          "input_tokens": 9600,
+          "output_tokens": 620,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        "cost_usd": 0.0635
+      }
+    }
+  }
+}

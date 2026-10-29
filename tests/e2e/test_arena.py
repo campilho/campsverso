@@ -45,6 +45,7 @@ async def test_a_corrida_do_script_grava_a_pasta(tmp_path: Path) -> None:
         "hire": None,
         "hire_from": 8,
         "compare": False,
+        "advisor": None,
     }
     assert result["totals"]["days"] == 2
     assert (result["calls"], result["gave_up"], result["aborted_day"]) == (0, False, None)
@@ -313,7 +314,7 @@ def test_a_comparacao_liga_por_corrida_e_so_com_memoria() -> None:
     assert off.mind is not None
     assert off.mind.memory is not None
     assert off.mind.memory.columns is None
-    with pytest.raises(ValueError, match="precisa de memória"):
+    with pytest.raises(ValueError, match="precisam de memória"):
         Pipeline(
             SEED_MORADA,
             controller="llm",
@@ -321,4 +322,29 @@ def test_a_comparacao_liga_por_corrida_e_so_com_memoria() -> None:
             cartridge="farm_morada_do_sol",
             memory=False,
             compare=True,
+        )
+
+
+def test_o_conselheiro_liga_por_corrida_e_precisa_de_preco() -> None:
+    """ADR-0074, decisões 8 e 9: o braço do conselheiro põe o Opus 4.8 na reflexão; um
+    conselheiro sem preço na tabela derruba a montagem, nunca uma chamada."""
+    assert Spec("haiku", "llm").advisor is None
+    on = Pipeline(
+        SEED_MORADA,
+        controller="llm",
+        port=SpendingPort(),
+        cartridge="farm_morada_do_sol",
+        advisor="claude-opus-4-8",
+    )
+    assert on.mind is not None
+    assert on.mind.memory is not None
+    tools = on.mind.memory.reflect_request("x", Clock(900, 1, ""), 1, "m").tools
+    assert [t["name"] for t in tools] == ["advisor", "reflect"]
+    with pytest.raises(LookupError, match="modelo-sem-preco"):
+        Pipeline(
+            SEED_MORADA,
+            controller="llm",
+            port=SpendingPort(),
+            cartridge="farm_morada_do_sol",
+            advisor="modelo-sem-preco",
         )

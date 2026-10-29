@@ -2,6 +2,10 @@
 
 Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão maior, só entram campos opcionais novos; mudança incompatível vira um tipo novo (`.v2`). A checagem `make compat` confere isso a cada commit.
 
+## Não publicado (M21)
+
+- **O conselheiro** (ADR-0074): `llm.call.completed.v1` ganha o campo opcional `advisor` (o modelo que o provedor consultou dentro da chamada, quantas vezes, os tokens e o custo dele, na tarifa dele). O `cost_usd` continua sendo o total da chamada. Só uma chamada com a ferramenta do conselheiro o publica.
+
 ## Não publicado (M20)
 
 - **A presença do avatar** (ADR-0072), dois tipos novos de visibilidade `world`, produtor `kernel`:

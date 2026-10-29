@@ -166,9 +166,9 @@ metrics: ## métricas da bíblia §13 a partir do arquivo: make metrics [ARCHIVE
 percepcao: ## tokens da percepção por dia a partir do arquivo (ADR-0056): make percepcao [ARCHIVE=pasta] [EVERY=20] [CONTAR=20]
 	$(if $(CONTAR),uv run --locked --env-file .env,$(PY)) python -m campsverso_tools.perception_budget $(ARCHIVE) --every $(EVERY) $(if $(CONTAR),--contar $(CONTAR),)
 
-llm-smoke: ## uma chamada real pela porta de modelo, medida e publicada pelo contrato (ADR-0058): make llm-smoke [MODEL=claude-haiku-5-5]
+llm-smoke: ## uma chamada real pela porta de modelo, medida e publicada pelo contrato (ADR-0058): make llm-smoke [MODEL=claude-haiku-5-5] [CONSELHEIRO=claude-opus-4-8]
 	uv run --locked --env-file .env python -m campsverso_tools.llm_smoke --model $(or $(MODEL),claude-haiku-5-5) \
-	  --cassette data/llm/smoke-$$(date +%Y%m%d-%H%M%S).jsonl
+	  --cassette data/llm/smoke-$$(date +%Y%m%d-%H%M%S).jsonl $(if $(CONSELHEIRO),--advisor $(CONSELHEIRO),)
 
 ui-e2e: tools ui-build ## a tela no navegador (Playwright): a fazenda 1 (8799), a Morada do Sol (8798) e a arena (8797) [MUNDO=farm-boavista-01]
 	pnpm --filter @campsverso/ui exec playwright test

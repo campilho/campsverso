@@ -1516,6 +1516,20 @@ class FarmCropWitheredV1(BaseModel):
     """
 
 
+class Advisor(BaseModel):
+    """
+    O conselheiro que o provedor consultou dentro da chamada (ADR-0074): o modelo, quantas vezes, os tokens dele e o custo na tarifa dele, que já está no cost_usd.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    model: Annotated[str, Field(max_length=128, pattern="^[a-z0-9][a-z0-9._:/-]*$")]
+    calls: Annotated[int, Field(ge=1)]
+    usage: LlmUsage
+    cost_usd: Annotated[float, Field(ge=0.0)]
+
+
 class LlmCallCompletedV1(BaseModel):
     """
     Uma chamada de modelo terminou (ADR-0058): quem chamou, qual modelo, tokens, custo e latência. Nunca leva o prompt nem a resposta. Publicado pelo decorador da porta, não pelo adaptador.
@@ -1556,7 +1570,11 @@ class LlmCallCompletedV1(BaseModel):
     usage: LlmUsage
     cost_usd: Annotated[float, Field(ge=0.0)]
     """
-    Custo nominal pela tabela de preços do ambiente.
+    Custo nominal pela tabela de preços do ambiente; com conselheiro, o total.
+    """
+    advisor: Advisor | None = None
+    """
+    O conselheiro que o provedor consultou dentro da chamada (ADR-0074): o modelo, quantas vezes, os tokens dele e o custo na tarifa dele, que já está no cost_usd.
     """
     charged: bool
     """

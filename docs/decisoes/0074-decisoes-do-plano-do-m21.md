@@ -114,6 +114,27 @@ A decisão 7 deixou abertos onde a ferramenta entra, o que conta como fugir do e
   - a descrição, as instruções e os nomes das colunas passam no teste de palavras proibidas da Morada do Sol;
   - desligada, o pedido da reflexão é o de antes, e as fitas passam sem regravar.
 
+## Adendo de 28/out: o conselheiro (o passo 6)
+
+Conferido na documentação e na tabela de preços do dia:
+- **O pedido:** a ferramenta `advisor_20260301`, no beta `advisor-tool-2026-03-01`.
+- **O uso:** o do conselheiro vem fora do `usage` de quem respondeu, em `usage.iterations` (`advisor_message`, com o modelo).
+- **O preço:** o Opus 4.8 custa US$ 5 e 25 por milhão (cache lido a 0,50) e entrou na tabela do ambiente.
+
+Ficou assim:
+- **Na porta de modelo:**
+  - um pedido com o conselheiro, ou com blocos dele na conversa, vai pela API beta;
+  - a `ModelResponse` ganha o `advisor` (o modelo, as consultas e os tokens), e a fita o guarda;
+  - o adaptador retoma o `pause_turn` sozinho: a resposta volta como veio, e a continuação se junta a ela.
+- **No medidor:** cobra o conselheiro na tarifa dele, soma ao `cost_usd` e publica o campo `advisor` do `llm.call.completed.v1`. Um conselheiro sem preço é recusado antes de gastar.
+- **Na mente:** o conselheiro entra só na reflexão (`MemorySettings.advisor`, `Spec.advisor`), com uma consulta por pedido e a saída dele limitada a 4.096 tokens. As instruções pedem uma consulta antes de escolher o experimento, e a mensagem pede ao conselheiro até 150 palavras, em português. O resumo da corrida conta os conselhos (`advised`). O texto do conselho fica na fita da corrida (`llm.jsonl`), de onde o relatório o lê.
+- **A fumaça** (`make llm-smoke CONSELHEIRO=claude-opus-4-8`, 28/out) custou US$ 0,017:
+  - o Haiku 5.5 consultou o Opus 4.8 (2.593 tokens de entrada e 146 de saída, US$ 0,0166) e seguiu o conselho;
+  - o conselho voltou em texto, em português;
+  - o evento validou pelo contrato, e a repetição veio da fita sem cobrança;
+  - o `disable_parallel_tool_use` convive com a ferramenta do servidor.
+- **A conta da corrida:** com a reflexão de uns 15 mil tokens, cada noite custa uns US$ 0,10 a 0,18 de conselheiro. O braço fica nos US$ 3 a 6 do plano.
+
 ## Consequências
 
 - **O orçamento da v0.3 dobra,** e o plano passa a gastar por passos aprovados, não por rodada.
