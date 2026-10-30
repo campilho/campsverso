@@ -177,11 +177,18 @@ Ficou assim:
 - **O custo vem da resposta** (`usage.cost`) e vai em `ModelUsage.cost_usd`. O medidor e o juiz o usam no lugar da tabela, e a fita o guarda. A tabela continua sendo a guarda (modelo sem preço é recusado) e a estimativa.
 - **O evento `llm.call.completed.v1` ganha dois campos opcionais:**
   - `response_model`, o id que a resposta disse ser, publicado em toda chamada;
-  - `served_by`, quem atendeu na OpenRouter, lido do campo `provider` da resposta. A referência da API não documenta esse campo; a fumaça confirma.
+  - `served_by`, quem atendeu na OpenRouter, lido do campo `provider` da resposta. A referência da API não documenta esse campo; a fumaça de 29/out o confirmou nos dois modelos.
 - **Os erros** são classificados como na Anthropic: o 402 (sem créditos) e o 403 contam como `auth`. Como o SDK de lá, o adaptador repete o 408, o 429, os 5xx e as falhas de rede até duas vezes, com a espera que o servidor pede. Um erro que chega num 200 (no corpo ou na escolha) também é erro. A OpenRouter não conta tokens sem gerar.
 - **A ficha:** a rota diz quem atendeu (`openrouter: OpenAI`), e o SDK do harness é o `httpx2`.
 - **O segundo juiz:** `make juiz JUIZ=openai/gpt-6-astra` julga com o Astra. A fita é a mesma (o hash do pedido tem o modelo), e o veredito vai para `juiz-gpt-6-astra.json`, ao lado do `juiz.json` do Opus; `CONFERIR=` com o mesmo `JUIZ=` confere esse.
 - **A fumaça é `make llm-smoke MODEL=openai/gpt-6-astra`,** em vez do `PROVEDOR=openrouter` do plano, porque a rota sai da tabela. Pela OpenRouter, a fumaça dá também o segundo turno, com o resultado da ferramenta e a resposta inteira de volta, que é a tradução que mais pode falhar. Ela pede `OPENROUTER_API_KEY` no `.env`; o `make secrets` deixa a linha comentada para o usuário preencher.
+- **A fumaça de 29/out,** com a chave do usuário (limite de US$ 50 por semana na chave), custou US$ 0,0105 nas quatro chamadas:
+  - o GPT-6 Astra, atendido pela OpenAI, propôs nos dois turnos, e o custo que a OpenRouter cobrou bateu com a tabela (US$ 0,0088). No esforço baixo, ele não devolveu raciocínio, então a volta do raciocínio dele fica para o piloto;
+  - o Gemini 4 Argon, atendido pelo Google AI Studio, devolveu o raciocínio criptografado (`reasoning.encrypted`), que voltou sem mudança no segundo turno e foi aceito (US$ 0,0017).
+- **O Astra conferido como segundo juiz (29/out):** as 17 chamadas do gabarito (12 corridas e 5 controles), pelo provedor normal, custaram US$ 1,70, abaixo da estimativa de 4 a 7:
+  - **concordância de 47 em 47 nas corridas e de 28 em 28 nos controles,** como o Opus, e com o mesmo veredito e a mesma crença do Opus em todas as regras. A decisão 12 vale como foi escrita: o Astra julga a corrida do Opus;
+  - no esforço alto, ele raciocinou pouco: 3.712 tokens de saída nas 17 chamadas, uns 220 por chamada. A entrada foi de 121 mil tokens, contra 183 mil do Opus no mesmo pedido, pelo tokenizador de cada um;
+  - a OpenRouter contou quase todo o pedido como cache gravado, a 1,25× da entrada, por causa do marcador de cache no sistema. Numa chamada só por corrida, como no juiz, isso é um gasto à toa de uns 25%, igual ao do Opus na Anthropic; nas corridas, o cache lido compensa.
 
 ## Consequências
 
