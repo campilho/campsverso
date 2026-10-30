@@ -1,5 +1,6 @@
 """Cartucho farm, o gênero: mecânicas genéricas de fazenda (ADR-0031)."""
 
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -52,28 +53,79 @@ def _choices(raw: Any, data: dict[str, Any]) -> tuple[str, ...]:
     return tuple(str(c) for c in cast(list[Any], raw))
 
 
-def affordances(data: dict[str, Any]) -> tuple[AffordanceDef, ...]:
-    """O catálogo de ações do `farm.yaml`, com as escolhas resolvidas pelos dados do gênero."""
+_FIELD = re.compile(r"\{([a-z_][a-z0-9_.]*)\}")
+
+
+def _note(raw: Any, data: Mapping[str, Any]) -> str | None:
+    """A nota do menu (M21), com valores dos dados entre chaves: `aberto das {kiosk.opens}`."""
+    if raw is None:
+        return None
+
+    def value(match: re.Match[str]) -> str:
+        found: Any = data
+        for key in match[1].split("."):
+            found = cast(Mapping[str, Any], found)[key]
+        return str(found)
+
+    return _FIELD.sub(value, str(raw))
+
+
+def _cost(
+    action: str, entry: Mapping[str, Any], data: Mapping[str, Any]
+) -> tuple[float, int] | None:
+    """A energia e os minutos da ação pela tabela `actions`, para o menu (M21)."""
+    numbers = cast(Mapping[str, Mapping[str, Any]], data.get("actions", {})).get(action)
+    if numbers is None or entry.get("cost") is False:
+        return None
+    return float(numbers.get("energy", 0)), int(numbers.get("duration", 0))
+
+
+def _prices(
+    choices: tuple[str, ...], field: str, data: Mapping[str, Any]
+) -> tuple[tuple[str, float], ...]:
+    """O preço de tabela de cada escolha: o campo `field` do item, ou o da ferramenta à venda."""
+    items = cast(Mapping[str, Mapping[str, Any]], data.get("items", {}))
+    tools = cast(Mapping[str, Any], data.get("tools", {}))
+    for_sale = cast(Mapping[str, Mapping[str, Any]], tools.get("for_sale", {}))
+    found: list[tuple[str, float]] = []
+    for choice in choices:
+        price = items.get(choice, {}).get(field, for_sale.get(choice, {}).get(field))
+        if price is not None:
+            found.append((choice, float(price)))
+    return tuple(found)
+
+
+def _param(p: Mapping[str, Any], data: Mapping[str, Any]) -> AffordanceParam:
+    choices = _choices(p.get("choices"), cast(dict[str, Any], data))
+    return AffordanceParam(
+        name=str(p["name"]),
+        label=str(p["label"]),
+        choices=choices,
+        source=p.get("source", "any"),
+        minimum=p.get("minimum"),
+        default=p.get("default"),
+        entities=bool(p.get("entities", False)),
+        prices=_prices(choices, str(p["price"]), data) if p.get("price") else (),
+        price_attribute=p.get("price_attribute"),
+        stock_attribute=p.get("stock_attribute"),
+    )
+
+
+def affordances(data: Mapping[str, Any]) -> tuple[AffordanceDef, ...]:
+    """O catálogo de ações do `farm.yaml`, com as escolhas resolvidas pelos dados do gênero. Para o
+    menu (M21): o custo de cada ação pela tabela `actions`, a nota (o horário) e o preço de tabela
+    das escolhas de um parâmetro com `price` (o campo do item: `price` ou `sale_price`)."""
     return tuple(
         AffordanceDef(
             action=str(entry["action"]),
             label=str(entry["label"]),
             on=tuple(entry["kinds"]),  # `on` no contrato; no YAML 1.1, `on` vira booleano
             target=bool(entry.get("target", True)),
-            params=tuple(
-                AffordanceParam(
-                    name=str(p["name"]),
-                    label=str(p["label"]),
-                    choices=_choices(p.get("choices"), data),
-                    source=p.get("source", "any"),
-                    minimum=p.get("minimum"),
-                    default=p.get("default"),
-                    entities=bool(p.get("entities", False)),
-                )
-                for p in entry.get("params", [])
-            ),
+            params=tuple(_param(p, data) for p in entry.get("params", [])),
+            cost=_cost(str(entry["action"]), entry, data),
+            note=_note(entry.get("note"), data),
         )
-        for entry in data.get("affordances", [])
+        for entry in cast(list[Mapping[str, Any]], data.get("affordances", []))
     )
 
 

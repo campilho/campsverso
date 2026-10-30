@@ -51,7 +51,9 @@ export class ActionMenu {
       }
       const select = el("select");
       for (const option of p.options) {
-        const node = el("option", {}, p.names?.[option] ?? option.replace(/_/g, " "));
+        const price = p.prices?.[option];
+        const name = p.names?.[option] ?? option.replace(/_/g, " ");
+        const node = el("option", {}, price === undefined ? name : `${name} · ${String(price)} moedas`);
         node.value = option;
         select.append(node);
       }
@@ -80,6 +82,7 @@ export class ActionMenu {
       go,
       ...fields,
       !entry.ready && el("span", { className: "hint" }, "nada para escolher"),
+      entry.detail !== undefined && el("span", { className: "menu-detail" }, entry.detail),
     );
   }
 }

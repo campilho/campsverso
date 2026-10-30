@@ -36,9 +36,21 @@ function clockBadge(state: ObserverState): string {
   return paused === true ? `${pace} · pausado` : pace;
 }
 
-function needBar(name: string, value: number): HTMLElement {
+/** As necessidades em que mais é pior, mostradas ao contrário (M21): a fome vira a saciedade, e a
+ * barra cheia é boa, como a da energia. O mundo, o manual e a linha do tempo seguem com a fome. */
+const INVERTED: Readonly<Record<string, string>> = { fome: "saciedade" };
+
+/** O nome e o valor de uma necessidade como a barra mostra. */
+export function needView(name: string, value: number): { label: string; value: number } {
+  const inverted = INVERTED[name];
+  return inverted === undefined ? { label: name, value } : { label: inverted, value: 100 - value };
+}
+
+function needBar(name: string, raw: number): HTMLElement {
+  const { label, value } = needView(name, raw);
   const bar = el("div", { className: "bar" }, el("span", { style: `width: ${String(Math.round(value))}%` }));
-  return el("div", { className: "need" }, el("label", {}, name), bar, el("b", {}, value.toFixed(0)));
+  const tip = label === name ? label : `${label} (${name} ${raw.toFixed(0)} de 100)`;
+  return el("div", { className: "need", title: tip }, el("label", {}, label), bar, el("b", {}, value.toFixed(0)));
 }
 
 /** "fazendo: plant" e, quando o controlador declarou, a intenção: o que o LLM pretende (ADR-0059). */

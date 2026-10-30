@@ -87,7 +87,10 @@ watering_can: {capacity: 10}
 # (as culturas) ou `{category: ...}` (os itens da categoria). `source`: onde a escolha vale (any,
 # inventory ou target); `entities` junta as entidades guardadas lá, pelo id (as ferramentas). Sem
 # escolhas, o parâmetro é um número. Um tipo de terreno em `kinds` (`grass`) põe a ação no menu de
-# um tile vazio desse terreno, com o tile no `target` (ADR-0068).
+# um tile vazio desse terreno, com o tile no `target` (ADR-0068). Para o menu (M21): cada ação leva
+# o custo da tabela `actions` (`cost: false` tira); `note` é uma nota com valores dos dados entre
+# chaves; num parâmetro, `price` é o campo do item com o preço de tabela, `price_attribute` o começo
+# do atributo do alvo com o preço de agora e `stock_attribute` o atributo com o que há hoje.
 affordances:
   - {action: plant, label: Plantar, kinds: [plot], params: [{name: crop, label: Cultura, choices: crops}]}
   - {action: water, label: Regar, kinds: [plot]}
@@ -111,14 +114,18 @@ affordances:
   - action: sell
     label: Vender
     kinds: [sell_box]
+    note: "o comprador leva às {buyer.collects} e paga às {buyer.pays}"
     params:
-      - {name: item, label: Colheita, choices: {category: [colheita]}, source: inventory}
+      - {name: item, label: Colheita, choices: {category: [colheita]}, source: inventory,
+         price: sale_price, price_attribute: preco_}
       - {name: qty, label: Quantidade, minimum: 1, default: 1}
   - action: buy
     label: Comprar
     kinds: [kiosk]
+    note: "aberto das {kiosk.opens} às {kiosk.closes}"
     params:
-      - {name: item, label: Semente, choices: {category: [semente]}}
+      - {name: item, label: Semente, choices: {category: [semente]}, price: price,
+         price_attribute: preco_}
       - {name: qty, label: Quantidade, minimum: 1, default: 1}
   - {action: sleep, label: Dormir na cama, kinds: [bed]}
   - action: eat

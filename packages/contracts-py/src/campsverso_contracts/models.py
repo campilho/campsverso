@@ -73,6 +73,11 @@ class Choice(RootModel[str]):
     root: Annotated[str, Field(max_length=64, min_length=1)]
 
 
+PricesAdditionalProperty = TypeAliasType(
+    "PricesAdditionalProperty", Annotated[float, Field(ge=0.0)]
+)
+
+
 class AffordanceParam(BaseModel):
     """
     Um parâmetro que quem joga escolhe (ADR-0051). Sem `choices`, é um número inteiro.
@@ -97,6 +102,30 @@ class AffordanceParam(BaseModel):
     """
     As escolhas incluem também as entidades guardadas na fonte, pelo id: as ferramentas no inventário ou no baú (ADR-0068).
     """
+    prices: dict[str, PricesAdditionalProperty] | None = None
+    """
+    O preço de tabela de cada escolha que tem preço (M21).
+    """
+    price_attribute: Annotated[str | None, Field(max_length=64, min_length=1)] = None
+    """
+    O começo do nome do atributo do alvo com o preço de agora de cada escolha: o prefixo seguido da escolha (preco_semente_milho). Sem ele no alvo, vale o de tabela (M21).
+    """
+    stock_attribute: Annotated[str | None, Field(max_length=64, min_length=1)] = None
+    """
+    O atributo do alvo com as escolhas que há hoje, separadas por vírgula (estoque_hoje) (M21).
+    """
+
+
+class Cost(BaseModel):
+    """
+    O que a ação custa pela tabela do cartucho, para o menu (M21): a energia gasta na conclusão (sem o dobro da fome) e a duração em minutos simulados.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    energy: Annotated[float, Field(ge=0.0)]
+    minutes: Annotated[int, Field(ge=0)]
 
 
 class Affordance(BaseModel):
@@ -121,6 +150,14 @@ class Affordance(BaseModel):
     A entidade clicada vai no parâmetro `target`.
     """
     params: list[AffordanceParam] | None = None
+    cost: Cost | None = None
+    """
+    O que a ação custa pela tabela do cartucho, para o menu (M21): a energia gasta na conclusão (sem o dobro da fome) e a duração em minutos simulados.
+    """
+    note: Annotated[str | None, Field(max_length=120, min_length=1)] = None
+    """
+    Uma nota para quem joga, como o horário de quem atende (aberto das 08:00 às 18:00) (M21).
+    """
 
 
 class EventLabel(BaseModel):

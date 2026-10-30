@@ -25,6 +25,18 @@ def _merged(base: Mapping[str, Any], extra: Mapping[str, Any]) -> dict[str, Any]
     }
 
 
+def _deep(base: Mapping[str, Any], extra: Mapping[str, Any]) -> dict[str, Any]:
+    """As camadas mescladas em toda a profundidade: o que a nota do menu cita (M21)."""
+    merged = dict(base)
+    for key, value in extra.items():
+        below = merged.get(key)
+        if isinstance(below, Mapping) and isinstance(value, Mapping):
+            merged[key] = _deep(cast(Mapping[str, Any], below), cast(Mapping[str, Any], value))
+        else:
+            merged[key] = value
+    return merged
+
+
 def contribute_extensions(
     world: WorldBuilder, data: Mapping[str, Any], inherited: Mapping[str, Any] | None = None
 ) -> None:
@@ -124,10 +136,14 @@ def contribute_extensions(
         *(e for e in lower.get("affordances", []) if str(e["action"]) not in declared),
     ]
     catalog = {
+        **_deep(_deep(base, lower), data),  # o que a nota do menu cita: o quiosque, a feira
         "crops": _merged(
             _merged(base.get("crops", {}), lower.get("crops", {})), data.get("crops", {})
         ),
         "items": _merged(_merged(base.get("items", {}), lower_items), data.get("items", {})),
+        "actions": _merged(
+            _merged(base.get("actions", {}), lower.get("actions", {})), data.get("actions", {})
+        ),
         "affordances": [*below, *data.get("affordances", [])],
     }
     replaced: set[str] = set()

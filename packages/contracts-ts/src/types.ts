@@ -358,6 +358,20 @@ export interface AffordanceParam {
    * As escolhas incluem também as entidades guardadas na fonte, pelo id: as ferramentas no inventário ou no baú (ADR-0068).
    */
   entities?: boolean;
+  /**
+   * O preço de tabela de cada escolha que tem preço (M21).
+   */
+  prices?: {
+    [k: string]: number | undefined;
+  };
+  /**
+   * O começo do nome do atributo do alvo com o preço de agora de cada escolha: o prefixo seguido da escolha (preco_semente_milho). Sem ele no alvo, vale o de tabela (M21).
+   */
+  price_attribute?: string;
+  /**
+   * O atributo do alvo com as escolhas que há hoje, separadas por vírgula (estoque_hoje) (M21).
+   */
+  stock_attribute?: string;
 }
 /**
  * Uma ação no menu de um tipo de entidade, ou do próprio avatar (`self`). O menu só sugere; quem decide é o kernel (ADR-0051).
@@ -379,6 +393,17 @@ export interface Affordance {
    */
   target: boolean;
   params?: AffordanceParam[];
+  /**
+   * O que a ação custa pela tabela do cartucho, para o menu (M21): a energia gasta na conclusão (sem o dobro da fome) e a duração em minutos simulados.
+   */
+  cost?: {
+    energy: number;
+    minutes: number;
+  };
+  /**
+   * Uma nota para quem joga, como o horário de quem atende (aberto das 08:00 às 18:00) (M21).
+   */
+  note?: string;
 }
 /**
  * Como a linha do tempo conta um tipo de evento, declarado pelo cartucho (ADR-0068). Vale o rótulo mais específico (mais campos em `where`) cujos campos do texto existem no evento; no empate, o primeiro declarado. Sem rótulo, a tela mostra o tipo cru.

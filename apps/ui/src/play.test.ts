@@ -80,3 +80,53 @@ describe("jogar pela tela (ADR-0051)", () => {
     expect(inControl(state({ controllers: { camps: { type: "script", id: "script/farmer-v1" } } }), "camps")).toBe(false);
   });
 });
+
+describe("o menu diz o custo, o horário e o preço (M21)", () => {
+  const kioskAffordances: Affordance[] = [
+    {
+      action: "buy",
+      label: "Comprar",
+      on: ["kiosk"],
+      target: true,
+      cost: { energy: 0, minutes: 2 },
+      note: "aberto das 08:00 às 18:00",
+      params: [
+        {
+          name: "item",
+          label: "Item",
+          choices: ["semente_rabanete", "semente_milho", "semente_tomate", "adubo"],
+          source: "any",
+          prices: { semente_rabanete: 10, semente_milho: 20, semente_tomate: 30, adubo: 15 },
+          price_attribute: "preco_",
+          stock_attribute: "estoque_hoje",
+        },
+      ],
+    },
+    { action: "dig", label: "Cavar um canteiro aqui", on: ["self"], target: false, cost: { energy: 8, minutes: 15 } },
+    { action: "sleep", label: "Dormir aqui", on: ["self"], target: false, cost: { energy: 0, minutes: 1 } },
+    { action: "water", label: "Regar", on: ["plot"], target: true, cost: { energy: 0.5, minutes: 2 } },
+  ];
+  const kiosk = {
+    kind: "kiosk",
+    position: { x: 5, y: 4 },
+    attributes: { open: false, estoque_hoje: "semente_rabanete, semente_milho, adubo", preco_semente_rabanete: 11, preco_semente_milho: null },
+  };
+  const at = state({
+    session: { cartridge_version: "0.1.0", tick_seconds: 60, affordances: kioskAffordances },
+    entities: { ...state().entities, kiosk },
+  });
+
+  it("no quiosque: o horário, fechado agora, o preço de agora e só o que há hoje", () => {
+    const [buy] = menuFor(at, "camps", "kiosk");
+    expect(buy?.detail).toBe("2 min · fechado agora · aberto das 08:00 às 18:00");
+    expect(buy?.params[0]?.options).toEqual(["semente_rabanete", "semente_milho", "adubo"]); // o tomate não está no estoque
+    // O rabanete com o preço de agora; o milho sem preço de agora fica com o de tabela, como o adubo.
+    expect(buy?.params[0]?.prices).toEqual({ semente_rabanete: 11, semente_milho: 20, adubo: 15 });
+  });
+
+  it("cada ação diz a energia e o tempo; o que não custa nada não diz", () => {
+    const own = menuFor(at, "camps", "self");
+    expect(own.map((e) => e.detail)).toEqual(["8 de energia · 15 min", undefined]);
+    expect(menuFor(at, "camps", "plot-e-01")[0]?.detail).toBe("0,5 de energia · 2 min");
+  });
+});

@@ -398,6 +398,13 @@ canvas {
   width: 64px;
 }
 
+/* O custo da ação, a nota e se o alvo está aberto (M21), numa linha própria, embaixo. */
+.action-menu .menu-detail {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 0.85em;
+}
+
 aside.operator {
   flex: 0 0 420px;
   /* Sem isto, um item flex não encolhe abaixo do conteúdo mínimo: uma linha longa de recusas

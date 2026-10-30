@@ -123,8 +123,10 @@ affordances:  # o que entra no menu além do que o gênero já tem (ADR-0051)
   - action: buy
     label: Comprar
     kinds: [kiosk]
+    note: "aberto das {kiosk.opens} às {kiosk.closes}"
     params:
-      - {name: item, label: Item, choices: [semente_rabanete, semente_batata, semente_abobora, semente_cenoura, semente_morango, semente_tomate, semente_alho, adubo, watering_can_large, plow]}
+      - {name: item, label: Item, choices: [semente_rabanete, semente_batata, semente_abobora, semente_cenoura, semente_morango, semente_tomate, semente_alho, adubo, watering_can_large, plow],
+         price: price, price_attribute: preco_}
       - {name: qty, label: Quantidade, minimum: 1, default: 1}
   - action: eat
     label: Comer

@@ -118,6 +118,9 @@ class AffordanceParam:
     `source` diz onde as escolhas valem: `any` (a lista toda), `inventory` (só o que o avatar tem)
     ou `target` (só o que a entidade clicada guarda). É sugestão para o menu; o kernel decide.
     `entities` acrescenta às escolhas as entidades guardadas na fonte, pelo id (as ferramentas).
+    Para o menu mostrar o preço (M21): `prices` é o de tabela de cada escolha; `price_attribute`,
+    o começo do nome do atributo do alvo com o preço de agora (`preco_` + a escolha); e
+    `stock_attribute`, o atributo do alvo com o que há hoje, separado por vírgula.
     """
 
     name: str
@@ -127,13 +130,17 @@ class AffordanceParam:
     minimum: int | None = None
     default: int | None = None
     entities: bool = False
+    prices: tuple[tuple[str, float], ...] = ()
+    price_attribute: str | None = None
+    stock_attribute: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
 class AffordanceDef:
     """Uma ação no menu de um tipo de entidade, ou do próprio avatar (`self`) (ADR-0051).
 
-    Com `target`, a entidade clicada vai no parâmetro `target` da ação.
+    Com `target`, a entidade clicada vai no parâmetro `target` da ação. Para o menu (M21): `cost`
+    é a energia e os minutos da tabela do cartucho, e `note`, uma nota como o horário.
     """
 
     action: str
@@ -141,6 +148,8 @@ class AffordanceDef:
     on: tuple[str, ...]
     target: bool = True
     params: tuple[AffordanceParam, ...] = ()
+    cost: tuple[float, int] | None = None  # (energia, minutos)
+    note: str | None = None
 
 
 type MetricKind = Literal["count", "max_need", "item"]

@@ -215,8 +215,10 @@ affordances:
   - action: sell  # na caixa de vendas, como no gênero, e na barraca da feira (ADR-0069)
     label: Vender
     kinds: [sell_box, fair_stall]
+    note: "caixa: o comprador leva às {buyer.collects} e paga às {buyer.pays}; feira a cada {fair.every} dias, das {fair.opens} às {fair.closes}"
     params:
-      - {name: item, label: Colheita, choices: {category: [colheita, produto]}, source: inventory}
+      - {name: item, label: Colheita, choices: {category: [colheita, produto]}, source: inventory,
+         price: sale_price, price_attribute: preco_}
       - {name: qty, label: Quantidade, minimum: 1, default: 1}
   - action: process
     label: Fazer no tacho
@@ -316,8 +318,10 @@ affordances:
   - action: buy
     label: Comprar
     kinds: [kiosk]
+    note: "aberto das {kiosk.opens} às {kiosk.closes}"
     params:
-      - {name: item, label: Item, choices: [semente_rabanete, semente_batata, semente_abobora, semente_cenoura, semente_morango, semente_tomate, semente_alho, semente_milho, semente_melancia, semente_mandioca, semente_couve, adubo, espantalho, lanterna, tacho, watering_can_large, plow]}
+      - {name: item, label: Item, choices: [semente_rabanete, semente_batata, semente_abobora, semente_cenoura, semente_morango, semente_tomate, semente_alho, semente_milho, semente_melancia, semente_mandioca, semente_couve, adubo, espantalho, lanterna, tacho, watering_can_large, plow],
+         price: price, price_attribute: preco_, stock_attribute: estoque_hoje}
       - {name: qty, label: Quantidade, minimum: 1, default: 1}
 
 metrics:  # além das da Boa Vista

@@ -190,6 +190,13 @@ Ficou assim:
   - no esforço alto, ele raciocinou pouco: 3.712 tokens de saída nas 17 chamadas, uns 220 por chamada. A entrada foi de 121 mil tokens, contra 183 mil do Opus no mesmo pedido, pelo tokenizador de cada um;
   - a OpenRouter contou quase todo o pedido como cache gravado, a 1,25× da entrada, por causa do marcador de cache no sistema. Numa chamada só por corrida, como no juiz, isso é um gasto à toa de uns 25%, igual ao do Opus na Anthropic; nas corridas, o cache lido compensa.
 
+## Adendo de 29/out: o que o humano achou na tela, jogando o mapa d
+
+- **A névoa esquecia canteiros.** A tela mede a vista pela posição desenhada do avatar, que anda suave, e o servidor manda as coisas pela posição dele no mundo, que pode estar um pulso atrás. Na borda da vista, a tela achava um canteiro à vista que o servidor já não mandava, apagava a lembrança dele e não a desenhava mais. Agora a lembrança só se apaga a 2 tiles da borda para dentro (`MARGIN`), onde as duas contas concordam.
+- **A névoa sobrevive a fechar a tela.** A lembrança fica no navegador, por mundo e avatar (`localStorage`). Uma lembrança de um tick depois do de agora é de outro jogo no mesmo mundo (um sandbox novo começa no tick 0) e é esquecida; o sandbox que retoma continua de onde parou. A ADR-0068 a deixava só na aba aberta.
+- **O menu diz o custo, o horário e o preço.** O catálogo de ações (`world.session.started.v1`) ganha campos opcionais: o custo de cada ação pela tabela do cartucho, uma nota com valores dos dados (`aberto das {kiosk.opens} às {kiosk.closes}`) e, nos parâmetros, o preço de tabela de cada escolha, o atributo do alvo com o preço de agora (`preco_`) e o com o estoque do dia (`estoque_hoje`). A tela mostra "8 de energia · 15 min", "aberto agora" ou "fechado agora" pelo atributo `open` do alvo, o preço ao lado de cada escolha e só o que há no estoque. A mente não muda: ela já lia tudo isso no manual e na percepção.
+- **A fome aparece como saciedade.** Na tela, a barra mostra 100 menos a fome, cheia quando o avatar comeu, como a da energia. O mundo, o manual e a linha do tempo continuam falando em fome.
+
 ## Consequências
 
 - **O orçamento da v0.3 dobra,** e o plano passa a gastar por passos aprovados, não por rodada.

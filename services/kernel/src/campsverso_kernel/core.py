@@ -251,9 +251,19 @@ class KernelCore:
                     param["default"] = p.default
                 if p.entities:
                     param["entities"] = True
+                if p.prices:
+                    param["prices"] = dict(p.prices)
+                if p.price_attribute is not None:
+                    param["price_attribute"] = p.price_attribute
+                if p.stock_attribute is not None:
+                    param["stock_attribute"] = p.stock_attribute
                 params.append(param)
             if params:
                 entry["params"] = params
+            if a.cost is not None:
+                entry["cost"] = {"energy": a.cost[0], "minutes": a.cost[1]}
+            if a.note is not None:
+                entry["note"] = a.note
             catalog.append(entry)
         return {"affordances": catalog} if catalog else {}
 

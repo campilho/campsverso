@@ -118,7 +118,11 @@
         "on": [
           "plot"
         ],
-        "target": true
+        "target": true,
+        "cost": {
+          "energy": 2,
+          "minutes": 2
+        }
       },
       {
         "action": "eat",
@@ -136,6 +140,43 @@
               "batata"
             ],
             "source": "inventory"
+          }
+        ]
+      },
+      {
+        "action": "buy",
+        "label": "Comprar",
+        "on": [
+          "kiosk"
+        ],
+        "target": true,
+        "cost": {
+          "energy": 0,
+          "minutes": 2
+        },
+        "note": "aberto das 08:00 às 18:00",
+        "params": [
+          {
+            "name": "item",
+            "label": "Semente",
+            "choices": [
+              "semente_rabanete",
+              "semente_batata"
+            ],
+            "source": "any",
+            "prices": {
+              "semente_rabanete": 10,
+              "semente_batata": 20
+            },
+            "price_attribute": "preco_",
+            "stock_attribute": "estoque_hoje"
+          },
+          {
+            "name": "qty",
+            "label": "Quantidade",
+            "source": "any",
+            "minimum": 1,
+            "default": 1
           }
         ]
       }

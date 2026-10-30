@@ -220,6 +220,26 @@
         "entities": {
           "type": "boolean",
           "description": "As escolhas incluem também as entidades guardadas na fonte, pelo id: as ferramentas no inventário ou no baú (ADR-0068)."
+        },
+        "prices": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0
+          },
+          "description": "O preço de tabela de cada escolha que tem preço (M21)."
+        },
+        "price_attribute": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "O começo do nome do atributo do alvo com o preço de agora de cada escolha: o prefixo seguido da escolha (preco_semente_milho). Sem ele no alvo, vale o de tabela (M21)."
+        },
+        "stock_attribute": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "O atributo do alvo com as escolhas que há hoje, separadas por vírgula (estoque_hoje) (M21)."
         }
       }
     },
@@ -260,6 +280,31 @@
           "items": {
             "$ref": "#/$defs/AffordanceParam"
           }
+        },
+        "cost": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "energy",
+            "minutes"
+          ],
+          "description": "O que a ação custa pela tabela do cartucho, para o menu (M21): a energia gasta na conclusão (sem o dobro da fome) e a duração em minutos simulados.",
+          "properties": {
+            "energy": {
+              "type": "number",
+              "minimum": 0
+            },
+            "minutes": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Uma nota para quem joga, como o horário de quem atende (aberto das 08:00 às 18:00) (M21)."
         }
       }
     },

@@ -21,6 +21,8 @@ export interface MenuParam {
   readonly initial?: number;
   /** O nome de cada escolha que é uma entidade (o pedido do quadro, ADR-0069). */
   readonly names?: Readonly<Record<string, string>>;
+  /** O preço de cada escolha que tem preço: o de agora, que o alvo mostra, ou o de tabela (M21). */
+  readonly prices?: Readonly<Record<string, number>>;
 }
 
 /** Um tile do mapa, no lugar de uma entidade (o menu da grama; ADR-0068). */
@@ -37,6 +39,8 @@ export interface MenuEntry {
   readonly params: readonly MenuParam[];
   /** Todo parâmetro de escolha tem ao menos uma opção. */
   readonly ready: boolean;
+  /** O que a ação custa, a nota do cartucho (o horário) e se o alvo está aberto agora (M21). */
+  readonly detail?: string;
 }
 
 /** O avatar está com um humano? Na v0.1, o único humano é quem está no browser. */
@@ -70,7 +74,10 @@ function param(state: ObserverState, avatarId: string, target: string | undefine
   }
   const from = raw.source === "inventory" ? avatarId : raw.source === "target" ? target : undefined;
   const have = stock(state, from);
-  const items = from === undefined ? choices : choices.filter((c) => (have[c] ?? 0) > 0);
+  const shown = target === undefined ? undefined : state.entities[target]?.attributes;
+  const today = raw.stock_attribute === undefined ? undefined : shown?.[raw.stock_attribute];
+  const sold = typeof today === "string" ? new Set(today.split(",").map((c) => c.trim())) : undefined;
+  const items = (from === undefined ? choices : choices.filter((c) => (have[c] ?? 0) > 0)).filter((c) => sold?.has(c) ?? true);
   const held = raw.entities === true ? heldBy(state, from) : [];
   const names = Object.fromEntries(
     held.flatMap((id) => {
@@ -78,7 +85,40 @@ function param(state: ObserverState, avatarId: string, target: string | undefine
       return shown === undefined ? [] : [[id, shown]];
     }),
   );
-  return { name: raw.name, label: raw.label, options: [...items, ...held], numeric: false, names };
+  const prices: Record<string, number> = {};
+  for (const item of items) {
+    const now = raw.price_attribute === undefined ? undefined : shown?.[`${raw.price_attribute}${item}`];
+    const price = typeof now === "number" ? now : raw.prices?.[item];
+    if (price !== undefined) {
+      prices[item] = price;
+    }
+  }
+  return { name: raw.name, label: raw.label, options: [...items, ...held], numeric: false, names, prices };
+}
+
+/** A energia com no máximo uma casa, em português (1,5). */
+function amount(value: number): string {
+  return String(Math.round(value * 10) / 10).replace(".", ",");
+}
+
+/** A linha de baixo de uma ação no menu: o custo, a nota e se o alvo está aberto agora (M21). */
+export function detailOf(state: ObserverState, affordance: Affordance, target: string | undefined): string | undefined {
+  const parts: string[] = [];
+  const cost = affordance.cost;
+  if (cost !== undefined && cost.energy > 0) {
+    parts.push(`${amount(cost.energy)} de energia`);
+  }
+  if (cost !== undefined && cost.minutes >= 2) {
+    parts.push(`${String(cost.minutes)} min`);
+  }
+  const open = target === undefined ? undefined : state.entities[target]?.attributes.open;
+  if (typeof open === "boolean") {
+    parts.push(open ? "aberto agora" : "fechado agora");
+  }
+  if (affordance.note !== undefined) {
+    parts.push(affordance.note);
+  }
+  return parts.length === 0 ? undefined : parts.join(" · ");
 }
 
 /** O menu de uma entidade, ou do próprio avatar (`self`), a partir do catálogo do cartucho. */
@@ -92,12 +132,14 @@ export function menuFor(state: ObserverState, avatarId: string, clicked: string)
     .filter((a) => a.on.includes(kind))
     .map((a) => {
       const params = (a.params ?? []).map((p) => param(state, avatarId, target, p));
+      const detail = detailOf(state, a, target);
       return {
         action: a.action,
         label: a.label,
         ...(a.target && target !== undefined ? { target } : {}),
         params,
         ready: params.every((p) => p.numeric || p.options.length > 0),
+        ...(detail === undefined ? {} : { detail }),
       };
     });
 }
@@ -109,12 +151,14 @@ export function tileMenu(state: ObserverState, avatarId: string, tile: Tile, ter
     .filter((a) => terrain !== "" && a.on.includes(terrain))
     .map((a) => {
       const params = (a.params ?? []).map((p) => param(state, avatarId, undefined, p));
+      const detail = detailOf(state, a, undefined);
       return {
         action: a.action,
         label: a.label,
         ...(a.target ? { target: { x: tile.x, y: tile.y } } : {}),
         params,
         ready: params.every((p) => p.numeric || p.options.length > 0),
+        ...(detail === undefined ? {} : { detail }),
       };
     })
     .filter((entry) => entry.ready);
