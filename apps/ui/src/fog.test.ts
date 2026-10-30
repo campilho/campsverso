@@ -2,7 +2,7 @@ import type { ObserverState } from "@campsverso/contracts";
 import { describe, expect, it } from "vitest";
 
 import cases from "../../../tests/fixtures/raio/casos.json";
-import { FogMemory, visionRadius } from "./fog.ts";
+import { FogMemory, FogStore, fogKey, visionRadius } from "./fog.ts";
 
 function state(phase: string, entities: ObserverState["entities"], containers: ObserverState["containers"] = {}): ObserverState {
   return {
@@ -81,5 +81,49 @@ describe("a névoa (ADR-0068)", () => {
     const gone = state("amanhecer", { "plot-009": far, kiosk });
     fog.look(gone, { x: 1, y: 0 }, 3);
     expect(fog.entities(gone, "camps")["plot-001"]).toBeUndefined();
+  });
+});
+
+describe("a lembrança da névoa (M21)", () => {
+  it("na borda da vista, o que o servidor ainda não mandou continua lembrado", () => {
+    // A tela já desenha o avatar um tile adiante; o servidor ainda o vê no tile de antes, e não
+    // manda o canteiro que, para a tela, ainda está à vista na borda (a 3 tiles, no raio 3).
+    const fog = new FogMemory();
+    const plot = { kind: "plot", position: { x: 2, y: 0 }, attributes: { crop: "rabanete" } };
+    fog.look(state("amanhecer", { "plot-001": plot }), { x: 0, y: 0 }, 3);
+    const lagging = state("amanhecer", {});
+    fog.look(lagging, { x: -1, y: 0 }, 3);
+    expect(fog.sight(2, 0)).toBe("visible");
+    expect(fog.entities(lagging, "camps")["plot-001"]).toEqual(plot);
+    // Ao sair da vista, ele continua lá, como foi visto.
+    fog.look(lagging, { x: -6, y: 0 }, 3);
+    expect(fog.entities(lagging, "camps")["plot-001"]).toEqual(plot);
+    // Bem dentro da vista, sem o servidor o mandar, ele não existe mais: some.
+    fog.look(lagging, { x: 1, y: 0 }, 3);
+    expect(fog.entities(lagging, "camps")["plot-001"]).toBeUndefined();
+  });
+
+  it("guardada no navegador, volta na tela nova; a de outro jogo no mesmo mundo é esquecida", () => {
+    const items = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => items.get(key) ?? null,
+      setItem: (key: string, value: string) => void items.set(key, value),
+      removeItem: (key: string) => void items.delete(key),
+    };
+    const key = fogKey("farm-morada-do-sol-04", "camps");
+    const fog = new FogMemory();
+    const plot = { kind: "plot", position: { x: 2, y: 0 }, attributes: {} };
+    fog.look(state("amanhecer", { "plot-001": plot }), { x: 0, y: 0 }, 3);
+    fog.look(state("amanhecer", {}), { x: 10, y: 0 }, 3);
+    new FogStore(key, storage).save(fog, 500);
+    expect(key).toBe("campsverso.fog.farm-morada-do-sol-04.camps");
+
+    const back = new FogStore(key, storage).load(520); // o sandbox retomou depois
+    expect(back?.sight(2, 0)).toBe("seen");
+    expect(back?.sight(30, 0)).toBe("unseen");
+    expect(back?.entities(state("amanhecer", {}), "camps")["plot-001"]).toEqual(plot);
+    expect(new FogStore(key, storage).load(10)).toBeUndefined(); // um jogo novo, do tick 0
+    expect(items.has(key)).toBe(false);
+    expect(new FogStore(key, undefined).load(10)).toBeUndefined(); // sem armazenamento
   });
 });

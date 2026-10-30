@@ -14,6 +14,7 @@ import { ItemIcons } from "./art/icons.ts";
 import { loadArt, type LoadedArt } from "./art/load.ts";
 import { Connection, type View } from "./connection.ts";
 import { button, el } from "./dom.ts";
+import { fogKey } from "./fog.ts";
 import { motionClock } from "./motion.ts";
 import { CreditsDialog } from "./panels/credits.ts";
 import { CommandsHelp } from "./panels/help.ts";
@@ -168,6 +169,9 @@ store.onChange(() => {
     if (store.welcomes !== welcomes) {
       welcomes = store.welcomes;
       clock.reset(state, performance.now());
+      if (view === "player" && run === null && store.welcome !== undefined) {
+        map.rememberFog?.(fogKey(store.welcome.worldid, avatarId())); // a névoa sobrevive à tela
+      }
       if (art !== undefined) {
         portrait.setArt(art.manifest, avatarId());
       }

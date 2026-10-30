@@ -18,6 +18,8 @@ export interface WorldRenderer {
   recenter?(): void;
   /** A névoa da visão do jogador (ADR-0068): sempre, ou com o botão do operador. */
   setFog?(mode: "always" | "toggle"): void;
+  /** Guarda a lembrança da névoa no navegador, com esta chave (por mundo e avatar). */
+  rememberFog?(key: string): void;
   /** O que o jogador enxerga num tile com a névoa ligada; para os testes no navegador. */
   sight?(x: number, y: number): Sight | undefined;
   /** O centro de um tile em coordenadas da tela, pela câmera; para os testes no navegador. */

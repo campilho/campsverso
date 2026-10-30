@@ -26,7 +26,7 @@ import {
   type Resolved,
 } from "../art/manifest.ts";
 import { el } from "../dom.ts";
-import { FogMemory, lightHeld, visionRadius, type Sight } from "../fog.ts";
+import { FogMemory, FogStore, lightHeld, visionRadius, type Sight } from "../fog.ts";
 import { motionClock, type Point } from "../motion.ts";
 import { progressOf } from "../progress.ts";
 import { tileAt, type TileGrid } from "../tiled.ts";
@@ -40,6 +40,7 @@ const SEEN_ALPHA = 0.5;
 const HAZE = [0.5, 0.22]; // o véu do anel de fora da vista e o do seguinte, em fração da névoa
 const LIGHT_RINGS = 20; // anéis da luz à noite, do mais largo ao mais estreito (sem degraus à vista)
 const FONT = "ui-monospace, monospace";
+const FOG_SAVE_MS = 1000; // a lembrança da névoa vai ao navegador no máximo uma vez por segundo
 // Um mapa visual por endereço: as variantes do mapa (ADR-0070) têm cada uma o seu.
 const mapKey = (url: string): string => `visual-map:${url}`;
 // A tela mostra no máximo 32 × 18 tiles; um mapa maior (a Morada do Sol, ADR-0067) rola com a câmera.
@@ -241,6 +242,10 @@ class WorldScene extends Phaser.Scene {
   fogOn = false;
   private fog = new FogMemory();
   private fogDrawn = false;
+  private fogStore: FogStore | undefined; // a lembrança no navegador, na visão do jogador
+  private fogLoaded = false;
+  private fogSavedAt = 0;
+  private fogTick = 0;
   private visual: Phaser.Tilemaps.Tilemap | undefined;
   private mapId: string | undefined; // o id do mapa do `session.started`, que escolhe o mapa visual
   private visualUrl: string | undefined; // o endereço do mapa visual desenhado agora
@@ -404,11 +409,33 @@ class WorldScene extends Phaser.Scene {
       }
       return state.entities;
     }
+    if (this.fogStore !== undefined && !this.fogLoaded) {
+      this.fog = this.fogStore.load(state.tick) ?? this.fog;
+      this.fogLoaded = true;
+      this.fogDrawn = false;
+    }
     const tile = { x: Math.round(at.x), y: Math.round(at.y) };
+    this.fogTick = state.tick;
     if (this.fog.look(state, tile, radius) || !this.fogDrawn) {
       this.drawFog();
+      if (performance.now() - this.fogSavedAt > FOG_SAVE_MS) {
+        this.saveFog();
+      }
     }
     return this.fog.entities(state, id);
+  }
+
+  /** Guarda a lembrança da névoa no navegador, na visão do jogador. */
+  rememberFog(store: FogStore): void {
+    this.fogStore = store;
+    this.fogLoaded = false;
+  }
+
+  saveFog(): void {
+    if (this.fogStore !== undefined && this.fogLoaded) {
+      this.fogStore.save(this.fog, this.fogTick);
+      this.fogSavedAt = performance.now();
+    }
   }
 
   /** A nuvem sobre o que nunca foi visto e o cinza sobre o que já foi, tile a tile. */
@@ -600,6 +627,15 @@ class WorldScene extends Phaser.Scene {
 
 /** WebGL quando a máquina tem; senão, o Canvas (o Phaser no modo AUTO aborta se o WebGL falhar depois
  * de parecer disponível, como num Chromium sem GPU). */
+/** O armazenamento do navegador, quando há; numa aba que o bloqueia, nenhum. */
+function browserStorage(): Storage | undefined {
+  try {
+    return localStorage;
+  } catch {
+    return undefined;
+  }
+}
+
 function rendererType(): number {
   const probe = document.createElement("canvas");
   const gl = probe.getContext("webgl2") ?? probe.getContext("webgl");
@@ -612,6 +648,7 @@ export class PhaserRenderer implements WorldRenderer {
   private readonly game: Phaser.Game;
   private size = { width: 32, height: 18 };
   private grid = { width: 32, height: 18 };
+  private savesOnHide = false;
   private drag: { x: number; y: number; moved: boolean } | undefined;
   private swallowClick = false;
   private readonly followButton: HTMLButtonElement;
@@ -671,6 +708,17 @@ export class PhaserRenderer implements WorldRenderer {
 
   private big(): boolean {
     return this.grid.width > VIEW.width || this.grid.height > VIEW.height;
+  }
+
+  /** A lembrança da névoa no navegador, por mundo e avatar; guardada também ao sair da página. */
+  rememberFog(key: string): void {
+    this.scene.rememberFog(new FogStore(key, browserStorage()));
+    if (!this.savesOnHide) {
+      this.savesOnHide = true;
+      addEventListener("pagehide", () => {
+        this.scene.saveFog();
+      });
+    }
   }
 
   /** A névoa (ADR-0068): sempre na visão do jogador; o operador liga e desliga. */

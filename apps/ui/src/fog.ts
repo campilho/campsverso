@@ -2,8 +2,15 @@
  * congelado do que ele já viu e uma nuvem sobre o que nunca viu.
  *
  * O raio da hora segue a mesma regra da percepção (o da fase, ou o da luz que o avatar carrega), e
- * um teste confere que as duas contas batem. O que foi visto fica guardado aqui, enquanto a tela
- * está aberta: o humano vê o desenho de quando passou por lá, e não sabe se algo mudou. */
+ * um teste confere que as duas contas batem. O que foi visto fica guardado aqui, e no navegador
+ * (por mundo e avatar, `FogStore`), para sobreviver a fechar e abrir a tela: o humano vê o desenho
+ * de quando passou por lá, e não sabe se algo mudou.
+ *
+ * A tela mede a vista pela posição desenhada do avatar, que anda suave; o servidor manda as coisas
+ * pela posição dele no mundo, que pode estar um pulso atrás. Na borda da vista, as duas contas
+ * podem discordar por um tile ou dois. Por isso a lembrança de uma coisa só se apaga quando ela
+ * está bem dentro da vista (`MARGIN` tiles longe da borda) e o servidor não a mandou: aí ela não
+ * existe mais. Na borda, a lembrança fica. */
 import type { ObserverEntity, ObserverState } from "@campsverso/contracts";
 
 /** O raio que o avatar enxerga agora; `undefined` é o mapa inteiro (sem névoa). */
@@ -28,6 +35,17 @@ export function lightHeld(state: ObserverState, avatarId: string): boolean {
 
 export type Sight = "visible" | "seen" | "unseen";
 
+/** Quantos tiles da borda da vista a tela e o servidor podem discordar. */
+export const MARGIN = 2;
+
+/** O que a névoa guarda entre uma tela e outra: o tick em que foi guardada, os tiles vistos e o
+ * retrato das coisas fora da vista. */
+export interface FogSnapshot {
+  tick: number;
+  seen: string[];
+  frozen: Record<string, ObserverEntity>;
+}
+
 export class FogMemory {
   private readonly seen = new Set<string>();
   private readonly frozen = new Map<string, ObserverEntity>();
@@ -47,8 +65,8 @@ export class FogMemory {
     }
     for (const id of [...this.frozen.keys()]) {
       const remembered = this.frozen.get(id);
-      if (remembered?.position !== undefined && this.sight(remembered.position.x, remembered.position.y) === "visible") {
-        this.frozen.delete(id); // à vista de novo: vale o que existe agora
+      if (remembered?.position !== undefined && this.deep(remembered.position.x, remembered.position.y)) {
+        this.frozen.delete(id); // bem à vista de novo: vale o que existe agora
       }
     }
     for (const [id, entity] of Object.entries(state.entities)) {
@@ -79,6 +97,13 @@ export class FogMemory {
     return { depth, beyond: { x: x + sx * (depth + 1), y: y + sy * (depth + 1) } };
   }
 
+  /** Bem dentro da vista, onde a tela e o servidor concordam sobre o que existe. */
+  private deep(x: number, y: number): boolean {
+    const at = this.center;
+    const radius = this.radius;
+    return at !== undefined && radius !== undefined && Math.max(Math.abs(x - at.x), Math.abs(y - at.y)) <= radius - MARGIN;
+  }
+
   sight(x: number, y: number): Sight {
     const at = this.center;
     if (at !== undefined && this.radius !== undefined && Math.max(Math.abs(x - at.x), Math.abs(y - at.y)) <= this.radius) {
@@ -88,7 +113,8 @@ export class FogMemory {
   }
 
   /** As entidades como o jogador as vê: as à vista como são, as construções sempre, e as fora da
-   * vista como foram vistas por último (congeladas); o que nunca foi visto não aparece. */
+   * vista como foram vistas por último (congeladas); o que nunca foi visto não aparece. Na borda da
+   * vista, o que o servidor ainda não mandou aparece como foi visto. */
   entities(state: ObserverState, avatarId: string): Record<string, ObserverEntity> {
     const landmarks = new Set(state.session?.perception?.landmarks ?? []);
     const shown: Record<string, ObserverEntity> = {};
@@ -103,10 +129,70 @@ export class FogMemory {
     }
     for (const [id, entity] of this.frozen) {
       const where = entity.position;
-      if (where !== undefined && this.sight(where.x, where.y) !== "visible" && !(id in shown && landmarks.has(entity.kind))) {
+      if (where !== undefined && !(id in shown) && !this.deep(where.x, where.y)) {
         shown[id] = entity; // inclusive o que já não existe: o jogador não sabe
       }
     }
     return shown;
   }
+
+  /** A lembrança para guardar no navegador, com o tick do mundo. */
+  snapshot(tick: number): FogSnapshot {
+    return { tick, seen: [...this.seen], frozen: Object.fromEntries(this.frozen) };
+  }
+
+  /** A lembrança guardada, de volta. */
+  static restore(snapshot: FogSnapshot): FogMemory {
+    const fog = new FogMemory();
+    for (const key of snapshot.seen) {
+      fog.seen.add(key);
+    }
+    for (const [id, entity] of Object.entries(snapshot.frozen)) {
+      fog.frozen.set(id, entity);
+    }
+    return fog;
+  }
+}
+
+/** A lembrança no navegador, por mundo e avatar. Uma lembrança de um tick depois do de agora é de
+ * outro jogo no mesmo mundo (um sandbox novo, que recomeça no tick 0) e é esquecida; o sandbox que
+ * retoma continua de onde parou. Sem armazenamento (aba privada, bloqueio), a névoa só não volta. */
+export class FogStore {
+  private readonly key: string;
+  private readonly storage: Pick<Storage, "getItem" | "setItem" | "removeItem"> | undefined;
+
+  constructor(key: string, storage: Pick<Storage, "getItem" | "setItem" | "removeItem"> | undefined) {
+    this.key = key;
+    this.storage = storage;
+  }
+
+  load(tick: number): FogMemory | undefined {
+    try {
+      const raw = this.storage?.getItem(this.key);
+      if (raw === null || raw === undefined) {
+        return undefined;
+      }
+      const snapshot = JSON.parse(raw) as FogSnapshot;
+      if (snapshot.tick > tick) {
+        this.storage?.removeItem(this.key);
+        return undefined;
+      }
+      return FogMemory.restore(snapshot);
+    } catch {
+      return undefined;
+    }
+  }
+
+  save(fog: FogMemory, tick: number): void {
+    try {
+      this.storage?.setItem(this.key, JSON.stringify(fog.snapshot(tick)));
+    } catch {
+      // cheio ou bloqueado: a lembrança fica só nesta tela
+    }
+  }
+}
+
+/** A chave da lembrança de um avatar num mundo. */
+export function fogKey(worldid: string, avatarId: string): string {
+  return `campsverso.fog.${worldid}.${avatarId}`;
 }
