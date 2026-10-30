@@ -24,7 +24,8 @@ def describe(tool: ToolDef) -> str:
         minutes = "minuto" if tool.duration_ticks == 1 else "minutos"
         extra.append(f"Dura {tool.duration_ticks} {minutes}.")
     if tool.energy:
-        extra.append(f"Gasta {tool.energy} de energia.")
+        amount = f"{tool.energy:g}".replace(".", ",")  # 2, ou 0,5 (a Morada, M21)
+        extra.append(f"Gasta {amount} de energia.")
     return " ".join([tool.description, *extra])
 
 

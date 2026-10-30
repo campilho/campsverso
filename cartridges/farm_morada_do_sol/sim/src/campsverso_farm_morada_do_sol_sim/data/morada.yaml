@@ -15,6 +15,14 @@ year:  # o ano acelerado (ADR-0067): 28 dias simulados, 7 por estação, no hemi
 needs:
   fome: {rates_per_hour: {awake: 2}}
 
+# A energia da Morada (M21, o conjunto "alvo" do estudo de 29/out; ADR-0074): o mapa é quatro vezes
+# o da Boa Vista, e com os custos dela cavar levava dois terços do dia (o humano desmaiou às 13:31
+# do primeiro dia com 9 canteiros). Aqui uma volta na fazenda (uns 300 tiles) custa 5, um canteiro
+# novo (cavar, plantar e regar) custa 4, e um dia rende uns 20; regar todo dia o que cresce segura
+# quem trabalha sozinho em uns 57 canteiros. O freio passa a ser a semente e o caixa.
+movement:
+  energy_per_tile: 0.016666666666666666  # 1 de energia a cada 60 tiles; múltiplo de 1/120 (ADR-0038)
+
 perception:
   radius: 12  # script e LLM veem 12 tiles em volta; a névoa na tela é do M17
   # As construções fixas se veem além do raio: quem mora na fazenda sabe onde ficam (ADR-0067).
@@ -202,6 +210,13 @@ helpers:  # os ajudantes (ADR-0072): contratados no quadro, por dias, pagos adia
       traits: {speed: 0.6667, action_time: {"*": 1.5}}
 
 actions:
+  # A energia do estudo de 29/out (acima); as durações são as da Boa Vista e do gênero.
+  dig: {duration: 15, energy: 2, interrupt: never, with_plow: {duration: 5, energy: 2}}
+  plant: {duration: 5, energy: 1, interrupt: never, with_plow: {duration: 1, energy: 0.5}}
+  water: {duration: 2, energy: 1, interrupt: never}
+  refill: {duration: 3, energy: 0.5, interrupt: never}
+  harvest: {duration: 3, energy: 0.5, interrupt: never}
+  clear: {duration: 3, energy: 1, interrupt: never}
   place: {duration: 10, energy: 3, interrupt: never}
   hire_helper: {duration: 5, energy: 0, interrupt: never}
   order_helper: {duration: 2, energy: 0, interrupt: never}
@@ -214,8 +229,16 @@ actions:
 affordances:
   - action: sell  # na caixa de vendas, como no gênero, e na barraca da feira (ADR-0069)
     label: Vender
-    kinds: [sell_box, fair_stall]
-    note: "caixa: o comprador leva às {buyer.collects} e paga às {buyer.pays}; feira a cada {fair.every} dias, das {fair.opens} às {fair.closes}"
+    kinds: [sell_box]
+    note: "o comprador leva às {buyer.collects} e paga às {buyer.pays}"
+    params:
+      - {name: item, label: Colheita, choices: {category: [colheita, produto]}, source: inventory,
+         price: sale_price, price_attribute: preco_}
+      - {name: qty, label: Quantidade, minimum: 1, default: 1}
+  - action: sell
+    label: Vender na feira
+    kinds: [fair_stall]
+    note: "feira a cada {fair.every} dias, das {fair.opens} às {fair.closes}, pago na hora; a próxima é no dia {target.proxima_feira}"
     params:
       - {name: item, label: Colheita, choices: {category: [colheita, produto]}, source: inventory,
          price: sale_price, price_attribute: preco_}
@@ -271,9 +294,14 @@ affordances:
   - action: hire_helper
     label: Contratar ajudante
     kinds: [helper_board]
+    note: "paga-se agora a diária vezes os dias; chega amanhã às 06:00 pela entrada"
     params:
-      - {name: helper, label: Ajudante, choices: [dita, ze-graudo, nina, seu-bento, tiao]}
-      - {name: days, label: Dias (1, 3 ou 7), minimum: 1, default: 1}
+      - name: helper
+        label: Ajudante
+        choices: [dita, ze-graudo, nina, seu-bento, tiao]
+        price_attribute: diaria_  # a diária de agora, no quadro
+        notes: {from: helpers.roster, text: "{nome}, {especialidade}: {bom}; mas {ruim}"}
+      - {name: days, label: "Dias (1, 3 ou 7)", minimum: 1, default: 1}
   - action: dismiss_helper
     label: Dispensar ajudante
     kinds: [helper_board]

@@ -10,7 +10,7 @@ tools:
     description: >-
       Andar até ficar ao lado de uma coisa (um canteiro, o poço, o baú, a caixa de vendas, o
       quiosque, o fogão, a cama), pelo id dela, mesmo fora da vista se você sabe onde está; o
-      mundo escolhe o tile e o caminho. Qualquer trajeto leva 1 minuto, e cada 20 tiles andados
+      mundo escolhe o tile e o caminho. Qualquer trajeto leva 1 minuto, e cada 60 tiles andados
       gastam 1 de energia.
     params:
       - name: near
@@ -34,7 +34,7 @@ tools:
       repete (plot-001, plot-002...); três manhãs vazio, ele volta a ser grama. Com o arado, leva
       5 minutos.
     duration: 15
-    energy: 8
+    energy: 2
     params:
       - {name: x, type: integer, description: "a coluna do tile, da esquerda para a direita"}
       - {name: y, type: integer, description: "a linha do tile, de cima para baixo"}
@@ -44,9 +44,9 @@ tools:
       Plantar uma semente num canteiro vazio ao seu lado. Gasta a semente da cultura, que precisa
       estar no seu inventário. Culturas: rabanete, batata, abobora, cenoura, morango, tomate,
       alho, milho, melancia, mandioca, couve; cada uma tem a sua estação (o calendário de
-      plantio). Com o arado no inventário leva 1 minuto e 1 de energia.
+      plantio). Com o arado no inventário leva 1 minuto e 0,5 de energia.
     duration: 5
-    energy: 2
+    energy: 1
     params:
       - {name: target, type: string, description: "o id do canteiro"}
       - name: crop
@@ -67,7 +67,7 @@ tools:
       Regar o canteiro ao seu lado com um regador, que gasta 1 carga; o canteiro precisa ter
       planta. A chuva rega todos os canteiros de graça.
     duration: 2
-    energy: 2
+    energy: 1
     params:
       - {name: target, type: string, description: "o id do canteiro"}
   - name: refill
@@ -76,7 +76,7 @@ tools:
       Encher no poço ao seu lado os regadores que você carrega (o comum fica com 10 cargas, o
       grande com 25). Só o poço enche o regador.
     duration: 3
-    energy: 1
+    energy: 0.5
     params:
       - {name: target, type: string, description: "o id do poço"}
   - name: harvest
@@ -86,7 +86,7 @@ tools:
       inventário (se couber) e deixa o canteiro vazio. Uma madura que fica três dias sem colher
       murcha.
     duration: 3
-    energy: 1
+    energy: 0.5
     params:
       - {name: target, type: string, description: "o id do canteiro"}
   - name: clear
@@ -94,7 +94,7 @@ tools:
     description: >-
       Limpar um canteiro ao seu lado com a planta murcha, deixando-o vazio para plantar de novo.
     duration: 3
-    energy: 2
+    energy: 1
     params:
       - {name: target, type: string, description: "o id do canteiro"}
   - name: cook

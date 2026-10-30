@@ -1601,13 +1601,27 @@ components:
           minLength: 1
           maxLength: 64
           description: 'O começo do nome do atributo do alvo com o preço de agora de cada escolha: o prefixo
-            seguido da escolha (preco_semente_milho). Sem ele no alvo, vale o de tabela (M21).'
+            seguido da escolha, com - trocado por _ como nos nomes de atributo (preco_semente_milho, diaria_ze_graudo).
+            Sem ele no alvo, vale o de tabela (M21).'
         stock_attribute:
           type: string
           minLength: 1
           maxLength: 64
           description: O atributo do alvo com as escolhas que há hoje, separadas por vírgula (estoque_hoje)
             (M21).
+        held_prefix:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: A escolha só vale se quem joga tem o item com este começo seguido dela (`semente_`
+            e a cultura); o menu mostra quantos tem (M21).
+        option_notes:
+          type: object
+          additionalProperties:
+            type: string
+            minLength: 1
+            maxLength: 240
+          description: Uma nota de cada escolha, como a ficha de um ajudante (M21).
     Affordance:
       title: Affordance
       description: Uma ação no menu de um tipo de entidade, ou do próprio avatar (`self`). O menu só sugere;
@@ -1662,6 +1676,35 @@ components:
           maxLength: 120
           description: Uma nota para quem joga, como o horário de quem atende (aberto das 08:00 às 18:00)
             (M21).
+        requires:
+          type: array
+          description: 'O que precisa valer para a ação fazer sentido agora, para o menu desabilitá-la
+            e dizer por quê (M21): um atributo do alvo com um dos valores de `values`, ou um item no inventário
+            de quem joga. O menu só sugere; quem decide é o kernel.'
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - hint
+            properties:
+              attribute:
+                $ref: '#/components/schemas/Token'
+              item:
+                type: string
+                minLength: 1
+                maxLength: 64
+              hint:
+                type: string
+                minLength: 1
+                maxLength: 80
+              values:
+                type: array
+                items:
+                  type:
+                  - string
+                  - number
+                  - boolean
+                  - 'null'
     Interrupt:
       title: Interrupt
       description: 'Política de interrupção de uma ação (ADR-0052): `never`, um comando novo é recusado
@@ -4313,6 +4356,18 @@ components:
         perception:
           $ref: '#/components/schemas/PerceptionConfig'
           description: O raio de percepção declarado pelo cartucho; vale para todos os atores (ADR-0056).
+        items:
+          type: object
+          description: O peso de cada item, para a tela desenhar o que ocupa num contêiner (M21).
+          additionalProperties:
+            type: object
+            additionalProperties: false
+            required:
+            - weight
+            properties:
+              weight:
+                type: number
+                minimum: 0
     WorldSnapshotCreatedV1:
       title: WorldSnapshotCreatedV1
       description: Snapshot persistido no BlobStore.
@@ -4629,6 +4684,18 @@ components:
                   description: Os rótulos da linha do tempo do session.started (ADR-0068).
                 perception:
                   $ref: '#/components/schemas/PerceptionConfig'
+                items:
+                  type: object
+                  description: O peso de cada item, para a tela desenhar o que ocupa num contêiner (M21).
+                  additionalProperties:
+                    type: object
+                    additionalProperties: false
+                    required:
+                    - weight
+                    properties:
+                      weight:
+                        type: number
+                        minimum: 0
             clock:
               type: object
               title: ObserverClock

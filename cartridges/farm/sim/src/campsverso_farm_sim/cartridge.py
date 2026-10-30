@@ -16,6 +16,7 @@ from campsverso_cartridge_api import (
     KindDef,
     MetricDef,
     NeedDef,
+    Requirement,
     ThresholdDef,
     WorldBuilder,
 )
@@ -53,7 +54,7 @@ def _choices(raw: Any, data: dict[str, Any]) -> tuple[str, ...]:
     return tuple(str(c) for c in cast(list[Any], raw))
 
 
-_FIELD = re.compile(r"\{([a-z_][a-z0-9_.]*)\}")
+_FIELD = re.compile(r"\{(?!target\.)([a-z_][a-z0-9_.]*)\}")  # `{target.x}` a tela resolve
 
 
 def _note(raw: Any, data: Mapping[str, Any]) -> str | None:
@@ -95,6 +96,39 @@ def _prices(
     return tuple(found)
 
 
+def _notes(
+    raw: Any, choices: tuple[str, ...], data: Mapping[str, Any]
+) -> tuple[tuple[str, str], ...]:
+    """Uma nota de cada escolha (M21): `{from: helpers.roster, text: "{nome}, {bom}"}` formata o
+    texto com os campos da ficha de cada escolha."""
+    if raw is None:
+        return ()
+    spec = cast(Mapping[str, str], raw)
+    found: Any = data
+    for key in spec["from"].split("."):
+        found = cast(Mapping[str, Any], found)[key]
+    sheets = cast(Mapping[str, Mapping[str, Any]], found)
+    return tuple(
+        (choice, _FIELD.sub(lambda m, s=sheets[choice]: str(s[m[1]]), spec["text"]))
+        for choice in choices
+        if choice in sheets
+    )
+
+
+def _requires(raw: Any) -> tuple[Requirement, ...]:
+    """O que precisa valer para a ação fazer sentido agora (M21), pelo YAML: `{attribute, in,
+    hint}` sobre o alvo ou `{item, hint}` no inventário."""
+    return tuple(
+        Requirement(
+            hint=str(r["hint"]),
+            attribute=r.get("attribute"),
+            values=tuple(cast(list[Any], r.get("in", []))),
+            item=r.get("item"),
+        )
+        for r in cast(list[Mapping[str, Any]], raw or [])
+    )
+
+
 def _param(p: Mapping[str, Any], data: Mapping[str, Any]) -> AffordanceParam:
     choices = _choices(p.get("choices"), cast(dict[str, Any], data))
     return AffordanceParam(
@@ -108,6 +142,8 @@ def _param(p: Mapping[str, Any], data: Mapping[str, Any]) -> AffordanceParam:
         prices=_prices(choices, str(p["price"]), data) if p.get("price") else (),
         price_attribute=p.get("price_attribute"),
         stock_attribute=p.get("stock_attribute"),
+        held_prefix=p.get("held_prefix"),
+        option_notes=_notes(p.get("notes"), choices, data),
     )
 
 
@@ -124,6 +160,7 @@ def affordances(data: Mapping[str, Any]) -> tuple[AffordanceDef, ...]:
             params=tuple(_param(p, data) for p in entry.get("params", [])),
             cost=_cost(str(entry["action"]), entry, data),
             note=_note(entry.get("note"), data),
+            requires=_requires(entry.get("requires")),
         )
         for entry in cast(list[Mapping[str, Any]], data.get("affordances", []))
     )

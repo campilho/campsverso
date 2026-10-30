@@ -1,6 +1,6 @@
 # Bíblia da Fazenda Morada do Sol (a fazenda 3, M16)
 
-**Status:** escrita em 23/out/2026, ao fim do M16, a partir do plano do marco e da ADR-0067; a noite e a lanterna entraram no M17 (ADR-0068), a economia e o clima no M18 (ADR-0069, §11 a §14), e as variantes do mapa, o fazendeiro-script 3, o oráculo e a fome em 2 por hora no M19 (ADR-0070, §3, §9, §10, §15 e §16). É a fonte dos números e das regras do cenário `farm_morada_do_sol` e dos mundos `farm-morada-do-sol-01`, `-02` e `-03`. O cenário estende a Fazenda Boa Vista: o que esta bíblia não diz vale como na bíblia 2 (`fazenda-boa-vista-biblia.md`) e, abaixo dela, na bíblia da v0.1. Isso inclui as ferramentas, o baú, o mercado que satura, o fogão, a validade, o sono e o desmaio.
+**Status:** escrita em 23/out/2026, ao fim do M16, a partir do plano do marco e da ADR-0067; a noite e a lanterna entraram no M17 (ADR-0068), a economia e o clima no M18 (ADR-0069, §11 a §14), e as variantes do mapa, o fazendeiro-script 3, o oráculo e a fome em 2 por hora no M19 (ADR-0070, §3, §9, §10, §15 e §16), e a energia no M21 (ADR-0074, §18). É a fonte dos números e das regras do cenário `farm_morada_do_sol` e dos mundos `farm-morada-do-sol-01`, `-02` e `-03`. O cenário estende a Fazenda Boa Vista: o que esta bíblia não diz vale como na bíblia 2 (`fazenda-boa-vista-biblia.md`) e, abaixo dela, na bíblia da v0.1. Isso inclui as ferramentas, o baú, o mercado que satura, o fogão, a validade, o sono e o desmaio.
 
 ## 1. Conceito
 
@@ -69,7 +69,7 @@ Os três mundos têm a mesma seed (20261022): a diferença entre eles é só o m
 | | |
 |---|---|
 | Onde | em qualquer grama; nunca na estrada, no rio, na mata, na casa ou num tile ocupado |
-| Teto | 400, técnico, só para o desempenho; no jogo, os freios são a energia (8 por canteiro cavado), as sementes e a rega |
+| Teto | 400, técnico, só para o desempenho; no jogo, os freios são as sementes, o caixa e a rega de todo dia; a energia (2 por canteiro cavado, §18) segura um dia em uns 20 canteiros novos |
 | O id | `plot-001`, `plot-002`…, por um contador do kernel que nunca repete (`next_seq`) |
 | A volta à grama | o canteiro cavado que passa 3 manhãs sem planta volta a ser grama: o kernel remove a entidade (`world.entity.despawned.v1`, motivo `reverted_to_grass`). A planta, mesmo murcha, segura o canteiro; o alvo de uma ação em andamento espera a manhã seguinte |
 
@@ -281,3 +281,19 @@ Escritos em 26/out/2026 (ADR-0072 e ADR-0073). Os números ficam na seção `hel
 | script 3 | só 2 contratos de 1 dia no mapa a (o caixa não pagava mais) | de +1 a +5 moedas, −4 e −5 colheitas |
 
 Os ajudantes do oráculo regaram de 24 a 63 vezes e colheram de 4 a 21 no ano; o trabalho que fizeram, o Camps faria esperando menos.
+
+## 18. A energia (M21)
+
+Recalibrada em 30/out/2026, depois de o usuário jogar o primeiro dia do mapa d (ADR-0074, decisão 23). O mapa é quatro vezes o da Boa Vista, e com os custos dela cavar levava dois terços do dia.
+
+| | |
+|---|---|
+| Andar | 1 de energia a cada 60 tiles (uma volta na fazenda, uns 300 tiles, custa 5); a Boa Vista segue com 1 a cada 20 |
+| Cavar | 15 minutos e 2 de energia (com o arado, 5 minutos e 2) |
+| Plantar | 5 minutos e 1 (com o arado, 1 minuto e 0,5) |
+| Regar e limpar | 1 cada; encher o regador e colher, 0,5 cada |
+| O que não muda | a energia de 100, 1 por hora acordado, o dobro com a fome em 80, o sono e o desmaio |
+| Um dia | uns 20 canteiros novos (cavar, plantar e regar custam 4); regar todo dia o que cresce segura quem trabalha sozinho em uns 57 canteiros, e daí em diante o ajudante tem serviço |
+| O freio | a semente e o caixa: com as 100 moedas do começo, uns 12 canteiros no primeiro dia; o oráculo cavou no máximo 12 ou 13 num dia |
+| As réguas | refeitas em `data/arena/m21-terceira-energia` (a tabela na ADR-0074); a promessa do mapa d continua de pé |
+

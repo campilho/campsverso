@@ -179,6 +179,62 @@
             "default": 1
           }
         ]
+      },
+      {
+        "action": "harvest",
+        "label": "Colher",
+        "on": [
+          "plot"
+        ],
+        "target": true,
+        "cost": {
+          "energy": 0.5,
+          "minutes": 3
+        },
+        "requires": [
+          {
+            "attribute": "stage",
+            "values": [
+              "madura"
+            ],
+            "hint": "ainda não está madura"
+          }
+        ]
+      },
+      {
+        "action": "plant",
+        "label": "Plantar",
+        "on": [
+          "plot"
+        ],
+        "target": true,
+        "requires": [
+          {
+            "attribute": "crop",
+            "values": [
+              null
+            ],
+            "hint": "o canteiro já tem planta"
+          },
+          {
+            "item": "semente_rabanete",
+            "hint": "sem semente"
+          }
+        ],
+        "params": [
+          {
+            "name": "crop",
+            "label": "Cultura",
+            "choices": [
+              "rabanete"
+            ],
+            "source": "any",
+            "held_prefix": "semente_",
+            "option_notes": {
+              "rabanete": "a comida mais rápida"
+            }
+          }
+        ]
       }
     ],
     "metrics": [
@@ -226,6 +282,14 @@
         },
         "text": "colheu {qty} {item}"
       }
-    ]
+    ],
+    "items": {
+      "rabanete": {
+        "weight": 1
+      },
+      "adubo": {
+        "weight": 1
+      }
+    }
   }
 }

@@ -78,6 +78,11 @@ PricesAdditionalProperty = TypeAliasType(
 )
 
 
+OptionNotesAdditionalProperty = TypeAliasType(
+    "OptionNotesAdditionalProperty", Annotated[str, Field(max_length=240, min_length=1)]
+)
+
+
 class AffordanceParam(BaseModel):
     """
     Um parâmetro que quem joga escolhe (ADR-0051). Sem `choices`, é um número inteiro.
@@ -108,11 +113,19 @@ class AffordanceParam(BaseModel):
     """
     price_attribute: Annotated[str | None, Field(max_length=64, min_length=1)] = None
     """
-    O começo do nome do atributo do alvo com o preço de agora de cada escolha: o prefixo seguido da escolha (preco_semente_milho). Sem ele no alvo, vale o de tabela (M21).
+    O começo do nome do atributo do alvo com o preço de agora de cada escolha: o prefixo seguido da escolha, com - trocado por _ como nos nomes de atributo (preco_semente_milho, diaria_ze_graudo). Sem ele no alvo, vale o de tabela (M21).
     """
     stock_attribute: Annotated[str | None, Field(max_length=64, min_length=1)] = None
     """
     O atributo do alvo com as escolhas que há hoje, separadas por vírgula (estoque_hoje) (M21).
+    """
+    held_prefix: Annotated[str | None, Field(max_length=64, min_length=1)] = None
+    """
+    A escolha só vale se quem joga tem o item com este começo seguido dela (`semente_` e a cultura); o menu mostra quantos tem (M21).
+    """
+    option_notes: dict[str, OptionNotesAdditionalProperty] | None = None
+    """
+    Uma nota de cada escolha, como a ficha de um ajudante (M21).
     """
 
 
@@ -126,6 +139,21 @@ class Cost(BaseModel):
     )
     energy: Annotated[float, Field(ge=0.0)]
     minutes: Annotated[int, Field(ge=0)]
+
+
+class Require(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    attribute: Annotated[
+        str | None, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")
+    ] = None
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
+    """
+    item: Annotated[str | None, Field(max_length=64, min_length=1)] = None
+    hint: Annotated[str, Field(max_length=80, min_length=1)]
+    values: list[str | float | bool | None] | None = None
 
 
 class Affordance(BaseModel):
@@ -157,6 +185,10 @@ class Affordance(BaseModel):
     note: Annotated[str | None, Field(max_length=120, min_length=1)] = None
     """
     Uma nota para quem joga, como o horário de quem atende (aberto das 08:00 às 18:00) (M21).
+    """
+    requires: list[Require] | None = None
+    """
+    O que precisa valer para a ação fazer sentido agora, para o menu desabilitá-la e dizer por quê (M21): um atributo do alvo com um dos valores de `values`, ou um item no inventário de quem joga. O menu só sugere; quem decide é o kernel.
     """
 
 
@@ -2842,6 +2874,13 @@ class SessionMap(BaseModel):
     legend: TerrainLegend | None = None
 
 
+class Items(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    weight: Annotated[float, Field(ge=0.0)]
+
+
 class WorldSessionStartedV1(BaseModel):
     """
     Mundo carregado ou retomado a partir de snapshot.
@@ -2894,6 +2933,10 @@ class WorldSessionStartedV1(BaseModel):
     perception: PerceptionConfig | None = None
     """
     O raio de percepção declarado pelo cartucho; vale para todos os atores (ADR-0056).
+    """
+    items: dict[str, Items] | None = None
+    """
+    O peso de cada item, para a tela desenhar o que ocupa num contêiner (M21).
     """
 
 
@@ -3089,6 +3132,10 @@ class ObserverSession(BaseModel):
     Os rótulos da linha do tempo do session.started (ADR-0068).
     """
     perception: PerceptionConfig | None = None
+    items: dict[str, Items] | None = None
+    """
+    O peso de cada item, para a tela desenhar o que ocupa num contêiner (M21).
+    """
 
 
 class ObserverClock(BaseModel):

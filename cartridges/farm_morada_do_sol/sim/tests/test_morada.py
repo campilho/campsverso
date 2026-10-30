@@ -53,7 +53,7 @@ def test_o_menu_diz_o_custo_o_horario_e_o_preco() -> None:
     # dados e o preço de tabela de cada escolha; o de agora o quiosque e a caixa mostram.
     by = {(a.action, a.label): a for a in _farmer().core.definition.affordances}
     dig = by[("dig", "Cavar um canteiro aqui")]
-    assert dig.cost == (8.0, 15)
+    assert dig.cost == (2.0, 15)  # a energia da Morada (M21)
     buy = by[("buy", "Comprar")]
     assert buy.note == "aberto das 08:00 às 18:00"
     item = buy.params[0]
@@ -61,10 +61,20 @@ def test_o_menu_diz_o_custo_o_horario_e_o_preco() -> None:
     assert (prices["semente_rabanete"], prices["espantalho"], prices["plow"]) == (10.0, 60.0, 300.0)
     assert (item.price_attribute, item.stock_attribute) == ("preco_", "estoque_hoje")
     sell = by[("sell", "Vender")]
-    assert sell.note is not None
-    assert "22:00" in sell.note
-    assert "a cada 7 dias" in sell.note
+    assert sell.note == "o comprador leva às 22:00 e paga às 06:00"
     assert dict(sell.params[0].prices)["rabanete"] == 25.0  # o preço de venda da tabela
+    # O que precisa valer, as sementes que se tem e a ficha de cada ajudante.
+    harvest = by[("harvest", "Colher")]
+    assert [(r.attribute, r.values) for r in harvest.requires] == [("stage", ("madura",))]
+    fertilize = by[("fertilize", "Adubar")]
+    assert fertilize.requires[0].item == "adubo"
+    assert by[("plant", "Plantar")].params[0].held_prefix == "semente_"
+    fair = by[("sell", "Vender na feira")]
+    assert fair.note is not None
+    assert "a cada 7 dias, das 06:00 às 14:00" in fair.note
+    assert "{target.proxima_feira}" in fair.note  # a tela resolve pelo atributo da barraca
+    notes = dict(by[("hire_helper", "Contratar ajudante")].params[0].option_notes)
+    assert notes["ze-graudo"].startswith("Zé Graúdo, o carregador: carrega o dobro")
 
 
 def test_a_fome_da_morada_sobe_2_por_hora_acordado() -> None:

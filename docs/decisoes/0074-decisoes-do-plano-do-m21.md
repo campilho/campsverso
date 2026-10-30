@@ -197,6 +197,48 @@ Ficou assim:
 - **O menu diz o custo, o horário e o preço.** O catálogo de ações (`world.session.started.v1`) ganha campos opcionais: o custo de cada ação pela tabela do cartucho, uma nota com valores dos dados (`aberto das {kiosk.opens} às {kiosk.closes}`) e, nos parâmetros, o preço de tabela de cada escolha, o atributo do alvo com o preço de agora (`preco_`) e o com o estoque do dia (`estoque_hoje`). A tela mostra "8 de energia · 15 min", "aberto agora" ou "fechado agora" pelo atributo `open` do alvo, o preço ao lado de cada escolha e só o que há no estoque. A mente não muda: ela já lia tudo isso no manual e na percepção.
 - **A fome aparece como saciedade.** Na tela, a barra mostra 100 menos a fome, cheia quando o avatar comeu, como a da energia. O mundo, o manual e a linha do tempo continuam falando em fome.
 
+## Adendo de 30/out: a energia da Morada e a decisão 23
+
+O usuário, jogando o mapa d, desmaiou às 13:31 do primeiro dia: das 06:00 até ali, cavar 9 canteiros levou 72 de energia, plantar 6 levou 12, andar 304 tiles levou 15 e as horas acordado, 7,5. Os custos eram os da Boa Vista, num mapa quatro vezes maior, e na Morada o canteiro vazio volta a ser grama, então cavar se repete. As metas do usuário: uma volta na fazenda custa até 5 de energia ("andar pela fazenda várias vezes no dia não deveria ser um problema, até bom para a IA explorar"); um dia rende uns 20 canteiros novos; o freio é a semente que se tem ou se compra; e não dá para plantar o mapa inteiro num dia, o que justifica os ajudantes.
+
+O estudo, de graça: os quatro scripts de referência, um ano em cada mapa, com três conjuntos de custos (`hoje`, `moderado` e `alvo`). O custo de andar por tile precisa ser múltiplo de 1/120 de energia (a escala das necessidades, ADR-0038), e por isso um quarto conjunto, com 1/80, não rodou.
+
+| | Hoje | Moderado | Alvo |
+|---|---|---|---|
+| Andar | 1 a cada 20 tiles | 1 a cada 60 | 1 a cada 60 |
+| Cavar, plantar e regar | 8, 2 e 2 | 4, 1 e 1 | 2, 1 e 1 |
+| Uma volta na fazenda | 15 | 5 | 5 |
+| Canteiros novos num dia | ~6 | ~13 | ~20 |
+| Canteiros que um só fazendeiro mantém | ~25 | ~51 | ~57 |
+| O máximo que o oráculo cavou num dia | 5 | 10 | 12 a 13 |
+| A promessa do mapa d | passa | passa | passa |
+
+23. **A energia da Morada é a do conjunto `alvo`:** andar gasta 1 a cada 60 tiles; cavar, 2 (com o arado também); plantar, 1 (0,5 com o arado); regar e limpar, 1; encher o regador e colher, 0,5. As durações e a energia de 100, com 1 por hora acordado, não mudam, e as fazendas 1 e 2 também não. O manual e as ferramentas da mente da Morada dizem os números novos (a energia de uma ferramenta pode ser fracionária: "Gasta 0,5 de energia"), e a fita de teste da Morada foi regravada (US$ 0,084, com uma gravação a mais por engano). O script 3 conta o andar e a rega pelos números novos; o preço da energia na conta dele (2 moedas por ponto) fica, porque a varredura (2, 3 e 4) não melhorou o fixo, que ficou entre 82 e 84 moedas, e piorou o oráculo.
+
+As réguas, refeitas em `data/arena/m21-terceira-energia` (moedas · colheitas, nos mapas a, b e c; o d fica guardado até o usuário jogar):
+
+| | Antes (`m21-terceira`) | Com a energia nova |
+|---|---|---|
+| Script 2 | 14 · 41 nos três | 85 · 38 nos três |
+| Script 3 | 2 · 59, 8 · 48, 6 · 29 | 5 · 50, 119 · 79, 54 · 58 |
+| Script 3 fixo | 267 · 72 nos três | 82 · 72 nos três |
+| Oráculo | 321 · 78, 587 · 95, 184 · 69 | 247 · 104, 817 · 117, 300 · 90 |
+
+- **O freio passa a ser a semente e o caixa:** mesmo o oráculo cava no máximo 12 ou 13 canteiros num dia, segurado pelo dinheiro.
+- **O fixo cai por sorte de trajetória:** com os custos de antes, ele entregou encomendas que renderam 258 moedas; com os novos, o caminho dele mudou e não pegou nenhuma. As colheitas e as vendas ficaram parecidas.
+- **Mais acordado, mais fome:** os scripts passam a dormir menos de dia e passam mais dias com fome (o script 2, de 13 para 19).
+- **As corridas dos modelos no M21 comparam com estas réguas,** todas no mesmo mundo; a comparação com as rodadas do M19 e do M20 nos mapas a, b e c deixa de ser direta.
+- **O ajudante, medido de novo** (a contratação forçada da ADR-0073, em `data/arena/m21-ajudantes-energia`): ainda não paga na maioria das 16 corridas. Pagou duas vezes: a Nina por 3 dias, com o oráculo no mapa a (302 moedas contra 247 sem ajudante), e o Tião por 7 dias, com o oráculo no mapa b (1.070 contra 817). O motivo é o mesmo da ADR-0073, agora sem a energia no meio: os scripts cuidam de 16 a 28 canteiros, e um sozinho dá conta de uns 57. O ajudante tem serviço em quem passa disso, como um humano ou um modelo que cresce a fazenda; os scripts de referência não crescem tanto.
+
+## Adendo de 30/out: o menu que sabe o que vale agora
+
+Mais achados do usuário na tela, com campos opcionais novos no catálogo de ações e no estado da tela:
+- **As condições de cada ação** (`requires`): colher só com a planta madura; regar só com planta viva; limpar só a murcha; plantar só no canteiro vazio; adubar só com adubo no inventário, no canteiro vazio e ainda não adubado. O menu desabilita a ação e diz o porquê ("ainda não está madura").
+- **As quantidades:** plantar mostra só as culturas cuja semente se tem, com quantas (`held_prefix`); vender e pegar do baú mostram quantas há de cada coisa.
+- **O baú por dentro:** a capacidade em 100 casas, cada item ocupando as suas pelo peso (o estado da tela ganha o peso de cada item, `session.items`), com o ícone, quantas e quanto ocupa.
+- **A feira:** um menu próprio, com a nota "a cada 7 dias, das 06:00 às 14:00, pago na hora; a próxima é no dia N", que a tela completa pelo atributo da barraca (`{target.proxima_feira}`).
+- **Os ajudantes:** cada escolha mostra o retrato, a ficha ("Zé Graúdo, o carregador: carrega o dobro e cava mais rápido; mas come o dobro") e a diária de agora, e o rótulo "Dias (1, 3 ou 7)", que a vírgula cortava no YAML, aparece inteiro. Ao contratar, dispensar ou terminar um contrato, a tela avisa, e o painel mostra quem está contratado até que dia, pelo quadro.
+
 ## Consequências
 
 - **O orçamento da v0.3 dobra,** e o plano passa a gastar por passos aprovados, não por rodada.

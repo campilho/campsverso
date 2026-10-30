@@ -365,13 +365,23 @@ export interface AffordanceParam {
     [k: string]: number | undefined;
   };
   /**
-   * O começo do nome do atributo do alvo com o preço de agora de cada escolha: o prefixo seguido da escolha (preco_semente_milho). Sem ele no alvo, vale o de tabela (M21).
+   * O começo do nome do atributo do alvo com o preço de agora de cada escolha: o prefixo seguido da escolha, com - trocado por _ como nos nomes de atributo (preco_semente_milho, diaria_ze_graudo). Sem ele no alvo, vale o de tabela (M21).
    */
   price_attribute?: string;
   /**
    * O atributo do alvo com as escolhas que há hoje, separadas por vírgula (estoque_hoje) (M21).
    */
   stock_attribute?: string;
+  /**
+   * A escolha só vale se quem joga tem o item com este começo seguido dela (`semente_` e a cultura); o menu mostra quantos tem (M21).
+   */
+  held_prefix?: string;
+  /**
+   * Uma nota de cada escolha, como a ficha de um ajudante (M21).
+   */
+  option_notes?: {
+    [k: string]: string | undefined;
+  };
 }
 /**
  * Uma ação no menu de um tipo de entidade, ou do próprio avatar (`self`). O menu só sugere; quem decide é o kernel (ADR-0051).
@@ -404,6 +414,15 @@ export interface Affordance {
    * Uma nota para quem joga, como o horário de quem atende (aberto das 08:00 às 18:00) (M21).
    */
   note?: string;
+  /**
+   * O que precisa valer para a ação fazer sentido agora, para o menu desabilitá-la e dizer por quê (M21): um atributo do alvo com um dos valores de `values`, ou um item no inventário de quem joga. O menu só sugere; quem decide é o kernel.
+   */
+  requires?: {
+    attribute?: Token;
+    item?: string;
+    hint: string;
+    values?: (string | number | boolean | null)[];
+  }[];
 }
 /**
  * Como a linha do tempo conta um tipo de evento, declarado pelo cartucho (ADR-0068). Vale o rótulo mais específico (mais campos em `where`) cujos campos do texto existem no evento; no empate, o primeiro declarado. Sem rótulo, a tela mostra o tipo cru.
@@ -1873,6 +1892,16 @@ export interface WorldSessionStartedV1 {
    */
   labels?: EventLabel[];
   perception?: PerceptionConfig;
+  /**
+   * O peso de cada item, para a tela desenhar o que ocupa num contêiner (M21).
+   */
+  items?: {
+    [k: string]:
+      | {
+          weight: number;
+        }
+      | undefined;
+  };
 }
 export interface SessionMap {
   id: string;
@@ -2103,6 +2132,16 @@ export interface ObserverSession {
    */
   labels?: EventLabel[];
   perception?: PerceptionConfig;
+  /**
+   * O peso de cada item, para a tela desenhar o que ocupa num contêiner (M21).
+   */
+  items?: {
+    [k: string]:
+      | {
+          weight: number;
+        }
+      | undefined;
+  };
 }
 /**
  * O mapa do cartucho; o arquivo fica no gateway em /content/maps/<id>.tmj (ADR-0050).

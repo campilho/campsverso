@@ -86,6 +86,20 @@ export function othersText(state: ObserverState, avatarId: string): string[] {
     });
 }
 
+/** Os ajudantes que quem joga contratou (M21), pelo quadro, que se vê de longe: "Dita até o dia 5".
+ * O nome vem da ficha da escolha no menu de contratar (o texto antes da vírgula). */
+export function contractsText(state: ObserverState, avatarId: string): string[] {
+  const board = Object.values(state.entities).find((e) => e?.kind === "helper_board");
+  const hire = (state.session?.affordances ?? []).find((a) => a.action === "hire_helper");
+  const notes = hire?.params?.find((p) => p.option_notes !== undefined)?.option_notes ?? {};
+  const names = Object.fromEntries(Object.entries(notes).map(([id, note]) => [id.replace(/-/g, "_"), note?.split(",")[0] ?? id]));
+  const mark = `com ${avatarId} até o dia `;
+  return Object.entries(board?.attributes ?? {})
+    .filter((entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].startsWith(mark))
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => `${names[key] ?? key} até o dia ${value.slice(mark.length)}`);
+}
+
 export function renderHud(
   root: HTMLElement,
   state: ObserverState,
@@ -148,6 +162,7 @@ export function renderHud(
     el(
       "div",
       { className: "hud-others" },
+      ...contractsText(state, avatarId).map((text) => el("span", { className: "other contract" }, `contratado: ${text}`)),
       ...othersText(state, avatarId).map((text) => el("span", { className: "other" }, text)),
     ),
   );

@@ -106,6 +106,23 @@
     "perception": {
       "$ref": "contracts://common/defs.v1#/$defs/perception_config",
       "description": "O raio de percepção declarado pelo cartucho; vale para todos os atores (ADR-0056)."
+    },
+    "items": {
+      "type": "object",
+      "description": "O peso de cada item, para a tela desenhar o que ocupa num contêiner (M21).",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "weight"
+        ],
+        "properties": {
+          "weight": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
     }
   }
 }

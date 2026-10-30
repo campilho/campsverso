@@ -375,6 +375,8 @@ class Projection:
             self.session["metrics"] = [dict(m) for m in data["metrics"]]  # ADR-0054
         if data.get("labels"):
             self.session["labels"] = [dict(x) for x in data["labels"]]  # ADR-0068
+        if data.get("items"):  # o peso de cada item, para desenhar o baú (M21)
+            self.session["items"] = {str(k): dict(v) for k, v in data["items"].items()}
         # ADR-0056. O estado não carrega null: o raio nulo (o mapa inteiro) é ausência.
         perception = cast(Mapping[str, Any], data.get("perception") or {})
         radius = perception.get("radius")

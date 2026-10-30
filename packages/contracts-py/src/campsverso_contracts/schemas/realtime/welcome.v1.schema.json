@@ -166,6 +166,23 @@
             },
             "perception": {
               "$ref": "contracts://common/defs.v1#/$defs/perception_config"
+            },
+            "items": {
+              "type": "object",
+              "description": "O peso de cada item, para a tela desenhar o que ocupa num contêiner (M21).",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "weight"
+                ],
+                "properties": {
+                  "weight": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                }
+              }
             }
           }
         },

@@ -33,7 +33,7 @@ class ToolDef:
     params: tuple[ParamDef, ...] = ()
     shape: Mapping[str, Any] | None = None
     duration_ticks: int | None = None
-    energy: int | None = None
+    energy: float | None = None
     # Estrita: a API garante o schema por gramática. A gramática de todas as ferramentas estritas
     # juntas tem um teto; um catálogo grande marca as simples como `strict: false` (ADR-0062).
     strict: bool = True
@@ -86,7 +86,7 @@ def tools_from(raw: Sequence[Mapping[str, Any]]) -> tuple[ToolDef, ...]:
                 ),
                 shape=cast(Mapping[str, Any] | None, item.get("shape")),
                 duration_ticks=(None if item.get("duration") is None else int(item["duration"])),
-                energy=None if item.get("energy") is None else int(item["energy"]),
+                energy=None if item.get("energy") is None else float(item["energy"]),
                 strict=bool(item.get("strict", True)),
             )
         )

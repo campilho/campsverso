@@ -91,11 +91,27 @@ watering_can: {capacity: 10}
 # o custo da tabela `actions` (`cost: false` tira); `note` é uma nota com valores dos dados entre
 # chaves; num parâmetro, `price` é o campo do item com o preço de tabela, `price_attribute` o começo
 # do atributo do alvo com o preço de agora e `stock_attribute` o atributo com o que há hoje.
+# `requires` diz o que precisa valer para a ação fazer sentido (um atributo do alvo ou um item no
+# inventário), e o menu a desabilita com o `hint`; `held_prefix` deixa só as escolhas cujo item
+# (`semente_` + a cultura) quem joga tem; `notes` dá a cada escolha uma nota tirada de uma ficha.
 affordances:
-  - {action: plant, label: Plantar, kinds: [plot], params: [{name: crop, label: Cultura, choices: crops}]}
-  - {action: water, label: Regar, kinds: [plot]}
-  - {action: harvest, label: Colher, kinds: [plot]}
-  - {action: clear, label: Limpar o canteiro, kinds: [plot]}
+  - action: plant
+    label: Plantar
+    kinds: [plot]
+    requires: [{attribute: crop, in: [null], hint: o canteiro já tem planta}]
+    params: [{name: crop, label: Cultura, choices: crops, held_prefix: semente_}]
+  - action: water
+    label: Regar
+    kinds: [plot]
+    requires: [{attribute: stage, in: [semente, broto, crescendo, madura], hint: não há planta viva}]
+  - action: harvest
+    label: Colher
+    kinds: [plot]
+    requires: [{attribute: stage, in: [madura], hint: ainda não está madura}]
+  - action: clear
+    label: Limpar o canteiro
+    kinds: [plot]
+    requires: [{attribute: stage, in: [murcha], hint: só se limpa a planta murcha}]
   - {action: refill, label: Encher o regador, kinds: [well]}
   - action: deposit
     label: Guardar no baú

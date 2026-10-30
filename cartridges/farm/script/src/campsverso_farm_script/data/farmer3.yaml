@@ -37,11 +37,13 @@ rotation: {below: 0.9}
 move: {min_measured: 10, keep_ratio: 0.7}
 
 # A conta de cada lugar: um ponto de energia vale 2 moedas (o que um canteiro rende por energia),
-# e andar gasta 1 de energia a cada 20 tiles (o manual). A rega diária de um canteiro longe pesa
-# a caminhada até ele, dividida pelos canteiros que estão juntos.
+# e andar gasta 1 de energia a cada 60 tiles (o manual da Morada, M21). A rega diária de um
+# canteiro longe pesa a caminhada até ele, dividida pelos canteiros que estão juntos. Com a energia
+# do M21, a varredura de 30/out (2, 3 e 4) deixou o 2: o oráculo rende mais com ele, e o fixo não
+# muda.
 energy_price: 2.0
-walk_energy_per_tile: 0.05
-water_energy: 2
+walk_energy_per_tile: 0.016666666666666666
+water_energy: 1
 share: 4  # canteiros que dividem uma ida para regar
 
 # O que se vê no mercado (ADR-0069): o preço da caixa cai a cada unidade vendida e se recupera aos

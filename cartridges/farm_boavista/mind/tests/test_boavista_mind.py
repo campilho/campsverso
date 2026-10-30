@@ -104,7 +104,7 @@ def test_duracao_e_energia_vem_do_cartucho() -> None:
             assert tool.duration_ticks is None
             continue
         assert tool.duration_ticks == int(spec["duration"]), tool.name
-        assert tool.energy == int(spec["energy"]), tool.name
+        assert tool.energy == float(spec["energy"]), tool.name
 
 
 def test_o_cartao_e_o_do_camps() -> None:

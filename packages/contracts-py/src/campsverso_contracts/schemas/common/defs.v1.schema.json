@@ -239,13 +239,28 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 64,
-          "description": "O começo do nome do atributo do alvo com o preço de agora de cada escolha: o prefixo seguido da escolha (preco_semente_milho). Sem ele no alvo, vale o de tabela (M21)."
+          "description": "O começo do nome do atributo do alvo com o preço de agora de cada escolha: o prefixo seguido da escolha, com - trocado por _ como nos nomes de atributo (preco_semente_milho, diaria_ze_graudo). Sem ele no alvo, vale o de tabela (M21)."
         },
         "stock_attribute": {
           "type": "string",
           "minLength": 1,
           "maxLength": 64,
           "description": "O atributo do alvo com as escolhas que há hoje, separadas por vírgula (estoque_hoje) (M21)."
+        },
+        "held_prefix": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "A escolha só vale se quem joga tem o item com este começo seguido dela (`semente_` e a cultura); o menu mostra quantos tem (M21)."
+        },
+        "option_notes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240
+          },
+          "description": "Uma nota de cada escolha, como a ficha de um ajudante (M21)."
         }
       }
     },
@@ -311,6 +326,43 @@
           "minLength": 1,
           "maxLength": 120,
           "description": "Uma nota para quem joga, como o horário de quem atende (aberto das 08:00 às 18:00) (M21)."
+        },
+        "requires": {
+          "type": "array",
+          "description": "O que precisa valer para a ação fazer sentido agora, para o menu desabilitá-la e dizer por quê (M21): um atributo do alvo com um dos valores de `values`, ou um item no inventário de quem joga. O menu só sugere; quem decide é o kernel.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "hint"
+            ],
+            "properties": {
+              "attribute": {
+                "$ref": "#/$defs/token"
+              },
+              "item": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "hint": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "values": {
+                "type": "array",
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            }
+          }
         }
       }
     },

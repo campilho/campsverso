@@ -101,7 +101,13 @@ actions:  # os novos, e as variantes com o arado
 affordances:  # o que entra no menu além do que o gênero já tem (ADR-0051)
   - {action: dig, label: Cavar um canteiro aqui, kinds: [self], target: false}
   - {action: dig, label: Cavar um canteiro aqui, kinds: [grass]}  # o menu da grama (ADR-0068)
-  - {action: fertilize, label: Adubar, kinds: [plot]}
+  - action: fertilize
+    label: Adubar
+    kinds: [plot]
+    requires:
+      - {item: adubo, hint: sem adubo no inventário}
+      - {attribute: crop, in: [null], hint: só se aduba o canteiro vazio}
+      - {attribute: adubado, in: [null, false], hint: o canteiro já está adubado}
   - action: deposit  # o baú guarda também pratos e adubo
     label: Guardar no baú
     kinds: [chest]

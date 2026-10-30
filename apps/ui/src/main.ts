@@ -22,13 +22,14 @@ import { renderHud } from "./panels/hud.ts";
 import { ActionMenu } from "./panels/menu.ts";
 import { OperatorPanel } from "./panels/operator.ts";
 import { Portrait } from "./panels/portrait.ts";
-import { inControl, menuFor, proposal, thingAt, tileMenu, walkTo, type MenuEntry, type Proposal, type Tile } from "./play.ts";
+import { contentsOf, inControl, menuFor, proposal, thingAt, tileMenu, walkTo, type MenuEntry, type Proposal, type Tile } from "./play.ts";
 import { busyText, progressOf } from "./progress.ts";
 import { ActionQueue, type Step } from "./queue.ts";
 import { MapCanvas } from "./render/canvas.ts";
 import { PhaserRenderer } from "./render/phaser.ts";
 import type { WorldRenderer } from "./render/renderer.ts";
 import { DisplayClock, clockText, isLive } from "./simclock.ts";
+import { describe, shortType } from "./timeline.ts";
 import { Store } from "./store.ts";
 import { parseTiledMap, tileAt as terrainAt, type TileGrid } from "./tiled.ts";
 
@@ -130,10 +131,28 @@ function avatarName(state: ObserverState | undefined = store.state): string {
   return state?.entities[avatarId()]?.display_name ?? avatarId();
 }
 
-function say(text: string): void {
+function say(text: string, good = false): void {
   notice.textContent = text;
+  notice.classList.toggle("good", good);
   notice.hidden = false;
   noticeUntil = performance.now() + NOTICE_MS;
+}
+
+/** Os contratos de quem joga (M21): contratou, dispensou ou o contrato terminou. */
+const LABOR = new Set([
+  "campsverso.economy.labor.hired.v1",
+  "campsverso.economy.labor.dismissed.v1",
+  "campsverso.economy.labor.ended.v1",
+]);
+
+/** O retrato de um avatar pelo id (a escolha do quadro de ajudantes, M21); nada sem arte dele. */
+function portraitOf(id: string): HTMLElement | undefined {
+  if (art?.manifest.avatars?.[id] === undefined) {
+    return undefined;
+  }
+  const picture = new Portrait();
+  picture.setArt(art.manifest, id);
+  return picture.element;
 }
 
 /** Recusas que interessam a quem joga: as ações do avatar e os comandos desta conexão. */
@@ -194,6 +213,11 @@ store.onChange(() => {
 
 store.onEvents((events) => {
   for (const event of events) {
+    const data = event.data as Record<string, unknown> | undefined;
+    if (LABOR.has(event.type) && data?.employer === avatarId()) {
+      say(describe(event, store.state?.session?.labels ?? []) ?? shortType(event.type), true);
+      continue;
+    }
     const text = explain(event);
     const cleared = queue.settle(event, avatarId());
     if (text !== undefined || cleared !== undefined) {
@@ -384,7 +408,12 @@ function openMenu(state: ObserverState, tile: Tile, pageX: number, pageY: number
   }
   const entity = clicked === "self" ? state.entities[avatarId()] : state.entities[clicked];
   const title = clicked === "self" ? `${entity?.display_name ?? avatarId()} (você)` : (entity?.display_name ?? clicked);
-  menu.open(pageX, pageY, `${title}${suffix}`, menuFor(state, avatarId(), clicked), choose);
+  const contents = clicked === "self" ? undefined : contentsOf(state, clicked);
+  menu.open(pageX, pageY, `${title}${suffix}`, menuFor(state, avatarId(), clicked), choose, {
+    ...(contents === undefined ? {} : { contents }),
+    icon: (item) => icons.url(item),
+    portrait: (option) => portraitOf(option),
+  });
 }
 
 // ---------------------------------------------------------------- o teclado (ADR-0068)

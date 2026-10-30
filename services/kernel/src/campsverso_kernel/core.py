@@ -257,6 +257,10 @@ class KernelCore:
                     param["price_attribute"] = p.price_attribute
                 if p.stock_attribute is not None:
                     param["stock_attribute"] = p.stock_attribute
+                if p.held_prefix is not None:
+                    param["held_prefix"] = p.held_prefix
+                if p.option_notes:
+                    param["option_notes"] = dict(p.option_notes)
                 params.append(param)
             if params:
                 entry["params"] = params
@@ -264,8 +268,24 @@ class KernelCore:
                 entry["cost"] = {"energy": a.cost[0], "minutes": a.cost[1]}
             if a.note is not None:
                 entry["note"] = a.note
+            if a.requires:
+                entry["requires"] = [
+                    {"hint": r.hint}
+                    | ({"attribute": r.attribute, "values": list(r.values)} if r.attribute else {})
+                    | ({"item": r.item} if r.item else {})
+                    for r in a.requires
+                ]
             catalog.append(entry)
         return {"affordances": catalog} if catalog else {}
+
+    def _items(self) -> dict[str, Any]:
+        """O peso de cada item com peso, para a tela desenhar o que ocupa num contêiner (M21)."""
+        weights = {
+            name: {"weight": float(item.weight)}
+            for name, item in sorted(self.definition.items.items())
+            if item.weight
+        }
+        return {"items": weights} if weights else {}
 
     def _metrics(self) -> dict[str, Any]:
         """O catálogo de métricas do dia (ADR-0054); ausente se o cartucho não declarar nenhuma."""
@@ -322,6 +342,7 @@ class KernelCore:
                 **self._affordances(),
                 **self._metrics(),
                 **self._labels(),
+                **self._items(),
             },
         )
         world.emit_fact(

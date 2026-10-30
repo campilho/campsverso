@@ -133,6 +133,19 @@ class AffordanceParam:
     prices: tuple[tuple[str, float], ...] = ()
     price_attribute: str | None = None
     stock_attribute: str | None = None
+    held_prefix: str | None = None  # a escolha vale com o item `prefixo + escolha` no inventário
+    option_notes: tuple[tuple[str, str], ...] = ()  # uma nota de cada escolha (a ficha)
+
+
+@dataclass(frozen=True, slots=True)
+class Requirement:
+    """O que precisa valer para uma ação do menu fazer sentido agora (M21): um atributo do alvo
+    com um dos valores de `values`, ou um item no inventário de quem joga; `hint` diz por quê."""
+
+    hint: str
+    attribute: str | None = None
+    values: tuple[Scalar | None, ...] = ()
+    item: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -150,6 +163,7 @@ class AffordanceDef:
     params: tuple[AffordanceParam, ...] = ()
     cost: tuple[float, int] | None = None  # (energia, minutos)
     note: str | None = None
+    requires: tuple[Requirement, ...] = ()
 
 
 type MetricKind = Literal["count", "max_need", "item"]

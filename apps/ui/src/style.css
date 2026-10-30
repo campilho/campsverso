@@ -313,6 +313,11 @@ canvas {
 }
 
 .action-menu[hidden],
+/* Um aviso bom (a contratação, M21), na mesma faixa dos de recusa. */
+.notice.good {
+  background: rgba(24, 60, 34, 0.92);
+}
+
 .notice[hidden],
 .queue[hidden],
 .commands[hidden] {
@@ -396,6 +401,76 @@ canvas {
 
 .action-menu input[type="number"] {
   width: 64px;
+}
+
+/* O interior de um contêiner (M21): a capacidade em 100 casas, cada item nas suas, pelo peso. */
+.action-menu .contents {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.action-menu .contents-grid {
+  display: grid;
+  grid-template-columns: repeat(20, 14px);
+  gap: 1px;
+}
+
+.action-menu .contents-grid .cell {
+  width: 14px;
+  height: 14px;
+  background: #0d0f13;
+  border: 1px solid var(--line);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-menu .contents-grid .cell img {
+  width: 12px;
+  height: 12px;
+  image-rendering: pixelated;
+}
+
+.action-menu .contents-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.85em;
+}
+
+.action-menu .contents-list li {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.action-menu .contents-list img {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}
+
+.action-menu .swatch {
+  width: 10px;
+  height: 10px;
+  display: inline-block;
+}
+
+/* A ficha de uma escolha (o ajudante do quadro): o retrato e o que ele faz bem e mal (M21). */
+.action-menu .option-sheet {
+  flex-basis: 100%;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 0.85em;
+  max-width: 420px;
+}
+
+.action-menu .option-sheet .portrait {
+  position: static;
 }
 
 /* O custo da ação, a nota e se o alvo está aberto (M21), numa linha própria, embaixo. */
