@@ -257,6 +257,17 @@ canvas {
   font-size: 12px;
 }
 
+/* A carga da mochila (M21): discreta, e em alerta perto do limite. */
+.load {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.load.full {
+  color: #e67e22;
+  font-weight: 600;
+}
+
 /* O ícone do item (ADR-0068): o quadro LPC, sem suavizar, na altura do texto. */
 .item-icon {
   width: 20px;

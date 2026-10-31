@@ -171,9 +171,81 @@ export function contentsOf(state: ObserverState, target: string): Contents | und
   return { items, used: typeof used === "number" ? used : items.reduce((sum, i) => sum + i.weight, 0), capacity };
 }
 
-/** A energia com no máximo uma casa, em português (1,5). */
-function amount(value: number): string {
+/** Um número com no máximo uma casa, em português (1,5): a energia, o peso. */
+export function amount(value: number): string {
   return String(Math.round(value * 10) / 10).replace(".", ",");
+}
+
+/** O que cada ação faz, no infinitivo, para a frase da recusa. */
+const VERBS: Readonly<Record<string, string>> = {
+  accept_order: "aceitar a encomenda",
+  buy: "comprar",
+  clear: "limpar",
+  cook: "cozinhar",
+  deliver_order: "entregar a encomenda",
+  deposit: "guardar",
+  dig: "cavar",
+  dismiss_helper: "dispensar o ajudante",
+  eat: "comer",
+  fertilize: "adubar",
+  go_home: "mandar para casa",
+  harvest: "colher",
+  hire_helper: "contratar",
+  move: "andar até lá",
+  order_helper: "mandar no ajudante",
+  place: "fincar",
+  plant: "plantar",
+  process: "carregar a máquina",
+  refill: "encher o regador",
+  sell: "vender",
+  sleep: "dormir",
+  wait: "esperar",
+  water: "regar",
+  withdraw: "pegar",
+};
+
+/** Os motivos de recusa do kernel e do gênero farm, como quem joga entende. */
+const REASONS: Readonly<Record<string, string>> = {
+  absent: "não está na fazenda",
+  already_done: "já está feito",
+  already_fertilized: "o canteiro já foi adubado",
+  already_there: "você já está lá",
+  can_empty: "o regador está vazio; encha no poço",
+  closed: "está fechado agora",
+  empty: "está vazio",
+  helper_busy: "esse ajudante não está livre",
+  insufficient_funds: "as moedas não bastam",
+  invalid_params: "essa escolha não vale aqui",
+  machine_busy: "a máquina ainda está trabalhando",
+  missing_ingredients: "faltam ingredientes",
+  missing_item: "falta o item",
+  no_order: "essa encomenda não está no quadro",
+  no_plant: "não há planta para regar",
+  no_room: "a fazenda chegou ao máximo de canteiros",
+  not_adjacent: "é preciso estar ao lado",
+  not_edible: "isso não se come",
+  not_employer: "esse ajudante não trabalha para você",
+  not_grass: "só se cava na grama",
+  not_in_control: "outro controlador está no comando",
+  not_passable: "não dá para passar ali",
+  not_ripe: "ainda não está madura",
+  not_tired: "ainda não deu sono",
+  not_withered: "a planta não está murcha",
+  occupied: "o lugar está ocupado",
+  out_of_stock: "acabou o estoque de hoje",
+  plot_occupied: "o canteiro já tem planta",
+  too_heavy: "não cabe na mochila; guarde alguma coisa no baú",
+  too_late: "chegou tarde",
+  unknown_action: "essa ação não existe aqui",
+  unreachable: "não há caminho até lá",
+};
+
+/** A recusa de uma ação do avatar em português (M21): "Não deu para colher: não cabe na mochila;
+ * guarde alguma coisa no baú." O detalhe do kernel vai entre parênteses; um motivo sem tradução
+ * aparece pelo código. */
+export function refusalText(action: string, reason: string, detail?: string): string {
+  const extra = detail === undefined ? "" : ` (${detail})`;
+  return `Não deu para ${VERBS[action] ?? action}: ${REASONS[reason] ?? reason}${extra}.`;
 }
 
 /** A linha de baixo de uma ação no menu: o custo, a nota e se o alvo está aberto agora (M21). */

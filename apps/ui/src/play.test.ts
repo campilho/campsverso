@@ -1,7 +1,7 @@
 import type { Affordance, ObserverEntity, ObserverState } from "@campsverso/contracts";
 import { describe, expect, it } from "vitest";
 
-import { contentsOf, inControl, menuFor, proposal, thingAt, walkTo } from "./play.ts";
+import { contentsOf, inControl, menuFor, proposal, refusalText, thingAt, walkTo } from "./play.ts";
 
 const AFFORDANCES: Affordance[] = [
   { action: "plant", label: "Plantar", on: ["plot"], target: true, params: [{ name: "crop", label: "Cultura", choices: ["rabanete", "batata"], source: "any" }] },
@@ -242,5 +242,16 @@ describe("o menu mostra o que vale agora (M21)", () => {
     });
     expect(contentsOf(chest, "feira")).toBeUndefined(); // sem capacidade, sem desenho
     expect(contentsOf(chest, "orders")).toBeUndefined(); // o quadro guarda pedidos, não coisas
+  });
+});
+
+describe("a recusa em português (M21)", () => {
+  it("diz o que não deu e por quê, com o detalhe do kernel", () => {
+    expect(refusalText("harvest", "too_heavy")).toBe("Não deu para colher: não cabe na mochila; guarde alguma coisa no baú.");
+    expect(refusalText("dig", "missing_item", "sem pá")).toBe("Não deu para cavar: falta o item (sem pá).");
+  });
+
+  it("um motivo ou uma ação sem tradução aparece pelo código", () => {
+    expect(refusalText("dance", "out_of_tune")).toBe("Não deu para dance: out_of_tune.");
   });
 });

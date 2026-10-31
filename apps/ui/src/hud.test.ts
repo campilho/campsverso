@@ -1,7 +1,7 @@
 import type { ObserverState } from "@campsverso/contracts";
 import { describe, expect, it } from "vitest";
 
-import { contractsText, needView } from "./panels/hud.ts";
+import { contractsText, loadView, needView } from "./panels/hud.ts";
 
 describe("as barras do corpo (M21)", () => {
   it("a fome aparece como saciedade: cheia é boa, como a energia", () => {
@@ -44,5 +44,35 @@ describe("os contratos no painel (M21)", () => {
       },
     } as ObserverState;
     expect(contractsText(state, "camps")).toEqual(["Zé Graúdo até o dia 5"]);
+  });
+});
+
+describe("a carga da mochila (M21)", () => {
+  function carrying(attributes: Record<string, number>): ObserverState {
+    return {
+      tick: 0,
+      day: 1,
+      phase: "manha",
+      clock: { mode: "continuous", scale: 72, paused: false },
+      weather: {},
+      entities: { camps: { kind: "avatar", position: { x: 1, y: 1 }, attributes } },
+      containers: {},
+      motion: {},
+      actions: {},
+      needs: {},
+      asleep: {},
+      controllers: {},
+      decisions: {},
+    };
+  }
+
+  it("o que carrega e o que aguenta, pelos atributos do avatar, em alerta perto do limite", () => {
+    expect(loadView(carrying({ capacity: 20, weight: 12.5 }), "camps")).toEqual({ text: "carga 12,5 de 20", full: false });
+    expect(loadView(carrying({ capacity: 20, weight: 18 }), "camps")).toEqual({ text: "carga 18 de 20", full: true });
+    expect(loadView(carrying({ capacity: 20 }), "camps")).toEqual({ text: "carga 0 de 20", full: false });
+  });
+
+  it("sem capacidade, nada (a fazenda 1)", () => {
+    expect(loadView(carrying({}), "camps")).toBeUndefined();
   });
 });

@@ -3,6 +3,7 @@
 import type { ObserverState } from "@campsverso/contracts";
 
 import { el } from "../dom.ts";
+import { amount } from "../play.ts";
 import { clockText } from "../simclock.ts";
 import type { Status } from "../store.ts";
 
@@ -73,6 +74,19 @@ function itemChip(item: string, qty: number, icon?: IconOf): HTMLElement {
   return chip;
 }
 
+/** A carga do avatar (M21): o que carrega e o que aguenta, pelos atributos `weight` e `capacity`
+ * que o kernel mostra, "carga 12,5 de 20"; `full` a partir de 90%, quando a próxima colheita
+ * pode não caber. Nada num mundo sem capacidade (a fazenda 1). */
+export function loadView(state: ObserverState, avatarId: string): { text: string; full: boolean } | undefined {
+  const attributes = state.entities[avatarId]?.attributes;
+  const capacity = attributes?.capacity;
+  if (typeof capacity !== "number" || capacity <= 0) {
+    return undefined;
+  }
+  const used = typeof attributes?.weight === "number" ? attributes.weight : 0;
+  return { text: `carga ${amount(used)} de ${amount(capacity)}`, full: used >= 0.9 * capacity };
+}
+
 /** Os outros avatares na tela: o nome, a ordem que receberam (quando têm) e o que fazem agora. */
 export function othersText(state: ObserverState, avatarId: string): string[] {
   return Object.entries(state.entities)
@@ -116,6 +130,7 @@ export function renderHud(
     .filter((entry): entry is [string, number] => entry[1] !== undefined)
     .sort(([a], [b]) => a.localeCompare(b));
   const items = Object.entries(state.containers[avatarId] ?? {}).sort(([a], [b]) => a.localeCompare(b));
+  const load = loadView(state, avatarId);
   const held = Object.entries(state.entities)
     .filter(([, e]) => e?.container_id === avatarId)
     .map(([id, e]) => {
@@ -156,6 +171,7 @@ export function renderHud(
       "div",
       { className: "hud-items" },
       el("label", {}, "inventário"),
+      ...(load === undefined ? [] : [el("span", { className: load.full ? "load full" : "load" }, load.text)]),
       ...items.map(([item, qty]) => itemChip(item, qty ?? 0, icon)),
       ...held.map((text) => el("span", { className: "item held" }, text)),
     ),

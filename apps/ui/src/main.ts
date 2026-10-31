@@ -22,7 +22,7 @@ import { renderHud } from "./panels/hud.ts";
 import { ActionMenu } from "./panels/menu.ts";
 import { OperatorPanel } from "./panels/operator.ts";
 import { Portrait } from "./panels/portrait.ts";
-import { contentsOf, inControl, menuFor, proposal, thingAt, tileMenu, walkTo, type MenuEntry, type Proposal, type Tile } from "./play.ts";
+import { contentsOf, inControl, menuFor, proposal, refusalText, thingAt, tileMenu, walkTo, type MenuEntry, type Proposal, type Tile } from "./play.ts";
 import { busyText, progressOf } from "./progress.ts";
 import { ActionQueue, type Step } from "./queue.ts";
 import { MapCanvas } from "./render/canvas.ts";
@@ -164,7 +164,7 @@ function explain(event: EnvelopeV1): string | undefined {
     if (data.reason === "busy" && state !== undefined) {
       return busyText(state, avatarId(), shownTick); // ADR-0052: o trabalho não se cancela
     }
-    return `O kernel recusou ${String(data.action)} (${String(data.reason)}${detail}).`;
+    return refusalText(String(data.action), String(data.reason), typeof data.detail === "string" ? data.detail : undefined);
   }
   if (event.type === "campsverso.world.command.rejected.v1") {
     const command = String(data.command_type).replace(/^campsverso\.cmd\./, "").replace(/\.v\d+$/, "");

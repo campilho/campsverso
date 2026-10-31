@@ -4,7 +4,7 @@
  * O menu não esconde nada que o kernel aceitaria: só desabilita o que não tem o que escolher.
  */
 import { button, el } from "../dom.ts";
-import type { Contents, MenuEntry, MenuParam } from "../play.ts";
+import { amount, type Contents, type MenuEntry, type MenuParam } from "../play.ts";
 
 export type Choose = (entry: MenuEntry, chosen: Record<string, string | number>) => void;
 
@@ -36,11 +36,6 @@ function tint(item: string): string {
     hash = (hash * 31 + char.charCodeAt(0)) % 360;
   }
   return `hsl(${String(hash)} 45% 38%)`;
-}
-
-/** Um número com no máximo uma casa, em português. */
-function amount(value: number): string {
-  return String(Math.round(value * 10) / 10).replace(".", ",");
 }
 
 export class ActionMenu {
