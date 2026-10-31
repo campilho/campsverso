@@ -182,19 +182,30 @@ def test_a_rodada_de_verificacao_da_morada_do_sol() -> None:
 
 def test_a_terceira_rodada_poe_as_quatro_reguas_nos_quatro_mapas() -> None:
     """ADR-0074: o script 2, o script 3, o script 3 fixo e o oráculo nos mapas a, b, c e d; depois,
-    as corridas dos modelos no mapa d, uma por vez: o Haiku três vezes, com memória."""
+    as corridas dos modelos no mapa d, uma por vez: o Haiku três vezes, com memória, e os braços."""
     by = {s.name: s for s in SPECS_TERCEIRA}
-    assert len(by) == 19
+    assert len(by) == 22
     assert (by["script3-fixo-d"].script, by["script3-fixo-d"].map) == ("farmer3-fixo", "d")
     assert (by["oraculo-a"].script, by["oraculo-a"].map) == ("oracle", None)
     assert {(s.cartridge, s.seed, s.days) for s in SPECS_TERCEIRA} == {
         ("farm_morada_do_sol", 20261022, 28)
     }
     haikus = [s for s in SPECS_TERCEIRA if s.controller == "llm"]
-    assert [s.name for s in haikus] == ["haiku", "haiku-r2", "haiku-r3"]
-    assert {(s.model, s.map, s.memory, s.playbook, s.limits) for s in haikus} == {
-        ("claude-haiku-5-5", "d", True, 0, None)
+    assert [s.name for s in haikus] == [
+        "haiku",
+        "haiku-r2",
+        "haiku-r3",
+        "haiku-comparar",
+        "haiku-comparar-r2",
+        "haiku-conselheiro",
+    ]
+    assert {(s.model, s.map, s.memory, s.playbook) for s in haikus} == {
+        ("claude-haiku-5-5", "d", True, 0)
     }
+    arms = {s.name: (s.compare, s.advisor, s.limits) for s in haikus}
+    assert arms["haiku"] == (False, None, None)
+    assert arms["haiku-comparar-r2"] == (True, None, None)
+    assert arms["haiku-conselheiro"] == (False, "claude-opus-4-8", BudgetLimits(1.00, 12.0))
 
 
 def test_a_rodada_do_agricultor_treinado() -> None:

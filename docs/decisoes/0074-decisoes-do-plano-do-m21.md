@@ -265,6 +265,7 @@ Com a energia nova, o ajudante ainda não pagava, e a explicação era o teto de
 24. **O ajudante fica como está no M21,** o teste de julgamento da ADR-0073: o usuário vai jogar o mapa d, e as réguas e a promessa do d já estão medidas. "O ajudante que paga" vai para a v0.4 (`futuro.md`).
 25. **O defeito da mochila cheia fica para a v0.4,** junto com a logística da fazenda grande. Hoje ele pesa um dia no oráculo de dois mapas, e no d não aparece.
 26. **O Haiku três vezes roda nesta semana,** antes do ano do humano, com os números lacrados: o usuário vê só o custo e se a corrida rodou bem, até terminar o ano dele no mapa d. Daí em diante, a decisão 17 vale como antes.
+27. **Os braços do Haiku também rodam antes do ano do humano** (31/out, pedido do usuário), lacrados como o Haiku três vezes: a ferramenta de comparação duas vezes e o conselheiro (o Opus 4.8) uma, no mapa d. O humano não vê nada das corridas, então jogar depois delas não muda o ano dele. O que a decisão 17 perde é o relatório do passo anterior antes do ok: o usuário aprova os braços sem ver o Haiku três vezes. A documentação do conselheiro, conferida na hora, não mudou: o beta `advisor-tool-2026-03-01`, e o Opus 4.8 devolve o conselho em texto.
 
 A tela de quem joga ganha a carga da mochila ao lado do inventário ("carga 12,5 de 20", em alerta a partir de 90%) e as recusas em português ("Não deu para colher: não cabe na mochila; guarde alguma coisa no baú.").
 

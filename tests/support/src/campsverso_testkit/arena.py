@@ -58,6 +58,7 @@ MORADA = "farm_morada_do_sol"
 YEAR = 28  # o ano acelerado da Morada do Sol
 SONNET = "claude-sonnet-5-5"
 OPUS = "claude-opus-5-5"
+ADVISOR = "claude-opus-4-8"  # o conselheiro do Haiku, com o conselho em texto (ADR-0074, decisão 9)
 
 
 @dataclass(frozen=True)
@@ -201,6 +202,20 @@ SPECS_TERCEIRA: tuple[Spec, ...] = (
     # O Haiku três vezes (30/out), com memória, o caderno de campo e o experimento da noite, no
     # teto de sempre (US$ 0,60 por dia, 10 no total); os números ficam lacrados até o humano jogar.
     *(_morada(f"haiku{rep}", "llm", memory=True, map="d") for rep in ("", "-r2", "-r3")),
+    # Os braços do Haiku (31/out), também antes do humano e lacrados (decisão 27): a ferramenta de
+    # comparação duas vezes, no teto de sempre, e o conselheiro (o Opus 4.8) uma, num teto maior.
+    *(
+        _morada(f"haiku-comparar{rep}", "llm", memory=True, map="d", compare=True)
+        for rep in ("", "-r2")
+    ),
+    _morada(
+        "haiku-conselheiro",
+        "llm",
+        memory=True,
+        map="d",
+        advisor=ADVISOR,
+        limits=BudgetLimits(1.00, 12.0),
+    ),
 )
 ROUNDS: dict[str, tuple[Spec, ...]] = {
     "camps": SPECS,
