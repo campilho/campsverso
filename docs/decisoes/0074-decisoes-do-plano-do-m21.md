@@ -239,6 +239,35 @@ Mais achados do usuário na tela, com campos opcionais novos no catálogo de aç
 - **A feira:** um menu próprio, com a nota "a cada 7 dias, das 06:00 às 14:00, pago na hora; a próxima é no dia N", que a tela completa pelo atributo da barraca (`{target.proxima_feira}`).
 - **Os ajudantes:** cada escolha mostra o retrato, a ficha ("Zé Graúdo, o carregador: carrega o dobro e cava mais rápido; mas come o dobro") e a diária de agora, e o rótulo "Dias (1, 3 ou 7)", que a vírgula cortava no YAML, aparece inteiro. Ao contratar, dispensar ou terminar um contrato, a tela avisa, e o painel mostra quem está contratado até que dia, pelo quadro.
 
+## Adendo de 30/out: o ajudante sem o teto e as decisões 24 a 26
+
+Com a energia nova, o ajudante ainda não pagava, e a explicação era o teto de 28 canteiros dos scripts. O experimento, de graça e fora do repositório (os scripts ficaram no rascunho da sessão), tirou o teto e foi atrás do freio de verdade:
+- **Sem o teto, nada muda.** O script 3 cresce um canteiro a cada 60 moedas na mão, e o caixa o segura em 17 a 21 canteiros; o teto só chegava no fim do oráculo no mapa b. Sem ele, o script 3 e o oráculo repetem os números nos mapas a e c. No b, o oráculo planta um pouco mais e termina com 691 moedas, contra 817, mais 560 em colheita guardada. A conta do script contratou uma vez (o Tião, um dia) e empatou.
+- **Com 3.000 moedas no começo,** o oráculo gasta quase tudo em semente nos dois primeiros dias: o caixa cai, a regra volta a pedir 20 canteiros, e ele termina com 64 moedas.
+- **Com a fazenda fixa e capital,** o oráculo sozinho, no mapa a, com o conserto da mochila (abaixo):
+
+| Canteiros | Moedas no fim | Colheita guardada (tabela) | Vendidas | Estragadas | Murchas |
+|---|---|---|---|---|---|
+| 28 | 3.547 | 1.394 | 78 | 0 | 0 |
+| 40 | 2.306 | 3.602 | 96 | 0 | 0 |
+| 60 | 1.177 | 3.616 | 77 | 26 | 0 |
+
+- **O trabalho não falta:** com a energia nova, um sozinho cuida de 60 canteiros sem murchar nem desmaiar.
+- **O freio é vender e carregar:** as vendas ficam entre 50 e 100 unidades no ano, qualquer que seja o tamanho.
+  - A mochila leva 20, e a pá e o regador grande ocupam 12.
+  - O script só busca a colheita no baú quando tem contrato.
+  - Ele não vende abaixo de 70% da tabela, e a caixa recupera um terço do preço por dia.
+- **O ajudante na ordem "cuidar" quase não acha serviço:** de 5 a 120 ações em uns 20 dias de contrato, porque o Camps já rega e colhe. O mundo tem a ordem "vender", e o script 3 não a usa. A rodada com cada ficha contratada à força saiu contaminada (o conserto da mochila e a busca no baú brigavam) e foi descartada.
+- **Um mercado que volta inteiro à tabela de manhã,** como o da Boa Vista, não deu sinal limpo: nesses tamanhos, quem atrapalha é a lógica de venda do script.
+
+**O defeito da mochila cheia,** nos scripts 2, 3, fixo e oráculo: eles guardam dois dias de comida na mochila, e a abóbora (2 de peso, 30 dias de validade) nunca vai para o baú. Com o regador grande, a mochila enche, a colheita é recusada (`too_heavy`) e o script repete a proposta o dia inteiro, esperando entre as recusas. Nas réguas da energia nova, aparece só no oráculo dos mapas a e b, um dia cada, sem murchar nada; no mapa d, em nenhuma. Sem o conserto, a fazenda fixa em 40 e 60 teve 321 e 641 recusas, e 31 e 71 plantas murchas.
+
+24. **O ajudante fica como está no M21,** o teste de julgamento da ADR-0073: o usuário vai jogar o mapa d, e as réguas e a promessa do d já estão medidas. "O ajudante que paga" vai para a v0.4 (`futuro.md`).
+25. **O defeito da mochila cheia fica para a v0.4,** junto com a logística da fazenda grande. Hoje ele pesa um dia no oráculo de dois mapas, e no d não aparece.
+26. **O Haiku três vezes roda nesta semana,** antes do ano do humano, com os números lacrados: o usuário vê só o custo e se a corrida rodou bem, até terminar o ano dele no mapa d. Daí em diante, a decisão 17 vale como antes.
+
+A tela de quem joga ganha a carga da mochila ao lado do inventário ("carga 12,5 de 20", em alerta a partir de 90%) e as recusas em português ("Não deu para colher: não cabe na mochila; guarde alguma coisa no baú.").
+
 ## Consequências
 
 - **O orçamento da v0.3 dobra,** e o plano passa a gastar por passos aprovados, não por rodada.

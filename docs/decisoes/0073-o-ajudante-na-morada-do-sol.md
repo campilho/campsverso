@@ -87,3 +87,7 @@ O oráculo nos três mapas, com o tempo de hoje, cada ficha contratada à força
 - **Uma economia em que o trabalho prende vai para o `futuro.md`,** com o script que cresce a fazenda pela renda e manda o ajudante cavar e plantar.
 - **O quadro mostra a diária,** e o script 3 e o oráculo ganham a contratação, a busca no baú e a conta forçada, sem mudar nada quando não contratam: o M19 se repete número por número.
 - **A rodada de verificação do passo 8** usa a contratação forçada nos mapas a e b.
+
+## Adendo de 30/out: com a energia nova e sem o teto
+
+Com a energia nova da Morada (ADR-0074, decisão 23), um só fazendeiro cuida de uns 57 canteiros, e o ajudante ainda não paga. Sem o teto de canteiros dos scripts, nada muda: o caixa já os segurava antes. Com a fazenda fixa em até 60 canteiros, o oráculo cuida de tudo sozinho, e o freio passa a ser vender e carregar, não o trabalho. O experimento e a decisão de manter o ajudante como está no M21 ficam no adendo de 30/out da ADR-0074 (decisões 24 e 25).
