@@ -190,10 +190,17 @@ RULERS = (
     ("script3-fixo", "farmer3-fixo"),
     ("oraculo", "oracle"),
 )
-SPECS_TERCEIRA: tuple[Spec, ...] = tuple(
-    _morada(f"{name}-{variant}", "script", script=script, map=None if variant == "a" else variant)
-    for name, script in RULERS
-    for variant in ("a", "b", "c", "d")
+SPECS_TERCEIRA: tuple[Spec, ...] = (
+    *(
+        _morada(
+            f"{name}-{variant}", "script", script=script, map=None if variant == "a" else variant
+        )
+        for name, script in RULERS
+        for variant in ("a", "b", "c", "d")
+    ),
+    # O Haiku três vezes (30/out), com memória, o caderno de campo e o experimento da noite, no
+    # teto de sempre (US$ 0,60 por dia, 10 no total); os números ficam lacrados até o humano jogar.
+    *(_morada(f"haiku{rep}", "llm", memory=True, map="d") for rep in ("", "-r2", "-r3")),
 )
 ROUNDS: dict[str, tuple[Spec, ...]] = {
     "camps": SPECS,
