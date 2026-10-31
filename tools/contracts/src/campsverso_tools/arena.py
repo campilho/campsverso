@@ -95,6 +95,8 @@ MODEL_NAMES = {
     "claude-opus-5-5": "Opus 5.5",
     "claude-opus-4-8": "Opus 4.8",
     "claude-fable-5-1": "Fable 5.1",
+    "openai/gpt-6-astra": "GPT-6 Astra",
+    "google/gemini-4-argon": "Gemini 4 Argon",
 }
 # O que faz de uma crença (ou anotação) sobre o leste uma descoberta, e não só uma menção: um
 # comparativo de tempo ou de vantagem, ou o rio. "Madura em 3 dias" não conta: é o manual. É uma
@@ -391,6 +393,9 @@ class Run:
     judge: dict[str, Any] | None = None  # os vereditos do juiz (ADR-0070), lidos de juiz.json
     model: dict[str, Any] | None = None  # o que o script 3 aprendeu ou o oráculo sabe
     experiments: list[dict[str, Any]] = field(default_factory=list[dict[str, Any]])  # ADR-0070
+    # Os vereditos de cada juiz pelo modelo dele (ADR-0074, decisão 12): o juiz.json e os
+    # juiz-<modelo>.json, lado a lado na pasta da corrida.
+    judges: dict[str, dict[str, Any]] = field(default_factory=dict[str, dict[str, Any]])
 
     @property
     def spec(self) -> dict[str, Any]:
@@ -454,7 +459,17 @@ def load_run(folder: Path) -> Run:
         _optional(folder / "juiz.json"),
         _optional(folder / "modelo.json"),
         experiments_of(envelopes),
+        _judges(folder),
     )
+
+
+def _judges(folder: Path) -> dict[str, dict[str, Any]]:
+    """Os vereditos de todos os juízes da corrida, pelo modelo de cada um."""
+    found: dict[str, dict[str, Any]] = {}
+    for path in sorted(folder.glob("juiz*.json")):
+        verdict = cast(dict[str, Any], json.loads(path.read_text(encoding="utf-8")))
+        found[str(verdict.get("model", path.stem))] = verdict
+    return found
 
 
 def _optional(path: Path) -> dict[str, Any] | None:
@@ -1224,9 +1239,10 @@ def _card_section(runs: Sequence[Run]) -> list[str]:
         ),
         "",
     ]
-    judged = [r for r in runs if r.judge is not None and r.judge.get("card")]
-    if judged:
-        judge = cast(Mapping[str, Any], judged[0].judge)
+    for model in sorted({m for r in runs for m in r.judges}):  # a ficha de cada juiz, uma vez
+        judge = next((r.judges[model] for r in runs if r.judges.get(model, {}).get("card")), None)
+        if judge is None:
+            continue
         card = cast(Mapping[str, Any], judge["card"])
         harness = cast(Mapping[str, Any], card.get("harness") or {})
         lines += [
@@ -1245,6 +1261,8 @@ def _judge_section(runs: Sequence[Run]) -> list[str]:
     judged = [r for r in runs if r.judge is not None and r.judge.get("rules")]
     if not judged:
         return []
+    if any(len(r.judges) > 1 for r in judged):
+        return _two_judges_section(judged)
     rules = list(cast(Mapping[str, Any], judged[0].judge["rules"]) if judged[0].judge else {})
 
     def cell(r: Run, rule: str) -> str:
@@ -1268,6 +1286,74 @@ def _judge_section(runs: Sequence[Run]) -> list[str]:
         '**não**. Numa corrida com a regra desligada, "a causa" é uma descoberta falsa. A '
         "rubrica fica em `cartridges/<cartucho>/eval/juiz.yaml`, e cada chamada na fita "
         f"`juiz.jsonl` da corrida. Custo: US$ {_n(cost, 2)}.",
+        "",
+        _table(
+            ["Regra", *(r.name for r in judged)],
+            [[rule, *(cell(r, rule) for r in judged)] for rule in rules],
+        ),
+        "",
+    ]
+
+
+def _two_judges_section(judged: Sequence[Run]) -> list[str]:
+    """Os dois juízes (ADR-0074, decisão 12): o veredito de referência de cada corrida e, quando
+    o outro juiz discorda, o dele ao lado. Na corrida da família de um juiz, a referência é o
+    outro; nas demais, o juiz do `juiz.json`."""
+    primary = str((judged[0].judge or {}).get("model", ""))
+    models = sorted({m for r in judged for m in r.judges}, key=lambda m: (m != primary, m))
+    rules = list(cast(Mapping[str, Any], (judged[0].judge or {}).get("rules") or {}))
+
+    def name(model: str) -> str:
+        return MODEL_NAMES.get(model, model)
+
+    def reference(r: Run) -> str:
+        others = [m for m in models if m in r.judges and m != r.spec.get("model")]
+        return primary if primary in others or not others else others[0]
+
+    def mark(r: Run, model: str, rule: str) -> Mapping[str, str] | None:
+        given = cast(Mapping[str, Any], r.judges.get(model, {}).get("rules") or {})
+        return cast(Mapping[str, str] | None, given.get(rule))
+
+    def cell(r: Run, rule: str) -> str:
+        ref = reference(r)
+        main = mark(r, ref, rule)
+        if main is None:
+            return EMPTY
+        told = VERDICTS.get(main["verdict"], main["verdict"])
+        belief = f" ({main['belief_id']})" if main.get("belief_id") else ""
+        who = "" if ref == primary else f" [{name(ref)}]"
+        off = " (regra desligada)" if rule == "agua" and not r.spec.get("river_bonus", True) else ""
+        apart = [
+            f"{name(m)}: {VERDICTS.get(other['verdict'], other['verdict'])}"
+            for m in models
+            if m != ref
+            and (other := mark(r, m, rule)) is not None
+            and other["verdict"] != main["verdict"]
+        ]
+        return f"{told}{belief}{who}{off}" + "".join(f" · {a}" for a in apart)
+
+    pairs = [
+        (mark(r, models[0], rule), mark(r, m, rule))
+        for r in judged
+        for m in models[1:]
+        for rule in rules
+    ]
+    both = [(a, b) for a, b in pairs if a is not None and b is not None]
+    same = sum(1 for a, b in both if a["verdict"] == b["verdict"])
+    spent = {m: sum(float(r.judges.get(m, {}).get("cost_usd", 0)) for r in judged) for m in models}
+    costs = "; ".join(f"{name(m)}, US$ {_n(spent[m], 2)}" for m in models)
+    return [
+        "## Os juízes",
+        "",
+        f"Os juízes ({', '.join(name(m) for m in models)}) leem as crenças do fim de cada "
+        "corrida com memória, sem saber de quem são, e dão um veredito por regra oculta: **a "
+        "causa** (a crença diz o mecanismo e serviria num mapa novo), **só o lugar** (um lugar é "
+        'melhor, sem o porquê) ou **não**. Numa corrida com a regra desligada, "a causa" é uma '
+        f"descoberta falsa. A célula traz o veredito de referência: o do {name(primary)}, e, na "
+        "corrida da família dele, o do outro juiz, marcado entre colchetes (ADR-0074, decisão "
+        "12). Quando o outro discorda, o veredito dele vem depois do ponto. A rubrica fica em "
+        "`cartridges/<cartucho>/eval/juiz.yaml`, e cada chamada na fita `juiz.jsonl` da "
+        f"corrida. Os dois concordam em {same} de {len(both)} vereditos. Custo: {costs}.",
         "",
         _table(
             ["Regra", *(r.name for r in judged)],

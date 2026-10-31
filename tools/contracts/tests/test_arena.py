@@ -433,6 +433,45 @@ def test_o_relatorio_mostra_o_juiz_ao_lado_das_heuristicas(tmp_path: Path) -> No
     assert "| haiku-memoria-sem-regra | Haiku 5.5 com o playbook 1 |" in text  # ADR-0071
 
 
+def test_com_dois_juizes_o_relatorio_mostra_a_referencia_e_quando_discordam(
+    tmp_path: Path,
+) -> None:
+    """ADR-0074, decisão 12: na corrida do Opus vale o Astra; nas outras, o Opus. O veredito do
+    outro juiz aparece só quando discorda, e o relatório conta as concordâncias."""
+    arena = tmp_path / "20261030-terceira"
+    quiet = [ev(0, "world.session.started.v1", tick_seconds=60)]
+    spec = {"name": "haiku", "controller": "llm", "memory": True, "seed": 1}
+    _run(arena, "haiku", spec, quiet)
+    _run(arena, "opus", {**spec, "name": "opus", "model": "claude-opus-5-5"}, quiet)
+
+    def verdicts(agua: str, tomate: str) -> dict[str, Any]:
+        return {
+            "agua": {"verdict": agua, "belief_id": "bel-0003" if agua != "nao" else "", "why": ""},
+            "tomate": {"verdict": tomate, "belief_id": "", "why": ""},
+        }
+
+    judges = {
+        "haiku": (verdicts("lugar", "nao"), verdicts("lugar", "causa")),
+        "opus": (verdicts("causa", "nao"), verdicts("lugar", "nao")),
+    }
+    for name, (opus, astra) in judges.items():
+        folder = arena / name
+        first = {"model": "claude-opus-5-5", "rules": opus, "cost_usd": 0.05}
+        second = {"model": "openai/gpt-6-astra", "rules": astra, "cost_usd": 0.07}
+        (folder / "juiz.json").write_text(json.dumps(first), encoding="utf-8")
+        (folder / "juiz-gpt-6-astra.json").write_text(json.dumps(second), encoding="utf-8")
+    out = tmp_path / "relatorio.md"
+    assert main([str(arena), "--out", str(out)]) == 0
+    text = out.read_text(encoding="utf-8")
+    assert "## Os juízes" in text
+    assert "## O juiz\n" not in text
+    assert "Os dois concordam em 2 de 4 vereditos." in text
+    assert "Custo: Opus 5.5, US$ 0,10; GPT-6 Astra, US$ 0,14." in text
+    opus_run = "só o lugar (bel-0003) [GPT-6 Astra] · Opus 5.5: a causa"
+    assert f"| agua | só o lugar (bel-0003) | {opus_run} |" in text
+    assert "| tomate | não · GPT-6 Astra: a causa | não [GPT-6 Astra] |" in text
+
+
 def test_na_morada_o_relatorio_mostra_o_valor_de_saber_e_o_que_o_script_3_aprendeu(
     tmp_path: Path,
 ) -> None:
