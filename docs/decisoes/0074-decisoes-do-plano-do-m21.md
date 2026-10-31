@@ -266,6 +266,14 @@ Com a energia nova, o ajudante ainda não pagava, e a explicação era o teto de
 25. **O defeito da mochila cheia fica para a v0.4,** junto com a logística da fazenda grande. Hoje ele pesa um dia no oráculo de dois mapas, e no d não aparece.
 26. **O Haiku três vezes roda nesta semana,** antes do ano do humano, com os números lacrados: o usuário vê só o custo e se a corrida rodou bem, até terminar o ano dele no mapa d. Daí em diante, a decisão 17 vale como antes.
 27. **Os braços do Haiku também rodam antes do ano do humano** (31/out, pedido do usuário), lacrados como o Haiku três vezes: a ferramenta de comparação duas vezes e o conselheiro (o Opus 4.8) uma, no mapa d. O humano não vê nada das corridas, então jogar depois delas não muda o ano dele. O que a decisão 17 perde é o relatório do passo anterior antes do ok: o usuário aprova os braços sem ver o Haiku três vezes. A documentação do conselheiro, conferida na hora, não mudou: o beta `advisor-tool-2026-03-01`, e o Opus 4.8 devolve o conselho em texto.
+28. **A primeira leva roda depois da primeira semana do ano do humano** (31/out, o usuário), lacrada como o Haiku. A decisão 17 muda de ordem: as outras famílias vêm antes do Opus, porque do Opus só depende a duração do ano do Astra.
+    - **Quem:** o Claude Sonnet 5.5 (`claude-sonnet-5-5`), pela API da Anthropic, com teto de US$ 1,50 por dia e 30 no total. Pela OpenRouter, na rodada `familias`, na pasta da terceira:
+      - o Gemini 4 Argon (`google/gemini-4-argon`, atendido pelo Google AI Studio), num piloto de dois dias e depois no ano. O Gemini 4 Carbon, mais bem colocado no índice, não está liberado;
+      - o piloto de dois dias do GPT-6 Astra (`openai/gpt-6-astra`, atendido pela OpenAI).
+    - **O provedor flex** nas corridas da OpenRouter, pela metade do preço (`openrouter_flex` na tabela, `Spec.flex`); o juiz Astra continua no normal. A rota do flex é paciente: até sete tentativas, com até um minuto entre elas, porque o mundo espera o modelo. O `llm.call.completed.v1` ganha o campo opcional `attempts`.
+    - **Os US$ 50 da OpenRouter primeiro, medindo:** cobrem o Gemini e o piloto do Astra. O ano do Astra se decide depois do Opus, com o custo real do piloto e créditos novos.
+    - **Cada corrida só segue se** o piloto não perder chamada e custar o que a tabela diz, e se o ano gastar até 1,5 vez a estimativa por dia (no dia 2 do Sonnet, no dia 7 do Gemini). Se não, a corrida para, e o usuário decide sem ver resultados.
+    - **O relatório ganha "o custo por resultado":** por chamada, por colheita, por moeda acima do script 3 fixo do mesmo mapa e por regra achada pela causa; os tokens por dia, o cache lido, as chamadas repetidas e a latência p95. Os modelos aparecem pelo nome completo ("Claude Sonnet 5.5", "Gemini 4 Argon (flex)"), e a ficha diz a rota.
 
 A tela de quem joga ganha a carga da mochila ao lado do inventário ("carga 12,5 de 20", em alerta a partir de 90%) e as recusas em português ("Não deu para colher: não cabe na mochila; guarde alguma coisa no baú.").
 
@@ -275,7 +283,8 @@ A tela de quem joga ganha a carga da mochila ao lado do inventário ("carga 12,5
 - **O `llm.call.completed.v1` ganha campos opcionais:**
   - o conselheiro;
   - o provedor que atendeu;
-  - o id do modelo que a resposta trouxe.
+  - o id do modelo que a resposta trouxe;
+  - as tentativas, quando o adaptador repetiu a chamada.
 - **A porta de modelo ganha um segundo provedor,** e a `ModelUsage`, um custo opcional dito pelo provedor.
 - **O sandbox passa a retomar um mundo,** e a tela do jogador passa a mostrar o relógio quando pode mandar nele.
 - **As três fazendas não mudam:** a ferramenta e o conselheiro ficam desligados fora dos braços, e as fitas passam sem regravar.

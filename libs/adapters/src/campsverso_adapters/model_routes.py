@@ -1,20 +1,33 @@
 """Qual adaptador atende um modelo (ADR-0074, decisão 10): a OpenRouter, quando a tabela do
-ambiente dá ao modelo um provedor fixo nela (`openrouter:`); a API da Anthropic, se não."""
+ambiente dá ao modelo um provedor fixo nela (`openrouter:`); a API da Anthropic, se não. Com
+`patient`, a OpenRouter tenta mais vezes e espera mais: é a rota do flex (decisão 28)."""
 
 from collections.abc import Mapping
 
 from campsverso_adapters.model_anthropic import AnthropicModel
-from campsverso_adapters.model_openrouter import KEY_VARIABLE, OpenRouterModel
+from campsverso_adapters.model_openrouter import (
+    KEY_VARIABLE,
+    PATIENT_RETRIES,
+    PATIENT_WAIT_SECONDS,
+    OpenRouterModel,
+)
 from campsverso_ports import WallClock
 
 ANTHROPIC_KEY = "ANTHROPIC_API_KEY"
 
 
 def model_port(
-    model: str, *, routes: Mapping[str, str], clock: WallClock
+    model: str, *, routes: Mapping[str, str], clock: WallClock, patient: bool = False
 ) -> AnthropicModel | OpenRouterModel:
     """O adaptador do modelo; os dois têm `aclose`, para quem roda várias corridas."""
     if model in routes:
+        if patient:
+            return OpenRouterModel(
+                routes,
+                clock=clock,
+                max_retries=PATIENT_RETRIES,
+                max_wait_seconds=PATIENT_WAIT_SECONDS,
+            )
         return OpenRouterModel(routes, clock=clock)
     return AnthropicModel(clock=clock)
 

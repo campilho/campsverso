@@ -31,8 +31,11 @@ models:  # dólares por milhão de tokens, tabela conferida em 28/out/2026 (ADR-
   # As outras famílias, pela OpenRouter (ADR-0074, decisões 10 e 11): `openrouter` é o provedor fixo,
   # sem fallback. O custo de cada chamada vem da resposta; a tabela é a guarda e a estimativa.
   # Lista de 29/out/2026, em https://openrouter.ai/api/v1/models/<id>/endpoints.
-  openai/gpt-6-astra: {input_per_mtok: 10.00, output_per_mtok: 50.00, cache_read_per_mtok: 1.00, cache_write_per_mtok: 12.50, openrouter: openai}
-  google/gemini-4-argon: {input_per_mtok: 2.00, output_per_mtok: 10.00, cache_read_per_mtok: 0.10, cache_write_per_mtok: 0.1875, openrouter: google-ai-studio}
+  # `openrouter_flex` é o provedor flex do mesmo laboratório, pela metade do preço, mais lento e às
+  # vezes indisponível: as corridas da arena o escolhem por corrida (decisão 28); o juiz fica no
+  # normal. Com o custo vindo da resposta, a tabela (o preço normal) só superestima a guarda.
+  openai/gpt-6-astra: {input_per_mtok: 10.00, output_per_mtok: 50.00, cache_read_per_mtok: 1.00, cache_write_per_mtok: 12.50, openrouter: openai, openrouter_flex: openai/flex}
+  google/gemini-4-argon: {input_per_mtok: 2.00, output_per_mtok: 10.00, cache_read_per_mtok: 0.10, cache_write_per_mtok: 0.1875, openrouter: google-ai-studio, openrouter_flex: google-ai-studio/flex}
 
 perception:  # foto ou delta por tipo de controlador (ADR-0056)
   deltas_for: [llm]  # script e replay recebem sempre a foto

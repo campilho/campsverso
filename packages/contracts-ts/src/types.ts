@@ -1231,6 +1231,10 @@ export interface LlmCallCompletedV1 {
    * Quem atendeu de fato, quando o provedor é um roteador: o provedor que a OpenRouter usou (ADR-0074).
    */
   served_by?: string;
+  /**
+   * Quantas tentativas o adaptador fez até a resposta, quando repetiu a chamada (um 429, um 5xx, uma falha de rede); sem o campo, foi a primeira (ADR-0074, decisão 28).
+   */
+  attempts?: number;
   usage: LlmUsage;
   /**
    * Custo nominal pela tabela de preços do ambiente, ou o que o provedor disse ter cobrado, quando diz (a OpenRouter); com conselheiro, o total.

@@ -16,7 +16,9 @@ outros laboratórios (o GPT-6 Astra, o Gemini 4 Argon). Os Claude continuam no A
 - **O custo** vem da resposta (`usage.cost`, em dólares) e vai em `ModelUsage.cost_usd`; o
   medidor o usa no lugar da tabela.
 - Os erros viram ModelCallError classificado como na Anthropic. Como o SDK de lá, o adaptador
-  repete aqui mesmo, até duas vezes, o 408, o 429, os 5xx e as falhas de rede.
+  repete aqui mesmo, até duas vezes, o 408, o 429, os 5xx e as falhas de rede; a rota paciente
+  (o flex), até seis, com até um minuto entre as tentativas. Quantas foram volta em
+  `ModelResponse.attempts`.
 """
 
 import asyncio
@@ -42,6 +44,10 @@ KEY_VARIABLE = "OPENROUTER_API_KEY"
 DEFAULT_TIMEOUT_SECONDS = 60.0
 SECONDS_PER_TOKEN = 0.01  # o mesmo tempo limite crescente do AnthropicModel
 MAX_WAIT_SECONDS = 8.0  # a espera mais longa entre duas tentativas
+# O flex (ADR-0074, decisão 28) às vezes fica indisponível, e na arena o mundo espera o modelo:
+# a rota paciente tenta mais vezes e espera mais entre as tentativas.
+PATIENT_RETRIES = 6
+PATIENT_WAIT_SECONDS = 60.0
 STOP_REASONS = {
     "tool_calls": "tool_use",
     "stop": "end_turn",
@@ -303,6 +309,7 @@ class OpenRouterModel:
         api_key: str | None = None,
         timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
         max_retries: int = 2,
+        max_wait_seconds: float = MAX_WAIT_SECONDS,
         sleep: Sleep = asyncio.sleep,
     ) -> None:
         self._routes = dict(routes)
@@ -312,6 +319,7 @@ class OpenRouterModel:
         self._key = api_key if api_key is not None else os.environ.get(KEY_VARIABLE)
         self._timeout_seconds = timeout_seconds
         self._max_retries = max_retries
+        self._max_wait_seconds = max_wait_seconds
         self._sleep = sleep
 
     async def aclose(self) -> None:
@@ -346,7 +354,9 @@ class OpenRouterModel:
             raise ModelCallError("auth", f"{KEY_VARIABLE} ausente no ambiente", retryable=False)
         started = self._clock.monotonic()
         answer: Mapping[str, Any] = {}
+        attempts = 0
         for attempt in range(self._max_retries + 1):
+            attempts = attempt + 1
             try:
                 answer = await self._attempt(body, self.timeout_for(request))
                 break
@@ -354,7 +364,7 @@ class OpenRouterModel:
                 if not failed.retryable or attempt == self._max_retries:
                     raise ModelCallError(failed.kind, failed.message) from failed
                 wait = failed.retry_after if failed.retry_after is not None else 0.5 * 2**attempt
-                await self._sleep(min(wait, MAX_WAIT_SECONDS))
+                await self._sleep(min(wait, self._max_wait_seconds))
         choice = cast(Mapping[str, Any], cast(list[Any], answer["choices"])[0])
         content = response_blocks(cast(Mapping[str, Any], choice.get("message") or {}))
         stop = str(choice.get("finish_reason") or "stop")
@@ -369,6 +379,7 @@ class OpenRouterModel:
             latency_ms=round((self._clock.monotonic() - started) * 1000),
             request_id=cast(str | None, answer.get("id")),
             served_by=str(served) if served else None,
+            attempts=attempts,
         )
 
     async def _attempt(self, body: Mapping[str, Any], timeout: float) -> Mapping[str, Any]:

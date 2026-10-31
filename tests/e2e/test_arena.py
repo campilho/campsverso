@@ -16,6 +16,7 @@ from campsverso_testkit.arena import (
     SPECS,
     SPECS_AJUDANTES,
     SPECS_BOAVISTA,
+    SPECS_FAMILIAS,
     SPECS_MORADA,
     SPECS_PLAYBOOK,
     SPECS_TERCEIRA,
@@ -46,6 +47,7 @@ async def test_a_corrida_do_script_grava_a_pasta(tmp_path: Path) -> None:
         "hire_from": 8,
         "compare": False,
         "advisor": None,
+        "flex": False,
     }
     assert result["totals"]["days"] == 2
     card = result["card"]  # a ficha (ADR-0074): o script e o commit
@@ -138,6 +140,7 @@ def test_as_corridas_da_boa_vista() -> None:
         "playbook": SPECS_PLAYBOOK,
         "ajudantes": SPECS_AJUDANTES,
         "terceira": SPECS_TERCEIRA,
+        "familias": SPECS_FAMILIAS,
     }
 
 
@@ -182,15 +185,16 @@ def test_a_rodada_de_verificacao_da_morada_do_sol() -> None:
 
 def test_a_terceira_rodada_poe_as_quatro_reguas_nos_quatro_mapas() -> None:
     """ADR-0074: o script 2, o script 3, o script 3 fixo e o oráculo nos mapas a, b, c e d; depois,
-    as corridas dos modelos no mapa d, uma por vez: o Haiku três vezes, com memória, e os braços."""
+    as corridas dos modelos no mapa d, uma por vez: o Haiku três vezes, com memória, os braços e o
+    Sonnet."""
     by = {s.name: s for s in SPECS_TERCEIRA}
-    assert len(by) == 22
+    assert len(by) == 23
     assert (by["script3-fixo-d"].script, by["script3-fixo-d"].map) == ("farmer3-fixo", "d")
     assert (by["oraculo-a"].script, by["oraculo-a"].map) == ("oracle", None)
     assert {(s.cartridge, s.seed, s.days) for s in SPECS_TERCEIRA} == {
         ("farm_morada_do_sol", 20261022, 28)
     }
-    haikus = [s for s in SPECS_TERCEIRA if s.controller == "llm"]
+    haikus = [s for s in SPECS_TERCEIRA if s.controller == "llm" and s.model == "claude-haiku-5-5"]
     assert [s.name for s in haikus] == [
         "haiku",
         "haiku-r2",
@@ -206,6 +210,40 @@ def test_a_terceira_rodada_poe_as_quatro_reguas_nos_quatro_mapas() -> None:
     assert arms["haiku"] == (False, None, None)
     assert arms["haiku-comparar-r2"] == (True, None, None)
     assert arms["haiku-conselheiro"] == (False, "claude-opus-4-8", BudgetLimits(1.00, 12.0))
+    sonnet = by["sonnet"]  # a primeira leva (decisão 28), pela API da Anthropic
+    assert (sonnet.model, sonnet.map, sonnet.memory, sonnet.flex) == (
+        "claude-sonnet-5-5",
+        "d",
+        True,
+        False,
+    )
+    assert sonnet.limits == BudgetLimits(1.50, 30.0)
+
+
+async def test_o_flex_sem_provedor_flex_na_tabela_e_recusado(tmp_path: Path) -> None:
+    """Decisão 28: o flex é da OpenRouter; um Claude no flex é um erro de quem montou a rodada."""
+    with pytest.raises(ValueError, match="não tem provedor flex"):
+        await run_spec(Spec("haiku-flex", "llm", flex=True), 1, tmp_path / "haiku-flex")
+
+
+def test_as_outras_familias_vao_pelo_flex_no_mapa_d() -> None:
+    """ADR-0074, decisão 28: o Gemini 4 Argon num piloto de dois dias e no ano, e o piloto do GPT-6
+    Astra, pela OpenRouter no provedor flex, com memória, no mapa d e na seed da Morada."""
+    by = {s.name: s for s in SPECS_FAMILIAS}
+    assert list(by) == ["gemini-piloto", "gemini", "astra-piloto"]
+    assert {(s.cartridge, s.seed, s.map, s.memory, s.flex) for s in SPECS_FAMILIAS} == {
+        ("farm_morada_do_sol", 20261022, "d", True, True)
+    }
+    assert [(s.model, s.days) for s in SPECS_FAMILIAS] == [
+        ("google/gemini-4-argon", 2),
+        ("google/gemini-4-argon", 28),
+        ("openai/gpt-6-astra", 2),
+    ]
+    assert [s.limits for s in SPECS_FAMILIAS] == [
+        BudgetLimits(0.75, 2.0),
+        BudgetLimits(0.75, 15.0),
+        BudgetLimits(4.00, 8.0),
+    ]
 
 
 def test_a_rodada_do_agricultor_treinado() -> None:

@@ -103,6 +103,8 @@ class RecordingModel:
             entry["response"]["usage"]["cost_usd"] = response.usage.cost_usd
         if response.served_by is not None:  # quem atendeu na OpenRouter (ADR-0074)
             entry["response"]["served_by"] = response.served_by
+        if response.attempts > 1:  # o adaptador repetiu (decisão 28); a reprodução não repete
+            entry["response"]["attempts"] = response.attempts
         if response.advisor is not None:  # o conselheiro (ADR-0074): só quando houve
             advisor = response.advisor
             entry["response"]["advisor"] = {

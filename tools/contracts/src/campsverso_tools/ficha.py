@@ -117,6 +117,8 @@ def run_card(
         card |= calls_of(envelopes)
         if spec.get("advisor"):
             card["advisor"] = spec["advisor"]
+        if spec.get("flex"):  # o provedor flex da OpenRouter (ADR-0074, decisão 28)
+            card["flex"] = True
         routed = any(str(r).startswith(ROUTER) for r in card["route"])
         harness["sdk"] = sdk_version(sdk_package(routed))
         if mind is not None:

@@ -191,6 +191,11 @@ def test_tabela_de_precos_do_ambiente() -> None:
         "openai/gpt-6-astra": "openai",
         "google/gemini-4-argon": "google-ai-studio",
     }
+    # O flex de cada um, que a arena escolhe por corrida (ADR-0074, decisão 28).
+    assert env.flex_routes == {
+        "openai/gpt-6-astra": "openai/flex",
+        "google/gemini-4-argon": "google-ai-studio/flex",
+    }
 
 
 OPUS48 = ModelPrices(5.00, 25.00, 0.50, 6.25)

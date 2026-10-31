@@ -21,7 +21,12 @@ from campsverso_adapters import (
     key_variable,
     model_port,
 )
-from campsverso_adapters.model_openrouter import chat_messages, response_blocks
+from campsverso_adapters.model_openrouter import (
+    PATIENT_RETRIES,
+    PATIENT_WAIT_SECONDS,
+    chat_messages,
+    response_blocks,
+)
 from campsverso_ports import ModelCallError, ModelRequest
 
 ASTRA = "openai/gpt-6-astra"
@@ -290,7 +295,7 @@ async def test_os_erros_sao_classificados_e_os_passageiros_repetidos() -> None:
         return httpx2.Response(200, json=_answer())
 
     response = await _model(busy, waits=waits).complete(_request())
-    assert (len(calls), waits, response.served_by) == (2, [3.0], "OpenAI")
+    assert (len(calls), waits, response.served_by, response.attempts) == (2, [3.0], "OpenAI", 2)
 
     def status(code: int, message: str = "falhou") -> Callable[[httpx2.Request], httpx2.Response]:
         def handler(request: httpx2.Request) -> httpx2.Response:
@@ -335,6 +340,45 @@ async def test_os_erros_sao_classificados_e_os_passageiros_repetidos() -> None:
         with pytest.raises(ModelCallError) as caught:
             await _model(handler).complete(_request())
         assert (caught.value.kind, caught.value.retryable) == (kind, True)
+
+
+async def test_a_rota_paciente_do_flex_tenta_mais_e_espera_mais() -> None:
+    """ADR-0074, decisão 28: no flex, que às vezes fica indisponível, o adaptador tenta até sete
+    vezes, com até um minuto entre as tentativas, e diz quantas foram."""
+    calls: list[int] = []
+    waits: list[float] = []
+
+    async def sleep(seconds: float) -> None:
+        waits.append(seconds)
+
+    def flaky(request: httpx2.Request) -> httpx2.Response:
+        calls.append(1)
+        if len(calls) < 7:
+            return httpx2.Response(
+                503 if len(calls) < 6 else 429,
+                json={"error": {"code": 503, "message": "flex indisponível"}},
+                headers={"retry-after": "300"} if len(calls) == 6 else {},
+            )
+        return httpx2.Response(200, json=_answer())
+
+    client = httpx2.AsyncClient(
+        base_url="https://openrouter.test/api/v1", transport=httpx2.MockTransport(flaky)
+    )
+    patient = OpenRouterModel(
+        ROUTES,
+        clock=FakeWallClock(),
+        client=client,
+        api_key="chave-de-teste",
+        max_retries=PATIENT_RETRIES,
+        max_wait_seconds=PATIENT_WAIT_SECONDS,
+        sleep=sleep,
+    )
+    response = await patient.complete(_request())
+    assert (len(calls), response.attempts) == (7, 7)
+    assert waits == [0.5, 1.0, 2.0, 4.0, 8.0, 60.0]  # o Retry-After de 5 min fica em 1 min
+    assert isinstance(
+        model_port(ASTRA, routes=ROUTES, clock=FakeWallClock(), patient=True), OpenRouterModel
+    )
 
 
 async def test_o_erro_que_chega_num_200_tambem_e_erro() -> None:
@@ -396,6 +440,7 @@ async def test_o_medidor_usa_o_custo_da_resposta_e_grava_quem_atendeu(tmp_path: 
     await metered.complete(_request(avatar_id="camps"))
     ((_, envelope),) = inner_bus.published  # o barramento valida os campos novos pelo contrato
     data = envelope["data"]
+    assert "attempts" not in data  # na primeira tentativa, o campo não vai
     assert (data["provider"], data["served_by"], data["response_model"]) == (
         "openrouter",
         "OpenAI",
@@ -409,6 +454,37 @@ async def test_o_medidor_usa_o_custo_da_resposta_e_grava_quem_atendeu(tmp_path: 
         0.022002,
     )
     assert replayed.content == response_blocks(_answer()["choices"][0]["message"])
+
+
+async def test_o_evento_e_a_fita_contam_as_tentativas(tmp_path: Path) -> None:
+    """Quando o adaptador repetiu a chamada, o evento e a fita dizem quantas tentativas foram
+    (ADR-0074, decisão 28); a reprodução volta como a primeira, de graça."""
+    calls: list[int] = []
+
+    def busy(request: httpx2.Request) -> httpx2.Response:
+        calls.append(1)
+        if len(calls) == 1:
+            return httpx2.Response(429, json={"error": {"code": 429, "message": "devagar"}})
+        return httpx2.Response(200, json=_answer())
+
+    inner_bus = InMemoryBus()
+    tape = tmp_path / "fita.jsonl"
+    metered = MeteredModel(
+        RecordingModel(_model(busy), tape, "record", clock=FakeWallClock()),
+        bus=ValidatingBus(inner_bus),
+        worldid="farm-morada-do-sol-01",
+        cartridge="farm_morada_do_sol",
+        controller={"type": "llm", "id": "llm/camps"},
+        prices={ASTRA: ModelPrices(10.0, 50.0, 1.0, 12.5)},
+        clock=FakeWallClock(),
+        ids=SequentialUuid7Ids(),
+    )
+    await metered.complete(_request(avatar_id="camps"))
+    ((_, envelope),) = inner_bus.published
+    assert envelope["data"]["attempts"] == 2
+    assert json.loads(tape.read_text(encoding="utf-8"))["response"]["attempts"] == 2
+    replayed = await RecordingModel(None, tape, "replay").complete(_request(avatar_id="camps"))
+    assert (replayed.replayed, replayed.attempts) == (True, 1)
 
 
 def test_cada_modelo_vai_para_quem_o_atende() -> None:

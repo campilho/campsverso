@@ -2169,6 +2169,11 @@
           "maxLength": 128,
           "description": "Quem atendeu de fato, quando o provedor é um roteador: o provedor que a OpenRouter usou (ADR-0074)."
         },
+        "attempts": {
+          "type": "integer",
+          "minimum": 2,
+          "description": "Quantas tentativas o adaptador fez até a resposta, quando repetiu a chamada (um 429, um 5xx, uma falha de rede); sem o campo, foi a primeira (ADR-0074, decisão 28)."
+        },
         "usage": {
           "$ref": "#/$defs/LlmUsage"
         },

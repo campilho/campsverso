@@ -157,6 +157,7 @@ Todas na seed da Morada (20261022), sem playbook (decisão 6). As corridas dos m
 | astra-piloto | o GPT-6 Astra | 2 | 8,00 · 15 | 7 a 11 |
 | astra | o GPT-6 Astra | 14 ou 28 | 8,00 · 160 | 50 a 75, ou 100 a 150 |
 
+- **A primeira leva** (ADR-0074, decisão 28): depois da primeira semana do humano, o Sonnet pela API da Anthropic e, pela OpenRouter no provedor flex, o Gemini (um piloto de dois dias, que a tabela acima não tinha, e o ano) e o piloto do Astra, na rodada `familias`. As outras famílias vêm antes do Opus.
 - **O Haiku corre três vezes,** porque as oito corridas da Morada mostraram que ele varia muito: de 0 a 91 moedas no mesmo mundo. A ferramenta de comparação corre duas vezes, e o conselheiro, uma.
 - **O Sonnet, o Opus, o Fable, o Gemini e o Astra correm uma vez,** como decidido na ADR-0066 (decisão 12). Mais seeds, só se a rodada pedir, na rodada 3 (§10).
 - **Todos jogam um ano,** porque a comparação é com as réguas, que jogam o ano. Se o Opus passar do dobro do custo estimado por dia, a corrida cai para 14 dias, como no M14.

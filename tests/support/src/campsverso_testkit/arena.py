@@ -58,6 +58,8 @@ MORADA = "farm_morada_do_sol"
 YEAR = 28  # o ano acelerado da Morada do Sol
 SONNET = "claude-sonnet-5-5"
 OPUS = "claude-opus-5-5"
+GEMINI = "google/gemini-4-argon"  # o Gemini 4 Argon, pela OpenRouter (ADR-0074, decisão 11)
+ASTRA = "openai/gpt-6-astra"  # o GPT-6 Astra, pela OpenRouter (ADR-0074, decisão 11)
 ADVISOR = "claude-opus-4-8"  # o conselheiro do Haiku, com o conselho em texto (ADR-0074, decisão 9)
 
 
@@ -81,6 +83,7 @@ class Spec:
     hire_from: int = 8  # o primeiro dia em que contrata (o do arquivo do script 3)
     compare: bool = False  # a ferramenta de comparação na reflexão, o braço do Haiku (ADR-0074)
     advisor: str | None = None  # o conselheiro na reflexão, o outro braço (ADR-0074)
+    flex: bool = False  # o provedor flex da OpenRouter, pela metade do preço (ADR-0074, decisão 28)
 
 
 SPECS: tuple[Spec, ...] = (
@@ -216,6 +219,43 @@ SPECS_TERCEIRA: tuple[Spec, ...] = (
         advisor=ADVISOR,
         limits=BudgetLimits(1.00, 12.0),
     ),
+    # A primeira leva (decisão 28), depois da primeira semana do humano e lacrada: o Sonnet 5.5,
+    # pela API da Anthropic, no teto do plano (US$ 1,50 por dia, 30 no total).
+    _morada("sonnet", "llm", memory=True, map="d", model=SONNET, limits=BudgetLimits(1.50, 30.0)),
+)
+# As outras famílias (ADR-0074, decisões 11 e 28), pela OpenRouter no provedor flex, no mapa d, na
+# mesma pasta da terceira: o Gemini 4 Argon primeiro, num piloto de dois dias e depois o ano, e o
+# piloto do GPT-6 Astra; o ano do Astra se decide depois do Opus, com o custo real do piloto.
+SPECS_FAMILIAS: tuple[Spec, ...] = (
+    _morada(
+        "gemini-piloto",
+        "llm",
+        memory=True,
+        map="d",
+        model=GEMINI,
+        flex=True,
+        days=2,
+        limits=BudgetLimits(0.75, 2.0),
+    ),
+    _morada(
+        "gemini",
+        "llm",
+        memory=True,
+        map="d",
+        model=GEMINI,
+        flex=True,
+        limits=BudgetLimits(0.75, 15.0),
+    ),
+    _morada(
+        "astra-piloto",
+        "llm",
+        memory=True,
+        map="d",
+        model=ASTRA,
+        flex=True,
+        days=2,
+        limits=BudgetLimits(4.00, 8.0),
+    ),
 )
 ROUNDS: dict[str, tuple[Spec, ...]] = {
     "camps": SPECS,
@@ -224,6 +264,7 @@ ROUNDS: dict[str, tuple[Spec, ...]] = {
     "playbook": SPECS_PLAYBOOK,
     "ajudantes": SPECS_AJUDANTES,
     "terceira": SPECS_TERCEIRA,
+    "familias": SPECS_FAMILIAS,
 }
 
 
@@ -279,9 +320,14 @@ async def run_spec(
     notebook: MemoryPort | bool = False
     if spec.controller == "llm":
         # A API da Anthropic, ou a OpenRouter quando o modelo tem rota na tabela (ADR-0074).
-        routes = load_env(ENV).routes
+        env = load_env(ENV)
+        routes = {**env.routes, **env.flex_routes} if spec.flex else env.routes
+        if spec.flex and spec.model not in env.flex_routes:
+            raise ValueError(f"{spec.name}: {spec.model} não tem provedor flex na tabela")
         inner: ModelPort = (
-            port if port is not None else model_port(spec.model, routes=routes, clock=clock)
+            port
+            if port is not None
+            else model_port(spec.model, routes=routes, clock=clock, patient=spec.flex)
         )
         api = inner if isinstance(inner, AnthropicModel | OpenRouterModel) else None
         port = RecordingModel(inner, out / "llm.jsonl", "record", clock=clock)
@@ -317,6 +363,7 @@ async def run_spec(
         f"{f', com o playbook {spec.playbook}' if spec.playbook else ''}"
         f"{', com a comparação' if spec.compare else ''}"
         f"{f', com o conselheiro {spec.advisor}' if spec.advisor else ''}"
+        f"{', no provedor flex' if spec.flex else ''}"
         f"{f', contratando {spec.hire} desde o dia {spec.hire_from}' if spec.hire else ''}, "
         f"em {out}",
         log,

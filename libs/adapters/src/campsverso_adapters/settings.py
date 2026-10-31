@@ -92,6 +92,8 @@ class EnvSettings:
     perception: PerceptionSettings = field(default_factory=PerceptionSettings)
     models: Mapping[str, ModelPrices] = field(default_factory=dict[str, ModelPrices])  # ADR-0058
     routes: Mapping[str, str] = field(default_factory=dict[str, str])  # OpenRouter (ADR-0074)
+    # O provedor flex de cada modelo na OpenRouter, pela metade do preço (ADR-0074, decisão 28).
+    flex_routes: Mapping[str, str] = field(default_factory=dict[str, str])
 
 
 type ClockMode = Literal["continuous", "max"]
@@ -210,6 +212,11 @@ def load_env(path: Path, root: Path | None = None) -> EnvSettings:
         },
         routes={
             str(name): str(p["openrouter"]) for name, p in models.items() if p.get("openrouter")
+        },
+        flex_routes={
+            str(name): str(p["openrouter_flex"])
+            for name, p in models.items()
+            if p.get("openrouter_flex")
         },
     )
 

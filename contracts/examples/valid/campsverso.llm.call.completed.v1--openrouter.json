@@ -26,6 +26,7 @@
     "model": "openai/gpt-6-astra",
     "response_model": "openai/gpt-6-astra",
     "served_by": "OpenAI",
+    "attempts": 2,
     "request_id": "gen-1761706800-a1b2c3d4e5f6",
     "prompt_sha256": "4d2e4d2e4d2e4d2e4d2e4d2e4d2e4d2e4d2e4d2e4d2e4d2e4d2e4d2e4d2e4d2e",
     "latency_ms": 2310,

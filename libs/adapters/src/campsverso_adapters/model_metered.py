@@ -151,6 +151,8 @@ class MeteredModel:
             data["response_model"] = response.model[:128]
         if response.served_by:
             data["served_by"] = response.served_by[:128]
+        if response.attempts > 1:  # o adaptador repetiu a chamada (ADR-0074, decisão 28)
+            data["attempts"] = response.attempts
         if request.effort is not None:
             data["effort"] = request.effort
         if advised is not None:

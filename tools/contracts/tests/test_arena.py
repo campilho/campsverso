@@ -335,7 +335,7 @@ def test_o_relatorio_da_boa_vista_fala_do_rio_e_das_linhas_novas(tmp_path: Path)
     assert main([str(arena), "--out", str(out)]) == 0
     text = out.read_text(encoding="utf-8")
     assert "no mesmo mundo (`farm-boavista-01`)" in text
-    assert "| Sonnet 5.5 |" in text
+    assert "| Claude Sonnet 5.5 |" in text
     assert "| 1,50 · 25 |" in text
     assert "Colheitas (rio / fora)" in text
     assert "Canteiros cavados (rio / fora)" in text
@@ -425,12 +425,12 @@ def test_o_relatorio_mostra_o_juiz_ao_lado_das_heuristicas(tmp_path: Path) -> No
     assert main([str(arena), "--out", str(out)]) == 0
     text = out.read_text(encoding="utf-8")
     assert "## O juiz" in text
-    assert "O Opus 5.5 lê as crenças do fim" in text
+    assert "O Claude Opus 5.5 lê as crenças do fim" in text
     assert "Custo: US$ 0,24." in text
     row = "| agua | só o lugar (bel-0026) | só o lugar (bel-0026) (regra desligada) |"
     assert row in text
     assert "| tomate | não | não |" in text
-    assert "| haiku-memoria-sem-regra | Haiku 5.5 com o playbook 1 |" in text  # ADR-0071
+    assert "| haiku-memoria-sem-regra | Claude Haiku 5.5 com o playbook 1 |" in text  # ADR-0071
 
 
 def test_com_dois_juizes_o_relatorio_mostra_a_referencia_e_quando_discordam(
@@ -466,10 +466,74 @@ def test_com_dois_juizes_o_relatorio_mostra_a_referencia_e_quando_discordam(
     assert "## Os juízes" in text
     assert "## O juiz\n" not in text
     assert "Os dois concordam em 2 de 4 vereditos." in text
-    assert "Custo: Opus 5.5, US$ 0,10; GPT-6 Astra, US$ 0,14." in text
-    opus_run = "só o lugar (bel-0003) [GPT-6 Astra] · Opus 5.5: a causa"
+    assert "Custo: Claude Opus 5.5, US$ 0,10; GPT-6 Astra, US$ 0,14." in text
+    opus_run = "só o lugar (bel-0003) [GPT-6 Astra] · Claude Opus 5.5: a causa"
     assert f"| agua | só o lugar (bel-0003) | {opus_run} |" in text
     assert "| tomate | não · GPT-6 Astra: a causa | não [GPT-6 Astra] |" in text
+
+
+def test_o_custo_por_resultado_compara_com_o_fixo_e_conta_as_regras(tmp_path: Path) -> None:
+    """ADR-0074, decisão 28: por chamada, por colheita, por moeda acima do script 3 fixo do mesmo
+    mapa e por regra achada pela causa; os tokens, o cache, as repetidas e a espera lenta."""
+    arena = tmp_path / "20261101-terceira"
+    morada = {"cartridge": "farm_morada_do_sol", "seed": 20261022, "map": "d"}
+
+    def llm_call(seq: int, cost: float, latency: int, **extra: Any) -> dict[str, Any]:
+        usage = {"input_tokens": 1000, "output_tokens": 100, "cache_read_input_tokens": 3000}
+        return {
+            "source": "/controller-runner/llm/camps",
+            "seq": seq,
+            "tick": 200 + seq,
+            "type": "campsverso.llm.call.completed.v1",
+            "time": "2026-10-12T02:00:00Z",
+            "data": {
+                "latency_ms": latency,
+                "cost_usd": cost,
+                "charged": True,
+                "usage": usage,
+                **extra,
+            },
+        }
+
+    def day(coins: int, *calls: dict[str, Any]) -> list[dict[str, Any]]:
+        return [
+            ev(0, "world.session.started.v1", tick_seconds=60),
+            ev(0, "world.item.created.v1", item="moeda", qty=coins, container_id="camps"),
+            ev(100, "action.completed.v1", action="harvest", params={"target": "plot-01"}),
+            ev(110, "action.completed.v1", action="harvest", params={"target": "plot-02"}),
+            *calls,
+            ev(1440, "world.clock.phase_changed.v1"),
+        ]
+
+    fixo = {"name": "script3-fixo-d", "controller": "script", "script": "farmer3-fixo", **morada}
+    _run(arena, "script3-fixo-d", fixo, day(50))
+    haiku = {"name": "haiku", "controller": "llm", "memory": True, **morada}
+    calls = (llm_call(1, 0.30, 1000), llm_call(2, 0.50, 9000, attempts=3))
+    _run(arena, "haiku", haiku, day(90, *calls))
+    gemini = {**haiku, "name": "gemini", "model": "google/gemini-4-argon", "flex": True}
+    _run(arena, "gemini", gemini, day(30, llm_call(1, 0.20, 2000)))
+    rules = {
+        "agua": {"verdict": "causa", "belief_id": "bel-0001", "why": ""},
+        "fadiga": {"verdict": "lugar", "belief_id": "", "why": ""},
+    }
+    judged = {"model": "claude-opus-5-5", "rules": rules, "cost_usd": 0.05}
+    (arena / "haiku" / "juiz.json").write_text(json.dumps(judged), encoding="utf-8")
+    out = tmp_path / "relatorio.md"
+    assert main([str(arena), "--out", str(out)]) == 0
+    text = out.read_text(encoding="utf-8")
+    assert "## O custo por resultado" in text
+    assert "| Modelo | Claude Haiku 5.5 | Gemini 4 Argon (flex) |" in text
+    assert "| Custo (US$) | 0,80 | 0,20 |" in text
+    assert "| Custo por chamada (US$) | 0,4000 | 0,2000 |" in text
+    tokens = "| Tokens por dia, em mil (entrada / saída / cache lido) | 2 / 0 / 6 | 1 / 0 / 3 |"
+    assert tokens in text
+    assert "| Cache lido (da entrada) | 75% | 75% |" in text
+    assert "| Custo por colheita (US$) | 0,40 | 0,10 |" in text
+    assert "| Moedas acima do script 3 fixo do mesmo mapa | 40 | -20 |" in text
+    assert "| Custo por moeda acima do fixo (US$) | 0,020 | - |" in text
+    assert "| Regras achadas pela causa (juiz de referência) | 1 | - |" in text
+    assert "| Custo por regra achada (US$) | 0,80 | - |" in text
+    assert "| Chamadas repetidas / que falharam | 1 / 0 | 0 / 0 |" in text
 
 
 def test_na_morada_o_relatorio_mostra_o_valor_de_saber_e_o_que_o_script_3_aprendeu(
@@ -568,8 +632,8 @@ def test_o_valor_de_saber_separa_cada_modelo_com_e_sem_o_playbook(tmp_path: Path
     out = tmp_path / "relatorio.md"
     assert main([str(arena), "--out", str(out)]) == 0
     text = out.read_text(encoding="utf-8")
-    assert "| Haiku 5.5 com memória | 0 moedas" in text
-    assert "| Haiku 5.5 com memória e o playbook 2 | 0 e 0 moedas · 0 e 0 colheitas" in text
+    assert "| Claude Haiku 5.5 com memória | 0 moedas" in text
+    assert "| Claude Haiku 5.5 com memória e o playbook 2 | 0 e 0 moedas · 0 e 0 colheitas" in text
 
 
 def test_o_relatorio_traz_a_ficha_de_cada_corrida(tmp_path: Path) -> None:

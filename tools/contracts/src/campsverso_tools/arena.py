@@ -89,12 +89,12 @@ SCRIPT_NAMES = {
     "oracle": "oráculo",
 }
 MORADA = "farm_morada_do_sol"
-MODEL_NAMES = {
-    "claude-haiku-5-5": "Haiku 5.5",
-    "claude-sonnet-5-5": "Sonnet 5.5",
-    "claude-opus-5-5": "Opus 5.5",
-    "claude-opus-4-8": "Opus 4.8",
-    "claude-fable-5-1": "Fable 5.1",
+MODEL_NAMES = {  # o nome completo de cada modelo, para não confundir (ADR-0074, decisão 28)
+    "claude-haiku-5-5": "Claude Haiku 5.5",
+    "claude-sonnet-5-5": "Claude Sonnet 5.5",
+    "claude-opus-5-5": "Claude Opus 5.5",
+    "claude-opus-4-8": "Claude Opus 4.8",
+    "claude-fable-5-1": "Claude Fable 5.1",
     "openai/gpt-6-astra": "GPT-6 Astra",
     "google/gemini-4-argon": "Gemini 4 Argon",
 }
@@ -846,7 +846,8 @@ def _controller_name(spec: Mapping[str, Any]) -> str:
     model = str(spec.get("model", "claude-haiku-5-5"))
     version = int(spec.get("playbook") or 0)  # ADR-0071; `true` nas corridas da versão 1
     playbook = f" com o playbook {version}" if version else ""
-    return MODEL_NAMES.get(model, model) + playbook
+    flex = " (flex)" if spec.get("flex") else ""  # o provedor flex da OpenRouter (decisão 28)
+    return MODEL_NAMES.get(model, model) + flex + playbook
 
 
 def _runs_table(runs: Sequence[Run], *, maps: bool) -> str:
@@ -951,6 +952,7 @@ def render(runs: Sequence[Run], *, source: str, date: str) -> str:
     lines += _judge_section(runs)
     lines += _exploration_section(runs)
     lines += _exam_section(runs)
+    lines += _cost_section(runs)
     lines += _coins_section(runs)
     lines += _harvests_section(runs)
     lines += _card_section(runs)
@@ -1218,6 +1220,8 @@ def _card_cells(r: Run) -> list[str]:
         + ", ".join(a for a in arms if a)
     )
     route = ", ".join(str(x) for x in cast(list[Any], card.get("route") or [])) or "?"
+    if card.get("flex"):
+        route += " (flex)"
     return [r.name, model, route, efforts, detail]
 
 
@@ -1295,6 +1299,117 @@ def _judge_section(runs: Sequence[Run]) -> list[str]:
     ]
 
 
+def _reference_judge(r: Run, primary: str, models: Sequence[str]) -> str:
+    """O juiz de referência de uma corrida (decisão 12): o principal, menos na família dele."""
+    others = [m for m in models if m in r.judges and m != r.spec.get("model")]
+    return primary if primary in others or not others else others[0]
+
+
+def _found_rules(r: Run) -> int | None:
+    """Quantas regras ocultas o juiz de referência deu como achadas pela causa; sem juiz, None."""
+    if r.judge is None:
+        return None
+    primary = str(r.judge.get("model", ""))
+    models = sorted(r.judges or {primary: r.judge}, key=lambda m: (m != primary, m))
+    verdicts = (r.judges or {primary: r.judge}).get(_reference_judge(r, primary, models), r.judge)
+    rules = cast(Mapping[str, Mapping[str, Any]], verdicts.get("rules") or {})
+    return sum(1 for mark in rules.values() if mark.get("verdict") == "causa")
+
+
+def _cost_section(runs: Sequence[Run]) -> list[str]:
+    """O custo por resultado (ADR-0074, decisão 28): o que cada corrida de modelo gastou por
+    chamada, por colheita, por moeda acima do script 3 fixo do mesmo mapa e por regra achada, os
+    tokens e o cache, e a confiabilidade do provedor (as chamadas repetidas e a espera lenta)."""
+    models = [r for r in runs if r.has_model]
+    if not models:
+        return []
+    fixed = {
+        str(r.spec.get("map") or "a"): int(r.report.totals()["coins_end"])
+        for r in runs
+        if r.spec.get("script") == "farmer3-fixo"
+    }
+
+    def llm(r: Run) -> Mapping[str, Any]:
+        return cast(Mapping[str, Any], r.report.totals()["llm"])
+
+    def cost(r: Run) -> float:
+        return float(llm(r)["cost_usd"])
+
+    def per(r: Run, amount: float | None, decimals: int = 2) -> str:
+        return _n(cost(r) / amount, decimals) if amount else EMPTY
+
+    def tokens(r: Run) -> str:
+        used = cast(Mapping[str, int], llm(r)["tokens"])
+        days = max(1, int(r.report.totals()["days"]))
+        keys = ("input_tokens", "output_tokens", "cache_read_input_tokens")
+        return " / ".join(_n(used.get(k, 0) / days / 1000, 0) for k in keys)
+
+    def cached(r: Run) -> str:
+        used = cast(Mapping[str, int], llm(r)["tokens"])
+        read = used.get("cache_read_input_tokens", 0)
+        total = read + used.get("input_tokens", 0) + used.get("cache_creation_input_tokens", 0)
+        return f"{_n(100 * read / total, 0)}%" if total else EMPTY
+
+    def harvests(r: Run) -> int:
+        return sum(cast(Mapping[str, int], r.report.totals()["harvests"]).values())
+
+    def above(r: Run) -> int | None:
+        base = fixed.get(str(r.spec.get("map") or "a"))
+        return None if base is None else int(r.report.totals()["coins_end"]) - base
+
+    def found(r: Run) -> str:
+        count = _found_rules(r)
+        return EMPTY if count is None else str(count)
+
+    rows = [
+        ["Modelo", *(_controller_name({**r.spec, "playbook": 0}) for r in models)],
+        ["Custo (US$)", *(_n(cost(r), 2) for r in models)],
+        ["Custo por chamada (US$)", *(per(r, int(llm(r)["calls"]), 4) for r in models)],
+        ["Tokens por dia, em mil (entrada / saída / cache lido)", *(tokens(r) for r in models)],
+        ["Cache lido (da entrada)", *(cached(r) for r in models)],
+        ["Custo por colheita (US$)", *(per(r, harvests(r)) for r in models)],
+        [
+            "Moedas acima do script 3 fixo do mesmo mapa",
+            *(_n(above(r)) if above(r) is not None else EMPTY for r in models),
+        ],
+        [
+            "Custo por moeda acima do fixo (US$)",
+            *(per(r, a, 3) if (a := above(r)) and a > 0 else EMPTY for r in models),
+        ],
+        ["Regras achadas pela causa (juiz de referência)", *(found(r) for r in models)],
+        [
+            "Custo por regra achada (US$)",
+            *(per(r, n) if (n := _found_rules(r)) else EMPTY for r in models),
+        ],
+        [
+            "Latência mediana / p95 (s)",
+            *(
+                f"{_n(int(llm(r)['latency_ms_median']) / 1000, 1)} / "
+                f"{_n(int(llm(r).get('latency_ms_p95', 0)) / 1000, 1)}"
+                for r in models
+            ),
+        ],
+        [
+            "Chamadas repetidas / que falharam",
+            *(f"{llm(r).get('calls_retried', 0)} / {llm(r)['calls_failed']}" for r in models),
+        ],
+    ]
+    return [
+        "## O custo por resultado",
+        "",
+        "O que cada corrida de modelo gastou para chegar onde chegou (ADR-0074, decisão 28). O "
+        "custo inclui o conselheiro e é o que o provedor cobrou (na OpenRouter, o que a resposta "
+        'disse). "Acima do fixo" compara com o script 3 fixo do mesmo mapa, a régua do meio; '
+        'abaixo dele, o custo por moeda fica vazio. "Regras achadas" conta os vereditos "a '
+        'causa" do juiz de referência. As chamadas repetidas são as que o adaptador tentou de '
+        "novo até responder (o flex às vezes fica indisponível), e a latência p95 é a espera das "
+        "chamadas lentas.",
+        "",
+        _table(["Medida", *(r.name for r in models)], rows),
+        "",
+    ]
+
+
 def _two_judges_section(judged: Sequence[Run]) -> list[str]:
     """Os dois juízes (ADR-0074, decisão 12): o veredito de referência de cada corrida e, quando
     o outro juiz discorda, o dele ao lado. Na corrida da família de um juiz, a referência é o
@@ -1307,8 +1422,7 @@ def _two_judges_section(judged: Sequence[Run]) -> list[str]:
         return MODEL_NAMES.get(model, model)
 
     def reference(r: Run) -> str:
-        others = [m for m in models if m in r.judges and m != r.spec.get("model")]
-        return primary if primary in others or not others else others[0]
+        return _reference_judge(r, primary, models)
 
     def mark(r: Run, model: str, rule: str) -> Mapping[str, str] | None:
         given = cast(Mapping[str, Any], r.judges.get(model, {}).get("rules") or {})

@@ -1644,6 +1644,10 @@ class LlmCallCompletedV1(BaseModel):
     """
     Quem atendeu de fato, quando o provedor é um roteador: o provedor que a OpenRouter usou (ADR-0074).
     """
+    attempts: Annotated[int | None, Field(ge=2)] = None
+    """
+    Quantas tentativas o adaptador fez até a resposta, quando repetiu a chamada (um 429, um 5xx, uma falha de rede); sem o campo, foi a primeira (ADR-0074, decisão 28).
+    """
     usage: LlmUsage
     cost_usd: Annotated[float, Field(ge=0.0)]
     """
