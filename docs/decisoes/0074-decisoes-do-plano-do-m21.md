@@ -289,6 +289,10 @@ Com a energia nova, o ajudante ainda não pagava, e a explicação era o teto de
     - **O `make jogar`** começa pausado, e a tela do jogador assume o Camps ao abrir. O botão de 1440× passa uma noite de 10 horas em 25 segundos.
     - **Os primeiros 16 minutos do ano do humano foram do script,** porque o comando passado ao usuário não tinha `PAUSADO=1`: o script cavou um canteiro (a obra terminou às 06:18 do dia 1, já com o humano no controle). A corrida do humano registra isso.
 30. **A bancada dos harnesses é o primeiro marco da v0.4** (1º/nov, o usuário). Na fazenda, nada muda: os modelos da Anthropic pela API da Anthropic, os outros pela OpenRouter, todos pela mente e pela `ModelPort`. As três ligações de um modelo com o mundo ficam no `futuro.md`.
+31. **O flex com reserva** (1º/nov, o usuário). O piloto do Gemini perdeu 3 das 139 chamadas depois das sete tentativas: duas vezes o flex do Google falhou no meio da geração, e uma vez a conexão caiu. Pela decisão 28, a corrida seguinte parou, e o usuário escolheu a reserva:
+    - esgotadas as tentativas no flex num erro passageiro, a mesma chamada vai ao provedor normal do modelo, pelo preço normal; um erro do pedido não vai;
+    - o `llm.call.completed.v1` ganha o campo opcional `fallback`, e o relatório conta as chamadas da reserva ao lado das repetidas;
+    - o piloto fica como rodou (US$ 0,64 em dois dias); o ano do Gemini e o piloto do Astra rodam com a reserva, e a corrida não perde chamada por causa do flex.
 
 A tela de quem joga ganha a carga da mochila ao lado do inventário ("carga 12,5 de 20", em alerta a partir de 90%) e as recusas em português ("Não deu para colher: não cabe na mochila; guarde alguma coisa no baú.").
 
@@ -299,7 +303,8 @@ A tela de quem joga ganha a carga da mochila ao lado do inventário ("carga 12,5
   - o conselheiro;
   - o provedor que atendeu;
   - o id do modelo que a resposta trouxe;
-  - as tentativas, quando o adaptador repetiu a chamada.
+  - as tentativas, quando o adaptador repetiu a chamada;
+  - a reserva, quando o flex se esgotou e o provedor normal respondeu.
 - **A porta de modelo ganha um segundo provedor,** e a `ModelUsage`, um custo opcional dito pelo provedor.
 - **O sandbox passa a retomar um mundo,** e a tela do jogador passa a mostrar o relógio quando pode mandar nele.
 - **A vista do jogador passa a ser medida no tick do pulso,** e a tela ganha o `make jogar`, o 1440× e os nomes por língua (ADR-0075).

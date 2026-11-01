@@ -4,6 +4,7 @@ Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão 
 
 ## Não publicado (M21)
 
+- **A reserva do flex** (ADR-0074, decisão 31): `llm.call.completed.v1` ganha o campo opcional `fallback` (sempre `true` quando vem): o provedor flex se esgotou num erro passageiro e o provedor normal do mesmo modelo respondeu, pelo preço dele. O `attempts` conta as tentativas nos dois. O exemplo da OpenRouter passou pela reserva.
 - **As tentativas** (ADR-0074, decisão 28): `llm.call.completed.v1` ganha o campo opcional `attempts`, quantas tentativas o adaptador fez até a resposta quando repetiu a chamada (no mínimo 2; sem o campo, foi a primeira). É a confiabilidade do provedor flex da OpenRouter no relatório da arena. O exemplo da OpenRouter ganhou o campo.
 - **O conselheiro** (ADR-0074): `llm.call.completed.v1` ganha o campo opcional `advisor` (o modelo que o provedor consultou dentro da chamada, quantas vezes, os tokens e o custo dele, na tarifa dele). O `cost_usd` continua sendo o total da chamada. Só uma chamada com a ferramenta do conselheiro o publica.
 - **A OpenRouter** (ADR-0074): `llm.call.completed.v1` ganha dois campos opcionais, para a ficha de cada corrida: `response_model` (o id do modelo que a resposta disse ser) e `served_by` (quem atendeu de fato, quando o provedor é um roteador: o provedor que a OpenRouter usou). O `cost_usd` passa a ser, quando o provedor diz o que cobrou (a OpenRouter), o que ele disse; sem isso, continua vindo da tabela de preços. Exemplo novo: `campsverso.llm.call.completed.v1--openrouter.json`.

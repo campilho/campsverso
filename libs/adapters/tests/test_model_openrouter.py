@@ -381,6 +381,60 @@ async def test_a_rota_paciente_do_flex_tenta_mais_e_espera_mais() -> None:
     )
 
 
+async def test_a_reserva_do_flex_chama_o_provedor_normal() -> None:
+    """ADR-0074, decisão 31: esgotado o flex num erro passageiro, a mesma chamada vai ao provedor
+    normal do modelo, e a resposta diz que foi pela reserva; um erro do pedido não vai."""
+    asked: list[str] = []
+
+    async def sleep(seconds: float) -> None:
+        return None
+
+    def flex_down(request: httpx2.Request) -> httpx2.Response:
+        provider = str(json.loads(request.content)["provider"]["order"][0])
+        asked.append(provider)
+        if provider == "openai/flex":
+            return httpx2.Response(
+                200, json=_answer(choices=[{"finish_reason": "error", "message": {}}])
+            )
+        return httpx2.Response(200, json=_answer())
+
+    def model(
+        handler: Callable[[httpx2.Request], httpx2.Response], reserve: bool
+    ) -> OpenRouterModel:
+        client = httpx2.AsyncClient(
+            base_url="https://openrouter.test/api/v1", transport=httpx2.MockTransport(handler)
+        )
+        return OpenRouterModel(
+            {ASTRA: "openai/flex"},
+            clock=FakeWallClock(),
+            client=client,
+            api_key="chave-de-teste",
+            max_retries=2,
+            sleep=sleep,
+            fallback_routes=ROUTES if reserve else None,
+        )
+
+    response = await model(flex_down, reserve=True).complete(_request())
+    assert asked == ["openai/flex", "openai/flex", "openai/flex", "openai"]
+    assert (response.attempts, response.fallback) == (4, True)
+    with pytest.raises(ModelCallError):  # sem a reserva, a chamada se perde, como antes
+        await model(flex_down, reserve=False).complete(_request())
+
+    asked.clear()
+
+    def bad(request: httpx2.Request) -> httpx2.Response:
+        asked.append("x")
+        return httpx2.Response(400, json={"error": {"code": 400, "message": "pedido ruim"}})
+
+    with pytest.raises(ModelCallError) as refused:
+        await model(bad, reserve=True).complete(_request())
+    assert (refused.value.kind, asked) == ("bad_request", ["x"])  # o normal recusaria igual
+    routed = model_port(
+        ASTRA, routes={ASTRA: "openai/flex"}, clock=FakeWallClock(), patient=True, fallback=ROUTES
+    )
+    assert isinstance(routed, OpenRouterModel)
+
+
 async def test_o_erro_que_chega_num_200_tambem_e_erro() -> None:
     def midway(request: httpx2.Request) -> httpx2.Response:
         return httpx2.Response(200, json={"error": {"code": 502, "message": "caiu no meio"}})
@@ -485,6 +539,49 @@ async def test_o_evento_e_a_fita_contam_as_tentativas(tmp_path: Path) -> None:
     assert json.loads(tape.read_text(encoding="utf-8"))["response"]["attempts"] == 2
     replayed = await RecordingModel(None, tape, "replay").complete(_request(avatar_id="camps"))
     assert (replayed.replayed, replayed.attempts) == (True, 1)
+
+
+async def test_o_evento_e_a_fita_dizem_que_foi_pela_reserva(tmp_path: Path) -> None:
+    """ADR-0074, decisão 31: a chamada que o flex não atendeu sai com `fallback` no evento e na
+    fita; a reprodução não chama ninguém."""
+
+    def flex_down(request: httpx2.Request) -> httpx2.Response:
+        if json.loads(request.content)["provider"]["order"][0] == "openai/flex":
+            return httpx2.Response(503, json={"error": {"code": 503, "message": "flex cheio"}})
+        return httpx2.Response(200, json=_answer())
+
+    async def sleep(seconds: float) -> None:
+        return None
+
+    client = httpx2.AsyncClient(
+        base_url="https://openrouter.test/api/v1", transport=httpx2.MockTransport(flex_down)
+    )
+    flex = OpenRouterModel(
+        {ASTRA: "openai/flex"},
+        clock=FakeWallClock(),
+        client=client,
+        api_key="chave-de-teste",
+        sleep=sleep,
+        fallback_routes=ROUTES,
+    )
+    inner_bus = InMemoryBus()
+    tape = tmp_path / "fita.jsonl"
+    metered = MeteredModel(
+        RecordingModel(flex, tape, "record", clock=FakeWallClock()),
+        bus=ValidatingBus(inner_bus),
+        worldid="farm-morada-do-sol-01",
+        cartridge="farm_morada_do_sol",
+        controller={"type": "llm", "id": "llm/camps"},
+        prices={ASTRA: ModelPrices(10.0, 50.0, 1.0, 12.5)},
+        clock=FakeWallClock(),
+        ids=SequentialUuid7Ids(),
+    )
+    await metered.complete(_request(avatar_id="camps"))
+    ((_, envelope),) = inner_bus.published
+    assert (envelope["data"]["attempts"], envelope["data"]["fallback"]) == (4, True)
+    assert json.loads(tape.read_text(encoding="utf-8"))["response"]["fallback"] is True
+    replayed = await RecordingModel(None, tape, "replay").complete(_request(avatar_id="camps"))
+    assert (replayed.replayed, replayed.fallback) == (True, False)
 
 
 def test_cada_modelo_vai_para_quem_o_atende() -> None:

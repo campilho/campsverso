@@ -1390,8 +1390,12 @@ def _cost_section(runs: Sequence[Run]) -> list[str]:
             ),
         ],
         [
-            "Chamadas repetidas / que falharam",
-            *(f"{llm(r).get('calls_retried', 0)} / {llm(r)['calls_failed']}" for r in models),
+            "Chamadas repetidas / na reserva / que falharam",
+            *(
+                f"{llm(r).get('calls_retried', 0)} / {llm(r).get('calls_fallback', 0)} / "
+                f"{llm(r)['calls_failed']}"
+                for r in models
+            ),
         ],
     ]
     return [
@@ -1402,8 +1406,9 @@ def _cost_section(runs: Sequence[Run]) -> list[str]:
         'disse). "Acima do fixo" compara com o script 3 fixo do mesmo mapa, a régua do meio; '
         'abaixo dele, o custo por moeda fica vazio. "Regras achadas" conta os vereditos "a '
         'causa" do juiz de referência. As chamadas repetidas são as que o adaptador tentou de '
-        "novo até responder (o flex às vezes fica indisponível), e a latência p95 é a espera das "
-        "chamadas lentas.",
+        "novo até responder (o flex às vezes fica indisponível); as da reserva, as que o flex não "
+        "atendeu e o provedor normal sim, pelo preço normal (decisão 31). A latência p95 é a "
+        "espera das chamadas lentas.",
         "",
         _table(["Medida", *(r.name for r in models)], rows),
         "",

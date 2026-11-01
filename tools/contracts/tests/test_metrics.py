@@ -82,7 +82,11 @@ def test_metricas_do_modelo_por_dia() -> None:
         ev(1, 2880, "world.clock.phase_changed.v1"),
         call(0, 10, 0.001),
         call(1, 20, 0.002, charged=False),  # da fita: entra nos tokens, não no custo
-        {**(slow := call(2, 1500, 0.004)), "data": {**slow["data"], "attempts": 3}},  # o flex
+        # O flex: repetida, e respondida pela reserva no provedor normal (decisão 31).
+        {
+            **(slow := call(2, 1500, 0.004)),
+            "data": {**slow["data"], "attempts": 9, "fallback": True},
+        },
         {
             "source": "/controller-runner/llm/camps",
             "seq": 3,
@@ -109,6 +113,7 @@ def test_metricas_do_modelo_por_dia() -> None:
     assert llm["latency_ms_median"] == 1001
     # As repetidas e a espera lenta (ADR-0074, decisão 28): o p95 de 1000, 1001 e 1002 ms.
     assert (llm["calls_retried"], llm["latency_ms_p95"], day2.calls_retried) == (1, 1001, 1)
+    assert (llm["calls_fallback"], day2.calls_fallback) == (1, 1)
     assert "llm" not in compute(envelopes[:2]).totals()  # o script não tem modelo
 
 

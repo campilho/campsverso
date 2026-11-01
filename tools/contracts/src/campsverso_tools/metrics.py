@@ -118,6 +118,7 @@ class DayMetrics:
     calls: int = 0
     calls_failed: int = 0
     calls_retried: int = 0  # as que o adaptador repetiu até responder (ADR-0074, decisão 28)
+    calls_fallback: int = 0  # as que o flex não atendeu e o provedor normal sim (decisão 31)
     cost_usd: float = 0.0
     tokens: dict[str, int] = field(default_factory=dict[str, int])
     latencies: list[int] = field(default_factory=list[int])
@@ -268,6 +269,7 @@ class Report:
                 "calls": sum(d.calls for d in days),
                 "calls_failed": sum(d.calls_failed for d in days),
                 "calls_retried": sum(d.calls_retried for d in days),
+                "calls_fallback": sum(d.calls_fallback for d in days),
                 "cost_usd": cost,
                 "cost_usd_per_day": round(cost / max(1, len(days)), 4),
                 "tokens": dict(sorted(tokens.items())),
@@ -425,6 +427,8 @@ def compute(envelopes: Iterable[Mapping[str, Any]], avatar: str = AVATAR) -> Rep
             metrics.latencies.append(int(data["latency_ms"]))
             if int(data.get("attempts", 1)) > 1:
                 metrics.calls_retried += 1
+            if data.get("fallback") is True:
+                metrics.calls_fallback += 1
             if data.get("charged", True):
                 metrics.cost_usd = round(metrics.cost_usd + float(data["cost_usd"]), 6)
             for key, value in data["usage"].items():

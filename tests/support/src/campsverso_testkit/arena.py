@@ -327,7 +327,13 @@ async def run_spec(
         inner: ModelPort = (
             port
             if port is not None
-            else model_port(spec.model, routes=routes, clock=clock, patient=spec.flex)
+            else model_port(
+                spec.model,
+                routes=routes,
+                clock=clock,
+                patient=spec.flex,
+                fallback=env.routes if spec.flex else None,
+            )
         )
         api = inner if isinstance(inner, AnthropicModel | OpenRouterModel) else None
         port = RecordingModel(inner, out / "llm.jsonl", "record", clock=clock)
@@ -363,7 +369,7 @@ async def run_spec(
         f"{f', com o playbook {spec.playbook}' if spec.playbook else ''}"
         f"{', com a comparação' if spec.compare else ''}"
         f"{f', com o conselheiro {spec.advisor}' if spec.advisor else ''}"
-        f"{', no provedor flex' if spec.flex else ''}"
+        f"{', no provedor flex, com a reserva no normal' if spec.flex else ''}"
         f"{f', contratando {spec.hire} desde o dia {spec.hire_from}' if spec.hire else ''}, "
         f"em {out}",
         log,

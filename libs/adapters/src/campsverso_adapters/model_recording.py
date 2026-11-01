@@ -105,6 +105,8 @@ class RecordingModel:
             entry["response"]["served_by"] = response.served_by
         if response.attempts > 1:  # o adaptador repetiu (decisão 28); a reprodução não repete
             entry["response"]["attempts"] = response.attempts
+        if response.fallback:  # a reserva do flex (decisão 31); a reprodução não chama ninguém
+            entry["response"]["fallback"] = True
         if response.advisor is not None:  # o conselheiro (ADR-0074): só quando houve
             advisor = response.advisor
             entry["response"]["advisor"] = {

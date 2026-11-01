@@ -78,6 +78,7 @@ class ModelResponse:
     advisor: SubCall | None = None  # o conselheiro consultado dentro da chamada (ADR-0074)
     served_by: str | None = None  # quem atendeu, quando a porta é um roteador (ADR-0074)
     attempts: int = 1  # as tentativas até a resposta, quando o adaptador repete (ADR-0074)
+    fallback: bool = False  # o flex se esgotou e o provedor normal respondeu (decisão 31)
 
     def tool_uses(self) -> list[Mapping[str, Any]]:
         return [block for block in self.content if block.get("type") == "tool_use"]

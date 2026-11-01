@@ -153,6 +153,8 @@ class MeteredModel:
             data["served_by"] = response.served_by[:128]
         if response.attempts > 1:  # o adaptador repetiu a chamada (ADR-0074, decisão 28)
             data["attempts"] = response.attempts
+        if response.fallback:  # o flex se esgotou e o provedor normal respondeu (decisão 31)
+            data["fallback"] = True
         if request.effort is not None:
             data["effort"] = request.effort
         if advised is not None:

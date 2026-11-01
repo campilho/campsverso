@@ -311,8 +311,10 @@ class OpenRouterModel:
         max_retries: int = 2,
         max_wait_seconds: float = MAX_WAIT_SECONDS,
         sleep: Sleep = asyncio.sleep,
+        fallback_routes: Mapping[str, str] | None = None,  # a reserva do flex (decisão 31)
     ) -> None:
         self._routes = dict(routes)
+        self._fallback = dict(fallback_routes or {})
         self._clock = clock
         self._client = client or httpx2.AsyncClient(base_url=BASE_URL, timeout=timeout_seconds)
         # Sem chave dada, a do ambiente (OPENROUTER_API_KEY, do .env).
@@ -334,9 +336,11 @@ class OpenRouterModel:
             tool_use=True, prompt_cache=True, batch=False, max_context_tokens=1_000_000
         )
 
-    def body(self, request: ModelRequest) -> dict[str, Any]:
+    def body(
+        self, request: ModelRequest, routes: Mapping[str, str] | None = None
+    ) -> dict[str, Any]:
         """O corpo do pedido; um modelo sem rota ou um bloco sem tradução são recusados aqui."""
-        provider = self._routes.get(request.model)
+        provider = (self._routes if routes is None else routes).get(request.model)
         if provider is None:
             raise ModelCallError(
                 "bad_request",
@@ -353,18 +357,18 @@ class OpenRouterModel:
         if not self._key:
             raise ModelCallError("auth", f"{KEY_VARIABLE} ausente no ambiente", retryable=False)
         started = self._clock.monotonic()
-        answer: Mapping[str, Any] = {}
-        attempts = 0
-        for attempt in range(self._max_retries + 1):
-            attempts = attempt + 1
-            try:
-                answer = await self._attempt(body, self.timeout_for(request))
-                break
-            except _AttemptError as failed:
-                if not failed.retryable or attempt == self._max_retries:
-                    raise ModelCallError(failed.kind, failed.message) from failed
-                wait = failed.retry_after if failed.retry_after is not None else 0.5 * 2**attempt
-                await self._sleep(min(wait, self._max_wait_seconds))
+        fallback = False
+        try:
+            answer, attempts = await self._tries(body, request)
+        except ModelCallError as error:
+            # A reserva do flex (decisão 31): esgotadas as tentativas num erro passageiro, a mesma
+            # chamada vai ao provedor normal, pelo preço dele; a corrida não perde a chamada.
+            reserve = self._fallback.get(request.model)
+            if not error.retryable or reserve is None or reserve == self._routes.get(request.model):
+                raise
+            answer, more = await self._tries(self.body(request, self._fallback), request)
+            attempts = self._max_retries + 1 + more
+            fallback = True
         choice = cast(Mapping[str, Any], cast(list[Any], answer["choices"])[0])
         content = response_blocks(cast(Mapping[str, Any], choice.get("message") or {}))
         stop = str(choice.get("finish_reason") or "stop")
@@ -380,7 +384,22 @@ class OpenRouterModel:
             request_id=cast(str | None, answer.get("id")),
             served_by=str(served) if served else None,
             attempts=attempts,
+            fallback=fallback,
         )
+
+    async def _tries(
+        self, body: Mapping[str, Any], request: ModelRequest
+    ) -> tuple[Mapping[str, Any], int]:
+        """As tentativas num provedor: a resposta e quantas foram, ou o erro da última."""
+        for attempt in range(self._max_retries + 1):
+            try:
+                return await self._attempt(body, self.timeout_for(request)), attempt + 1
+            except _AttemptError as failed:
+                if not failed.retryable or attempt == self._max_retries:
+                    raise ModelCallError(failed.kind, failed.message) from failed
+                wait = failed.retry_after if failed.retry_after is not None else 0.5 * 2**attempt
+                await self._sleep(min(wait, self._max_wait_seconds))
+        raise AssertionError("o laço sempre volta ou levanta")  # pragma: no cover
 
     async def _attempt(self, body: Mapping[str, Any], timeout: float) -> Mapping[str, Any]:
         """Uma tentativa: o corpo da resposta, ou _AttemptError classificado."""

@@ -508,7 +508,7 @@ def test_o_custo_por_resultado_compara_com_o_fixo_e_conta_as_regras(tmp_path: Pa
     fixo = {"name": "script3-fixo-d", "controller": "script", "script": "farmer3-fixo", **morada}
     _run(arena, "script3-fixo-d", fixo, day(50))
     haiku = {"name": "haiku", "controller": "llm", "memory": True, **morada}
-    calls = (llm_call(1, 0.30, 1000), llm_call(2, 0.50, 9000, attempts=3))
+    calls = (llm_call(1, 0.30, 1000), llm_call(2, 0.50, 9000, attempts=9, fallback=True))
     _run(arena, "haiku", haiku, day(90, *calls))
     gemini = {**haiku, "name": "gemini", "model": "google/gemini-4-argon", "flex": True}
     _run(arena, "gemini", gemini, day(30, llm_call(1, 0.20, 2000)))
@@ -533,7 +533,7 @@ def test_o_custo_por_resultado_compara_com_o_fixo_e_conta_as_regras(tmp_path: Pa
     assert "| Custo por moeda acima do fixo (US$) | 0,020 | - |" in text
     assert "| Regras achadas pela causa (juiz de referência) | 1 | - |" in text
     assert "| Custo por regra achada (US$) | 0,80 | - |" in text
-    assert "| Chamadas repetidas / que falharam | 1 / 0 | 0 / 0 |" in text
+    assert "| Chamadas repetidas / na reserva / que falharam | 1 / 1 / 0 | 0 / 0 / 0 |" in text
 
 
 def test_na_morada_o_relatorio_mostra_o_valor_de_saber_e_o_que_o_script_3_aprendeu(

@@ -1235,6 +1235,10 @@ export interface LlmCallCompletedV1 {
    * Quantas tentativas o adaptador fez até a resposta, quando repetiu a chamada (um 429, um 5xx, uma falha de rede); sem o campo, foi a primeira (ADR-0074, decisão 28).
    */
   attempts?: number;
+  /**
+   * O provedor flex se esgotou num erro passageiro e o provedor normal do mesmo modelo respondeu, pelo preço dele; sem o campo, respondeu a rota da corrida (ADR-0074, decisão 31).
+   */
+  fallback?: true;
   usage: LlmUsage;
   /**
    * Custo nominal pela tabela de preços do ambiente, ou o que o provedor disse ter cobrado, quando diz (a OpenRouter); com conselheiro, o total.
