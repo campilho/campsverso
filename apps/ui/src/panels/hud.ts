@@ -3,6 +3,7 @@
 import type { ObserverState } from "@campsverso/contracts";
 
 import { el } from "../dom.ts";
+import { attributeName, localName } from "../locale.ts";
 import { amount } from "../play.ts";
 import { clockText } from "../simclock.ts";
 import type { Status } from "../store.ts";
@@ -64,7 +65,7 @@ export type IconOf = (item: string) => string | undefined;
 
 function itemChip(item: string, qty: number, icon?: IconOf): HTMLElement {
   const url = icon?.(item);
-  const chip = el("span", { className: "item" }, `${item} ×${String(qty)}`);
+  const chip = el("span", { className: "item" }, `${localName(item)} ×${String(qty)}`);
   if (url !== undefined) {
     const image = el("img", { className: "item-icon" });
     image.src = url;
@@ -134,8 +135,9 @@ export function renderHud(
   const held = Object.entries(state.entities)
     .filter(([, e]) => e?.container_id === avatarId)
     .map(([id, e]) => {
-      const attributes = Object.entries(e?.attributes ?? {}).map(([k, v]) => `${k} ${String(v)}`);
-      return `${id}${attributes.length > 0 ? ` (${attributes.join(", ")})` : ""}`;
+      const attributes = Object.entries(e?.attributes ?? {}).map(([k, v]) => `${attributeName(k)} ${String(v)}`);
+      const name = e?.display_name ?? localName(e?.kind ?? id);
+      return `${name}${attributes.length > 0 ? ` (${attributes.join(", ")})` : ""}`;
     });
   // Cada coisa tem o seu lugar fixo na grade (style.css): o texto muda, a posição não.
   root.replaceChildren(

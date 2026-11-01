@@ -2,7 +2,8 @@ import type { ObserverState } from "@campsverso/contracts";
 import { describe, expect, it } from "vitest";
 
 import cases from "../../../tests/fixtures/raio/casos.json";
-import { FogMemory, FogStore, fogKey, visionRadius } from "./fog.ts";
+import { FogMemory, FogStore, fogKey, serverCenter, visionRadius } from "./fog.ts";
+import { pathFrom } from "./motion.ts";
 
 function state(phase: string, entities: ObserverState["entities"], containers: ObserverState["containers"] = {}): ObserverState {
   return {
@@ -101,6 +102,33 @@ describe("a lembrança da névoa (M21)", () => {
     // Bem dentro da vista, sem o servidor o mandar, ele não existe mais: some.
     fog.look(lagging, { x: 1, y: 0 }, 3);
     expect(fog.entities(lagging, "camps")["plot-001"]).toBeUndefined();
+  });
+
+  it("numa caminhada, o que a tela vê e o servidor ainda não mediu continua lembrado", () => {
+    // Achado do usuário no mapa d: andando, a tela desenha o avatar longe de onde o servidor mediu
+    // a vista. O canteiro do caminho, bem dentro da vista da tela, não foi mandado porque estava
+    // fora da do servidor; a lembrança dele não pode se apagar.
+    const fog = new FogMemory();
+    const plot = { kind: "plot", position: { x: 10, y: 0 }, attributes: { crop: "couve" } };
+    fog.look(state("noite", { "plot-010": plot }), { x: 10, y: 0 }, 3);
+    const walking = state("noite", {});
+    fog.look(walking, { x: 10, y: 1 }, 3, { x: 0, y: 0 }); // o servidor mediu do tile (0, 0)
+    expect(fog.entities(walking, "camps")["plot-010"]).toEqual(plot);
+    fog.look(walking, { x: 10, y: 9 }, 3, { x: 10, y: 9 }); // passou e saiu da vista
+    expect(fog.entities(walking, "camps")["plot-010"]).toEqual(plot);
+    // As duas contas no mesmo tile, e o canteiro bem à vista sem ter vindo: ele não existe mais.
+    fog.look(walking, { x: 10, y: 1 }, 3, { x: 10, y: 1 });
+    expect(fog.entities(walking, "camps")["plot-010"]).toBeUndefined();
+  });
+
+  it("o servidor mede a vista do tile do trajeto no tick do pulso, como o gateway", () => {
+    const base = state("amanhecer", { camps: { kind: "avatar", position: { x: 20, y: 0 }, attributes: {} } });
+    expect(serverCenter(base, "camps")).toEqual({ x: 20, y: 0 });
+    const path = pathFrom({ x: 0, y: 0 }, [{ x: 20, y: 0 }]);
+    const walking = { ...base, tick: 1, motion: { camps: { path, depart_tick: 1, tiles_per_tick: 1 } } };
+    expect(serverCenter(walking, "camps")).toEqual({ x: 0, y: 0 }); // o tick do último evento
+    expect(serverCenter({ ...walking, pulse: { tick: 11, alive: true } }, "camps")).toEqual({ x: 10, y: 0 });
+    expect(serverCenter({ ...walking, pulse: { tick: 90, alive: true } }, "camps")).toEqual({ x: 20, y: 0 });
   });
 
   it("guardada no navegador, volta na tela nova; a de outro jogo no mesmo mundo é esquecida", () => {

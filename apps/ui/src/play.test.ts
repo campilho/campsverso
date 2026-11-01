@@ -1,7 +1,9 @@
 import type { Affordance, ObserverEntity, ObserverState } from "@campsverso/contracts";
 import { describe, expect, it } from "vitest";
 
-import { contentsOf, inControl, menuFor, proposal, refusalText, thingAt, walkTo } from "./play.ts";
+import { setLocale } from "./locale.ts";
+import { optionText } from "./panels/menu.ts";
+import { contentsOf, holdTarget, inControl, menuFor, passable, proposal, refusalText, thingAt, walkTo } from "./play.ts";
 
 const AFFORDANCES: Affordance[] = [
   { action: "plant", label: "Plantar", on: ["plot"], target: true, params: [{ name: "crop", label: "Cultura", choices: ["rabanete", "batata"], source: "any" }] },
@@ -176,6 +178,21 @@ describe("o menu mostra o que vale agora (M21)", () => {
         },
       ],
     },
+    {
+      action: "dismiss_helper",
+      label: "Dispensar ajudante",
+      on: ["helper_board"],
+      target: true,
+      params: [
+        {
+          name: "helper",
+          label: "Ajudante",
+          choices: ["dita", "ze-graudo"],
+          source: "any",
+          option_notes: { dita: "Dita, a plantadeira: planta rápido", "ze-graudo": "Zé Graúdo, o carregador: carrega o dobro" },
+        },
+      ],
+    },
   ];
   const base = state();
   const at = (plot: Record<string, unknown>, inventory: Record<string, number>): ObserverState => ({
@@ -204,6 +221,27 @@ describe("o menu mostra o que vale agora (M21)", () => {
     expect([busy?.ready, busy?.blocked]).toEqual([false, "o canteiro já tem planta"]);
     expect(picked?.ready).toBe(true);
     expect([again?.blocked, again?.detail]).toEqual(["só se aduba o canteiro vazio", "você tem 3 adubo"]);
+  });
+
+  it("dispensar oferece só quem quem joga contratou, pelo nome (achado do usuário no mapa d)", () => {
+    const none = menuFor(at({}, {}), "camps", "board").find((e) => e.action === "dismiss_helper");
+    expect([none?.ready, none?.blocked, none?.params[0]?.options]).toEqual([false, "você não contratou ninguém", []]);
+    const hiring = at({}, {});
+    const board = { kind: "helper_board", position: { x: 6, y: 6 }, attributes: { diaria_dita: 40, ze_graudo: "com camps até o dia 5", dita: "livre" } };
+    const one = menuFor({ ...hiring, entities: { ...hiring.entities, board } }, "camps", "board").find((e) => e.action === "dismiss_helper");
+    const helper = one?.params[0];
+    expect([one?.ready, helper?.options]).toEqual([true, ["ze-graudo"]]);
+    expect(helper === undefined ? "" : optionText(helper, "ze-graudo")).toBe("Zé Graúdo");
+  });
+
+  it("a contagem diz de quem é: você tem 4 sementes, há 5 no baú (achado do usuário no mapa d)", () => {
+    const [plant] = menuFor(at({ crop: null, stage: null }, { semente_rabanete: 4 }), "camps", "plot-e-01");
+    const seeds = plant?.params[0];
+    expect(seeds?.countsOf).toBe("mine");
+    expect(seeds === undefined ? "" : optionText(seeds, "rabanete")).toBe("rabanete · você tem 4");
+    const [sell] = menuFor(at({}, { rabanete: 8 }), "camps", "feira");
+    const crop = sell?.params[0];
+    expect(crop === undefined ? "" : optionText(crop, "rabanete")).toBe("rabanete · você tem 8 · 31 moedas");
   });
 
   it("vender mostra quantas se tem e o preço de agora; a nota cita o alvo", () => {
@@ -253,5 +291,54 @@ describe("a recusa em português (M21)", () => {
 
   it("um motivo ou uma ação sem tradução aparece pelo código", () => {
     expect(refusalText("dance", "out_of_tune")).toBe("Não deu para dance: out_of_tune.");
+  });
+});
+
+describe("os nomes por língua (ADR-0075)", () => {
+  it("o baú e o menu mostram o nome traduzido; sem tradução, o id com espaços", () => {
+    setLocale([{ names: { watering_can: "regador" } }, { names: { spade: "pá" } }]);
+    const withdraw = menuFor(state(), "camps", "chest").find((e) => e.action === "withdraw")?.params[0];
+    expect(withdraw?.countsOf).toBe("there");
+    expect(withdraw === undefined ? "" : optionText(withdraw, "rabanete")).toBe("rabanete · há 5");
+    const held = state({
+      entities: {
+        ...state().entities,
+        "watering-can": { kind: "watering_can", container_id: "chest", attributes: { weight: 1 } },
+      },
+      session: { cartridge_version: "0.1.0", tick_seconds: 60, affordances: AFFORDANCES },
+    });
+    expect(optionText({ name: "item", label: "Item", options: [], numeric: false }, "semente_rabanete")).toBe("semente rabanete");
+    expect(optionText({ name: "item", label: "Item", options: [], numeric: false }, "spade")).toBe("pá");
+    expect(contentsOf({ ...held, entities: { ...held.entities, chest: { kind: "chest", position: { x: 6, y: 5 }, attributes: { capacity: 100 } } }, session: { cartridge_version: "0.1.0", tick_seconds: 60, affordances: [{ action: "deposit", label: "Guardar", on: ["chest"], target: true }] } }, "chest")?.items.map((i) => i.name)).toEqual(["rabanete", "regador"]);
+    setLocale([]);
+  });
+});
+
+describe("segurar a seta (achado do usuário no mapa d)", () => {
+  const map = state({
+    session: {
+      cartridge_version: "0.1.0",
+      tick_seconds: 60,
+      map: {
+        id: "teste",
+        width: 6,
+        height: 1,
+        rows: ["..~..."],
+        legend: { ".": { kind: "grass", properties: { passable: true } }, "~": { kind: "river", properties: { passable: false } } },
+      },
+    },
+  });
+
+  it("o terreno diz por onde se passa, pela legenda do mapa; fora do mapa, não", () => {
+    expect(passable(map, 0, 0)).toBe(true);
+    expect(passable(map, 2, 0)).toBe(false);
+    expect(passable(map, 6, 0)).toBe(false);
+    expect(passable(state(), 99, 99)).toBe(true); // sem mapa, quem decide é o kernel
+  });
+
+  it("a caminhada para antes da água", () => {
+    expect(holdTarget(map, { x: 0, y: 0 }, [1, 0], 5)).toEqual({ x: 1, y: 0 });
+    expect(holdTarget(map, { x: 3, y: 0 }, [1, 0], 5)).toEqual({ x: 5, y: 0 });
+    expect(holdTarget(map, { x: 3, y: 0 }, [-1, 0], 5)).toEqual({ x: 3, y: 0 });
   });
 });

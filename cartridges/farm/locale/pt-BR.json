@@ -1,0 +1,13 @@
+{
+  "names": {
+    "watering_can": "regador",
+    "watering_can_large": "regador grande",
+    "plow": "arado",
+    "spade": "pá"
+  },
+  "attributes": {
+    "charges": "cargas",
+    "capacity": "capacidade",
+    "weight": "peso"
+  }
+}

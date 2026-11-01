@@ -79,6 +79,7 @@ campsverso/
       script/                 # fazendeiros-script 1, 2 e 3, o oráculo (ADR-0070) e o ajudante (ADR-0072); dependem só dos contratos (carregados pelo controller-runner)
       mind/                   # o que a mente sabe da fazenda: notas do mundo e descrições das ferramentas (ADR-0059)
       art/                    # arte LPC do gênero e o manifesto art.json, com CREDITS.csv (ADR-0053)
+      locale/                 # os nomes que a tela mostra, por língua (pt-BR.json; ADR-0075); os ids não mudam
     farm_camps/               # cenário da v0.1: estende farm
       sim/                    # mapa (Tiled), avatar camps, ajustes de números, R-001
       art/                    # o Camps (sprite LPC), o mapa visual e o manifesto do cenário
@@ -139,6 +140,7 @@ make up           # sobe o NATS em segundo plano
 make stop         # derruba o NATS
 make run          # sobe o NATS e o Procfile (honcho): kernel, percepção, script, ajudantes, arquivador, gateway e orçamento
 make sandbox      # mundo descartável com tudo ligado, em data/sandbox/<data-hora> (não toca no oficial); MENTE=camps põe o LLM no Camps (ADR-0059; na Boa Vista, MENTE=camps_boavista; na Morada do Sol, MENTE=camps_morada); PAUSADO=1 começa com o relógio parado
+make jogar        # o sandbox de quem joga: começa pausado e a tela do jogador assume o Camps ao abrir (MUNDO=farm-morada-do-sol-04); RETOMAR=data/sandbox/<pasta> continua
 make ui-build     # compila a UI em apps/ui/dist; o gateway a serve em http://127.0.0.1:8765
 make ui           # a UI em modo desenvolvimento (Vite), com proxy para o gateway
 make ui-e2e       # a tela no navegador (Playwright), em três servidores próprios: a fazenda 1 (porta 8799; MUNDO=farm-boavista-01 ou farm-morada-do-sol-01 troca), a Morada do Sol pausada (8798) e uma rodada sintética da arena no modo de assistir (8797)

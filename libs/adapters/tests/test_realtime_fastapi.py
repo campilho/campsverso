@@ -31,10 +31,12 @@ async def _echo(connection: RealtimeConnection) -> None:
 async def server(tmp_path: Path) -> AsyncIterator[str]:
     tmj = tmp_path / "map.tmj"
     tmj.write_text('{"type": "map"}', encoding="utf-8")
-    genre, scenario = tmp_path / "farm-art", tmp_path / "camps-art"
+    genre, scenario = tmp_path / "farm" / "art", tmp_path / "camps" / "art"
     (genre / "tiles").mkdir(parents=True)
+    (tmp_path / "farm" / "locale").mkdir()
+    (tmp_path / "farm" / "locale" / "pt-BR.json").write_text('{"names": {}}', encoding="utf-8")
     (genre / "tiles" / "grass.png").write_bytes(b"png")
-    scenario.mkdir()
+    scenario.mkdir(parents=True)
     (scenario / "art.json").write_text('{"version": 1}', encoding="utf-8")
     (tmp_path / "segredo.txt").write_text("fora da arte", encoding="utf-8")
     realtime = FastApiRealtime(
@@ -108,3 +110,19 @@ async def test_mapas_e_arte_se_conferem_a_cada_vez(server: str) -> None:
 
     assert await asyncio.to_thread(cache_control, "/content/maps/farm_camps.tmj") == "no-cache"
     assert await asyncio.to_thread(cache_control, "/content/art/farm/tiles/grass.png") == "no-cache"
+
+
+async def test_os_nomes_por_lingua_ao_lado_da_arte(server: str) -> None:
+    """ADR-0075: `locale/<língua>.json` de cada camada, sem sair da pasta."""
+
+    def get(path: str) -> tuple[int, str]:
+        try:
+            with urllib.request.urlopen(f"http://{server}{path}", timeout=5) as response:
+                return response.status, response.read().decode()
+        except urllib.error.HTTPError as error:
+            return error.code, ""
+
+    assert await asyncio.to_thread(get, "/content/locale/farm/pt-BR.json") == (200, '{"names": {}}')
+    assert (await asyncio.to_thread(get, "/content/locale/farm_camps/pt-BR.json"))[0] == 404
+    assert (await asyncio.to_thread(get, "/content/locale/farm/..%2F..%2Fsegredo.txt"))[0] == 404
+    assert (await asyncio.to_thread(get, "/content/locale/outra/pt-BR.json"))[0] == 404

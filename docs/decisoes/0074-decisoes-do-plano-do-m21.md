@@ -274,6 +274,21 @@ Com a energia nova, o ajudante ainda não pagava, e a explicação era o teto de
     - **Os US$ 50 da OpenRouter primeiro, medindo:** cobrem o Gemini e o piloto do Astra. O ano do Astra se decide depois do Opus, com o custo real do piloto e créditos novos.
     - **Cada corrida só segue se** o piloto não perder chamada e custar o que a tabela diz, e se o ano gastar até 1,5 vez a estimativa por dia (no dia 2 do Sonnet, no dia 7 do Gemini). Se não, a corrida para, e o usuário decide sem ver resultados.
     - **O relatório ganha "o custo por resultado":** por chamada, por colheita, por moeda acima do script 3 fixo do mesmo mapa e por regra achada pela causa; os tokens por dia, o cache lido, as chamadas repetidas e a latência p95. Os modelos aparecem pelo nome completo ("Claude Sonnet 5.5", "Gemini 4 Argon (flex)"), e a ficha diz a rota.
+29. **A primeira semana do humano no mapa d (1º/nov) trouxe consertos da tela, e nenhum do mundo.**
+    - **O que parecia do mundo e não era:** o Camps acordou às 21:20 e às 22:47 porque deitou às 19:19 e às 18:53. Antes das 20:00 é cochilo, que acaba quando a energia enche, como manda a bíblia. O menu do sono passa a dizer isso.
+    - **Os consertos:**
+      - a caixa escura que seguia o avatar: a regra do menu fechado, quebrada no `a59713f`;
+      - os canteiros que sumiam na névoa: o gateway media a vista do jogador no tick do último evento, de onde a caminhada começou. Agora mede no tick do pulso, e a tela só esquece o que as duas contas veem;
+      - os pulos ao andar: o desenho segue de onde o avatar aparece, e o trajeto que começou e terminou entre duas atualizações chega pelo evento;
+      - as setas: segurar anda uma caminhada só, e soltar para no tile logo à frente;
+      - em cima de um canteiro, um menu só, com as ações dele e as do avatar;
+      - o rótulo da ação dentro da câmera, a fila e o aviso sobre o canto do mapa, o relógio preso à direita;
+      - "rabanete · você tem 4" no lugar de "rabanete ×4"; dispensar oferece só quem se contratou, pelo nome e com a ficha;
+      - a marca do canteiro adubado, à espera do plantio; os nomes em português (ADR-0075).
+    - **Nada disso chega às mentes:** o kernel, as regras e a mente não mudam. As notas do catálogo e a arte, só a tela lê. A terceira rodada continua comparável.
+    - **O `make jogar`** começa pausado, e a tela do jogador assume o Camps ao abrir. O botão de 1440× passa uma noite de 10 horas em 25 segundos.
+    - **Os primeiros 16 minutos do ano do humano foram do script,** porque o comando passado ao usuário não tinha `PAUSADO=1`: o script cavou um canteiro (a obra terminou às 06:18 do dia 1, já com o humano no controle). A corrida do humano registra isso.
+30. **A bancada dos harnesses é o primeiro marco da v0.4** (1º/nov, o usuário). Na fazenda, nada muda: os modelos da Anthropic pela API da Anthropic, os outros pela OpenRouter, todos pela mente e pela `ModelPort`. As três ligações de um modelo com o mundo ficam no `futuro.md`.
 
 A tela de quem joga ganha a carga da mochila ao lado do inventário ("carga 12,5 de 20", em alerta a partir de 90%) e as recusas em português ("Não deu para colher: não cabe na mochila; guarde alguma coisa no baú.").
 
@@ -287,4 +302,5 @@ A tela de quem joga ganha a carga da mochila ao lado do inventário ("carga 12,5
   - as tentativas, quando o adaptador repetiu a chamada.
 - **A porta de modelo ganha um segundo provedor,** e a `ModelUsage`, um custo opcional dito pelo provedor.
 - **O sandbox passa a retomar um mundo,** e a tela do jogador passa a mostrar o relógio quando pode mandar nele.
+- **A vista do jogador passa a ser medida no tick do pulso,** e a tela ganha o `make jogar`, o 1440× e os nomes por língua (ADR-0075).
 - **As três fazendas não mudam:** a ferramenta e o conselheiro ficam desligados fora dos braços, e as fitas passam sem regravar.

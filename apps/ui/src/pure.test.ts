@@ -1,7 +1,7 @@
 import type { EnvelopeV1, ObserverMotion, ObserverState } from "@campsverso/contracts";
 import { describe, expect, it } from "vitest";
 
-import { MAX_TILES_PER_SECOND, MotionClock, positionAt, smoothedAt } from "./motion.ts";
+import { MAX_TILES_PER_SECOND, MotionClock, pathFrom, positionAt, smoothedAt } from "./motion.ts";
 import { applyMergePatch } from "./patch.ts";
 import { entityColor, tileColor } from "./render/skin.ts";
 import { DisplayClock, MAX_AHEAD, clockText, isLive } from "./simclock.ts";
@@ -329,5 +329,62 @@ describe("teto de velocidade do desenho (ADR-0057)", () => {
     expect(clock.at("camps", undefined, { x: 30, y: 0 }, 13, 5_000)).toEqual({ x: 30, y: 0 });
     // Parada em outro lugar, que não é o fim do trajeto: vai direto.
     expect(clock.at("camps", undefined, { x: 2, y: 2 }, 14, 5_100)).toEqual({ x: 2, y: 2 });
+  });
+});
+
+describe("o desenho não salta (achados do usuário no mapa d)", () => {
+  const line = (from: number, to: number): ObserverMotion["path"] =>
+    pathFrom({ x: from, y: 0 }, [{ x: to, y: 0 }]);
+
+  it("o trajeto se refaz das esquinas, como na projeção", () => {
+    expect(pathFrom({ x: 0, y: 0 }, [{ x: 2, y: 0 }, { x: 2, y: 1 }])).toEqual([
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      { x: 2, y: 0 },
+      { x: 2, y: 1 },
+    ]);
+  });
+
+  it("um destino novo no meio da caminhada segue de onde o avatar aparecia", () => {
+    const clock = new MotionClock();
+    const first: ObserverMotion = { path: line(0, 30), depart_tick: 10, tiles_per_tick: 30 };
+    clock.at("camps", first, undefined, 10, 0);
+    expect(clock.at("camps", first, undefined, 11, 500)).toEqual({ x: 6, y: 0 }); // o kernel já chegou
+    // O kernel parte do tile 20 para o 25: a tela continua do 6, pelo caminho velho.
+    const next: ObserverMotion = { path: line(20, 25), depart_tick: 11, tiles_per_tick: 30 };
+    expect(clock.at("camps", next, undefined, 11, 500)).toEqual({ x: 6, y: 0 });
+    expect(clock.at("camps", next, undefined, 12, 1_000)).toEqual({ x: 12, y: 0 });
+    expect(clock.at("camps", undefined, { x: 25, y: 0 }, 13, 3_000)).toEqual({ x: 25, y: 0 });
+  });
+
+  it("parar logo depois de soltar a tecla: o desenho para ali, sem ir e voltar", () => {
+    const clock = new MotionClock();
+    const run: ObserverMotion = { path: line(0, 30), depart_tick: 10, tiles_per_tick: 30 };
+    clock.at("camps", run, undefined, 10, 0);
+    clock.at("camps", run, undefined, 11, 500); // a tela no 6, o kernel no 30
+    const back: ObserverMotion = { path: line(30, 7), depart_tick: 11, tiles_per_tick: 30 };
+    expect(clock.at("camps", back, undefined, 11, 600)).toEqual({ x: 6, y: 0 });
+    expect(clock.at("camps", back, undefined, 11.1, 700)).toEqual({ x: 7, y: 0 }); // e não vai ao 30
+    expect(clock.at("camps", back, undefined, 12, 2_000)).toEqual({ x: 7, y: 0 });
+    expect(clock.at("camps", undefined, { x: 7, y: 0 }, 12, 2_100)).toEqual({ x: 7, y: 0 });
+  });
+
+  it("um trajeto que começou e terminou entre duas atualizações chega pelo evento", () => {
+    const clock = new MotionClock();
+    expect(clock.at("camps", undefined, { x: 0, y: 0 }, 10, 0)).toEqual({ x: 0, y: 0 });
+    clock.observe("camps", { path: line(0, 24), depart_tick: 10, tiles_per_tick: 30 }, 0);
+    // O estado já diz que ele chegou; a tela anda até lá no ritmo do teto.
+    expect(clock.at("camps", undefined, { x: 24, y: 0 }, 11, 1_000)).toEqual({ x: MAX_TILES_PER_SECOND, y: 0 });
+    expect(clock.at("camps", undefined, { x: 24, y: 0 }, 12, 3_000)).toEqual({ x: 24, y: 0 });
+  });
+
+  it("o ritmo do teclado: o desenho anda mais devagar que o teto", () => {
+    const clock = new MotionClock();
+    clock.pace("camps", 6);
+    const run: ObserverMotion = { path: line(0, 30), depart_tick: 10, tiles_per_tick: 30 };
+    clock.at("camps", run, undefined, 10, 0);
+    expect(clock.at("camps", run, undefined, 11, 1_000)).toEqual({ x: 6, y: 0 });
+    clock.pace("camps", undefined);
+    expect(clock.at("camps", run, undefined, 11, 1_500)).toEqual({ x: 6 + MAX_TILES_PER_SECOND / 2, y: 0 });
   });
 });

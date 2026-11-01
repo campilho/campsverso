@@ -26,7 +26,7 @@ import {
   type Resolved,
 } from "../art/manifest.ts";
 import { el } from "../dom.ts";
-import { FogMemory, FogStore, lightHeld, visionRadius, type Sight } from "../fog.ts";
+import { FogMemory, FogStore, lightHeld, serverCenter, visionRadius, type Sight } from "../fog.ts";
 import { motionClock, type Point } from "../motion.ts";
 import { progressOf } from "../progress.ts";
 import { tileAt, type TileGrid } from "../tiled.ts";
@@ -77,12 +77,14 @@ class ThingView {
   private readonly image: Phaser.GameObjects.Image;
   private readonly label: Phaser.GameObjects.Text;
   private readonly badge: Phaser.GameObjects.Arc;
+  private readonly mark: Phaser.GameObjects.Arc;
 
   constructor(scene: Phaser.Scene) {
     this.box = scene.add.rectangle(0, 0, TILE - 6, TILE - 6, 0xffffff).setStrokeStyle(1, 0x000000, 0.45);
     this.image = scene.add.image(0, 0, "__DEFAULT").setVisible(false).setOrigin(0.5, 1);
     this.label = scene.add.text(0, 0, "", { fontFamily: FONT, fontSize: "9px", color: "#ffffff" }).setOrigin(0.5);
     this.badge = scene.add.circle(0, 0, 3.5, 0x4fc3f7).setVisible(false).setStrokeStyle(1, 0x0b3d5c);
+    this.mark = scene.add.circle(0, 0, 3.5, 0xe0a33a).setVisible(false).setStrokeStyle(1, 0x4a2e0c);
   }
 
   show(scene: Phaser.Scene, look: Resolved, x: number, y: number): void {
@@ -111,10 +113,15 @@ class ThingView {
     if (badge !== undefined) {
       this.badge.setFillStyle(colorNumber(badge));
     }
+    const [mark] = look.marks ?? [];
+    this.mark.setVisible(mark !== undefined).setPosition(x * TILE + 6, y * TILE + TILE - 6).setDepth(depth + 0.2);
+    if (mark !== undefined) {
+      this.mark.setFillStyle(colorNumber(mark));
+    }
   }
 
   destroy(): void {
-    for (const object of [this.box, this.image, this.label, this.badge]) {
+    for (const object of [this.box, this.image, this.label, this.badge, this.mark]) {
       object.destroy();
     }
   }
@@ -211,7 +218,12 @@ class AvatarView {
     const above = inBed !== undefined && bed !== undefined ? { cx: bed.cx, top: bed.top - 2 } : undefined;
     const tx = above?.cx ?? cx;
     const top = above?.top ?? (drawn ? (at.y + 1) * TILE - 50 : at.y * TILE - 4);
-    this.tag.setVisible(progress !== undefined).setText(progress?.label ?? "").setPosition(tx, top - 3);
+    this.tag.setVisible(progress !== undefined).setText(progress?.label ?? "");
+    // Perto da borda, o rótulo fica inteiro dentro do que a câmera mostra (achado do usuário no
+    // mapa d: "Cavar um canteiro aqui" saía do mapa); a barra continua sobre o avatar.
+    const view = scene.cameras.main.worldView;
+    const half = this.tag.width / 2 + 2;
+    this.tag.setPosition(view.width > 0 ? Phaser.Math.Clamp(tx, view.x + half, view.right - half) : tx, top - 3);
     this.bar.clear();
     if (progress?.fraction !== undefined) {
       const width = TILE - 4;
@@ -416,7 +428,7 @@ class WorldScene extends Phaser.Scene {
     }
     const tile = { x: Math.round(at.x), y: Math.round(at.y) };
     this.fogTick = state.tick;
-    if (this.fog.look(state, tile, radius) || !this.fogDrawn) {
+    if (this.fog.look(state, tile, radius, serverCenter(state, id) ?? tile) || !this.fogDrawn) {
       this.drawFog();
       if (performance.now() - this.fogSavedAt > FOG_SAVE_MS) {
         this.saveFog();

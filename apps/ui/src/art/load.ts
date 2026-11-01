@@ -7,6 +7,8 @@ export interface LoadedArt {
   readonly manifest: ArtManifest;
   /** Os créditos de cada camada, na ordem do índice (a junção dos manifestos guardaria só o último). */
   readonly credits: readonly { readonly layer: string; readonly url: string }[];
+  /** As camadas, do gênero ao cenário: os nomes de cada língua seguem a mesma ordem (ADR-0075). */
+  readonly layers: readonly string[];
 }
 
 async function json(get: Fetch, url: string): Promise<unknown> {
@@ -30,5 +32,5 @@ export async function loadArt(get: Fetch = (url) => fetch(url)): Promise<LoadedA
       }
     }
   }
-  return { manifest: layers.length === 0 ? EMPTY : mergeManifests(layers), credits };
+  return { manifest: layers.length === 0 ? EMPTY : mergeManifests(layers), credits, layers: index?.layers ?? [] };
 }

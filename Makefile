@@ -22,7 +22,7 @@ NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR BUDGET MIND
 
 .DEFAULT_GOAL := help
 .PHONY: help setup contracts check lint fmt types test arch contracts-check compat \
-        up stop run ui ui-build sandbox soak replay metrics ui-e2e mapa-visual mapa-variantes sessoes tools secrets fita corrida \
+        up stop run ui ui-build sandbox jogar soak replay metrics ui-e2e mapa-visual mapa-variantes sessoes tools secrets fita corrida \
         arena arena-report arena-humano assistir juiz
 
 help: ## lista os alvos
@@ -102,6 +102,9 @@ ui: ## UI em modo desenvolvimento (Vite em http://127.0.0.1:5173), ligada ao gat
 
 sandbox: tools ui-build ## mundo descartável com tudo ligado, em data/sandbox/<data-hora>; MENTE=camps põe o LLM no Camps (ADR-0059; na Boa Vista, MENTE=camps_boavista); PAUSADO=1 começa parado; RETOMAR=data/sandbox/<pasta> continua um sandbox de onde parou (pause antes do Ctrl+C para voltar pausado; ADR-0074); Ctrl+C para parar
 	$(if $(MENTE),uv run --locked --env-file .env,$(PY)) python -m campsverso_testkit.sandbox --world config/worlds/$(MUNDO).yaml --out $(or $(RETOMAR),data/sandbox/$$(date +%Y%m%d-%H%M%S)) $(if $(RETOMAR),--retomar,) $(if $(MENTE),--mind $(MENTE),) $(if $(PAUSADO),--pausado,)
+
+jogar: tools ui-build ## o sandbox de quem joga: começa pausado e a tela do jogador assume o Camps ao abrir; make jogar MUNDO=farm-morada-do-sol-04; RETOMAR=data/sandbox/<pasta> continua de onde parou (pause antes do Ctrl+C)
+	$(PY) python -m campsverso_testkit.sandbox --world config/worlds/$(MUNDO).yaml --out $(or $(RETOMAR),data/sandbox/$$(date +%Y%m%d-%H%M%S)) $(if $(RETOMAR),--retomar,) --jogar
 
 DIAS ?= 1
 

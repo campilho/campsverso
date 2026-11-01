@@ -6,12 +6,14 @@
  * (por mundo e avatar, `FogStore`), para sobreviver a fechar e abrir a tela: o humano vê o desenho
  * de quando passou por lá, e não sabe se algo mudou.
  *
- * A tela mede a vista pela posição desenhada do avatar, que anda suave; o servidor manda as coisas
- * pela posição dele no mundo, que pode estar um pulso atrás. Na borda da vista, as duas contas
- * podem discordar por um tile ou dois. Por isso a lembrança de uma coisa só se apaga quando ela
- * está bem dentro da vista (`MARGIN` tiles longe da borda) e o servidor não a mandou: aí ela não
- * existe mais. Na borda, a lembrança fica. */
+ * A tela mede a vista pela posição desenhada do avatar, que anda suave e pode ficar para trás; o
+ * servidor manda as coisas pela posição dele no mundo, no tick do pulso (`serverCenter`). As duas
+ * contas discordam na borda e, numa caminhada, por vários tiles. Por isso a lembrança de uma coisa
+ * só se apaga quando ela está bem dentro das duas vistas (`MARGIN` tiles longe da borda de cada
+ * uma) e o servidor não a mandou: aí ela não existe mais. Fora disso, a lembrança fica. */
 import type { ObserverEntity, ObserverState } from "@campsverso/contracts";
+
+import { knownTick } from "./simclock.ts";
 
 /** O raio que o avatar enxerga agora; `undefined` é o mapa inteiro (sem névoa). */
 export function visionRadius(state: ObserverState, avatarId: string): number | undefined {
@@ -35,6 +37,18 @@ export function lightHeld(state: ObserverState, avatarId: string): boolean {
 
 export type Sight = "visible" | "seen" | "unseen";
 
+/** O tile de onde o servidor mediu a vista que mandou: o do avatar no trajeto, no tick mais recente
+ * que se sabe (o do pulso), com a mesma conta do gateway (`position_at`). */
+export function serverCenter(state: ObserverState, avatarId: string): { x: number; y: number } | undefined {
+  const motion = state.motion[avatarId];
+  const rest = state.entities[avatarId]?.position;
+  if (motion === undefined) {
+    return rest;
+  }
+  const steps = Math.floor((knownTick(state) - motion.depart_tick) * motion.tiles_per_tick + 1e-9);
+  return motion.path[Math.max(0, Math.min(motion.path.length - 1, steps))] ?? rest;
+}
+
 /** Quantos tiles da borda da vista a tela e o servidor podem discordar. */
 export const MARGIN = 2;
 
@@ -50,13 +64,16 @@ export class FogMemory {
   private readonly seen = new Set<string>();
   private readonly frozen = new Map<string, ObserverEntity>();
   private center: { x: number; y: number } | undefined;
+  private server: { x: number; y: number } | undefined;
   private radius: number | undefined;
 
-  /** Atualiza o que está à vista a partir do avatar em `at` (o tile em que ele aparece agora).
-   * Devolve verdadeiro quando o recorte visível mudou (para redesenhar a névoa). */
-  look(state: ObserverState, at: { x: number; y: number }, radius: number): boolean {
+  /** Atualiza o que está à vista a partir do avatar em `at` (o tile em que ele aparece agora);
+   * `server` é o tile de onde o servidor mediu a vista (sem ele, o mesmo `at`). Devolve verdadeiro
+   * quando o recorte visível mudou (para redesenhar a névoa). */
+  look(state: ObserverState, at: { x: number; y: number }, radius: number, server: { x: number; y: number } = at): boolean {
     const changed = this.center?.x !== at.x || this.center.y !== at.y || this.radius !== radius;
     this.center = { x: at.x, y: at.y };
+    this.server = { x: server.x, y: server.y };
     this.radius = radius;
     for (let y = at.y - radius; y <= at.y + radius; y++) {
       for (let x = at.x - radius; x <= at.x + radius; x++) {
@@ -66,7 +83,7 @@ export class FogMemory {
     for (const id of [...this.frozen.keys()]) {
       const remembered = this.frozen.get(id);
       if (remembered?.position !== undefined && this.deep(remembered.position.x, remembered.position.y)) {
-        this.frozen.delete(id); // bem à vista de novo: vale o que existe agora
+        this.frozen.delete(id); // bem à vista de novo, nas duas contas: vale o que existe agora
       }
     }
     for (const [id, entity] of Object.entries(state.entities)) {
@@ -97,11 +114,12 @@ export class FogMemory {
     return { depth, beyond: { x: x + sx * (depth + 1), y: y + sy * (depth + 1) } };
   }
 
-  /** Bem dentro da vista, onde a tela e o servidor concordam sobre o que existe. */
+  /** Bem dentro da vista da tela e da do servidor: onde as duas concordam sobre o que existe. */
   private deep(x: number, y: number): boolean {
-    const at = this.center;
     const radius = this.radius;
-    return at !== undefined && radius !== undefined && Math.max(Math.abs(x - at.x), Math.abs(y - at.y)) <= radius - MARGIN;
+    const inside = (at: { x: number; y: number } | undefined): boolean =>
+      at !== undefined && radius !== undefined && Math.max(Math.abs(x - at.x), Math.abs(y - at.y)) <= radius - MARGIN;
+    return inside(this.center) && inside(this.server);
   }
 
   sight(x: number, y: number): Sight {

@@ -23,8 +23,10 @@ export interface Look {
   readonly frame?: number;
   /** Cor que tinge o quadro (a planta murcha é a madura escurecida). */
   readonly tint?: string;
-  /** Um ponto de cor no canto (o canteiro regado). */
+  /** Um ponto de cor no canto de baixo à direita (o canteiro regado). */
   readonly badge?: string;
+  /** Um ponto de cor no canto de baixo à esquerda (o canteiro adubado, à espera do plantio). */
+  readonly mark?: string;
   /** Escala do quadro (a cama LPC tem 2 tiles de largura; a casa da fazenda, só 3). */
   readonly scale?: number;
   /** Cor do chão por baixo do quadro: o canteiro cavado na grama da Boa Vista continua de terra
@@ -169,6 +171,7 @@ export function hashColor(name: string): string {
 
 export interface Resolved extends Look {
   readonly badges: readonly string[];
+  readonly marks?: readonly string[];
 }
 
 /** A aparência de uma entidade agora: base, variante que bate e sobreposições. */
@@ -181,17 +184,21 @@ export function lookOf(manifest: ArtManifest, kind: string, attributes: Readonly
   const variant = variants?.find((v) => matches(v.when, attributes));
   let look: Look = variant === undefined ? base : { ...base, ...variant.look };
   const badges: string[] = [];
+  const marks: string[] = [];
   for (const overlay of overlays ?? []) {
     if (matches(overlay.when, attributes)) {
-      const { badge, ...others } = overlay.look;
+      const { badge, mark, ...others } = overlay.look;
       if (badge !== undefined) {
         badges.push(badge);
+      }
+      if (mark !== undefined) {
+        marks.push(mark);
       }
       look = { ...look, ...others };
     }
   }
   const label = fill(look.label, attributes);
-  return { ...look, ...(label === undefined ? {} : { label }), badges };
+  return { ...look, ...(label === undefined ? {} : { label }), badges, ...(marks.length === 0 ? {} : { marks }) };
 }
 
 export function tileLook(manifest: ArtManifest, type: string): Look {

@@ -15,14 +15,15 @@ import { loadArt, type LoadedArt } from "./art/load.ts";
 import { Connection, type View } from "./connection.ts";
 import { button, el } from "./dom.ts";
 import { fogKey } from "./fog.ts";
-import { motionClock } from "./motion.ts";
+import { loadLocale } from "./locale.ts";
+import { motionClock, pathFrom } from "./motion.ts";
 import { CreditsDialog } from "./panels/credits.ts";
 import { CommandsHelp } from "./panels/help.ts";
 import { renderHud } from "./panels/hud.ts";
 import { ActionMenu } from "./panels/menu.ts";
 import { OperatorPanel } from "./panels/operator.ts";
 import { Portrait } from "./panels/portrait.ts";
-import { contentsOf, inControl, menuFor, proposal, refusalText, thingAt, tileMenu, walkTo, type MenuEntry, type Proposal, type Tile } from "./play.ts";
+import { contentsOf, holdTarget, inControl, menuFor, proposal, refusalText, thingAt, tileMenu, walkTo, type MenuEntry, type Tile } from "./play.ts";
 import { busyText, progressOf } from "./progress.ts";
 import { ActionQueue, type Step } from "./queue.ts";
 import { MapCanvas } from "./render/canvas.ts";
@@ -35,7 +36,6 @@ import { parseTiledMap, tileAt as terrainAt, type TileGrid } from "./tiled.ts";
 
 const NOTICE_MS = 6000;
 const PANEL_EVERY_MS = 150;
-const KEY_REPEAT_MS = 200;
 const PROPOSE = "campsverso.cmd.action.propose.v1";
 const POSSESS = "campsverso.cmd.avatar.possess.v1";
 const RELEASE = "campsverso.cmd.avatar.release.v1";
@@ -47,6 +47,8 @@ const debug = query.get("render") === "debug";
 const store = new Store();
 const scheme = location.protocol === "https:" ? "wss" : "ws";
 const run = query.get("run"); // uma corrida da arena, no modo de assistir (ADR-0068)
+// `make jogar`: a tela do jogador assume o avatar sozinha ao abrir (achado do usuário no mapa d).
+let autoAssume = view === "player" && run === null && query.get("assumir") === "1";
 const runParam = run === null ? "" : `&run=${encodeURIComponent(run)}`;
 const connection = new Connection(`${scheme}://${location.host}/ws?view=${view}${runParam}`, store);
 
@@ -77,7 +79,24 @@ if (app === null) {
   throw new Error("#app não existe no index.html");
 }
 app.className = view;
-const world = el("section", { className: "world" }, control, map.element, notice, queueBox, hud);
+const footStack = el("div", { className: "map-foot-stack" }, queueBox, notice);
+const foot = el("div", { className: "map-foot" }, footStack);
+let footAt = "";
+
+/** A fila e o aviso flutuam sobre o canto de baixo do mapa desenhado, que fica no meio da largura
+ * quando a tela é mais larga que o mapa. */
+function alignFoot(): void {
+  const drawn = (map.element.querySelector("canvas") ?? map.element).getBoundingClientRect();
+  const around = world.getBoundingClientRect();
+  const at = `${String(Math.round(drawn.left - around.left + 12))}px,${String(Math.round(around.right - drawn.right + 12))}px`;
+  if (at !== footAt) {
+    footAt = at;
+    const [left = "12px", right = "12px"] = at.split(",");
+    footStack.style.left = left;
+    footStack.style.right = right;
+  }
+}
+const world = el("section", { className: "world" }, control, map.element, foot, hud);
 app.replaceChildren(header, el("main", {}, world, view === "operator" && aside));
 
 const menu = new ActionMenu(document.body);
@@ -120,7 +139,6 @@ let lastReply = "";
 let grid: TileGrid | undefined;
 let shownQueue = -1;
 let wasInControl = false;
-let lastKeyMove = 0;
 
 function avatarId(): string {
   return store.welcome?.avatar_id ?? "camps";
@@ -214,6 +232,13 @@ store.onChange(() => {
 store.onEvents((events) => {
   for (const event of events) {
     const data = event.data as Record<string, unknown> | undefined;
+    if (event.type === MOVED && data !== undefined) {
+      observeMove(data);
+      continue;
+    }
+    if (holding() && event.type === "campsverso.action.rejected.v1" && data?.action === "move" && data.avatar_id === avatarId()) {
+      continue; // segurando a seta, o kernel recusar um trecho (a cerca, o baú) só para a caminhada
+    }
     if (LABOR.has(event.type) && data?.employer === avatarId()) {
       say(describe(event, store.state?.session?.labels ?? []) ?? shortType(event.type), true);
       continue;
@@ -226,6 +251,23 @@ store.onEvents((events) => {
   }
 });
 
+/** O trajeto que chega pelo evento: a tela o desenha mesmo que ele comece e termine entre duas
+ * atualizações (a 144× e a 720×; achado do usuário no mapa d). */
+const MOVED = "campsverso.world.entity.moved.v1";
+
+function observeMove(data: Record<string, unknown>): void {
+  const origin = data.origin as Tile | undefined;
+  const waypoints = data.waypoints as Tile[] | undefined;
+  if (typeof data.entity_id !== "string" || origin === undefined || waypoints === undefined) {
+    return;
+  }
+  motionClock.observe(
+    data.entity_id,
+    { path: pathFrom(origin, waypoints), depart_tick: Number(data.depart_tick), tiles_per_tick: Number(data.tiles_per_tick) },
+    performance.now(),
+  );
+}
+
 // ---------------------------------------------------------------- jogar (ADR-0051)
 
 function assume(state: ObserverState): void {
@@ -237,6 +279,12 @@ function assume(state: ObserverState): void {
 }
 
 function renderControl(state: ObserverState): void {
+  if (autoAssume && store.status === "open" && store.welcome !== undefined) {
+    autoAssume = false; // uma vez por tela: devolver ao script continua valendo
+    if (!inControl(state, avatarId())) {
+      assume(state);
+    }
+  }
   if (run !== null) {
     if (lastControl === "") {
       // Assistir não muda o mundo: no lugar de assumir o avatar, o que é esta tela e a volta à arena.
@@ -280,7 +328,7 @@ function renderControl(state: ObserverState): void {
 // ---------------------------------------------------------------- o relógio do jogador (ADR-0074)
 
 const CLOCK = "campsverso.cmd.clock.";
-const PACES = [72, 144, 720] as const;
+const PACES = [72, 144, 720, 1440] as const;
 
 /** No sandbox, quem joga também opera o relógio: o gateway diz se aceita (`--relogio-do-jogador`). */
 function playerClock(): boolean {
@@ -296,7 +344,7 @@ function togglePause(state: ObserverState): void {
 }
 
 /** Pausar ou retomar (tecla P) e as velocidades: 72x para o dia, 144x para andar mais rápido, 720x
- * para a noite dormindo. */
+ * e 1440x para a noite dormindo (uma noite de 10 horas em 25 segundos; achado do usuário no mapa d). */
 function clockButtons(state: ObserverState): HTMLElement[] {
   const open = store.status === "open";
   const pause = button(state.clock.paused === true ? "Retomar (P)" : "Pausar (P)", () => { togglePause(state); }, open);
@@ -368,6 +416,7 @@ map.element.addEventListener("click", (event) => {
     say(`Assuma o controle de ${avatarName(state)} para jogar.`);
     return;
   }
+  hold = undefined;
   act(walkStep(state, tile), event.shiftKey);
 });
 
@@ -387,12 +436,15 @@ map.element.addEventListener("contextmenu", (event) => {
 
 /** O menu do clique direito: o do avatar, o da coisa no tile, o do terreno vazio, ou só andar. */
 function openMenu(state: ObserverState, tile: Tile, pageX: number, pageY: number, queued: boolean): void {
-  if (map.sight?.(tile.x, tile.y) === "unseen") {
+  const me = avatarTile(state);
+  const mine = me?.x === tile.x && me.y === tile.y;
+  // O tile do próprio avatar nunca está sob a nuvem: logo depois de abrir a tela, a névoa ainda não
+  // olhou em volta, e o E andava até onde ele já estava.
+  if (!mine && map.sight?.(tile.x, tile.y) === "unseen") {
     act(walkStep(state, tile), queued); // sob a nuvem não há menu: o jogador não sabe o que tem lá
     return;
   }
-  const me = avatarTile(state);
-  const clicked = me?.x === tile.x && me.y === tile.y ? "self" : thingAt(state, tile.x, tile.y);
+  const clicked = mine ? "self" : thingAt(state, tile.x, tile.y);
   const choose = (entry: MenuEntry, chosen: Record<string, string | number>): void => {
     act(stepFor(state, entry, chosen), queued);
   };
@@ -406,10 +458,17 @@ function openMenu(state: ObserverState, tile: Tile, pageX: number, pageY: number
     menu.open(pageX, pageY, `(${String(tile.x)}, ${String(tile.y)})${suffix}`, entries, choose);
     return;
   }
-  const entity = clicked === "self" ? state.entities[avatarId()] : state.entities[clicked];
-  const title = clicked === "self" ? `${entity?.display_name ?? avatarId()} (você)` : (entity?.display_name ?? clicked);
-  const contents = clicked === "self" ? undefined : contentsOf(state, clicked);
-  menu.open(pageX, pageY, `${title}${suffix}`, menuFor(state, avatarId(), clicked), choose, {
+  // Em cima de uma coisa (o canteiro), o clique cai no avatar: o menu junta as ações dela às dele
+  // (achado do usuário no mapa d: não havia como regar o canteiro em que se está).
+  const under = clicked === "self" ? thingAt(state, tile.x, tile.y) : undefined;
+  const thing = under ?? (clicked === "self" ? undefined : clicked);
+  const self = `${state.entities[avatarId()]?.display_name ?? avatarId()} (você)`;
+  const title = [thing === undefined ? undefined : (state.entities[thing]?.display_name ?? thing), clicked === "self" ? self : undefined]
+    .filter((part) => part !== undefined)
+    .join(" · ");
+  const entries = [...(thing === undefined ? [] : menuFor(state, avatarId(), thing)), ...(clicked === "self" ? menuFor(state, avatarId(), "self") : [])];
+  const contents = thing === undefined ? undefined : contentsOf(state, thing);
+  menu.open(pageX, pageY, `${title}${suffix}`, entries, choose, {
     ...(contents === undefined ? {} : { contents }),
     icon: (item) => icons.url(item),
     portrait: (option) => portraitOf(option),
@@ -429,14 +488,107 @@ const STEPS: Readonly<Record<string, readonly [number, number]>> = {
   d: [1, 0],
 };
 
-/** De onde sai um passo do teclado: o fim do trajeto em andamento, ou o tile em que ele está. */
-function stepOrigin(state: ObserverState): Tile | undefined {
-  const motion = state.motion[avatarId()];
-  if (state.actions[avatarId()]?.action === "move" && motion !== undefined) {
-    return motion.path[motion.path.length - 1];
-  }
-  return avatarTile(state);
+/** Segurar uma seta anda neste ritmo, em tiles por segundo real (achado do usuário no mapa d: um
+ * passo por toque esperava um tick do mundo para começar). O kernel aceita cada trecho só no tick
+ * seguinte, então o destino vai adiante do desenho o que o avatar anda num tick (`lead`), e o
+ * desenho, nesse ritmo, segue sem parar. Soltar a seta para no tile logo à frente. */
+const HOLD_TILES_PER_SECOND = 6;
+/** De quanto em quanto tempo um trecho novo vai ao kernel, enquanto a seta está segurada. */
+const HOLD_SEND_MS = 200;
+/** Depois de soltar, por quanto tempo uma recusa de andar ainda é da caminhada do teclado. */
+const HOLD_GRACE_MS = 1500;
+
+interface Hold {
+  readonly key: string;
+  readonly delta: readonly [number, number];
+  readonly from: Tile;
+  readonly since: number;
+  sent?: Tile;
+  sentAt: number;
 }
+
+let hold: Hold | undefined;
+let heldUntil = 0;
+let paced = false;
+
+function holding(): boolean {
+  return hold !== undefined || performance.now() < heldUntil;
+}
+
+function sendMove(target: Tile): void {
+  queue.clear();
+  connection.send(PROPOSE, { avatar_id: avatarId(), action: "move", params: { target: { x: target.x, y: target.y } } });
+}
+
+/** Quantos tiles o avatar anda num tick do mundo, no ritmo do teclado: o quanto o destino vai
+ * adiante do desenho. */
+function lead(state: ObserverState): number {
+  const scale = state.clock.scale ?? 72;
+  const tick = (state.session?.tick_seconds ?? 60) / Math.max(1, scale);
+  return Math.ceil(HOLD_TILES_PER_SECOND * tick) + 1;
+}
+
+function startHold(state: ObserverState, key: string, delta: readonly [number, number]): void {
+  const from = avatarTile(state);
+  if (from === undefined) {
+    return;
+  }
+  hold = { key, delta, from, since: performance.now(), sentAt: 0 };
+  motionClock.pace(avatarId(), HOLD_TILES_PER_SECOND);
+  paced = true;
+  steerHold(state, performance.now());
+}
+
+/** A cada quadro: estende o destino da seta segurada e o manda ao kernel, se mudou. */
+function steerHold(state: ObserverState, now: number): void {
+  if (hold === undefined || now - hold.sentAt < HOLD_SEND_MS) {
+    return;
+  }
+  const walked = Math.floor(((now - hold.since) / 1000) * HOLD_TILES_PER_SECOND);
+  const target = holdTarget(state, hold.from, hold.delta, 1 + walked + lead(state));
+  if (target.x === hold.from.x && target.y === hold.from.y) {
+    return; // a cerca logo à frente: nada a mandar
+  }
+  if (hold.sent?.x !== target.x || hold.sent.y !== target.y) {
+    sendMove(target);
+    hold.sent = target;
+    hold.sentAt = now;
+  }
+}
+
+/** Soltou a seta: para no tile logo à frente de onde o avatar aparece, se o destino mandado está
+ * além dele. */
+function releaseHold(): void {
+  const state = store.state;
+  const released = hold;
+  hold = undefined;
+  heldUntil = performance.now() + HOLD_GRACE_MS;
+  if (state === undefined || released?.sent === undefined) {
+    return;
+  }
+  const me = avatarTile(state);
+  if (me === undefined) {
+    return;
+  }
+  const [dx, dy] = released.delta;
+  const along = (t: Tile): number => (t.x - released.from.x) * dx + (t.y - released.from.y) * dy;
+  const stop = holdTarget(state, me, released.delta, 1);
+  if (along(released.sent) > along(stop)) {
+    sendMove(stop);
+  }
+}
+
+document.addEventListener("keyup", (event) => {
+  const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+  if (hold?.key === key) {
+    releaseHold();
+  }
+});
+window.addEventListener("blur", () => {
+  if (hold !== undefined) {
+    releaseHold();
+  }
+});
 
 document.addEventListener("keydown", (event) => {
   if (event.target instanceof Element && event.target.closest("input, select, textarea") !== null) {
@@ -472,14 +624,9 @@ document.addEventListener("keydown", (event) => {
   const delta = STEPS[key];
   if (delta !== undefined) {
     event.preventDefault();
-    const now = performance.now();
-    const from = stepOrigin(state);
-    if (from === undefined || (event.repeat && now - lastKeyMove < KEY_REPEAT_MS)) {
-      return;
+    if (!event.repeat && hold?.key !== key) {
+      startHold(state, key, delta); // a repetição do sistema não conta: o quadro estende a caminhada
     }
-    lastKeyMove = now;
-    const step: Proposal = { avatar_id: avatarId(), action: "move", params: { target: { x: from.x + delta[0], y: from.y + delta[1] } } };
-    act({ label: "um passo", proposal: step }, false);
     return;
   }
   if (key === "e") {
@@ -500,6 +647,12 @@ function frame(now: number): void {
     shownTick = tick;
     map.draw(state, tick);
     renderControl(state);
+    if (hold !== undefined) {
+      steerHold(state, now);
+    } else if (paced && !holding() && state.actions[avatarId()] === undefined) {
+      motionClock.pace(avatarId(), undefined); // a caminhada do teclado acabou: o desenho volta ao teto
+      paced = false;
+    }
     if (run === null && inControl(state, avatarId())) {
       const next = queue.next(state, avatarId());
       if (next !== undefined) {
@@ -509,6 +662,9 @@ function frame(now: number): void {
       queue.clear(); // sem o controle, a fila não vale
     }
     renderQueue();
+    if (!queueBox.hidden || !notice.hidden) {
+      alignFoot();
+    }
     const shownClock = clockText(state, tick);
     const panelDue = (dirty || now - lastPanel > 1000) && now - lastPanel >= PANEL_EVERY_MS;
     if (panelDue || shownClock !== lastClock) {
@@ -536,6 +692,9 @@ queueBox.hidden = true;
 connection.open();
 void loadArt().then((loaded) => {
   art = loaded;
+  void loadLocale(loaded.layers).then(() => {
+    lastClock = ""; // os nomes chegaram: o HUD se redesenha no próximo quadro
+  });
   map.setArt(loaded.manifest);
   icons.setArt(loaded.manifest);
   portrait.setArt(loaded.manifest, avatarId());

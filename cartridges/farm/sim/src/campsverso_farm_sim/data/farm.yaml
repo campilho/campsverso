@@ -143,13 +143,17 @@ affordances:
       - {name: item, label: Semente, choices: {category: [semente]}, price: price,
          price_attribute: preco_}
       - {name: qty, label: Quantidade, minimum: 1, default: 1}
-  - {action: sleep, label: Dormir na cama, kinds: [bed]}
+  - {action: sleep, label: Dormir na cama, kinds: [bed],
+     note: "das {sleep.night_from} às {sleep.wake_at}, dorme até as {sleep.wake_at}; antes das {sleep.night_from}, é um cochilo: acorda quando a energia enche"}
   - action: eat
     label: Comer
     kinds: [self]
     target: false
     params: [{name: item, label: Comida, choices: {category: [colheita]}, source: inventory}]
-  - {action: sleep, label: Dormir aqui, kinds: [self], target: false}
+  # A nota diz o que o sono vai ser (achado do usuário no mapa d: deitou às 19:19 e acordou às
+  # 21:20, sem saber que antes das 20:00 é cochilo).
+  - {action: sleep, label: Dormir aqui, kinds: [self], target: false,
+     note: "das {sleep.night_from} às {sleep.wake_at}, dorme até as {sleep.wake_at}; antes das {sleep.night_from}, é um cochilo: acorda quando a energia enche"}
   - action: wait
     label: Esperar
     kinds: [self]

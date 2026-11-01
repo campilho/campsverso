@@ -302,10 +302,14 @@ affordances:
         price_attribute: diaria_  # a diária de agora, no quadro
         notes: {from: helpers.roster, text: "{nome}, {especialidade}: {bom}; mas {ruim}"}
       - {name: days, label: "Dias (1, 3 ou 7)", minimum: 1, default: 1}
-  - action: dismiss_helper
+  - action: dismiss_helper  # a tela oferece só os contratados por quem joga, pelo quadro (M21)
     label: Dispensar ajudante
     kinds: [helper_board]
-    params: [{name: helper, label: Ajudante, choices: [dita, ze-graudo, nina, seu-bento, tiao]}]
+    params:
+      - name: helper
+        label: Ajudante
+        choices: [dita, ze-graudo, nina, seu-bento, tiao]
+        notes: {from: helpers.roster, text: "{nome}, {especialidade}: {bom}; mas {ruim}"}
   - action: order_helper
     label: Mandar cuidar
     kinds: [avatar]

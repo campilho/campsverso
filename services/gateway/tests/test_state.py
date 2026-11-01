@@ -78,3 +78,46 @@ def test_o_custo_e_do_operador() -> None:
     )
     assert observer_state(p)["costs"]["minds"]["llm/camps"]["total_usd"] == 0.0004
     assert "costs" not in player_state(p, "camps")
+
+
+def _event(stream: str, seq: int, tick: int, kind: str, data: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "type": f"campsverso.{kind}.v1",
+        "seq": seq,
+        "tick": tick,
+        "simtime": f"t{tick}",
+        "data": data,
+    }
+
+
+def test_a_vista_do_jogador_anda_com_o_pulso() -> None:
+    """Numa caminhada não sai evento até a chegada: a vista segue o tick do pulso, e o canteiro do
+    caminho aparece enquanto o Camps passa por ele (achado do usuário no mapa d)."""
+    p = Projection()
+    session = {
+        "cartridge_version": "0.1.0",
+        "seed": 7,
+        "tick_seconds": 60,
+        "mode": "continuous",
+        "paused": False,
+        "scale": 72,
+        "perception": {"radius": 2},
+    }
+    p.apply("world", _event("world", 0, 0, "world.session.started", session))
+    for seq, (entity, kind, x) in enumerate([("camps", "avatar", 0), ("plot-01", "plot", 10)], 1):
+        spawned = {"entity_id": entity, "kind": kind, "position": {"x": x, "y": 0}}
+        p.apply("world", _event("world", seq, 0, "world.entity.spawned", spawned))
+    moved = {
+        "entity_id": "camps",
+        "origin": {"x": 0, "y": 0},
+        "waypoints": [{"x": 20, "y": 0}],
+        "depart_tick": 1,
+        "tiles_per_tick": 1.0,
+    }
+    p.apply("world", _event("world", 3, 1, "world.entity.moved", moved))
+    # Sem pulso, a vista é a de onde a caminhada começou.
+    assert "plot-01" not in player_state(p, "camps")["entities"]
+    walking = player_state(p, "camps", {"tick": 11, "sim_time": "t11", "alive": True})
+    assert "plot-01" in walking["entities"]  # no tick 11, o Camps está no tile 10
+    stale = player_state(p, "camps", {"tick": 0, "sim_time": "t0", "alive": True})
+    assert "plot-01" not in stale["entities"]  # um pulso atrasado não volta a vista para trás

@@ -10,7 +10,7 @@ const COMMANDS: readonly (readonly [string, string])[] = [
   ["clique direito", "abre o menu da coisa, da grama ou do seu avatar"],
   ["shift com o clique", "põe a ação na fila, que o avatar faz em ordem"],
   ["Esc", "esvazia a fila"],
-  ["setas ou WASD", "um passo"],
+  ["setas ou WASD", "anda enquanto segura; soltar para"],
   ["espaço", "volta a seguir o avatar"],
   ["E", "abre o menu do seu avatar"],
   ["arrastar", "rola o mapa"],

@@ -4,6 +4,8 @@
 - `/content/maps/<id>.tmj`: o mapa do cartucho, pelo id que vem no `session.started`.
 - `/content/art/index.json` e `/content/art/<camada>/<arquivo>`: a arte dos cartuchos, em camadas
   do gênero ao cenário (ADR-0053). A tela junta os manifestos na ordem do índice.
+- `/content/locale/<camada>/<língua>.json`: os nomes que quem joga lê, por língua (ADR-0075), na
+  pasta `locale/` ao lado da `art/` de cada camada; a tela os junta na ordem do índice da arte.
 - `/`: a UI compilada, quando há uma pasta para ela (fora do modo de desenvolvimento).
 
 Só escuta no endereço dado (127.0.0.1 na v0.1): não há login.
@@ -11,6 +13,7 @@ Só escuta no endereço dado (127.0.0.1 na v0.1): não há login.
 
 import contextlib
 import json
+import re
 from collections.abc import AsyncIterator, Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any, cast
@@ -24,6 +27,7 @@ from campsverso_ports import ConnectionClosedError, ConnectionHandler, Message, 
 
 VIEWS: tuple[View, ...] = ("player", "operator")
 POLICY_VIOLATION = 1008  # código WebSocket para pedido fora das regras
+LANGUAGE_FILE = re.compile(r"[a-z]{2}(-[A-Z]{2})?\.json")  # pt-BR.json, en.json
 
 
 # Os mapas e a arte mudam com o repositório (as margens da água do ADR-0070 ficaram pretas numa
@@ -126,6 +130,21 @@ class FastApiRealtime:
             if not target.is_file():
                 raise HTTPException(status_code=404, detail=f"arte {layer}/{path} desconhecida")
             return FileResponse(target, headers=REVALIDATE)
+
+        @app.get("/content/locale/{layer}/{name}")
+        async def locale_file(layer: str, name: str) -> FileResponse:  # pyright: ignore[reportUnusedFunction]
+            art = dict(self._art).get(layer)
+            folder = None if art is None else art.parent / "locale"
+            target = None if folder is None else (folder / name).resolve()
+            if (
+                target is None
+                or folder is None
+                or not LANGUAGE_FILE.fullmatch(name)
+                or not target.is_relative_to(folder)
+                or not target.is_file()
+            ):
+                raise HTTPException(status_code=404, detail=f"língua {layer}/{name} desconhecida")
+            return FileResponse(target, media_type="application/json", headers=REVALIDATE)
 
         @app.get("/health")
         async def health() -> dict[str, bool]:  # pyright: ignore[reportUnusedFunction]

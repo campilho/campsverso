@@ -12,6 +12,10 @@ orçamento; a fita da mente fica em `<out>/llm.jsonl`, gravando. Precisa de ANTH
 Com `--pausado`, o relógio começa parado: quem vai jogar assume o Camps antes do script agir e
 retoma o relógio pela tela (a rodada do humano, ADR-0066).
 
+Com `--jogar` (`make jogar`), é o sandbox de quem joga: começa pausado, e a tela do jogador, aberta
+pelo endereço que ele imprime (`&assumir=1`), assume o Camps sozinha; o script não age antes (achado
+do usuário no mapa d: o `make sandbox` sem `PAUSADO=1` deixou o script cavar um canteiro).
+
 Com `--retomar`, a pasta `--out` já tem um mundo: o sandbox sobe sobre ela, sem regravar o arquivo
 do mundo, e o kernel continua do último snapshot e do diário de entradas (a recuperação da
 ADR-0044), com o relógio como estava. Quem pausa antes do Ctrl+C volta pausado: é como o humano
@@ -78,8 +82,9 @@ def run(
     *,
     paused: bool = False,
     resume: bool = False,
+    play: bool = False,
 ) -> int:
-    world = world_of(out, mind, source, paused=paused, resume=resume)
+    world = world_of(out, mind, source, paused=paused or play, resume=resume)
     stop = {"now": False}
 
     def interrupt(_signum: int, _frame: object) -> None:
@@ -119,7 +124,10 @@ def run(
             )
         print(f"sandbox {'retomado ' if resume else ''}em {out}", flush=True)
         print(f"  operador: http://127.0.0.1:{port}/?view=operator", flush=True)
-        print(f"  jogador:  http://127.0.0.1:{port}/?view=player", flush=True)
+        player = f"http://127.0.0.1:{port}/?view=player{'&assumir=1' if play else ''}"
+        print(f"  jogador:  {player}", flush=True)
+        if play:
+            print("  a tela do jogador assume o Camps; retome o relógio com P", flush=True)
         print("  Ctrl+C para parar (os logs ficam na pasta)", flush=True)
         code = 0
         try:
@@ -145,10 +153,21 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--world", type=Path, default=WORLD, help="o arquivo do mundo")
     parser.add_argument("--pausado", action="store_true", help="o relógio começa parado")
     parser.add_argument(
+        "--jogar", action="store_true", help="pausado, e a tela do jogador assume o Camps ao abrir"
+    )
+    parser.add_argument(
         "--retomar", action="store_true", help="continua o mundo que já está em --out"
     )
     args = parser.parse_args(argv)
-    return run(args.out, args.port, args.mind, args.world, paused=args.pausado, resume=args.retomar)
+    return run(
+        args.out,
+        args.port,
+        args.mind,
+        args.world,
+        paused=args.pausado,
+        resume=args.retomar,
+        play=args.jogar,
+    )
 
 
 if __name__ == "__main__":

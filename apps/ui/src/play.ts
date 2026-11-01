@@ -5,6 +5,8 @@
  */
 import type { Affordance, ObserverState } from "@campsverso/contracts";
 
+import { localName } from "./locale.ts";
+
 export interface Proposal {
   readonly avatar_id: string;
   readonly action: string;
@@ -25,6 +27,8 @@ export interface MenuParam {
   readonly prices?: Readonly<Record<string, number>>;
   /** Quantas unidades de cada escolha há onde ela vale: o inventário, o alvo, as sementes (M21). */
   readonly counts?: Readonly<Record<string, number>>;
+  /** De quem é a contagem: do avatar (`mine`, "você tem 4") ou do alvo (`there`, "há 4"). */
+  readonly countsOf?: "mine" | "there";
   /** Uma nota de cada escolha, como a ficha do ajudante (M21). */
   readonly notes?: Readonly<Record<string, string | undefined>>;
 }
@@ -105,9 +109,9 @@ function param(state: ObserverState, avatarId: string, target: string | undefine
   }
   const held = raw.entities === true ? heldBy(state, from) : [];
   const names = Object.fromEntries(
-    held.flatMap((id) => {
-      const shown = state.entities[id]?.display_name;
-      return shown === undefined ? [] : [[id, shown]];
+    held.map((id) => {
+      const entity = state.entities[id];
+      return [id, entity?.display_name ?? localName(entity?.kind ?? id)];
     }),
   );
   const prices: Record<string, number> = {};
@@ -126,7 +130,8 @@ function param(state: ObserverState, avatarId: string, target: string | undefine
       names[item] = note.split(",")[0] ?? item; // a ficha começa pelo nome: "Zé Graúdo, o carregador"
     }
   }
-  return { name: raw.name, label: raw.label, options: [...items, ...held], numeric: false, names, prices, counts, notes };
+  const countsOf = prefix !== undefined || from === avatarId ? "mine" : "there";
+  return { name: raw.name, label: raw.label, options: [...items, ...held], numeric: false, names, prices, counts, countsOf, notes };
 }
 
 /** O primeiro requisito da ação que não vale agora, pelo motivo; nada se todos valem (M21). */
@@ -144,6 +149,17 @@ export function blockedBy(state: ObserverState, affordance: Affordance, avatarId
   return undefined;
 }
 
+/** Os ajudantes que `avatarId` contratou, pelo quadro (M21): o valor "com camps até o dia 5" na
+ * chave do ajudante (o id com `_` no lugar do `-`), como no painel de quem joga. */
+export function hiredBy(state: ObserverState, avatarId: string, board: string): Set<string> {
+  const mark = `com ${avatarId} até o dia `;
+  return new Set(
+    Object.entries(state.entities[board]?.attributes ?? {})
+      .filter(([, value]) => typeof value === "string" && value.startsWith(mark))
+      .map(([key]) => key.replace(/_/g, "-")),
+  );
+}
+
 /** O interior de um contêiner onde se guarda ou se pega coisa (o baú, as máquinas), para o menu
  * (M21); nada nos outros, como o quadro de encomendas, que guarda os pedidos. */
 export function contentsOf(state: ObserverState, target: string): Contents | undefined {
@@ -159,13 +175,13 @@ export function contentsOf(state: ObserverState, target: string): Contents | und
   const items: { item: string; name: string; qty: number; weight: number }[] = [];
   for (const [item, qty] of Object.entries(state.containers[target] ?? {}).sort(([a], [b]) => a.localeCompare(b))) {
     if (qty !== undefined && qty > 0) {
-      items.push({ item, name: item.replace(/_/g, " "), qty, weight: (weights[item]?.weight ?? 0) * qty });
+      items.push({ item, name: localName(item), qty, weight: (weights[item]?.weight ?? 0) * qty });
     }
   }
   for (const id of heldBy(state, target)) {
     const held = state.entities[id];
     const weight = held?.attributes.weight;
-    items.push({ item: held?.kind ?? id, name: held?.display_name ?? id, qty: 1, weight: typeof weight === "number" ? weight : 0 });
+    items.push({ item: held?.kind ?? id, name: held?.display_name ?? localName(held?.kind ?? id), qty: 1, weight: typeof weight === "number" ? weight : 0 });
   }
   const used = entity.attributes.weight;
   return { items, used: typeof used === "number" ? used : items.reduce((sum, i) => sum + i.weight, 0), capacity };
@@ -264,7 +280,7 @@ export function detailOf(state: ObserverState, affordance: Affordance, avatarId:
   }
   for (const need of affordance.requires ?? []) {
     if (need.item !== undefined) {
-      parts.push(`você tem ${String(state.containers[avatarId]?.[need.item] ?? 0)} ${need.item.replace(/_/g, " ")}`);
+      parts.push(`você tem ${String(state.containers[avatarId]?.[need.item] ?? 0)} ${localName(need.item)}`);
     }
   }
   if (affordance.note !== undefined) {
@@ -282,12 +298,17 @@ export function menuFor(state: ObserverState, avatarId: string, clicked: string)
     return [];
   }
   const target = clicked === "self" ? undefined : clicked;
+  const hired = kind === "helper_board" ? hiredBy(state, avatarId, clicked) : undefined;
   return (state.session?.affordances ?? [])
     .filter((a) => a.on.includes(kind))
     .map((a) => {
-      const params = (a.params ?? []).map((p) => param(state, avatarId, target, p));
+      const all = (a.params ?? []).map((p) => param(state, avatarId, target, p));
+      // No quadro, dispensar oferece só quem quem joga contratou (achado do usuário no mapa d: a
+      // lista trazia todos, pelo id, e a ficha de baixo parecia trocar a de cima).
+      const dismissing = a.action === "dismiss_helper" && hired !== undefined;
+      const params = dismissing ? all.map((p) => ({ ...p, options: p.options.filter((o) => hired.has(o)) })) : all;
       const detail = detailOf(state, a, avatarId, target);
-      const blocked = blockedBy(state, a, avatarId, target);
+      const blocked = dismissing && hired.size === 0 ? "você não contratou ninguém" : blockedBy(state, a, avatarId, target);
       return {
         action: a.action,
         label: a.label,
@@ -356,4 +377,29 @@ export function walkTo(state: ObserverState, avatarId: string, x: number, y: num
     action: "move",
     params: thing === undefined ? { target: { x, y } } : { near: thing },
   };
+}
+
+/** O terreno deixa passar no tile? Pela legenda do mapa (`passable`), como o kernel; fora do mapa,
+ * não. As coisas sólidas (o baú, o quiosque) a tela não sabe: quem decide é o kernel. */
+export function passable(state: ObserverState, x: number, y: number): boolean {
+  const map = state.session?.map;
+  if (map?.rows === undefined || map.legend === undefined) {
+    return true;
+  }
+  const char = map.rows[y]?.[x];
+  return char !== undefined && map.legend[char]?.properties.passable === true;
+}
+
+/** Até onde segurar uma seta leva (M21): `steps` tiles a partir de `from` na direção, parando antes
+ * do primeiro tile que o terreno não deixa passar. */
+export function holdTarget(state: ObserverState, from: Tile, delta: readonly [number, number], steps: number): Tile {
+  let at = from;
+  for (let n = 0; n < steps; n++) {
+    const next = { x: at.x + delta[0], y: at.y + delta[1] };
+    if (!passable(state, next.x, next.y)) {
+      break;
+    }
+    at = next;
+  }
+  return at;
 }

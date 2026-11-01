@@ -82,6 +82,16 @@ describe("manifesto de arte (ADR-0053)", () => {
     expect(lookOf(GENRE, "plot", { crop: null, stage: null })).toEqual({ color: "#5b3a1e", badges: [] });
   });
 
+  it("o canteiro adubado ganha a marca no outro canto, separada da gota da rega", () => {
+    const art = { version: 1 as const, kinds: { plot: { overlays: [
+      { when: { watered_today: true }, look: { badge: "#4fc3f7" } },
+      { when: { adubado: true }, look: { mark: "#e0a33a" } },
+    ] } } };
+    expect(lookOf(art, "plot", { adubado: true })).toMatchObject({ badges: [], marks: ["#e0a33a"] });
+    expect(lookOf(art, "plot", { adubado: true, watered_today: true })).toMatchObject({ badges: ["#4fc3f7"], marks: ["#e0a33a"] });
+    expect(lookOf(art, "plot", { adubado: false }).marks).toBeUndefined();
+  });
+
   it("o chão de uma camada de cima fica por baixo da variante (o canteiro da Boa Vista)", () => {
     const boavista = mergeManifests([
       rooted(GENRE, "/content/art/farm"),
@@ -145,7 +155,7 @@ describe("manifesto de arte (ADR-0053)", () => {
     expect(art.sheets?.crops?.image).toBe("/content/art/farm/crops.png");
     expect(credits).toEqual([{ layer: "farm_camps", url: "/content/art/farm_camps/CREDITS.csv" }]);
     const empty = await loadArt(() => Promise.resolve(new Response("", { status: 404 })));
-    expect(empty).toEqual({ manifest: { version: 1 }, credits: [] });
+    expect(empty).toEqual({ manifest: { version: 1 }, credits: [], layers: [] });
   });
 });
 

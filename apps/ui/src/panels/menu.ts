@@ -4,6 +4,7 @@
  * O menu não esconde nada que o kernel aceitaria: só desabilita o que não tem o que escolher.
  */
 import { button, el } from "../dom.ts";
+import { localName } from "../locale.ts";
 import { amount, type Contents, type MenuEntry, type MenuParam } from "../play.ts";
 
 export type Choose = (entry: MenuEntry, chosen: Record<string, string | number>) => void;
@@ -19,14 +20,14 @@ export interface MenuExtras {
 const CELLS = 100; // as casas do desenho de um contêiner: a capacidade, em partes iguais
 const MARGIN = 8; // a distância mínima entre o menu e a borda da tela
 
-/** O texto de uma escolha: o nome, quantas há e o preço (M21). */
+/** O texto de uma escolha: o nome, quantas há e o preço (M21). A contagem diz de quem é ("você tem
+ * 4", "há 4 no baú"): "rabanete ×4" parecia plantar quatro vezes (achado do usuário no mapa d). */
 export function optionText(p: MenuParam, option: string): string {
-  const name = p.names?.[option] ?? option.replace(/_/g, " ");
+  const name = p.names?.[option] ?? localName(option);
   const count = p.counts?.[option];
   const price = p.prices?.[option];
-  return [`${name}${count === undefined ? "" : ` ×${String(count)}`}`, price === undefined ? undefined : `${String(price)} moedas`]
-    .filter((part) => part !== undefined)
-    .join(" · ");
+  const held = count === undefined ? undefined : p.countsOf === "there" ? `há ${String(count)}` : `você tem ${String(count)}`;
+  return [name, held, price === undefined ? undefined : `${String(price)} moedas`].filter((part) => part !== undefined).join(" · ");
 }
 
 /** A cor de um item no desenho do contêiner, estável pelo nome. */

@@ -64,9 +64,17 @@ def player_state(
 ) -> dict[str, Any]:
     """A visão do jogador (ADR-0072, decisão 8): o que o avatar dele percebe, com a mesma regra da
     percepção (o raio da hora, as construções de longe, nada do que outro avatar carrega). O
-    terreno e o relógio são os de todos."""
+    terreno e o relógio são os de todos.
+
+    A vista é a do tick mais recente que se sabe, o do pulso, como o relógio da tela: numa
+    caminhada não sai evento até a chegada, e a vista do tick do último evento ficava parada onde
+    a caminhada começou, enquanto a tela via o avatar andar. A tela apagava a lembrança do que
+    ficava no caminho (achado do usuário no mapa d)."""
     state = observer_state(projection, pulse)
-    sees = projection.seer(avatar_id, projection.tick)
+    tick = projection.tick
+    if pulse is not None and isinstance(pulse.get("tick"), int):
+        tick = max(tick, int(pulse["tick"]))
+    sees = projection.seer(avatar_id, tick)
     entities = {k: v for k, v in state.get("entities", {}).items() if sees(k)}
     state["entities"] = entities
     state["containers"] = {
