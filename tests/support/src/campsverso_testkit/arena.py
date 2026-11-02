@@ -222,6 +222,9 @@ SPECS_TERCEIRA: tuple[Spec, ...] = (
     # A primeira leva (decisão 28), depois da primeira semana do humano e lacrada: o Sonnet 5.5,
     # pela API da Anthropic, no teto do plano (US$ 1,50 por dia, 30 no total).
     _morada("sonnet", "llm", memory=True, map="d", model=SONNET, limits=BudgetLimits(1.50, 30.0)),
+    # O Opus 5.5 (2/nov), depois das outras famílias (decisão 28) e lacrado como elas, no teto do
+    # plano (US$ 2,50 por dia, 55 no total).
+    _morada("opus", "llm", memory=True, map="d", model=OPUS, limits=BudgetLimits(2.50, 55.0)),
 )
 # As outras famílias (ADR-0074, decisões 11 e 28), pela OpenRouter no provedor flex, no mapa d, na
 # mesma pasta da terceira: o Gemini 4 Argon primeiro, num piloto de dois dias e depois o ano, e o

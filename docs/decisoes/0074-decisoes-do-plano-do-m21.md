@@ -293,6 +293,11 @@ Com a energia nova, o ajudante ainda não pagava, e a explicação era o teto de
     - esgotadas as tentativas no flex num erro passageiro, a mesma chamada vai ao provedor normal do modelo, pelo preço normal; um erro do pedido não vai;
     - o `llm.call.completed.v1` ganha o campo opcional `fallback`, e o relatório conta as chamadas da reserva ao lado das repetidas;
     - o piloto fica como rodou (US$ 0,64 em dois dias); o ano do Gemini e o piloto do Astra rodam com a reserva, e a corrida não perde chamada por causa do flex.
+32. **O que a reserva não resolve, e o Opus depois do Gemini** (2/nov).
+    - **A rede ruim de 31/out e 1º/nov era, em parte, o Mac.** Toda conexão nova falhava com "Cannot allocate memory", no hotel e em casa: havia 512 conexões presas, 448 delas com a API da Anthropic, fora das conexões comuns do sistema. O provável dono era a proteção de rede do antivírus, que abre uma cópia de cada conexão. Reiniciar o Mac resolveu. As corridas paradas em 1º/nov recomeçaram do zero (os US$ 1,32 gastos nelas entram no custo da v0.3).
+    - **O piloto do Astra rodou com a reserva:** 2 dias, 156 chamadas, nenhuma perdida, US$ 2,11.
+    - **As falhas do Gemini às 09:00 do dia 1 são do pedido, não do flex.** O ano perdeu três chamadas no mesmo ponto em que o piloto tinha perdido duas, e a reserva falhou igual. Repetido de propósito, o pedido falha em um terço a dois terços das vezes com `INVALID_ARGUMENT` do Google; nas outras, a resposta volta só com o raciocínio, sem ação. Tirar do histórico as respostas vazias não muda nada, e as ferramentas não usam nada fora do comum no schema. O erro passa a levar o motivo do provedor (`native_finish_reason` e o `error` da escolha). O ano segue, e essas falhas contam como do modelo na linha "que falharam" do relatório: o Gemini só é atendido pelo Google.
+    - **O Opus 5.5 roda depois do Gemini** (o usuário), lacrado, no teto do plano: US$ 2,50 por dia e 55 no total. Segue se, no dia 2, gastar até 1,5 vez a estimativa por dia do plano (US$ 1,61, o topo de 30 a 45 em 28 dias).
 
 A tela de quem joga ganha a carga da mochila ao lado do inventário ("carga 12,5 de 20", em alerta a partir de 90%) e as recusas em português ("Não deu para colher: não cabe na mochila; guarde alguma coisa no baú.").
 

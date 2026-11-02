@@ -444,10 +444,24 @@ async def test_o_erro_que_chega_num_200_tambem_e_erro() -> None:
         failed["choices"][0]["finish_reason"] = "error"
         return httpx2.Response(200, json=failed)
 
-    for handler in (midway, choice):
+    def malformed(request: httpx2.Request) -> httpx2.Response:
+        failed = _answer()
+        failed["choices"][0].update(
+            finish_reason="error",
+            native_finish_reason="MALFORMED_FUNCTION_CALL",
+            error={"code": 502, "message": "a chamada de ferramenta veio malformada"},
+        )
+        return httpx2.Response(200, json=failed)
+
+    for handler in (midway, choice, malformed):
         with pytest.raises(ModelCallError) as caught:
             await _model(handler, waits=[]).complete(_request())
         assert caught.value.kind == "server"
+    # O motivo do provedor vai junto: sem ele, não se sabe de quem é a culpa.
+    assert caught.value.message == (
+        "o provedor falhou no meio da geração "
+        "(MALFORMED_FUNCTION_CALL; a chamada de ferramenta veio malformada)"
+    )
 
 
 async def test_parada_por_tamanho_e_por_filtro() -> None:

@@ -294,6 +294,16 @@ def _failure(status: int, body: Any, retry_after: str | None = None) -> _Attempt
     return _AttemptError(_kind(status), message[:1000], wait)
 
 
+def _midway(choice: Mapping[str, Any]) -> str:
+    """A falha no meio da geração, com o motivo que o provedor der: o `native_finish_reason` (no
+    Gemini, `MALFORMED_FUNCTION_CALL` é a chamada de ferramenta que o modelo escreveu errado) e o
+    `error` da escolha. Sem ele, não se sabe se a culpa é do provedor, do modelo ou do pedido."""
+    error = cast(Mapping[str, Any], choice.get("error") or {})
+    said = [str(x) for x in (choice.get("native_finish_reason"), error.get("message")) if x]
+    message = "o provedor falhou no meio da geração"
+    return f"{message} ({'; '.join(said)})"[:1000] if said else message
+
+
 # ----------------------------------------------------------------------------- o adaptador
 
 
@@ -428,8 +438,9 @@ class OpenRouterModel:
         choices = cast(list[Any], found.get("choices") or [])
         if not choices:
             raise _AttemptError("server", "resposta sem escolhas")
-        if cast(Mapping[str, Any], choices[0]).get("finish_reason") == "error":
-            raise _AttemptError("server", "o provedor falhou no meio da geração")
+        first = cast(Mapping[str, Any], choices[0])
+        if first.get("finish_reason") == "error":
+            raise _AttemptError("server", _midway(first))
         return found
 
     async def count_tokens(self, request: ModelRequest) -> int:
