@@ -186,12 +186,12 @@ def test_a_rodada_de_verificacao_da_morada_do_sol() -> None:
 def test_a_terceira_rodada_poe_as_quatro_reguas_nos_quatro_mapas() -> None:
     """ADR-0074: o script 2, o script 3, o script 3 fixo e o oráculo nos mapas a, b, c e d; depois,
     as corridas dos modelos no mapa d, uma por vez: o Haiku três vezes, com memória, os braços, o
-    Sonnet e o Opus."""
+    Sonnet, o Opus e o piloto do Fable."""
     by = {s.name: s for s in SPECS_TERCEIRA}
-    assert len(by) == 24
+    assert len(by) == 25
     assert (by["script3-fixo-d"].script, by["script3-fixo-d"].map) == ("farmer3-fixo", "d")
     assert (by["oraculo-a"].script, by["oraculo-a"].map) == ("oracle", None)
-    assert {(s.cartridge, s.seed, s.days) for s in SPECS_TERCEIRA} == {
+    assert {(s.cartridge, s.seed, s.days) for s in SPECS_TERCEIRA if s.name != "fable-piloto"} == {
         ("farm_morada_do_sol", 20261022, 28)
     }
     haikus = [s for s in SPECS_TERCEIRA if s.controller == "llm" and s.model == "claude-haiku-5-5"]
@@ -221,6 +221,9 @@ def test_a_terceira_rodada_poe_as_quatro_reguas_nos_quatro_mapas() -> None:
     opus = by["opus"]  # depois das outras famílias (decisão 28), no teto do plano
     assert (opus.model, opus.map, opus.memory, opus.flex) == ("claude-opus-5-5", "d", True, False)
     assert opus.limits == BudgetLimits(2.50, 55.0)
+    fable = by["fable-piloto"]  # dois dias para medir o custo (decisão 18)
+    assert (fable.model, fable.map, fable.memory, fable.days) == ("claude-fable-5-1", "d", True, 2)
+    assert fable.limits == BudgetLimits(5.00, 12.0)
 
 
 async def test_o_flex_sem_provedor_flex_na_tabela_e_recusado(tmp_path: Path) -> None:
@@ -230,10 +233,10 @@ async def test_o_flex_sem_provedor_flex_na_tabela_e_recusado(tmp_path: Path) -> 
 
 
 def test_as_outras_familias_vao_pelo_flex_no_mapa_d() -> None:
-    """ADR-0074, decisão 28: o Gemini 4 Argon num piloto de dois dias e no ano, e o piloto do GPT-6
-    Astra, pela OpenRouter no provedor flex, com memória, no mapa d e na seed da Morada."""
+    """ADR-0074, decisões 28 e 33: o Gemini 4 Argon e o GPT-6 Astra num piloto de dois dias e no
+    ano, pela OpenRouter no provedor flex, com memória, no mapa d e na seed da Morada."""
     by = {s.name: s for s in SPECS_FAMILIAS}
-    assert list(by) == ["gemini-piloto", "gemini", "astra-piloto"]
+    assert list(by) == ["gemini-piloto", "gemini", "astra-piloto", "astra"]
     assert {(s.cartridge, s.seed, s.map, s.memory, s.flex) for s in SPECS_FAMILIAS} == {
         ("farm_morada_do_sol", 20261022, "d", True, True)
     }
@@ -241,11 +244,13 @@ def test_as_outras_familias_vao_pelo_flex_no_mapa_d() -> None:
         ("google/gemini-4-argon", 2),
         ("google/gemini-4-argon", 28),
         ("openai/gpt-6-astra", 2),
+        ("openai/gpt-6-astra", 28),
     ]
     assert [s.limits for s in SPECS_FAMILIAS] == [
         BudgetLimits(0.75, 2.0),
         BudgetLimits(0.75, 15.0),
         BudgetLimits(4.00, 8.0),
+        BudgetLimits(5.00, 70.0),
     ]
 
 

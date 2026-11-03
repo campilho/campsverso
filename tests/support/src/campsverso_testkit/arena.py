@@ -58,6 +58,7 @@ MORADA = "farm_morada_do_sol"
 YEAR = 28  # o ano acelerado da Morada do Sol
 SONNET = "claude-sonnet-5-5"
 OPUS = "claude-opus-5-5"
+FABLE = "claude-fable-5-1"  # o Fable 5.1, pela API da Anthropic (ADR-0074, decisão 18)
 GEMINI = "google/gemini-4-argon"  # o Gemini 4 Argon, pela OpenRouter (ADR-0074, decisão 11)
 ASTRA = "openai/gpt-6-astra"  # o GPT-6 Astra, pela OpenRouter (ADR-0074, decisão 11)
 ADVISOR = "claude-opus-4-8"  # o conselheiro do Haiku, com o conselho em texto (ADR-0074, decisão 9)
@@ -225,10 +226,21 @@ SPECS_TERCEIRA: tuple[Spec, ...] = (
     # O Opus 5.5 (2/nov), depois das outras famílias (decisão 28) e lacrado como elas, no teto do
     # plano (US$ 2,50 por dia, 55 no total).
     _morada("opus", "llm", memory=True, map="d", model=OPUS, limits=BudgetLimits(2.50, 55.0)),
+    # O piloto do Fable 5.1 (2/nov, o usuário), dois dias para medir o custo antes do ano ou dos 14
+    # dias (decisão 18), no teto do plano.
+    _morada(
+        "fable-piloto",
+        "llm",
+        memory=True,
+        map="d",
+        model=FABLE,
+        days=2,
+        limits=BudgetLimits(5.00, 12.0),
+    ),
 )
 # As outras famílias (ADR-0074, decisões 11 e 28), pela OpenRouter no provedor flex, no mapa d, na
 # mesma pasta da terceira: o Gemini 4 Argon primeiro, num piloto de dois dias e depois o ano, e o
-# piloto do GPT-6 Astra; o ano do Astra se decide depois do Opus, com o custo real do piloto.
+# GPT-6 Astra, no piloto e depois no ano (decisão 33).
 SPECS_FAMILIAS: tuple[Spec, ...] = (
     _morada(
         "gemini-piloto",
@@ -258,6 +270,18 @@ SPECS_FAMILIAS: tuple[Spec, ...] = (
         flex=True,
         days=2,
         limits=BudgetLimits(4.00, 8.0),
+    ),
+    # O ano do Astra (2/nov, o usuário), pelo custo do piloto (US$ 1,06 por dia): de 27 a 37 no ano.
+    # O teto fica bem acima, para a corrida não parar se o fim do ano gastar mais (decisão 33), e
+    # abaixo do saldo da OpenRouter, para parar pelo teto, não sem crédito.
+    _morada(
+        "astra",
+        "llm",
+        memory=True,
+        map="d",
+        model=ASTRA,
+        flex=True,
+        limits=BudgetLimits(5.00, 70.0),
     ),
 )
 ROUNDS: dict[str, tuple[Spec, ...]] = {
