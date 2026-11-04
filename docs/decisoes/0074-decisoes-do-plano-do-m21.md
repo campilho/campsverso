@@ -317,6 +317,7 @@ Com a energia nova, o ajudante ainda não pagava, e a explicação era o teto de
     - **O teto total é de US$ 110,** pedido pelo usuário: fica acima da estimativa de 67 a 90 e abaixo do saldo, para a corrida parar pelo teto, não sem crédito. A prova, de uns US$ 0,30, fica fora dele.
     - **O teto do dia sobe de 5 para 10.** O dia do piloto custou uns 2,1 vezes o do Opus, e o dia mais caro do Opus, US$ 2,32, daria uns 4,90 no Fable, perto demais de 5.
     - **A corrida segue se, no dia 2, tiver gastado até 1,5 vez o piloto (US$ 7,62).** O preço foi conferido de novo em 3/nov, sem mudança.
+    - **O ano do Fable terminou, lacrado:** 28 dias e 1.731 chamadas, sem nenhuma falha, por US$ 70,12, em 1 h 50, no começo da faixa estimada. No dia 2 o gasto era de US$ 4,65, e nenhum dia bateu no teto. Os juízes custaram US$ 0,07 (Opus) e 0,11 (Astra).
 
 A tela de quem joga ganha a carga da mochila ao lado do inventário ("carga 12,5 de 20", em alerta a partir de 90%) e as recusas em português ("Não deu para colher: não cabe na mochila; guarde alguma coisa no baú.").
 
