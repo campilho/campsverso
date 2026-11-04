@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from campsverso_tools.sessions import Turn, main, merge, read_csv, turns
+from campsverso_tools.sessions import Turn, credits, main, merge, read_csv, turns
 
 
 def _line(kind: str, stamp: str, **extra: Any) -> str:
@@ -112,3 +112,20 @@ def test_ignora_o_contexto_reinserido_com_carimbo_anterior_ao_turno(tmp_path: Pa
     assert (turn.chamadas, turn.saida) == (1, 10)
     # O fim é 10:01Z no fuso de quem roda (o CI roda em UTC), não as 09:00Z da reinserida.
     assert datetime.fromisoformat(turn.fim) == datetime(2026, 10, 12, 10, 1, tzinfo=UTC)
+
+
+def test_creditos_somam_o_que_entrou_o_cartao_e_o_gasto(tmp_path: Path) -> None:
+    path = tmp_path / "creditos.csv"
+    path.write_text(
+        "data,provedor,movimento,usd,brl,saldo_usd,nota\n"
+        "2026-10-18,Anthropic,plano,100.00,,100.00,da assinatura\n"
+        "2026-10-29,OpenRouter,compra,50.00,290.10,50.00,\n"
+        "2026-11-02,Anthropic,compra,30.00,,58.73,\n"
+        "2026-11-02,OpenRouter,saldo,,,12.50,\n"
+        "2026-11-03,Anthropic,compra,1000.00,5800.00,1040.00,\n",
+        encoding="utf-8",
+    )
+    lines = credits(path)
+    assert "| Anthropic | 1.130,00 | 5.800,00 (faltam 1) | 1.040,00 | 90,00 |" in lines
+    assert "| OpenRouter | 50,00 | 290,10 | 12,50 | 37,50 |" in lines
+    assert credits(tmp_path / "nenhum.csv") == []

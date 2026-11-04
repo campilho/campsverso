@@ -107,7 +107,7 @@ campsverso/
     arquitetura/  decisoes/  diario/   # diario/README.md: índice e "a v0.1 em números"
     planos/                   # plano de cada marco, aprovado antes do código; futuro.md: tarefas sem marco
     design/                   # referências visuais (Claude Design)
-    custos/                   # tempo e tokens por marco (make sessoes), só números
+    custos/                   # tempo e tokens por marco (make sessoes) e os créditos de API (creditos.csv), só números
     arena/                    # os relatórios da arena (make arena-report), um por data (ADR-0061); o gabarito e os controles do juiz (ADR-0070)
     versoes/                  # notas de cada versão (v0.1.0, v0.2.0)
     imagens/                  # um print de cada versão, para o README

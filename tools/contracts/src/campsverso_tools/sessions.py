@@ -8,7 +8,9 @@ em `docs/custos/`:
 - `sessoes.csv`: uma linha por turno (sessão, início, fim, minutos ativos, chamadas e tokens) e o
   marco. Rodar de novo atualiza as linhas que já existem e acrescenta as novas, com o marco de
   `--marco`; o marco de uma linha já gravada não muda.
-- `README.md`: os totais por marco e o uso do plano anotado em `plano.csv` ao fechar cada marco.
+- `README.md`: os totais por marco, o uso do plano anotado em `plano.csv` ao fechar cada marco e
+  os créditos de API anotados em `creditos.csv` (recargas e saldos conferidos, em dólar e no
+  cartão, em real), com o gasto de cada provedor.
 
 O texto das conversas nunca sai do histórico: aqui só entram horários e contagens.
 """
@@ -214,6 +216,8 @@ def summary(rows: Sequence[Turn]) -> list[list[str]]:
 
 HEADER = ["Marco", "Turnos", "Min. ativos", "Chamadas", "Saída (mil)", "Cache lido (mi)",
           "Cache escrito (mil)"]  # fmt: skip
+CREDITS_HEADER = ["Provedor", "Entrou (US$)", "No cartão (R$)", "Último saldo (US$)",
+                  "Gasto (US$)"]  # fmt: skip
 
 
 def _markdown(header: Sequence[str], table: Sequence[Sequence[str]]) -> list[str]:
@@ -222,11 +226,63 @@ def _markdown(header: Sequence[str], table: Sequence[Sequence[str]]) -> list[str
     return lines
 
 
-def readme(rows: Sequence[Turn], plan: Path) -> str:
+def _money(value: float) -> str:
+    return f"{value:,.2f}".replace(",", "_").replace(".", ",").replace("_", ".")
+
+
+def _number(text: str) -> float | None:
+    return float(text) if text.strip() else None
+
+
+def credits(path: Path) -> list[str]:
+    """Os créditos de API: as linhas de `creditos.csv` e, por provedor, o que entrou (compras e o
+    crédito do plano), o que se pagou no cartão, o último saldo conferido e o gasto, a diferença."""
+    if not path.exists():
+        return []
+    with path.open(encoding="utf-8", newline="") as handle:
+        records = list(csv.DictReader(handle))
+    if not records:
+        return []
+    table: list[list[str]] = []
+    for provider in dict.fromkeys(r["provedor"] for r in records):
+        own = [r for r in records if r["provedor"] == provider]
+        entries = [r for r in own if r["movimento"] != "saldo"]
+        added = sum(_number(r["usd"]) or 0 for r in entries)
+        bought = [r for r in entries if r["movimento"] == "compra"]
+        paid = [v for r in bought if (v := _number(r["brl"])) is not None]
+        missing = len(bought) - len(paid)
+        balances = [v for r in own if (v := _number(r["saldo_usd"])) is not None]
+        balance = balances[-1] if balances else added
+        table.append(
+            [
+                provider,
+                _money(added),
+                _money(sum(paid)) + (f" (faltam {missing})" if missing else ""),
+                _money(balance),
+                _money(added - balance),
+            ]
+        )
+    header = list(records[0])
+    return [
+        "",
+        "## Créditos de API",
+        "",
+        "As recargas e os saldos das contas que as corridas usam, anotados à mão em",
+        "`creditos.csv`: o valor em dólar, o cobrado no cartão em real e o saldo depois. O crédito",
+        "do plano vem com a assinatura e não passa no cartão.",
+        "",
+        *_markdown(header, [[r[c] for c in header] for r in records]),
+        "",
+        *_markdown(CREDITS_HEADER, table),
+    ]
+
+
+def readme(rows: Sequence[Turn], plan: Path, money: Path | None = None) -> str:
     lines = [
         "# Custos de desenvolvimento",
         "",
-        "GERADO por `make sessoes` a partir de `sessoes.csv` e `plano.csv`: não editar à mão.",
+        "GERADO por `make sessoes` a partir de `sessoes.csv`, `plano.csv` e `creditos.csv`:",
+        "não editar à mão.",
         "",
         "Tempo e tokens do Claude Code em cada marco (ADR-0051).",
         "",
@@ -252,6 +308,8 @@ def readme(rows: Sequence[Turn], plan: Path) -> str:
                 "",
                 *_markdown(records[0], records[1:]),
             ]
+    if money is not None:
+        lines += credits(money)
     return "\n".join(lines) + "\n"
 
 
@@ -265,7 +323,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     fresh = [t for path in sorted(folder.glob("*.jsonl")) for t in turns(path)]
     rows = merge(read_csv(args.out / "sessoes.csv"), fresh, args.marco)
     write_csv(args.out / "sessoes.csv", rows)
-    (args.out / "README.md").write_text(readme(rows, args.out / "plano.csv"), encoding="utf-8")
+    text = readme(rows, args.out / "plano.csv", args.out / "creditos.csv")
+    (args.out / "README.md").write_text(text, encoding="utf-8")
     for line in _markdown(HEADER, summary(rows)):
         print(line)
     return 0

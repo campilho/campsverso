@@ -1,6 +1,7 @@
 # Custos de desenvolvimento
 
-GERADO por `make sessoes` a partir de `sessoes.csv` e `plano.csv`: não editar à mão.
+GERADO por `make sessoes` a partir de `sessoes.csv`, `plano.csv` e `creditos.csv`:
+não editar à mão.
 
 Tempo e tokens do Claude Code em cada marco (ADR-0051).
 
@@ -60,3 +61,27 @@ Anotado ao fechar cada marco, como o app mostra: a janela de 5 horas e a semana.
 | 2026-10-24 | fim do M18 (tarde; a economia no Opus; semana da Fable a 88%) | 21 | 62 |
 | 2026-10-25 | fim do M19 (noite; os controladores e a medição no Opus; semana nova; Fable a 0%) | 10 | 8 |
 | 2026-10-26 | fim do M20 (tarde; os ajudantes no Opus; Fable a 0%) | 16 | 17 |
+
+## Créditos de API
+
+As recargas e os saldos das contas que as corridas usam, anotados à mão em
+`creditos.csv`: o valor em dólar, o cobrado no cartão em real e o saldo depois. O crédito
+do plano vem com a assinatura e não passa no cartão.
+
+| data | provedor | movimento | usd | brl | saldo_usd | nota |
+|---|---|---|---|---|---|---|
+| 2026-10-18 | Anthropic | plano | 100.00 |  | 100.00 | crédito do plano Max, resgatado na Console; vence em 10/11/2026 |
+| 2026-10-22 | Anthropic | saldo |  |  | 56.39 |  |
+| 2026-10-29 | OpenRouter | compra | 50.00 |  | 50.00 | a primeira carga, para as outras famílias |
+| 2026-11-02 | Anthropic | saldo |  |  | 28.76 | só o que restava do crédito do plano |
+| 2026-11-02 | Anthropic | compra | 30.00 |  | 58.73 | para o ano do Opus |
+| 2026-11-02 | Anthropic | saldo |  |  | 23.48 |  |
+| 2026-11-02 | OpenRouter | saldo |  |  | 39.39 |  |
+| 2026-11-02 | OpenRouter | compra | 50.00 |  | 85.31 | para o ano do Astra; o limite semanal da chave subiu de 50 para 100 |
+| 2026-11-03 | OpenRouter | saldo |  |  | 57.77 | depois do ano do Astra |
+| 2026-11-03 | Anthropic | compra | 100.00 |  | 118.00 | para o ano do Fable |
+
+| Provedor | Entrou (US$) | No cartão (R$) | Último saldo (US$) | Gasto (US$) |
+|---|---|---|---|---|
+| Anthropic | 230,00 | 0,00 (faltam 2) | 118,00 | 112,00 |
+| OpenRouter | 100,00 | 0,00 (faltam 2) | 57,77 | 42,23 |
