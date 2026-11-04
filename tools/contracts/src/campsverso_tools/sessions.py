@@ -10,7 +10,7 @@ em `docs/custos/`:
   `--marco`; o marco de uma linha já gravada não muda.
 - `README.md`: os totais por marco, o uso do plano anotado em `plano.csv` ao fechar cada marco e
   os créditos de API anotados em `creditos.csv` (recargas e saldos conferidos, em dólar e no
-  cartão, em real), com o gasto de cada provedor.
+  cartão, em real, com o IOF devolvido), com o gasto de cada provedor e a assinatura à parte.
 
 O texto das conversas nunca sai do histórico: aqui só entram horários e contagens.
 """
@@ -216,8 +216,10 @@ def summary(rows: Sequence[Turn]) -> list[list[str]]:
 
 HEADER = ["Marco", "Turnos", "Min. ativos", "Chamadas", "Saída (mil)", "Cache lido (mi)",
           "Cache escrito (mil)"]  # fmt: skip
-CREDITS_HEADER = ["Provedor", "Entrou (US$)", "No cartão (R$)", "Último saldo (US$)",
-                  "Gasto (US$)"]  # fmt: skip
+CREDITS_HEADER = ["Provedor", "Entrou (US$)", "No cartão (R$)", "IOF devolvido (R$)",
+                  "Líquido (R$)", "R$ por US$", "Último saldo (US$)", "Gasto (US$)"]  # fmt: skip
+# O plano do Claude Code: passa no cartão, mas fica fora da conta da API.
+SUBSCRIPTION = "assinatura"
 
 
 def _markdown(header: Sequence[str], table: Sequence[Sequence[str]]) -> list[str]:
@@ -234,47 +236,89 @@ def _number(text: str) -> float | None:
     return float(text) if text.strip() else None
 
 
+def _card(records: Sequence[dict[str, str]]) -> tuple[float, float, float]:
+    """O cobrado no cartão, o IOF que o banco devolveu e os dólares das linhas que já têm o real."""
+    paid = [r for r in records if _number(r["brl"]) is not None]
+    return (
+        sum(_number(r["brl"]) or 0 for r in paid),
+        sum(_number(r["iof_brl"]) or 0 for r in paid),
+        sum(_number(r["usd"]) or 0 for r in paid),
+    )
+
+
+def _credit_line(
+    name: str, added: float, card: tuple[float, float, float], balance: float, missing: int
+) -> list[str]:
+    charged, iof, dollars = card
+    net = charged - iof
+    return [
+        name,
+        _money(added),
+        _money(charged) + (f" (faltam {missing})" if missing else ""),
+        _money(iof),
+        _money(net),
+        _money(net / dollars) if dollars else "-",
+        _money(balance),
+        _money(added - balance),
+    ]
+
+
 def credits(path: Path) -> list[str]:
     """Os créditos de API: as linhas de `creditos.csv` e, por provedor, o que entrou (compras e o
-    crédito do plano), o que se pagou no cartão, o último saldo conferido e o gasto, a diferença."""
+    crédito do plano), o que se pagou no cartão, o IOF devolvido, o líquido, o real por dólar, o
+    último saldo conferido e o gasto, a diferença. A assinatura do plano vem numa linha à parte."""
     if not path.exists():
         return []
     with path.open(encoding="utf-8", newline="") as handle:
         records = list(csv.DictReader(handle))
     if not records:
         return []
+    api = [r for r in records if r["movimento"] != SUBSCRIPTION]
     table: list[list[str]] = []
-    for provider in dict.fromkeys(r["provedor"] for r in records):
-        own = [r for r in records if r["provedor"] == provider]
+    total = [0.0] * 5  # entrou, cartão, IOF, dólares com o real, saldo
+    missing_total = 0
+    for provider in dict.fromkeys(r["provedor"] for r in api):
+        own = [r for r in api if r["provedor"] == provider]
         entries = [r for r in own if r["movimento"] != "saldo"]
         added = sum(_number(r["usd"]) or 0 for r in entries)
         bought = [r for r in entries if r["movimento"] == "compra"]
-        paid = [v for r in bought if (v := _number(r["brl"])) is not None]
-        missing = len(bought) - len(paid)
+        card = _card(bought)
+        missing = sum(1 for r in bought if _number(r["brl"]) is None)
         balances = [v for r in own if (v := _number(r["saldo_usd"])) is not None]
         balance = balances[-1] if balances else added
-        table.append(
-            [
-                provider,
-                _money(added),
-                _money(sum(paid)) + (f" (faltam {missing})" if missing else ""),
-                _money(balance),
-                _money(added - balance),
-            ]
-        )
+        table.append(_credit_line(provider, added, card, balance, missing))
+        for i, value in enumerate((added, *card, balance)):
+            total[i] += value
+        missing_total += missing
+    if len(table) > 1:
+        card = (total[1], total[2], total[3])
+        table.append(_credit_line("Total", total[0], card, total[4], missing_total))
     header = list(records[0])
-    return [
+    lines = [
         "",
         "## Créditos de API",
         "",
         "As recargas e os saldos das contas que as corridas usam, anotados à mão em",
-        "`creditos.csv`: o valor em dólar, o cobrado no cartão em real e o saldo depois. O crédito",
-        "do plano vem com a assinatura e não passa no cartão.",
+        "`creditos.csv`: o valor em dólar, o cobrado no cartão em real (com o IOF), o IOF que o",
+        "banco devolveu e o saldo depois. O crédito do plano vem com a assinatura e não passa no",
+        "cartão. Líquido é o cartão menos o IOF devolvido; R$ por US$ divide o líquido pelos",
+        "dólares comprados (na OpenRouter, a taxa da compra entra no real).",
         "",
         *_markdown(header, [[r[c] for c in header] for r in records]),
         "",
         *_markdown(CREDITS_HEADER, table),
     ]
+    subscription = [r for r in records if r["movimento"] == SUBSCRIPTION]
+    if subscription:
+        charged, iof, _ = _card(subscription)
+        count = f"{len(subscription)} pagamento{'s' if len(subscription) > 1 else ''}"
+        lines += [
+            "",
+            f"A assinatura do plano, que paga o Claude Code e fica fora da conta da API: {count},",
+            f"R$ {_money(charged)} no cartão, R$ {_money(iof)} de IOF devolvido, "
+            f"R$ {_money(charged - iof)} líquidos.",
+        ]
+    return lines
 
 
 def readme(rows: Sequence[Turn], plan: Path, money: Path | None = None) -> str:

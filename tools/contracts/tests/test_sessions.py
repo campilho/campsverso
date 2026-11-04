@@ -117,15 +117,24 @@ def test_ignora_o_contexto_reinserido_com_carimbo_anterior_ao_turno(tmp_path: Pa
 def test_creditos_somam_o_que_entrou_o_cartao_e_o_gasto(tmp_path: Path) -> None:
     path = tmp_path / "creditos.csv"
     path.write_text(
-        "data,provedor,movimento,usd,brl,saldo_usd,nota\n"
-        "2026-10-18,Anthropic,plano,100.00,,100.00,da assinatura\n"
-        "2026-10-29,OpenRouter,compra,50.00,290.10,50.00,\n"
-        "2026-11-02,Anthropic,compra,30.00,,58.73,\n"
-        "2026-11-02,OpenRouter,saldo,,,12.50,\n"
-        "2026-11-03,Anthropic,compra,1000.00,5800.00,1040.00,\n",
+        "data,provedor,movimento,usd,brl,iof_brl,saldo_usd,nota\n"
+        "2026-10-07,Anthropic,assinatura,,588.42,19.93,,mensal\n"
+        "2026-10-18,Anthropic,plano,100.00,,,100.00,da assinatura\n"
+        "2026-10-29,OpenRouter,compra,50.00,290.10,10.10,50.00,\n"
+        "2026-11-02,Anthropic,compra,30.00,,,58.73,\n"
+        "2026-11-02,OpenRouter,saldo,,,,12.50,\n"
+        "2026-11-03,Anthropic,compra,1000.00,5800.00,200.00,1040.00,\n",
         encoding="utf-8",
     )
     lines = credits(path)
-    assert "| Anthropic | 1.130,00 | 5.800,00 (faltam 1) | 1.040,00 | 90,00 |" in lines
-    assert "| OpenRouter | 50,00 | 290,10 | 12,50 | 37,50 |" in lines
+    # A assinatura não entra na conta da API: só a compra de 1.000 tem o real, a de 30 falta.
+    anthropic = "| Anthropic | 1.130,00 | 5.800,00 (faltam 1) | 200,00 | 5.600,00 | 5,60 |"
+    assert anthropic + " 1.040,00 | 90,00 |" in lines
+    assert "| OpenRouter | 50,00 | 290,10 | 10,10 | 280,00 | 5,60 | 12,50 | 37,50 |" in lines
+    assert (
+        "| Total | 1.180,00 | 6.090,10 (faltam 1) | 210,10 | 5.880,00 | 5,60 | 1.052,50 | 127,50 |"
+        in lines
+    )
+    assert any("1 pagamento," in line for line in lines)
+    assert "R$ 588,42 no cartão, R$ 19,93 de IOF devolvido, R$ 568,49 líquidos." in lines
     assert credits(tmp_path / "nenhum.csv") == []

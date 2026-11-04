@@ -1,11 +1,12 @@
-data,provedor,movimento,usd,brl,saldo_usd,nota
-2026-10-18,Anthropic,plano,100.00,,100.00,"crédito do plano Max, resgatado na Console; vence em 10/11/2026"
-2026-10-22,Anthropic,saldo,,,56.39,
-2026-10-29,OpenRouter,compra,50.00,,50.00,"a primeira carga, para as outras famílias"
-2026-11-02,Anthropic,saldo,,,28.76,só o que restava do crédito do plano
-2026-11-02,Anthropic,compra,30.00,,58.73,para o ano do Opus
-2026-11-02,Anthropic,saldo,,,23.48,
-2026-11-02,OpenRouter,saldo,,,39.39,
-2026-11-02,OpenRouter,compra,50.00,,85.31,para o ano do Astra; o limite semanal da chave subiu de 50 para 100
-2026-11-03,OpenRouter,saldo,,,57.77,depois do ano do Astra
-2026-11-03,Anthropic,compra,100.00,,118.00,para o ano do Fable
+data,provedor,movimento,usd,brl,iof_brl,saldo_usd,nota
+2026-10-07,Anthropic,assinatura,,588.42,19.93,,"o plano Max, mensal (a conferir); paga o Claude Code e trouxe o crédito de 18/out"
+2026-10-18,Anthropic,plano,100.00,,,100.00,"crédito do plano Max, resgatado na Console; vence em 10/11/2026"
+2026-10-22,Anthropic,saldo,,,,56.39,
+2026-10-22,OpenRouter,compra,50.00,284.70,9.62,50.00,"a primeira carga, para as outras famílias; a data é a do cartão"
+2026-11-02,Anthropic,saldo,,,,28.76,só o que restava do crédito do plano
+2026-11-02,Anthropic,compra,30.00,174.22,5.89,58.73,para o ano do Opus
+2026-11-02,Anthropic,saldo,,,,23.48,
+2026-11-02,OpenRouter,saldo,,,,39.39,
+2026-11-02,OpenRouter,compra,50.00,319.60,10.80,85.31,para o ano do Astra; o limite semanal da chave subiu de 50 para 100
+2026-11-03,OpenRouter,saldo,,,,57.77,depois do ano do Astra
+2026-11-03,Anthropic,compra,100.00,588.48,19.90,118.00,para o ano do Fable

@@ -65,23 +65,30 @@ Anotado ao fechar cada marco, como o app mostra: a janela de 5 horas e a semana.
 ## Créditos de API
 
 As recargas e os saldos das contas que as corridas usam, anotados à mão em
-`creditos.csv`: o valor em dólar, o cobrado no cartão em real e o saldo depois. O crédito
-do plano vem com a assinatura e não passa no cartão.
+`creditos.csv`: o valor em dólar, o cobrado no cartão em real (com o IOF), o IOF que o
+banco devolveu e o saldo depois. O crédito do plano vem com a assinatura e não passa no
+cartão. Líquido é o cartão menos o IOF devolvido; R$ por US$ divide o líquido pelos
+dólares comprados (na OpenRouter, a taxa da compra entra no real).
 
-| data | provedor | movimento | usd | brl | saldo_usd | nota |
-|---|---|---|---|---|---|---|
-| 2026-10-18 | Anthropic | plano | 100.00 |  | 100.00 | crédito do plano Max, resgatado na Console; vence em 10/11/2026 |
-| 2026-10-22 | Anthropic | saldo |  |  | 56.39 |  |
-| 2026-10-29 | OpenRouter | compra | 50.00 |  | 50.00 | a primeira carga, para as outras famílias |
-| 2026-11-02 | Anthropic | saldo |  |  | 28.76 | só o que restava do crédito do plano |
-| 2026-11-02 | Anthropic | compra | 30.00 |  | 58.73 | para o ano do Opus |
-| 2026-11-02 | Anthropic | saldo |  |  | 23.48 |  |
-| 2026-11-02 | OpenRouter | saldo |  |  | 39.39 |  |
-| 2026-11-02 | OpenRouter | compra | 50.00 |  | 85.31 | para o ano do Astra; o limite semanal da chave subiu de 50 para 100 |
-| 2026-11-03 | OpenRouter | saldo |  |  | 57.77 | depois do ano do Astra |
-| 2026-11-03 | Anthropic | compra | 100.00 |  | 118.00 | para o ano do Fable |
+| data | provedor | movimento | usd | brl | iof_brl | saldo_usd | nota |
+|---|---|---|---|---|---|---|---|
+| 2026-10-07 | Anthropic | assinatura |  | 588.42 | 19.93 |  | o plano Max, mensal (a conferir); paga o Claude Code e trouxe o crédito de 18/out |
+| 2026-10-18 | Anthropic | plano | 100.00 |  |  | 100.00 | crédito do plano Max, resgatado na Console; vence em 10/11/2026 |
+| 2026-10-22 | Anthropic | saldo |  |  |  | 56.39 |  |
+| 2026-10-22 | OpenRouter | compra | 50.00 | 284.70 | 9.62 | 50.00 | a primeira carga, para as outras famílias; a data é a do cartão |
+| 2026-11-02 | Anthropic | saldo |  |  |  | 28.76 | só o que restava do crédito do plano |
+| 2026-11-02 | Anthropic | compra | 30.00 | 174.22 | 5.89 | 58.73 | para o ano do Opus |
+| 2026-11-02 | Anthropic | saldo |  |  |  | 23.48 |  |
+| 2026-11-02 | OpenRouter | saldo |  |  |  | 39.39 |  |
+| 2026-11-02 | OpenRouter | compra | 50.00 | 319.60 | 10.80 | 85.31 | para o ano do Astra; o limite semanal da chave subiu de 50 para 100 |
+| 2026-11-03 | OpenRouter | saldo |  |  |  | 57.77 | depois do ano do Astra |
+| 2026-11-03 | Anthropic | compra | 100.00 | 588.48 | 19.90 | 118.00 | para o ano do Fable |
 
-| Provedor | Entrou (US$) | No cartão (R$) | Último saldo (US$) | Gasto (US$) |
-|---|---|---|---|---|
-| Anthropic | 230,00 | 0,00 (faltam 2) | 118,00 | 112,00 |
-| OpenRouter | 100,00 | 0,00 (faltam 2) | 57,77 | 42,23 |
+| Provedor | Entrou (US$) | No cartão (R$) | IOF devolvido (R$) | Líquido (R$) | R$ por US$ | Último saldo (US$) | Gasto (US$) |
+|---|---|---|---|---|---|---|---|
+| Anthropic | 230,00 | 762,70 | 25,79 | 736,91 | 5,67 | 118,00 | 112,00 |
+| OpenRouter | 100,00 | 604,30 | 20,42 | 583,88 | 5,84 | 57,77 | 42,23 |
+| Total | 330,00 | 1.367,00 | 46,21 | 1.320,79 | 5,74 | 175,77 | 154,23 |
+
+A assinatura do plano, que paga o Claude Code e fica fora da conta da API: 1 pagamento,
+R$ 588,42 no cartão, R$ 19,93 de IOF devolvido, R$ 568,49 líquidos.
