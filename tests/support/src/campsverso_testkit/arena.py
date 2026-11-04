@@ -237,6 +237,10 @@ SPECS_TERCEIRA: tuple[Spec, ...] = (
         days=2,
         limits=BudgetLimits(5.00, 12.0),
     ),
+    # O ano do Fable (3/nov, o usuário), pelo custo do piloto: de 67 a 90 no ano. O dia do piloto
+    # custou uns 2,1 vezes o do Opus, e o dia mais caro do Opus foi de US$ 2,32; o teto do dia fica
+    # em 10, para a corrida não parar num dia caro, e o total em 110, abaixo do saldo (decisão 34).
+    _morada("fable", "llm", memory=True, map="d", model=FABLE, limits=BudgetLimits(10.00, 110.0)),
 )
 # As outras famílias (ADR-0074, decisões 11 e 28), pela OpenRouter no provedor flex, no mapa d, na
 # mesma pasta da terceira: o Gemini 4 Argon primeiro, num piloto de dois dias e depois o ano, e o

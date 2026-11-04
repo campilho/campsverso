@@ -312,6 +312,11 @@ Com a energia nova, o ajudante ainda não pagava, e a explicação era o teto de
     - **O piloto do Fable 5.1 roda junto, pela API da Anthropic,** dois dias com o teto do plano, de US$ 5 por dia e 12 no total. O preço foi conferido em 2/nov na lista pública: US$ 10 na entrada, 50 na saída, 0,25 no cache lido e 12,50 no gravado. Pelos tokens do Opus, um ano do Fable custaria uns US$ 70, e 14 dias uns 25. O piloto diz se o Fable gasta como o Opus, e o usuário escolhe depois entre o ano e os 14 dias.
     - **O piloto do Fable gastou uns 2,1 vezes o Opus nos mesmos dois dias:** 141 chamadas, sem nenhuma falha, por US$ 5,08, mais 0,31 da prova. Pelas curvas dos anos completos, um ano do Fable custaria de US$ 67 a 90, e 14 dias de 27 a 40. O resultado fica lacrado.
     - **O ano do Astra terminou, lacrado:** 28 dias e 1.872 chamadas, sem nenhuma falha, repetição ou reserva, por US$ 27,32, no começo da faixa estimada. Nenhum dia bateu no teto. Os juízes custaram US$ 0,04 (Opus) e 0,07 (Astra).
+34. **O ano do Fable** (3/nov, o usuário).
+    - **O Fable roda o ano inteiro, lacrado,** e não os 14 dias. Assim fica lado a lado com o Opus e o Sonnet, que também rodaram o ano. O usuário pôs US$ 100 na API da Anthropic, e o saldo foi para US$ 118.
+    - **O teto total é de US$ 110,** pedido pelo usuário: fica acima da estimativa de 67 a 90 e abaixo do saldo, para a corrida parar pelo teto, não sem crédito. A prova, de uns US$ 0,30, fica fora dele.
+    - **O teto do dia sobe de 5 para 10.** O dia do piloto custou uns 2,1 vezes o do Opus, e o dia mais caro do Opus, US$ 2,32, daria uns 4,90 no Fable, perto demais de 5.
+    - **A corrida segue se, no dia 2, tiver gastado até 1,5 vez o piloto (US$ 7,62).** O preço foi conferido de novo em 3/nov, sem mudança.
 
 A tela de quem joga ganha a carga da mochila ao lado do inventário ("carga 12,5 de 20", em alerta a partir de 90%) e as recusas em português ("Não deu para colher: não cabe na mochila; guarde alguma coisa no baú.").
 

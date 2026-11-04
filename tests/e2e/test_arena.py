@@ -186,9 +186,9 @@ def test_a_rodada_de_verificacao_da_morada_do_sol() -> None:
 def test_a_terceira_rodada_poe_as_quatro_reguas_nos_quatro_mapas() -> None:
     """ADR-0074: o script 2, o script 3, o script 3 fixo e o oráculo nos mapas a, b, c e d; depois,
     as corridas dos modelos no mapa d, uma por vez: o Haiku três vezes, com memória, os braços, o
-    Sonnet, o Opus e o piloto do Fable."""
+    Sonnet, o Opus e o Fable, no piloto e no ano."""
     by = {s.name: s for s in SPECS_TERCEIRA}
-    assert len(by) == 25
+    assert len(by) == 26
     assert (by["script3-fixo-d"].script, by["script3-fixo-d"].map) == ("farmer3-fixo", "d")
     assert (by["oraculo-a"].script, by["oraculo-a"].map) == ("oracle", None)
     assert {(s.cartridge, s.seed, s.days) for s in SPECS_TERCEIRA if s.name != "fable-piloto"} == {
@@ -224,6 +224,9 @@ def test_a_terceira_rodada_poe_as_quatro_reguas_nos_quatro_mapas() -> None:
     fable = by["fable-piloto"]  # dois dias para medir o custo (decisão 18)
     assert (fable.model, fable.map, fable.memory, fable.days) == ("claude-fable-5-1", "d", True, 2)
     assert fable.limits == BudgetLimits(5.00, 12.0)
+    fable = by["fable"]  # o ano, pelo custo do piloto (decisão 34)
+    assert (fable.model, fable.map, fable.memory, fable.days) == ("claude-fable-5-1", "d", True, 28)
+    assert fable.limits == BudgetLimits(10.00, 110.0)
 
 
 async def test_o_flex_sem_provedor_flex_na_tabela_e_recusado(tmp_path: Path) -> None:
