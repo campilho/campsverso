@@ -13,8 +13,8 @@ from campsverso_mind.mind import Mind
 METHOD = Path(__file__).parent / "data" / "metodo.md"
 HEADING = "## O playbook"
 # A versão do texto, do método e do ofício juntos: sobe a cada mudança, e a corrida grava a versão
-# com que jogou. As versões antigas ficam no git (a 1 em 7cd7e06).
-PLAYBOOK_VERSION = 2
+# com que jogou. As versões antigas ficam no git (a 1 em 7cd7e06, a 2 em eb5c78a).
+PLAYBOOK_VERSION = 3
 
 
 def playbook(mind: Mind) -> str:

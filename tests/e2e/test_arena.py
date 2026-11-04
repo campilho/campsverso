@@ -285,10 +285,11 @@ def test_a_rodada_do_agricultor_treinado() -> None:
 async def test_um_playbook_antigo_nao_roda_mais(tmp_path: Path) -> None:
     """ADR-0071: a corrida grava a versão do playbook; uma versão que saiu do código é recusada
     antes de gastar, e as antigas ficam no git."""
-    old = Spec("velho", "llm", memory=True, cartridge="farm_morada_do_sol", playbook=1)
-    with pytest.raises(ValueError, match="o playbook 1 não está mais no código"):
-        await run_spec(old, 1, tmp_path / "velho")
-    assert not (tmp_path / "velho").exists()
+    for version in (1, 2):  # a 2 saiu com o playbook 3 (ADR-0074, decisão 20)
+        old = Spec("velho", "llm", memory=True, cartridge="farm_morada_do_sol", playbook=version)
+        with pytest.raises(ValueError, match=f"o playbook {version} não está mais no código"):
+            await run_spec(old, 1, tmp_path / "velho")
+        assert not (tmp_path / "velho").exists()
 
 
 def test_a_reserva_ao_comecar_e_o_script_2_na_boa_vista(

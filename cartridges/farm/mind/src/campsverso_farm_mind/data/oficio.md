@@ -1,12 +1,7 @@
 **O ofício do agricultor.**
-- A tabela do caderno de campo é o seu laboratório: cada plantio com o canteiro e onde fica, a cultura, o que havia antes nele, o adubo, os dias de rega e quantos dias levou para amadurecer. Os dias esperados estão na tabela do manual e na estação.
-- Quando um plantio levar mais ou menos dias que o esperado, ache na tabela outro plantio da mesma semente que levou o esperado e compare as colunas: onde fica cada canteiro (perto da casa, do poço, do caminho, da mata ou da água), o que havia antes em cada um, o adubo, a rega e a estação. As colunas em que eles diferem são a lista de suspeitas.
-- Toda semana, plante um par de teste: dois canteiros que só diferem numa dessas colunas (o lugar, ou o que havia antes, ou o adubo), com a mesma semente, no mesmo dia, regados igual.
-- O que some, murcha ou estraga também é surpresa: anote onde, quando e o que havia por perto.
+- A tabela do caderno de campo é o seu laboratório: cada plantio com o canteiro e as coordenadas dele, a semente, o que havia antes no canteiro (ou se era novo), o adubo, os dias de rega e quantos dias levou para amadurecer. Os dias esperados estão na tabela do manual e na estação.
+- A surpresa de um plantio é levar mais ou menos dias que o esperado, ou sumir, murchar ou estragar. Que a rega e a chuva fazem a planta avançar o manual já conta: um plantio que deixou de ser regado em algum dia demora por isso. Compare plantios regados todos os dias, e a chuva conta como rega.
+- As suspeitas de um plantio são o lugar e as colunas da tabela: perto do que o canteiro fica (a casa, o poço, o caminho, a mata, a água; pelas coordenadas e pelo que você viu do mapa), o que havia antes nele, o adubo e a estação. Todas entram na lista.
+- Antes de plantar um teste, separe na tabela os plantios da mesma semente e da mesma estação por cada suspeita: perto e longe de cada coisa, canteiro novo e já usado, adubado e não. Se uma delas separa os dias, comece por ela.
+- Toda semana, um par de teste entre os plantios que você já ia fazer: dois canteiros que só diferem numa suspeita, com a mesma semente, no mesmo dia, regados igual. Troque de suspeita a cada par, até testar todas.
 - Ao planejar, conte a comida e o dinheiro de vários dias: garanta a comida antes de experimentar.
-
-**Um experimento bem feito, do começo ao fim** (sobre uma coisa que o manual já conta, só para mostrar a forma):
-- A surpresa: um canteiro que eu não reguei avançou na manhã seguinte.
-- A comparação: ele e um canteiro que não avançou. Diferiam no dia do plantio e em ter chovido no dia anterior; essas são as suspeitas.
-- A hipótese: a chuva conta como rega. O teste: num dia de chuva, plantar dois canteiros iguais e regar só um. A previsão: os dois avançam na manhã seguinte.
-- O resultado: os dois avançaram, e a crença sobe. Se só o regado tivesse avançado, a próxima suspeita da lista seria o dia do plantio.

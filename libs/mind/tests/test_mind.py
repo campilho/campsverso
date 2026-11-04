@@ -9,6 +9,7 @@ import pytest
 
 from campsverso_mind import (
     INTENT,
+    PLAYBOOK_VERSION,
     LlmController,
     Mind,
     ParamDef,
@@ -245,6 +246,19 @@ def test_o_playbook_e_o_metodo_e_o_oficio_do_genero() -> None:
     assert "O ofício" not in playbook(MIND)  # um mundo sem ofício recebe só o método
     camps = farmer.extend(card="Você é o Camps, da Fazenda do Camps.")
     assert camps.craft == farmer.craft  # a camada de cima mantém o ofício do gênero
+
+
+def test_o_playbook_3_da_duas_tentativas_a_cada_suspeita_e_um_exemplo_de_fora() -> None:
+    """ADR-0074, decisão 20: no playbook 2, o Haiku ficou preso na rega e na chuva, o assunto do
+    exemplo, e a regra de não trocar de assunto antes de resolver o segurava lá. O 3 lista todas
+    as suspeitas, olha o caderno antes de testar, dá duas tentativas a cada uma e tira o exemplo
+    deste mundo."""
+    text = playbook(MIND)
+    assert PLAYBOOK_VERSION == 3
+    assert "Não troque de assunto" not in text
+    for step in ("todos, sem descartar", "separe os casos parecidos em dois grupos",
+                 "Cada suspeita tem duas tentativas", "de fora deste mundo"):  # fmt: skip
+        assert step in text, step
 
 
 def test_o_playbook_entra_depois_do_manual_so_quando_a_corrida_pede() -> None:

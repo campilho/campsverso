@@ -278,6 +278,46 @@ Todas na seed da Morada (20261022), sem playbook (decisão 6). As corridas dos m
 - **O comprimento sai dos custos reais.** Com 14 dias, comparados ao dia 14 das corridas sem playbook, a rodada custa a metade.
 - **Uma corrida por modelo e por condição:** o relatório diz que a diferença de uma corrida só é indício, não prova.
 
+### O playbook 3 (4/nov)
+
+O texto está em `libs/mind/src/campsverso_mind/data/metodo.md` (o método) e em `cartridges/farm/mind/src/campsverso_farm_mind/data/oficio.md` (o ofício do agricultor). Foi escrito **sem ler as corridas do mapa d**, só com o que as duas rodadas do agricultor treinado mostraram (ADR-0071). Assim o d continua sendo o conjunto de teste, e o lacre do usuário não se rompe.
+
+O que muda do 2 para o 3, e por quê:
+- **O exemplo sai deste mundo.** No 2, o experimento bem feito era sobre a chuva que rega, e quatro de cada cinco experimentos do Haiku foram sobre a rega e a chuva. O 3 conta um padeiro com a massa lenta, e a causa do exemplo é a tigela, que não lembra nenhuma coluna da fazenda.
+- **O que o manual já explica não é surpresa.** A rega e a chuva estão no manual; o ofício pede para comparar plantios regados todos os dias.
+- **A lista de suspeitas é completa.** Cada item em que os casos diferem entra, sem descartar o que parece improvável. No 2, a lista era do modelo, e nela nunca entraram o lugar nem o que havia antes no canteiro.
+- **O caderno antes do teste.** Para cada suspeita, separar os plantios em dois grupos (perto e longe de cada coisa, canteiro novo e já usado, adubado e não) e comparar os dias. É a conta do script 3 e da ferramenta de comparação, em palavras; responde à hipótese da capacidade.
+- **Duas tentativas por suspeita,** no lugar de "não troque de assunto antes de resolver". Depois de duas sem decidir, a próxima da lista; a mesma só volta depois de todas. Responde à hipótese do próprio playbook.
+- **O teste dentro do trabalho:** entre os plantios que o modelo já ia fazer, sem pôr em risco a comida, o descanso nem o dinheiro. Com o 1 e o 2, o Haiku passou mais fome e desmaiou mais.
+
+As suspeitas continuam as do script 3 (o lugar, o que havia antes, o adubo e a estação), todas no mesmo peso, e o texto passa no teste de palavras proibidas dos três cenários. A arena recusa os playbooks 1 e 2, que ficam no git (7cd7e06 e eb5c78a).
+
+### A proposta da rodada (4/nov)
+
+Os custos são os das corridas sem playbook no mapa d até o dia 14, pelo progresso de cada uma (só o custo). O playbook 3 põe uns mil tokens a mais no prompt de sistema, em cache.
+
+| Corrida | Dias | Comparada com | Custo sem playbook até lá (US$) | Teto (US$/dia · total) |
+|---|---|---|---|---|
+| o Haiku, três vezes | 28 | as três sem playbook, no ano | 0,59 a 0,81 cada | 0,60 · 2 |
+| o Sonnet | 14 | o dia 14 | 4,20 | 1,50 · 7 |
+| o Opus | 14 | o dia 14 | 12,53 | 3,00 · 19 |
+| o Gemini | 14 | o dia 12, onde o ano parou | 3,30 no dia 12 | 1,50 · 7 |
+| o Astra | 14 | o dia 14 | 12,05 | 5,00 · 18 |
+| o Fable | 14 | o dia 14 | 27,52 | 10,00 · 40 |
+
+- **Uns US$ 62 nas corridas, mais uns US$ 3 dos juízes e das provas.** A v0.3 gastou uns US$ 180 de API até aqui e fecharia em uns US$ 245, dentro do teto de 300.
+- **Os créditos:** a parte da Anthropic dá uns US$ 47 com os juízes e as provas, e a Console tem uns US$ 47,50: sem folga. A OpenRouter paga a sua parte (uns US$ 17) com sobra.
+- **O teto do dia do Opus sobe de 2,50 para 3,00:** o playbook põe tokens a mais em cada chamada, e a corrida não pode parar num dia caro.
+- **O portão de sempre:** no dia 2, cada corrida pode ter gastado até 1,5 vez o dia 2 da corrida sem playbook; senão, para.
+- **O relatório** ganha o corte do dia 14 (hoje há o do dia 7, para o humano), para pôr cada corrida ao lado da sua sem playbook. É de graça.
+
+**Decisões propostas** (viram itens da ADR-0074 quando aprovadas):
+1. **Quem e por quanto tempo:** os seis modelos; o Haiku três vezes no ano inteiro, como as corridas sem playbook dele, e os outros 14 dias. *Recomendação: sim. O Haiku é a pergunta original e custa pouco; 14 dias nos outros cabem no teto e cobrem as duas primeiras estações, onde a descoberta aparece. O ano inteiro em todos custaria uns US$ 150.*
+2. **Os braços nos outros modelos** (decisão 19): não entram. *Recomendação: não. Só o playbook muda; um braço nos outros modelos pediria também a corrida sem playbook com ele, o dobro do custo.*
+3. **Os créditos:** pôr uns US$ 20 na Console antes do Fable, que roda por último na Anthropic. *Recomendação: sim, ou decidir o Fable com o saldo real depois do Opus.*
+4. **A ordem e o ok:** o Haiku, o Sonnet, o Opus, o Gemini, o Astra e o Fable, um de cada vez. *Recomendação: um ok para a rodada inteira, comigo parando pelo portão do dia 2 e dando o custo real a cada corrida; o Fable só com o saldo conferido (a decisão 3). A alternativa é a de sempre, um ok por corrida.*
+5. **Quando:** a rodada roda lacrada no mapa d, como as outras, e pode ir enquanto o usuário joga o ano. *Recomendação: rodar já; os números só aparecem depois do ano dele.*
+
 ## 10. O que fica de fora
 
 | Item | Destino | Por quê |
