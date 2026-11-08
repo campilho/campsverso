@@ -348,6 +348,7 @@ Com a energia nova, o ajudante ainda não pagava, e a explicação era o teto de
     - **Um ok para a rodada inteira,** na ordem: os Haiku primeiro, depois os outros, no máximo uma corrida por provedor ao mesmo tempo. Cada corrida para se, no dia 2, tiver gastado mais de 1,5 vez o dia 2 da sua corrida sem playbook. O custo real é dado a cada corrida.
     - **O Fable roda por último e só com o saldo da Console conferido.** Os US$ 20 a mais de 4/nov continuam necessários.
     - **A rodada roda já e fica lacrada** até o fim do ano do usuário, na mesma pasta das corridas sem playbook (`data/arena/m21-terceira-energia`).
+    - **O relatório ganha duas seções, de graça, antes de ser gerado:** a aderência ao procedimento (decisão 35), contada pelos formatos fixos em `campsverso_tools/adherence.py`, e "Lado a lado no dia 14", com os totais dos dias 1 a 14 de cada corrida quando a rodada mistura 14 dias com corridas mais longas. As crenças, a prova e o juiz continuam sendo os do fim de cada corrida.
 
 A tela de quem joga ganha a carga da mochila ao lado do inventário ("carga 12,5 de 20", em alerta a partir de 90%) e as recusas em português ("Não deu para colher: não cabe na mochila; guarde alguma coisa no baú.").
 

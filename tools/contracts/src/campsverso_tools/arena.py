@@ -22,6 +22,7 @@ from pathlib import Path
 from statistics import NormalDist
 from typing import Any, cast
 
+from campsverso_tools.adherence import Adherence, adhere
 from campsverso_tools.exploration import ZONES, Exploration, explore
 from campsverso_tools.metrics import Report, compute, group_of, plot_groups
 
@@ -125,6 +126,8 @@ SPAWNED = "campsverso.world.entity.spawned.v1"
 WITHERED = "campsverso.farm.crop.withered.v1"
 BARS = "▁▂▃▄▅▆▇█"
 EMPTY = "-"  # a célula de quem não tem a medida (o script não tem modelo)
+CUT = 14  # o corte das corridas de 14 dias (ADR-0074, decisão 36)
+PROCEDURE = 4  # o playbook que é o procedimento, com os formatos fixos (ADR-0074, decisão 35)
 FORMED = "campsverso.memory.belief.formed.v1"
 UPDATED = "campsverso.memory.belief.updated.v1"
 RETRACTED = "campsverso.memory.belief.retracted.v1"
@@ -396,6 +399,7 @@ class Run:
     # Os vereditos de cada juiz pelo modelo dele (ADR-0074, decisão 12): o juiz.json e os
     # juiz-<modelo>.json, lado a lado na pasta da corrida.
     judges: dict[str, dict[str, Any]] = field(default_factory=dict[str, dict[str, Any]])
+    adherence: Adherence | None = None  # a aderência ao procedimento (ADR-0074, decisão 35)
 
     @property
     def spec(self) -> dict[str, Any]:
@@ -446,11 +450,14 @@ def reflection_leaks(tape: Path) -> tuple[int, int] | None:
 def load_run(folder: Path) -> Run:
     summary: dict[str, Any] = json.loads((folder / "summary.json").read_text(encoding="utf-8"))
     envelopes = read_envelopes(folder / "archive.jsonl")
+    experiments = experiments_of(envelopes)
+    report = compute(envelopes)
+    days = int(summary.get("days") or report.totals()["days"])  # os dias que a corrida rodou
     return Run(
         folder.name,
         folder,
         summary,
-        compute(envelopes),
+        report,
         east_signals(envelopes),
         beliefs_at_end(envelopes),
         reflection_leaks(folder / "llm.jsonl"),
@@ -458,8 +465,11 @@ def load_run(folder: Path) -> Run:
         _optional(folder / "prova.json"),
         _optional(folder / "juiz.json"),
         _optional(folder / "modelo.json"),
-        experiments_of(envelopes),
+        experiments,
         _judges(folder),
+        adhere(envelopes, experiments, days=days)
+        if summary.get("spec", {}).get("memory")
+        else None,
     )
 
 
@@ -816,6 +826,55 @@ def _harvests_section(runs: Sequence[Run]) -> list[str]:
     return lines
 
 
+def _cut_section(runs: Sequence[Run]) -> list[str]:
+    """O corte do dia 14 (ADR-0074, decisão 36): quando a rodada tem corridas de 14 dias e outras
+    mais longas, todas lado a lado nos dias 1 a 14; a que parou antes mostra o último dia dela."""
+    lengths = {len(r.report.complete_days) for r in runs}
+    if CUT not in lengths or max(lengths) <= CUT:
+        return []
+
+    def upto(r: Run) -> list[Any]:
+        return [d for d in r.report.complete_days if d.day <= CUT]
+
+    def cell(r: Run, value: Callable[[list[Any]], str]) -> str:
+        days = upto(r)
+        return value(days) if days else EMPTY
+
+    rows = [
+        ["Até o dia", *(cell(r, lambda ds: str(ds[-1].day)) for r in runs)],
+        ["Moedas no fim", *(cell(r, lambda ds: str(ds[-1].coins_end)) for r in runs)],
+        [
+            "Colheitas",
+            *(cell(r, lambda ds: str(sum(sum(d.harvests.values()) for d in ds))) for r in runs),
+        ],
+        [
+            "Plantios",
+            *(cell(r, lambda ds: str(sum(sum(d.plantings.values()) for d in ds))) for r in runs),
+        ],
+        ["Desmaios", *(cell(r, lambda ds: str(sum(d.faints for d in ds))) for r in runs)],
+        [
+            "Dias com a fome em 100",
+            *(cell(r, lambda ds: str(sum(d.hunger_peak >= 100 for d in ds))) for r in runs),
+        ],
+        ["Chamadas", *(cell(r, lambda ds: str(sum(d.calls for d in ds))) for r in runs)],
+        [
+            "Custo do modelo (US$)",
+            *(cell(r, lambda ds: _n(sum(d.cost_usd for d in ds), 2)) for r in runs),
+        ],
+    ]
+    return [
+        f"## Lado a lado no dia {CUT}",
+        "",
+        f"As corridas de {CUT} dias ao lado das mais longas, nos mesmos dias: os totais dos dias 1 "
+        f"a {CUT} de cada uma, e o que ela tinha no fim do dia {CUT}. A corrida que parou antes "
+        "mostra o último dia dela. As crenças, a prova e o juiz continuam sendo os do fim de cada "
+        "corrida.",
+        "",
+        _table(["Medida", *(r.name for r in runs)], rows),
+        "",
+    ]
+
+
 def _coins_section(runs: Sequence[Run]) -> list[str]:
     series, top = _series(runs, lambda d: int(d.coins_end))
     longest = max((len(v) for v in series.values()), default=0)
@@ -946,6 +1005,7 @@ def render(runs: Sequence[Run], *, source: str, date: str) -> str:
         ] or ["- nenhuma"]
         lines.append("")
     lines += _experiments_section(runs)
+    lines += _adherence_section(runs)
     lines += _knowing_section(runs)
     lines += _helpers_section(runs)
     lines += _learned_section(runs)
@@ -953,6 +1013,7 @@ def render(runs: Sequence[Run], *, source: str, date: str) -> str:
     lines += _exploration_section(runs)
     lines += _exam_section(runs)
     lines += _cost_section(runs)
+    lines += _cut_section(runs)
     lines += _coins_section(runs)
     lines += _harvests_section(runs)
     lines += _card_section(runs)
@@ -1011,7 +1072,8 @@ def _experiments_section(runs: Sequence[Run]) -> list[str]:
         "",
         "Na reflexão de cada noite, a mente propõe um experimento barato para o dia seguinte (a "
         "hipótese, o teste e a previsão), e a reflexão da noite seguinte diz se a previsão se "
-        "cumpriu. O veredito é dela, não do avaliador.",
+        "cumpriu. Com o caderno completo (ADR-0074, decisão 35), o experimento fica aberto até o "
+        "veredito, que pode levar dias. O veredito é dela, não do avaliador.",
         "",
     ]
     for r in tried:
@@ -1024,6 +1086,58 @@ def _experiments_section(runs: Sequence[Run]) -> list[str]:
         ]
         lines += [_table(["Dia", "Hipótese", "Veredito"], rows), ""]
     return lines
+
+
+def _adherence_section(runs: Sequence[Run]) -> list[str]:
+    """A aderência ao procedimento (ADR-0074, decisão 35), contada pelos formatos fixos dele, nas
+    rodadas que têm alguma corrida com o procedimento; as outras corridas com memória entram ao
+    lado, como referência."""
+    if not any(int(r.spec.get("playbook") or 0) >= PROCEDURE for r in runs):
+        return []
+    measured = [r for r in runs if r.adherence is not None]
+    names = [r.name for r in measured]
+
+    def row(label: str, cell: Callable[[Adherence], str]) -> list[str]:
+        return [label, *(cell(cast(Adherence, r.adherence)) for r in measured)]
+
+    def of(n: int, total: int) -> str:
+        return f"{n} de {total}"
+
+    def tested(a: Adherence) -> str:
+        listed = f"{len(a.suspects)} de 4" + (f" ({', '.join(a.suspects)})" if a.suspects else "")
+        return listed + (f", {a.others} fora da lista" if a.others else "")
+
+    def verdicts(a: Adherence) -> str:
+        told = ", ".join(f"{a.verdicts[v]} {v}" for v in sorted(a.verdicts))
+        return f"{a.given}" + (f" ({told})" if told else "")
+
+    rows = [
+        [
+            "Procedimento",
+            *("sim" if int(r.spec.get("playbook") or 0) >= PROCEDURE else "não" for r in measured),
+        ],
+        row("Experimentos", lambda a: str(a.experiments)),
+        row("Hipóteses com a [suspeita] no começo", lambda a: of(a.bracketed, a.experiments)),
+        row("Suspeitas da lista testadas", tested),
+        row("Pares plantados depois da noite", lambda a: of(a.planted, a.experiments)),
+        row("Pares no mesmo dia, mesma semente, mesma rega", lambda a: of(a.pairs, a.experiments)),
+        row("Vereditos", verdicts),
+        row("Dias com a anotação HOJE:", lambda a: of(a.today_days, a.days)),
+        row("Anotações VI:", lambda a: str(a.saw)),
+    ]
+    return [
+        "## A aderência ao procedimento",
+        "",
+        "Contada por código a partir dos formatos fixos do procedimento (ADR-0074, decisão 35). As "
+        "suspeitas da lista são o lugar do canteiro, `antes`, `adubo` e `estação`, lidas do que "
+        "está entre os colchetes da hipótese. Um par são os dois canteiros citados no teste, "
+        "plantados depois da noite do experimento no mesmo dia, com a mesma semente, e regados "
+        "pelo avatar nos mesmos dias até o primeiro dos dois amadurecer ou se perder. As corridas "
+        "sem o procedimento não conhecem os formatos e ficam como referência.",
+        "",
+        _table(["Medida", *names], rows),
+        "",
+    ]
 
 
 def _short(text: str, limit: int) -> str:

@@ -684,3 +684,35 @@ def test_o_relatorio_traz_a_ficha_de_cada_corrida(tmp_path: Path) -> None:
         "1.15.0, mente camps_morada, prompt `bbbbbbbb`, 22 ferramentas `cccccccc`, memória |"
     ) in text
     assert "| script | script `farmer3-fixo` | - | - | `ddddddd` (com mudança) |" in text
+
+
+def _days(n: int) -> list[dict[str, Any]]:
+    """Uma corrida quieta de `n` dias completos: um fato por dia e o fim do último."""
+    return [
+        ev(0, "world.session.started.v1", tick_seconds=60),
+        *(ev((d - 1) * 1440 + 10, "world.clock.phase_changed.v1") for d in range(2, n + 1)),
+        ev(n * 1440, "world.clock.phase_changed.v1"),
+    ]
+
+
+def test_as_corridas_de_14_dias_ficam_lado_a_lado_no_dia_14(tmp_path: Path) -> None:
+    """ADR-0074, decisão 36: o corte do dia 14 aparece quando a rodada mistura 14 dias com
+    corridas mais longas; a que parou antes (o Gemini no dia 12) mostra o último dia dela."""
+    arena = tmp_path / "20261108-procedimento"
+    base = {"cartridge": "farm_morada_do_sol", "seed": 1, "map": "d", "memory": True}
+    llm = {**base, "controller": "llm"}
+    _run(arena, "sonnet", {**llm, "name": "sonnet"}, _days(28))
+    _run(arena, "sonnet-procedimento", {**llm, "name": "sonnet-procedimento"}, _days(14))
+    _run(arena, "gemini", {**llm, "name": "gemini"}, _days(12))
+    out = tmp_path / "relatorio.md"
+    assert main([str(arena), "--out", str(out)]) == 0
+    text = out.read_text(encoding="utf-8")
+    assert "## Lado a lado no dia 14" in text
+    section = text.split("## Lado a lado no dia 14")[1].split("\n## ")[0]
+    assert "| Medida | gemini | sonnet | sonnet-procedimento |" in section
+    assert "| Até o dia | 12 | 14 | 14 |" in section
+    alone = tmp_path / "ano"
+    _run(alone, "sonnet", {**llm, "name": "sonnet"}, _days(28))
+    _run(alone, "opus", {**llm, "name": "opus"}, _days(28))
+    assert main([str(alone), "--out", str(out)]) == 0
+    assert "## Lado a lado no dia" not in out.read_text(encoding="utf-8")
