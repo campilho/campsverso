@@ -35,7 +35,8 @@ Tempo e tokens do Claude Code em cada marco (ADR-0051).
 | M17 | 3 | 84 | 333 | 249 | 140,7 | 534 |
 | M18 | 2 | 98 | 229 | 277 | 161,6 | 847 |
 | M19 | 16 | 254 | 651 | 735 | 300,9 | 1.616 |
-| M20 | 32 | 237 | 670 | 607 | 398,4 | 2.299 |
+| M20 | 32 | 237 | 673 | 608 | 400,8 | 2.300 |
+| M21 | 85 | 400 | 1978 | 1.755 | 611,6 | 5.951 |
 
 ## Uso do plano Max
 
@@ -72,7 +73,7 @@ dólares comprados (na OpenRouter, a taxa da compra entra no real).
 
 | data | provedor | movimento | usd | brl | iof_brl | saldo_usd | nota |
 |---|---|---|---|---|---|---|---|
-| 2026-10-07 | Anthropic | assinatura |  | 588.42 | 19.93 |  | o plano Max, mensal (a conferir); paga o Claude Code e trouxe o crédito de 18/out |
+| 2026-10-07 | Anthropic | assinatura |  | 588.42 | 19.93 |  | o plano Max, mensal, renova no dia 7; paga o Claude Code e traz US$ 100 de crédito de API (o de 18/out) |
 | 2026-10-18 | Anthropic | plano | 100.00 |  |  | 100.00 | crédito do plano Max, resgatado na Console; vence em 10/11/2026 |
 | 2026-10-22 | Anthropic | saldo |  |  |  | 56.39 |  |
 | 2026-10-22 | OpenRouter | compra | 50.00 | 284.70 | 9.62 | 50.00 | a primeira carga, para as outras famílias; a data é a do cartão |
@@ -83,12 +84,15 @@ dólares comprados (na OpenRouter, a taxa da compra entra no real).
 | 2026-11-02 | OpenRouter | compra | 50.00 | 319.60 | 10.80 | 85.31 | para o ano do Astra; o limite semanal da chave subiu de 50 para 100 |
 | 2026-11-03 | OpenRouter | saldo |  |  |  | 57.77 | depois do ano do Astra |
 | 2026-11-03 | Anthropic | compra | 100.00 | 588.48 | 19.90 | 118.00 | para o ano do Fable |
+| 2026-11-05 | Anthropic | compra | 50.00 |  |  |  | a data é a da fatura (UTC); o real do cartão falta |
+| 2026-11-07 | Anthropic | plano | 100.00 |  |  |  | crédito do plano Max, da renovação de 7/nov; vence em 10/12/2026 |
+| 2026-11-08 | Anthropic | saldo |  |  |  | 195.07 | 97,44 comprados e 97,62 do crédito do plano, com a rodada do procedimento rodando |
 
 | Provedor | Entrou (US$) | No cartão (R$) | IOF devolvido (R$) | Líquido (R$) | R$ por US$ | Último saldo (US$) | Gasto (US$) |
 |---|---|---|---|---|---|---|---|
-| Anthropic | 230,00 | 762,70 | 25,79 | 736,91 | 5,67 | 118,00 | 112,00 |
+| Anthropic | 380,00 | 762,70 (faltam 1) | 25,79 | 736,91 | 5,67 | 195,07 | 184,93 |
 | OpenRouter | 100,00 | 604,30 | 20,42 | 583,88 | 5,84 | 57,77 | 42,23 |
-| Total | 330,00 | 1.367,00 | 46,21 | 1.320,79 | 5,74 | 175,77 | 154,23 |
+| Total | 480,00 | 1.367,00 (faltam 1) | 46,21 | 1.320,79 | 5,74 | 252,84 | 227,16 |
 
 A assinatura do plano, que paga o Claude Code e fica fora da conta da API: 1 pagamento,
 R$ 588,42 no cartão, R$ 19,93 de IOF devolvido, R$ 568,49 líquidos.

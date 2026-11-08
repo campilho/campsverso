@@ -1,5 +1,5 @@
 data,provedor,movimento,usd,brl,iof_brl,saldo_usd,nota
-2026-10-07,Anthropic,assinatura,,588.42,19.93,,"o plano Max, mensal (a conferir); paga o Claude Code e trouxe o crédito de 18/out"
+2026-10-07,Anthropic,assinatura,,588.42,19.93,,"o plano Max, mensal, renova no dia 7; paga o Claude Code e traz US$ 100 de crédito de API (o de 18/out)"
 2026-10-18,Anthropic,plano,100.00,,,100.00,"crédito do plano Max, resgatado na Console; vence em 10/11/2026"
 2026-10-22,Anthropic,saldo,,,,56.39,
 2026-10-22,OpenRouter,compra,50.00,284.70,9.62,50.00,"a primeira carga, para as outras famílias; a data é a do cartão"
@@ -10,3 +10,6 @@ data,provedor,movimento,usd,brl,iof_brl,saldo_usd,nota
 2026-11-02,OpenRouter,compra,50.00,319.60,10.80,85.31,para o ano do Astra; o limite semanal da chave subiu de 50 para 100
 2026-11-03,OpenRouter,saldo,,,,57.77,depois do ano do Astra
 2026-11-03,Anthropic,compra,100.00,588.48,19.90,118.00,para o ano do Fable
+2026-11-05,Anthropic,compra,50.00,,,,"a data é a da fatura (UTC); o real do cartão falta"
+2026-11-07,Anthropic,plano,100.00,,,,"crédito do plano Max, da renovação de 7/nov; vence em 10/12/2026"
+2026-11-08,Anthropic,saldo,,,,195.07,"97,44 comprados e 97,62 do crédito do plano, com a rodada do procedimento rodando"
