@@ -345,7 +345,7 @@ A proposta de 4/nov, agora com o procedimento e o caderno completo, mais dois br
 - **Uns US$ 67 nas corridas, mais uns US$ 4 dos juízes e das provas.** A v0.3 fecharia em uns US$ 250, dentro do teto de 300.
 - **Os créditos:** a parte da Anthropic dá uns US$ 53, e a Console tinha uns US$ 47,50 em 4/nov; os US$ 20 antes do Fable (decisão 3 de 4/nov) continuam necessários. A OpenRouter paga a sua parte (uns US$ 17) com sobra.
 - **O controle roda no mapa a,** o da verificação do M19, porque desligar as regras do mapa d não mudaria o lacre, mas mudaria o mundo do teste. Fica lacrado como o resto até o fim do ano do usuário.
-- **As decisões 1 a 5 de 4/nov continuam esperando o ok,** com esta tabela no lugar da outra.
+- **As decisões 1 a 5 de 4/nov foram aprovadas em 8/nov** com esta tabela no lugar da outra (ADR-0074, decisão 36). A rodada é a `procedimento` da arena: `make arena RODADA=procedimento PASTA=data/arena/m21-terceira-energia`.
 
 ## 10. O que fica de fora
 

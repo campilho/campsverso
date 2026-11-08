@@ -291,6 +291,59 @@ SPECS_FAMILIAS: tuple[Spec, ...] = (
         limits=BudgetLimits(5.00, 70.0),
     ),
 )
+# A rodada com o procedimento (8/nov, o usuário; ADR-0074, decisões 35 e 36): o playbook 4, com o
+# caderno completo, em todos os modelos, no mapa d, na seed e com a memória das corridas sem ele, na
+# mesma pasta da terceira. O Haiku no ano, três vezes, e os outros 14 dias, com tetos pelo custo das
+# corridas sem playbook até o dia 14. Dois braços do Haiku: o caderno completo sem o procedimento,
+# três vezes (os dados sem o método), e o controle, com o procedimento no mapa a e as regras ocultas
+# desligadas (o que ele "descobre" ali vem do que já sabia). Lacradas até o fim do ano do usuário.
+PROCEDURE = 4
+HAIKU_TETO = BudgetLimits(0.60, 2.0)
+SPECS_PROCEDIMENTO: tuple[Spec, ...] = (
+    *(
+        _morada(
+            f"haiku-procedimento{rep}",
+            "llm",
+            memory=True,
+            map="d",
+            playbook=PROCEDURE,
+            limits=HAIKU_TETO,
+        )
+        for rep in ("", "-r2", "-r3")
+    ),
+    *(
+        _morada(f"haiku-dados{rep}", "llm", memory=True, map="d", notebook=True, limits=HAIKU_TETO)
+        for rep in ("", "-r2", "-r3")
+    ),
+    _morada(
+        "haiku-controle",
+        "llm",
+        memory=True,
+        river_bonus=False,
+        playbook=PROCEDURE,
+        limits=HAIKU_TETO,
+    ),
+    *(
+        _morada(
+            f"{name}-procedimento",
+            "llm",
+            memory=True,
+            map="d",
+            model=model,
+            days=14,
+            playbook=PROCEDURE,
+            flex=model in (GEMINI, ASTRA),
+            limits=limits,
+        )
+        for name, model, limits in (
+            ("sonnet", SONNET, BudgetLimits(1.50, 7.0)),
+            ("opus", OPUS, BudgetLimits(3.00, 19.0)),
+            ("gemini", GEMINI, BudgetLimits(1.50, 7.0)),
+            ("astra", ASTRA, BudgetLimits(5.00, 18.0)),
+            ("fable", FABLE, BudgetLimits(10.00, 40.0)),
+        )
+    ),
+)
 ROUNDS: dict[str, tuple[Spec, ...]] = {
     "camps": SPECS,
     "boavista": SPECS_BOAVISTA,
@@ -299,6 +352,7 @@ ROUNDS: dict[str, tuple[Spec, ...]] = {
     "ajudantes": SPECS_AJUDANTES,
     "terceira": SPECS_TERCEIRA,
     "familias": SPECS_FAMILIAS,
+    "procedimento": SPECS_PROCEDIMENTO,
 }
 
 
@@ -505,8 +559,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         choices=sorted(ROUNDS),
         default="camps",
         help="a lista de corridas: camps (a fazenda 1, M12), boavista (a fazenda 2, M14), "
-        "morada (a verificação do M19), playbook (o agricultor treinado, ADR-0071) ou ajudantes "
-        "(a contratação forçada, ADR-0073)",
+        "morada (a verificação do M19), playbook (o agricultor treinado, ADR-0071), ajudantes "
+        "(a contratação forçada, ADR-0073), terceira e familias (o M21, ADR-0074) ou "
+        "procedimento (o playbook 4, ADR-0074, decisão 36)",
     )
     parser.add_argument(
         "--only",

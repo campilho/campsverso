@@ -19,8 +19,10 @@ from campsverso_testkit.arena import (
     SPECS_FAMILIAS,
     SPECS_MORADA,
     SPECS_PLAYBOOK,
+    SPECS_PROCEDIMENTO,
     SPECS_TERCEIRA,
     Spec,
+    full_notebook,
     main,
     run_spec,
 )
@@ -142,6 +144,7 @@ def test_as_corridas_da_boa_vista() -> None:
         "ajudantes": SPECS_AJUDANTES,
         "terceira": SPECS_TERCEIRA,
         "familias": SPECS_FAMILIAS,
+        "procedimento": SPECS_PROCEDIMENTO,
     }
 
 
@@ -256,6 +259,43 @@ def test_as_outras_familias_vao_pelo_flex_no_mapa_d() -> None:
         BudgetLimits(4.00, 8.0),
         BudgetLimits(5.00, 70.0),
     ]
+
+
+def test_a_rodada_com_o_procedimento() -> None:
+    """ADR-0074, decisões 35 e 36: o procedimento (playbook 4) em todos os modelos no mapa d, o
+    Haiku no ano três vezes e os outros 14 dias; o braço de dados com o caderno completo e sem o
+    procedimento; o controle no mapa a, sem as regras ocultas. Todos com memória, na seed da
+    Morada, e o Gemini e o Astra no flex, como as corridas sem playbook deles."""
+    assert [(s.name, s.map, s.playbook, s.notebook, s.river_bonus) for s in SPECS_PROCEDIMENTO] == [
+        ("haiku-procedimento", "d", 4, False, True),
+        ("haiku-procedimento-r2", "d", 4, False, True),
+        ("haiku-procedimento-r3", "d", 4, False, True),
+        ("haiku-dados", "d", 0, True, True),
+        ("haiku-dados-r2", "d", 0, True, True),
+        ("haiku-dados-r3", "d", 0, True, True),
+        ("haiku-controle", None, 4, False, False),
+        ("sonnet-procedimento", "d", 4, False, True),
+        ("opus-procedimento", "d", 4, False, True),
+        ("gemini-procedimento", "d", 4, False, True),
+        ("astra-procedimento", "d", 4, False, True),
+        ("fable-procedimento", "d", 4, False, True),
+    ]
+    assert all(full_notebook(s) for s in SPECS_PROCEDIMENTO)
+    assert {(s.cartridge, s.seed, s.memory, s.controller) for s in SPECS_PROCEDIMENTO} == {
+        ("farm_morada_do_sol", SEED_MORADA, True, "llm")
+    }
+    assert [(s.model, s.days, s.flex, s.limits) for s in SPECS_PROCEDIMENTO[7:]] == [
+        ("claude-sonnet-5-5", 14, False, BudgetLimits(1.50, 7.0)),
+        ("claude-opus-5-5", 14, False, BudgetLimits(3.00, 19.0)),
+        ("google/gemini-4-argon", 14, True, BudgetLimits(1.50, 7.0)),
+        ("openai/gpt-6-astra", 14, True, BudgetLimits(5.00, 18.0)),
+        ("claude-fable-5-1", 14, False, BudgetLimits(10.00, 40.0)),
+    ]
+    assert {(s.model, s.days, s.limits) for s in SPECS_PROCEDIMENTO[:7]} == {
+        ("claude-haiku-5-5", 28, BudgetLimits(0.60, 2.0))
+    }
+    names = [s.name for s in SPECS_PROCEDIMENTO]
+    assert not set(names) & {s.name for s in (*SPECS_TERCEIRA, *SPECS_FAMILIAS)}  # a mesma pasta
 
 
 def test_a_rodada_do_agricultor_treinado() -> None:

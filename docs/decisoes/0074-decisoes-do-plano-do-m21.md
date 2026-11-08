@@ -342,6 +342,12 @@ Com a energia nova, o ajudante ainda não pagava, e a explicação era o teto de
     - **A rodada ganha dois braços do Haiku, de 28 dias.** O braço de dados roda três vezes, com o caderno completo e sem o procedimento: separa o efeito do texto do efeito dos dados. O controle de conhecimento prévio roda uma vez, com o procedimento, no mapa a, com as regras ocultas desligadas: uma crença sobre o lugar ou sobre o que havia antes, num mundo sem essas regras, vem do treino, e não do que o modelo viu. A ideia é do post Project EVE da Anthropic (6/nov), que conferiu se os modelos tinham decorado o histórico do mercado.
     - **O relatório ganha a aderência ao procedimento,** contada por código a partir dos formatos fixos. Ela separa "o procedimento não ajuda" de "o modelo não seguiu o procedimento". No mesmo post, um modelo ignorou a instrução e fez outra estratégia.
     - **As outras ideias do post vão para o `futuro.md`:** a mudança no meio do ano, o procedimento escrito pelo próprio modelo, a postura de risco e os times com um sabotador.
+36. **A rodada com o procedimento** (8/nov, o usuário). As cinco decisões de 4/nov foram aprovadas com a tabela de 8/nov (plano do M21, §9):
+    - **Quem:** o Haiku três vezes no ano, e o Sonnet, o Opus, o Gemini, o Astra e o Fable por 14 dias, todos com o procedimento, no mapa d e na seed das corridas sem ele. Os braços do Haiku (os dados e o controle) são os da decisão 35. Os outros modelos não ganham braços.
+    - **Os tetos** saem do custo das corridas sem playbook até o dia 14: US$ 0,60 por dia e 2 no total nos Haiku, 1,50 e 7 no Sonnet e no Gemini, 3,00 e 19 no Opus, 5,00 e 18 no Astra, 10,00 e 40 no Fable. O Gemini e o Astra vão no flex, como foram sem o playbook.
+    - **Um ok para a rodada inteira,** na ordem: os Haiku primeiro, depois os outros, no máximo uma corrida por provedor ao mesmo tempo. Cada corrida para se, no dia 2, tiver gastado mais de 1,5 vez o dia 2 da sua corrida sem playbook. O custo real é dado a cada corrida.
+    - **O Fable roda por último e só com o saldo da Console conferido.** Os US$ 20 a mais de 4/nov continuam necessários.
+    - **A rodada roda já e fica lacrada** até o fim do ano do usuário, na mesma pasta das corridas sem playbook (`data/arena/m21-terceira-energia`).
 
 A tela de quem joga ganha a carga da mochila ao lado do inventário ("carga 12,5 de 20", em alerta a partir de 90%) e as recusas em português ("Não deu para colher: não cabe na mochila; guarde alguma coisa no baú.").
 
