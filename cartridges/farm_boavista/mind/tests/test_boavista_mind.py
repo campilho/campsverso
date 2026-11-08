@@ -11,7 +11,6 @@ import yaml
 import campsverso_farm_boavista_sim
 import campsverso_farm_sim
 from campsverso_farm_boavista_mind import NOTES, load, mind
-from campsverso_mind import playbook
 
 GENRE = Path(campsverso_farm_sim.__file__).parent / "data" / "farm.yaml"
 OVERLAY = Path(campsverso_farm_boavista_sim.__file__).parent / "data" / "boavista.yaml"
@@ -120,7 +119,8 @@ def test_as_notas_contam_o_visivel_e_calam_o_oculto() -> None:
             assert re.search(rf"\b{phrase}\b", catalog) is None, phrase
         else:
             assert phrase not in catalog, phrase
-    method = playbook(mind).lower()  # o playbook também é lido pela mente (ADR-0071)
+    # O procedimento, se a mente tiver um (hoje só a Morada; ADR-0074, decisão 35).
+    method = mind.craft.lower()
     for phrase in FORBIDDEN:
         for text in (notes, method):
             if phrase.isalpha():  # palavra inteira: "rio" não é o "rio" de "superior"

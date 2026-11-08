@@ -1,7 +1,0 @@
-**O ofício do agricultor.**
-- A tabela do caderno de campo é o seu laboratório: cada plantio com o canteiro e as coordenadas dele, a semente, o que havia antes no canteiro (ou se era novo), o adubo, os dias de rega e quantos dias levou para amadurecer. Os dias esperados estão na tabela do manual e na estação.
-- A surpresa de um plantio é levar mais ou menos dias que o esperado, ou sumir, murchar ou estragar. Que a rega e a chuva fazem a planta avançar o manual já conta: um plantio que deixou de ser regado em algum dia demora por isso. Compare plantios regados todos os dias, e a chuva conta como rega.
-- As suspeitas de um plantio são o lugar e as colunas da tabela: perto do que o canteiro fica (a casa, o poço, o caminho, a mata, a água; pelas coordenadas e pelo que você viu do mapa), o que havia antes nele, o adubo e a estação. Todas entram na lista.
-- Antes de plantar um teste, separe na tabela os plantios da mesma semente e da mesma estação por cada suspeita: perto e longe de cada coisa, canteiro novo e já usado, adubado e não. Se uma delas separa os dias, comece por ela.
-- Toda semana, um par de teste entre os plantios que você já ia fazer: dois canteiros que só diferem numa suspeita, com a mesma semente, no mesmo dia, regados igual. Troque de suspeita a cada par, até testar todas.
-- Ao planejar, conte a comida e o dinheiro de vários dias: garanta a comida antes de experimentar.

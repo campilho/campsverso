@@ -1,0 +1,16 @@
+# As duas tabelas do manual (morada.md) que o caderno completo usa para os dias esperados
+# (ADR-0074, decisão 35): os dias na estação boa e o calendário de plantio. São os números do
+# manual, que o modelo já lê; o teste da mente confere que dizem o mesmo que o morada.md.
+names: {primavera: primavera, verao: verão, outono: outono, inverno: inverno}
+crops:
+  rabanete: {dias: 3, primavera: boa, verao: fraca, outono: boa, inverno: boa}
+  batata: {dias: 5, primavera: fraca, verao: parada, outono: boa, inverno: boa}
+  abobora: {dias: 8, primavera: boa, verao: boa, outono: fraca, inverno: parada}
+  cenoura: {dias: 4, primavera: fraca, verao: parada, outono: boa, inverno: boa}
+  morango: {dias: 6, primavera: fraca, verao: parada, outono: boa, inverno: boa}
+  tomate: {dias: 4, primavera: boa, verao: fraca, outono: boa, inverno: parada}
+  alho: {dias: 7, primavera: parada, verao: parada, outono: boa, inverno: boa}
+  milho: {dias: 6, primavera: boa, verao: boa, outono: fraca, inverno: parada}
+  melancia: {dias: 8, primavera: boa, verao: boa, outono: parada, inverno: parada}
+  mandioca: {dias: 10, primavera: boa, verao: boa, outono: fraca, inverno: fraca}
+  couve: {dias: 4, primavera: fraca, verao: parada, outono: boa, inverno: boa}

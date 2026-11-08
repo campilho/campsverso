@@ -13,6 +13,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from typing import Any, cast
 
+from campsverso_mind.seasons import Seasons
 from campsverso_ports import Meal, MemoryPort, Place, Planting
 
 WET = frozenset({"rain", "storm"})  # o tempo que rega todos os canteiros do dia (o manual)
@@ -153,6 +154,110 @@ class FieldNotebook:
                 "A comida (a fome que cada uma tirou): " + "; ".join(_by_food(meals)) + "."
             )
         return found
+
+    def table(self, limit: int, until: int, seasons: Seasons | None) -> list[str]:
+        """O caderno completo (ADR-0074, decisão 35): as últimas `limit` linhas numa tabela, com a
+        estação, os dias esperados e a rega contada até o dia `until` (exclusive) para o que
+        ainda cresce; o resumo por semente e estação; e a comida."""
+        plantings = self.port.plantings()
+        found: list[str] = []
+        if plantings:
+            shown = plantings[-limit:]
+            count = (
+                f"as últimas {len(shown)} de {len(plantings)} linhas"
+                if len(shown) < len(plantings)
+                else f"{len(plantings)} linha{'s' if len(plantings) != 1 else ''}"
+            )
+            found.append(f"Caderno de campo ({count}):")
+            found.extend((TABLE_HEADER, TABLE_RULE))
+            found.extend(_row(p, seasons, until) for p in shown)
+            found.append(
+                "Por semente e estação: " + "; ".join(_by_crop_season(plantings, seasons)) + "."
+            )
+        meals = self.port.meals()
+        if meals:
+            found.append(
+                "A comida (a fome que cada uma tirou): " + "; ".join(_by_food(meals)) + "."
+            )
+        return found
+
+
+TABLE_HEADER = (
+    "| canteiro | x,y | semente | plantou | estação | esperado | antes | adubo | rega | levou "
+    "| fim |"
+)
+TABLE_RULE = "|---|---|---|---|---|---|---|---|---|---|---|"
+
+
+def _name(season: str | None, seasons: Seasons | None) -> str:
+    if seasons is not None:
+        return seasons.name(season)
+    return season or "-"
+
+
+def _season(p: Planting, seasons: Seasons | None) -> str:
+    """A estação do plantio e a qualidade dela para a semente; com a seta, a do amadurecer."""
+    text = _name(p.season, seasons)
+    if p.matured_season is not None and p.matured_season != p.season:
+        text = f"{text}→{_name(p.matured_season, seasons)}"
+    quality = None if seasons is None else seasons.quality(p.crop, p.season)
+    return text if quality is None else f"{text}, {quality}"
+
+
+def _row(p: Planting, seasons: Seasons | None, until: int) -> str:
+    """Uma linha da tabela: a rega conta os dias do plantio até amadurecer, até a perda, ou, no
+    que ainda cresce, até `until` (exclusive)."""
+    where = "-" if p.x is None or p.y is None else f"{p.x},{p.y}"
+    expected = "-" if seasons is None else seasons.expected(p.crop, p.season)
+    if p.matured_day is not None:
+        end = p.matured_day
+    elif p.outcome is not None and p.outcome_day is not None:
+        end = p.outcome_day
+    else:
+        end = until
+    span = max(0, end - p.day)
+    watered = sum(1 for d in set(p.watered_days) if p.day <= d < end)
+    took = "" if p.matured_day is None else str(p.matured_day - p.day)
+    cells = (
+        p.plot_id,
+        where,
+        p.crop,
+        f"dia {p.day}",
+        _season(p, seasons),
+        expected,
+        p.previous or "novo",
+        "sim" if p.fertilized else "não",
+        f"{watered} de {span}",
+        took,
+        p.outcome or "crescendo",
+    )
+    return "| " + " | ".join(cells) + " |"
+
+
+def _by_crop_season(plantings: Sequence[Planting], seasons: Seasons | None) -> list[str]:
+    found: list[str] = []
+    keys = sorted({(p.crop, p.season or "") for p in plantings})
+    for crop, season in keys:
+        rows = [p for p in plantings if p.crop == crop and (p.season or "") == season]
+        head = f"{crop}, {_name(season or None, seasons)}"
+        if seasons is not None and (quality := seasons.quality(crop, season or None)):
+            head += f" ({quality}, esperado {seasons.expected(crop, season or None)})"
+        days = [p.matured_day - p.day for p in rows if p.matured_day is not None]
+        parts: list[str] = []
+        if days:
+            mean = f"{sum(days) / len(days):.1f}".replace(".", ",")
+            ripe = f"{len(days)} madura{'s' if len(days) != 1 else ''}"
+            parts.append(f"{ripe}, de {min(days)} a {max(days)} dias (média {mean})")
+        outcomes: dict[str, int] = {}
+        for p in rows:
+            if p.outcome is not None and p.outcome != "colhida":
+                outcomes[p.outcome] = outcomes.get(p.outcome, 0) + 1
+        parts.extend(f"{n} {outcome}" for outcome, n in sorted(outcomes.items()))
+        growing = sum(1 for p in rows if p.outcome is None and p.matured_day is None)
+        if growing:
+            parts.append(f"{growing} crescendo")
+        found.append(f"{head}: " + ", ".join(parts) if parts else head)
+    return found
 
 
 def _planting_line(p: Planting) -> str:

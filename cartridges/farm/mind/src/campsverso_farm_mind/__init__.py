@@ -9,7 +9,6 @@ from campsverso_mind import Columns, Mind, load_columns, load_tools
 DATA = Path(__file__).parent / "data"
 NOTES = DATA / "fazenda.md"
 TOOLS = DATA / "tools.yaml"
-CRAFT = DATA / "oficio.md"  # o ofício do agricultor, a camada do gênero no playbook (ADR-0071)
 COMPARE = DATA / "comparar.yaml"  # as colunas da ferramenta de comparação (ADR-0074)
 
 
@@ -25,8 +24,7 @@ def mind() -> Mind:
         card="",
         notes=NOTES.read_text(encoding="utf-8"),
         tools=load_tools(TOOLS),
-        craft=CRAFT.read_text(encoding="utf-8"),
     )
 
 
-__all__ = ["COMPARE", "CRAFT", "DATA", "NOTES", "TOOLS", "columns", "mind"]
+__all__ = ["COMPARE", "DATA", "NOTES", "TOOLS", "columns", "mind"]

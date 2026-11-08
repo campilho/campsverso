@@ -90,6 +90,7 @@ def test_a_ficha_da_mente_e_a_do_script(tmp_path: Path) -> None:
     assert len(harness["commit"]) == 40
     assert harness["sdk"].startswith("anthropic ")
     assert (harness["mind"], harness["tools"], harness["compare"]) == ("camps_morada", 2, True)
+    assert harness["notebook"] is False  # o caderno completo (ADR-0074, decisão 35)
     assert harness["tools_sha256"] == sha256_of(tools)
     assert "advisor" not in card
     script = run_card(

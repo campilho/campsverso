@@ -89,6 +89,7 @@ class Pipeline:
         script_config: Mapping[str, Any] | None = None,
         compare: bool = False,
         advisor: str | None = None,
+        full_notebook: bool = False,
     ) -> None:
         """`memory=True` dá à mente um caderno SQLite em memória (ADR-0060); `False` é o M10;
         uma porta pronta (um arquivo) serve ao teste de reinício. `cartridge` escolhe o mundo
@@ -96,7 +97,8 @@ class Pipeline:
         `map_variant` escolhe a variante do mapa, e `script` troca o fazendeiro-script
         (ADR-0070); `playbook` dá à mente o método e o ofício (ADR-0071); `script_config` troca
         chaves do arquivo do script 3 (a contratação forçada; ADR-0073); `compare` dá à
-        reflexão a ferramenta de comparação, e `advisor`, o conselheiro (ADR-0074)."""
+        reflexão a ferramenta de comparação, e `advisor`, o conselheiro (ADR-0074); `full_notebook`
+        dá à memória o caderno completo (ADR-0074, decisão 35)."""
         worldid, default_script, default_mind = WORLDS[cartridge]
         script = script or default_script
         self.worldid, self.cartridge = worldid, cartridge
@@ -184,11 +186,14 @@ class Pipeline:
             else:
                 store = memory
             if store is not None:
-                settings = MemorySettings(compare=compare, advisor=advisor)
+                settings = MemorySettings(
+                    compare=compare, advisor=advisor, full_notebook=full_notebook
+                )
                 notebook = Memory(store, "camps", settings)
-            elif compare or advisor:
+            elif compare or advisor or full_notebook:
                 raise ValueError(
-                    "a comparação e o conselheiro são da reflexão: precisam de memória"
+                    "a comparação, o conselheiro e o caderno completo são da reflexão: precisam "
+                    "de memória"
                 )
             if advisor is not None:
                 metered.assert_priced(advisor)

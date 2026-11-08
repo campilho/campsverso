@@ -238,31 +238,24 @@ def test_a_camada_de_cima_troca_o_cartao() -> None:
 # ------------------------------------------------------------- o playbook (ADR-0071)
 
 
-def test_o_playbook_e_o_metodo_e_o_oficio_do_genero() -> None:
-    farmer = replace(MIND, craft="**O ofício.** Compare dois canteiros.")
-    text = playbook(farmer)
-    assert text.startswith("## O playbook\n\n**O método.**\n1. A surpresa é o que mais ensina")
-    assert text.endswith("**O ofício.** Compare dois canteiros.")
-    assert "O ofício" not in playbook(MIND)  # um mundo sem ofício recebe só o método
+PROCEDURE = "## O procedimento\n\nSiga as etapas na ordem."
+
+
+def test_o_playbook_e_o_procedimento_da_mente() -> None:
+    """ADR-0074, decisão 35: da versão 4 em diante o playbook é o procedimento inteiro, escrito
+    pela mente do cenário; o método genérico das versões 1 a 3 ficou no git."""
+    farmer = replace(MIND, craft=f"{PROCEDURE}\n")
+    assert PLAYBOOK_VERSION == 4
+    assert playbook(farmer) == PROCEDURE
     camps = farmer.extend(card="Você é o Camps, da Fazenda do Camps.")
-    assert camps.craft == farmer.craft  # a camada de cima mantém o ofício do gênero
-
-
-def test_o_playbook_3_da_duas_tentativas_a_cada_suspeita_e_um_exemplo_de_fora() -> None:
-    """ADR-0074, decisão 20: no playbook 2, o Haiku ficou preso na rega e na chuva, o assunto do
-    exemplo, e a regra de não trocar de assunto antes de resolver o segurava lá. O 3 lista todas
-    as suspeitas, olha o caderno antes de testar, dá duas tentativas a cada uma e tira o exemplo
-    deste mundo."""
-    text = playbook(MIND)
-    assert PLAYBOOK_VERSION == 3
-    assert "Não troque de assunto" not in text
-    for step in ("todos, sem descartar", "separe os casos parecidos em dois grupos",
-                 "Cada suspeita tem duas tentativas", "de fora deste mundo"):  # fmt: skip
-        assert step in text, step
+    assert camps.craft == farmer.craft  # a camada de cima mantém o procedimento
+    for wrong in (MIND, replace(MIND, craft="**O ofício.** Compare dois canteiros.")):
+        with pytest.raises(ValueError, match="não tem procedimento"):
+            playbook(wrong)
 
 
 def test_o_playbook_entra_depois_do_manual_so_quando_a_corrida_pede() -> None:
-    farmer = replace(MIND, craft="**O ofício.** Compare dois canteiros.")
+    farmer = replace(MIND, craft=PROCEDURE)
     plain = LlmController(
         farmer, ScriptedModel(), controller_id="llm/camps", avatar_id="camps", model="m"
     )
@@ -274,7 +267,7 @@ def test_o_playbook_entra_depois_do_manual_so_quando_a_corrida_pede() -> None:
         model="m",
         with_playbook=True,
     )
-    assert "## O playbook" not in plain.identity  # o padrão: o pedido de sempre, as fitas valem
+    assert "## O procedimento" not in plain.identity  # o padrão: o pedido de sempre, as fitas valem
     assert trained.identity == f"{plain.identity}\n\n{playbook(farmer)}"
     assert trained.system[0]["text"].startswith(trained.identity)
 

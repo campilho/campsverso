@@ -85,6 +85,9 @@ class Spec:
     compare: bool = False  # a ferramenta de comparação na reflexão, o braço do Haiku (ADR-0074)
     advisor: str | None = None  # o conselheiro na reflexão, o outro braço (ADR-0074)
     flex: bool = False  # o provedor flex da OpenRouter, pela metade do preço (ADR-0074, decisão 28)
+    # O caderno completo sem o procedimento, o braço de dados (ADR-0074, decisão 35); com o
+    # playbook ele liga sozinho.
+    notebook: bool = False
 
 
 SPECS: tuple[Spec, ...] = (
@@ -299,6 +302,12 @@ ROUNDS: dict[str, tuple[Spec, ...]] = {
 }
 
 
+def full_notebook(spec: Spec) -> bool:
+    """O caderno completo (ADR-0074, decisão 35): no braço de dados e com o procedimento, que
+    manda usar o que ele mostra."""
+    return spec.notebook or spec.playbook > 0
+
+
 def _hiring(spec: Spec) -> dict[str, Any] | None:
     """A contratação forçada (ADR-0073): a ficha e os dias, sempre que o caixa paga."""
     if spec.hire is None:
@@ -386,6 +395,7 @@ async def run_spec(
         script_config=_hiring(spec),
         compare=spec.compare,
         advisor=spec.advisor,
+        full_notebook=full_notebook(spec),
     )
     exam = exam_of(spec.cartridge)
     prova: dict[str, Any] = {}  # a prova do mundo (ADR-0070): antes, com a memória vazia
@@ -398,6 +408,7 @@ async def run_spec(
         f"{'ligada' if spec.river_bonus else 'desligada'}, seed {spec.seed}"
         f"{f', mapa {spec.map}' if spec.map else ''}"
         f"{f', com o playbook {spec.playbook}' if spec.playbook else ''}"
+        f"{', com o caderno completo' if full_notebook(spec) else ''}"
         f"{', com a comparação' if spec.compare else ''}"
         f"{f', com o conselheiro {spec.advisor}' if spec.advisor else ''}"
         f"{', no provedor flex, com a reserva no normal' if spec.flex else ''}"

@@ -9,6 +9,7 @@ from typing import Any, Literal, cast
 import yaml
 
 from campsverso_mind.compare import Columns
+from campsverso_mind.seasons import Seasons
 
 type ParamType = Literal["string", "integer"]
 
@@ -48,8 +49,11 @@ class Mind:
     # O caderno de campo e o experimento da noite (ADR-0070): a mente de cada cenário diz se os usa.
     field_notebook: bool = False
     experiments: bool = False
-    craft: str = ""  # o ofício do gênero, a segunda camada do playbook (ADR-0071)
+    # O procedimento (ADR-0071; a versão 4 na decisão 35 da ADR-0074): o playbook inteiro, que a
+    # mente do cenário escreve, porque cita o manual e o calendário dele.
+    craft: str = ""
     columns: Columns | None = None  # o que a ferramenta de comparação mede (ADR-0074)
+    seasons: Seasons | None = None  # o manual em números, para os dias esperados (decisão 35)
 
     def extend(self, *, card: str | None = None, notes: str | None = None) -> Mind:
         """Uma camada por cima (ADR-0031): o cenário troca o cartão, ou as notas, do gênero."""
@@ -106,3 +110,8 @@ def load_tools(path: Path) -> tuple[ToolDef, ...]:
 def load_columns(path: Path) -> Columns:
     """As colunas da ferramenta de comparação de um `comparar.yaml` (ADR-0074)."""
     return Columns.of(cast(Mapping[str, Any], yaml.safe_load(path.read_text(encoding="utf-8"))))
+
+
+def load_seasons(path: Path) -> Seasons:
+    """As estações de um `estacoes.yaml` (ADR-0074, decisão 35)."""
+    return Seasons.of(cast(Mapping[str, Any], yaml.safe_load(path.read_text(encoding="utf-8"))))

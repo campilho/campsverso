@@ -318,6 +318,35 @@ Os custos são os das corridas sem playbook no mapa d até o dia 14, pelo progre
 4. **A ordem e o ok:** o Haiku, o Sonnet, o Opus, o Gemini, o Astra e o Fable, um de cada vez. *Recomendação: um ok para a rodada inteira, comigo parando pelo portão do dia 2 e dando o custo real a cada corrida; o Fable só com o saldo conferido (a decisão 3). A alternativa é a de sempre, um ok por corrida.*
 5. **Quando:** a rodada roda lacrada no mapa d, como as outras, e pode ir enquanto o usuário joga o ano. *Recomendação: rodar já; os números só aparecem depois do ano dele.*
 
+### O procedimento (8/nov)
+
+O playbook 3 nunca rodou. Lendo os textos, o usuário os achou curtos e abertos demais, longe da receita direta do agente de podcast do CampsCast. Montando os pedidos reais do mapa a com um modelo falso, apareceram cinco lacunas entre o que o playbook manda e o que o modelo recebe; a principal: a reflexão da noite não recebia o caderno. O rascunho está em `docs/planos/m21-o-procedimento.md`, e a decisão, na ADR-0074 (decisão 35):
+- **O playbook 4 é um procedimento operacional,** na mente da Morada: o que o modelo recebe e onde, as etapas, os formatos fixos, a escada de confiança, o nunca e o sempre.
+- **O caderno completo** dá ao modelo os dados que o procedimento manda usar, só nas corridas com ele e no braço de dados.
+- **A aderência ao procedimento** entra no relatório, contada pelos formatos fixos.
+
+O usuário aprovou os quatro pontos do rascunho: o mapa à noite, um par de teste sempre em andamento, o fim do exemplo do padeiro e o texto todo na mente do cenário. O procedimento também foi escrito sem ler as corridas do mapa d.
+
+### A rodada com o procedimento (8/nov)
+
+A proposta de 4/nov, agora com o procedimento e o caderno completo, mais dois braços do Haiku. O procedimento põe uns 2 mil tokens a mais no prompt de sistema, em cache, e o caderno completo, uns 5 mil por noite.
+
+| Corrida | Dias | Comparada com | Custo estimado (US$) | Teto (US$/dia · total) |
+|---|---|---|---|---|
+| o Haiku com o procedimento, três vezes | 28 | as três sem playbook | 0,60 a 0,85 cada | 0,60 · 2 |
+| o braço de dados: o Haiku só com o caderno completo, três vezes | 28 | as mesmas | 0,60 a 0,85 cada | 0,60 · 2 |
+| o controle: o Haiku com o procedimento, no mapa a, sem as regras ocultas | 28 | as crenças das outras | uns 0,75 | 0,60 · 2 |
+| o Sonnet | 14 | o dia 14 | uns 4,50 | 1,50 · 7 |
+| o Opus | 14 | o dia 14 | uns 13 | 3,00 · 19 |
+| o Gemini | 14 | o dia 12, onde o ano parou | uns 3,50 até o dia 12 | 1,50 · 7 |
+| o Astra | 14 | o dia 14 | uns 12,50 | 5,00 · 18 |
+| o Fable | 14 | o dia 14 | uns 28,50 | 10,00 · 40 |
+
+- **Uns US$ 67 nas corridas, mais uns US$ 4 dos juízes e das provas.** A v0.3 fecharia em uns US$ 250, dentro do teto de 300.
+- **Os créditos:** a parte da Anthropic dá uns US$ 53, e a Console tinha uns US$ 47,50 em 4/nov; os US$ 20 antes do Fable (decisão 3 de 4/nov) continuam necessários. A OpenRouter paga a sua parte (uns US$ 17) com sobra.
+- **O controle roda no mapa a,** o da verificação do M19, porque desligar as regras do mapa d não mudaria o lacre, mas mudaria o mundo do teste. Fica lacrado como o resto até o fim do ano do usuário.
+- **As decisões 1 a 5 de 4/nov continuam esperando o ok,** com esta tabela no lugar da outra.
+
 ## 10. O que fica de fora
 
 | Item | Destino | Por quê |

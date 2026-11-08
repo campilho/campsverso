@@ -318,6 +318,30 @@ Com a energia nova, o ajudante ainda não pagava, e a explicação era o teto de
     - **O teto do dia sobe de 5 para 10.** O dia do piloto custou uns 2,1 vezes o do Opus, e o dia mais caro do Opus, US$ 2,32, daria uns 4,90 no Fable, perto demais de 5.
     - **A corrida segue se, no dia 2, tiver gastado até 1,5 vez o piloto (US$ 7,62).** O preço foi conferido de novo em 3/nov, sem mudança.
     - **O ano do Fable terminou, lacrado:** 28 dias e 1.731 chamadas, sem nenhuma falha, por US$ 70,12, em 1 h 50, no começo da faixa estimada. No dia 2 o gasto era de US$ 4,65, e nenhum dia bateu no teto. Os juízes custaram US$ 0,07 (Opus) e 0,11 (Astra).
+35. **O procedimento e o caderno completo** (8/nov, o usuário; rascunho em `docs/planos/m21-o-procedimento.md`).
+    - **Cinco lacunas entre o playbook e o que o modelo recebia.** Elas apareceram ao montar os pedidos reais do mapa a com um modelo falso:
+      1. A reflexão da noite, onde o playbook manda procurar a surpresa no caderno, não recebia o caderno.
+      2. O caderno só aparecia nas decisões do dia, com os últimos 12 plantios.
+      3. A linha do caderno não trazia a estação nem os dias esperados, e à noite não havia mapa.
+      4. O experimento era "para amanhã", mas o par de canteiros leva dias, e repetir criava outro registro.
+      5. O modelo não via os experimentos antigos nem os vereditos.
+    - **Elas valeram para os playbooks 1 e 2 e para todas as corridas sem playbook.** Parte do "o Haiku não aprende" (ADR-0071) pode vir do harness, e não do modelo.
+    - **O playbook vira um procedimento operacional, a versão 4,** no estilo do agente de podcast do CampsCast:
+      - o que o modelo recebe e onde, pelo nome exato que ele vê;
+      - as etapas da manhã, do dia e da noite, na ordem;
+      - os formatos fixos da hipótese, do teste, da previsão, das crenças, do resumo e do plano;
+      - a escada de confiança;
+      - o que nunca e sempre fazer.
+    - **O procedimento fica na mente da Morada.** Ele cita o título do manual dela e o calendário. O método genérico e o ofício do gênero saem, e as fazendas 1 e 2 ficam sem playbook. A versão 3, que nunca rodou, fica no git (315a280), e a arena recusa as versões 1 a 3.
+    - **A memória ganha o caderno completo,** uma chave que liga com o procedimento e no braço de dados. Sem ela, os pedidos não mudam. Com ela:
+      - a tabela do caderno traz a estação com o calendário, os dias esperados e a rega como "X de Y";
+      - de manhã aparecem as últimas 12 linhas; à noite, a tabela inteira (até 100), onde ficam as coisas que o avatar conhece, o mapa que ele já viu (as fotos juntas, no formato do `map`) e os seus experimentos;
+      - o experimento fica aberto até o veredito.
+    - **Os dias esperados saem do manual.** Os números estão num arquivo da mente da Morada (`estacoes.yaml`), e um teste confere que são os mesmos do manual. São números que o modelo já lê, e não os do mundo.
+    - **O terreno visto já era guardado pela porta de memória** para a comparação, e agora é guardado inteiro: a memória não guarda nada além do que a porta guarda.
+    - **A rodada ganha dois braços do Haiku, de 28 dias.** O braço de dados roda três vezes, com o caderno completo e sem o procedimento: separa o efeito do texto do efeito dos dados. O controle de conhecimento prévio roda uma vez, com o procedimento, no mapa a, com as regras ocultas desligadas: uma crença sobre o lugar ou sobre o que havia antes, num mundo sem essas regras, vem do treino, e não do que o modelo viu. A ideia é do post Project EVE da Anthropic (6/nov), que conferiu se os modelos tinham decorado o histórico do mercado.
+    - **O relatório ganha a aderência ao procedimento,** contada por código a partir dos formatos fixos. Ela separa "o procedimento não ajuda" de "o modelo não seguiu o procedimento". No mesmo post, um modelo ignorou a instrução e fez outra estratégia.
+    - **As outras ideias do post vão para o `futuro.md`:** a mudança no meio do ano, o procedimento escrito pelo próprio modelo, a postura de risco e os times com um sabotador.
 
 A tela de quem joga ganha a carga da mochila ao lado do inventário ("carga 12,5 de 20", em alerta a partir de 90%) e as recusas em português ("Não deu para colher: não cabe na mochila; guarde alguma coisa no baú.").
 

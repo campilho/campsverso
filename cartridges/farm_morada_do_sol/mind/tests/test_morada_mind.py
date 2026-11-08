@@ -12,9 +12,16 @@ import yaml
 import campsverso_farm_boavista_sim
 import campsverso_farm_morada_do_sol_sim
 import campsverso_farm_sim
-from campsverso_farm_morada_do_sol_mind import NOTES, load, mind
+from campsverso_farm_morada_do_sol_mind import NOTES, SEASONS, load, mind
 from campsverso_mind import COMPARE_INSTRUCTIONS, COMPARE_TOOL, playbook
-from campsverso_mind.memory import ADVISOR_INSTRUCTIONS, ADVISOR_NOTE
+from campsverso_mind.memory import (
+    ADVISOR_INSTRUCTIONS,
+    ADVISOR_NOTE,
+    NOTEBOOK_INSTRUCTIONS,
+    OPEN_EXPERIMENT_INSTRUCTIONS,
+    reflect_tool,
+)
+from campsverso_mind.notebook import TABLE_HEADER
 
 GENRE = Path(campsverso_farm_sim.__file__).parent / "data" / "farm.yaml"
 BOAVISTA = Path(campsverso_farm_boavista_sim.__file__).parent / "data" / "boavista.yaml"
@@ -161,7 +168,8 @@ def test_o_manual_conta_o_visivel_e_cala_o_oculto() -> None:
     # As descrições das ferramentas, o playbook (ADR-0071) e a ferramenta de comparação, com as
     # colunas (ADR-0074), também são lidos pela mente.
     assert mind.columns is not None
-    # E o conselheiro (ADR-0074): as instruções e o pedido de brevidade.
+    # E o conselheiro (ADR-0074): as instruções e o pedido de brevidade. E o caderno completo
+    # (decisão 35): as instruções, a tabela, os títulos das seções da noite e a ferramenta.
     comparison = " ".join(
         [
             str(COMPARE_TOOL),
@@ -169,6 +177,14 @@ def test_o_manual_conta_o_visivel_e_cala_o_oculto() -> None:
             *mind.columns.names,
             ADVISOR_INSTRUCTIONS,
             ADVISOR_NOTE,
+            NOTEBOOK_INSTRUCTIONS,
+            OPEN_EXPERIMENT_INSTRUCTIONS,
+            TABLE_HEADER,
+            "Onde ficam as coisas que você conhece",
+            "O mapa que você já viu",
+            "Os seus experimentos",
+            "Por semente e estação",
+            str(reflect_tool(True, open_ended=True)),
         ]
     ).lower()
     for text in (notes, catalog, playbook(mind).lower(), comparison):
@@ -181,3 +197,53 @@ def test_o_manual_conta_o_visivel_e_cala_o_oculto() -> None:
         assert visible in notes, visible
     for crop in ("milho", "melancia", "mandioca", "couve"):
         assert notes.count(crop) >= 2, crop  # na tabela e no calendário
+
+
+def _table(heading: str) -> list[list[str]]:
+    """As linhas de uma tabela do manual, a que vem depois do parágrafo que começa com `heading`."""
+    text = NOTES.read_text(encoding="utf-8")
+    after = text[text.index(heading) :]
+    rows = [line for line in after.splitlines() if line.startswith("|")]
+    block: list[list[str]] = []
+    for line in after.splitlines()[after.splitlines().index(rows[0]) :]:
+        if not line.startswith("|"):
+            break
+        block.append([cell.strip() for cell in line.strip("|").split("|")])
+    return block[2:]  # sem o cabeçalho e a régua
+
+
+def test_as_estacoes_da_mente_sao_as_do_manual() -> None:
+    """ADR-0074, decisão 35: os dias esperados da tabela do caderno saem dos números do manual que
+    o modelo lê, e não dos do mundo."""
+    seasons = mind.seasons
+    assert seasons is not None
+    assert SEASONS.exists()
+    crops = {row[0]: int(row[2]) for row in _table("**As plantas.**")}
+    assert dict(seasons.days) == crops
+    calendar = {row[0]: row[1:5] for row in _table("**O calendário de plantio.**")}
+    order = ("primavera", "verao", "outono", "inverno")
+    assert {c: [seasons.calendar[c][s] for s in order] for c in calendar} == calendar
+    assert seasons.expected("batata", "primavera") == "10"  # fraca: duas vezes
+    assert seasons.expected("alho", "verao") == "parada"
+    assert seasons.name("verao") == "verão"
+
+
+def test_o_procedimento_e_o_playbook_da_morada() -> None:
+    """ADR-0074, decisão 35: o procedimento operacional, no lugar do método e do ofício. Diz onde
+    cada coisa está, as etapas, os formatos e o nunca e o sempre."""
+    text = playbook(mind)
+    assert text.startswith("## O procedimento")
+    for part in (
+        "A Fazenda Morada do Sol, para quem acabou de chegar",
+        "### Etapa 1. Ao acordar",
+        "### Etapa 3. À noite, na reflexão, nesta ordem",
+        "Cada suspeita tem duas tentativas",
+        "### Os formatos",
+        "**A escada de confiança.**",
+        "### Nunca",
+        "### Sempre",
+    ):
+        assert part in text, part
+    assert "A Fazenda Morada do Sol, para quem acabou de chegar" in mind.notes  # o nome existe
+    for column in TABLE_HEADER.strip("| ").split(" | "):
+        assert f"`{column}`" in text, column  # cada coluna da tabela está explicada

@@ -9,8 +9,9 @@ from campsverso_mind.compare import COMPARE, COMPARE_INSTRUCTIONS, COMPARE_TOOL,
 from campsverso_mind.controller import LlmController
 from campsverso_mind.exam import Exam, Grade, Question, exam_request, grade, load_exam, read_answers
 from campsverso_mind.memory import REFLECT_TOOL, Clock, Memory, MemorySettings, clock_of
-from campsverso_mind.mind import Mind, ParamDef, ToolDef, load_columns, load_tools
+from campsverso_mind.mind import Mind, ParamDef, ToolDef, load_columns, load_seasons, load_tools
 from campsverso_mind.playbook import PLAYBOOK_VERSION, playbook
+from campsverso_mind.seasons import Seasons
 from campsverso_mind.tools import INTENT, NOTE, proposal_from, tool_specs
 from campsverso_mind.window import Window, reason_text
 
@@ -33,6 +34,7 @@ __all__ = [
     "Mind",
     "ParamDef",
     "Question",
+    "Seasons",
     "ToolDef",
     "Window",
     "clock_of",
@@ -40,6 +42,7 @@ __all__ = [
     "grade",
     "load_columns",
     "load_exam",
+    "load_seasons",
     "load_tools",
     "playbook",
     "proposal_from",

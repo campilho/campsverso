@@ -48,6 +48,7 @@ async def test_a_corrida_do_script_grava_a_pasta(tmp_path: Path) -> None:
         "compare": False,
         "advisor": None,
         "flex": False,
+        "notebook": False,
     }
     assert result["totals"]["days"] == 2
     card = result["card"]  # a ficha (ADR-0074): o script e o commit
@@ -285,7 +286,9 @@ def test_a_rodada_do_agricultor_treinado() -> None:
 async def test_um_playbook_antigo_nao_roda_mais(tmp_path: Path) -> None:
     """ADR-0071: a corrida grava a versão do playbook; uma versão que saiu do código é recusada
     antes de gastar, e as antigas ficam no git."""
-    for version in (1, 2):  # a 2 saiu com o playbook 3 (ADR-0074, decisão 20)
+    # A 2 saiu com o playbook 3 (ADR-0074, decisão 20), e a 3, que nunca rodou, com o
+    # procedimento (decisão 35).
+    for version in (1, 2, 3):
         old = Spec("velho", "llm", memory=True, cartridge="farm_morada_do_sol", playbook=version)
         with pytest.raises(ValueError, match=f"o playbook {version} não está mais no código"):
             await run_spec(old, 1, tmp_path / "velho")

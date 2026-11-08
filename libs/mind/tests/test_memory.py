@@ -3,6 +3,8 @@
 from collections.abc import Mapping, Sequence
 from typing import Any, cast
 
+import pytest
+
 from campsverso_adapters import SqliteMemory
 from campsverso_mind import (
     NOTE,
@@ -12,6 +14,7 @@ from campsverso_mind import (
     MemorySettings,
     Mind,
     ParamDef,
+    Seasons,
     ToolDef,
     clock_of,
 )
@@ -23,6 +26,7 @@ from campsverso_ports import (
     ModelRequest,
     ModelResponse,
     ModelUsage,
+    Planting,
 )
 
 TOOLS = (
@@ -900,3 +904,164 @@ def test_sem_o_caderno_a_reflexao_e_o_bloco_ficam_como_eram() -> None:
     assert mem.notebook.lines(12) == []
     mem.adopt(Mind("m", "c", "n", (), field_notebook=True, experiments=True))
     assert (mem.settings.field_notebook, mem.settings.experiments) == (True, True)
+
+
+# ------------------------------------------------------------- o caderno completo (decisão 35)
+
+SEASONS = Seasons.of(
+    {
+        "names": {"primavera": "primavera", "verao": "verão"},
+        "crops": {
+            "rabanete": {"dias": 3, "primavera": "boa", "verao": "fraca"},
+            "batata": {"dias": 5, "primavera": "fraca", "verao": "parada"},
+        },
+    }
+)
+FARMER = Mind("m", "c", "n", (), field_notebook=True, experiments=True, seasons=SEASONS)
+
+
+def full() -> Memory:
+    mem = memory(full_notebook=True)
+    mem.adopt(FARMER)
+    return mem
+
+
+def _planting(plot: str, day: int, crop: str, **fields: Any) -> Planting:
+    return Planting(plot, day * 1440, day, crop, 12, 9, season="primavera", **fields)
+
+
+def test_o_caderno_completo_e_uma_tabela_com_a_estacao_e_o_esperado() -> None:
+    mem = full()
+    for planting in (
+        _planting("plot-001", 1, "rabanete", watered_days=(1, 2, 3), matured_day=4,
+                  outcome="colhida", outcome_day=4, matured_season="primavera"),
+        _planting("plot-002", 2, "rabanete", previous="rabanete", fertilized=True,
+                  watered_days=(2, 4, 5, 6, 7), matured_day=8, matured_season="verao"),
+        _planting("plot-003", 3, "batata", watered_days=(3, 4, 5)),
+        _planting("plot-004", 4, "rabanete", outcome="sumiu", outcome_day=6),
+    ):  # fmt: skip
+        mem.port.save_planting(planting)
+    block = mem.block(Clock(9000, 7, "2026-10-16T07:00:00-03:00", "verao"))
+    assert (
+        "Caderno de campo (4 linhas):\n"
+        "| canteiro | x,y | semente | plantou | estação | esperado | antes | adubo | rega | levou "
+        "| fim |\n"
+        "|---|---|---|---|---|---|---|---|---|---|---|\n"
+        "| plot-001 | 12,9 | rabanete | dia 1 | primavera, boa | 3 | novo | não | 3 de 3 | 3 "
+        "| colhida |\n"
+        "| plot-002 | 12,9 | rabanete | dia 2 | primavera→verão, boa | 3 | rabanete | sim "
+        "| 5 de 6 | 6 | crescendo |\n"
+        "| plot-003 | 12,9 | batata | dia 3 | primavera, fraca | 10 | novo | não | 3 de 4 |  "
+        "| crescendo |\n"
+        "| plot-004 | 12,9 | rabanete | dia 4 | primavera, boa | 3 | novo | não | 0 de 2 |  "
+        "| sumiu |\n"
+        "Por semente e estação: batata, primavera (fraca, esperado 10): 1 crescendo; "
+        "rabanete, primavera (boa, esperado 3): 2 maduras, de 3 a 6 dias (média 4,5), 1 sumiu."
+    ) in block
+    night = mem.reflect_request("x", Clock(9900, 7, "2026-10-16T21:00:00-03:00"), 7, "m")
+    text = night.messages[0]["content"][0]["text"]
+    assert (
+        "| plot-003 | 12,9 | batata | dia 3 | primavera, fraca | 10 | novo | não | 3 de 5 |" in text
+    )
+    assert "o seu caderno de campo inteiro, numa tabela" in str(night.system)
+
+
+def test_a_tabela_da_manha_mostra_as_ultimas_e_a_da_noite_mostra_ate_cem() -> None:
+    mem = memory(full_notebook=True, block_plantings=2)
+    mem.adopt(FARMER)
+    for day in range(1, 6):
+        mem.port.save_planting(_planting(f"plot-00{day}", day, "rabanete"))
+    block = mem.block(Clock(9000, 6, "2026-10-16T07:00:00-03:00"))
+    assert "Caderno de campo (as últimas 2 de 5 linhas):" in block
+    assert "plot-003" not in block.split("Por semente")[0]
+    assert "plot-005" in block
+    night = mem.reflect_request("x", Clock(9900, 6, "2026-10-16T21:00:00-03:00"), 6, "m")
+    assert "Caderno de campo (5 linhas):" in night.messages[0]["content"][0]["text"]
+
+
+def _mapped(origin: tuple[int, int], rows: list[str], *entities: dict[str, Any]) -> dict[str, Any]:
+    start = snapshot()
+    start["view"]["entities"] = list(entities)
+    start["view"]["map"] = {
+        "legend": {
+            "G": {"kind": "grass", "properties": {"passable": True, "water": False}},
+            "R": {"kind": "river", "properties": {"passable": False, "water": True}},
+        },
+        "origin": {"x": origin[0], "y": origin[1]},
+        "rows": rows,
+    }
+    return start
+
+
+def test_a_noite_ve_as_coisas_o_mapa_e_os_experimentos() -> None:
+    mem = full()
+    well = {"entity_id": "well", "kind": "well", "position": {"x": 2, "y": 3}, "attributes": {}}
+    mem.observe(with_clock(_mapped((2, 3), ["GG", "GR"], well, _plot("plot-001", 3, 3)), 120))
+    mem.observe(with_clock(_mapped((3, 4), ["G", "G"]), 600))  # o rio de (3,4) virou grama
+    assert sorted((t.x, t.y, t.kind) for t in mem.port.terrain()) == [
+        (2, 3, "grass"), (2, 4, "grass"), (3, 3, "grass"), (3, 4, "grass"), (3, 5, "grass"),
+    ]  # fmt: skip
+    night = Clock(900, 1, "2026-10-10T21:00:00-03:00")
+    text = mem.reflect_request("x", night, 1, "m").messages[0]["content"][0]["text"]
+    assert "Onde ficam as coisas que você conhece:\n- well (well) em (2,3)\n" in text
+    assert "plot-001 (plot)" not in text
+    assert (
+        "O mapa que você já viu (como o `map` da foto; y cresce para baixo):\n"
+        '{"legend":{"?":{"kind":"nunca visto"},"G":{"kind":"grass","properties":{"passable":true,'
+        '"water":false}}},"origin":{"x":2,"y":3},"rows":["GG","GG","?G"]}'
+    ) in text
+    assert "Os seus experimentos" not in text  # nenhum ainda
+
+
+def test_o_experimento_fica_aberto_ate_o_veredito() -> None:
+    mem = full()
+    first_night = Clock(900, 1, "2026-10-10T21:00:00-03:00")
+    first = mem.reflect_request("x", first_night, 1, "m")
+    assert "experimento barato para amanhã" not in str(first.system)
+    assert "amanhã" not in str(first.tools[-1]["input_schema"]["properties"]["experiment"])
+    assert "copie em `experiment` o mesmo experimento" in str(first.system)
+    trial = {
+        "hypothesis": "[antes] O rabanete leva mais dias depois de rabanete.",
+        "test": "Par: plot-001 (com) e plot-002 (sem).",
+        "prediction": "plot-001 amadurece 2 dias depois.",
+    }
+    proposed = reflect_use("Plantei o par.", "Regar o par.")
+    proposed["input"] |= {"experiment": trial, "experiment_result": ""}
+    mem.apply_reflection(first, response(proposed), first_night, 1)
+    mem.drain_events()
+    second_night = Clock(2340, 2, "2026-10-11T21:00:00-03:00")
+    second = mem.reflect_request("x", second_night, 2, "m")
+    assert "deixe `experiment_result` vazio se o teste ainda não tem resultado" in str(
+        second.messages
+    )
+    assert (
+        "Os seus experimentos:\n- noite do dia 1: hipótese: [antes] O rabanete leva mais dias "
+        "depois de rabanete.; veredito: ainda aberto"
+    ) in second.messages[0]["content"][0]["text"]
+    kept = reflect_use("Reguei o par.", "Regar o par.")
+    kept["input"] |= {"experiment": trial, "experiment_result": ""}
+    mem.apply_reflection(second, response(kept), second_night, 2)
+    assert "experiment" not in mem.drain_events()[0]["data"]  # nenhum experimento novo
+    assert [(e.day, e.result) for e in mem.port.experiments()] == [(1, None)]
+    third_night = Clock(3780, 3, "2026-10-12T21:00:00-03:00")
+    third = mem.reflect_request("x", third_night, 3, "m")
+    verdict = reflect_use("O par amadureceu.", "")
+    verdict["input"] |= {"experiment": trial, "experiment_result": "cumpriu"}
+    mem.apply_reflection(third, response(verdict), third_night, 3)
+    assert [(e.day, e.result) for e in mem.port.experiments()] == [(1, "cumpriu"), (3, None)]
+
+
+def test_sem_o_caderno_completo_a_reflexao_continua_pedindo_para_amanha() -> None:
+    mem = memory(experiments=True, field_notebook=True)
+    mem.adopt(FARMER)
+    mem.port.save_planting(_planting("plot-001", 1, "rabanete"))
+    night = mem.reflect_request("x", Clock(900, 1, "2026-10-10T21:00:00-03:00"), 1, "m")
+    assert "experimento barato para amanhã" in str(night.system)
+    assert "Caderno de campo" not in night.messages[0]["content"][0]["text"]
+    assert "| canteiro |" not in mem.block(Clock(1500, 2, "2026-10-11T07:00:00-03:00"))
+
+
+def test_o_caderno_completo_pede_o_caderno_de_campo() -> None:
+    mem = memory(full_notebook=True)
+    with pytest.raises(ValueError, match="caderno de campo"):
+        mem.adopt(Mind("m", "c", "n", ()))

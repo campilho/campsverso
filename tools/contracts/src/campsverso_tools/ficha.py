@@ -131,6 +131,8 @@ def run_card(
         harness |= {
             "memory": bool(spec.get("memory")),
             "playbook": int(spec.get("playbook") or 0),
+            # O caderno completo (ADR-0074, decisão 35): no braço de dados e com o procedimento.
+            "notebook": bool(spec.get("notebook")) or int(spec.get("playbook") or 0) > 0,
             "compare": bool(spec.get("compare")),
         }
     else:

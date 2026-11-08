@@ -16,6 +16,7 @@ from typing import Any, cast
 from campsverso_mind.compare import COMPARE, COMPARE_INSTRUCTIONS, COMPARE_TOOL, Columns, Comparison
 from campsverso_mind.mind import Mind
 from campsverso_mind.notebook import FieldNotebook
+from campsverso_mind.seasons import Seasons
 from campsverso_ports import (
     Belief,
     BeliefRevision,
@@ -109,6 +110,11 @@ class MemorySettings:
     # por reflexão, com a saída dele (raciocínio e texto) limitada.
     advisor: str | None = None
     advisor_max_tokens: int = 4096
+    # O caderno completo (ADR-0074, decisão 35): a tabela do caderno com a estação e os dias
+    # esperados; na reflexão, a tabela inteira, as coisas e o mapa vistos e os experimentos; e o
+    # experimento aberto até o veredito. Liga com o procedimento e no braço de dados.
+    full_notebook: bool = False
+    night_plantings: int = 100  # linhas da tabela na reflexão, as mais recentes
 
 
 @dataclass(frozen=True, slots=True)
@@ -285,6 +291,8 @@ REFLECT_TOOL: dict[str, Any] = {
 }
 
 EXPERIMENT_RESULTS = ("cumpriu", "falhou", "inconclusivo")
+UNSEEN = "?"  # o tile que nenhuma foto mostrou, no mapa da reflexão (decisão 35)
+UNPLACED = frozenset({"plot", "avatar"})  # o que "Onde ficam as coisas" não lista
 ADVISOR = "advisor"
 ADVISOR_RESULTS = frozenset({"advisor_result", "advisor_redacted_result"})
 
@@ -308,23 +316,38 @@ o experimento de amanhã; pese o conselho com o que você viu, e decida você. D
 ADVISOR_NOTE = "(Conselheiro: responda em português, em até 150 palavras.)"
 
 
-def reflect_tool(experiments: bool) -> dict[str, Any]:
+def reflect_tool(experiments: bool, open_ended: bool = False) -> dict[str, Any]:
     """A ferramenta da reflexão; com experimentos (ADR-0070), o experimento de amanhã e o veredito
-    do de ontem."""
+    do de ontem. `open_ended` (o caderno completo, ADR-0074, decisão 35): o experimento fica
+    aberto até o veredito, e o texto não diz "amanhã"."""
     if not experiments:
         return REFLECT_TOOL
     tool = copy.deepcopy(REFLECT_TOOL)
     schema = cast(dict[str, Any], tool["input_schema"])
     properties = cast(dict[str, Any], schema["properties"])
     text = {"type": "string"}
+    if open_ended:
+        about = (
+            "Um experimento barato, sobre algo que você ainda não sabe; o mesmo de antes, "
+            'enquanto o teste dele não tiver resultado; ou os três "".'
+        )
+        test = "O que fazer para ver, e com o que comparar."
+        result = (
+            'Se a previsão do experimento aberto se cumpriu; "" se não havia, ou se o teste '
+            "ainda não tem resultado."
+        )
+    else:
+        about = (
+            'Um experimento barato para amanhã, sobre algo que você ainda não sabe; ou os três "".'
+        )
+        test = "O que fazer amanhã para ver, e com o que comparar."
+        result = 'Se a previsão do experimento de ontem se cumpriu; "" se não havia.'
     properties["experiment"] = {
         "type": "object",
-        "description": (
-            'Um experimento barato para amanhã, sobre algo que você ainda não sabe; ou os três "".'
-        ),
+        "description": about,
         "properties": {
             "hypothesis": {**text, "description": "O que você acha que acontece, em uma frase."},
-            "test": {**text, "description": "O que fazer amanhã para ver, e com o que comparar."},
+            "test": {**text, "description": test},
             "prediction": {**text, "description": "O que deve acontecer se a hipótese for certa."},
         },
         "required": ["hypothesis", "test", "prediction"],
@@ -333,7 +356,7 @@ def reflect_tool(experiments: bool) -> dict[str, Any]:
     properties["experiment_result"] = {
         "type": "string",
         "enum": [*EXPERIMENT_RESULTS, ""],
-        "description": 'Se a previsão do experimento de ontem se cumpriu; "" se não havia.',
+        "description": result,
     }
     schema["required"] = [*cast(list[str], schema["required"]), "experiment", "experiment_result"]
     return tool
@@ -344,6 +367,18 @@ Proponha também um experimento barato para amanhã, sobre algo que você ainda 
 fazenda funciona: a hipótese, o teste (o que fazer amanhã, e com o que comparar) e a previsão (o \
 que deve acontecer se a hipótese estiver certa). Se havia um experimento de ontem, diga em \
 `experiment_result` se a previsão se cumpriu, falhou ou ficou inconclusiva."""
+
+# O caderno completo (ADR-0074, decisão 35): o experimento fica aberto até o veredito.
+OPEN_EXPERIMENT_INSTRUCTIONS = """\
+Proponha também um experimento barato sobre algo que você ainda não sabe de como a fazenda \
+funciona: a hipótese, o teste (o que fazer, e com o que comparar) e a previsão (o que deve \
+acontecer se a hipótese estiver certa). Ele fica aberto até você dar o veredito em \
+`experiment_result` (cumpriu, falhou ou inconclusivo): enquanto o teste não tiver resultado, \
+deixe `experiment_result` vazio e copie em `experiment` o mesmo experimento."""
+
+NOTEBOOK_INSTRUCTIONS = """\
+Você recebe também o seu caderno de campo inteiro, numa tabela, onde ficam as coisas que você \
+conhece, o mapa que você já viu e os seus experimentos, com o veredito de cada um."""
 
 REFLECTION_INSTRUCTIONS = """\
 ## A reflexão da noite
@@ -376,7 +411,9 @@ class Memory:
         self.clock: Clock | None = None  # o relógio da última entrega (a prova do fim, ADR-0070)
         self.notebook = FieldNotebook(port, avatar_id, self.settings.hunger_need)
         self.columns: Columns | None = None  # o que a comparação mede (ADR-0074)
-        self.known: set[tuple[int, int]] = set()  # os tiles que a porta já guarda
+        self.known: dict[tuple[int, int], str] = {}  # os tiles que a porta já guarda
+        self.legend: dict[str, tuple[str, Mapping[str, Any]]] = {}  # tipo: (letra, propriedades)
+        self.seasons: Seasons | None = None  # o manual em números (decisão 35)
         self.comparisons = 0  # as vezes que a reflexão usou a comparação
         self.advised = 0  # os conselhos que a reflexão recebeu (ADR-0074)
 
@@ -392,7 +429,12 @@ class Memory:
             if mind.columns is None or not self.settings.field_notebook:
                 raise ValueError(f"a mente {mind.name} não tem caderno de campo e colunas")
             self.columns = mind.columns
-            self.known = {(t.x, t.y) for t in self.port.terrain()}
+        if self.settings.full_notebook:  # o caderno completo (decisão 35)
+            if not self.settings.field_notebook:
+                raise ValueError(f"a mente {mind.name} não tem caderno de campo")
+            self.seasons = mind.seasons
+        if self.columns is not None or self.settings.full_notebook:
+            self.known = {(t.x, t.y): t.kind for t in self.port.terrain()}
 
     # ------------------------------------------------------------- registrar
 
@@ -448,11 +490,18 @@ class Memory:
 
     def _terrain(self, terrain: Mapping[str, Any] | None) -> None:
         """Os tiles da foto que a comparação mede (a água, a mata...), os que ainda não estavam
-        guardados (ADR-0074)."""
-        if self.columns is None or terrain is None:
+        guardados (ADR-0074); com o caderno completo, todos, e o que mudou (decisão 35)."""
+        if terrain is None or (self.columns is None and not self.settings.full_notebook):
             return
-        kinds = frozenset[str]().union(*self.columns.terrain.values())
+        kinds = (
+            None
+            if self.settings.full_notebook or self.columns is None
+            else frozenset[str]().union(*self.columns.terrain.values())
+        )
         legend = cast(Mapping[str, Mapping[str, Any]], terrain.get("legend") or {})
+        for code, entry in sorted(legend.items()):
+            properties = cast(Mapping[str, Any], entry.get("properties") or {})
+            self.legend[str(entry.get("kind"))] = (code, dict(properties))
         origin = cast(Mapping[str, int], terrain.get("origin") or {"x": 0, "y": 0})
         x0, y0 = int(origin["x"]), int(origin["y"])
         fresh: list[Tile] = []
@@ -460,9 +509,9 @@ class Memory:
             for dx, code in enumerate(row):
                 kind = str((legend.get(code) or {}).get("kind"))
                 tile = (x0 + dx, y0 + dy)
-                if kind in kinds and tile not in self.known:
+                if (kinds is None or kind in kinds) and self.known.get(tile) != kind:
                     fresh.append(Tile(tile[0], tile[1], kind))
-                    self.known.add(tile)
+                    self.known[tile] = kind
         if fresh:
             self.port.see(fresh)
 
@@ -569,7 +618,9 @@ class Memory:
         if away:
             lines.append("Fora de vista, pelo que você viu por último:")
             lines.extend(_place_line(clock, p) for p in away[: s.block_places])
-        if s.field_notebook:
+        if s.full_notebook:  # a tabela, com a rega contada até ontem (decisão 35)
+            lines.extend(self.notebook.table(s.block_plantings, clock.day, self.seasons))
+        elif s.field_notebook:
             lines.extend(self.notebook.lines(s.block_plantings))
         trial = self.open_experiment()
         if s.experiments and trial is not None:
@@ -628,12 +679,22 @@ class Memory:
         parts.extend(
             f"- {b.belief_id} ({b.confidence:.2f}): {b.statement}" for b in beliefs
         ) if beliefs else parts.append("- (nenhuma)")
+        if s.full_notebook:  # o caderno completo (decisão 35), com a rega de hoje
+            parts.extend(self.notebook.table(s.night_plantings, day + 1, self.seasons))
+            parts.extend(self._known_places())
+            parts.extend(self._seen_map())
+            parts.extend(self._experiments())
         trial = self.open_experiment()
         if trial is not None and trial.day < day:
+            verdict = (
+                "Diga se a previsão se cumpriu, ou deixe `experiment_result` vazio se o teste "
+                "ainda não tem resultado."
+                if s.full_notebook
+                else "Diga se a previsão se cumpriu."
+            )
             parts.append(
                 f"O experimento que você propôs na noite do dia {trial.day}: hipótese: "
-                f"{trial.hypothesis}; teste: {trial.test}; previsão: {trial.prediction}. Diga se a "
-                "previsão se cumpriu."
+                f"{trial.hypothesis}; teste: {trial.test}; previsão: {trial.prediction}. {verdict}"
             )
         if s.advisor is not None:
             parts.append(ADVISOR_NOTE)
@@ -643,7 +704,7 @@ class Memory:
             tools.append(COMPARE_TOOL)
         if s.advisor is not None:
             tools.append(advisor_tool(s.advisor, s.advisor_max_tokens))
-        tools.append(reflect_tool(s.experiments))
+        tools.append(reflect_tool(s.experiments, s.full_notebook))
         return ModelRequest(
             model=s.reflection_model or model,
             messages=[{"role": "user", "content": [{"type": "text", "text": "\n".join(parts)}]}],
@@ -661,10 +722,63 @@ class Memory:
             avatar_id=self.avatar_id,
         )
 
+    def _known_places(self) -> list[str]:
+        """As coisas com lugar que o avatar já viu, menos os canteiros, que estão na tabela, e os
+        avatares, que andam (decisão 35)."""
+        found = [
+            f"- {p.entity_id} ({p.kind}) em ({p.x},{p.y})"
+            for p in self.port.places()
+            if p.kind not in UNPLACED
+        ]
+        return ["Onde ficam as coisas que você conhece:", *found] if found else []
+
+    def _seen_map(self) -> list[str]:
+        """O terreno que as fotos mostraram, no formato do `map` da foto; `?` é o nunca visto."""
+        tiles = self.port.terrain()
+        if not tiles:
+            return []
+        x0, x1 = min(t.x for t in tiles), max(t.x for t in tiles)
+        y0, y1 = min(t.y for t in tiles), max(t.y for t in tiles)
+        codes: dict[str, str] = {}
+        legend: dict[str, Any] = {UNSEEN: {"kind": "nunca visto"}}
+        for kind in sorted({t.kind for t in tiles}):
+            code, properties = self.legend.get(kind, ("", {}))
+            if not code or code in legend:  # sem foto desde que a corrida voltou: uma letra livre
+                free = f"{kind.upper()}ABCDEFGHIJKLMNOPQRSUVWXYZ"
+                code = next(c for c in free if c not in legend)
+            codes[kind] = code
+            legend[code] = {"kind": kind, "properties": dict(properties)}
+        grid = [[UNSEEN] * (x1 - x0 + 1) for _ in range(y1 - y0 + 1)]
+        for t in tiles:
+            grid[t.y - y0][t.x - x0] = codes[t.kind]
+        seen = {"legend": legend, "origin": {"x": x0, "y": y0}, "rows": ["".join(r) for r in grid]}
+        return [
+            "O mapa que você já viu (como o `map` da foto; y cresce para baixo):",
+            json.dumps(seen, ensure_ascii=False, separators=(",", ":")),
+        ]
+
+    def _experiments(self) -> list[str]:
+        """Todos os experimentos, do mais antigo ao mais novo, com o veredito (decisão 35)."""
+        found: list[str] = []
+        for e in self.port.experiments():
+            verdict = (
+                "ainda aberto"
+                if e.result is None
+                else f"{e.result}, na noite do dia {e.result_day}"
+            )
+            found.append(f"- noite do dia {e.day}: hipótese: {e.hypothesis}; veredito: {verdict}")
+        return ["Os seus experimentos:", *found] if found else []
+
     def _instructions(self) -> str:
         parts = [REFLECTION_INSTRUCTIONS]
+        if self.settings.full_notebook:
+            parts.append(NOTEBOOK_INSTRUCTIONS)
         if self.settings.experiments:
-            parts.append(EXPERIMENT_INSTRUCTIONS)
+            parts.append(
+                OPEN_EXPERIMENT_INSTRUCTIONS
+                if self.settings.full_notebook
+                else EXPERIMENT_INSTRUCTIONS
+            )
         if self.columns is not None:
             parts.append(COMPARE_INSTRUCTIONS)
         if self.settings.advisor is not None:
@@ -723,14 +837,22 @@ class Memory:
         """O veredito do experimento de ontem e o experimento de amanhã (ADR-0070)."""
         verdict = str(given.get("experiment_result") or "")
         trial = self.open_experiment()
+        closed = False
         if trial is not None and trial.day < day and verdict in EXPERIMENT_RESULTS:
             self.port.save_experiment(replace(trial, result=verdict, result_day=day))
             data["experiment_result"] = verdict
+            closed = True
         raw = cast(Mapping[str, Any], given.get("experiment") or {})
         hypothesis, test, prediction = (
             _clean(raw.get(k, ""), 300) for k in ("hypothesis", "test", "prediction")
         )
-        if hypothesis:
+        kept = (  # o caderno completo (decisão 35): o mesmo experimento continua aberto
+            self.settings.full_notebook
+            and trial is not None
+            and not closed
+            and trial.hypothesis == hypothesis
+        )
+        if hypothesis and not kept:
             self.port.save_experiment(Experiment(day, hypothesis, test, prediction))
             data["experiment"] = {"hypothesis": hypothesis, "test": test, "prediction": prediction}
 

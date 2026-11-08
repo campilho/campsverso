@@ -5,7 +5,6 @@ cima do manual deste cenário, com o catálogo de ferramentas da fazenda 2. Entr
 from pathlib import Path
 
 import campsverso_farm_camps_mind
-import campsverso_farm_mind
 from campsverso_mind import Mind, load_tools
 
 DATA = Path(__file__).parent / "data"
@@ -20,7 +19,6 @@ def load() -> Mind:
         card=card,
         notes=NOTES.read_text(encoding="utf-8"),
         tools=load_tools(TOOLS),
-        craft=campsverso_farm_mind.CRAFT.read_text(encoding="utf-8"),  # o ofício (ADR-0071)
     )
 
 
