@@ -349,6 +349,14 @@ Com a energia nova, o ajudante ainda não pagava, e a explicação era o teto de
     - **O Fable roda por último e só com o saldo da Console conferido.** Os US$ 20 a mais de 4/nov continuam necessários.
     - **A rodada roda já e fica lacrada** até o fim do ano do usuário, na mesma pasta das corridas sem playbook (`data/arena/m21-terceira-energia`).
     - **O relatório ganha duas seções, de graça, antes de ser gerado:** a aderência ao procedimento (decisão 35), contada pelos formatos fixos em `campsverso_tools/adherence.py`, e "Lado a lado no dia 14", com os totais dos dias 1 a 14 de cada corrida quando a rodada mistura 14 dias com corridas mais longas. As crenças, a prova e o juiz continuam sendo os do fim de cada corrida.
+    - **Os créditos:** o saldo da Console, conferido pelo usuário, era de US$ 195,07: 97,44 comprados (uma compra de US$ 50 em 5/nov que não estava anotada) e 97,62 do crédito do plano Max de 7/nov, que vence em 10/12. Os US$ 20 a mais de 4/nov não foram precisos.
+    - **A rodada rodou em 8/nov, lacrada,** em US$ 73,01: 70,09 nas corridas, 0,91 nas provas e 2,01 nos juízes (0,73 do Opus e 1,28 do Astra). Uns 59 foram da Anthropic e uns 14 da OpenRouter. Cada corrida passou pelo portão do dia 2:
+      - **os sete Haiku,** em paralelo, 28 dias cada, sem nenhuma falha, de US$ 0,57 a 0,92 (5,00 juntos);
+      - **o Sonnet:** 14 dias e 548 chamadas, sem falha, por US$ 4,40;
+      - **o Opus:** 14 dias e 657 chamadas, sem falha, por US$ 11,91;
+      - **o Astra:** 14 dias e 762 chamadas, sem falha, por US$ 11,76. Rodou ao lado do Gemini na OpenRouter, a pedido do usuário: o flex do Google e o da OpenAI são filas separadas;
+      - **o Fable:** 14 dias e 855 chamadas, sem falha, por US$ 36,75. Gastou uns 34% a mais que sem o procedimento nos mesmos dias (27,52), e ficou abaixo do teto de 40.
+    - **O Gemini desistiu no dia 1:** 59 chamadas e US$ 0,28. Foram quatro falhas com o erro da decisão 32 (`INVALID_ARGUMENT; Internal Server Error`, do Google, no meio da geração); outras sete chamadas só passaram depois de 2 a 12 tentativas, quatro delas na reserva. As três falhas seguidas que encerraram a corrida falharam no flex e no provedor normal. Sem o playbook, ele foi até o dia 12. O usuário decidiu não insistir: rodar sem o flex não mudaria nada, porque a reserva já é o provedor normal. O resultado é "desistiu no dia 1", com esta causa ao lado.
 
 A tela de quem joga ganha a carga da mochila ao lado do inventário ("carga 12,5 de 20", em alerta a partir de 90%) e as recusas em português ("Não deu para colher: não cabe na mochila; guarde alguma coisa no baú.").
 
