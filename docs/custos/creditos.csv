@@ -10,6 +10,7 @@ data,provedor,movimento,usd,brl,iof_brl,saldo_usd,nota
 2026-11-02,OpenRouter,compra,50.00,319.60,10.80,85.31,para o ano do Astra; o limite semanal da chave subiu de 50 para 100
 2026-11-03,OpenRouter,saldo,,,,57.77,depois do ano do Astra
 2026-11-03,Anthropic,compra,100.00,588.48,19.90,118.00,para o ano do Fable
-2026-11-05,Anthropic,compra,50.00,,,,"a data é a da fatura (UTC); o real do cartão falta"
+2026-11-06,Anthropic,compra,50.00,292.55,9.89,,"a data é a do cartão (a fatura diz 5/nov, em UTC)"
+2026-11-07,Anthropic,assinatura,,589.17,19.92,,"a renovação do plano Max"
 2026-11-07,Anthropic,plano,100.00,,,,"crédito do plano Max, da renovação de 7/nov; vence em 10/12/2026"
 2026-11-08,Anthropic,saldo,,,,195.07,"97,44 comprados e 97,62 do crédito do plano, com a rodada do procedimento rodando"

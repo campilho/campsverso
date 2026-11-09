@@ -36,7 +36,7 @@ Tempo e tokens do Claude Code em cada marco (ADR-0051).
 | M18 | 2 | 98 | 229 | 277 | 161,6 | 847 |
 | M19 | 16 | 254 | 651 | 735 | 300,9 | 1.616 |
 | M20 | 32 | 237 | 673 | 608 | 400,8 | 2.300 |
-| M21 | 85 | 400 | 1978 | 1.755 | 611,6 | 5.951 |
+| M21 | 106 | 412 | 2058 | 1.812 | 636,2 | 6.029 |
 
 ## Uso do plano Max
 
@@ -84,15 +84,16 @@ dólares comprados (na OpenRouter, a taxa da compra entra no real).
 | 2026-11-02 | OpenRouter | compra | 50.00 | 319.60 | 10.80 | 85.31 | para o ano do Astra; o limite semanal da chave subiu de 50 para 100 |
 | 2026-11-03 | OpenRouter | saldo |  |  |  | 57.77 | depois do ano do Astra |
 | 2026-11-03 | Anthropic | compra | 100.00 | 588.48 | 19.90 | 118.00 | para o ano do Fable |
-| 2026-11-05 | Anthropic | compra | 50.00 |  |  |  | a data é a da fatura (UTC); o real do cartão falta |
+| 2026-11-06 | Anthropic | compra | 50.00 | 292.55 | 9.89 |  | a data é a do cartão (a fatura diz 5/nov, em UTC) |
+| 2026-11-07 | Anthropic | assinatura |  | 589.17 | 19.92 |  | a renovação do plano Max |
 | 2026-11-07 | Anthropic | plano | 100.00 |  |  |  | crédito do plano Max, da renovação de 7/nov; vence em 10/12/2026 |
 | 2026-11-08 | Anthropic | saldo |  |  |  | 195.07 | 97,44 comprados e 97,62 do crédito do plano, com a rodada do procedimento rodando |
 
 | Provedor | Entrou (US$) | No cartão (R$) | IOF devolvido (R$) | Líquido (R$) | R$ por US$ | Último saldo (US$) | Gasto (US$) |
 |---|---|---|---|---|---|---|---|
-| Anthropic | 380,00 | 762,70 (faltam 1) | 25,79 | 736,91 | 5,67 | 195,07 | 184,93 |
+| Anthropic | 380,00 | 1.055,25 | 35,68 | 1.019,57 | 5,66 | 195,07 | 184,93 |
 | OpenRouter | 100,00 | 604,30 | 20,42 | 583,88 | 5,84 | 57,77 | 42,23 |
-| Total | 480,00 | 1.367,00 (faltam 1) | 46,21 | 1.320,79 | 5,74 | 252,84 | 227,16 |
+| Total | 480,00 | 1.659,55 | 56,10 | 1.603,45 | 5,73 | 252,84 | 227,16 |
 
-A assinatura do plano, que paga o Claude Code e fica fora da conta da API: 1 pagamento,
-R$ 588,42 no cartão, R$ 19,93 de IOF devolvido, R$ 568,49 líquidos.
+A assinatura do plano, que paga o Claude Code e fica fora da conta da API: 2 pagamentos,
+R$ 1.177,59 no cartão, R$ 39,85 de IOF devolvido, R$ 1.137,74 líquidos.
