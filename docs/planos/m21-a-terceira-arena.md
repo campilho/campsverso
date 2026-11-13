@@ -455,3 +455,47 @@ Aprovadas em 27/out. As notas do usuário estão na ADR-0074.
 20. **A rodada controlada do playbook** no fim do M21: o playbook 3, os modelos da rodada principal, o mesmo mapa e a mesma seed, e o comprimento pelos custos reais.
 21. **O teto da v0.3** sobe de US$ 150 para 300, com cada passo pago aprovado com o custo real.
 22. **O mapa d promete que saber vale,** e a fração do valor de saber capturada é a medida principal só nele (28/out, depois da medida da régua do meio).
+
+## 16. Como ficou
+
+Feito de 27/out a 12/nov, numa sessão longa com várias compactações, com as decisões 1 a 37 da ADR-0074 e a ADR-0075. O relatório das 43 corridas está em [`docs/arena/m21-terceira-energia.md`](../arena/m21-terceira-energia.md).
+
+- **O que se construiu, de graça:**
+  - a prova corrigida (os corvos a 40 tiles e o "aprendeu" com o intervalo corrigido pelas comparações múltiplas) e o script 3 fixo, a régua do meio;
+  - o mapa d, "a surpresa", e o mundo `farm-morada-do-sol-04`, com a promessa de que saber vale (decisão 22) conferida por teste;
+  - o sandbox que retoma, o relógio na tela do jogador e o `make jogar`;
+  - a ferramenta de comparação e o conselheiro, os dois braços do Haiku;
+  - o custo no painel e no modo de assistir, a ficha de cada corrida e a tabela de preços conferida;
+  - a OpenRouter num adaptador próprio, com o provedor fixo, o flex pela metade do preço e a reserva no provedor normal (decisões 10, 28 e 31), e o motivo do provedor na falha;
+  - o GPT-6 Astra como segundo juiz, conferido no gabarito (47 de 47 e 28 de 28), e os dois juízes lado a lado no relatório;
+  - a energia `alvo` da Morada (decisão 23) e o menu que diz o que cada ação custa;
+  - os consertos da tela que o humano achou na primeira semana (decisão 29) e os nomes por língua (ADR-0075);
+  - o procedimento (o playbook 4) e o caderno completo (decisão 35), a aderência e o corte do dia 14 no relatório, e a fração do valor de saber capturada.
+- **O que rodou, pago, todo no mapa d e lacrado até o humano terminar:**
+  - o Haiku três vezes e os braços (a comparação duas vezes, o conselheiro uma), 28 dias;
+  - o Sonnet, o Opus, o Astra e o Fable, um ano cada; o Gemini parou no dia 12 (decisão 32);
+  - a rodada com o procedimento (decisão 36): o Haiku três vezes, o braço de dados três vezes e o controle no mapa a, 28 dias; o Sonnet, o Opus, o Astra e o Fable, 14 dias; o Gemini parou no dia 1;
+  - os dois juízes em todas as corridas com memória (concordam em 223 de 225 vereditos).
+- **O humano jogou 15 dias** do mapa d, às cegas, e parou por falta de tempo (decisão 37).
+- **O que a rodada mostrou** (o relatório tem o resto):
+  - **Ninguém achou a água pela causa,** nem com o procedimento. O Opus do ano plantou 41% na faixa da lagoa a partir do dia 4, por logística: a crença dele diz que aqueles canteiros ficam perto do poço, da cama e do quiosque. O controle sem as regras não inventou a regra da água.
+  - **As regras achadas pela causa:** a fadiga do solo uma vez, num Haiku com o procedimento (o Fable com o procedimento chegou a "só o lugar"), e o tamanho do adubo três vezes, no Fable e no Opus do ano e no Haiku do controle, que também tinha o procedimento. Os corvos e a reputação, ninguém.
+  - **A fração do valor de saber capturada no ano do mapa d,** em moedas e em colheitas: o Fable 54% e 76%, o Opus 49% e 187%, o Sonnet 31% e 4%, o Astra 3% e −2%; os Haiku e o script 3 ficam em 0% ou abaixo. Os grandes jogam bem a economia visível sem descobrir as regras.
+  - **O procedimento foi seguido** (todas as hipóteses com a suspeita entre colchetes, a anotação `HOJE:` em todos os dias nos modelos grandes), **mas deixou os experimentos lentos:** com o par aberto até o veredito, os grandes fizeram de 1 a 5 experimentos em 14 dias, quase todos inconclusivos, contra 28 sem ele. No dia 14, subiu as moedas do Opus, do Fable e do Astra e baixou as do Sonnet; as colheitas ficaram parecidas.
+  - **O humano,** que sabe as regras, plantou 100% na faixa da lagoa, com o primeiro canteiro nela às 06:47 do dia 1, e colheu 47 vezes em 15 dias, mas terminou com 2 moedas e 64 recusas: saber as regras levou ao lugar certo, não ao caixa.
+  - **O Gemini não roda por erro do Google** (`INVALID_ARGUMENT` no meio da geração), no flex e no provedor normal: parou no dia 12 sem o procedimento e no dia 1 com ele.
+- **O que mudou em relação ao plano:**
+  - o Astra e o Fable rodaram o ano, e não 14 dias, com créditos postos pelo usuário (decisões 33 e 34);
+  - o playbook 3 nunca rodou: o usuário o achou aberto demais, e cinco lacunas entre o playbook e o que o modelo recebia viraram o procedimento e o caderno completo (decisão 35);
+  - a rodada do procedimento ganhou o braço de dados e o controle de conhecimento prévio, ideia do post Project EVE da Anthropic;
+  - o humano jogou 15 dias, e não o ano;
+  - a energia foi recalibrada depois do primeiro dia do humano no mapa d (decisão 23), e as réguas foram refeitas.
+- **O que se achou no caminho:**
+  - a rede do Mac: conexões presas pelo antivírus esgotavam as portas e derrubavam as chamadas; duas corridas paradas pela rede (US$ 1,32) e uma pelo teto, por um erro meu de leitura do custo do dia (US$ 4,08), ficaram em `data/arena/m21-paradas-*`;
+  - o `time` do envelope é fixo nas corridas em processo: a hora de cada fato está no `simtime`;
+  - a reflexão da noite não recebia o caderno, e o experimento "para amanhã" se repetia como registro novo (decisão 35);
+  - a partida do humano não guardava a variante do mapa, e "O valor de saber" misturava os braços e os pilotos com o ano (decisão 37);
+  - o saldo da Console: uma compra de US$ 50 não anotada, e o crédito do plano Max que entra todo dia 7.
+- **As fazendas 1 e 2 não mudaram:** as resistências de 30 dias repetem 1.175 e 220 moedas (`data/soak/20261112-221054` e `-221057`).
+- **O custo:** uns US$ 247 de API no marco, contra 175 a 265 previstos para a rodada principal mais 115 a 170 da rodada do playbook: o Fable do ano (US$ 70) e a rodada com o procedimento (73) foram os maiores. A v0.3 fecha em uns US$ 258 de API, dentro do teto de 300. O desenvolvimento levou 425 minutos ativos em 109 turnos.
+- **Fica para decidir:** a rodada 3 (§10), com mais seeds para os grandes e o agente que joga o segundo ano com a memória do primeiro.

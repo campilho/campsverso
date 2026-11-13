@@ -126,6 +126,7 @@ SPAWNED = "campsverso.world.entity.spawned.v1"
 WITHERED = "campsverso.farm.crop.withered.v1"
 BARS = "▁▂▃▄▅▆▇█"
 EMPTY = "-"  # a célula de quem não tem a medida (o script não tem modelo)
+CAPTURE_MAP = "d"  # onde a fração do valor de saber é a medida principal (decisão 22)
 CUT = 14  # o corte das corridas de 14 dias (ADR-0074, decisão 36)
 PROCEDURE = 4  # o playbook que é o procedimento, com os formatos fixos (ADR-0074, decisão 35)
 FORMED = "campsverso.memory.belief.formed.v1"
@@ -1007,6 +1008,7 @@ def render(runs: Sequence[Run], *, source: str, date: str) -> str:
     lines += _experiments_section(runs)
     lines += _adherence_section(runs)
     lines += _knowing_section(runs)
+    lines += _captured_section(runs)
     lines += _helpers_section(runs)
     lines += _learned_section(runs)
     lines += _judge_section(runs)
@@ -1147,6 +1149,79 @@ def _short(text: str, limit: int) -> str:
 
 def _hungry_days(r: Run) -> int:
     return sum(1 for d in r.report.complete_days if d.hunger_peak >= 100)
+
+
+def _upto(r: Run, day: int) -> tuple[int, int] | None:
+    """As moedas no fim do dia `day` e as colheitas dos dias 1 a `day`; `None` se a corrida não
+    fechou esse dia."""
+    days = {d.day: d for d in r.report.complete_days}
+    if day not in days:
+        return None
+    harvests = sum(sum(d.harvests.values()) for d in r.report.complete_days if d.day <= day)
+    return int(days[day].coins_end), harvests
+
+
+def _captured_section(runs: Sequence[Run]) -> list[str]:
+    """A fração do valor de saber capturada no mapa d (plano do M21, §4; ADR-0074, decisão 22):
+    o controlador menos o script 3 fixo, dividido pelo oráculo menos o script 3 fixo, em moedas e
+    em colheitas, com as réguas no mesmo dia em que a corrida parou."""
+    in_d = [
+        r
+        for r in runs
+        if r.spec.get("cartridge") == MORADA
+        and r.spec.get("map") == CAPTURE_MAP
+        and r.spec.get("river_bonus", True)
+        and r.spec.get("hire") is None
+    ]
+    rulers = {str(r.spec.get("script")): r for r in in_d if r.spec.get("controller") == "script"}
+    fixed, oracle, blind = rulers.get("farmer3-fixo"), rulers.get("oracle"), rulers.get("farmer2")
+    if fixed is None or oracle is None:
+        return []
+    year = len(oracle.report.complete_days)
+
+    def fraction(value: int, low: int, high: int) -> str:
+        return EMPTY if high <= low else f"{round(100 * (value - low) / (high - low))}%"
+
+    rows: list[list[str]] = []
+    for r in in_d:
+        if r is fixed or r is oracle or r is blind:
+            continue
+        day = min(len(r.report.complete_days), year)
+        mine, low, high = _upto(r, day), _upto(fixed, day), _upto(oracle, day)
+        if day == 0 or mine is None or low is None or high is None:
+            continue
+        rows.append(
+            [
+                r.name,
+                str(day),
+                f"{mine[0]} ({fraction(mine[0], low[0], high[0])})",
+                f"{mine[1]} ({fraction(mine[1], low[1], high[1])})",
+            ]
+        )
+    parts = ["## A fração do valor de saber capturada, no mapa d", ""]
+    whole = (_upto(fixed, year), _upto(oracle, year), _upto(blind, year) if blind else None)
+    if whole[0] is not None and whole[1] is not None:
+        (fc, fh), (oc, oh) = whole[0], whole[1]
+        plan = (
+            f"planejar (o script 3 fixo menos o script 2) vale {fc - whole[2][0]:+d} moedas e "
+            f"{fh - whole[2][1]:+d} colheitas; "
+            if whole[2] is not None
+            else ""
+        )
+        parts += [
+            f"No ano do mapa d, {plan}saber (o oráculo menos o script 3 fixo) vale "
+            f"{oc - fc:+d} moedas e {oh - fh:+d} colheitas. A fração capturada é o controlador "
+            "menos o script 3 fixo, dividido por esse valor de saber: 0% é não aprender nada, "
+            "100% é saber as regras, e abaixo de zero o controlador foi pior que o script que não "
+            "aprende. Cada corrida é comparada com as réguas no dia em que parou; no começo do "
+            "ano, saber ainda vale pouco em moedas, e a fração oscila mais.",
+            "",
+        ]
+    parts += [
+        _table(["Corrida", "Dias", "Moedas (fração)", "Colheitas (fração)"], rows),
+        "",
+    ]
+    return parts
 
 
 def _arms(spec: Mapping[str, Any]) -> str:

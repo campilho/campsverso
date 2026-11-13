@@ -969,6 +969,40 @@ As três réguas em cada mapa: o script 2 não sabe as regras ocultas e não apr
 | Claude Sonnet 5.5 com memória e o playbook 4 (14 dias) | - | - | - | 62 moedas · 22 colheitas · 4 dias |
 | o valor de saber (oráculo menos script 2) | +162 moedas, +14 dias sem fome | +732 moedas, +19 dias sem fome | +215 moedas, +16 dias sem fome | +1028 moedas, +19 dias sem fome |
 
+## A fração do valor de saber capturada, no mapa d
+
+No ano do mapa d, planejar (o script 3 fixo menos o script 2) vale -3 moedas e +34 colheitas; saber (o oráculo menos o script 3 fixo) vale +1031 moedas e +45 colheitas. A fração capturada é o controlador menos o script 3 fixo, dividido por esse valor de saber: 0% é não aprender nada, 100% é saber as regras, e abaixo de zero o controlador foi pior que o script que não aprende. Cada corrida é comparada com as réguas no dia em que parou; no começo do ano, saber ainda vale pouco em moedas, e a fração oscila mais.
+
+| Corrida | Dias | Moedas (fração) | Colheitas (fração) |
+|---|---|---|---|
+| humano | 15 | 2 (-257%) | 47 (78%) |
+| haiku | 28 | 1 (-8%) | 47 (-56%) |
+| astra | 28 | 117 (3%) | 71 (-2%) |
+| astra-piloto | 2 | 47 (-) | 0 (-) |
+| astra-procedimento | 14 | 71 (-93%) | 24 (-50%) |
+| fable | 28 | 641 (54%) | 106 (76%) |
+| fable-piloto | 2 | 42 (-) | 0 (-) |
+| fable-procedimento | 14 | 217 (255%) | 50 (94%) |
+| gemini | 12 | 1 (-29%) | 38 (75%) |
+| gemini-piloto | 2 | 3 (-) | 0 (-) |
+| gemini-procedimento | 1 | 24 (-) | 0 (-) |
+| haiku-comparar | 28 | 9 (-7%) | 18 (-120%) |
+| haiku-comparar-r2 | 28 | 52 (-3%) | 57 (-33%) |
+| haiku-conselheiro | 28 | 71 (-1%) | 65 (-16%) |
+| haiku-dados | 28 | 44 (-4%) | 42 (-67%) |
+| haiku-dados-r2 | 28 | 236 (15%) | 58 (-31%) |
+| haiku-dados-r3 | 28 | 0 (-8%) | 20 (-116%) |
+| haiku-procedimento | 28 | 8 (-7%) | 10 (-138%) |
+| haiku-procedimento-r2 | 28 | 4 (-8%) | 28 (-98%) |
+| haiku-procedimento-r3 | 28 | 0 (-8%) | 29 (-96%) |
+| haiku-r2 | 28 | 0 (-8%) | 48 (-53%) |
+| haiku-r3 | 28 | 5 (-7%) | 19 (-118%) |
+| opus | 28 | 586 (49%) | 156 (187%) |
+| opus-procedimento | 14 | 122 (29%) | 41 (44%) |
+| script3-d | 28 | 84 (0%) | 70 (-4%) |
+| sonnet | 28 | 401 (31%) | 74 (4%) |
+| sonnet-procedimento | 14 | 62 (-114%) | 22 (-61%) |
+
 ## O que o script 3 aprendeu
 
 O efeito de cada atributo no ritmo da planta, em vezes, com o intervalo de 90% e quantos plantios o mediram. A verdade: a até 4 tiles da água, 1,5 (R-001); repetir a cultura, 0,6 (R-003); o adubo, 1,5. A mata, o caminho e a porta são distratores: o efeito verdadeiro é 1. Um efeito conta como aprendido (✓) quando o intervalo, corrigido pelas comparações múltiplas (o erro de 10% repartido entre os atributos do modelo: uns 99,5% em vez de 90%), não inclui o 1 (ADR-0074).

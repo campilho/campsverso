@@ -731,3 +731,36 @@ def test_o_humano_fica_junto_do_oraculo_no_valor_de_saber(tmp_path: Path) -> Non
     section = out.read_text(encoding="utf-8").split("## O valor de saber")[1].split("\n## ")[0]
     rows = [line.split(" | ")[0] for line in section.splitlines() if line.startswith("| ")]
     assert rows[1:3] == ["| oráculo (sabe)", "| humano, que sabe as regras e não o mapa (15 dias)"]
+
+
+def _coins(n: int, coins: int) -> list[dict[str, Any]]:
+    """Uma corrida quieta de `n` dias que ganha `coins` moedas no dia 1."""
+    first, *rest = _days(n)
+    gain = ev(10, "world.item.created.v1", item="moeda", qty=coins, container_id="camps")
+    return [first, gain, *rest]
+
+
+def test_a_fracao_do_valor_de_saber_capturada_no_mapa_d(tmp_path: Path) -> None:
+    """Plano do M21, §4 e decisão 22: o controlador menos o fixo, sobre o oráculo menos o fixo,
+    no mapa d e com as réguas no dia em que a corrida parou; sem as réguas no d, não há seção."""
+    arena = tmp_path / "20261112-fracao"
+    base = {"cartridge": "farm_morada_do_sol", "seed": 1, "map": "d", "memory": False}
+    script = {**base, "controller": "script"}
+    _run(arena, "oraculo-d", {**script, "name": "oraculo-d", "script": "oracle"}, _coins(28, 100))
+    fixed = {**script, "name": "script3-fixo-d", "script": "farmer3-fixo"}
+    _run(arena, "script3-fixo-d", fixed, _coins(28, 20))
+    llm = {**base, "controller": "llm", "memory": True}
+    _run(arena, "sonnet", {**llm, "name": "sonnet"}, _coins(28, 60))
+    _run(arena, "sonnet-procedimento", {**llm, "name": "sonnet-procedimento"}, _coins(14, 0))
+    out = tmp_path / "relatorio.md"
+    assert main([str(arena), "--out", str(out)]) == 0
+    text = out.read_text(encoding="utf-8")
+    section = text.split("## A fração do valor de saber capturada, no mapa d")[1].split("\n## ")[0]
+    assert "saber (o oráculo menos o script 3 fixo) vale +80 moedas" in section
+    assert "| sonnet | 28 | 60 (50%) | 0 (-) |" in section
+    assert "| sonnet-procedimento | 14 | 0 (-25%) | 0 (-) |" in section
+    assert "oraculo-d |" not in section
+    alone = tmp_path / "sem-reguas"
+    _run(alone, "sonnet", {**llm, "name": "sonnet"}, _coins(28, 60))
+    assert main([str(alone), "--out", str(out)]) == 0
+    assert "## A fração do valor de saber" not in out.read_text(encoding="utf-8")

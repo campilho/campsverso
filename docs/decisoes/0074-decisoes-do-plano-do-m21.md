@@ -361,10 +361,12 @@ Com a energia nova, o ajudante ainda não pagava, e a explicação era o teto de
 37. **O ano do humano para no dia 15, e o lacre abre** (12/nov, o usuário).
     - **O usuário jogou 15 dias do mapa d,** às cegas, e parou por falta de tempo: toca este projeto e o CampsCast em paralelo. A partida entra na rodada como está, com o corte do dia 14 ao lado dos modelos de 14 dias; o ano inteiro do humano não entra.
     - **O lacre abriu em 12/nov,** com `make arena-humano` e `make arena-report` em `data/arena/m21-terceira-energia` (43 corridas). O relatório está em `docs/arena/m21-terceira-energia.md`.
-    - **Três consertos do relatório antes de publicar:**
+    - **Quatro consertos do relatório antes de publicar:**
       - a partida do humano não guardava a variante do mapa, e aparecia como do mapa a; a exploração já lia o mapa certo do arquivo;
       - "O valor de saber" ganha a linha do humano junto do oráculo, como o plano previa (§2): ele sabe as regras e não o mapa;
       - na mesma seção, cada braço do Haiku (a comparação, o conselheiro, o caderno completo) e cada comprimento de corrida (os pilotos de 2 dias, os 14 dias, o Gemini de 12) ficam numa linha própria, com os dias no rótulo.
+      - a fração do valor de saber capturada no mapa d, a medida principal do plano (§4 e §8; decisão 22), não estava no relatório: entra numa seção própria, com o planejar e o saber do ano, e cada corrida comparada com as réguas no dia em que parou.
+    - **O M21 fecha com isso** (plano, §16): o que a rodada mostrou está no plano, no diário de 12/nov e na bíblia 3 (§19).
 
 A tela de quem joga ganha a carga da mochila ao lado do inventário ("carga 12,5 de 20", em alerta a partir de 90%) e as recusas em português ("Não deu para colher: não cabe na mochila; guarde alguma coisa no baú.").
 

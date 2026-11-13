@@ -58,14 +58,14 @@ A pergunta: **num mundo maior, com estações, encomendas e regras escondidas em
 
 | Marco | Entrega | Situação |
 |---|---|---|
-| Antes do M16: a rodada do humano da v0.2 | o usuário joga a Boa Vista com a seed da rodada do M14 | as ferramentas prontas; a partida espera uma noite livre |
+| Antes do M16: a rodada do humano da v0.2 | o usuário joga a Boa Vista com a seed da rodada do M14 | saiu: a partida no mapa d da Morada a substituiu (plano do M21, §10) |
 | M16: a Fazenda Morada do Sol | o cenário novo com o mapa maior e a câmera que rola, canteiros sem teto, o ano acelerado com as quatro estações, as regras ocultas novas, a arte | concluído em 23/out/2026 ([plano](docs/planos/m16-morada-do-sol.md), ADR-0067, [bíblia](docs/arquitetura/fazenda-morada-do-sol-biblia.md)) |
 | M17: ver e assistir | a névoa, a noite e a lanterna; a visão arena, com as corridas ao vivo e gravadas; os menus do humano | concluído em 24/out/2026 ([plano](docs/planos/m17-ver-e-assistir.md), ADR-0068) |
 | M18: a economia | um módulo de economia reaproveitável: oferta e demanda, encomendas com prazo, a feira, processamento, clima | concluído em 24/out/2026 ([plano](docs/planos/m18-a-economia.md), ADR-0069) |
 | M19: os controladores e a medição | o fazendeiro-script 3, o oráculo, o caderno de campo, a prova do mundo e o juiz, as variantes do mapa | concluído em 25/out/2026 ([plano](docs/planos/m19-os-controladores-e-a-medicao.md), ADR-0070, [a rodada de verificação](docs/arena/2026-10-25.md)) |
 | M20: os ajudantes | vários avatares; cinco personagens contratáveis, cada um com a sua ficha; a visão do jogador pela percepção do avatar | concluído em 26/out/2026 ([plano](docs/planos/m20-os-ajudantes.md), ADR-0072, ADR-0073: nesta Morada o ajudante não paga, e virou um teste de julgamento) |
-| M21: a terceira arena | a rodada do humano da v0.3; Claude, script 3 e oráculo; depois GPT e Gemini | próximo |
-| M22: fechamento | critérios de aceite, diário, notas e a tag `v0.3.0` | a fazer |
+| M21: a terceira arena | a rodada do humano da v0.3; Claude, script 3 e oráculo; depois GPT e Gemini | concluído em 12/nov/2026 ([plano](docs/planos/m21-a-terceira-arena.md), ADR-0074, [o relatório](docs/arena/m21-terceira-energia.md): ninguém achou a água pela causa, e os maiores capturaram metade do valor de saber jogando a economia visível) |
+| M22: fechamento | critérios de aceite, diário, notas e a tag `v0.3.0` | próximo |
 
 ## Depois: v0.4.0 — O escritório que constrói a si mesmo
 

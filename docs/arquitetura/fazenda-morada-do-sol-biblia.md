@@ -1,6 +1,6 @@
 # Bíblia da Fazenda Morada do Sol (a fazenda 3, M16)
 
-**Status:** escrita em 23/out/2026, ao fim do M16, a partir do plano do marco e da ADR-0067; a noite e a lanterna entraram no M17 (ADR-0068), a economia e o clima no M18 (ADR-0069, §11 a §14), e as variantes do mapa, o fazendeiro-script 3, o oráculo e a fome em 2 por hora no M19 (ADR-0070, §3, §9, §10, §15 e §16), e a energia no M21 (ADR-0074, §18). É a fonte dos números e das regras do cenário `farm_morada_do_sol` e dos mundos `farm-morada-do-sol-01`, `-02` e `-03`. O cenário estende a Fazenda Boa Vista: o que esta bíblia não diz vale como na bíblia 2 (`fazenda-boa-vista-biblia.md`) e, abaixo dela, na bíblia da v0.1. Isso inclui as ferramentas, o baú, o mercado que satura, o fogão, a validade, o sono e o desmaio.
+**Status:** escrita em 23/out/2026, ao fim do M16, a partir do plano do marco e da ADR-0067; a noite e a lanterna entraram no M17 (ADR-0068), a economia e o clima no M18 (ADR-0069, §11 a §14), e as variantes do mapa, o fazendeiro-script 3, o oráculo e a fome em 2 por hora no M19 (ADR-0070, §3, §9, §10, §15 e §16), e a energia e o mapa d no M21 (ADR-0074, §18 e §19). É a fonte dos números e das regras do cenário `farm_morada_do_sol` e dos mundos `farm-morada-do-sol-01`, `-02`, `-03` e `-04`. O cenário estende a Fazenda Boa Vista: o que esta bíblia não diz vale como na bíblia 2 (`fazenda-boa-vista-biblia.md`) e, abaixo dela, na bíblia da v0.1. Isso inclui as ferramentas, o baú, o mercado que satura, o fogão, a validade, o sono e o desmaio.
 
 ## 1. Conceito
 
@@ -50,9 +50,9 @@ O mapa lógico é gerado por script a partir desta tabela e editado no Tiled daq
 | **a, o rio** | `farm-morada-do-sol-01` | o rio na borda leste e a lagoa do morro | longe da casa, no caminho dos corvos |
 | **b, o córrego** | `farm-morada-do-sol-02` | um córrego de norte a sul na coluna 20, com a ponte da estrada e uma lagoinha no fim; sem rio | de 9 a 22 tiles da porta, 60% ou mais a salvo dos corvos, a 3 tiles do poço ou mais |
 | **c, as lagoas** | `farm-morada-do-sol-03` | três lagoas pequenas, no morro, na clareira e a leste; sem rio | só a mais de 22 tiles da porta: toda no caminho dos corvos |
-| **d** | (M21) | reservada, com outra receita | nunca entra nos testes do script 3 |
+| **d, a surpresa** | `farm-morada-do-sol-04` (M21) | uma lagoa nova a sudoeste (colunas 3 a 8, linhas 31 a 34); o rio sai, a borda leste vira mata, e a lagoa do morro também sai | de 9 a 20 tiles da porta, 70% ou mais a salvo dos corvos, a 6 tiles do poço ou mais; nunca entra nos testes do script 3 (§19) |
 
-Os três mundos têm a mesma seed (20261022): a diferença entre eles é só o mapa. A água precisa de dois tiles de largura para a margem se desenhar, e as lagoas são retângulos.
+Os quatro mundos têm a mesma seed (20261022): a diferença entre eles é só o mapa. A água precisa de dois tiles de largura para a margem se desenhar, e as lagoas são retângulos.
 
 ## 4. A percepção
 
@@ -296,4 +296,22 @@ Recalibrada em 30/out/2026, depois de o usuário jogar o primeiro dia do mapa d 
 | Um dia | uns 20 canteiros novos (cavar, plantar e regar custam 4); regar todo dia o que cresce segura quem trabalha sozinho em uns 57 canteiros, e daí em diante o ajudante tem serviço |
 | O freio | a semente e o caixa: com as 100 moedas do começo, uns 12 canteiros no primeiro dia; o oráculo cavou no máximo 12 ou 13 num dia |
 | As réguas | refeitas em `data/arena/m21-terceira-energia` (a tabela na ADR-0074); a promessa do mapa d continua de pé |
+
+## 19. O mapa d e a terceira arena (M21)
+
+O mapa da terceira arena (ADR-0074, decisão 2), desenhado no M21 com outra receita e jogado às cegas: o usuário aprovou as promessas, e não o desenho, e viu o mapa só depois de jogar. Os modelos rodaram nele com os números lacrados até o fim da partida do humano, que abriu em 12/nov (decisão 37).
+
+- **A receita "a surpresa"** (`data/maps/receitas.yaml`): o rio da borda leste e a lagoa do morro saem, e uma lagoa nova aparece a sudoeste, longe dos dois lugares de água do mapa a. `make mapa-variantes` confere as promessas: a terra boa de 9 a 20 tiles da porta, 70% ou mais dela a salvo dos corvos, a 6 tiles do poço ou mais (onde o script 2 cava), e o saber valendo pelo menos 150 moedas e 15 colheitas no ano.
+- **As réguas, com a energia de §18** (um ano; moedas, colheitas e dias com a fome em 100):
+
+| Quem | Mapa a | Mapa b | Mapa c | Mapa d |
+|---|---|---|---|---|
+| script 2 (não sabe) | 85 · 38 · 19 | 85 · 38 · 19 | 85 · 38 · 19 | 85 · 38 · 19 |
+| script 3 fixo (a régua do meio) | 82 · 72 · 11 | 82 · 72 · 11 | 82 · 72 · 11 | 82 · 72 · 11 |
+| script 3 (aprende) | 5 · 50 · 9 | 119 · 79 · 2 | 54 · 58 · 8 | 84 · 70 · 6 |
+| oráculo (sabe) | 247 · 104 · 5 | 817 · 117 · 0 | 300 · 90 · 3 | 1.113 · 117 · 0 |
+
+- **O valor de saber no mapa d é o maior dos quatro:** 1.028 moedas e 19 dias sem fome. O oráculo põe os 140 plantios na faixa da lagoa.
+- **O script 3 aprende as duas regras no mapa d:** a água a até 4 tiles (1,43, de 1,20 a 1,69) e a fadiga (0,55), as duas com o intervalo corrigido pelas comparações múltiplas acima ou abaixo de 1. Mesmo assim, o ano dele não passa do script 2 em moedas: só 22 dos 94 plantios caem na faixa da lagoa.
+- **O que os modelos e o humano fizeram nele** está no relatório (`docs/arena/m21-terceira-energia.md`) e no plano do M21 (§16).
 
