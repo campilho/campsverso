@@ -358,6 +358,14 @@ Com a energia nova, o ajudante ainda não pagava, e a explicação era o teto de
       - **o Fable:** 14 dias e 855 chamadas, sem falha, por US$ 36,75. Gastou uns 34% a mais que sem o procedimento nos mesmos dias (27,52), e ficou abaixo do teto de 40.
     - **O Gemini desistiu no dia 1:** 59 chamadas e US$ 0,28. Foram quatro falhas com o erro da decisão 32 (`INVALID_ARGUMENT; Internal Server Error`, do Google, no meio da geração); outras sete chamadas só passaram depois de 2 a 12 tentativas, quatro delas na reserva. As três falhas seguidas que encerraram a corrida falharam no flex e no provedor normal. Sem o playbook, ele foi até o dia 12. O usuário decidiu não insistir: rodar sem o flex não mudaria nada, porque a reserva já é o provedor normal. O resultado é "desistiu no dia 1", com esta causa ao lado.
 
+37. **O ano do humano para no dia 15, e o lacre abre** (12/nov, o usuário).
+    - **O usuário jogou 15 dias do mapa d,** às cegas, e parou por falta de tempo: toca este projeto e o CampsCast em paralelo. A partida entra na rodada como está, com o corte do dia 14 ao lado dos modelos de 14 dias; o ano inteiro do humano não entra.
+    - **O lacre abriu em 12/nov,** com `make arena-humano` e `make arena-report` em `data/arena/m21-terceira-energia` (43 corridas). O relatório está em `docs/arena/m21-terceira-energia.md`.
+    - **Três consertos do relatório antes de publicar:**
+      - a partida do humano não guardava a variante do mapa, e aparecia como do mapa a; a exploração já lia o mapa certo do arquivo;
+      - "O valor de saber" ganha a linha do humano junto do oráculo, como o plano previa (§2): ele sabe as regras e não o mapa;
+      - na mesma seção, cada braço do Haiku (a comparação, o conselheiro, o caderno completo) e cada comprimento de corrida (os pilotos de 2 dias, os 14 dias, o Gemini de 12) ficam numa linha própria, com os dias no rótulo.
+
 A tela de quem joga ganha a carga da mochila ao lado do inventário ("carga 12,5 de 20", em alerta a partir de 90%) e as recusas em português ("Não deu para colher: não cabe na mochila; guarde alguma coisa no baú.").
 
 ## Consequências

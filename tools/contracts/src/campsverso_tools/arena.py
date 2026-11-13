@@ -1149,19 +1149,41 @@ def _hungry_days(r: Run) -> int:
     return sum(1 for d in r.report.complete_days if d.hunger_peak >= 100)
 
 
+def _arms(spec: Mapping[str, Any]) -> str:
+    """Os braços de uma corrida do modelo (ADR-0074): a comparação, o conselheiro e o caderno
+    completo sem o procedimento (com ele, o caderno vem junto e não é braço)."""
+    arms = " e a comparação" if spec.get("compare") else ""
+    arms += " e o conselheiro" if spec.get("advisor") else ""
+    notebook = spec.get("notebook") and not int(spec.get("playbook") or 0)
+    return arms + (" e o caderno completo" if notebook else "")
+
+
 def _knowing_section(runs: Sequence[Run]) -> list[str]:
     """O valor de saber (ADR-0070): o script 2 não sabe, o script 3 aprende e o oráculo sabe, em
     cada mapa da Morada do Sol."""
     by: dict[tuple[str, str], list[Run]] = {}  # as repetições ficam juntas na mesma célula
-    minds: list[str] = []  # cada modelo, com e sem o playbook, é uma linha (ADR-0071)
+    # Cada modelo é uma linha, com e sem o playbook (ADR-0071), em cada braço (ADR-0074) e em
+    # cada comprimento: o piloto de dois dias não divide a célula com o ano. O humano fica junto
+    # do oráculo, porque sabe as regras e não o mapa (plano do M21, §2).
+    minds: list[str] = []
+    people: list[str] = []
+    year = max((len(r.report.complete_days) for r in runs), default=0)
     for r in runs:
         hired = r.spec.get("hire") is not None  # a contratação forçada fica na seção dela
         if r.spec.get("cartridge") == MORADA and r.spec.get("river_bonus", True) and not hired:
             who = str(r.spec.get("script") or "")
+            days = len(r.report.complete_days)
+            length = "" if days >= year else f" ({days} {'dia' if days == 1 else 'dias'})"
+            if r.spec.get("controller") == "human":
+                who = f"humano, que sabe as regras e não o mapa{length}"
+                people += [who] if who not in people else []
             if r.spec.get("controller") == "llm":
                 model = _controller_name({**r.spec, "playbook": False})
                 version = int(r.spec.get("playbook") or 0)
-                who = f"{model} com memória" + (f" e o playbook {version}" if version else "")
+                who = f"{model} com memória{_arms(r.spec)}" + (
+                    f" e o playbook {version}" if version else ""
+                )
+                who += length
                 minds += [who] if who not in minds else []
             by.setdefault((who, str(r.spec.get("map") or "a")), []).append(r)
     if not any(who == "oracle" for who, _ in by):
@@ -1185,6 +1207,7 @@ def _knowing_section(runs: Sequence[Run]) -> list[str]:
             ("farmer2", "script 2 (não sabe)"),
             ("farmer3", "script 3 (aprende)"),
             ("oracle", "oráculo (sabe)"),
+            *((p, p) for p in people),
             *((m, m) for m in minds),
         )
         if any((who, m) in by for m in maps)

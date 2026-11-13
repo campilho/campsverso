@@ -56,6 +56,7 @@ def import_sandbox(sandbox: Path, arena: Path, name: str = "humano") -> Path:
             "river_bonus": world.get("rules_file") is None,
             "seed": world.get("seed"),
             "cartridge": world.get("cartridge"),
+            "map": world.get("map"),  # a variante do mapa (ADR-0070); sem ela, o mapa de sempre
             "days": len(report.complete_days),
             "limits": None,
         },

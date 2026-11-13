@@ -82,6 +82,7 @@ def test_a_partida_entra_na_rodada_ao_lado_das_corridas(tmp_path: Path) -> None:
     assert summary["spec"]["controller"] == "human"
     assert summary["spec"]["seed"] == 7
     assert summary["spec"]["river_bonus"] is True
+    assert summary["spec"]["map"] is None  # um mundo sem variante joga o mapa de sempre
     assert summary["human_from_tick"] == 3  # antes disso, jogou o script
     assert summary["real_seconds"] == 40 * 60  # do primeiro ao último evento, com as pausas
     assert len((out / "archive.jsonl").read_text(encoding="utf-8").splitlines()) == 6
@@ -91,6 +92,16 @@ def test_a_partida_entra_na_rodada_ao_lado_das_corridas(tmp_path: Path) -> None:
     text = md.read_text(encoding="utf-8")
     assert "| Métrica | humano |" in text
     assert "| humano | humano |" in text  # a linha da corrida diz quem controlou
+
+
+def test_a_partida_guarda_a_variante_do_mapa(tmp_path: Path) -> None:
+    """A partida no mapa d do M21 (ADR-0074) entra na rodada como do mapa d, não do de sempre."""
+    sandbox = _sandbox(tmp_path)
+    world = yaml.safe_load((sandbox / "world.yaml").read_text(encoding="utf-8"))
+    (sandbox / "world.yaml").write_text(yaml.safe_dump({**world, "map": "d"}), encoding="utf-8")
+    out = import_sandbox(sandbox, tmp_path / "rodada")
+    summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
+    assert summary["spec"]["map"] == "d"
 
 
 def test_a_partida_de_outra_noite_nao_se_apaga(tmp_path: Path) -> None:

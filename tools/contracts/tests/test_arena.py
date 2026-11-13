@@ -716,3 +716,18 @@ def test_as_corridas_de_14_dias_ficam_lado_a_lado_no_dia_14(tmp_path: Path) -> N
     _run(alone, "opus", {**llm, "name": "opus"}, _days(28))
     assert main([str(alone), "--out", str(out)]) == 0
     assert "## Lado a lado no dia" not in out.read_text(encoding="utf-8")
+
+
+def test_o_humano_fica_junto_do_oraculo_no_valor_de_saber(tmp_path: Path) -> None:
+    """Plano do M21, §2: o humano sabe as regras e não o mapa, e a linha dele fica junto do
+    oráculo; um grupo mais curto que o ano diz os dias no rótulo."""
+    arena = tmp_path / "20261112-humano"
+    base = {"cartridge": "farm_morada_do_sol", "seed": 1, "map": "d", "memory": False}
+    oracle = {**base, "name": "oraculo-d", "controller": "script", "script": "oracle"}
+    _run(arena, "oraculo-d", oracle, _days(28))
+    _run(arena, "humano", {**base, "name": "humano", "controller": "human"}, _days(15))
+    out = tmp_path / "relatorio.md"
+    assert main([str(arena), "--out", str(out)]) == 0
+    section = out.read_text(encoding="utf-8").split("## O valor de saber")[1].split("\n## ")[0]
+    rows = [line.split(" | ")[0] for line in section.splitlines() if line.startswith("| ")]
+    assert rows[1:3] == ["| oráculo (sabe)", "| humano, que sabe as regras e não o mapa (15 dias)"]
