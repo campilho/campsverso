@@ -36,6 +36,9 @@ models:  # dólares por milhão de tokens, tabela conferida em 28/out/2026 (ADR-
   # normal. Com o custo vindo da resposta, a tabela (o preço normal) só superestima a guarda.
   openai/gpt-6-astra: {input_per_mtok: 10.00, output_per_mtok: 50.00, cache_read_per_mtok: 1.00, cache_write_per_mtok: 12.50, openrouter: openai, openrouter_flex: openai/flex}
   google/gemini-4-argon: {input_per_mtok: 2.00, output_per_mtok: 10.00, cache_read_per_mtok: 0.10, cache_write_per_mtok: 0.1875, openrouter: google-ai-studio, openrouter_flex: google-ai-studio/flex}
+  # O Haiku 5.5 pela OpenRouter, no provedor da Anthropic (M22, ADR-0076, decisão 4): o mesmo modelo
+  # pelos dois caminhos, para separar o cano da tradução. Lista de 14/nov/2026, o preço da Anthropic.
+  anthropic/claude-haiku-5.5: {input_per_mtok: 0.10, output_per_mtok: 0.50, cache_read_per_mtok: 0.01, cache_write_per_mtok: 0.125, openrouter: anthropic}
 
 perception:  # foto ou delta por tipo de controlador (ADR-0056)
   deltas_for: [llm]  # script e replay recebem sempre a foto

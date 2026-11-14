@@ -16,6 +16,7 @@ from campsverso_testkit.arena import (
     SPECS,
     SPECS_AJUDANTES,
     SPECS_BOAVISTA,
+    SPECS_CONSERTO,
     SPECS_FAMILIAS,
     SPECS_MORADA,
     SPECS_PLAYBOOK,
@@ -145,6 +146,7 @@ def test_as_corridas_da_boa_vista() -> None:
         "terceira": SPECS_TERCEIRA,
         "familias": SPECS_FAMILIAS,
         "procedimento": SPECS_PROCEDIMENTO,
+        "conserto": SPECS_CONSERTO,
     }
 
 
@@ -259,6 +261,19 @@ def test_as_outras_familias_vao_pelo_flex_no_mapa_d() -> None:
         BudgetLimits(4.00, 8.0),
         BudgetLimits(5.00, 70.0),
     ]
+
+
+def test_a_rodada_do_conserto() -> None:
+    """ADR-0076, decisões 3 e 4: o Haiku pela OpenRouter em dois dias, o piloto do Astra
+    consertado e 14 dias dele, no mapa d, com memória e sem playbook, como as corridas do M21."""
+    assert [(s.name, s.model, s.days, s.flex, s.limits) for s in SPECS_CONSERTO] == [
+        ("haiku-openrouter", "anthropic/claude-haiku-5.5", 2, False, BudgetLimits(0.60, 2.0)),
+        ("astra-consertado-piloto", "openai/gpt-6-astra", 2, True, BudgetLimits(4.00, 8.0)),
+        ("astra-consertado", "openai/gpt-6-astra", 14, True, BudgetLimits(5.00, 22.0)),
+    ]
+    assert {
+        (s.cartridge, s.seed, s.map, s.memory, s.playbook, s.controller) for s in SPECS_CONSERTO
+    } == {("farm_morada_do_sol", SEED_MORADA, "d", True, 0, "llm")}
 
 
 def test_a_rodada_com_o_procedimento() -> None:

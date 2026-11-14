@@ -98,6 +98,7 @@ MODEL_NAMES = {  # o nome completo de cada modelo, para não confundir (ADR-0074
     "claude-fable-5-1": "Claude Fable 5.1",
     "openai/gpt-6-astra": "GPT-6 Astra",
     "google/gemini-4-argon": "Gemini 4 Argon",
+    "anthropic/claude-haiku-5.5": "Claude Haiku 5.5 pela OpenRouter",  # ADR-0076, decisão 4
 }
 # O que faz de uma crença (ou anotação) sobre o leste uma descoberta, e não só uma menção: um
 # comparativo de tempo ou de vantagem, ou o rio. "Madura em 3 dias" não conta: é o manual. É uma

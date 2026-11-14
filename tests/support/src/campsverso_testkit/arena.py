@@ -344,6 +344,46 @@ SPECS_PROCEDIMENTO: tuple[Spec, ...] = (
         )
     ),
 )
+# O conserto do Astra (14/nov, o usuário; ADR-0076, decisões 2 a 4): no M21, ele respondeu vazio em
+# 47% das chamadas, e a ferramenta passou a ser obrigatória na OpenRouter fora da Anthropic. Na
+# mesma pasta da terceira, no mapa d, com memória e sem playbook, como o astra do ano: o Haiku pela
+# OpenRouter em dois dias, ao lado dos dois primeiros dias do haiku direto (o cano, sem a
+# tradução para outra família); o piloto do Astra consertado; e 14 dias dele, ao lado dos outros no
+# corte do dia 14. Um passo pago por vez, com o ok do usuário.
+HAIKU_OPENROUTER = "anthropic/claude-haiku-5.5"
+SPECS_CONSERTO: tuple[Spec, ...] = (
+    _morada(
+        "haiku-openrouter",
+        "llm",
+        memory=True,
+        map="d",
+        model=HAIKU_OPENROUTER,
+        days=2,
+        limits=HAIKU_TETO,
+    ),
+    _morada(
+        "astra-consertado-piloto",
+        "llm",
+        memory=True,
+        map="d",
+        model=ASTRA,
+        flex=True,
+        days=2,
+        limits=BudgetLimits(4.00, 8.0),
+    ),
+    # Pelo astra do ano sem as respostas vazias (US$ 15,66 em 28 dias), com o dia inteiro de
+    # trabalho: de 12 a 16 em 14 dias. O teto fica acima, para não parar num dia caro.
+    _morada(
+        "astra-consertado",
+        "llm",
+        memory=True,
+        map="d",
+        model=ASTRA,
+        flex=True,
+        days=14,
+        limits=BudgetLimits(5.00, 22.0),
+    ),
+)
 ROUNDS: dict[str, tuple[Spec, ...]] = {
     "camps": SPECS,
     "boavista": SPECS_BOAVISTA,
@@ -353,6 +393,7 @@ ROUNDS: dict[str, tuple[Spec, ...]] = {
     "terceira": SPECS_TERCEIRA,
     "familias": SPECS_FAMILIAS,
     "procedimento": SPECS_PROCEDIMENTO,
+    "conserto": SPECS_CONSERTO,
 }
 
 
@@ -562,8 +603,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         default="camps",
         help="a lista de corridas: camps (a fazenda 1, M12), boavista (a fazenda 2, M14), "
         "morada (a verificação do M19), playbook (o agricultor treinado, ADR-0071), ajudantes "
-        "(a contratação forçada, ADR-0073), terceira e familias (o M21, ADR-0074) ou "
-        "procedimento (o playbook 4, ADR-0074, decisão 36)",
+        "(a contratação forçada, ADR-0073), terceira e familias (o M21, ADR-0074), "
+        "procedimento (o playbook 4, ADR-0074, decisão 36) ou conserto (o Astra consertado e "
+        "o Haiku pela OpenRouter, ADR-0076)",
     )
     parser.add_argument(
         "--only",
