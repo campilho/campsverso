@@ -9,6 +9,11 @@ outros laboratórios (o GPT-6 Astra, o Gemini 4 Argon). Os Claude continuam no A
   os `reasoning_details` como vieram; a janela o devolve sem mudança, como a OpenRouter pede
   quando há ferramentas. O `tool_use` guarda os argumentos como o modelo os escreveu
   (`arguments`), e é esse texto que volta.
+- **A ferramenta é obrigatória** (`tool_choice: required`) nos modelos de fora da Anthropic:
+  toda chamada da plataforma espera uma (a decisão, a reflexão, a prova, o juiz), e com `auto`
+  o GPT-6 Astra encerrava a vez sem ação logo depois do resultado de uma ferramenta, em 47%
+  das chamadas do M21 (plano do M22, §3). O Claude com raciocínio não aceita a ferramenta
+  forçada e não precisa dela, então pela OpenRouter ele fica com `auto`, como na Anthropic.
 - **Os marcadores de cache** vão nas partes de texto (o sistema e o texto do usuário), onde o
   provedor os aceita; a mensagem `tool` é só texto e não leva marcador.
 - **O provedor é fixo** em cada modelo (`provider.order` com um só, sem fallback), e um modelo
@@ -55,6 +60,7 @@ STOP_REASONS = {
     "content_filter": "refusal",
 }
 ERROR_MARK = "(erro) "  # o formato de chat não tem o `is_error` do tool_result
+ANTHROPIC_PREFIX = "anthropic/"  # os Claude pela OpenRouter
 
 type Sleep = Callable[[float], Awaitable[None]]
 
@@ -193,6 +199,11 @@ def chat_tools(tools: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
     return functions
 
 
+def tool_choice(model: str) -> str:
+    """`required` fora da Anthropic, `auto` nos Claude (o porquê está no começo do módulo)."""
+    return "auto" if model.startswith(ANTHROPIC_PREFIX) else "required"
+
+
 def chat_body(request: ModelRequest, provider: str) -> dict[str, Any]:
     """O corpo do pedido, com o provedor fixo e sem fallback."""
     body: dict[str, Any] = {
@@ -203,7 +214,7 @@ def chat_body(request: ModelRequest, provider: str) -> dict[str, Any]:
     }
     if request.tools:
         body["tools"] = chat_tools(request.tools)
-        body["tool_choice"] = "auto"
+        body["tool_choice"] = tool_choice(request.model)
         body["parallel_tool_calls"] = False  # uma ação por vez (ADR-0059)
     if request.effort is not None:
         body["reasoning"] = {"effort": request.effort}

@@ -1528,6 +1528,15 @@ def _found_rules(r: Run) -> int | None:
     return sum(1 for mark in rules.values() if mark.get("verdict") == "causa")
 
 
+def _no_action(r: Run) -> str:
+    """As respostas sem ferramenta da mente (o `no_tool` do resumo), de quantas chamadas."""
+    calls = int(r.summary.get("calls") or 0)
+    if not calls:
+        return EMPTY
+    none = int(r.summary.get("no_tool") or 0)
+    return f"{none} de {_n(calls)} ({_n(100 * none / calls, 0)}%)"
+
+
 def _cost_section(runs: Sequence[Run]) -> list[str]:
     """O custo por resultado (ADR-0074, decisão 28): o que cada corrida de modelo gastou por
     chamada, por colheita, por moeda acima do script 3 fixo do mesmo mapa e por regra achada, os
@@ -1609,6 +1618,7 @@ def _cost_section(runs: Sequence[Run]) -> list[str]:
                 for r in models
             ),
         ],
+        ["Respostas sem ação", *(_no_action(r) for r in models)],
     ]
     return [
         "## O custo por resultado",
@@ -1620,7 +1630,9 @@ def _cost_section(runs: Sequence[Run]) -> list[str]:
         'causa" do juiz de referência. As chamadas repetidas são as que o adaptador tentou de '
         "novo até responder (o flex às vezes fica indisponível); as da reserva, as que o flex não "
         "atendeu e o provedor normal sim, pelo preço normal (decisão 31). A latência p95 é a "
-        "espera das chamadas lentas.",
+        "espera das chamadas lentas. As respostas sem ação são as que não escolheram nenhuma "
+        "ferramenta: a mente as transforma em esperar 15 minutos, e o avatar fica parado (o "
+        "Astra do M21 respondeu assim em quase metade das chamadas; plano do M22, §3).",
         "",
         _table(["Medida", *(r.name for r in models)], rows),
         "",

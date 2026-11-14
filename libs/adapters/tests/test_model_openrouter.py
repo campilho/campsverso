@@ -24,6 +24,7 @@ from campsverso_adapters import (
 from campsverso_adapters.model_openrouter import (
     PATIENT_RETRIES,
     PATIENT_WAIT_SECONDS,
+    chat_body,
     chat_messages,
     response_blocks,
 )
@@ -140,7 +141,7 @@ async def test_o_pedido_vai_no_formato_de_chat_com_o_provedor_fixo() -> None:
     assert body["reasoning"] == {"effort": "low"}
     assert (body["max_tokens"], body["tool_choice"], body["parallel_tool_calls"]) == (
         512,
-        "auto",
+        "required",
         False,
     )
     assert body["tools"] == [
@@ -183,6 +184,19 @@ async def test_o_pedido_vai_no_formato_de_chat_com_o_provedor_fixo() -> None:
     # No chat, o cache está dentro do prompt; na porta, a entrada é o que sobra.
     assert (response.usage.input_tokens, response.usage.cache_read_input_tokens) == (1228, 3072)
     assert (response.usage.output_tokens, response.usage.cost_usd) == (142, 0.022002)
+
+
+def test_a_ferramenta_e_obrigatoria_fora_da_anthropic() -> None:
+    """Com `auto`, o Astra encerrava a vez sem ação em 47% das chamadas do M21 (plano do M22,
+    §3); o Claude com raciocínio não aceita a ferramenta forçada e fica com `auto`."""
+    assert chat_body(_request(), "openai")["tool_choice"] == "required"
+    gemini = chat_body(_request(model="google/gemini-4-argon"), "google-ai-studio")
+    assert gemini["tool_choice"] == "required"
+    claude = chat_body(_request(model="anthropic/claude-haiku-5.5"), "anthropic")
+    assert claude["tool_choice"] == "auto"
+    sem_ferramentas = chat_body(_request(tools=[]), "openai")
+    assert "tool_choice" not in sem_ferramentas
+    assert "parallel_tool_calls" not in sem_ferramentas
 
 
 def test_a_conversa_volta_ao_chat_sem_mudanca() -> None:

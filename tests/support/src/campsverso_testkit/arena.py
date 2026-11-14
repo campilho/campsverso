@@ -490,9 +490,11 @@ async def run_spec(
         flush(day)
         partial = summary(pipeline)
         elapsed = (datetime.now(UTC) - started).total_seconds()
+        # As respostas sem ação deixam o avatar parado (plano do M22, §3): a saúde as lê aqui.
+        quiet = f"sem ação {partial['no_tool']}, " if partial["calls"] else ""
         _say(
             f"{spec.name} dia {day}: {partial['calls']} chamadas, US$ {partial['cost_usd']:.4f}, "
-            f"recusas {sum(partial['rejected'].values())}, desmaios {partial['faints']}, "
+            f"{quiet}recusas {sum(partial['rejected'].values())}, desmaios {partial['faints']}, "
             f"fome {partial['needs'].get('fome', 0):.0f}, {elapsed:.0f} s",
             log,
         )

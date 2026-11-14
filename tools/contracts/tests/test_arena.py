@@ -512,6 +512,9 @@ def test_o_custo_por_resultado_compara_com_o_fixo_e_conta_as_regras(tmp_path: Pa
     _run(arena, "haiku", haiku, day(90, *calls))
     gemini = {**haiku, "name": "gemini", "model": "google/gemini-4-argon", "flex": True}
     _run(arena, "gemini", gemini, day(30, llm_call(1, 0.20, 2000)))
+    resumo = arena / "gemini" / "summary.json"  # a mente respondeu sem ação 4 de 10 vezes
+    lido = json.loads(resumo.read_text(encoding="utf-8"))
+    resumo.write_text(json.dumps({**lido, "calls": 10, "no_tool": 4}), encoding="utf-8")
     rules = {
         "agua": {"verdict": "causa", "belief_id": "bel-0001", "why": ""},
         "fadiga": {"verdict": "lugar", "belief_id": "", "why": ""},
@@ -534,6 +537,7 @@ def test_o_custo_por_resultado_compara_com_o_fixo_e_conta_as_regras(tmp_path: Pa
     assert "| Regras achadas pela causa (juiz de referência) | 1 | - |" in text
     assert "| Custo por regra achada (US$) | 0,80 | - |" in text
     assert "| Chamadas repetidas / na reserva / que falharam | 1 / 1 / 0 | 0 / 0 / 0 |" in text
+    assert "| Respostas sem ação | 0 de 1 (0%) | 4 de 10 (40%) |" in text
 
 
 def test_na_morada_o_relatorio_mostra_o_valor_de_saber_e_o_que_o_script_3_aprendeu(
