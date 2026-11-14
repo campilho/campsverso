@@ -2,7 +2,11 @@
 
 Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão maior, só entram campos opcionais novos; mudança incompatível vira um tipo novo (`.v2`). A checagem `make compat` confere isso a cada commit.
 
-## Não publicado (M21)
+## v0.3.0: 2026-11-14
+
+A fazenda sofisticada: a Fazenda Morada do Sol com o ano e as estações, ver e assistir, a economia e o clima, os controladores e a medição, os ajudantes e a terceira arena. São 13 eventos novos (64 no total, com 9 comandos), e o resto são campos opcionais; nenhuma mudança incompatível (`make compat`). As seções abaixo são as de cada marco.
+
+### M21
 
 - **A reserva do flex** (ADR-0074, decisão 31): `llm.call.completed.v1` ganha o campo opcional `fallback` (sempre `true` quando vem): o provedor flex se esgotou num erro passageiro e o provedor normal do mesmo modelo respondeu, pelo preço dele. O `attempts` conta as tentativas nos dois. O exemplo da OpenRouter passou pela reserva.
 - **As tentativas** (ADR-0074, decisão 28): `llm.call.completed.v1` ganha o campo opcional `attempts`, quantas tentativas o adaptador fez até a resposta quando repetiu a chamada (no mínimo 2; sem o campo, foi a primeira). É a confiabilidade do provedor flex da OpenRouter no relatório da arena. O exemplo da OpenRouter ganhou o campo.
@@ -12,7 +16,7 @@ Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão 
 - **O menu de quem joga** (M21, achado pelo usuário ao jogar o mapa d): a afordância (`common/defs.v1`, `affordance`) ganha os campos opcionais `cost` (a energia e os minutos da tabela do cartucho) e `note` (uma nota, como o horário de quem atende); o parâmetro (`affordance_param`) ganha `prices` (o preço de tabela de cada escolha), `price_attribute` (o começo do nome do atributo do alvo com o preço de agora: `preco_semente_milho`) e `stock_attribute` (o atributo do alvo com o que há hoje). Vão no `world.session.started.v1`; o exemplo ganhou um quiosque.
 - **O custo na tela** (ADR-0074): o estado da tela (`realtime/welcome.v1`, `state`) ganha o campo opcional `costs`: por controlador, o gasto do último dia com chamadas, o total, as chamadas cobradas e a parte do conselheiro; e o último aviso da guarda de orçamento. Projetado dos `llm.call.completed` cobrados e dos `ops.budget.*`; só a visão do operador o recebe.
 
-## Não publicado (M20)
+### M20
 
 - **A presença do avatar** (ADR-0072), dois tipos novos de visibilidade `world`, produtor `kernel`:
   - `campsverso.avatar.entered.v1`: o avatar entrou no mundo (`avatar_id`, `position`, `reason`), como o ajudante que chega para trabalhar; passa a receber pedidos de decisão;
@@ -23,18 +27,18 @@ Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão 
   - `campsverso.economy.labor.dismissed.v1`: dispensado antes do fim (`helper`, `employer`, `days_left`, `day`); os dias pagos não voltam;
   - `campsverso.economy.labor.ended.v1`: o contrato terminou (`helper`, `employer`, `day`).
 
-## Não publicado (M19)
+### M19
 
 - **O experimento da noite** (ADR-0070): `memory.reflected.v1` ganha os campos opcionais `experiment` (a hipótese, o teste e a previsão que a reflexão propôs para o dia seguinte) e `experiment_result` (`cumpriu`, `falhou` ou `inconclusivo`: o veredito sobre o experimento da noite anterior). Só a mente que usa experimentos (a da Morada do Sol) os publica.
 - **A madura que murcha sem colher** (ADR-0062; achado no M19): `farm.crop.withered.v1` aceita `dry_days: 0`, a planta madura que murchou porque ninguém a colheu em 3 dias na Boa Vista e na Morada do Sol. O código publicava 0 desde o M13, e o leitor das métricas contava as murchas da madura por ele, mas o mínimo do schema era 1: a primeira madura esquecida derrubava o barramento que valida. Relaxar o mínimo é compatível (`make compat`).
 
-## M18 (publicado em 25/out, antes de uma versão)
+### M18 (publicado em 25/out, antes da versão)
 
 - **A métrica que soma** (ADR-0069): `metric` ganha o campo opcional `field`: num `count`, o campo numérico do evento que se soma no lugar de contar (as moedas recebidas por canal).
 - **O clima com previsão** (ADR-0069): `world.weather.changed.v1` ganha `forecast` (o tempo de um dia que ainda não chegou), e as condições novas `storm` e `drought` cabem no `condition`, que já é texto aberto; a foto (`perception.delivered.v1`, `view.weather`) e o delta (`seen_weather`) ganham `tomorrow`, o tempo de amanhã quando a previsão já saiu; e um tipo novo, `campsverso.farm.crop.knocked_down.v1` (`world`, produtor `kernel`, publicado pelo cartucho farm): a planta madura que a tempestade derrubou (`plot_id`, `crop`, `day`).
 - **As encomendas** (ADR-0069): o domínio de biblioteca `economy` (`domains.json`, chave `libraries`), com quatro tipos novos de visibilidade `world`, produtor `kernel`, publicados pelo cartucho que usa a `libs/economy`: `campsverso.economy.order.posted.v1` (um pedido apareceu no quadro: `order_id`, `board_id`, `client`, `item`, `qty`, `reward`, `posted_day`, `due_day`), `campsverso.economy.order.accepted.v1` (`order_id`, `taker`, `day`), `campsverso.economy.order.delivered.v1` (entregue e pago na hora: `order_id`, `client`, `item`, `qty`, `reward`, `taker`, `day`) e `campsverso.economy.order.expired.v1` (o prazo passou: `order_id`, `client`, `item`, `qty`, `due_day`, `taker?`, `day`).
 
-## M16 e M17 (publicados em 24/out, antes de uma versão)
+### M16 e M17 (publicados em 24/out, antes da versão)
 
 - **A primitiva de remover entidade** (ADR-0067), um tipo novo:
   - `campsverso.world.entity.despawned.v1` (`world`, produtor `kernel`): uma entidade removida em tempo de execução, como o canteiro vazio que volta a ser grama (`entity_id`, `kind`, `position?`, `reason`, `action_id?`). Avatares, contêineres com itens ou com entidades dentro, e o alvo de uma ação em andamento não se removem.

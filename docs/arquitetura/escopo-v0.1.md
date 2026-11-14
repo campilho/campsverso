@@ -34,6 +34,8 @@ Revisão de 20/out/2026 (ADR-0064): a v0.3 passa a ser a fazenda sofisticada, o 
 
 Revisão de 21/out/2026 (ADR-0065): a v0.2 foi fechada como `v0.2.0`, com o aceite em `docs/aceite-v0.2.md`. A arena teve o script, o Haiku, o Sonnet e o Opus; o humano ficou como referência qualitativa.
 
+Revisão de 14/nov/2026 (ADR-0076): a v0.3 foi fechada como `v0.3.0`, com o aceite em `docs/aceite-v0.3.md`. A Fazenda Morada do Sol, a economia, os ajudantes e a terceira arena, com três famílias de modelos e o humano em 15 dias; a v0.4 começa pela bancada dos harnesses.
+
 ---
 
 ## 3. Dentro e fora da v0.1

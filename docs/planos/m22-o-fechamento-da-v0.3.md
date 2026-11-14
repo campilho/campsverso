@@ -244,3 +244,30 @@ A v0.3 fecharia em uns US$ 275, dentro do teto de 300.
 7. **"A v0.3 em números"** no diário, com o custo de API por marco. *Recomendação: sim, como na v0.2.*
 8. **As ideias da §7** no `futuro.md`, com destino v0.4, e a rodada 3 registrada como sua decisão de 13/nov. *Recomendação: sim.*
 9. **A tag `v0.3.0` e a Release** no GitHub, depois do seu ok. *Recomendação: sim, como nas outras versões.*
+
+## 10. Como ficou
+
+Feito em 13 e 14/nov, com as nove decisões como recomendado (ADR-0076).
+
+- **O conserto** (`cf837ac`): na OpenRouter, a ferramenta obrigatória fora da Anthropic; a linha "respostas sem ação" no relatório e no progresso de cada dia. O relatório do M21 regravado mostra o Astra do ano com 878 de 1.872 (47%), o do procedimento com 43%, o Gemini com 10% e os Claude perto de 0%.
+- **A rodada "conserto"** (`41964f6`), na pasta da terceira arena, um passo pago por vez:
+  - **o Haiku pela OpenRouter, 2 dias (US$ 0,11):** nenhuma resposta vazia e a mesma latência do direto, mas umas duas vezes o custo do Haiku direto (US$ 0,045 a 0,050 no dia 2). A tradução só marca o cache no sistema e no texto do usuário, e a conversa cresce fora do cache;
+  - **o piloto do Astra consertado (US$ 1,50):** nenhuma resposta sem ação em 88 chamadas, contra US$ 2,11 do piloto antigo;
+  - **o Astra consertado, 14 dias (US$ 10,42):** nenhuma resposta sem ação em 586 chamadas. No dia 14, 187 moedas e 31 colheitas, contra 8 moedas e 23 colheitas do Astra do M21 no mesmo dia; nas colheitas, entre o Sonnet (21) e o Fable (38), abaixo do Opus (50). Nenhuma regra achada pelos dois juízes, nenhum plantio na faixa da lagoa, e a cultura repetida em todos os 31 plantios.
+- **As conferências:**
+  - os soaks repetem a fazenda 1 (1.175), a Boa Vista (220) e a Morada do Sol nos mapas a e d (85);
+  - o `make check` com `TZ=UTC` deu verde, com 655 testes em Python, 90 da tela e 3 dos contratos, e 14 contratos de arquitetura;
+  - o `make ui-e2e` passou 6 de 6;
+  - as duas chamadas reais funcionaram, e a da OpenRouter, que chama de novo depois do resultado de uma ferramenta, mostrou o conserto direto.
+- **A documentação:** o aceite, as notas da v0.3.0, o README com o diagrama novo, o CHANGELOG dos contratos com a seção `v0.3.0`, o `CLAUDE.md`, o escopo, o plano macro, o `futuro.md` revisto com as ideias da §7, "a v0.3 em números" e o diário.
+- **O print:** o ano do Opus no dia 10, no verão, no modo de assistir, com a crença de que os canteiros valem por ficar perto do poço e do quiosque; a segunda imagem é a página da arena, com o Astra consertado ao vivo.
+- **O que mudou em relação ao plano:**
+  - o print é a visão do operador, e não a do jogador: como nas versões anteriores, ele mostra o caderno e as crenças da mente;
+  - para chegar ao dia 10 no modo de assistir, uma escala maior foi mandada pelo comando de relógio, por um WebSocket aberto na página: o "Máximo" vai direto ao fim, e a velocidade padrão andou uns 6 dias simulados a cada 30 minutos;
+  - o Astra consertado custou US$ 10,42, abaixo dos 12 a 16 previstos.
+- **O que se achou no caminho:**
+  - pela OpenRouter, o Claude não usa o cache no fim da conversa (nas notas da versão, em "conhecido");
+  - a tampa do Mac fechada na bateria pausou a corrida por 26 minutos, sem perda;
+  - nomes do livro em documentos antigos da fundação, achados pela busca de palavras proibidas; ficou como tarefa à parte, para o usuário decidir.
+- **O custo:** uns US$ 12,40 de API (as três corridas, as provas, os dois juízes e as chamadas reais). A v0.3 fecha em uns US$ 266, dentro do teto de 300. O Claude Code levou 40 minutos ativos em 17 turnos.
+- **A tag `v0.3.0`** espera o ok do usuário para o push.

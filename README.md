@@ -50,11 +50,13 @@ A pergunta: **um LLM consegue viver na fazenda, prosperar e descobrir sozinho a 
 | M14: a segunda rodada da arena | script 2 × Haiku × Sonnet × Opus na Boa Vista, com teto por corrida | concluído em 20/out/2026 |
 | M15: fechamento | critérios de aceite, diário e a tag `v0.2.0` | concluído em 21/out/2026 |
 
-## Em construção: v0.3.0 — A fazenda sofisticada
+### v0.3.0 — A fazenda sofisticada (14/nov/2026)
 
-A pergunta: **num mundo maior, com estações, encomendas e regras escondidas em lugares que pedem exploração, quem aprende o mundo e lucra com o que aprendeu: um modelo, um script que faz experimentos ou um humano? E quanto vale aprender?** Na v0.2 os modelos planejaram bem, mas ninguém explorou. A v0.3 continua na fazenda, num cenário novo, a Fazenda Morada do Sol: um mapa maior com névoa, canteiros sem teto, um ano com as quatro estações, encomendas e uma economia de oferta e demanda, ajudantes contratáveis, um fazendeiro-script que faz experimentos, um oráculo que conhece as regras e a arena com outras famílias de modelos. Ela também constrói de propósito o que o escritório da v0.4 vai precisar.
+A pergunta: **num mundo maior, com estações, encomendas e regras escondidas em lugares que pedem exploração, quem aprende o mundo e lucra com o que aprendeu: um modelo, um script que faz experimentos ou um humano? E quanto vale aprender?** Aprender e lucrar saíram separados. O fazendeiro-script 3 achou as regras com estatística e não lucrou com elas; os modelos grandes capturaram até metade do valor de saber jogando a economia visível, sem descobrir a regra da água; o humano, que sabia as regras, foi ao lugar certo e não fez caixa. No mapa d, saber valia 1.028 moedas no ano. Cerca de US$ 266 de API na versão inteira, quase tudo na terceira arena.
 
-[Plano macro](docs/planos/v0.3-macro.md) · [as decisões (ADR-0066)](docs/decisoes/0066-decisoes-do-plano-macro-da-v0-3.md) · [ADR-0064](docs/decisoes/0064-a-v0-3-e-a-fazenda-sofisticada.md) · [a análise da ordem das versões](docs/planos/analise-ordem-v0.3-v0.5.md)
+![A Fazenda Morada do Sol no dia 10, no verão, no modo de assistir: o ano do Opus 5.5 no mapa d, com o caderno da noite, o plano e as crenças; numa delas, os canteiros que ele escolheu valem por ficar perto do poço, da cama e do quiosque, e não pela água](docs/imagens/v0.3.0-fazenda-morada-do-sol.png)
+
+[Notas e os marcos um a um](docs/versoes/v0.3.0.md) · [critérios de aceite](docs/aceite-v0.3.md) · [a v0.3 em números](docs/diario/README.md#a-v03-em-números) · [plano macro](docs/planos/v0.3-macro.md) · relatórios da arena: [M19](docs/arena/2026-10-25.md), [os ajudantes](docs/arena/2026-10-26.md) e [a terceira arena](docs/arena/m21-terceira-energia.md)
 
 | Marco | Entrega | Situação |
 |---|---|---|
@@ -65,30 +67,31 @@ A pergunta: **num mundo maior, com estações, encomendas e regras escondidas em
 | M19: os controladores e a medição | o fazendeiro-script 3, o oráculo, o caderno de campo, a prova do mundo e o juiz, as variantes do mapa | concluído em 25/out/2026 ([plano](docs/planos/m19-os-controladores-e-a-medicao.md), ADR-0070, [a rodada de verificação](docs/arena/2026-10-25.md)) |
 | M20: os ajudantes | vários avatares; cinco personagens contratáveis, cada um com a sua ficha; a visão do jogador pela percepção do avatar | concluído em 26/out/2026 ([plano](docs/planos/m20-os-ajudantes.md), ADR-0072, ADR-0073: nesta Morada o ajudante não paga, e virou um teste de julgamento) |
 | M21: a terceira arena | a rodada do humano da v0.3; Claude, script 3 e oráculo; depois GPT e Gemini | concluído em 12/nov/2026 ([plano](docs/planos/m21-a-terceira-arena.md), ADR-0074, [o relatório](docs/arena/m21-terceira-energia.md): ninguém achou a água pela causa, e os maiores capturaram metade do valor de saber jogando a economia visível) |
-| M22: fechamento | critérios de aceite, diário, notas e a tag `v0.3.0` | próximo |
+| M22: fechamento | critérios de aceite, o Astra consertado, diário, notas e a tag `v0.3.0` | concluído em 14/nov/2026 ([plano](docs/planos/m22-o-fechamento-da-v0.3.md), ADR-0076) |
 
 ## Depois: v0.4.0 — O escritório que constrói a si mesmo
 
-Um escritório de programação com um único dev no começo, cujo trabalho é melhorar o próprio Campsverso: ele recebe tickets de nós, abre PRs, espera o CI, e quando um PR é mesclado o mundo reinicia na versão que ele mesmo escreveu. É o primeiro cartucho com efeitos externos. A ideia está em [ideia-escritorio-que-se-constroi.md](docs/planos/ideia-escritorio-que-se-constroi.md) e a direção na [ADR-0055](docs/decisoes/0055-a-v0-3-e-o-escritorio-que-se-constroi.md); a ordem (o escritório na v0.4, o estúdio na v0.5) está na [ADR-0064](docs/decisoes/0064-a-v0-3-e-a-fazenda-sofisticada.md). O plano dele nasce no fim da v0.3.
+Um escritório de programação com um único dev no começo, cujo trabalho é melhorar o próprio Campsverso: ele recebe tickets de nós, abre PRs, espera o CI, e quando um PR é mesclado o mundo reinicia na versão que ele mesmo escreveu. É o primeiro cartucho com efeitos externos. A ideia está em [ideia-escritorio-que-se-constroi.md](docs/planos/ideia-escritorio-que-se-constroi.md) e a direção na [ADR-0055](docs/decisoes/0055-a-v0-3-e-o-escritorio-que-se-constroi.md); a ordem (o escritório na v0.4, o estúdio na v0.5) está na [ADR-0064](docs/decisoes/0064-a-v0-3-e-a-fazenda-sofisticada.md). A v0.4 começa pela bancada dos harnesses: o mesmo modelo no nosso harness e no harness do próprio laboratório, pelas mesmas ferramentas da fazenda (ADR-0074, decisão 30). As ideias para agentes que planejam, lembram e calculam fora do modelo estão no [plano do M22](docs/planos/m22-o-fechamento-da-v0.3.md) (§7).
 
 ## Como funciona
 
 ```mermaid
 flowchart LR
-    cart["Cartuchos<br/>farm → farm_camps → farm_boavista"] -. "dados, ações e regras" .-> kernel
+    cart["Cartuchos<br/>farm → farm_camps → farm_boavista → farm_morada_do_sol"] -. "dados, ações e regras" .-> kernel
+    libs["Bibliotecas que o cartucho escolhe<br/>economy e climate"] -. "mercado, encomendas, clima" .-> cart
     kernel["Kernel<br/>o único que escreve o mundo"] -- "eventos" --> nats[("NATS JetStream")]
     nats -- "comandos" --> kernel
     nats -- "world e agent" --> percepcao["Percepção"]
     percepcao -- "a foto ou o delta de cada avatar" --> nats
     nats -- "chamadas de modelo (observer)" --> guarda["Guarda de orçamento"]
     guarda -- "pausa o mundo no teto" --> nats
-    nats -- "foto ou delta" --> runner["Controladores<br/>script, replay e a mente (LLM)"]
+    nats -- "foto ou delta" --> runner["Controladores<br/>scripts, ajudantes, replay e a mente (LLM)"]
     runner -- "propõe ações" --> nats
-    runner -- "pela ModelPort, medida e gravada" --> api[("API da Anthropic")]
+    runner -- "pela ModelPort, medida e gravada" --> api[("API da Anthropic<br/>e OpenRouter")]
     nats -- "tudo" --> arquivador["Arquivador"] --> arquivo[("Arquivo JSONL")]
     nats -- "estado e eventos" --> gateway["Gateway"]
     gateway -- "comandos do humano" --> nats
-    gateway <-->|"WebSocket"| tela["Tela (Phaser)<br/>jogador e operador"]
+    gateway <-->|"WebSocket"| tela["Tela (Phaser)<br/>jogador, operador e arena"]
 ```
 
 - **O kernel é o único que escreve o mundo.** Controladores (o humano, o script, o replay e, desde a v0.2, um LLM) só propõem ações; o kernel valida, aplica e publica os fatos.
@@ -96,6 +99,8 @@ flowchart LR
 - **A visibilidade é garantida pelas permissões do NATS.** Os efeitos da regra oculta são eventos `internal`, que os controladores não conseguem assinar.
 - **O cartucho traz o mundo:** culturas, preços, ações, menus, métricas, mapa e arte. O kernel só conhece a física genérica (tempo, espaço, itens, necessidades, ações e regras).
 - **A arena roda o mesmo kernel, a mesma mente e a mesma porta de modelo em processo,** sem barramento: o mundo espera cada resposta do modelo, e cada corrida tem o seu teto de custo (ADR-0061).
+- **A economia e o clima são bibliotecas** (`libs/economy`, `libs/climate`) que cada cartucho escolhe usar; o kernel não as importa (ADR-0069).
+- **Vários avatares:** os ajudantes da Morada do Sol entram e saem do mundo, cada um com o seu script, e cada avatar vê só o que está à volta dele (ADR-0072).
 
 ## Como começar
 
@@ -108,6 +113,7 @@ make sandbox # um mundo descartável com tudo ligado; a UI fica em http://127.0.
 make sandbox MUNDO=farm-boavista-01 # o mesmo, na Fazenda Boa Vista
 make sandbox MENTE=camps            # o LLM assume o Camps (precisa de ANTHROPIC_API_KEY no .env)
 make sandbox MUNDO=farm-morada-do-sol-01  # a Fazenda Morada do Sol (v0.3), com a névoa, a noite e a lanterna
+make jogar   # o sandbox de quem joga: começa pausado e a tela do jogador assume o Camps; RETOMAR=data/sandbox/<pasta> continua
 make run     # o mundo oficial: NATS, kernel, percepção, fazendeiro-script, arquivador, gateway e guarda de orçamento
 make stop    # derruba o NATS
 make ui      # a UI em modo desenvolvimento (Vite), ligada ao gateway do run ou do sandbox
@@ -121,6 +127,7 @@ make llm-smoke      # uma chamada real pela porta de modelo, medida e publicada 
 make fita DIAS=2    # grava em processo a fita de teste do controlador LLM, chamando a API (ADR-0059)
 make corrida DIAS=7 # N dias em processo com a mente sobre a API, com ou sem memória (ADR-0060); CARTUCHO=farm_morada_do_sol na fazenda 3
 make arena DIAS=30  # as corridas da arena em data/arena/ (ADR-0061); RODADA=boavista é a segunda rodada, com Sonnet e Opus (ADR-0063)
+make juiz PASTA=data/arena/<rodada>  # o juiz das crenças (ADR-0070): a causa, só o lugar ou não, por regra oculta
 make arena-report   # o relatório da arena em docs/arena/
 make arena-humano SANDBOX=data/sandbox/<pasta>  # a sua partida no sandbox como mais uma corrida da rodada
 make assistir PASTA=data/arena/<rodada>  # as corridas de uma rodada na tela, ao vivo ou gravadas: http://127.0.0.1:8765/?view=arena

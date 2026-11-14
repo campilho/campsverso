@@ -36,7 +36,8 @@ Tempo e tokens do Claude Code em cada marco (ADR-0051).
 | M18 | 2 | 98 | 229 | 277 | 161,6 | 847 |
 | M19 | 16 | 254 | 651 | 735 | 300,9 | 1.616 |
 | M20 | 32 | 237 | 673 | 608 | 400,8 | 2.300 |
-| M21 | 109 | 425 | 2127 | 1.879 | 665,9 | 6.488 |
+| M21 | 109 | 426 | 2131 | 1.882 | 667,9 | 6.493 |
+| M22 | 17 | 40 | 237 | 171 | 74,3 | 579 |
 
 ## Uso do plano Max
 
@@ -63,6 +64,7 @@ Anotado ao fechar cada marco, como o app mostra: a janela de 5 horas e a semana.
 | 2026-10-25 | fim do M19 (noite; os controladores e a medição no Opus; semana nova; Fable a 0%) | 10 | 8 |
 | 2026-10-26 | fim do M20 (tarde; os ajudantes no Opus; Fable a 0%) | 16 | 17 |
 | 2026-11-12 | fim do M21 (noite; a terceira arena no Opus; Fable a 0%) | 15 | 16 |
+| 2026-11-14 | fim do M22 (tarde; o fechamento da v0.3 no Opus; Fable a 0%) | 17 | 20 |
 
 ## Créditos de API
 

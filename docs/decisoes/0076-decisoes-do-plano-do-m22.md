@@ -41,3 +41,9 @@ As decisões do plano, aprovadas pelo usuário em 14/nov como recomendado:
   - Se o cano da OpenRouter, sozinho, muda alguma coisa: o piloto do Haiku (decisão 4) responde.
   - Se o harness de cada laboratório rende mais que o nosso: só a bancada dos harnesses, o primeiro marco da v0.4 (ADR-0074, decisão 30), responde.
 - **Um provedor novo passa por uma prova de conformidade** antes de entrar numa rodada: as respostas sem ação, as recusas e os formatos, medidos em dois dias. Fica como ideia para a v0.4, na lista do plano.
+
+## Resultado (14/nov)
+
+- **O conserto funcionou:** o Astra consertado rodou 14 dias sem nenhuma resposta sem ação. No dia 14, 187 moedas e 31 colheitas, contra 8 e 23 do Astra do M21 no mesmo dia, por US$ 10,42 contra 12,05. Não achou regra nenhuma.
+- **O cano não pesa no modelo, a tradução pesa no custo:** o Haiku pela OpenRouter não teve respostas vazias e teve a mesma latência do direto, mas custou umas duas vezes mais, porque a tradução não marca o cache no fim da conversa.
+- **A v0.3 fecha em uns US$ 266 de API,** dentro do teto.
