@@ -26,7 +26,7 @@ A pergunta que a v0.1 responde: *a arquitetura orientada a eventos, com módulos
 | v0.2 | Controlador LLM (a "possessão"); memória baseline; arena humano × script × Haiku × Sonnet |
 | v0.3 | Estúdio como segundo cartucho (simulado): presença, relógio ancorado, artefatos, 3 personagens |
 | v0.4 | Estúdio ligado ao pipeline real do podcast; replay público |
-| v0.5+ | Patagônia: Tomás, memória completa, crenças, experimentos com regras ocultas |
+| v0.5+ | O vilarejo remoto: um morador, memória completa, crenças, experimentos com regras ocultas |
 
 Revisão de 17/out/2026 (ADR-0055): a v0.3 passa a ser o escritório que constrói a si mesmo, o primeiro cartucho com efeitos externos; o estúdio vem depois, sobre a porta que o escritório constrói.
 

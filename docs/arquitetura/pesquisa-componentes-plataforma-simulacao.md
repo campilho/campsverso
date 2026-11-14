@@ -1,7 +1,7 @@
 # Pesquisa de componentes públicos — Plataforma de Simulação com Agentes
 
 **Data:** 07/out/2026
-**Objetivo:** mapear projetos públicos (open source ou source-available) que possam ser **adotados**, **adaptados** ou usados como **inspiração** para cada subsistema da arquitetura macro da plataforma (vilarejo remoto na Patagônia → estúdio do podcast → startup → simulação econômica/mini-Brasil).
+**Objetivo:** mapear projetos públicos (open source ou source-available) que possam ser **adotados**, **adaptados** ou usados como **inspiração** para cada subsistema da arquitetura macro da plataforma (vilarejo remoto → estúdio do podcast → startup → simulação econômica/mini-Brasil).
 **Uso previsto:** insumo para a etapa de especificação técnica (spec) e decisões build-vs-reuse.
 
 > Convenções: **[ADOTAR]** candidato forte a uso direto · **[ADAPTAR]** usar parcialmente ou forkar · **[INSPIRAR]** só o padrão/ideia · **[EVITAR]** não recomendado para este projeto · **(a verificar)** dado que vale confirmar na fonte antes de decidir.
@@ -30,7 +30,7 @@ Candidatas a "kernel pronto". Nenhuma é drop-in, mas todas ensinam algo.
 | **OASIS** | CAMEL-AI — Python, Apache 2.0 (a verificar) | Simulador de redes sociais com até 1 milhão de agentes (X/Reddit), recsys, rede dinâmica | Escala e propagação de informação. Útil como referência para a **rádio da Renata** e para difusão de crenças em larga escala | **[INSPIRAR]** |
 | **AgentSociety** | Tsinghua — Python, licença (a verificar) | Simulador urbano de larga escala; agentes LLM + ambiente social realista + engine distribuído com mensageria **MQTT** | Referência de arquitetura para o **mini-Brasil** (milhares de agentes, ambiente econômico, choques externos como furacão/UBI). Pesado demais para a fazenda | **[INSPIRAR]** — especialmente a separação engine/agentes via mensageria |
 | **Project Sid / PIANO** | Altera.AL — apenas paper + relatório técnico (sem código) | 10–1000+ agentes no Minecraft; arquitetura **PIANO**: módulos concorrentes (percepção, memória, ação, fala) com um gargalo de decisão central que mantém coerência | Exatamente o problema do nosso "escalonador cognitivo": como reagir em tempo real e planejar a longo prazo ao mesmo tempo sem perder coerência. Só ideias, sem código | **[INSPIRAR]** — PIANO como modelo para o nível tático/estratégico concorrente |
-| **Voyager** | MineDojo/NVIDIA — Python+JS, MIT | Agente de aprendizado contínuo no Minecraft: currículo automático, **skill library** de código executável, prompting iterativo com feedback de execução | A skill library é o modelo da nossa memória procedural e do "Tomás programa o robô mech". Código preso ao Minecraft/GPT-4 | **[INSPIRAR]** — padrão de skill = código + descrição + embedding + taxa de sucesso |
+| **Voyager** | MineDojo/NVIDIA — Python+JS, MIT | Agente de aprendizado contínuo no Minecraft: currículo automático, **skill library** de código executável, prompting iterativo com feedback de execução | A skill library é o modelo da nossa memória procedural e do "um morador programa o robô mech". Código preso ao Minecraft/GPT-4 | **[INSPIRAR]** — padrão de skill = código + descrição + embedding + taxa de sucesso |
 | **Mindcraft** | comunidade — JS (a verificar) | Agentes LLM no Minecraft, multi-modelo, mais mantido que o Voyager | Alternativa ao Voyager como referência de "agente escreve código para agir" | **[INSPIRAR]** |
 | **PRAISELab GABM framework** | acadêmico — Python | Framework GABM com fases, RAG e memória | Pequeno; útil só como exemplo de estrutura por fases | **[INSPIRAR]** (baixa prioridade) |
 | MetaGPT / ChatDev | OSS, Python | "Empresa de software simulada" (PM, arquiteto, engenheiro) que produz código real a partir de um requisito | Referência direta para a **startup**: papéis + SOPs + artefatos reais | **[INSPIRAR / ADAPTAR]** para o cartucho startup |
@@ -140,7 +140,7 @@ Não há biblioteca standalone. Padrões a reaproveitar:
 - **AI Town**: máquina de estados de conversa (convite → aceite → turnos → despedida) com limite de turnos e cooldown — simples e funciona.
 - **Project Sid**: regras coletivas e transmissão cultural como métricas.
 
-Nossa adição específica: **proveniência de crença** (`fonte: Esteban`, confiança reduzida) — não encontrada pronta em nenhum projeto, exceto parcialmente no Hindsight (observações consolidadas com evidência).
+Nossa adição específica: **proveniência de crença** (`fonte: outro morador`, confiança reduzida) — não encontrada pronta em nenhum projeto, exceto parcialmente no Hindsight (observações consolidadas com evidência).
 
 ---
 

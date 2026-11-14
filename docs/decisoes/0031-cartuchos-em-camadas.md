@@ -7,7 +7,7 @@
 
 ## Contexto
 
-A pergunta na revisão: os cartuchos podem ser incrementais? Por exemplo, um cartucho macro de "fazenda", e o vilarejo remoto na Patagônia como uma especialização dele. Assim o mundo se expande com cartuchos novos conforme a necessidade, e o kernel fica só com o que é genérico de verdade.
+A pergunta na revisão: os cartuchos podem ser incrementais? Por exemplo, um cartucho macro de "fazenda", e o vilarejo remoto como uma especialização dele. Assim o mundo se expande com cartuchos novos conforme a necessidade, e o kernel fica só com o que é genérico de verdade.
 
 ## Decisão
 
@@ -16,7 +16,7 @@ A pergunta na revisão: os cartuchos podem ser incrementais? Por exemplo, um car
 | Nível | O que é | Exemplos |
 |---|---|---|
 | **Kernel** | a física genérica (ADR-0025) | tempo, espaço, entidades, itens, necessidades, ações, regras |
-| **Cartuchos** | pacotes de conteúdo e comportamento que podem **depender de outros cartuchos e estendê-los** | `farm` (gênero: cultivo, rega, crescimento, comprador, quiosque, sono na cama, fazendeiro-script); `farm_camps` (cenário: mapa, avatar `camps`, preços, R-001); no futuro, `vilarejo` (cenário na Patagônia: mapa, moradores, regras próprias) |
+| **Cartuchos** | pacotes de conteúdo e comportamento que podem **depender de outros cartuchos e estendê-los** | `farm` (gênero: cultivo, rega, crescimento, comprador, quiosque, sono na cama, fazendeiro-script); `farm_camps` (cenário: mapa, avatar `camps`, preços, R-001); no futuro, `vilarejo` (cenário do vilarejo remoto: mapa, moradores, regras próprias) |
 | **Mundo** | uma instância, definida na configuração | `farm-camps-01`: cartucho do topo `farm_camps`, seed, relógio |
 
 "Gênero" e "cenário" são convenções de uso, não tipos diferentes: tudo é cartucho.

@@ -166,7 +166,7 @@ A barreira do amanhecer global da versão anterior foi **descartada**. O desenho
 
 ### 9.1 Sono — individual, por agente
 
-- Cada agente dorme **no seu horário** (o vigia dorme de dia; Tomás à noite). O mundo continua.
+- Cada agente dorme **no seu horário** (o vigia dorme de dia; um morador, à noite). O mundo continua.
 - **A consolidação de memória acontece quando aquele agente dorme**, só dele.
 - O tempo de sono em tempo real depende da escala: a 72×, 8 h de sono ≈ 6,7 min reais.
 - Se a consolidação via batch ainda não terminou quando o agente deveria acordar:

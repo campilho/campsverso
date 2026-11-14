@@ -25,4 +25,4 @@ Os documentos não dizem como o kernel carrega um cartucho. Se o controller-runn
 
 - Kernel e cartuchos passam a se encontrar só por `cartridge-api`. Assim como `libs/ports`, é uma biblioteca de interfaces, não código de serviço. Nenhum outro serviço a importa.
 - A API do cartucho vira um contrato interno: mudanças incompatíveis exigem nova versão maior da biblioteca.
-- Um cartucho novo (estúdio, Patagônia, um RPG) é um par de pacotes que implementa a API, mais uma linha de configuração.
+- Um cartucho novo (estúdio, o vilarejo, um RPG) é um par de pacotes que implementa a API, mais uma linha de configuração.

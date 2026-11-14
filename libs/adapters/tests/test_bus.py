@@ -25,7 +25,7 @@ def _example(event_type: str) -> dict[str, Any]:
         ("campsverso.w.world.>", "campsverso.w.world.action.completed.v1", True),
         ("campsverso.*.world.>", "campsverso.w.world.action.completed.v1", True),
         ("campsverso.*.world.>", "campsverso.w.world", False),
-        ("campsverso.w.agent.camps.>", "campsverso.w.agent.tomas.action.rejected.v1", False),
+        ("campsverso.w.agent.camps.>", "campsverso.w.agent.morador.action.rejected.v1", False),
         ("campsverso.w.cmd.action.propose.v1", "campsverso.w.cmd.action.propose.v1", True),
         ("campsverso.w.cmd.*", "campsverso.w.cmd.action.propose.v1", False),
         ("campsverso.w.cmd.*.*.*", "campsverso.w.cmd.action.propose.v1", True),

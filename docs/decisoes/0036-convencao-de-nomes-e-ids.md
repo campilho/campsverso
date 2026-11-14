@@ -15,7 +15,7 @@ Com cartuchos em camadas (ADR-0031) e, no futuro, vários mundos e muitos agente
 | Cartucho | snake_case (também é domínio de evento) | `farm`, `farm_camps` | todo o sistema |
 | Controlador | `<tipo>/<nome>` | `script/farmer-v1`, `human/camps-browser` | todo o sistema |
 | Entidade | kebab-case, em inglês; instâncias numeradas com 2 dígitos | `plot-e-03`, `sell-box`, `watering-can` | o mundo |
-| Avatar | nome do personagem, minúsculas, sem acento | `camps`, `tomas` | o mundo |
+| Avatar | nome do personagem, minúsculas, sem acento | `camps`, `morador` | o mundo |
 | Instância de regra | snake_case | `river_proximity_bonus` | o mundo |
 | Tipo de entidade, ação, sistema, implementação de regra | snake_case, em inglês | `sell_box`, `plant`, `crop_growth`, `water_proximity_bonus` | a cadeia de cartuchos |
 | Item, cultura, necessidade, fase, estágio | snake_case, em português, sem acento | `semente_rabanete`, `fome`, `meio_dia`, `crescendo` | a cadeia de cartuchos |

@@ -14,7 +14,7 @@ Uma pequena fazenda genérica, sem lore, onde um único avatar planta, rega, col
 
 - Não há LLM. O avatar é controlado por **humano** (você, pela UI), **script** (fazendeiro determinístico) ou **replay**.
 - Há uma **regra oculta** ativa desde o primeiro dia, mesmo sem ninguém capaz de aprendê-la. O script vira a **linha de base** dos experimentos futuros.
-- A fazenda do vilarejo remoto na Patagônia, num futuro alternativo (Tomás e outros moradores), será, no futuro, este mesmo cartucho com outro mapa, outros personagens e outro cartão de identidade.
+- A fazenda do vilarejo remoto, num futuro alternativo (com os seus moradores), será, no futuro, este mesmo cartucho com outro mapa, outros personagens e outro cartão de identidade.
 
 ---
 

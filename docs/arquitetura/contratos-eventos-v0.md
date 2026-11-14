@@ -1,7 +1,7 @@
 # Arquitetura orientada a eventos e contratos — v0
 
 **Status:** rascunho para revisão · **Data:** 07/out/2026 · **Revisão:** 10/out/2026 (decisões D1–D7, namespace `campsverso`, acréscimos da v0.1 na seção 14)
-**Escopo:** infraestrutura de eventos, padrão de contrato, catálogo inicial de eventos e comandos, e o mapa de portas/adaptadores da plataforma (vilarejo remoto na Patagônia, estúdio, startup, simulação econômica).
+**Escopo:** infraestrutura de eventos, padrão de contrato, catálogo inicial de eventos e comandos, e o mapa de portas/adaptadores da plataforma (vilarejo remoto, estúdio, startup, simulação econômica).
 **Uso:** base para a spec e para o Claude Code gerar o pacote `contracts/`.
 
 ---
@@ -82,10 +82,10 @@ Atributos obrigatórios do CloudEvents: `specversion`, `id`, `source`, `type`. A
 |---|---|---|---|
 | `specversion` | string | sim | `"1.0"` |
 | `id` | UUIDv7 | sim | Identificador único; chave de idempotência |
-| `source` | URI-ref | sim | Módulo produtor, ex. `/kernel/farm-01`, `/cognition/tomas` |
+| `source` | URI-ref | sim | Módulo produtor, ex. `/kernel/farm-01`, `/cognition/morador` |
 | `type` | string | sim | `campsverso.<dominio>.<nome>.v<major>` |
 | `time` | RFC 3339 | sim | Tempo real (relógio de parede) da emissão |
-| `subject` | string | não | Entidade principal, ex. `agent/tomas`, `plot/3` |
+| `subject` | string | não | Entidade principal, ex. `agent/morador`, `plot/3` |
 | `datacontenttype` | string | sim | `application/json` |
 | `dataschema` | URI | sim | Schema do payload, ex. `contracts://events/action/completed.v1` |
 | `worldid` | string | sim | Instância do mundo, ex. `farm-01`, `studio-01` |
@@ -93,7 +93,7 @@ Atributos obrigatórios do CloudEvents: `specversion`, `id`, `source`, `type`. A
 | `tick` | integer | não | Tick do kernel (eventos do mundo) |
 | `simtime` | RFC 3339 | não | Data e hora dentro do mundo, ex. `2026-03-14T07:30:00-03:00` |
 | `seq` | integer | sim | Sequência monotônica **por `source`** (detecção de lacunas e ordenação) |
-| `actor` | string | não | Quem causou: `agent/tomas`, `human/visitor-123`, `system/director` |
+| `actor` | string | não | Quem causou: `agent/morador`, `human/visitor-123`, `system/director` |
 | `controller` | enum | não | Tipo de controlador que emitiu o comando: `human` · `script` · `llm` · `replay` · `mcp` · `supervised` (seção 14.1) |
 | `controllerid` | string | não | Instância do controlador, ex. `script/farmer-v1`, `human/camps-browser` |
 | `causationid` | UUIDv7 | não | `id` do evento ou comando que causou este |
@@ -167,14 +167,14 @@ campsverso.<worldid>.cmd.<dominio>.<verbo>.v<major>                 # comandos
 
 Exemplos:
 - `campsverso.farm-01.world.action.completed.v1`
-- `campsverso.farm-01.agent.tomas.perception.delivered.v1`
+- `campsverso.farm-01.agent.morador.perception.delivered.v1`
 - `campsverso.farm-01.observer.cognition.thought.v1`
 - `campsverso.farm-01.internal.rules.toggled.v1`
 - `campsverso.farm-01.cmd.action.propose.v1`
 
-**Permissões (exemplo para o processo do agente Tomás):**
+**Permissões (exemplo para o processo do agente de um morador):**
 - publicar: `campsverso.farm-01.cmd.action.propose.v1`, `campsverso.farm-01.observer.cognition.>`, `campsverso.farm-01.cmd.memory.>`
-- assinar: `campsverso.farm-01.agent.tomas.>`
+- assinar: `campsverso.farm-01.agent.morador.>`
 - **negado:** `campsverso.farm-01.internal.>`, `campsverso.farm-01.world.>` (ele só vê o mundo pela percepção filtrada)
 
 **Streams JetStream (dia zero):**
@@ -288,10 +288,10 @@ O **arquivador** assina todos os streams e grava JSONL diário (→ S3/Athena na
 {
   "specversion": "1.0",
   "id": "01928f6a-4c1e-7b3a-9f10-2a6c0e8d1a01",
-  "source": "/cognition/tomas",
+  "source": "/cognition/morador",
   "type": "campsverso.cmd.action.propose.v1",
   "time": "2026-10-10T14:03:11Z",
-  "subject": "agent/tomas",
+  "subject": "agent/morador",
   "datacontenttype": "application/json",
   "dataschema": "contracts://commands/action/propose.v1",
   "worldid": "farm-01",
@@ -299,12 +299,12 @@ O **arquivador** assina todos os streams e grava JSONL diário (→ S3/Athena na
   "tick": 18240,
   "simtime": "2026-03-14T07:30:00-03:00",
   "seq": 412,
-  "actor": "agent/tomas",
+  "actor": "agent/morador",
   "correlationid": "01928f6a-4b00-7c11-8e00-55aa00000001",
   "provenance": "simulated",
   "visibility": "agent",
   "data": {
-    "agentid": "tomas",
+    "agentid": "morador",
     "action": "water",
     "params": { "target": "plot-3" },
     "intent": "O canteiro 3 parecia seco ontem à tarde.",
@@ -323,7 +323,7 @@ O **arquivador** assina todos os streams e grava JSONL diário (→ S3/Athena na
   "causationid": "01928f6a-4c1e-7b3a-9f10-2a6c0e8d1a01",
   "data": {
     "actionid": "act-000981",
-    "agentid": "tomas",
+    "agentid": "morador",
     "action": "water",
     "params": { "target": "plot-3" },
     "durationticks": 6,
@@ -379,7 +379,7 @@ O **arquivador** assina todos os streams e grava JSONL diário (→ S3/Athena na
   "source": "/memory/farm-01",
   "visibility": "observer",
   "data": {
-    "agentid": "tomas",
+    "agentid": "morador",
     "beliefid": "bel-0042",
     "statement": "Canteiros perto do rio rendem mais.",
     "confidence": { "from": 0.55, "to": 0.72 },
@@ -390,17 +390,17 @@ O **arquivador** assina todos os streams e grava JSONL diário (→ S3/Athena na
 }
 ```
 
-Quando a crença vem de outro personagem: `"source": { "kind": "told", "by": "agent/esteban" }`.
+Quando a crença vem de outro personagem: `"source": { "kind": "told", "by": "agent/vizinho" }`.
 
 ### 8.5 Chamada de LLM concluída (custo)
 
 ```json
 {
   "type": "campsverso.llm.call.completed.v1",
-  "source": "/cognition/tomas",
+  "source": "/cognition/morador",
   "visibility": "observer",
   "data": {
-    "agentid": "tomas",
+    "agentid": "morador",
     "decisionlevel": "tactical",
     "purpose": "next_action",
     "provider": "openrouter",
@@ -534,7 +534,7 @@ A configuração por personagem vive no cartucho:
 
 ```yaml
 characters:
-  tomas:
+  morador:
     reflex: rules
     tactical:  { port: model, provider: openrouter, model: anthropic/claude-haiku-4.5 }
     strategic: { port: model, provider: openrouter, model: anthropic/claude-sonnet-5.5 }
@@ -550,11 +550,11 @@ characters:
 - A UI apenas **interpola** entre os pontos; não recalcula caminho nem conhece obstáculos.
 - O filtro de percepção calcula a posição em qualquer tick a partir do trajeto (conta simples), sem eventos intermediários.
 - **Obstáculo surgindo no meio do caminho** (outro personagem, porta fechada): o kernel emite `campsverso.world.entity.move_interrupted.v1` com a posição real no momento e, se o agente ou o reflexo decidir seguir, um novo `entity.moved` com o desvio.
-- **Encontros** ("Tomás passou ao lado de Esteban") são detectados pelo kernel cruzando trajetos e emitidos como evento próprio (`campsverso.world.proximity.entered.v1`), porque disparam percepção e conversa.
+- **Encontros** ("um morador passou ao lado de outro") são detectados pelo kernel cruzando trajetos e emitidos como evento próprio (`campsverso.world.proximity.entered.v1`), porque disparam percepção e conversa.
 
 ### D2 — Pensamento em dois níveis, como log normal e log de debug
 - **`summary` (padrão):** uma frase curta para a UI e o replay. É gerada **na mesma chamada** do LLM, como um campo da resposta estruturada (sem chamada extra).
-- **`full` (debug):** prompt, resposta completa e raciocínio, ligado por **flag por personagem e com prazo** (ex. "Tomás em full por 2 dias simulados"); desliga sozinho para não esquecer ligado.
+- **`full` (debug):** prompt, resposta completa e raciocínio, ligado por **flag por personagem e com prazo** (ex. "um morador em full por 2 dias simulados"); desliga sozinho para não esquecer ligado.
 - O `full` vai para um assunto `internal` com retenção curta e **nunca** para o replay público.
 - Detalhe de custo: o raciocínio já foi pago quando o modelo o gerou; o que a flag controla é o **armazenamento e a exposição**, não o custo do LLM. Raciocínio estendido (thinking) é outro parâmetro, configurado no `ModelPort` por nível cognitivo.
 - **Reuso como contexto:** pensamentos brutos **nunca** voltam crus para um novo turno de LLM (ficariam caros em todas as rodadas futuras). O que retorna como contexto é a memória consolidada no sono (episódios com importância, crenças, skills), compacta e recuperada sob demanda. O `full` é material de investigação humana, não de contexto do agente.
@@ -590,7 +590,7 @@ characters:
 ### D7 — Consciência da simulação: o modelo do ator
 - **Todos os personagens sempre sabem que são IA.** A diferença está no papel que interpretam, definido no cartucho e no cartão de identidade.
 - **Estúdio:** transparente. Os agentes têm nomes e funções (jornalista, editor, locutor), mas se apresentam como IA quando perguntados.
-- **Vilarejo remoto (futuro alternativo):** **modelo do ator**. O LLM sabe que interpreta um personagem de uma história, como um ator num filme, e permanece no papel: diante de um visitante, Tomás se comporta como Tomás e nega ser um robô.
+- **Vilarejo remoto (futuro alternativo):** **modelo do ator**. O LLM sabe que interpreta um personagem de uma história, como um ator num filme, e permanece no papel: diante de um visitante, o morador continua sendo o morador e nega ser um robô.
 - **O humano sempre sabe**: o portal avisa, ao entrar, que todos os personagens são IAs interpretando papéis.
 - **Saída do personagem (fora de cena):** o personagem sai do papel e responde honestamente se o visitante pedir isso de forma explícita e sincera (por um botão "fora do personagem" no portal ou um comando claro), ou se a conversa indicar sofrimento real, confusão sobre o que é real ou risco. A ficção protege a experiência, não engana a pessoa.
 - **Fase 1:** sem visitantes humanos; a política existe no contrato, mas só é exercitada quando o portal entrar.
