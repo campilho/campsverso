@@ -107,7 +107,7 @@ Cada peça vai numa folha (spritesheet) separada, sobre fundo transparente.
 
 | Peça | Quadro | Pegada | Quadros |
 |---|---|---|---|
-| o banheiro: um bloco com teto, para não ver dentro, e duas portas na face sul, masculino e feminino, com a plaquinha; quem entra some e volta depois | 128 × 96 | 4 × 3 | 3: fechado, a do masculino aberta, a do feminino aberta |
+| o banheiro: um bloco com teto, para não ver dentro, colado à parede de baixo, com duas portas na face sul, que dão para o corredor (masculino e feminino, com a plaquinha); quem entra some e volta depois | 128 × 96 | 4 × 3 | 3: fechado, a do masculino aberta, a do feminino aberta |
 | a geladeira | 32 × 64 | 1 × 1 | 2: fechada, aberta (com as marmitas) |
 | o balcão da copa, com a pia e o micro-ondas | 96 × 64 | 3 × 1 | 2: micro-ondas desligado e ligado |
 | a máquina de café, sobre um armarinho | 32 × 64 | 1 × 1 | 2: parada, servindo |
@@ -115,8 +115,8 @@ Cada peça vai numa folha (spritesheet) separada, sobre fundo transparente.
 | a mesinha redonda da copa | 32 × 64 | 1 × 1 | 1 |
 | a cadeira da copa, de lado | 32 × 64 | 1 × 1 | 2: virada para a direita e para a esquerda |
 | o sofá de costas, virado para a TV | 96 × 64 | 3 × 1 | 1 |
-| o sofá de lado | 32 × 96 | 1 × 2 | 1 |
-| o móvel com a TV de tubo, o videogame e os cartuchos | 64 × 64 | 2 × 1 | 3: desligada e 2 de jogo |
+| o sofá de lado (fora da sala por enquanto) | 32 × 96 | 1 × 2 | 1 |
+| o móvel com a TV de tubo no meio, o videogame, os cartuchos e as caixas de som | 96 × 64 | 3 × 1 | 3: desligada e 2 de jogo |
 | o puff | 32 × 32 | 1 × 1 | 3 cores |
 | o tapete da descompressão, em 9 peças (cantos, bordas, miolo) | 32 × 32 | 1 × 1 | 9 |
 
@@ -175,7 +175,7 @@ A rotina do dev (ADR-0080) vai pedir animações novas: carregar a marmita andan
 - o vigia andando e parado;
 - a prévia.
 
-**Fase 1, segunda parte (15/11, à noite):** a sala na planta nova, com o banheiro, a copa e a sala de descompressão.
+**Fase 1, segunda parte (15/11, à noite):** a sala na planta nova, com o banheiro, a copa, a sala de descompressão e quatro cubículos.
 
 **Fase 2 (só se a arte nova ganhar):**
 - as animações da rotina: usar, beber, comer sentado, carregar a marmita, jogar videogame e cochilar;
@@ -188,7 +188,18 @@ A rotina do dev (ADR-0080) vai pedir animações novas: carregar a marmita andan
 
 ### A planta proposta (15/11, à noite)
 
-O usuário pediu os cubículos mais para cima e para a esquerda, o quadro dos pedidos à esquerda, o banheiro no canto de baixo à esquerda, a copa no canto de baixo à direita e a sala de descompressão no canto de cima à direita. A prévia segue esta planta. Ela **difere da bíblia §3 e do `map.tmj` de hoje** (ADR-0080, com a copa à direita no meio e a porta do banheiro na parede de baixo): quem cuida do mapa decide e registra. Coordenadas em tiles, (coluna, linha):
+O usuário pediu:
+- quatro cubículos, em duas fileiras, à esquerda;
+- o quadro dos pedidos à esquerda da parede do fundo;
+- a sala de descompressão no canto de cima à direita;
+- a copa no canto de baixo à direita;
+- o banheiro colado à parede de baixo, com as portas no corredor: para ir ao banheiro, o avatar sai do escritório.
+
+A prévia segue esta planta. Ela **difere da bíblia §3 e do `map.tmj` de hoje** (ADR-0080, com a copa à direita no meio e a porta do banheiro na parede de baixo): quem cuida do mapa decide e registra.
+
+A sala continua com 20 × 17 tiles e a parede de baixo na linha 13: coube tudo sem descer a parede.
+
+Coordenadas em tiles, (coluna, linha):
 
 | Coisa | Tiles |
 |---|---|
@@ -196,16 +207,18 @@ O usuário pediu os cubículos mais para cima e para a esquerda, o quadro dos pe
 | Janela | na parede, colunas 7 a 11 |
 | Relógio | na parede, coluna 12 |
 | Arquivos | (12, 2) e (13, 2) |
-| Divisórias | a linha 3, das colunas 2 a 10; e as colunas 2, 6 e 10, nas linhas 4 e 5 |
-| Mesa do Camps | (3 a 5, 4); a cadeira em (4, 5); a lixeira em (5, 5) |
-| Mesa vaga | (7 a 9, 4); a cadeira em (8, 5) |
-| Sala de descompressão | o tapete de (14, 3) a (18, 6); o móvel da TV em (15 e 16, 2); o sofá de costas em (15 a 17, 5); o sofá de lado em (18, 3 e 4); os puffs em (14, 3), (17, 3) e (14, 5) |
-| Banheiro | o bloco de (1, 9) a (4, 11); as portas em (2, 11), masculino, e (3, 11), feminino, usadas de (2, 12) e (3, 12) |
+| Divisórias, fileira de cima | a linha 3, das colunas 2 a 10; e as colunas 2, 6 e 10, nas linhas 4 e 5 |
+| Divisórias, fileira de baixo | a linha 7, das colunas 2 a 10; e as colunas 2, 6 e 10, nas linhas 8 e 9 |
+| Mesas, fileira de cima | (3 a 5, 4), a do Camps, com a cadeira em (4, 5) e a lixeira em (5, 5); (7 a 9, 4), com a cadeira em (8, 5) |
+| Mesas, fileira de baixo | (3 a 5, 8), com a cadeira em (4, 9); (7 a 9, 8), com a cadeira em (8, 9) |
+| Corredores entre as mesas | a linha 6 (entre as fileiras), a linha 10 (abaixo delas) e a coluna 11 (do lado) |
+| Sala de descompressão | o tapete de (14, 3) a (18, 6); o móvel da TV em (15 a 17, 2), centrado no sofá; o sofá de costas em (15 a 17, 5); os puffs em (14, 3), (18, 3) e (18, 5) |
 | Copa, a linha da cozinha | a lixeira em (12, 9), a máquina de café em (13, 9), o balcão com a pia e o micro-ondas em (14 a 16, 9), a geladeira em (17, 9), o bebedouro em (18, 9); tudo usado da linha 10, de frente para cima |
-| Copa, as mesinhas | (12, 11), (15, 11) e (18, 11); as cadeiras de lado em (11, 11), (13, 11), (14, 11), (16, 11) e (17, 11) |
+| Copa, as mesinhas | (13, 11) e (17, 11); as cadeiras de lado em (12, 11) e (16, 11), viradas para a direita, e em (14, 11) e (18, 11), viradas para a esquerda |
+| Banheiro | o bloco de (1, 11) a (4, 13), no lugar da parede de baixo nessas colunas; as portas em (2, 13), masculino, e (3, 13), feminino, usadas do corredor, em (2, 14) e (3, 14) |
 | Plantas | (1, 2), (1, 7) e (18, 7) |
-| Porta | (9, 13); o vigia em (9, 14), no corredor |
-| Rack do servidor | fora, para o futuro |
+| Porta | (9, 13); o vigia em (11, 14), no corredor, ao lado da porta |
+| Fora da sala por enquanto | o rack do servidor e o sofá de lado |
 
 ### Os passos
 

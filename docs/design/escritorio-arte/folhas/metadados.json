@@ -533,7 +533,7 @@
           2
         ]
       },
-      "nota": "bloco com teto; as portas ficam na face sul, nos tiles 2 e 3 da pegada; quem entra some"
+      "nota": "bloco com teto, colado à parede de baixo; as portas dão para o corredor, nos tiles 2 e 3 da pegada; quem entra some"
     },
     "geladeira": {
       "arquivo": "geladeira.png",
@@ -715,23 +715,24 @@
       "camada": "normal",
       "quadros": [
         "virado para a esquerda"
-      ]
+      ],
+      "nota": "fora da sala por enquanto"
     },
     "movel_tv": {
       "arquivo": "movel_tv.png",
       "grupo": "descompressão",
       "quadro": [
-        64,
+        96,
         64
       ],
       "colunas": 3,
       "linhas": 1,
       "pegada": [
-        2,
+        3,
         1
       ],
       "ancora": [
-        32,
+        48,
         64
       ],
       "camada": "normal",
@@ -740,7 +741,7 @@
         "jogo 1",
         "jogo 2"
       ],
-      "nota": "a TV de tubo, o videogame e os cartuchos"
+      "nota": "a TV de tubo no meio, o videogame, os cartuchos e as caixas de som"
     },
     "puff": {
       "arquivo": "puff.png",
