@@ -20,6 +20,15 @@ test("o gerente entra, escreve um pedido, fala com o dev e aceita a entrega", as
   await page.getByRole("button", { name: "Escrever no quadro" }).click();
   await expect(office).toContainText("#1 Ferramenta de busca (P)", { timeout: 60_000 });
 
+  // O dev trabalha sentado: com o pedido em "Fazendo", o desenho dele chega na cadeira da mesa.
+  await expect(office.locator(".fazendo")).toContainText("#1", { timeout: 60_000 });
+  const camps = (): Promise<{ x: number; y: number } | undefined> =>
+    page.evaluate(() => {
+      type Hook = { drawn(id: string): { x: number; y: number } | undefined };
+      return (window as unknown as { campsverso: Hook }).campsverso.drawn("camps");
+    });
+  await expect.poll(camps, { timeout: 20_000 }).toEqual({ x: 5, y: 7 });
+
   const speech = page.getByPlaceholder("Fale com o dev e aperte Enter");
   await speech.fill("Bom dia, Camps! Como vai a busca?");
   await speech.press("Enter");

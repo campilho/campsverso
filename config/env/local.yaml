@@ -70,3 +70,4 @@ gateway:  # o WebSocket da UI (ADR-0050); só local, sem login
     - {name: farm_boavista, dir: cartridges/farm_boavista/art, only_for: [farm_boavista, farm_morada_do_sol]}  # a fazenda 2 e quem a estende
     - {name: farm_morada_do_sol, dir: cartridges/farm_morada_do_sol/art, only_for: [farm_morada_do_sol]}  # só na fazenda 3
     - {name: office, dir: cartridges/office/art, only_for: [office_campsverso]}  # o escritório (ADR-0078)
+    - {name: office_campsverso, dir: cartridges/office_campsverso/art, only_for: [office_campsverso]}  # o escritório do Campsverso: o mapa visual e os personagens

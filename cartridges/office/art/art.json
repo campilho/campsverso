@@ -1,21 +1,55 @@
 {
   "version": 1,
-  "kinds": {
-    "desk": {
-      "color": "#8a5a35"
+  "tile_size": 32,
+  "credits": "CREDITS.csv",
+  "sheets": {
+    "office-terrain": {
+      "image": "terrain.png",
+      "frame_width": 32,
+      "frame_height": 32
     },
-    "board": {
-      "color": "#e8e2cf"
+    "office-objects": {
+      "image": "objects.png",
+      "frame_width": 96,
+      "frame_height": 64
+    }
+  },
+  "tiles": {
+    "wall": {
+      "color": "#5b3026"
     },
-    "bench": {
-      "color": "#6b6f76"
-    },
-    "chair": {
-      "color": "#3d5a86"
+    "floor": {
+      "color": "#896f42"
     },
     "door": {
-      "color": "#a87b4f"
+      "color": "#b78c41"
+    },
+    "corridor": {
+      "color": "#c4b59f"
+    },
+    "furniture": {
+      "color": "#803526"
     }
+  },
+  "kinds": {
+    "desk": {
+      "sheet": "office-objects",
+      "frame": 0
+    },
+    "bench": {
+      "sheet": "office-objects",
+      "frame": 1
+    },
+    "board": {
+      "sheet": "office-objects",
+      "frame": 2
+    },
+    "chair": {
+      "sheet": "office-objects",
+      "frame": 3,
+      "seat": "up"
+    },
+    "door": {}
   },
   "phases": {
     "noite": {

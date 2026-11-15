@@ -1,0 +1,93 @@
+{
+  "type": "tileset",
+  "version": "1.10",
+  "tiledversion": "1.11.0",
+  "name": "office-terrain",
+  "image": "terrain.png",
+  "imagewidth": 256,
+  "imageheight": 96,
+  "tilewidth": 32,
+  "tileheight": 32,
+  "tilecount": 19,
+  "columns": 8,
+  "margin": 0,
+  "spacing": 0,
+  "tiles": [
+    {
+      "id": 0,
+      "type": "void"
+    },
+    {
+      "id": 1,
+      "type": "floor"
+    },
+    {
+      "id": 2,
+      "type": "hall"
+    },
+    {
+      "id": 3,
+      "type": "door"
+    },
+    {
+      "id": 4,
+      "type": "north-t"
+    },
+    {
+      "id": 5,
+      "type": "north-b"
+    },
+    {
+      "id": 6,
+      "type": "south"
+    },
+    {
+      "id": 7,
+      "type": "side-w"
+    },
+    {
+      "id": 8,
+      "type": "side-e"
+    },
+    {
+      "id": 9,
+      "type": "window-t"
+    },
+    {
+      "id": 10,
+      "type": "window-b"
+    },
+    {
+      "id": 11,
+      "type": "clock-t"
+    },
+    {
+      "id": 12,
+      "type": "clock-b"
+    },
+    {
+      "id": 13,
+      "type": "notes-t"
+    },
+    {
+      "id": 14,
+      "type": "notes-b"
+    },
+    {
+      "id": 15,
+      "type": "cooler-t"
+    },
+    {
+      "id": 16,
+      "type": "cooler-b"
+    },
+    {
+      "id": 17,
+      "type": "shelf-t"
+    },
+    {
+      "id": 18,
+      "type": "shelf-b"
+    }
+  ]
+}

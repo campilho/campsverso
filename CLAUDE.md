@@ -97,9 +97,11 @@ campsverso/
     office/                   # gênero do escritório (ADR-0078): o pedido no quadro, o expediente, o tempo real
       sim/                    # o pedido e as ações, o expediente e o vigia; office.yaml
       script/                 # o dev-script, o vigia e o gerente-script dos testes
-      art/  locale/           # as cores até a arte LPC; os nomes e os rótulos das ações
+      art/                    # os tiles e os móveis LPC (três pacotes e desenho próprio no estilo); a cadeira é um assento
+      locale/                 # os nomes e os rótulos das ações
     office_campsverso/        # o escritório do Campsverso: estende office
       sim/                    # a sala, o elenco (o dev nunca é humano; o gerente entra pela porta) e os feriados
+      art/                    # o Camps de óculos, o gerente e o vigia (gerador LPC, com o sentar), o mapa visual e decor.json
   apps/
     ui/                       # Vite + Phaser
   tools/
@@ -164,7 +166,7 @@ make juiz PASTA=data/arena/<rodada>  # o juiz das crenças (ADR-0070): o Opus d�
 make arena-report     # o relatório da arena (tabela da bíblia lado a lado, o leste pela memória, a exploração, a prova, o juiz, o valor de saber) em docs/arena/
 make arena-humano SANDBOX=data/sandbox/<pasta>  # a partida de um humano no sandbox como mais uma corrida da rodada (ADR-0066); PASTA= escolhe a rodada
 make assistir PASTA=data/arena/<rodada>  # o gateway no modo de assistir: as corridas da rodada em http://127.0.0.1:8765/?view=arena, ao vivo ou gravadas, montadas dos fatos (ADR-0068)
-make mapa-visual  # regrava o mapa visual da fazenda a partir do mapa lógico (ADR-0053)
+make mapa-visual  # regrava o mapa visual das fazendas e do escritório a partir do mapa lógico (ADR-0053)
 make mapa-variantes  # regrava as variantes do mapa da Morada do Sol a partir das receitas e confere as promessas (ADR-0070)
 make sessoes      # tempo e tokens do Claude Code por turno e por marco em docs/custos (MARCO=M5)
 ```

@@ -1,0 +1,237 @@
+{
+  "version": 1,
+  "credits": "CREDITS.csv",
+  "visual_map": "map-visual.tmj",
+  "sheets": {
+    "camps": {
+      "image": "camps.png",
+      "frame_width": 64,
+      "frame_height": 64
+    },
+    "gerente": {
+      "image": "gerente.png",
+      "frame_width": 64,
+      "frame_height": 64
+    },
+    "vigia": {
+      "image": "vigia.png",
+      "frame_width": 64,
+      "frame_height": 64
+    }
+  },
+  "avatars": {
+    "camps": {
+      "sheet": "camps",
+      "animations": {
+        "thrust": {
+          "row": 0,
+          "frames": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "fps": 9
+        },
+        "walk": {
+          "row": 4,
+          "frames": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "per_tile": 4
+        },
+        "idle": {
+          "row": 8,
+          "frames": [
+            0,
+            0,
+            1
+          ],
+          "fps": 2
+        },
+        "lying": {
+          "row": 12,
+          "frames": [
+            5
+          ],
+          "single": true
+        },
+        "sit": {
+          "row": 13,
+          "frames": [
+            2
+          ],
+          "fps": 1
+        }
+      },
+      "actions": {
+        "move": "walk",
+        "say": "idle",
+        "wait": "idle",
+        "*": "thrust"
+      },
+      "idle": "idle",
+      "asleep": "lying",
+      "seated": "sit",
+      "portrait": {
+        "frame": 90,
+        "x": 16,
+        "y": 9,
+        "size": 32
+      }
+    },
+    "gerente": {
+      "sheet": "gerente",
+      "animations": {
+        "thrust": {
+          "row": 0,
+          "frames": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "fps": 9
+        },
+        "walk": {
+          "row": 4,
+          "frames": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "per_tile": 4
+        },
+        "idle": {
+          "row": 8,
+          "frames": [
+            0,
+            0,
+            1
+          ],
+          "fps": 2
+        },
+        "lying": {
+          "row": 12,
+          "frames": [
+            5
+          ],
+          "single": true
+        },
+        "sit": {
+          "row": 13,
+          "frames": [
+            2
+          ],
+          "fps": 1
+        }
+      },
+      "actions": {
+        "move": "walk",
+        "say": "idle",
+        "wait": "idle",
+        "*": "thrust"
+      },
+      "idle": "idle",
+      "asleep": "lying",
+      "seated": "sit",
+      "portrait": {
+        "frame": 90,
+        "x": 16,
+        "y": 9,
+        "size": 32
+      }
+    },
+    "vigia": {
+      "sheet": "vigia",
+      "animations": {
+        "thrust": {
+          "row": 0,
+          "frames": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "fps": 9
+        },
+        "walk": {
+          "row": 4,
+          "frames": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "per_tile": 4
+        },
+        "idle": {
+          "row": 8,
+          "frames": [
+            0,
+            0,
+            1
+          ],
+          "fps": 2
+        },
+        "lying": {
+          "row": 12,
+          "frames": [
+            5
+          ],
+          "single": true
+        },
+        "sit": {
+          "row": 13,
+          "frames": [
+            2
+          ],
+          "fps": 1
+        }
+      },
+      "actions": {
+        "move": "walk",
+        "say": "idle",
+        "wait": "idle",
+        "*": "thrust"
+      },
+      "idle": "idle",
+      "asleep": "lying",
+      "seated": "sit",
+      "portrait": {
+        "frame": 90,
+        "x": 16,
+        "y": 9,
+        "size": 32
+      }
+    }
+  }
+}

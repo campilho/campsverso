@@ -182,7 +182,7 @@ ui-e2e: tools ui-build ## a tela no navegador (Playwright): a fazenda 1 (8799), 
 mapa-variantes: ## regrava as variantes do mapa da Morada do Sol a partir das receitas (ADR-0070); depois, make mapa-visual
 	$(PY) python -m campsverso_tools.map_variants
 
-mapa-visual: ## regrava o mapa visual da fazenda a partir do mapa lógico (ADR-0053)
+mapa-visual: ## regrava o mapa visual das fazendas e do escritório a partir do mapa lógico (ADR-0053)
 	$(PY) python -m campsverso_tools.visual_map
 
 sessoes: ## tempo e tokens por turno e por marco em docs/custos (MARCO=M5 marca os turnos novos)

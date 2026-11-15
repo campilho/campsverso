@@ -1,11 +1,14 @@
-"""O mapa visual da Fazenda do Camps, montado a partir do mapa lógico (ADR-0053, decisão 4).
+"""O mapa visual de cada cenário, montado a partir do mapa lógico (ADR-0053, decisão 4).
 
     uv run python -m campsverso_tools.visual_map [--check]   # ou: make mapa-visual
 
-O mapa lógico (`map.tmj` do cenário) é a verdade do kernel: 9 tipos de tile. Este arquivo só diz
-como desenhá-lo com os tiles LPC do gênero (`cartridges/farm/art/terrain.tsj`, onde cada tile tem
-um nome): bordas do rio, da terra do caminho e da cerca viva, a terra arada dos canteiros, o chão e
-as paredes da casa sem telhado. O kernel nunca lê o resultado.
+O mapa lógico (`map.tmj` do cenário) é a verdade do kernel. Este arquivo só diz como desenhá-lo
+com os tiles LPC do gênero, onde cada tile tem um nome. Nas fazendas (`cartridges/farm/art/
+terrain.tsj`): bordas do rio, da terra do caminho e da cerca viva, a terra arada dos canteiros, o
+chão e as paredes da casa sem telhado. No escritório (`cartridges/office/art/terrain.tsj`,
+ADR-0078): o chão de tábuas, o corredor, a parede do fundo com reboco e lambri, a moldura das
+paredes vista de cima e a decoração da parede que a pasta de arte do cenário lista (`decor.json`).
+O kernel nunca lê o resultado.
 
 Ajustes pedidos depois vão nas regras daqui; rodar de novo regrava `map-visual.tmj`. Com `--check`,
 só confere se o arquivo gravado está em dia.
@@ -20,7 +23,11 @@ from typing import Any
 
 REPO = Path(__file__).resolve().parents[4]
 TILESET = REPO / "cartridges/farm/art/terrain.tsj"
-SCENARIOS = ("farm_camps", "farm_boavista", "farm_morada_do_sol")  # os cenários com mapa próprio
+FARMS = ("farm_camps", "farm_boavista", "farm_morada_do_sol")  # as fazendas com mapa próprio
+OFFICES = ("office_campsverso",)  # os escritórios (ADR-0078)
+SCENARIOS = (*FARMS, *OFFICES)
+OFFICE_TILESET = REPO / "cartridges/office/art/terrain.tsj"
+OFFICE_TILESET_IMAGE = "../../office/art/terrain.png"
 
 
 def logic_map(scenario: str) -> Path:
@@ -178,6 +185,78 @@ def _trees(types: Grid, first: int) -> list[int]:
     return data
 
 
+# O escritório (ADR-0078). Tipo lógico -> tiles possíveis no chão (o teste de coerência usa a mesma
+# tabela). A parede vira a face do fundo (duas linhas, quando há sala logo abaixo dela), a moldura
+# do lado vista de cima, a face curta que dá para o corredor, ou o vazio fora da sala.
+ROOM = {"floor", "furniture", "door"}
+OFFICE_GROUND = {
+    "floor": {"floor"},
+    "furniture": {"floor"},
+    "door": {"door"},
+    "corridor": {"hall"},
+    "wall": {"north-t", "north-b", "side-w", "side-e", "south", "void"},
+}
+
+
+def decor_file(scenario: str) -> Path:
+    """A decoração do mapa visual do cenário: peças de dois tiles de altura, como a janela."""
+    return REPO / f"cartridges/{scenario}/art/decor.json"
+
+
+def _office_ground(types: Grid, x: int, y: int) -> str:
+    height, width = len(types), len(types[0])
+
+    def at(cx: int, cy: int) -> str | None:
+        return types[cy][cx] if 0 <= cx < width and 0 <= cy < height else None
+
+    def north(cx: int, cy: int) -> str | None:
+        if at(cx, cy) != "wall":
+            return None
+        if at(cx, cy + 1) in ROOM:
+            return "north-b"
+        if at(cx, cy + 1) == "wall" and at(cx, cy + 2) in ROOM:
+            return "north-t"
+        return None
+
+    def inside(cx: int, cy: int) -> bool:
+        return at(cx, cy) in ROOM or north(cx, cy) is not None
+
+    kind = types[y][x]
+    if kind in ("floor", "furniture"):
+        return "floor"
+    if kind == "door":
+        return "door"
+    if kind == "corridor":
+        return "hall"
+    face = north(x, y)
+    if face is not None:
+        return face
+    if at(x, y + 1) == "corridor":
+        return "south"
+    if inside(x + 1, y):
+        return "side-w"
+    if inside(x - 1, y):
+        return "side-e"
+    return "void"
+
+
+def build_office(
+    logic: Mapping[str, Any], tileset: Mapping[str, Any], decor: Mapping[str, Any]
+) -> dict[str, Any]:
+    types = logical_types(logic)
+    height, width = len(types), len(types[0])
+    gid = {str(t["type"]): int(t["id"]) + 1 for t in tileset["tiles"]}
+    ground = [gid[_office_ground(types, x, y)] for y in range(height) for x in range(width)]
+    over = [0] * (width * height)
+    for piece in decor.get("pieces", []):
+        x, y = int(piece["x"]), int(piece["y"])
+        for dy, half in ((0, "t"), (1, "b")):
+            over[(y + dy) * width + x] = gid[f"{piece['tile']}-{half}"]
+    layers = [{"name": "ground", "data": ground}, {"name": "decor", "data": over}]
+    tilesets = [{"firstgid": 1, **dict(tileset), "image": OFFICE_TILESET_IMAGE}]
+    return _document(width, height, layers, tilesets)
+
+
 def build(
     logic: Mapping[str, Any], tileset: Mapping[str, Any], *, trees: bool = False
 ) -> dict[str, Any]:
@@ -210,6 +289,12 @@ def build(
                 "imageheight": TREE_H * 32,
             }
         )
+    return _document(width, height, layers, tilesets)
+
+
+def _document(
+    width: int, height: int, layers: Sequence[Mapping[str, Any]], tilesets: list[dict[str, Any]]
+) -> dict[str, Any]:
     return {
         "type": "map",
         "version": "1.10",
@@ -275,12 +360,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--scenario", choices=SCENARIOS, help="um cenário só (padrão: todos)")
     args = parser.parse_args(argv)
     tileset = json.loads(TILESET.read_text(encoding="utf-8"))
+    office = json.loads(OFFICE_TILESET.read_text(encoding="utf-8"))
     for scenario in [args.scenario] if args.scenario else SCENARIOS:
         for source, out in maps_of(scenario):
             if not out.parent.exists():
                 continue  # o cenário ainda não tem pasta de arte
             logic = json.loads(source.read_text(encoding="utf-8"))
-            text = render(build(logic, tileset, trees=scenario in TREE_SCENARIOS))
+            if scenario in OFFICES:
+                decor = json.loads(decor_file(scenario).read_text(encoding="utf-8"))
+                text = render(build_office(logic, office, decor))
+            else:
+                text = render(build(logic, tileset, trees=scenario in TREE_SCENARIOS))
             if args.check:
                 if not out.exists() or out.read_text(encoding="utf-8") != text:
                     print(
