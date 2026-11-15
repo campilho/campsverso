@@ -57,6 +57,11 @@ REASON_PRECEDENCE = (
     "phase_changed",
 )
 LOCKSTEP_CONTROLLERS = frozenset({"script", "replay"})  # modo máximo (escopo §5)
+# A fala (ADR-0078): o tamanho de um balão e quanto tempo o avatar fala.
+SAY_MAX_CHARS = 280
+SAY_MIN_SECONDS = 2.0
+SAY_MAX_SECONDS = 12.0
+SAY_CHARS_PER_SECOND = 20.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -113,6 +118,7 @@ class KernelCore:
             "campsverso.cmd.clock.pause.v1": self._pause,
             "campsverso.cmd.clock.resume.v1": self._resume,
             "campsverso.cmd.clock.step.v1": self._step_command,
+            "campsverso.cmd.clock.catch_up.v1": self._catch_up,
             "campsverso.cmd.avatar.possess.v1": self._possess,
             "campsverso.cmd.avatar.release.v1": self._release,
             "campsverso.cmd.rules.toggle.v1": self._toggle_rule,
@@ -156,7 +162,15 @@ class KernelCore:
         unknown = sorted(set(controllers) - set(self.definition.avatars))
         if unknown:
             raise ValueError(f"avatares inexistentes: {unknown}")
+        for avatar_id, controller in sorted(controllers.items()):
+            if not self._accepts(avatar_id, controller):
+                raise ValueError(f"{avatar_id} não aceita um controlador {controller.type}")
         self._initial_controllers = dict(controllers)
+
+    def _accepts(self, avatar_id: str, controller: ControllerRef) -> bool:
+        """O avatar aceita esse tipo de controlador (ADR-0078): o dev não aceita `human`."""
+        allowed = self.definition.avatars[avatar_id].controllers
+        return allowed is None or controller.type in allowed
 
     def configure_clock(self, mode: ClockMode, scale: float | None, paused: bool) -> None:
         """Estado inicial do relógio de um mundo novo, antes de `start` (config/worlds/)."""
@@ -362,6 +376,8 @@ class KernelCore:
                 },
             )
             avatar.add_pending("session_started")
+        for avatar_id in sorted(world.avatar_map):
+            self._through_door(avatar_id)  # o gerente-script dos testes já começa lá dentro
         starters = [
             s
             for s in self.definition.systems.values()
@@ -496,6 +512,21 @@ class KernelCore:
         )
         return None
 
+    def _catch_up(self, command: Mapping[str, Any], data: Mapping[str, Any]) -> str | None:
+        """O relógio ancorado no real (ADR-0078): ao subir, o mundo salta até o tick de agora,
+        pulando o que não acontece e rodando o que vence no caminho (o salto do tempo §4)."""
+        to_tick = int(data["to_tick"])
+        if to_tick <= self.tick:
+            return "no_change"
+        start = self.tick
+        self.advance(to_tick - start, jump=True)
+        self.world.emit_fact(
+            "campsverso.world.clock.caught_up.v1",
+            {"from_tick": start, "to_tick": self.tick, "reason": str(data["reason"])},
+            caused_by=str(command.get("id")),
+        )
+        return None
+
     def _step_command(self, command: Mapping[str, Any], data: Mapping[str, Any]) -> str | None:
         if not self.paused:
             return "not_paused:o passo a passo só vale com o relógio pausado (ADR-0026)"
@@ -518,6 +549,9 @@ class KernelCore:
         controller = ControllerRef(raw["type"], str(raw["id"]))
         if controller == avatar.controller:
             return "no_change"
+        if not self._accepts(avatar.avatar_id, controller):
+            kind = controller.type
+            return f"controller_not_allowed:{avatar.avatar_id} não aceita um controlador {kind}"
         if self.mode == "max" and controller.type not in LOCKSTEP_CONTROLLERS:
             return "mode_not_allowed:no modo max só script ou replay assumem o avatar"
         previous, avatar.controller = avatar.controller, controller
@@ -533,7 +567,20 @@ class KernelCore:
             caused_by=str(command.get("id")),
         )
         avatar.add_pending("possessed")
+        self._through_door(avatar.avatar_id, caused_by=str(command.get("id")))
         return None
+
+    def _through_door(self, avatar_id: str, caused_by: str | None = None) -> None:
+        """Quem vem de fora (ADR-0078) entra ao ser assumido e sai ao ser devolvido."""
+        door = self.definition.avatars[avatar_id].enters_at
+        avatar = self.world.avatar_map[avatar_id]
+        if door is None:
+            return
+        with self.world.context(caused_by=caused_by):
+            if avatar.controller != avatar.default_controller and not avatar.present:
+                self.world.enter(avatar_id, door, "possessed")
+            elif avatar.controller == avatar.default_controller and avatar.present:
+                self.world.leave(avatar_id, "released")
 
     def _release(self, command: Mapping[str, Any], data: Mapping[str, Any]) -> str | None:
         avatar = self.world.avatar_map.get(str(data["avatar_id"]))
@@ -554,6 +601,7 @@ class KernelCore:
             caused_by=str(command.get("id")),
         )
         avatar.add_pending("possessed")
+        self._through_door(avatar.avatar_id, caused_by=str(command.get("id")))
         return None
 
     def _toggle_rule(self, command: Mapping[str, Any], data: Mapping[str, Any]) -> str | None:
@@ -836,6 +884,20 @@ class KernelCore:
                 caused_by=command_id,
                 correlation=correlation,
             )
+        if name == "say":
+            spoke: dict[str, Any] = {
+                "avatar_id": avatar.avatar_id,
+                "action_id": action_id,
+                "text": str(params["text"]).strip(),
+            }
+            if params.get("to") is not None:
+                spoke["listener_id"] = str(params["to"])
+            where = world.position_of(avatar.avatar_id)
+            if where is not None:
+                spoke["position"] = position_data(where)
+            world.emit_fact(
+                "campsverso.avatar.spoke.v1", spoke, caused_by=command_id, correlation=correlation
+            )
 
     def _validate(
         self, avatar: Avatar, name: str, params: Mapping[str, Any], action_id: str
@@ -843,14 +905,15 @@ class KernelCore:
         if name == "move":
             return self._validate_move(avatar, params)
         if name == "wait":
-            ticks = params.get("ticks")
-            if not isinstance(ticks, int) or not 1 <= ticks <= 60:
-                return Rejection("invalid_params", "wait exige ticks entre 1 e 60"), None
-            return Accepted(ticks, "cancel"), None  # andar e esperar se cancelam (ADR-0052)
+            return self._validate_wait(params), None
+        if name == "say":
+            return self._validate_say(avatar, params), None
         spec = self.definition.actions.get(name)
         if spec is None:
             return Rejection("unknown_action"), None
         result = spec.validate(ActionContext(avatar.avatar_id, action_id, params, self.world))
+        if isinstance(result, Accepted) and result.seconds is not None:
+            result = replace(result, duration_ticks=self._ticks_for(result.seconds), seconds=None)
         if isinstance(result, Accepted) and result.duration_ticks < 1:
             raise ValueError(f"a ação {name} declarou duração {result.duration_ticks} (mínimo 1)")
         factor = self.world.traits(avatar.avatar_id).time_factor(name)  # a ficha (ADR-0072)
@@ -858,6 +921,42 @@ class KernelCore:
             ticks = max(1, math.ceil(result.duration_ticks * factor - 1e-9))
             result = replace(result, duration_ticks=ticks)
         return result, None
+
+    def _ticks_for(self, seconds: float) -> int:
+        """Segundos simulados em ticks, pelo relógio do cartucho (ADR-0078): pelo menos um."""
+        return max(1, math.ceil(seconds / self.calendar.tick_seconds - 1e-9))
+
+    def _validate_wait(self, params: Mapping[str, Any]) -> Validation:
+        """Esperar `ticks` (de 1 a 60) ou `seconds` (de 1 a 3.600), que o kernel converte: num
+        mundo de tick curto, 60 ticks são dois minutos (ADR-0078). Andar e esperar se cancelam
+        (ADR-0052)."""
+        ticks, seconds = params.get("ticks"), params.get("seconds")
+        if ticks is not None and seconds is None:
+            if not isinstance(ticks, int) or isinstance(ticks, bool) or not 1 <= ticks <= 60:
+                return Rejection("invalid_params", "wait exige ticks entre 1 e 60")
+            return Accepted(ticks, "cancel")
+        if seconds is not None and ticks is None:
+            whole = isinstance(seconds, int) and not isinstance(seconds, bool)
+            if not whole or not 1 <= seconds <= 3600:
+                return Rejection("invalid_params", "wait exige seconds entre 1 e 3600")
+            return Accepted(self._ticks_for(seconds), "cancel")
+        return Rejection("invalid_params", "wait exige ticks ou seconds, um só")
+
+    def _validate_say(self, avatar: Avatar, params: Mapping[str, Any]) -> Validation:
+        """Falar (ADR-0078): até 280 caracteres, para alguém que está no mundo, ou para quem ouvir.
+        A fala sai na hora; o avatar fala por uns segundos, conforme o tamanho do texto."""
+        text = params.get("text")
+        if not isinstance(text, str) or not 1 <= len(text.strip()) <= SAY_MAX_CHARS:
+            return Rejection("invalid_params", f"say exige text com 1 a {SAY_MAX_CHARS} caracteres")
+        to = params.get("to")
+        if to is not None:
+            listener = self.world.avatar_map.get(str(to))
+            if listener is None or not listener.present:
+                return Rejection("not_present", f"{to} não está no mundo")
+            if listener.avatar_id == avatar.avatar_id:
+                return Rejection("invalid_params", "say para si mesmo")
+        seconds = min(SAY_MAX_SECONDS, SAY_MIN_SECONDS + len(text.strip()) / SAY_CHARS_PER_SECOND)
+        return Accepted(self._ticks_for(seconds), "cancel")
 
     def _validate_move(
         self, avatar: Avatar, params: Mapping[str, Any]

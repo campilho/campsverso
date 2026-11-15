@@ -691,6 +691,16 @@ export interface CmdAvatarReleaseV1 {
   avatar_id: EntityId;
 }
 /**
+ * O relógio ancorado no real (ADR-0078): ao subir, o mundo salta até o tick de agora, pulando o que não acontece e rodando o que vence no caminho. A raiz de composição do kernel o manda, e o diário o guarda para o replay.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "CmdClockCatchUpV1".
+ */
+export interface CmdClockCatchUpV1 {
+  to_tick: Tick;
+  reason: Token;
+}
+/**
  * Pede a pausa do relógio.
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
@@ -1005,6 +1015,22 @@ export interface AvatarSleepStartedV2 {
   bed_id?: EntityId;
   position: Position;
   wake_at_tick: Tick;
+}
+/**
+ * O avatar falou (ADR-0078): a ação `say` do kernel, com o texto inteiro. A tela mostra um balão e a linha do tempo guarda a fala; quem está perto ouve. É como o gerente, que o humano assume, conversa com o dev do escritório.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "AvatarSpokeV1".
+ */
+export interface AvatarSpokeV1 {
+  avatar_id: EntityId;
+  action_id: ActionId;
+  /**
+   * O que o avatar disse, sem reescrever.
+   */
+  text: string;
+  listener_id?: EntityId;
+  position?: Position;
 }
 /**
  * Quem contratou dispensou o ajudante antes do fim (ADR-0072): ele vai embora, e os dias pagos não voltam.
@@ -1593,6 +1619,17 @@ export interface RulesToggledV1 {
   reason: string;
   experiment_id?: string;
   effective_at_tick: Tick;
+}
+/**
+ * O relógio ancorado no real alcançou o tick de agora (ADR-0078): o mundo andou de `from_tick` a `to_tick` de uma vez, ao subir de novo.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "WorldClockCaughtUpV1".
+ */
+export interface WorldClockCaughtUpV1 {
+  from_tick: Tick;
+  to_tick: Tick;
+  reason: Token;
 }
 /**
  * Salto de tempo até o próximo evento agendado (simulação de eventos discretos).

@@ -613,6 +613,24 @@ class CmdAvatarReleaseV1(BaseModel):
     """
 
 
+class CmdClockCatchUpV1(BaseModel):
+    """
+    O relógio ancorado no real (ADR-0078): ao subir, o mundo salta até o tick de agora, pulando o que não acontece e rodando o que vence no caminho. A raiz de composição do kernel o manda, e o diário o guarda para o replay.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    to_tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+    reason: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Por que o relógio saltou (ex.: `wall_clock`, a pilha subiu de novo).
+    """
+
+
 class CmdClockPauseV1(BaseModel):
     """
     Pede a pausa do relógio.
@@ -1190,6 +1208,41 @@ class AvatarSleepStartedV2(BaseModel):
     wake_at_tick: Annotated[int, Field(ge=0, title="Tick")]
     """
     Tick do kernel (1 minuto simulado na fazenda).
+    """
+
+
+class AvatarSpokeV1(BaseModel):
+    """
+    O avatar falou (ADR-0078): a ação `say` do kernel, com o texto inteiro. A tela mostra um balão e a linha do tempo guarda a fala; quem está perto ouve. É como o gerente, que o humano assume, conversa com o dev do escritório.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    action_id: Annotated[str, Field(pattern="^act-[0-9]{6,}$", title="ActionId")]
+    """
+    Id de ação: contador determinístico do kernel.
+    """
+    text: Annotated[str, Field(max_length=280, min_length=1)]
+    """
+    O que o avatar disse, sem reescrever.
+    """
+    listener_id: Annotated[
+        str | None,
+        Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId"),
+    ] = None
+    """
+    Com quem ele falou (o parâmetro `to` da ação); sem o campo, falou para quem estiver perto.
+    """
+    position: Position | None = None
+    """
+    Onde ele estava ao falar.
     """
 
 
@@ -2333,6 +2386,28 @@ class RulesToggledV1(BaseModel):
     effective_at_tick: Annotated[int, Field(ge=0, title="Tick")]
     """
     Tick do kernel (1 minuto simulado na fazenda).
+    """
+
+
+class WorldClockCaughtUpV1(BaseModel):
+    """
+    O relógio ancorado no real alcançou o tick de agora (ADR-0078): o mundo andou de `from_tick` a `to_tick` de uma vez, ao subir de novo.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    from_tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+    to_tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+    reason: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    Nome definido pelo cartucho ou pelo kernel: ação, fase, estágio, necessidade, tipo de entidade, motivo.
     """
 
 

@@ -148,6 +148,14 @@ CONTRACT_TYPES: Final[dict[str, ContractType]] = {
             models.AvatarSleepStartedV2,
         ),
         ContractType(
+            "campsverso.avatar.spoke.v1",
+            "event",
+            "world",
+            "kernel",
+            "contracts://events/avatar/spoke.v1",
+            models.AvatarSpokeV1,
+        ),
+        ContractType(
             "campsverso.cmd.action.propose.v1",
             "command",
             "observer",
@@ -170,6 +178,14 @@ CONTRACT_TYPES: Final[dict[str, ContractType]] = {
             "operator",
             "contracts://commands/avatar/release.v1",
             models.CmdAvatarReleaseV1,
+        ),
+        ContractType(
+            "campsverso.cmd.clock.catch_up.v1",
+            "command",
+            "observer",
+            "kernel",
+            "contracts://commands/clock/catch_up.v1",
+            models.CmdClockCatchUpV1,
         ),
         ContractType(
             "campsverso.cmd.clock.pause.v1",
@@ -426,6 +442,14 @@ CONTRACT_TYPES: Final[dict[str, ContractType]] = {
             "kernel",
             "contracts://events/rules/toggled.v1",
             models.RulesToggledV1,
+        ),
+        ContractType(
+            "campsverso.world.clock.caught_up.v1",
+            "event",
+            "world",
+            "kernel",
+            "contracts://events/world/clock.caught_up.v1",
+            models.WorldClockCaughtUpV1,
         ),
         ContractType(
             "campsverso.world.clock.jumped.v1",

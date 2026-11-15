@@ -106,6 +106,13 @@ class AvatarDef:
     traits: AvatarTraits = field(default_factory=AvatarTraits)
     # Fora do mundo no começo (ADR-0072): sem posição, sem pedidos de decisão, até `enter`.
     present: bool = True
+    # Os tipos de controlador que podem assumir o avatar (ADR-0078). O dev do escritório não aceita
+    # `human`: nenhum humano assume o dev. Sem a lista, qualquer um.
+    controllers: frozenset[str] | None = None
+    # A porta de quem vem de fora (ADR-0078): o avatar fica fora do mundo enquanto o controlador
+    # padrão o tem; outro controlador o assume, e ele entra aqui; devolvido, ele sai. É o gerente
+    # que o humano assume para entrar no escritório. Pede `present=False`.
+    enters_at: Position | None = None
 
 
 type ChoiceSource = Literal["any", "inventory", "target"]

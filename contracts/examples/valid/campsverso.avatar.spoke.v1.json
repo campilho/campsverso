@@ -1,0 +1,26 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c2c-7f10-8a3e-2b7c4d9e1a55",
+  "source": "/kernel/office-campsverso-01",
+  "type": "campsverso.avatar.spoke.v1",
+  "time": "2026-11-16T12:31:04Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/avatar/spoke.v1",
+  "worldid": "office-campsverso-01",
+  "cartridge": "office_campsverso",
+  "tick": 16352,
+  "simtime": "2026-11-16T09:05:04-03:00",
+  "seq": 4120,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "avatar_id": "gerente",
+    "action_id": "act-000412",
+    "text": "Bom dia! Deixei um pedido novo no quadro: a busca por nome.",
+    "listener_id": "camps",
+    "position": {
+      "x": 9,
+      "y": 6
+    }
+  }
+}

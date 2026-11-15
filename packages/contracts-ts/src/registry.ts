@@ -102,6 +102,12 @@ export const CONTRACT_TYPES = {
     producer: "kernel",
     dataschema: "contracts://events/avatar/sleep.started.v2",
   },
+  "campsverso.avatar.spoke.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/avatar/spoke.v1",
+  },
   "campsverso.cmd.action.propose.v1": {
     kind: "command",
     visibility: "observer",
@@ -119,6 +125,12 @@ export const CONTRACT_TYPES = {
     visibility: "observer",
     producer: "operator",
     dataschema: "contracts://commands/avatar/release.v1",
+  },
+  "campsverso.cmd.clock.catch_up.v1": {
+    kind: "command",
+    visibility: "observer",
+    producer: "kernel",
+    dataschema: "contracts://commands/clock/catch_up.v1",
   },
   "campsverso.cmd.clock.pause.v1": {
     kind: "command",
@@ -312,6 +324,12 @@ export const CONTRACT_TYPES = {
     producer: "kernel",
     dataschema: "contracts://events/rules/toggled.v1",
   },
+  "campsverso.world.clock.caught_up.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/world/clock.caught_up.v1",
+  },
   "campsverso.world.clock.jumped.v1": {
     kind: "event",
     visibility: "internal",
@@ -470,9 +488,11 @@ export interface PayloadByType {
   "campsverso.avatar.sleep.ended.v2": T.AvatarSleepEndedV2;
   "campsverso.avatar.sleep.started.v1": T.AvatarSleepStartedV1;
   "campsverso.avatar.sleep.started.v2": T.AvatarSleepStartedV2;
+  "campsverso.avatar.spoke.v1": T.AvatarSpokeV1;
   "campsverso.cmd.action.propose.v1": T.CmdActionProposeV1;
   "campsverso.cmd.avatar.possess.v1": T.CmdAvatarPossessV1;
   "campsverso.cmd.avatar.release.v1": T.CmdAvatarReleaseV1;
+  "campsverso.cmd.clock.catch_up.v1": T.CmdClockCatchUpV1;
   "campsverso.cmd.clock.pause.v1": T.CmdClockPauseV1;
   "campsverso.cmd.clock.resume.v1": T.CmdClockResumeV1;
   "campsverso.cmd.clock.set_mode.v1": T.CmdClockSetModeV1;
@@ -505,6 +525,7 @@ export interface PayloadByType {
   "campsverso.rules.effect_applied.v1": T.RulesEffectAppliedV1;
   "campsverso.rules.loaded.v1": T.RulesLoadedV1;
   "campsverso.rules.toggled.v1": T.RulesToggledV1;
+  "campsverso.world.clock.caught_up.v1": T.WorldClockCaughtUpV1;
   "campsverso.world.clock.jumped.v1": T.WorldClockJumpedV1;
   "campsverso.world.clock.mode_changed.v1": T.WorldClockModeChangedV1;
   "campsverso.world.clock.paused.v1": T.WorldClockPausedV1;

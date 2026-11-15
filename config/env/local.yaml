@@ -45,7 +45,7 @@ perception:  # foto ou delta por tipo de controlador (ADR-0056)
   snapshot_every: 20  # uma foto a cada N deltas; a primeira decisão e a posse sempre recebem foto
 
 snapshots:
-  full_every_ticks: 60  # um snapshot completo por hora simulada (decisão 3)
+  full_every_minutes: 60  # um snapshot completo por hora simulada (decisão 3), qualquer que seja o tick (ADR-0078)
   keep_full: 168  # os mais recentes que ficam (7 dias simulados); o inicial nunca sai
 
 archive:

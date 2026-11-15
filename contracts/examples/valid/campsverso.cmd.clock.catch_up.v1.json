@@ -1,0 +1,21 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c36-7a10-9c4e-3f1d2a7b8c90",
+  "source": "/kernel/office-campsverso-01",
+  "type": "campsverso.cmd.clock.catch_up.v1",
+  "time": "2026-11-16T11:40:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://commands/clock/catch_up.v1",
+  "worldid": "office-campsverso-01",
+  "cartridge": "office_campsverso",
+  "tick": 0,
+  "simtime": "2026-11-16T00:00:00-03:00",
+  "seq": 0,
+  "provenance": "simulated",
+  "visibility": "observer",
+  "data": {
+    "to_tick": 14400,
+    "reason": "wall_clock"
+  },
+  "actor": "kernel/relogio"
+}

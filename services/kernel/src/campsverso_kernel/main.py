@@ -9,13 +9,15 @@ SIGINT e SIGTERM param com elegância (snapshot antes de sair); kill -9 exercita
 
 import argparse
 import asyncio
+import math
 import os
 import signal
 import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 from campsverso_adapters import (
     ContractValidator,
@@ -34,6 +36,7 @@ from campsverso_adapters import (
     read_world_archive,
 )
 from campsverso_cartridge_api import ControllerRef, ControllerType
+from campsverso_contracts import CONTRACT_TYPES
 from campsverso_kernel.core import WorldConfig
 from campsverso_kernel.definition import WorldDefinition
 from campsverso_kernel.loader import build_world, discover
@@ -61,13 +64,52 @@ def prepare(env: EnvSettings, world: WorldSettings) -> Prepared:
     rules_path = world.rules_file or cartridges[world.cartridge].rules_file()
     rules = YamlFlags(rules_path).rules() if rules_path is not None else ()
     source = "(nenhum)" if rules_path is None else f"{world.cartridge}/{rules_path.name}"
+    # O snapshot conta minutos simulados (ADR-0078): uma hora são 60 ticks na fazenda e 1.800
+    # num escritório de tick de 2 s, e não 720 snapshots por dia.
+    every = max(1, round(env.snapshot_every_minutes * 60 / definition.clock.tick_seconds))
     return Prepared(
         definition=definition,
         config=WorldConfig(world.worldid, world.seed, world.start, world.map),
         rules=rules,
         rules_source=source,
-        version=run_version(world.cartridge, env.snapshot_every_ticks, cartridges),
+        version=run_version(world.cartridge, every, cartridges),
     )
+
+
+CATCH_UP = "campsverso.cmd.clock.catch_up.v1"
+
+
+def tick_of(start: datetime, now: datetime, tick_seconds: int) -> int:
+    """O tick de agora num mundo ancorado no real (ADR-0078): o tempo desde o início, em ticks."""
+    return max(0, math.floor((now - start).total_seconds() / tick_seconds))
+
+
+def catch_up_command(
+    worldid: str, cartridge: str, tick: int, to_tick: int, now: datetime, command_id: str
+) -> dict[str, Any] | None:
+    """O comando que salta o relógio ancorado até agora, ou nada se o mundo já está em dia.
+
+    Vai pelo caminho de todo comando (o diário o guarda), e o replay o refaz igual: o relógio de
+    parede é lido só aqui, na raiz de composição (princípio 4)."""
+    if to_tick <= tick:
+        return None
+    info = CONTRACT_TYPES[CATCH_UP]
+    return {
+        "specversion": "1.0",
+        "id": command_id,
+        "source": f"/kernel/{worldid}",
+        "type": CATCH_UP,
+        "time": now.isoformat(timespec="milliseconds").replace("+00:00", "Z"),
+        "datacontenttype": "application/json",
+        "dataschema": info.dataschema,
+        "worldid": worldid,
+        "cartridge": cartridge,
+        "seq": 0,
+        "actor": "kernel/relogio",
+        "provenance": "simulated",
+        "visibility": info.visibility,
+        "data": {"to_tick": to_tick, "reason": "wall_clock"},
+    }
 
 
 def _parse(argv: Sequence[str]) -> argparse.Namespace:
@@ -187,6 +229,19 @@ async def run(args: argparse.Namespace) -> int:
         loop.add_signal_handler(signum, stop.set)
     try:
         await service.start()
+        if world.anchor == "wall":
+            now = clock.now()
+            jump = catch_up_command(
+                world.worldid,
+                prepared.definition.top.id,
+                core.tick,
+                tick_of(world.start, now, core.calendar.tick_seconds),
+                now,
+                Uuid7Ids().new_id(),
+            )
+            if jump is not None:
+                service.submit(jump)
+                telemetry.info("kernel.caught_up", to_tick=core.tick)
         telemetry.info(
             "kernel.running", tick=core.tick, mode=core.mode, scale=core.scale, paused=core.paused
         )

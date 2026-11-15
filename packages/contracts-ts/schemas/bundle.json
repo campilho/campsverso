@@ -937,6 +937,25 @@
         }
       }
     },
+    "CmdClockCatchUpV1": {
+      "title": "CmdClockCatchUpV1",
+      "description": "O relógio ancorado no real (ADR-0078): ao subir, o mundo salta até o tick de agora, pulando o que não acontece e rodando o que vence no caminho. A raiz de composição do kernel o manda, e o diário o guarda para o replay.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "to_tick",
+        "reason"
+      ],
+      "properties": {
+        "to_tick": {
+          "$ref": "#/$defs/Tick"
+        },
+        "reason": {
+          "$ref": "#/$defs/Token",
+          "description": "Por que o relógio saltou (ex.: `wall_clock`, a pilha subiu de novo)."
+        }
+      }
+    },
     "CmdClockPauseV1": {
       "title": "CmdClockPauseV1",
       "description": "Pede a pausa do relógio.",
@@ -1684,6 +1703,39 @@
         },
         "wake_at_tick": {
           "$ref": "#/$defs/Tick"
+        }
+      }
+    },
+    "AvatarSpokeV1": {
+      "title": "AvatarSpokeV1",
+      "description": "O avatar falou (ADR-0078): a ação `say` do kernel, com o texto inteiro. A tela mostra um balão e a linha do tempo guarda a fala; quem está perto ouve. É como o gerente, que o humano assume, conversa com o dev do escritório.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "avatar_id",
+        "action_id",
+        "text"
+      ],
+      "properties": {
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "action_id": {
+          "$ref": "#/$defs/ActionId"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 280,
+          "description": "O que o avatar disse, sem reescrever."
+        },
+        "listener_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Com quem ele falou (o parâmetro `to` da ação); sem o campo, falou para quem estiver perto."
+        },
+        "position": {
+          "$ref": "#/$defs/Position",
+          "description": "Onde ele estava ao falar."
         }
       }
     },
@@ -3084,6 +3136,28 @@
         },
         "effective_at_tick": {
           "$ref": "#/$defs/Tick"
+        }
+      }
+    },
+    "WorldClockCaughtUpV1": {
+      "title": "WorldClockCaughtUpV1",
+      "description": "O relógio ancorado no real alcançou o tick de agora (ADR-0078): o mundo andou de `from_tick` a `to_tick` de uma vez, ao subir de novo.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from_tick",
+        "to_tick",
+        "reason"
+      ],
+      "properties": {
+        "from_tick": {
+          "$ref": "#/$defs/Tick"
+        },
+        "to_tick": {
+          "$ref": "#/$defs/Tick"
+        },
+        "reason": {
+          "$ref": "#/$defs/Token"
         }
       }
     },

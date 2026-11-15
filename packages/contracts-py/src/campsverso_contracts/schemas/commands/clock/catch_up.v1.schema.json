@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://commands/clock/catch_up.v1",
+  "title": "CmdClockCatchUpV1",
+  "description": "O relógio ancorado no real (ADR-0078): ao subir, o mundo salta até o tick de agora, pulando o que não acontece e rodando o que vence no caminho. A raiz de composição do kernel o manda, e o diário o guarda para o replay.",
+  "x-type": "campsverso.cmd.clock.catch_up.v1",
+  "x-visibility": "observer",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "to_tick",
+    "reason"
+  ],
+  "properties": {
+    "to_tick": {
+      "$ref": "contracts://common/defs.v1#/$defs/tick"
+    },
+    "reason": {
+      "$ref": "contracts://common/defs.v1#/$defs/token",
+      "description": "Por que o relógio saltou (ex.: `wall_clock`, a pilha subiu de novo)."
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c36-7b22-8d5f-4a2e3b8c9d01",
+  "source": "/kernel/office-campsverso-01",
+  "type": "campsverso.world.clock.caught_up.v1",
+  "time": "2026-11-16T11:40:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/world/clock.caught_up.v1",
+  "worldid": "office-campsverso-01",
+  "cartridge": "office_campsverso",
+  "tick": 14400,
+  "simtime": "2026-11-16T08:00:00-03:00",
+  "seq": 812,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "from_tick": 0,
+    "to_tick": 14400,
+    "reason": "wall_clock"
+  }
+}

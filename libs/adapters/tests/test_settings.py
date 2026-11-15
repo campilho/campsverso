@@ -12,7 +12,7 @@ def test_ambiente_local() -> None:
     env = load_env(REPO / "config" / "env" / "local.yaml", root=REPO)
     assert env.data_dir == REPO / "data"
     assert env.archive_dir == REPO / "data" / "archive"
-    assert env.snapshot_every_ticks == 60
+    assert env.snapshot_every_minutes == 60
     assert env.nats.duplicate_window_seconds == 120
     assert {s.name for s in env.nats.streams} == {
         "WORLD",
@@ -68,3 +68,19 @@ def test_unidades() -> None:
     assert size_bytes("256MiB") == 256 * 1024 * 1024
     with pytest.raises(ValueError, match="duração"):
         duration_seconds("30 dias")
+
+
+def test_o_relogio_ancorado_no_real(tmp_path: Path) -> None:
+    """ADR-0078: `clock.anchor: wall` só no modo contínuo; sem ele, o relógio é o de sempre."""
+    base = "worldid: lab-01\ncartridge: lab\nseed: 1\nstart: 2026-11-16T00:00:00-03:00\n"
+    world = tmp_path / "mundo.yaml"
+    world.write_text(base + "clock: {mode: continuous, scale: 1, anchor: wall}\n", encoding="utf-8")
+    assert load_world(world).anchor == "wall"
+    world.write_text(base, encoding="utf-8")
+    assert load_world(world).anchor is None
+    world.write_text(base + "clock: {mode: max, anchor: wall}\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="modo contínuo"):
+        load_world(world)
+    world.write_text(base + "clock: {anchor: lua}\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="anchor inválido"):
+        load_world(world)

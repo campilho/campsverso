@@ -28,7 +28,8 @@ from campsverso_kernel.errors import DefinitionError
 from campsverso_kernel.pipeline import DEFAULT_STAGES
 from campsverso_kernel.space import GridMap
 
-KERNEL_ACTIONS = frozenset({"move", "wait"})  # física do espaço e do tempo (ADR-0038)
+# O espaço e o tempo (ADR-0038), e a fala (ADR-0078).
+KERNEL_ACTIONS = frozenset({"move", "wait", "say"})
 # O nome de uma variante entra no id do mapa (`farm_morada_do_sol-b`), que o contrato limita.
 MAP_VARIANT = re.compile(r"[a-z0-9_]{1,16}")
 
@@ -216,6 +217,16 @@ class DefinitionBuilder:
         _register(self.spawns, entity.entity_id, entity, override=override, what="entidade")
 
     def add_avatar(self, avatar: AvatarDef, *, override: bool = False) -> None:
+        allowed = avatar.controllers
+        if allowed is not None and avatar.default_controller.type not in allowed:
+            raise DefinitionError(
+                f"o controlador padrão de {avatar.entity_id!r} ({avatar.default_controller.type}) "
+                f"não está entre os aceitos: {sorted(allowed)}"
+            )
+        if avatar.enters_at is not None and avatar.present:
+            raise DefinitionError(
+                f"{avatar.entity_id!r} entra pela porta ao ser assumido: precisa de present=False"
+            )
         _register(self.avatars, avatar.entity_id, avatar, override=override, what="avatar")
 
     def add_items(self, container_id: str, item: str, qty: int) -> None:

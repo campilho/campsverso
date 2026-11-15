@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/avatar/spoke.v1",
+  "title": "AvatarSpokeV1",
+  "description": "O avatar falou (ADR-0078): a ação `say` do kernel, com o texto inteiro. A tela mostra um balão e a linha do tempo guarda a fala; quem está perto ouve. É como o gerente, que o humano assume, conversa com o dev do escritório.",
+  "x-type": "campsverso.avatar.spoke.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "avatar_id",
+    "action_id",
+    "text"
+  ],
+  "properties": {
+    "avatar_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "action_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/action_id"
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 280,
+      "description": "O que o avatar disse, sem reescrever."
+    },
+    "listener_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "Com quem ele falou (o parâmetro `to` da ação); sem o campo, falou para quem estiver perto."
+    },
+    "position": {
+      "$ref": "contracts://common/defs.v1#/$defs/position",
+      "description": "Onde ele estava ao falar."
+    }
+  }
+}

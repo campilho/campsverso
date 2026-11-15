@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 
 describe("contratos vistos pela UI", () => {
   it("conhecem a visibilidade de cada tipo", () => {
-    expect(Object.keys(CONTRACT_TYPES)).toHaveLength(73);
+    // 66 eventos e 10 comandos: a fala e o relógio que alcança o real chegaram no M23 (ADR-0078).
+    expect(Object.keys(CONTRACT_TYPES)).toHaveLength(76);
+    expect(CONTRACT_TYPES["campsverso.avatar.spoke.v1"].visibility).toBe("world");
     expect(CONTRACT_TYPES["campsverso.rules.effect_applied.v1"].visibility).toBe("internal");
     expect(CONTRACT_TYPES["campsverso.perception.updated.v1"].visibility).toBe("agent");
   });

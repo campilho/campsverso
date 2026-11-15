@@ -191,6 +191,17 @@ channels:
     messages:
       AvatarSleepStartedV2:
         $ref: '#/components/messages/AvatarSleepStartedV2'
+  AvatarSpokeV1:
+    address: campsverso.{worldid}.world.avatar.spoke.v1
+    title: campsverso.avatar.spoke.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      AvatarSpokeV1:
+        $ref: '#/components/messages/AvatarSpokeV1'
   CmdActionProposeV1:
     address: campsverso.{worldid}.cmd.action.propose.v1
     title: campsverso.cmd.action.propose.v1
@@ -224,6 +235,17 @@ channels:
     messages:
       CmdAvatarReleaseV1:
         $ref: '#/components/messages/CmdAvatarReleaseV1'
+  CmdClockCatchUpV1:
+    address: campsverso.{worldid}.cmd.clock.catch_up.v1
+    title: campsverso.cmd.clock.catch_up.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      CmdClockCatchUpV1:
+        $ref: '#/components/messages/CmdClockCatchUpV1'
   CmdClockPauseV1:
     address: campsverso.{worldid}.cmd.clock.pause.v1
     title: campsverso.cmd.clock.pause.v1
@@ -580,6 +602,17 @@ channels:
     messages:
       RulesToggledV1:
         $ref: '#/components/messages/RulesToggledV1'
+  WorldClockCaughtUpV1:
+    address: campsverso.{worldid}.world.world.clock.caught_up.v1
+    title: campsverso.world.clock.caught_up.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorldClockCaughtUpV1:
+        $ref: '#/components/messages/WorldClockCaughtUpV1'
   WorldClockJumpedV1:
     address: campsverso.{worldid}.internal.world.clock.jumped.v1
     title: campsverso.world.clock.jumped.v1
@@ -970,6 +1003,13 @@ operations:
     messages:
     - $ref: '#/channels/AvatarSleepStartedV2/messages/AvatarSleepStartedV2'
     x-producer: kernel
+  sendAvatarSpokeV1:
+    action: send
+    channel:
+      $ref: '#/channels/AvatarSpokeV1'
+    messages:
+    - $ref: '#/channels/AvatarSpokeV1/messages/AvatarSpokeV1'
+    x-producer: kernel
   sendCmdActionProposeV1:
     action: send
     channel:
@@ -991,6 +1031,13 @@ operations:
     messages:
     - $ref: '#/channels/CmdAvatarReleaseV1/messages/CmdAvatarReleaseV1'
     x-producer: operator
+  sendCmdClockCatchUpV1:
+    action: send
+    channel:
+      $ref: '#/channels/CmdClockCatchUpV1'
+    messages:
+    - $ref: '#/channels/CmdClockCatchUpV1/messages/CmdClockCatchUpV1'
+    x-producer: kernel
   sendCmdClockPauseV1:
     action: send
     channel:
@@ -1214,6 +1261,13 @@ operations:
       $ref: '#/channels/RulesToggledV1'
     messages:
     - $ref: '#/channels/RulesToggledV1/messages/RulesToggledV1'
+    x-producer: kernel
+  sendWorldClockCaughtUpV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorldClockCaughtUpV1'
+    messages:
+    - $ref: '#/channels/WorldClockCaughtUpV1/messages/WorldClockCaughtUpV1'
     x-producer: kernel
   sendWorldClockJumpedV1:
     action: send
@@ -2158,6 +2212,22 @@ components:
         avatar_id:
           $ref: '#/components/schemas/EntityId'
           description: Avatar (o corpo), independente de quem o controla (ADR-0027).
+    CmdClockCatchUpV1:
+      title: CmdClockCatchUpV1
+      description: 'O relógio ancorado no real (ADR-0078): ao subir, o mundo salta até o tick de agora,
+        pulando o que não acontece e rodando o que vence no caminho. A raiz de composição do kernel o
+        manda, e o diário o guarda para o replay.'
+      type: object
+      additionalProperties: false
+      required:
+      - to_tick
+      - reason
+      properties:
+        to_tick:
+          $ref: '#/components/schemas/Tick'
+        reason:
+          $ref: '#/components/schemas/Token'
+          description: 'Por que o relógio saltou (ex.: `wall_clock`, a pilha subiu de novo).'
     CmdClockPauseV1:
       title: CmdClockPauseV1
       description: Pede a pausa do relógio.
@@ -2729,6 +2799,34 @@ components:
           $ref: '#/components/schemas/Position'
         wake_at_tick:
           $ref: '#/components/schemas/Tick'
+    AvatarSpokeV1:
+      title: AvatarSpokeV1
+      description: 'O avatar falou (ADR-0078): a ação `say` do kernel, com o texto inteiro. A tela mostra
+        um balão e a linha do tempo guarda a fala; quem está perto ouve. É como o gerente, que o humano
+        assume, conversa com o dev do escritório.'
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - action_id
+      - text
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+        action_id:
+          $ref: '#/components/schemas/ActionId'
+        text:
+          type: string
+          minLength: 1
+          maxLength: 280
+          description: O que o avatar disse, sem reescrever.
+        listener_id:
+          $ref: '#/components/schemas/EntityId'
+          description: Com quem ele falou (o parâmetro `to` da ação); sem o campo, falou para quem estiver
+            perto.
+        position:
+          $ref: '#/components/schemas/Position'
+          description: Onde ele estava ao falar.
     EconomyLaborDismissedV1:
       title: EconomyLaborDismissedV1
       description: 'Quem contratou dispensou o ajudante antes do fim (ADR-0072): ele vai embora, e os
@@ -3824,6 +3922,23 @@ components:
           maxLength: 64
         effective_at_tick:
           $ref: '#/components/schemas/Tick'
+    WorldClockCaughtUpV1:
+      title: WorldClockCaughtUpV1
+      description: 'O relógio ancorado no real alcançou o tick de agora (ADR-0078): o mundo andou de `from_tick`
+        a `to_tick` de uma vez, ao subir de novo.'
+      type: object
+      additionalProperties: false
+      required:
+      - from_tick
+      - to_tick
+      - reason
+      properties:
+        from_tick:
+          $ref: '#/components/schemas/Tick'
+        to_tick:
+          $ref: '#/components/schemas/Tick'
+        reason:
+          $ref: '#/components/schemas/Token'
     WorldClockJumpedV1:
       title: WorldClockJumpedV1
       description: Salto de tempo até o próximo evento agendado (simulação de eventos discretos).
@@ -5170,6 +5285,17 @@ components:
         $ref: '#/components/schemas/AvatarSleepStartedV2'
       x-visibility: world
       x-producer: kernel
+    AvatarSpokeV1:
+      name: campsverso.avatar.spoke.v1
+      title: AvatarSpokeV1
+      summary: 'O avatar falou (ADR-0078): a ação `say` do kernel, com o texto inteiro. A tela mostra
+        um balão e a linha do tempo guarda a fala; quem está perto ouve. É como o gerente, que o humano
+        assume, conversa com o dev do escritório.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/AvatarSpokeV1'
+      x-visibility: world
+      x-producer: kernel
     CmdActionProposeV1:
       name: campsverso.cmd.action.propose.v1
       title: CmdActionProposeV1
@@ -5197,6 +5323,17 @@ components:
         $ref: '#/components/schemas/CmdAvatarReleaseV1'
       x-visibility: observer
       x-producer: operator
+    CmdClockCatchUpV1:
+      name: campsverso.cmd.clock.catch_up.v1
+      title: CmdClockCatchUpV1
+      summary: 'O relógio ancorado no real (ADR-0078): ao subir, o mundo salta até o tick de agora, pulando
+        o que não acontece e rodando o que vence no caminho. A raiz de composição do kernel o manda, e
+        o diário o guarda para o replay.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CmdClockCatchUpV1'
+      x-visibility: observer
+      x-producer: kernel
     CmdClockPauseV1:
       name: campsverso.cmd.clock.pause.v1
       title: CmdClockPauseV1
@@ -5502,6 +5639,16 @@ components:
       payload:
         $ref: '#/components/schemas/RulesToggledV1'
       x-visibility: internal
+      x-producer: kernel
+    WorldClockCaughtUpV1:
+      name: campsverso.world.clock.caught_up.v1
+      title: WorldClockCaughtUpV1
+      summary: 'O relógio ancorado no real alcançou o tick de agora (ADR-0078): o mundo andou de `from_tick`
+        a `to_tick` de uma vez, ao subir de novo.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorldClockCaughtUpV1'
+      x-visibility: world
       x-producer: kernel
     WorldClockJumpedV1:
       name: campsverso.world.clock.jumped.v1

@@ -24,6 +24,10 @@ cartucho grava o trabalho feito (`ActionSpec.interrupted`)."""
 class Accepted:
     duration_ticks: int  # pelo menos 1 (ADR-0038)
     interrupt: Interrupt = "never"  # decidida na validação, com os dados do mundo (ADR-0052)
+    # A duração em segundos simulados, que o kernel converte em ticks pelo relógio do cartucho
+    # (ADR-0078): um mundo de tick curto declara o tempo em segundos, e não em ticks. Com ela, o
+    # `duration_ticks` não conta (use 0).
+    seconds: float | None = None
 
 
 type Validation = Rejection | Accepted

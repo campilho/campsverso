@@ -84,7 +84,7 @@ class EnvSettings:
     archive_dir: Path
     validate_events: bool
     nats: NatsSettings
-    snapshot_every_ticks: int
+    snapshot_every_minutes: int  # em minutos simulados; o kernel converte pelo tick do cartucho
     snapshot_keep_full: int
     archive_compress_after_days: int
     gateway: GatewaySettings = field(default_factory=GatewaySettings)
@@ -140,6 +140,8 @@ class WorldSettings:
     map: str | None = None  # a variante do mapa do cartucho (ADR-0070); None: o mapa dele
     helpers: tuple[str, ...] = ()  # os ajudantes do processo `helpers` (ADR-0072)
     helper_script: str = "ajudante"  # o script deles (entry point campsverso.controllers)
+    # O relógio ancorado no real (ADR-0078): ao subir, o mundo salta até agora. Só no modo contínuo.
+    anchor: Literal["wall"] | None = None
 
 
 def _read(path: Path) -> Mapping[str, Any]:
@@ -177,7 +179,7 @@ def load_env(path: Path, root: Path | None = None) -> EnvSettings:
                 for name, spec in streams.items()
             ),
         ),
-        snapshot_every_ticks=int(snapshots["full_every_ticks"]),
+        snapshot_every_minutes=int(snapshots["full_every_minutes"]),
         snapshot_keep_full=int(snapshots["keep_full"]),
         archive_compress_after_days=int(archive["compress_after_days"]),
         gateway=GatewaySettings(
@@ -262,7 +264,13 @@ def load_world(path: Path, root: Path | None = None) -> WorldSettings:
     if start.tzinfo is None:
         raise ValueError("start precisa de fuso horário (ex.: 2026-10-10T06:00:00-03:00)")
     helpers = cast(Mapping[str, Any], doc.get("helpers") or {})
+    anchor = clock.get("anchor")
+    if anchor not in (None, "wall"):
+        raise ValueError(f"clock.anchor inválido: {anchor!r} (use wall)")
+    if anchor == "wall" and mode != "continuous":
+        raise ValueError("clock.anchor: wall pede o modo contínuo (o mundo em tempo real)")
     return WorldSettings(
+        anchor=anchor,
         helpers=tuple(str(a) for a in cast(list[Any], helpers.get("avatars") or [])),
         helper_script=str(helpers.get("script") or "ajudante"),
         worldid=str(doc["worldid"]),
