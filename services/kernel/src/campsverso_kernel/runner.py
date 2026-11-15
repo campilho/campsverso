@@ -99,5 +99,5 @@ class ClockLoop:
                 await service.run_ticks(min(ticks, _MAX_BEHIND))
             elif early:
                 await service.run_ticks(1)
-            idle = min(_IDLE_SECONDS, tick_seconds / core.scale)
-            await _wait_any((stop, service.commands_arrived), idle)
+            idle = min(_IDLE_SECONDS, tick_seconds / core.scale, pacer.seconds_to_next_tick())
+            await _wait_any((stop, service.commands_arrived), max(0.001, idle))

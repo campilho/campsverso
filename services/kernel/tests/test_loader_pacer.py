@@ -81,6 +81,19 @@ class MetricLayer:
         return None
 
 
+def test_o_laco_dorme_so_ate_a_proxima_virada() -> None:
+    """ADR-0081: a 1x, com o tick de 250 ms, o laço acordado por um comando volta a dormir só até
+    a virada do tick, e não um tick inteiro a partir dali."""
+    pacer = RealTimePacer(0.25, 1.0)
+    assert pacer.seconds_to_next_tick() == 0.25
+    assert pacer.ticks_for(0.1) == 0
+    assert abs(pacer.seconds_to_next_tick() - 0.15) < 1e-9
+    assert pacer.advance_early()  # o tick antecipado deixa uma dívida: a virada vem depois
+    assert abs(pacer.seconds_to_next_tick() - 0.4) < 1e-9
+    pacer.scale = 2.0
+    assert abs(pacer.seconds_to_next_tick() - 0.2) < 1e-9
+
+
 def test_metricas_em_camadas_e_conferidas_na_carga() -> None:
     touches = MetricDef(
         "toques",

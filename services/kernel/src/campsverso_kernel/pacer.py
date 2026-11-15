@@ -27,3 +27,9 @@ class RealTimePacer:
             return False
         self._accumulated -= self._tick_seconds
         return True
+
+    def seconds_to_next_tick(self) -> float:
+        """Quanto tempo real falta para o próximo tick, na escala de agora (ADR-0081). O laço dorme
+        só até lá: dormir um tick inteiro a cada comando que o acordava empurrava a virada, e a 1x,
+        com o tick de 250 ms, um clique chegava a esperar quase meio segundo."""
+        return max(0.0, (self._tick_seconds - self._accumulated) / max(self.scale, 1e-9))
