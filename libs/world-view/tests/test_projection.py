@@ -142,6 +142,12 @@ def test_trajeto_tile_a_tile_pelas_esquinas() -> None:
     assert path == [{"x": 1, "y": 1}, {"x": 2, "y": 1}, {"x": 3, "y": 1}, {"x": 3, "y": 2}]
 
 
+def test_segmento_torto_vira_um_l_e_acaba() -> None:
+    """De (6,7) a (5,5) o passo em diagonal passava da esquina e o laço não acabava (M23)."""
+    path = path_from({"x": 6, "y": 7}, [{"x": 5, "y": 5}])
+    assert path == [{"x": 6, "y": 7}, {"x": 5, "y": 7}, {"x": 5, "y": 6}, {"x": 5, "y": 5}]
+
+
 def test_pedido_de_decisao_guarda_o_tick_do_proprio_evento() -> None:
     """world pode chegar antes de agent: o tick do pedido não pode vir do maior tick já visto."""
     p = started()

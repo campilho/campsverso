@@ -40,14 +40,19 @@ def _position(raw: Any) -> dict[str, int]:
 def path_from(
     origin: Mapping[str, int], waypoints: list[Mapping[str, int]]
 ) -> list[dict[str, int]]:
-    """Refaz o trajeto tile a tile a partir das esquinas (D1): segmentos retos em 4 direções."""
+    """Refaz o trajeto tile a tile a partir das esquinas (D1): segmentos retos em 4 direções.
+
+    Um segmento torto, que o kernel não publica, vira um L (primeiro em x, depois em y): o passo
+    em diagonal de antes passava da esquina e o laço não acabava (o mesmo conserto da tela, M23).
+    """
     path = [_position(origin)]
     for corner in waypoints:
         x, y = path[-1]["x"], path[-1]["y"]
-        dx = (corner["x"] > x) - (corner["x"] < x)
-        dy = (corner["y"] > y) - (corner["y"] < y)
-        while (x, y) != (corner["x"], corner["y"]):
-            x, y = x + dx, y + dy
+        while x != corner["x"]:
+            x += 1 if corner["x"] > x else -1
+            path.append({"x": x, "y": y})
+        while y != corner["y"]:
+            y += 1 if corner["y"] > y else -1
             path.append({"x": x, "y": y})
     return path
 

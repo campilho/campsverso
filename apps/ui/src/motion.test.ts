@@ -264,3 +264,20 @@ describe("o relógio da tela a 1× não corre na frente do kernel", () => {
     expect(clock.at(state, 59_000, true)).toBeLessThan(101);
   });
 });
+
+describe("o trajeto perdido que termina em diagonal (a queda da aba no escritório, M23)", () => {
+  it("de (6,7) a (5,5) sem o trajeto do kernel, o desenho anda um L e para no destino", () => {
+    expect(pathFrom({ x: 6, y: 7 }, [{ x: 5, y: 5 }])).toEqual([
+      { x: 6, y: 7 },
+      { x: 5, y: 7 },
+      { x: 5, y: 6 },
+      { x: 5, y: 5 },
+    ]);
+    // O gerente parado em (6,7); o trajeto até (5,5) começa e acaba entre duas atualizações, e o
+    // estado só mostra o lugar novo. Antes, a emenda andava em diagonal sem fim e a aba caía.
+    const clock = new MotionClock();
+    const drawn = film(clock, 2000, (ms) => ({ tick: 10 + ms * rate(72), rest: ms < 500 ? { x: 6, y: 7 } : { x: 5, y: 5 } }), "gerente");
+    expect(biggestStep(drawn)).toBeLessThanOrEqual(1);
+    expect(drawn.at(-1)).toEqual({ x: 5, y: 5 });
+  });
+});

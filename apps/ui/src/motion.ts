@@ -51,16 +51,19 @@ export function pointAt(path: readonly Position[], steps: number): Point {
 }
 
 /** O trajeto tile a tile a partir das esquinas, como a projeção o refaz (`path_from`): segmentos
- * retos em 4 direções. */
+ * retos em 4 direções. Um segmento torto (a emenda de um desenho que perdeu o trajeto, de (6,7) a
+ * (5,5)) vira um L, primeiro em x, depois em y. Antes, um passo em diagonal passava da esquina e o
+ * laço não acabava: a aba enchia a memória e caía (a partida do usuário no escritório, M23). */
 export function pathFrom(origin: Position, waypoints: readonly Position[]): ObserverMotion["path"] {
   const path: ObserverMotion["path"] = [{ x: origin.x, y: origin.y }];
   for (const corner of waypoints) {
     let { x, y } = path[path.length - 1] ?? origin;
-    const dx = Math.sign(corner.x - x);
-    const dy = Math.sign(corner.y - y);
-    while (x !== corner.x || y !== corner.y) {
-      x += dx;
-      y += dy;
+    while (x !== corner.x) {
+      x += Math.sign(corner.x - x);
+      path.push({ x, y });
+    }
+    while (y !== corner.y) {
+      y += Math.sign(corner.y - y);
       path.push({ x, y });
     }
   }
