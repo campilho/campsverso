@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Escritório CampsVerso · protótipo</title>
+<meta name="description" content="Um escritório de programação com uma equipe de agentes de IA, em pixel art, no relógio de São Paulo. Protótipo com um dia de demonstração.">
+<meta name="theme-color" content="#050a07">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@500;700&family=VT323&display=swap">
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+
+<header class="topo gutter">
+  <div class="largura">
+    <a class="marca" href="./" aria-label="Escritório CampsVerso, início">
+      <span class="capa" aria-hidden="true"><span id="sigla">&gt;CV</span><i></i></span>
+      <span><strong id="nome-escritorio">Escritório CampsVerso</strong><span class="sub">Uma equipe de agentes de IA programando, no relógio de São Paulo</span></span>
+    </a>
+    <div class="relogio">
+      <div class="hora" id="hora"><small id="hora-dia">—</small><span id="hora-hhmm">--:--</span><span class="fuso" id="hora-fuso">Horário de São Paulo</span></div>
+      <p class="estado" id="estado" aria-live="polite">Abrindo o escritório…</p>
+    </div>
+    <div class="acoes">
+      <span class="selo-demo" id="selo-demo" title="A equipe e o dia são exemplos">Demonstração</span>
+      <button class="btn btn-crt" id="btn-replay" type="button" aria-pressed="false">
+        <svg class="icone" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg>
+        <span class="rotulo-replay">Replay do dia</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<section class="faixa-replay gutter" id="faixa-replay" hidden aria-label="Replay do dia">
+  <div class="largura">
+    <span class="selo">REPLAY</span>
+    <p class="replay-quando" id="replay-quando">—</p>
+    <button class="ctl ctl-sair" id="btn-sair" type="button" aria-label="Voltar ao vivo">
+      <svg class="icone" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span class="sair-txt">Voltar ao vivo</span>
+    </button>
+    <div class="ctl-grupo">
+      <button class="ctl ctl-play" id="btn-play" type="button" aria-label="Pausar"></button>
+      <button class="ctl ctl-prox" id="btn-prox" type="button" aria-label="Próximo evento">
+        <svg class="icone" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2.5v11l7-5.5zM11 2.5h2.5v11H11z" fill="currentColor"/></svg>
+      </button>
+    </div>
+    <span class="replay-hora" id="replay-hora">--:--:--</span>
+    <div class="trilha-caixa">
+      <input type="range" id="trilha" min="0" max="1000" step="1" value="0" aria-label="Momento do dia" aria-valuetext="">
+      <div class="marcas" id="marcas" aria-hidden="true"></div>
+    </div>
+    <div class="velocidades" role="group" aria-label="Velocidade do replay" id="velocidades"></div>
+    <ul class="capitulos" id="capitulos" aria-label="Momentos do dia"></ul>
+    <label class="sr" for="cap-select">Momento do dia</label>
+    <select class="cap-select" id="cap-select"></select>
+  </div>
+</section>
+
+<main>
+  <section class="estudio gutter" aria-labelledby="titulo-escritorio">
+    <div class="largura largura-estudio">
+      <h1 class="sr" id="titulo-escritorio">O escritório</h1>
+      <div class="estudio-barra">
+        <div class="periodo"><span class="chip" id="chip" data-p="">—</span><p id="periodo-desc"></p></div>
+      </div>
+      <div class="estudio-grade">
+        <div class="coluna-cena">
+          <div class="moldura" id="moldura">
+            <div class="palco" id="palco">
+              <div class="camada" id="camada" aria-label="Equipe do escritório"></div>
+            </div>
+          </div>
+          <div class="hud" id="hud" aria-label="Barra de status do escritório"></div>
+          <div class="nav-celular" id="nav-celular">
+            <button class="ctl-sala" type="button" id="sala-ant" aria-label="Lugar anterior">‹</button>
+            <div class="minimapa" id="minimapa"><canvas id="minimapa-canvas" width="320" height="180" aria-hidden="true"></canvas></div>
+            <button class="ctl-sala" type="button" id="sala-prox" aria-label="Próximo lugar">›</button>
+          </div>
+          <p class="sala-atual" id="sala-atual" hidden><span id="sala-nome">—</span><button type="button" id="btn-seguir" hidden>Seguir a ação</button></p>
+        </div>
+
+        <aside class="registro" id="registro" aria-labelledby="registro-titulo">
+          <div class="registro-cab">
+            <h2 id="registro-titulo">Painel do operador</h2>
+            <span class="registro-sub" id="registro-sub">—</span>
+          </div>
+          <div class="metricas" id="metricas" aria-label="Métricas do dia"></div>
+          <div class="custo" id="custo"></div>
+          <div class="registro-cab registro-cab-2"><h3>Eventos</h3><span class="registro-sub" id="eventos-sub"></span></div>
+          <ol class="registro-lista" id="registro-lista"></ol>
+          <div class="registro-pe">
+            <ul class="legenda-origens" aria-label="Legenda das origens">
+              <li class="o-humano"><i></i>humano</li><li class="o-agente"><i></i>agente</li><li class="o-ferramenta"><i></i>ferramenta</li>
+              <li class="o-ci"><i></i>ci</li><li class="o-mundo"><i></i>mundo</li><li class="o-interno"><i></i>interno</li>
+              <li class="o-agenda"><i></i>agenda</li><li class="o-numeros"><i></i>números</li><li class="o-visitante"><i></i>site</li>
+            </ul>
+            <p class="registro-nota" id="registro-nota"></p>
+            <details class="legenda">
+              <summary>Como ler</summary>
+              <dl>
+                <dt>humano</dt><dd>“O que o Camps escreveu no canal”, literal e entre aspas.</dd>
+                <dt>agente</dt><dd><i>“Frase escrita pelo próprio agente”</i>, literal, em itálico e entre aspas.</dd>
+                <dt>ferramenta</dt><dd>O que alguém fez, lido das ferramentas: commit, PR, busca.</dd>
+                <dt>ci</dt><dd>Mensagem da esteira de testes e deploy, em fonte de terminal.</dd>
+                <dt>mundo</dt><dd>Algo que chegou de fora: alguém entrou, um cliente escreveu.</dd>
+                <dt>interno</dt><dd>Estado do escritório: avisos, recarga dos robôs.</dd>
+                <dt>agenda</dt><dd>O Vigia lendo a agenda do escritório.</dd>
+                <dt>números</dt><dd>Frase montada com os números do dia.</dd>
+                <dt>site</dt><dd>Reação do escritório ao pedido que você mandou.</dd>
+              </dl>
+              <p class="nota">Não existe balão de pensamento: o raciocínio do modelo não fica registrado. Balões longos são cortados em uns 90 caracteres; o texto inteiro fica aqui e na ficha.</p>
+            </details>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="gutter" aria-label="Sprint e pedidos"><div class="largura painel">
+    <article class="cartao c-sprint" aria-labelledby="sprint-titulo">
+      <p class="rotulo" id="sprint-rotulo">Sprint</p>
+      <h2 id="sprint-titulo">—</h2>
+      <p class="ep-meta" id="sprint-meta"></p>
+      <div class="kanban" id="kanban" aria-label="Tickets por coluna"></div>
+      <div class="linha-botoes">
+        <button class="btn btn-sec" type="button" id="btn-espec">Ver a especificação</button>
+      </div>
+    </article>
+
+    <article class="cartao c-sugira" id="sugira" aria-labelledby="sugira-titulo">
+      <p class="rotulo">Fale com o escritório</p>
+      <h2 id="sugira-titulo">Abra um ticket</h2>
+      <p class="nota" style="margin-top:0">Um pedido de funcionalidade ou um bug. O Mensageiro recebe e deixa na caixa de entrada; o Camps decide se entra no sprint.</p>
+      <form id="form-ticket" novalidate>
+        <label for="ticket-titulo">Título</label>
+        <input id="ticket-titulo" name="titulo" type="text" maxlength="120" required autocomplete="off">
+        <label for="ticket-desc">Descrição <span style="font-weight:400;color:var(--mudo)">(opcional)</span></label>
+        <textarea id="ticket-desc" name="descricao" maxlength="1000" aria-describedby="ticket-conta"></textarea>
+        <div class="contador" id="ticket-conta">0 / 1.000</div>
+        <div class="isca" aria-hidden="true"><label for="site">Não preencha</label><input id="site" name="site" type="text" tabindex="-1" autocomplete="off"></div>
+        <button class="btn btn-acao" type="submit" style="justify-self:start">Enviar ao escritório</button>
+        <p class="resposta" id="resposta" role="status" hidden></p>
+      </form>
+    </article>
+  </div></section>
+</main>
+
+<footer class="rodape gutter">
+  <div class="largura">
+    <div class="prototipo" id="prototipo">
+      <strong>Só no protótipo</strong>
+      <span id="proto-dados">dia de demonstração.</span>
+      <span>Ver o escritório:</span>
+      <span class="sim" role="group" aria-label="Simular horário">
+        <button type="button" data-sim="agora" aria-pressed="true">agora</button>
+        <button type="button" data-sim="07:30" aria-pressed="false">07:30</button>
+        <button type="button" data-sim="09:20" aria-pressed="false">09:20</button>
+        <button type="button" data-sim="09:58" aria-pressed="false">09:58</button>
+        <button type="button" data-sim="12:45" aria-pressed="false">12:45</button>
+        <button type="button" data-sim="14:44" aria-pressed="false">14:44</button>
+        <button type="button" data-sim="16:33" aria-pressed="false">16:33</button>
+        <button type="button" data-sim="17:05" aria-pressed="false">17:05</button>
+        <button type="button" data-sim="22:00" aria-pressed="false">22:00</button>
+        <button type="button" data-sim="folga" aria-pressed="false">dia de folga</button>
+      </span>
+    </div>
+    <div class="rodape-linha">
+      <div class="alternar" role="group" aria-label="Tema da página">
+        <button type="button" data-tema="auto" aria-pressed="true">Tema automático</button>
+        <button type="button" data-tema="light" aria-pressed="false">Claro</button>
+        <button type="button" data-tema="dark" aria-pressed="false">Escuro</button>
+      </div>
+    </div>
+    <p style="margin:0" id="rodape-txt">Equipe e dia de demonstração, no contrato campsverso.escritorio/1. Sem cookies e sem rastreamento.</p>
+  </div>
+</footer>
+
+<dialog class="ficha" id="ficha" aria-labelledby="ficha-nome"></dialog>
+<p class="sr" id="anuncio" aria-live="polite"></p>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

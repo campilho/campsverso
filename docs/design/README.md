@@ -38,6 +38,14 @@ A ideia está em [ideia-escritorio-que-se-constroi.md](../planos/ideia-escritori
 | Co-work isométrico, barra de progresso duplicada, kanban sem a coluna "fazendo" | [escritorio-moderno-nano-banana.webp](escritorio-moderno-nano-banana.webp) | Nano Banana (Google) | só clima |
 | Ilustração de perto, sem HUD: o melhor Camps (barba, óculos, camisa vermelha, jeans) | [escritorio-retro-midjourney.webp](escritorio-retro-midjourney.webp) | MidJourney | referência de retrato e capa |
 
+### O protótipo navegável (Claude Design, 08/11)
+
+Em [escritorio/](escritorio/): o escritório em página, na mesma linha do estúdio do CampsCast — dois andares em corte em pixel art, o Camps e os robôs (Revisor, Integrador, Pesquisador, Mensageiro e o Vigia do estúdio), os estados pelo relógio de São Paulo, o replay do dia, o painel do operador, as fichas e o "abra um ticket". Tudo é demonstração: a equipe, os modelos e o dia 06/11 foram inventados para desenhar. Os dados vêm de dois JSON no contrato `campsverso.escritorio/1` ([CONTRATO.md](escritorio/CONTRATO.md)); como abrir e o que falta, no [LEIAME.md](escritorio/LEIAME.md).
+
+- **Origem:** o Claude Design entregou os arquivos em 08/11/2026, às 22:31, na pasta do CampsCast (`~/CampsCast/prototipos/escritorio/`), por engano. Movidos para cá em 14/11/2026, sem alteração além do caminho no LEIAME. O projeto no Claude Design não aponta para a pasta local: ela é uma cópia.
+- **Fora do lint:** a pasta está nos `ignores` do `eslint.config.js`. É JavaScript de navegador, sem os tipos e as regras do projeto, e o `make check` não deve julgar referência visual.
+- **Relação com a v0.4:** é a referência mais completa do escritório até aqui, mas não é especificação. Pela ADR-0077, o cartucho do escritório usa a vista de cima com arte LPC, como a fazenda, e os robôs do protótipo não entram como estão (no Campsverso, robôs são ferramentas e nunca LLM). O corte em dois andares fica como referência do site, o replay de um dia, para depois da v0.4.
+
 ### Por que o par do Claude Design é a referência
 
 Vista de cima em 3/4 ortogonal, como a fazenda e a arte LPC (as isométricas não servem de referência de mapa); HUD em grade fixa; o painel do operador completo; todo o texto em português correto; os dois cubículos futuros demarcados em linha tracejada, que contam a história do "vamos colocando mais mesas"; e a noite com o orçamento perto do teto, três CIs vermelhos e "foco 20: avalia encerrar o dia", que é um dia ruim inteiro contado pela linha do tempo. O estilo é pixel art de 16 bits de verdade, com paleta curta.

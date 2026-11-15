@@ -1,0 +1,109 @@
+{
+  "contrato": "campsverso.escritorio/1",
+  "demonstracao": true,
+  "aviso": "Dados de demonstração. A equipe e o dia são exemplos para desenhar o escritório; nada aqui é trabalho real.",
+  "escritorio": {
+    "nome": "Escritório CampsVerso",
+    "sigla": ">CV",
+    "fuso": "America/Sao_Paulo",
+    "expediente": { "abre": "08:40", "fecha": "18:00", "almoco": ["12:30", "13:30"] },
+    "dias_uteis": [1, 2, 3, 4, 5],
+    "folgas": {
+      "2026-11-15": "Proclamação da República",
+      "2026-11-20": "Dia da Consciência Negra",
+      "2026-12-25": "Natal"
+    }
+  },
+  "equipe": [
+    {
+      "id": "camps",
+      "nome": "Camps",
+      "tipo": "humano",
+      "papel": "Dev líder",
+      "faz": "Escreve código, abre os PRs, decide o que entra no sprint e aprova o que vai para produção.",
+      "posto": "m1",
+      "desde": "2026-11-04",
+      "situacao": "ativo",
+      "modelo": null,
+      "ferramentas": ["editor de código", "git", "terminal"],
+      "por_tras": "O único humano da equipe. Tudo o que ele diz no registro sai do que ele mesmo escreveu no canal do escritório.",
+      "visual": { "corpo": "humano", "cor": "#c8423a", "pele": "#e6b08a", "cabelo": "#6b3f22", "estilo": "bagunca", "barba": "#5a321b", "calca": "#3d5a86", "sapato": "#ece7dc" }
+    },
+    {
+      "id": "revisor",
+      "nome": "Revisor",
+      "tipo": "robo",
+      "papel": "Revisão e testes",
+      "faz": "Lê cada PR com a lupa, confere os testes e pede mudança ou aprova. Quem revisa não é quem escreve.",
+      "posto": "m2",
+      "desde": "2026-11-06",
+      "situacao": "ativo",
+      "modelo": "LLM via OpenRouter (exemplo)",
+      "ferramentas": ["leitor de diff", "executor de testes", "comentários no PR"],
+      "por_tras": "Um agente com uma régua fixa de revisão. Recebe o diff e o resultado do CI; responde com pedido de mudança ou aprovação.",
+      "visual": { "corpo": "pernas", "cor": "#c04fa8" }
+    },
+    {
+      "id": "integrador",
+      "nome": "Integrador",
+      "tipo": "robo",
+      "papel": "CI, build e deploy",
+      "faz": "Roda os testes de cada PR, monta a versão e aperta o botão de publicar quando main está verde.",
+      "posto": "deploy",
+      "desde": "2026-11-04",
+      "situacao": "ativo",
+      "modelo": "sem LLM: scripts determinísticos",
+      "ferramentas": ["CI", "build", "deploy", "verificação de saúde"],
+      "por_tras": "Não pensa: executa. É a esteira de integração contínua com cara de robô. As frases dele são as mensagens fixas da esteira.",
+      "visual": { "corpo": "rodas", "cor": "#2fa36b" }
+    },
+    {
+      "id": "pesquisador",
+      "nome": "Pesquisador",
+      "tipo": "robo",
+      "papel": "Documentação e dependências",
+      "faz": "Busca documentação, normas e bibliotecas; resume o que achou e leva para quem pediu.",
+      "posto": "doca",
+      "desde": "2026-11-04",
+      "situacao": "ativo",
+      "modelo": "LLM via OpenRouter (exemplo)",
+      "ferramentas": ["busca na web", "leitor de páginas", "notas no ticket"],
+      "por_tras": "Um agente de pesquisa com orçamento curto por busca. Guarda o que leu como nota no ticket.",
+      "visual": { "corpo": "drone", "cor": "#2aa7c9" }
+    },
+    {
+      "id": "mensageiro",
+      "nome": "Mensageiro",
+      "tipo": "robo",
+      "papel": "Avisos",
+      "faz": "Mora no tubo pneumático. Sai com um envelope quando chega mensagem de fora ou quando alguém precisa ser avisado.",
+      "posto": "tubo",
+      "desde": "2026-11-05",
+      "situacao": "ativo",
+      "modelo": "sem LLM: regras",
+      "ferramentas": ["canal do escritório", "e-mail"],
+      "por_tras": "Um roteador de notificações. Não escreve nada: repassa a mensagem como ela veio.",
+      "visual": { "corpo": "tubo", "cor": "#e0902c" }
+    },
+    {
+      "id": "vigia",
+      "nome": "Vigia",
+      "tipo": "humano",
+      "papel": "Portaria",
+      "faz": "Abre e fecha o escritório, recebe quem chega e, de noite, faz a ronda de lanterna.",
+      "posto": "portaria",
+      "desde": "2026-11-04",
+      "situacao": "ativo",
+      "modelo": null,
+      "ferramentas": ["agenda do escritório", "lanterna"],
+      "por_tras": "O mesmo Vigia do estúdio do CampsCast. Fala só o que está na agenda e nos números do dia.",
+      "visual": { "corpo": "humano", "cor": "#56667b", "pele": "#9b6341", "cabelo": "#1c1c1c", "estilo": "raspado", "calca": "#2a313c", "sapato": "#191c22", "acessorio": "bone" }
+    }
+  ],
+  "vagas": [
+    { "mesa": "m3", "para": "Designer de interface", "previsto": "dezembro de 2026" },
+    { "mesa": "m4", "para": "Testador de carga", "previsto": null },
+    { "mesa": "m5", "para": null, "previsto": null },
+    { "mesa": "m6", "para": null, "previsto": null }
+  ]
+}

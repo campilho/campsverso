@@ -11,6 +11,7 @@ export default defineConfig(
       "**/.venv/**",
       ".claude/**", // local de cada máquina: os worktrees das tarefas do Claude Code
       "packages/contracts-ts/src/**", // GERADO a partir de contracts/
+      "docs/design/escritorio/**", // protótipo do Claude Design para o navegador, referência e não código do projeto
     ],
   },
   js.configs.recommended,

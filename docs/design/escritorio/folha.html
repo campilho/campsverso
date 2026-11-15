@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Escritório · folha de sprites</title>
+<style>
+  body { margin: 0; padding: 16px; background: #eef0f3; font: 14px/1.4 system-ui, sans-serif; color: #141821; }
+  body.transparente { background: transparent; padding: 0; }
+  h1 { font-size: 18px; margin: 0 0 12px; }
+  .linha { display: flex; align-items: flex-end; gap: 4px; margin-bottom: 10px; }
+  .nome { width: 96px; font-weight: 700; }
+  .grupo { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .grupo small { font: 11px ui-monospace, monospace; color: #566170; }
+  .quadros { display: flex; gap: 2px; }
+  canvas { image-rendering: pixelated; background: linear-gradient(180deg, #f1ece2, #e4dccb); border-bottom: 3px solid #a8794d; }
+  .transparente canvas { background: transparent; border: 0; }
+</style>
+</head>
+<body>
+<h1>Escritório · todos os quadros</h1>
+<div id="folha"></div>
+<script type="module">
+import { sprite, registraVisuais, estadosDo, quadrosDe, SW, SH } from "./sprites.js";
+const P = new URLSearchParams(location.search), k = +(P.get("k") || 3);
+if (P.get("fundo") === "transparente") { document.body.classList.add("transparente"); document.querySelector("h1").remove(); }
+const eq = await fetch("dados/equipe.json").then(r => r.json());
+registraVisuais(eq.equipe);
+const ids = P.get("id") ? P.get("id").split(",") : eq.equipe.map(m => m.id);
+const so = P.get("estados") ? P.get("estados").split(",") : null;
+const raiz = document.getElementById("folha");
+for (const id of ids) {
+  const m = eq.equipe.find(x => x.id === id);
+  const linha = document.createElement("div"); linha.className = "linha";
+  if (!P.has("semnome")) linha.innerHTML = `<span class="nome">${m.nome}</span>`;
+  for (const est of (so || estadosDo(id))) {
+    const n = quadrosDe(id, est), gr = document.createElement("div"); gr.className = "grupo";
+    const qs = document.createElement("div"); qs.className = "quadros";
+    for (let f = 0; f < n; f++) {
+      const c = document.createElement("canvas"); c.width = SW * k; c.height = SH * k;
+      const x = c.getContext("2d"); x.imageSmoothingEnabled = false;
+      x.drawImage(sprite(id, est, f, false, est === "andando" && id === "vigia" ? { lanternaAlta: true } : {}), 0, 0, SW * k, SH * k);
+      qs.append(c);
+    }
+    gr.append(qs);
+    if (!P.has("semnome")) { const s = document.createElement("small"); s.textContent = `${est} · ${n}`; gr.append(s); }
+    linha.append(gr);
+  }
+  raiz.append(linha);
+}
+document.body.dataset.pronto = "1";
+</script>
+</body>
+</html>
