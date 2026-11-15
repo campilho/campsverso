@@ -22,12 +22,26 @@ AVATAR, DESK, CHAIR, BOARD, BENCH, DOOR, TICKET = (
     "door",
     "ticket",
 )
-# A copa e as pausas da rotina (ADR-0080): ilustrativas, sem efeito no trabalho.
-WATER_COOLER, COPA_COUNTER, COPA_TABLE, RESTROOM_DOOR = (
+# A copa e as pausas da rotina (ADR-0080): ilustrativas, sem efeito no trabalho. Na planta da arte
+# nova (ADR-0082), o café sai da máquina, o almoço passa pela geladeira e pelo micro-ondas, e o
+# banheiro fica fora da sala, com as portas no corredor.
+WATER_COOLER, COPA_COUNTER, COPA_TABLE, COPA_CHAIR, RESTROOM_DOOR = (
     "water_cooler",
     "copa_counter",
     "copa_table",
+    "copa_chair",
     "restroom_door",
+)
+COFFEE_MACHINE, FRIDGE, MICROWAVE, TRASH = "coffee_machine", "fridge", "microwave", "trash"
+# A mobília que só enfeita e ocupa lugar: os arquivos, as plantas, a sala de descompressão e o bloco
+# do banheiro.
+FILE_CABINET, PLANT, TV, SOFA, PUFF, RESTROOM = (
+    "file_cabinet",
+    "plant",
+    "tv",
+    "sofa",
+    "puff",
+    "restroom",
 )
 # Os papéis, no atributo `papel` de cada avatar (ADR-0077: o dev é sempre um LLM ou um script).
 DEV, MANAGER, GUARD = "dev", "gerente", "vigia"
@@ -80,6 +94,11 @@ def lunch_out(view: WorldView) -> bool:
 def lunch_end(view: WorldView) -> int:
     """O minuto do dia em que o almoço acaba."""
     return minutes(str(section(view, "schedule")["lunch"][1]))
+
+
+def lunch_tail(view: WorldView) -> int:
+    """Os minutos do fim do almoço que sobram depois de comer: jogar fora e voltar à mesa."""
+    return int(section(view, "schedule").get("lunch_tail_minutes", 0))
 
 
 def office_hours(view: WorldView) -> bool:

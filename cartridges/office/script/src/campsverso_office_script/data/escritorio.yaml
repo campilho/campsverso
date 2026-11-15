@@ -27,10 +27,11 @@ dev:
 
 vigia:
   id: script/vigia
-  # A ronda: os primeiros minutos de cada hora, passando por estes pontos; o resto, na cadeira.
+  # A ronda: os primeiros minutos de cada hora, passando por estes pontos; o resto, no posto, de
+  # pé no corredor, ao lado da porta (a planta da arte nova, ADR-0082).
   round_minutes: 10
-  points: [[9, 12], [9, 3], [13, 7], [4, 9], [17, 11]]
-  chair: [11, 12]
+  points: [[9, 12], [11, 2], [12, 6], [7, 10], [15, 10]]
+  chair: [11, 14]
   wait_seconds: 120
 
 gerente:

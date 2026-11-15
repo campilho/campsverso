@@ -8,8 +8,19 @@
     "ticket": "pedido",
     "water_cooler": "bebedouro",
     "copa_counter": "balcão da copa",
-    "copa_table": "mesa da copa",
-    "restroom_door": "porta do banheiro"
+    "copa_table": "mesinha da copa",
+    "copa_chair": "cadeira da copa",
+    "restroom_door": "porta do banheiro",
+    "restroom": "banheiro",
+    "coffee_machine": "máquina de café",
+    "fridge": "geladeira",
+    "microwave": "micro-ondas",
+    "trash": "lixeira",
+    "file_cabinet": "arquivo",
+    "plant": "planta",
+    "tv": "TV",
+    "sofa": "sofá",
+    "puff": "pufe"
   },
   "attributes": {
     "estado": "estado",
@@ -28,6 +39,9 @@
     "drink": "Bebendo água",
     "coffee": "Tomando um café",
     "restroom": "No banheiro",
-    "lunch": "Almoçando"
+    "fridge": "Pegando o almoço",
+    "microwave": "Esquentando o almoço",
+    "lunch": "Almoçando",
+    "trash": "Jogando fora"
   }
 }

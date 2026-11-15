@@ -1,11 +1,6 @@
 {
-  "about": "A decoração da parede do escritório (ADR-0078): peças de dois tiles de altura, desenhadas por cima do mapa visual (make mapa-visual). O cooler e a estante ficam nos tiles de móvel do mapa lógico.",
+  "about": "A decoração da parede do escritório (ADR-0078): peças de dois tiles de altura, desenhadas por cima do mapa visual (make mapa-visual). Na planta nova (ADR-0082), o bebedouro foi para a copa e a estante saiu.",
   "pieces": [
-    {
-      "tile": "cooler",
-      "x": 1,
-      "y": 1
-    },
     {
       "tile": "window",
       "x": 3,
@@ -35,11 +30,6 @@
       "tile": "window",
       "x": 16,
       "y": 0
-    },
-    {
-      "tile": "shelf",
-      "x": 18,
-      "y": 1
     }
   ]
 }

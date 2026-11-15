@@ -58,7 +58,10 @@ actions:
   drink: { seconds: 30, interrupt: cancel }
   coffee: { seconds: 120, interrupt: cancel }
   restroom: { seconds: 240, interrupt: cancel }
-  lunch: { interrupt: cancel } # até o fim da hora do almoço
+  fridge: { seconds: 15, interrupt: cancel } # pegar o almoço na geladeira (ADR-0082)
+  microwave: { seconds: 90, interrupt: cancel } # esquentar
+  lunch: { interrupt: cancel } # comer, até uns minutos antes do fim da hora do almoço
+  trash: { seconds: 5, interrupt: cancel } # jogar fora
   return_ticket: { seconds: 10, interrupt: cancel }
 
 # A linha do tempo (ADR-0068): como cada fato se conta.
@@ -107,8 +110,17 @@ labels:
     where: { action: restroom }
     text: "foi ao banheiro"
   - event: campsverso.action.accepted.v1
+    where: { action: fridge }
+    text: "pegou o almoço na geladeira"
+  - event: campsverso.action.accepted.v1
+    where: { action: microwave }
+    text: "esquentou o almoço no micro-ondas"
+  - event: campsverso.action.accepted.v1
     where: { action: lunch }
-    text: "foi almoçar na copa"
+    text: "almoçou na copa"
+  - event: campsverso.action.accepted.v1
+    where: { action: trash }
+    text: "jogou o resto no lixo"
 
 # As métricas do dia (ADR-0054), contadas pela projeção comum.
 metrics:

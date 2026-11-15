@@ -10,12 +10,12 @@
  "tilewidth": 32,
  "tileheight": 32,
  "nextlayerid": 3,
- "nextobjectid": 12,
+ "nextobjectid": 37,
  "properties": [
   {
    "name": "source",
    "type": "string",
-   "value": "Gerado para o escritório do M23 (ADR-0078): a sala, a porta e o corredor."
+   "value": "Gerado para o escritório na planta da arte nova (15/11/2026): quatro cubículos, a sala de descompressão, a copa e o banheiro com as portas no corredor."
   }
  ],
  "layers": [
@@ -78,114 +78,74 @@
     2,
     2,
     2,
-    5,
-    2,
-    5,
-    2,
-    2,
-    2,
     2,
     2,
     2,
     2,
     5,
-    1,
-    1,
+    5,
     2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
+    5,
+    5,
+    5,
     2,
     1,
     1,
     2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7,
     2,
     2,
     2,
     5,
+    8,
+    8,
+    8,
     5,
-    5,
-    2,
-    2,
     1,
     1,
     2,
-    2,
-    2,
+    7,
     5,
     5,
     5,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
+    7,
     5,
-    2,
     5,
+    5,
+    7,
     2,
     2,
+    2,
+    8,
+    8,
+    8,
+    8,
+    8,
     1,
     1,
     2,
+    7,
     2,
     2,
     5,
+    7,
     2,
+    2,
+    2,
+    7,
+    2,
+    2,
+    2,
+    8,
     5,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    1,
-    1,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
     5,
     5,
     5,
@@ -204,60 +164,23 @@
     2,
     2,
     2,
-    2,
-    2,
+    8,
+    8,
+    8,
+    8,
+    8,
+    1,
+    1,
     5,
-    5,
-    5,
-    1,
-    1,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    1,
-    1,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    1,
-    1,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7,
     2,
     2,
     2,
@@ -266,9 +189,46 @@
     2,
     2,
     5,
+    1,
+    1,
+    2,
+    7,
+    5,
+    5,
+    5,
+    7,
+    5,
+    5,
+    5,
+    7,
     2,
     2,
     2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    1,
+    1,
+    2,
+    7,
+    2,
+    2,
+    2,
+    7,
+    2,
+    2,
+    2,
+    7,
+    2,
+    5,
+    5,
+    5,
+    5,
+    5,
+    5,
+    5,
     1,
     1,
     2,
@@ -291,9 +251,49 @@
     2,
     1,
     1,
+    5,
+    5,
+    5,
+    5,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    5,
+    2,
+    2,
+    2,
+    5,
+    2,
+    1,
+    1,
+    5,
+    5,
+    5,
+    5,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
     1,
     1,
     1,
+    6,
+    6,
     1,
     1,
     1,
@@ -307,7 +307,7 @@
     1,
     1,
     1,
-    6,
+    1,
     1,
     1,
     4,
@@ -386,8 +386,8 @@
      "id": 1,
      "name": "quadro",
      "type": "board",
-     "x": 288,
-     "y": 64,
+     "x": 96,
+     "y": 32,
      "width": 32,
      "height": 32,
      "rotation": 0,
@@ -397,11 +397,6 @@
        "name": "display_name",
        "type": "string",
        "value": "Quadro dos pedidos"
-      },
-      {
-       "name": "blocking",
-       "type": "bool",
-       "value": true
       }
      ]
     },
@@ -409,8 +404,8 @@
      "id": 2,
      "name": "mesa",
      "type": "desk",
-     "x": 160,
-     "y": 192,
+     "x": 128,
+     "y": 128,
      "width": 32,
      "height": 32,
      "rotation": 0,
@@ -435,10 +430,79 @@
     },
     {
      "id": 3,
+     "name": "mesa-2",
+     "type": "desk",
+     "x": 256,
+     "y": 128,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Mesa vazia"
+      },
+      {
+       "name": "blocking",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 4,
+     "name": "mesa-3",
+     "type": "desk",
+     "x": 128,
+     "y": 256,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Mesa vazia"
+      },
+      {
+       "name": "blocking",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 5,
+     "name": "mesa-4",
+     "type": "desk",
+     "x": 256,
+     "y": 256,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Mesa vazia"
+      },
+      {
+       "name": "blocking",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 6,
      "name": "cadeira",
      "type": "chair",
-     "x": 160,
-     "y": 224,
+     "x": 128,
+     "y": 160,
      "width": 32,
      "height": 32,
      "rotation": 0,
@@ -452,10 +516,10 @@
      ]
     },
     {
-     "id": 4,
-     "name": "bancada",
-     "type": "bench",
-     "x": 480,
+     "id": 7,
+     "name": "cadeira-2",
+     "type": "chair",
+     "x": 256,
      "y": 160,
      "width": 32,
      "height": 32,
@@ -465,7 +529,61 @@
       {
        "name": "display_name",
        "type": "string",
-       "value": "Bancada"
+       "value": "Cadeira"
+      }
+     ]
+    },
+    {
+     "id": 8,
+     "name": "cadeira-3",
+     "type": "chair",
+     "x": 128,
+     "y": 288,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Cadeira"
+      }
+     ]
+    },
+    {
+     "id": 9,
+     "name": "cadeira-4",
+     "type": "chair",
+     "x": 256,
+     "y": 288,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Cadeira"
+      }
+     ]
+    },
+    {
+     "id": 10,
+     "name": "lixeira-cubiculo",
+     "type": "trash",
+     "x": 160,
+     "y": 160,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Lixeira"
       },
       {
        "name": "blocking",
@@ -475,11 +593,11 @@
      ]
     },
     {
-     "id": 5,
-     "name": "porta",
-     "type": "door",
-     "x": 288,
-     "y": 416,
+     "id": 11,
+     "name": "arquivo-1",
+     "type": "file_cabinet",
+     "x": 384,
+     "y": 64,
      "width": 32,
      "height": 32,
      "rotation": 0,
@@ -488,16 +606,21 @@
       {
        "name": "display_name",
        "type": "string",
-       "value": "Porta"
+       "value": "Arquivo"
+      },
+      {
+       "name": "blocking",
+       "type": "bool",
+       "value": true
       }
      ]
     },
     {
-     "id": 6,
-     "name": "cadeira-vigia",
-     "type": "chair",
-     "x": 352,
-     "y": 384,
+     "id": 12,
+     "name": "arquivo-2",
+     "type": "file_cabinet",
+     "x": 416,
+     "y": 64,
      "width": 32,
      "height": 32,
      "rotation": 0,
@@ -506,16 +629,335 @@
       {
        "name": "display_name",
        "type": "string",
-       "value": "Cadeira do vigia"
+       "value": "Arquivo"
+      },
+      {
+       "name": "blocking",
+       "type": "bool",
+       "value": true
       }
      ]
     },
     {
-     "id": 7,
-     "name": "bebedouro",
-     "type": "water_cooler",
+     "id": 13,
+     "name": "tv",
+     "type": "tv",
+     "x": 512,
+     "y": 64,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "TV e videogame"
+      },
+      {
+       "name": "blocking",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 14,
+     "name": "sofa",
+     "type": "sofa",
+     "x": 512,
+     "y": 160,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Sofá"
+      },
+      {
+       "name": "blocking",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 15,
+     "name": "pufe-amarelo",
+     "type": "puff",
+     "x": 448,
+     "y": 96,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Pufe"
+      },
+      {
+       "name": "blocking",
+       "type": "bool",
+       "value": true
+      },
+      {
+       "name": "cor",
+       "type": "string",
+       "value": "amarelo"
+      }
+     ]
+    },
+    {
+     "id": 16,
+     "name": "pufe-azul",
+     "type": "puff",
+     "x": 576,
+     "y": 96,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Pufe"
+      },
+      {
+       "name": "blocking",
+       "type": "bool",
+       "value": true
+      },
+      {
+       "name": "cor",
+       "type": "string",
+       "value": "azul"
+      }
+     ]
+    },
+    {
+     "id": 17,
+     "name": "pufe-vermelho",
+     "type": "puff",
+     "x": 576,
+     "y": 160,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Pufe"
+      },
+      {
+       "name": "blocking",
+       "type": "bool",
+       "value": true
+      },
+      {
+       "name": "cor",
+       "type": "string",
+       "value": "vermelho"
+      }
+     ]
+    },
+    {
+     "id": 18,
+     "name": "planta-1",
+     "type": "plant",
      "x": 32,
      "y": 64,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Planta"
+      },
+      {
+       "name": "blocking",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 19,
+     "name": "planta-2",
+     "type": "plant",
+     "x": 32,
+     "y": 224,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Planta"
+      },
+      {
+       "name": "blocking",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 20,
+     "name": "planta-3",
+     "type": "plant",
+     "x": 576,
+     "y": 224,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Planta"
+      },
+      {
+       "name": "blocking",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 21,
+     "name": "lixeira",
+     "type": "trash",
+     "x": 384,
+     "y": 288,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Lixeira da copa"
+      },
+      {
+       "name": "blocking",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 22,
+     "name": "maquina-cafe",
+     "type": "coffee_machine",
+     "x": 416,
+     "y": 288,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Máquina de café"
+      },
+      {
+       "name": "blocking",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 23,
+     "name": "balcao-copa",
+     "type": "copa_counter",
+     "x": 480,
+     "y": 288,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Pia da copa"
+      },
+      {
+       "name": "blocking",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 24,
+     "name": "micro-ondas",
+     "type": "microwave",
+     "x": 512,
+     "y": 288,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Micro-ondas"
+      },
+      {
+       "name": "blocking",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 25,
+     "name": "geladeira",
+     "type": "fridge",
+     "x": 544,
+     "y": 288,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Geladeira"
+      },
+      {
+       "name": "blocking",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 26,
+     "name": "bebedouro",
+     "type": "water_cooler",
+     "x": 576,
+     "y": 288,
      "width": 32,
      "height": 32,
      "rotation": 0,
@@ -534,33 +976,10 @@
      ]
     },
     {
-     "id": 8,
-     "name": "balcao-copa",
-     "type": "copa_counter",
-     "x": 544,
-     "y": 256,
-     "width": 32,
-     "height": 32,
-     "rotation": 0,
-     "visible": true,
-     "properties": [
-      {
-       "name": "display_name",
-       "type": "string",
-       "value": "Balcão da copa"
-      },
-      {
-       "name": "blocking",
-       "type": "bool",
-       "value": true
-      }
-     ]
-    },
-    {
-     "id": 9,
-     "name": "mesa-copa",
+     "id": 27,
+     "name": "mesa-copa-1",
      "type": "copa_table",
-     "x": 480,
+     "x": 416,
      "y": 352,
      "width": 32,
      "height": 32,
@@ -570,7 +989,7 @@
       {
        "name": "display_name",
        "type": "string",
-       "value": "Mesa da copa"
+       "value": "Mesinha da copa"
       },
       {
        "name": "blocking",
@@ -580,11 +999,34 @@
      ]
     },
     {
-     "id": 10,
-     "name": "cadeira-copa",
-     "type": "chair",
-     "x": 480,
-     "y": 384,
+     "id": 28,
+     "name": "mesa-copa-2",
+     "type": "copa_table",
+     "x": 544,
+     "y": 352,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Mesinha da copa"
+      },
+      {
+       "name": "blocking",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 29,
+     "name": "cadeira-copa-1",
+     "type": "copa_chair",
+     "x": 384,
+     "y": 352,
      "width": 32,
      "height": 32,
      "rotation": 0,
@@ -594,14 +1036,88 @@
        "name": "display_name",
        "type": "string",
        "value": "Cadeira da copa"
+      },
+      {
+       "name": "virada",
+       "type": "string",
+       "value": "direita"
       }
      ]
     },
     {
-     "id": 11,
-     "name": "porta-banheiro",
-     "type": "restroom_door",
-     "x": 544,
+     "id": 30,
+     "name": "cadeira-copa-2",
+     "type": "copa_chair",
+     "x": 448,
+     "y": 352,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Cadeira da copa"
+      },
+      {
+       "name": "virada",
+       "type": "string",
+       "value": "esquerda"
+      }
+     ]
+    },
+    {
+     "id": 31,
+     "name": "cadeira-copa-3",
+     "type": "copa_chair",
+     "x": 512,
+     "y": 352,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Cadeira da copa"
+      },
+      {
+       "name": "virada",
+       "type": "string",
+       "value": "direita"
+      }
+     ]
+    },
+    {
+     "id": 32,
+     "name": "cadeira-copa-4",
+     "type": "copa_chair",
+     "x": 576,
+     "y": 352,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Cadeira da copa"
+      },
+      {
+       "name": "virada",
+       "type": "string",
+       "value": "esquerda"
+      }
+     ]
+    },
+    {
+     "id": 33,
+     "name": "banheiro",
+     "type": "restroom",
+     "x": 32,
      "y": 416,
      "width": 32,
      "height": 32,
@@ -611,7 +1127,71 @@
       {
        "name": "display_name",
        "type": "string",
-       "value": "Porta do banheiro"
+       "value": "Banheiro"
+      }
+     ]
+    },
+    {
+     "id": 34,
+     "name": "porta-banheiro",
+     "type": "restroom_door",
+     "x": 64,
+     "y": 416,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Banheiro masculino"
+      },
+      {
+       "name": "lado",
+       "type": "string",
+       "value": "masculino"
+      }
+     ]
+    },
+    {
+     "id": 35,
+     "name": "porta-banheiro-f",
+     "type": "restroom_door",
+     "x": 96,
+     "y": 416,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Banheiro feminino"
+      },
+      {
+       "name": "lado",
+       "type": "string",
+       "value": "feminino"
+      }
+     ]
+    },
+    {
+     "id": 36,
+     "name": "porta",
+     "type": "door",
+     "x": 288,
+     "y": 416,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Porta"
       }
      ]
     }
@@ -624,12 +1204,12 @@
    "name": "office-v0",
    "tilewidth": 32,
    "tileheight": 32,
-   "tilecount": 6,
-   "columns": 6,
+   "tilecount": 8,
+   "columns": 8,
    "margin": 0,
    "spacing": 0,
    "image": "office-placeholder.png",
-   "imagewidth": 192,
+   "imagewidth": 256,
    "imageheight": 32,
    "tiles": [
     {
@@ -720,6 +1300,38 @@
        "name": "passable",
        "type": "bool",
        "value": false
+      },
+      {
+       "name": "water",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 6,
+     "type": "partition",
+     "properties": [
+      {
+       "name": "passable",
+       "type": "bool",
+       "value": false
+      },
+      {
+       "name": "water",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 7,
+     "type": "rug",
+     "properties": [
+      {
+       "name": "passable",
+       "type": "bool",
+       "value": true
       },
       {
        "name": "water",

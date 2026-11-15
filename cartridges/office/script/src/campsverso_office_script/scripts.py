@@ -30,14 +30,23 @@ type View = Mapping[str, Any]
 type Proposal = dict[str, Any]
 
 TODO, DOING, DELIVERED = "a_fazer", "fazendo", "entregue"
-# As coisas da copa e das pausas (os tipos do gênero office; ADR-0080).
-COOLER, COUNTER, COPA_TABLE, RESTROOM = (
+# As coisas da copa e das pausas (os tipos do gênero office; ADR-0080, ADR-0082).
+COOLER, COFFEE, COPA_TABLE, COPA_CHAIR, RESTROOM = (
     "water_cooler",
-    "copa_counter",
+    "coffee_machine",
     "copa_table",
+    "copa_chair",
     "restroom_door",
 )
-BREAK_PLACES = {"drink": COOLER, "coffee": COUNTER, "restroom": RESTROOM}
+FRIDGE, MICROWAVE, TRASH = "fridge", "microwave", "trash"
+BREAK_PLACES = {"drink": COOLER, "coffee": COFFEE, "restroom": RESTROOM}
+# O almoço em etapas (ADR-0082): a geladeira, o micro-ondas, a mesinha e o lixo da copa.
+LUNCH_STEPS = (
+    ("fridge", FRIDGE, "pegar o almoço na geladeira"),
+    ("microwave", MICROWAVE, "esquentar o almoço"),
+    ("lunch", COPA_TABLE, "almoçar na copa"),
+    ("trash", TRASH, "jogar fora o resto"),
+)
 
 
 def load_config() -> dict[str, Any]:
@@ -138,6 +147,7 @@ class Routine:
 
     config: Mapping[str, Any]
     done: dict[int, set[int]] = field(default_factory=dict[int, set[int]])  # pausas feitas, por dia
+    lunched: dict[int, int] = field(default_factory=dict[int, int])  # etapas do almoço, por dia
 
     def plan(self, me: str, day: int) -> list[tuple[int, str]]:
         """As pausas do dia, em minutos do dia: o sorteio pelo avatar e pelo dia, sempre igual."""
@@ -158,19 +168,30 @@ class Routine:
         return sorted(pauses)
 
     def lunch(self, view: View) -> Proposal | None:
-        """Na hora do almoço, a mesa da copa: senta e almoça até o fim da hora."""
+        """Na hora do almoço, as etapas na copa (ADR-0082): pegar na geladeira, esquentar no
+        micro-ondas, comer sentado na mesinha e jogar fora. Cada etapa vai até a coisa e a faz;
+        depois da última, a rotina volta à mesa."""
         start, end = (minutes(str(hhmm)) for hhmm in self.config["lunch"])
         if not start <= minute_of(view) < end:
             return None
-        table = next(iter(entities(view, COPA_TABLE)), None)
-        if table is None:
-            return None
-        seat = chair_by(view, table)
-        if seat is not None and not at(position(view), *_xy(seat)):
-            return go_to(*_xy(seat), "rotina: ir almoçar na copa")
-        if seat is None and not adjacent(position(view), table.get("position")):
-            return go_near(str(table["entity_id"]), "rotina: ir almoçar na copa")
-        return {"action": "lunch", "params": {}, "intent": "rotina: almoçar"}
+        day = day_of(view)
+        step = self.lunched.get(day, 0)
+        while step < len(LUNCH_STEPS):
+            action, kind, label = LUNCH_STEPS[step]
+            thing = next(iter(entities(view, kind)), None)
+            if thing is None:  # a coisa não está no escritório: a etapa fica de fora
+                step += 1
+                self.lunched[day] = step
+                continue
+            if action == "lunch":
+                seat = chair_by(view, thing, COPA_CHAIR)
+                if seat is not None and not at(position(view), *_xy(seat)):
+                    return go_to(*_xy(seat), f"rotina: ir {label}")
+            if not adjacent(position(view), thing.get("position")):
+                return go_near(str(thing["entity_id"]), f"rotina: ir {label}")
+            self.lunched[day] = step + 1
+            return {"action": action, "params": {}, "intent": f"rotina: {label}"}
+        return None
 
     def pause(self, view: View) -> Proposal | None:
         """A próxima pausa vencida: ir até a coisa e fazer a pausa."""
@@ -204,10 +225,12 @@ class Routine:
 LABELS = {"drink": "beber água", "coffee": "tomar um café", "restroom": "ao banheiro"}
 
 
-def chair_by(view: View, thing: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
-    """A cadeira ao lado da coisa (a mesa do dev, a mesa da copa)."""
+def chair_by(
+    view: View, thing: Mapping[str, Any] | None, kind: str = "chair"
+) -> Mapping[str, Any] | None:
+    """A cadeira ao lado da coisa (a mesa do dev; na copa, a cadeira de lado da mesinha)."""
     spot = None if thing is None else thing.get("position")
-    return next((c for c in entities(view, "chair") if adjacent(c.get("position"), spot)), None)
+    return next((c for c in entities(view, kind) if adjacent(c.get("position"), spot)), None)
 
 
 # Quantos minutos antes do almoço o dev avisa: o bloco de trabalho é de um minuto, então dois

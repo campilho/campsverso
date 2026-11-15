@@ -32,7 +32,18 @@ def _kinds() -> tuple[KindDef, ...]:
         KindDef(config.WATER_COOLER, blocking=True),
         KindDef(config.COPA_COUNTER, blocking=True),
         KindDef(config.COPA_TABLE, blocking=True),
-        KindDef(config.RESTROOM_DOOR),
+        KindDef(config.COPA_CHAIR, attributes={"virada": None}),  # um assento, de lado
+        KindDef(config.COFFEE_MACHINE, blocking=True),
+        KindDef(config.FRIDGE, blocking=True),
+        KindDef(config.MICROWAVE, blocking=True),
+        KindDef(config.TRASH, blocking=True),
+        KindDef(config.RESTROOM_DOOR, attributes={"lado": None}),
+        KindDef(config.RESTROOM),
+        KindDef(config.FILE_CABINET, blocking=True),
+        KindDef(config.PLANT, blocking=True),
+        KindDef(config.TV, blocking=True),
+        KindDef(config.SOFA, blocking=True),
+        KindDef(config.PUFF, blocking=True, attributes={"cor": None}),
     )
 
 

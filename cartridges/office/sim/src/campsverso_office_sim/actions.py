@@ -22,16 +22,20 @@ from campsverso_cartridge_api import (
 )
 from campsverso_office_sim.config import (
     BOARD,
-    COPA_COUNTER,
+    COFFEE_MACHINE,
     COPA_TABLE,
     DESK,
     DEV,
+    FRIDGE,
     MANAGER,
+    MICROWAVE,
     RESTROOM_DOOR,
     TICKET,
+    TRASH,
     WATER_COOLER,
     at_lunch,
     lunch_end,
+    lunch_tail,
     section,
     tick_ms,
 )
@@ -456,8 +460,8 @@ class ReturnTicket(OfficeAction):
 
 @dataclass(frozen=True)
 class Break(OfficeAction):
-    """Uma pausa da rotina (ADR-0080): beber água, um café, o banheiro, o almoço. É ilustrativa:
-    não mexe em nada do mundo, e qualquer um faz, ao lado da coisa."""
+    """Uma pausa da rotina (ADR-0080): beber água, um café, o banheiro, as etapas do almoço. É
+    ilustrativa: não mexe em nada do mundo, e qualquer um faz, ao lado da coisa."""
 
     kind: str = ""
     role: ClassVar[str] = ""  # qualquer um
@@ -477,7 +481,8 @@ class Break(OfficeAction):
 
 @dataclass(frozen=True)
 class Lunch(Break):
-    """O almoço na copa, só na hora do almoço, até ela acabar."""
+    """Comer na mesinha da copa, só na hora do almoço, até uns minutos antes de ela acabar (o
+    resto é para jogar fora e voltar à mesa)."""
 
     def check(self, ctx: ActionContext) -> Rejection | None:
         if not at_lunch(ctx.view):
@@ -485,14 +490,19 @@ class Lunch(Break):
         return super().check(ctx)
 
     def seconds(self, ctx: ActionContext) -> float:
-        return float(max(60, (lunch_end(ctx.view) - ctx.view.minute_of_day) * 60))
+        until = lunch_end(ctx.view) - lunch_tail(ctx.view)
+        return float(max(60, (until - ctx.view.minute_of_day) * 60))
 
 
 BREAKS: tuple[OfficeAction, ...] = (
     Break("drink", WATER_COOLER),
-    Break("coffee", COPA_COUNTER),
+    Break("coffee", COFFEE_MACHINE),
     Break("restroom", RESTROOM_DOOR),
+    # O almoço em etapas (ADR-0082): pegar na geladeira, esquentar, comer na mesinha, jogar fora.
+    Break("fridge", FRIDGE),
+    Break("microwave", MICROWAVE),
     Lunch("lunch", COPA_TABLE),
+    Break("trash", TRASH),
 )
 
 ALL_ACTIONS: tuple[OfficeAction, ...] = (

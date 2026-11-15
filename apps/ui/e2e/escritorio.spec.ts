@@ -47,7 +47,7 @@ test("o gerente entra, escreve um pedido, fala com o dev e aceita a entrega", as
       type Hook = { drawn(id: string): { x: number; y: number } | undefined };
       return (window as unknown as { campsverso: Hook }).campsverso.drawn("camps");
     });
-  await expect.poll(camps, { timeout: 20_000 }).toEqual({ x: 5, y: 7 });
+  await expect.poll(camps, { timeout: 20_000 }).toEqual({ x: 4, y: 5 }); // o cubículo de cima (ADR-0082)
 
   const speech = page.getByPlaceholder("Fale com o dev e aperte Enter");
   await speech.fill("Bom dia, Camps! Como vai a busca?");
@@ -65,34 +65,36 @@ test("o gerente entra, escreve um pedido, fala com o dev e aceita a entrega", as
   // voltava, e o clique esperava até 2 s.
   await page.getByRole("button", { name: "1×", exact: true }).click();
   await expect(hud).toContainText(/(^|\D)1×/, { timeout: 10_000 });
+  // O gerente aceitou ao lado do quadro, na linha 2: para a direita, a linha é livre até os
+  // arquivos, na coluna 12 (a planta da arte nova, ADR-0082).
   const before = await drawn("gerente");
   expect(before).toBeDefined();
-  const down: number[] = [];
-  await page.keyboard.down("ArrowDown");
+  const right: number[] = [];
+  await page.keyboard.down("ArrowRight");
   for (let i = 0; i < 25; i++) {
     if (i === 10) {
-      await page.keyboard.up("ArrowDown");
+      await page.keyboard.up("ArrowRight");
     }
     await page.waitForTimeout(100);
-    down.push((await drawn("gerente"))?.y ?? Number.NaN);
+    right.push((await drawn("gerente"))?.x ?? Number.NaN);
   }
-  expect(down.every((y, i) => i === 0 || y >= (down[i - 1] ?? y) - 0.01), JSON.stringify(down)).toBe(true); // nunca volta
-  const released = down[9] ?? Number.NaN;
-  const end = down.at(-1) ?? Number.NaN;
-  expect(end - (before?.y ?? 0)).toBeGreaterThanOrEqual(3); // um segundo a 4 tiles por segundo
+  expect(right.every((x, i) => i === 0 || x >= (right[i - 1] ?? x) - 0.01), JSON.stringify(right)).toBe(true); // nunca volta
+  const released = right[9] ?? Number.NaN;
+  const end = right.at(-1) ?? Number.NaN;
+  expect(end - (before?.x ?? 0)).toBeGreaterThanOrEqual(3); // um segundo a 4 tiles por segundo
   // Soltou: para logo, sem voltar. A 1× ele ainda anda uns 2 tiles (meio segundo): a parada chega
   // ao kernel no tick seguinte, depois da rede. Com o tick de 2 s, passava até 8 tiles e voltava.
-  expect(end - released, JSON.stringify(down)).toBeLessThanOrEqual(3.5);
+  expect(end - released, JSON.stringify(right)).toBeLessThanOrEqual(3.5);
 
   const here = await drawn("gerente");
-  const goal = { x: Math.round(here?.x ?? 0), y: Math.round(here?.y ?? 0) - 3 };
+  const goal = { x: Math.round(here?.x ?? 0) - 3, y: Math.round(here?.y ?? 0) };
   const at = await page.evaluate(
     ([x, y]) => (window as unknown as { campsverso: { tileCenter(x: number, y: number): { x: number; y: number } } }).campsverso.tileCenter(x, y),
     [goal.x, goal.y] as const,
   );
   const clicked = Date.now();
   await page.mouse.click(at.x, at.y);
-  await expect.poll(async () => (await drawn("gerente"))?.y ?? 0, { intervals: [25], timeout: 3_000 }).toBeLessThan(end - 0.05);
-  expect(Date.now() - clicked).toBeLessThan(800); // o clique anda em menos de um segundo
+  await expect.poll(async () => (await drawn("gerente"))?.x ?? 0, { intervals: [25], timeout: 3_000 }).toBeLessThan(end - 0.05);
+  expect(Date.now() - clicked).toBeLessThan(800); // o clique anda logo (em geral, em 100 ms)
   await expect.poll(() => drawn("gerente"), { timeout: 5_000 }).toEqual(goal);
 });

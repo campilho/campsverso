@@ -24,7 +24,7 @@ def _ticket(number: int, estado: str, dono: str | None = None, trabalho: int = 0
 
 def _view(
     me: str = "camps",
-    at: tuple[int, int] = (9, 3),
+    at: tuple[int, int] = (3, 2),  # ao lado do quadro, na parede (ADR-0082)
     hhmm: str = "10:00",
     tickets: list[dict[str, Any]] | None = None,
     heard: list[dict[str, Any]] | None = None,
@@ -33,14 +33,14 @@ def _view(
     day: int = 1,
 ) -> dict[str, Any]:
     entities: list[dict[str, Any]] = [
-        {"entity_id": "quadro", "kind": "board", "position": {"x": 9, "y": 2}, "attributes": {}},
+        {"entity_id": "quadro", "kind": "board", "position": {"x": 3, "y": 1}, "attributes": {}},
         {
             "entity_id": "mesa",
             "kind": "desk",
-            "position": {"x": 5, "y": 6},
+            "position": {"x": 4, "y": 4},
             "attributes": {"dono": "camps"},
         },
-        {"entity_id": "cadeira", "kind": "chair", "position": {"x": 5, "y": 7}, "attributes": {}},
+        {"entity_id": "cadeira", "kind": "chair", "position": {"x": 4, "y": 5}, "attributes": {}},
         {
             "entity_id": "camps",
             "kind": "avatar",
@@ -50,7 +50,7 @@ def _view(
         {
             "entity_id": "gerente",
             "kind": "avatar",
-            **({"position": {"x": 9, "y": 4}} if manager_in else {}),
+            **({"position": {"x": 3, "y": 2}} if manager_in else {}),
             "attributes": {"papel": "gerente"},
         },
         *(tickets or []),
@@ -78,37 +78,21 @@ def _view(
     return view
 
 
+def _thing(entity_id: str, kind: str, x: int, y: int) -> dict[str, Any]:
+    return {"entity_id": entity_id, "kind": kind, "position": {"x": x, "y": y}, "attributes": {}}
+
+
+# A copa e o banheiro na planta nova (ADR-0082): a linha da cozinha na linha 9, as mesinhas com as
+# cadeiras de lado na 11, e as portas do banheiro na parede de baixo, para o corredor.
 COPA: list[dict[str, Any]] = [
-    {
-        "entity_id": "bebedouro",
-        "kind": "water_cooler",
-        "position": {"x": 1, "y": 2},
-        "attributes": {},
-    },
-    {
-        "entity_id": "balcao-copa",
-        "kind": "copa_counter",
-        "position": {"x": 17, "y": 8},
-        "attributes": {},
-    },
-    {
-        "entity_id": "mesa-copa",
-        "kind": "copa_table",
-        "position": {"x": 15, "y": 11},
-        "attributes": {},
-    },
-    {
-        "entity_id": "cadeira-copa",
-        "kind": "chair",
-        "position": {"x": 15, "y": 12},
-        "attributes": {},
-    },
-    {
-        "entity_id": "porta-banheiro",
-        "kind": "restroom_door",
-        "position": {"x": 17, "y": 13},
-        "attributes": {},
-    },
+    _thing("lixeira", "trash", 12, 9),
+    _thing("maquina-cafe", "coffee_machine", 13, 9),
+    _thing("micro-ondas", "microwave", 16, 9),
+    _thing("geladeira", "fridge", 17, 9),
+    _thing("bebedouro", "water_cooler", 18, 9),
+    _thing("mesa-copa-1", "copa_table", 13, 11),
+    _thing("cadeira-copa-1", "copa_chair", 12, 11),
+    _thing("porta-banheiro", "restroom_door", 2, 13),
 ]
 
 
@@ -133,7 +117,7 @@ def test_o_dev_pega_o_pedido_mais_antigo_no_quadro() -> None:
         "params": {"target": "pedido-001"},
         "intent": "pegar o pedido 1",
     }
-    far = _dev().decide(_view(at=(5, 7), tickets=[_ticket(1, "a_fazer")]))
+    far = _dev().decide(_view(at=(4, 5), tickets=[_ticket(1, "a_fazer")]))
     assert far["action"] == "move"
     assert far["params"] == {"near": "quadro"}
 
@@ -141,34 +125,34 @@ def test_o_dev_pega_o_pedido_mais_antigo_no_quadro() -> None:
 def test_o_dev_avisa_trabalha_em_blocos_e_entrega() -> None:
     dev = _dev()
     doing = [_ticket(1, "fazendo", "camps")]
-    assert dev.decide(_view(at=(5, 7), tickets=doing))["action"] == "say"  # avisa que pegou
-    work = dev.decide(_view(at=(5, 7), tickets=doing))
+    assert dev.decide(_view(at=(4, 5), tickets=doing))["action"] == "say"  # avisa que pegou
+    work = dev.decide(_view(at=(4, 5), tickets=doing))
     assert work["action"] == "work"
     assert work["params"] == {"seconds": 60}
-    walk = dev.decide(_view(at=(9, 3), tickets=doing))
+    walk = dev.decide(_view(at=(3, 2), tickets=doing))
     assert walk["action"] == "move"
-    assert walk["params"] == {"target": {"x": 5, "y": 7}}
+    assert walk["params"] == {"target": {"x": 4, "y": 5}}
     done = [_ticket(1, "fazendo", "camps", trabalho=900)]
-    assert dev.decide(_view(at=(5, 7), tickets=done))["action"] == "deliver"
+    assert dev.decide(_view(at=(4, 5), tickets=done))["action"] == "deliver"
 
 
 def test_o_dev_avisa_que_vai_almocar_uma_vez_nos_minutos_antes() -> None:
     dev = _dev()
     doing = [_ticket(1, "fazendo", "camps")]
     dev.announced.add("pedido-001")
-    assert dev.decide(_view(at=(5, 7), hhmm="11:57", tickets=doing))["action"] == "work"
-    notice = dev.decide(_view(at=(5, 7), hhmm="11:58", tickets=doing))
+    assert dev.decide(_view(at=(4, 5), hhmm="11:57", tickets=doing))["action"] == "work"
+    notice = dev.decide(_view(at=(4, 5), hhmm="11:58", tickets=doing))
     assert notice["action"] == "say"
     assert notice["params"] == {"text": "Hora do almoço. Vou para a copa.", "to": "gerente"}
-    assert dev.decide(_view(at=(5, 7), hhmm="11:59", tickets=doing))["action"] == "work"
-    alone = _dev().decide(_view(at=(5, 7), hhmm="11:59", manager_in=False))
+    assert dev.decide(_view(at=(4, 5), hhmm="11:59", tickets=doing))["action"] == "work"
+    alone = _dev().decide(_view(at=(4, 5), hhmm="11:59", manager_in=False))
     assert alone["params"] == {
         "text": "Hora do almoço. Vou para a copa."
     }  # sem o gerente, para a sala
 
 
 def test_sem_pedido_o_dev_espera_na_mesa() -> None:
-    proposal = _dev().decide(_view(at=(5, 7)))
+    proposal = _dev().decide(_view(at=(4, 5)))
     assert proposal["action"] == "wait"
     assert proposal["params"] == {"seconds": 60}
 
@@ -176,10 +160,10 @@ def test_sem_pedido_o_dev_espera_na_mesa() -> None:
 def test_o_vigia_faz_a_ronda_no_comeco_da_hora_e_senta_no_resto() -> None:
     guard = staff("vigia")
     assert isinstance(guard, GuardScript)
-    rounds = guard.decide(_view(me="vigia", at=(11, 12), hhmm="22:02"))
+    rounds = guard.decide(_view(me="vigia", at=(11, 14), hhmm="22:02"))
     assert rounds["action"] == "move"
     assert rounds["intent"] == "fazer a ronda"
-    seated = guard.decide(_view(me="vigia", at=(11, 12), hhmm="22:30"))
+    seated = guard.decide(_view(me="vigia", at=(11, 14), hhmm="22:30"))  # o posto, no corredor
     assert seated["action"] == "wait"
 
 
@@ -187,14 +171,14 @@ def test_o_gerente_script_escreve_o_que_venceu_e_devolve_um_de_cada_tres() -> No
     manager = staff("gerente")
     assert isinstance(manager, ManagerScript)
     manager.greeted = 1
-    write = manager.decide(_view(me="gerente", at=(9, 3), hhmm="09:31"))
+    write = manager.decide(_view(me="gerente", at=(3, 2), hhmm="09:31"))
     assert write["action"] == "write_ticket"
     assert write["params"]["title"] == "Ferramenta de busca no código (dia 1)"
     third = [_ticket(3, "entregue", "camps")]
-    returned = manager.decide(_view(me="gerente", at=(9, 3), hhmm="09:00", tickets=third))
+    returned = manager.decide(_view(me="gerente", at=(3, 2), hhmm="09:00", tickets=third))
     assert returned["action"] == "return_ticket"
     first = [_ticket(1, "entregue", "camps")]
-    accepted = manager.decide(_view(me="gerente", at=(9, 3), hhmm="09:00", tickets=first))
+    accepted = manager.decide(_view(me="gerente", at=(3, 2), hhmm="09:00", tickets=first))
     assert accepted["action"] == "accept_ticket"
 
 
@@ -204,12 +188,12 @@ def test_o_gerente_script_nao_escreve_no_dia_em_que_o_dev_nao_veio() -> None:
     manager = staff("gerente")
     assert isinstance(manager, ManagerScript)
     manager.greeted = 1
-    holiday = _view(me="gerente", at=(9, 3), hhmm="09:31")
+    holiday = _view(me="gerente", at=(3, 2), hhmm="09:31")
     for item in holiday["entities"]:
         if item["entity_id"] == "camps":
             del item["position"]
     assert manager.decide(holiday)["action"] == "wait"
-    assert manager.decide(_view(me="gerente", at=(9, 3), hhmm="09:31"))["action"] == "write_ticket"
+    assert manager.decide(_view(me="gerente", at=(3, 2), hhmm="09:31"))["action"] == "write_ticket"
 
 
 # ------------------------------------------------------------------ a rotina (ADR-0080)
@@ -230,13 +214,13 @@ def test_sem_pedido_a_rotina_vai_ate_a_coisa_e_faz_a_pausa() -> None:
     assert dev.routine is not None
     first, action = dev.routine.plan("camps", 1)[0]
     hhmm = f"{first // 60:02d}:{first % 60:02d}"
-    place = {"drink": "bebedouro", "coffee": "balcao-copa", "restroom": "porta-banheiro"}[action]
-    walk = dev.decide(_view(at=(5, 7), hhmm=hhmm, copa=True))
+    place = {"drink": "bebedouro", "coffee": "maquina-cafe", "restroom": "porta-banheiro"}[action]
+    walk = dev.decide(_view(at=(4, 5), hhmm=hhmm, copa=True))
     assert walk["action"] == "move"
     assert walk["params"] == {"near": place}
     assert walk["intent"].startswith("rotina:")
     spot = next(e["position"] for e in COPA if e["entity_id"] == place)
-    beside = (spot["x"], spot["y"] - 1)  # ao lado, para a conta do script
+    beside = (spot["x"], spot["y"] + 1)  # ao lado, para a conta do script
     done = dev.decide(_view(at=beside, hhmm=hhmm, copa=True))
     assert done["action"] == action
     again = dev.decide(_view(at=beside, hhmm=hhmm, copa=True))
@@ -244,12 +228,23 @@ def test_sem_pedido_a_rotina_vai_ate_a_coisa_e_faz_a_pausa() -> None:
 
 
 def test_na_hora_do_almoco_o_dev_vai_para_a_copa_mesmo_com_pedido() -> None:
+    """O almoço em etapas (ADR-0082): a geladeira, o micro-ondas, a mesinha (sentado na cadeira de
+    lado) e o lixo; depois, de volta ao pedido."""
     dev = _dev()
     dev.announced.add("pedido-001")
     doing = [_ticket(1, "fazendo", "camps")]
-    walk = dev.decide(_view(at=(5, 7), hhmm="12:05", tickets=doing, copa=True))
-    assert walk["params"] == {"target": {"x": 15, "y": 12}}  # a cadeira da copa
-    eat = dev.decide(_view(at=(15, 12), hhmm="12:06", tickets=doing, copa=True))
-    assert eat == {"action": "lunch", "params": {}, "intent": "rotina: almoçar"}
-    back = dev.decide(_view(at=(15, 12), hhmm="13:00", tickets=doing, copa=True))
-    assert back["params"] == {"target": {"x": 5, "y": 7}}  # de volta ao pedido
+
+    def step(at: tuple[int, int], hhmm: str = "12:05") -> dict[str, Any]:
+        return dev.decide(_view(at=at, hhmm=hhmm, tickets=doing, copa=True))
+
+    assert step((4, 5))["params"] == {"near": "geladeira"}
+    fridge = step((17, 10))
+    assert (fridge["action"], fridge["intent"]) == ("fridge", "rotina: pegar o almoço na geladeira")
+    assert step((17, 10))["action"] == "microwave"  # o micro-ondas fica ao lado, na diagonal
+    assert step((17, 10))["params"] == {"target": {"x": 12, "y": 11}}  # a cadeira da copa
+    eat = step((12, 11), "12:08")
+    assert eat == {"action": "lunch", "params": {}, "intent": "rotina: almoçar na copa"}
+    assert step((12, 11), "12:55")["params"] == {"near": "lixeira"}
+    assert step((12, 10), "12:55")["action"] == "trash"
+    back = step((12, 10), "12:56")
+    assert back["params"] == {"target": {"x": 4, "y": 5}}  # de volta ao pedido

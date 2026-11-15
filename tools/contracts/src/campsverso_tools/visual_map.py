@@ -188,10 +188,12 @@ def _trees(types: Grid, first: int) -> list[int]:
 # O escritório (ADR-0078). Tipo lógico -> tiles possíveis no chão (o teste de coerência usa a mesma
 # tabela). A parede vira a face do fundo (duas linhas, quando há sala logo abaixo dela), a moldura
 # do lado vista de cima, a face curta que dá para o corredor, ou o vazio fora da sala.
-ROOM = {"floor", "furniture", "door"}
+ROOM = {"floor", "furniture", "door", "partition", "rug"}
 OFFICE_GROUND = {
     "floor": {"floor"},
     "furniture": {"floor"},
+    "partition": {"floor"},  # a divisória dos cubículos, desenhada por cima (ADR-0082)
+    "rug": {"floor"},  # o tapete da sala de descompressão
     "door": {"door"},
     "corridor": {"hall"},
     "restroom": {"door-wc"},  # a porta do banheiro (ADR-0080)
@@ -223,7 +225,7 @@ def _office_ground(types: Grid, x: int, y: int) -> str:
         return at(cx, cy) in ROOM or north(cx, cy) is not None
 
     kind = types[y][x]
-    if kind in ("floor", "furniture"):
+    if kind in ("floor", "furniture", "partition", "rug"):
         return "floor"
     if kind == "door":
         return "door"

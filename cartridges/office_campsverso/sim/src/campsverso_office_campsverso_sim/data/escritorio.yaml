@@ -8,6 +8,7 @@ office:
     opens: "09:00"
     lunch: ["12:00", "13:00"]
     lunch_where: copa # o dev almoça na copa, pela rotina (ADR-0080)
+    lunch_tail_minutes: 5 # comer acaba às 12:55: jogar fora e voltar à mesa (ADR-0082)
     closes: "18:00"
     # Os feriados nacionais (o expediente não abre).
     holidays:

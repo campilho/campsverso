@@ -177,7 +177,7 @@ def test_pegar_trabalhar_parar_para_o_almoco_na_copa_e_entregar() -> None:
     _act(core, "camps", "move", {"near": "quadro"}, DEV)
     (taken,) = _only(_act(core, "camps", "take_ticket", {}, DEV), "office.ticket.taken")
     assert taken["number"] == 1
-    _act(core, "camps", "move", {"target": {"x": 5, "y": 7}}, DEV)  # a cadeira, junto da mesa
+    _act(core, "camps", "move", {"target": {"x": 4, "y": 5}}, DEV)  # a cadeira, junto da mesa
     core.submit(
         {
             "id": "cmd-work",
@@ -188,14 +188,14 @@ def test_pegar_trabalhar_parar_para_o_almoco_na_copa_e_entregar() -> None:
     )
     for _ in range(5 * 60 * TICKS_PER_SECOND):  # cinco minutos de trabalho
         core.step()
-    _act(core, "camps", "move", {"near": "mesa-copa"}, DEV)  # para: o trabalho fica guardado
+    _act(core, "camps", "move", {"near": "mesa-copa-1"}, DEV)  # para: o trabalho fica guardado
     worked = core.world.entity_map["pedido-001"].attributes["trabalho"]
     assert isinstance(worked, int)
     assert 0 < worked < 900
     _until(core, "12:00")
     (lunch,) = _only(_act(core, "camps", "lunch", {}, DEV), "action.accepted")
-    assert lunch["duration_ticks"] == TICKS_PER_HOUR  # até as 13h
-    _act(core, "camps", "move", {"target": {"x": 5, "y": 7}}, DEV)
+    assert lunch["duration_ticks"] == TICKS_PER_HOUR - 5 * 60 * TICKS_PER_SECOND  # até 12:55
+    _act(core, "camps", "move", {"target": {"x": 4, "y": 5}}, DEV)
     early = _act(core, "camps", "deliver", {}, DEV)
     assert _only(early, "action.rejected")[0]["reason"] == "not_done"
     (rest,) = _only(_act(core, "camps", "work", {}, DEV), "action.accepted")
@@ -212,7 +212,10 @@ def test_as_pausas_da_rotina_ao_lado_de_cada_coisa() -> None:
     assert _only(far, "action.rejected")[0]["reason"] == "not_adjacent"
     for thing, action, seconds in (
         ("bebedouro", "drink", 30),
-        ("balcao-copa", "coffee", 120),
+        ("maquina-cafe", "coffee", 120),
+        ("geladeira", "fridge", 15),
+        ("micro-ondas", "microwave", 90),
+        ("lixeira", "trash", 5),
         ("porta-banheiro", "restroom", 240),
     ):
         _act(core, "camps", "move", {"near": thing}, DEV)
@@ -220,9 +223,25 @@ def test_as_pausas_da_rotina_ao_lado_de_cada_coisa() -> None:
         (accepted,) = _only(facts, "action.accepted")
         assert accepted["duration_ticks"] == seconds * TICKS_PER_SECOND
         assert _only(facts, "action.completed")
-    _act(core, "camps", "move", {"near": "mesa-copa"}, DEV)
+    _act(core, "camps", "move", {"near": "mesa-copa-1"}, DEV)
     early = _act(core, "camps", "lunch", {}, DEV)
     assert _only(early, "action.rejected")[0]["reason"] == "invalid_params"  # fora da hora
+
+
+def test_o_banheiro_fica_fora_da_sala() -> None:
+    """ADR-0082: as portas do banheiro dão para o corredor. Da mesa, o dev sai pela porta da sala,
+    vai pelo corredor até a porta do banheiro e volta pelo mesmo caminho."""
+    core = _core()
+    _until(core, "09:00")
+    _act(core, "camps", "move", {"target": {"x": 4, "y": 5}}, DEV)
+    facts = _act(core, "camps", "move", {"near": "porta-banheiro"}, DEV)
+    (moved,) = _only(facts, "world.entity.moved")
+    corners = [(p["x"], p["y"]) for p in moved["waypoints"]]
+    assert (9, 13) in corners or any(y >= 14 for _, y in corners)  # pela porta, pelo corredor
+    here = core.world.position_of("camps")
+    assert here is not None
+    assert here.y == 14  # no corredor, diante da porta do banheiro
+    assert _only(_act(core, "camps", "restroom", {}, DEV), "action.completed")
 
 
 def test_o_trabalho_em_blocos_soma_cada_bloco() -> None:
@@ -232,7 +251,7 @@ def test_o_trabalho_em_blocos_soma_cada_bloco() -> None:
     _write(core, size="P")
     _act(core, "camps", "move", {"near": "quadro"}, DEV)
     _act(core, "camps", "take_ticket", {}, DEV)
-    _act(core, "camps", "move", {"target": {"x": 5, "y": 7}}, DEV)
+    _act(core, "camps", "move", {"target": {"x": 4, "y": 5}}, DEV)
     for done in (60, 120, 180):
         _act(core, "camps", "work", {"seconds": 60}, DEV)
         assert core.world.entity_map["pedido-001"].attributes["trabalho"] == done
@@ -245,7 +264,7 @@ def test_o_gerente_aceita_ou_devolve_com_o_comentario() -> None:
     _write(core, size="P")
     _act(core, "camps", "move", {"near": "quadro"}, DEV)
     _act(core, "camps", "take_ticket", {}, DEV)
-    _act(core, "camps", "move", {"target": {"x": 5, "y": 7}}, DEV)
+    _act(core, "camps", "move", {"target": {"x": 4, "y": 5}}, DEV)
     _act(core, "camps", "work", {}, DEV)
     _act(core, "camps", "deliver", {}, DEV)
     empty = _act(
