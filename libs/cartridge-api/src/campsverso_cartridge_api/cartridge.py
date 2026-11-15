@@ -44,6 +44,11 @@ class WorldBuilder(Protocol):
 
     def set_tiles_per_minute(self, speed: float) -> None: ...
 
+    def set_screen_tiles_per_second(self, speed: float) -> None:
+        """O passo de tela (ADR-0079): andar `speed` tiles por segundo na tela, em qualquer escala.
+        O kernel converte pela escala do momento; sem isso, o andar segue o relógio do mundo."""
+        ...
+
     def set_movement_cost(self, need: str, points_per_tile: float) -> None:
         """Andar gasta `points_per_tile` da necessidade por tile percorrido (ADR-0062)."""
         ...

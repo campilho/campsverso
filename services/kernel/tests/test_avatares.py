@@ -206,7 +206,7 @@ def test_a_ficha_muda_o_corpo() -> None:
     assert world.need("bia", "energia") == before - 10  # recuperar não muda
     core.submit(_as_bia("move", {"target": {"x": 1, "y": 2}}))
     (moved,) = _only(_run(core, 3), "world.entity.moved")
-    assert moved["tiles_per_tick"] == 0.5 * core.tiles_per_tick
+    assert moved["tiles_per_tick"] == 0.5 * core.tiles_per_tick()
     world.faint("bia", "exhausted", 60, {"energia": 50})
     assert not world.is_asleep("bia")  # a ficha diz que não desmaia
 

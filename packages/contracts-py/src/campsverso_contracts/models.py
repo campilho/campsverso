@@ -2848,7 +2848,7 @@ class WorldEntityMovedV1(BaseModel):
     """
     depart_tick: Annotated[int, Field(ge=0, title="Tick")]
     """
-    Tick do kernel (1 minuto simulado na fazenda).
+    Quando o avatar sai da origem. Pode ser depois do tick em que a ação foi aceita: no meio de um passo, o andar novo parte do tile em que o avatar está entrando, quando chega nele (ADR-0079).
     """
     arrival_tick: Annotated[int, Field(ge=0, title="Tick")]
     """

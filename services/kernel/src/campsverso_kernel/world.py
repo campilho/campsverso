@@ -979,17 +979,21 @@ class World:
         avatar.add_pending("woke_up")
 
     def interrupt_action(
-        self, avatar_id: str, reason: Literal["cancelled", "fainted"]
+        self,
+        avatar_id: str,
+        reason: Literal["cancelled", "fainted"],
+        at: Position | None = None,
     ) -> str | None:
         """Para a ação em andamento; numa ação `partial`, o cartucho grava o trabalho feito
-        (ADR-0052)."""
+        (ADR-0052). Um andar parado no meio de um passo fica no tile de trás, ou em `at`, o tile em
+        que estava entrando, quando o andar seguinte termina o passo (ADR-0079)."""
         avatar = self.avatar_map[avatar_id]
         action = avatar.action
         if action is None:
             return None
         elapsed = self.tick - action.applied_tick
         if action.trajectory is not None:
-            position = action.trajectory.position_at(self.tick)
+            position = at if at is not None else action.trajectory.position_at(self.tick)
             self.entity_map[avatar_id].position = position
             self.emit_fact(
                 "campsverso.world.entity.move_interrupted.v1",

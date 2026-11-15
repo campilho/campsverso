@@ -95,7 +95,6 @@ class KernelCore:
         self.mode: ClockMode = "continuous"
         self.scale = float(definition.clock.default_scale)
         self.paused = False
-        self.tiles_per_tick = definition.tiles_per_minute / self.calendar.ticks_per_minute
         self._queue: deque[Mapping[str, Any]] = deque()
         self._scheduled: list[tuple[int, Mapping[str, Any]]] = []  # (at_tick, comando) do replay
         self._initial_controllers: dict[str, ControllerRef] = {}
@@ -842,7 +841,11 @@ class KernelCore:
             return reject(result.reason, result.detail)
 
         with world.context(caused_by=command_id, correlation=correlation):
-            replaced = world.interrupt_action(avatar.avatar_id, "cancelled")
+            # Um andar que parte depois de agora termina o passo começado: o avatar fica no tile
+            # em que estava entrando, e não volta para o de trás (ADR-0079).
+            ahead = trajectory is not None and trajectory.depart_tick > self.tick
+            committed = trajectory.origin if trajectory is not None and ahead else None
+            replaced = world.interrupt_action(avatar.avatar_id, "cancelled", at=committed)
         if running is not None and running.interrupt == "partial":
             # O trabalho guardado pode mudar a validação: retomar a mesma ação fica mais curto.
             result, trajectory = self._validate(avatar, name, params, action_id)
@@ -885,8 +888,10 @@ class KernelCore:
                     "entity_id": avatar.avatar_id,
                     "action_id": action_id,
                     "origin": position_data(trajectory.origin),
-                    "waypoints": [position_data(p) for p in corners(trajectory.path)],
-                    "depart_tick": self.tick,
+                    # Parar no tile em que já estava entrando (ADR-0079): o destino é a origem.
+                    "waypoints": [position_data(p) for p in corners(trajectory.path)]
+                    or [position_data(trajectory.origin)],
+                    "depart_tick": trajectory.depart_tick,
                     "arrival_tick": action.end_tick,
                     "tiles_per_tick": trajectory.tiles_per_tick,
                 },
@@ -971,9 +976,17 @@ class KernelCore:
         self, avatar: Avatar, params: Mapping[str, Any]
     ) -> tuple[Validation, Trajectory | None]:
         """`{target: {x, y}}` ou `{near: entity_id | {x, y}}`: no `near`, o tile livre mais perto ao
-        lado da coisa ou do tile (ADR-0047; o tile, ADR-0068)."""
-        origin = self.world.position_of(avatar.avatar_id)
-        assert origin is not None
+        lado da coisa ou do tile (ADR-0047; o tile, ADR-0068).
+
+        No meio de um passo, o passo começado termina (ADR-0079): o andar novo parte do tile em que
+        o avatar está entrando, no tick em que chega nele; com o destino nesse tile, para ali."""
+        origin, depart = self._move_start(avatar)
+        stepping = depart > self.tick
+        speed = self.tiles_per_tick() * self.world.traits(avatar.avatar_id).speed  # ADR-0072
+        stop = (
+            Accepted(depart - self.tick, "cancel"),
+            Trajectory(origin, (origin,), depart, speed),
+        )
         raw, near = params.get("target"), params.get("near")
         if (raw is None) == (near is None):
             return Rejection("invalid_params", "move exige target {x, y} ou near"), None
@@ -982,7 +995,7 @@ class KernelCore:
             if spot is None:
                 return Rejection("invalid_params", f"{near!r} não é uma entidade no mapa"), None
             if origin.chebyshev(spot) <= 1:
-                return Rejection("already_there"), None
+                return stop if stepping else (Rejection("already_there"), None)
             around = (
                 Position(spot.x + dx, spot.y + dy)
                 for dy in (-1, 0, 1)
@@ -1001,16 +1014,44 @@ class KernelCore:
                 return Rejection("invalid_params", "move exige target {x, y}"), None
             target = Position(x, y)
             if target == origin:
-                return Rejection("already_there"), None
+                return stop if stepping else (Rejection("already_there"), None)
             if not self.world.walkable(target):
                 return Rejection("not_passable"), None
         path = find_path(origin, target, self.world.walkable)
         if path is None:
             return Rejection("unreachable"), None
-        speed = self.tiles_per_tick * self.world.traits(avatar.avatar_id).speed  # ADR-0072
-        duration = max(1, math.ceil((len(path) - 1) / speed - 1e-9))
-        trajectory = Trajectory(origin, tuple(path), self.tick, speed)
-        return Accepted(duration, "cancel"), trajectory
+        walking = max(1, math.ceil((len(path) - 1) / speed - 1e-9))
+        trajectory = Trajectory(origin, tuple(path), depart, speed)
+        return Accepted(depart - self.tick + walking, "cancel"), trajectory
+
+    def tiles_per_tick(self) -> float:
+        """Quantos tiles um avatar anda num tick. Com o passo de tela (ADR-0079), o que ele anda na
+        tela no tempo real que um tick dura na escala do momento: a escala é estado, muda por
+        comando e volta no replay. Sem ele, o passo é do relógio do mundo."""
+        screen = self.definition.screen_tiles_per_second
+        if screen is None:
+            return self.definition.tiles_per_minute / self.calendar.ticks_per_minute
+        return screen * self.calendar.tick_seconds / self.scale
+
+    def _move_start(self, avatar: Avatar) -> tuple[Position, int]:
+        """De onde e quando parte um andar novo: daqui e agora, ou, no meio de um passo, do tile em
+        que o avatar está entrando, no tick em que chega nele (ADR-0079). Sem isso, trocar o destino
+        a cada pedaço de tile (a seta segurada) voltava o avatar para o tile de trás e ele não saía
+        do lugar. Um andar que ainda não partiu guarda o tile e o tick dele."""
+        origin = self.world.position_of(avatar.avatar_id)
+        assert origin is not None
+        running = avatar.action
+        trajectory = None if running is None else running.trajectory
+        if trajectory is None:
+            return origin, self.tick
+        if trajectory.depart_tick > self.tick:
+            return trajectory.path[0], trajectory.depart_tick
+        walked = (self.tick - trajectory.depart_tick) * trajectory.tiles_per_tick
+        steps = math.floor(walked + 1e-9)
+        if walked - steps <= 1e-9 or steps + 1 >= len(trajectory.path):
+            return origin, self.tick
+        arrives = math.ceil((steps + 1) / trajectory.tiles_per_tick - 1e-9)
+        return trajectory.path[steps + 1], trajectory.depart_tick + arrives
 
     def _near_spot(self, near: Any) -> Position | None:
         """Onde fica o `near` de um move: a entidade no mapa, ou um tile `{x, y}` dentro dele."""

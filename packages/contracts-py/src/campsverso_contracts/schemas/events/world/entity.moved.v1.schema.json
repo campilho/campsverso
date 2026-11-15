@@ -36,7 +36,8 @@
       "description": "Pontos de inflexão do trajeto e o destino."
     },
     "depart_tick": {
-      "$ref": "contracts://common/defs.v1#/$defs/tick"
+      "$ref": "contracts://common/defs.v1#/$defs/tick",
+      "description": "Quando o avatar sai da origem. Pode ser depois do tick em que a ação foi aceita: no meio de um passo, o andar novo parte do tile em que o avatar está entrando, quando chega nele (ADR-0079)."
     },
     "arrival_tick": {
       "$ref": "contracts://common/defs.v1#/$defs/tick"

@@ -1,5 +1,6 @@
 """Montagem do mundo a partir da cadeia de cartuchos (ADR-0031, ADR-0036)."""
 
+import math
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
@@ -56,6 +57,9 @@ class WorldDefinition:
     metrics: tuple[MetricDef, ...] = ()  # métricas do dia para o operador (ADR-0054)
     labels: tuple[EventLabelDef, ...] = ()  # rótulos da linha do tempo (ADR-0068)
     perception_radius: int | None = None  # None: o mapa inteiro (ADR-0056)
+    # O passo de tela (ADR-0079): tiles por segundo na tela, convertidos pela escala do momento;
+    # None anda no relógio do mundo (`tiles_per_minute`).
+    screen_tiles_per_second: float | None = None
     perception_landmarks: tuple[str, ...] = ()  # vistos além do raio (ADR-0067)
     perception_by_phase: Mapping[str, int] = field(default_factory=dict[str, int])  # ADR-0068
     perception_lights: Mapping[str, int] = field(default_factory=dict[str, int])
@@ -98,6 +102,7 @@ class DefinitionBuilder:
     year: YearDef | None = None
     event_domains: set[str] = field(default_factory=set[str])
     tiles_per_minute: float = 1.0
+    screen_tiles_per_second: float | None = None
     perception_radius: int | None = None
     perception_landmarks: tuple[str, ...] = ()
     perception_by_phase: dict[str, int] = field(default_factory=dict[str, int])
@@ -143,6 +148,11 @@ class DefinitionBuilder:
         if speed <= 0:
             raise DefinitionError("a velocidade precisa ser positiva")
         self.tiles_per_minute = speed
+
+    def set_screen_tiles_per_second(self, speed: float) -> None:
+        if not math.isfinite(speed) or speed <= 0:
+            raise DefinitionError("o passo de tela precisa ser positivo e finito")
+        self.screen_tiles_per_second = speed
 
     def set_perception_light(self, by_phase: Mapping[str, int], lights: Mapping[str, int]) -> None:
         if any(r < 0 for r in [*by_phase.values(), *lights.values()]):
@@ -302,6 +312,7 @@ class DefinitionBuilder:
             year=self.year,
             event_domains=frozenset(self.event_domains),
             tiles_per_minute=self.tiles_per_minute,
+            screen_tiles_per_second=self.screen_tiles_per_second,
             data=dict(self.data),
             kinds=dict(self.kinds),
             items=dict(self.items),
