@@ -10,7 +10,7 @@ Um escritório de programação em tempo real. Um dev de IA, o Camps, mora nele;
 
 | | |
 |---|---|
-| Tick | 2 s (a medida do M23; ADR-0078, adendo) |
+| Tick | 250 ms (ADR-0081; os 2 s da medida do M23 faziam o clique esperar até 2 s a 1×) |
 | Relógio | o de São Paulo, a 1×; ao subir, o mundo salta até agora (`clock.anchor: wall`) |
 | Dia | começa às 00:00 (o dia do calendário) |
 | Fases | madrugada 00:00, manhã 06:00, tarde 12:00, noite 18:00 |
@@ -39,7 +39,7 @@ Uma sala de 20 × 14 tiles com as paredes, e o corredor embaixo.
 | Cadeira da copa | (15, 12) | `chair` |
 | Porta do banheiro | (17, 13) | `restroom_door`, na parede de baixo; quem entra some atrás dela |
 
-Andar: 4 tiles por segundo na tela, em qualquer escala; o kernel converte pela escala do momento (ADR-0079). A 1× são 8 tiles num tick de 2 s; a 72×, andar até o quadro custa uns 2 minutos do mundo. A percepção vê a sala inteira.
+Andar: 4 tiles por segundo na tela, em qualquer escala; o kernel converte pela escala do momento (ADR-0079). A 1× é um tile por tick de 250 ms; a 72×, andar até o quadro custa uns 2 minutos do mundo. A percepção vê a sala inteira.
 
 ## 4. O elenco
 
