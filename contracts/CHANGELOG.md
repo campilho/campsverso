@@ -2,6 +2,12 @@
 
 Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão maior, só entram campos opcionais novos; mudança incompatível vira um tipo novo (`.v2`). A checagem `make compat` confere isso a cada commit.
 
+## Em andamento: v0.4
+
+### M23
+
+- **O trajeto com a ação** (ADR-0078, o andar sem pulo): o trajeto do estado da tela (`realtime/welcome.v1`, `state.motion.<id>`) ganha o campo opcional `action_id`, o mesmo do `world.entity.moved.v1`. A tela identifica cada trajeto pela ação, e não mais pelo tick de saída: dois trajetos que saem no mesmo tick (a tecla segurada, cliques rápidos) deixam de se confundir.
+
 ## v0.3.0: 2026-11-14
 
 A fazenda sofisticada: a Fazenda Morada do Sol com o ano e as estações, ver e assistir, a economia e o clima, os controladores e a medição, os ajudantes e a terceira arena. São 13 eventos novos (64 no total, com 9 comandos), e o resto são campos opcionais; nenhuma mudança incompatível (`make compat`). As seções abaixo são as de cada marco.

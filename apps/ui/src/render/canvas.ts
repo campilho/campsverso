@@ -4,7 +4,7 @@
  */
 import type { ObserverState } from "@campsverso/contracts";
 
-import { motionClock, type Point } from "../motion.ts";
+import { MotionClock, type Point } from "../motion.ts";
 import { progressOf } from "../progress.ts";
 import { tileAt, type TileGrid } from "../tiled.ts";
 import { tileUnder, type WorldRenderer } from "./renderer.ts";
@@ -14,6 +14,8 @@ export const TILE = 32;
 
 /** O canvas de depuração (`?render=debug`): ignora a arte e mostra ids e rótulos. */
 export class MapCanvas implements WorldRenderer {
+  /** O caminho que o desenho de cada avatar faz nesta tela: cada miniatura da arena tem o seu (ADR-0078). */
+  readonly motion = new MotionClock();
   private grid: TileGrid | undefined;
   private readonly canvas: HTMLCanvasElement;
   private readonly context: CanvasRenderingContext2D;
@@ -124,7 +126,7 @@ export class MapCanvas implements WorldRenderer {
         continue;
       }
       const motion = state.motion[id];
-      const at: Point | undefined = motionClock.at(id, motion, entity.position, tick, performance.now());
+      const at: Point | undefined = this.motion.at(id, motion, entity.position, tick, performance.now());
       if (at === undefined) {
         continue;
       }

@@ -4339,6 +4339,10 @@
                   "tiles_per_tick": {
                     "type": "number",
                     "exclusiveMinimum": 0
+                  },
+                  "action_id": {
+                    "$ref": "#/$defs/ActionId",
+                    "description": "A ação do trajeto (o do `world.entity.moved`): dois trajetos no mesmo tick são dois trajetos."
                   }
                 }
               }

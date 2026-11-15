@@ -27,7 +27,7 @@ import {
 } from "../art/manifest.ts";
 import { el } from "../dom.ts";
 import { FogMemory, FogStore, lightHeld, serverCenter, visionRadius, type Sight } from "../fog.ts";
-import { motionClock, type Point } from "../motion.ts";
+import { MotionClock, type Point } from "../motion.ts";
 import { progressOf } from "../progress.ts";
 import { tileAt, type TileGrid } from "../tiled.ts";
 import { tileUnder, type WorldRenderer } from "./renderer.ts";
@@ -267,6 +267,8 @@ class WorldScene extends Phaser.Scene {
   private readonly things = new Map<string, ThingView>();
   private readonly avatars = new Map<string, AvatarView>();
   private readonly seen = new Map<string, Point>(); // onde cada avatar aparece agora, em tiles
+  /** O caminho que o desenho de cada avatar faz nesta tela (ADR-0078). */
+  readonly motion = new MotionClock();
   /** Quem a câmera segue; parar de seguir é arrastar, voltar é o botão. */
   follow: string | undefined;
   following = true;
@@ -539,7 +541,8 @@ class WorldScene extends Phaser.Scene {
         continue;
       }
       const motion = state.motion[id];
-      const at: Point | undefined = motionClock.at(id, motion, entity.position, tick, time);
+      // O relógio da página, o mesmo de quem observa os trajetos pelo evento (main.ts).
+      const at: Point | undefined = this.motion.at(id, motion, entity.position, tick, performance.now());
       if (at === undefined) {
         continue;
       }
@@ -657,6 +660,7 @@ function rendererType(): number {
 export class PhaserRenderer implements WorldRenderer {
   readonly element: HTMLElement;
   private readonly scene = new WorldScene();
+  readonly motion = this.scene.motion;
   private readonly game: Phaser.Game;
   private size = { width: 32, height: 18 };
   private grid = { width: 32, height: 18 };

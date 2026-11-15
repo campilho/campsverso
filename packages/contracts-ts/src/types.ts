@@ -2194,6 +2194,7 @@ export interface ObserverMotion {
   path: [Position, ...Position[]];
   depart_tick: Tick;
   tiles_per_tick: number;
+  action_id?: ActionId;
 }
 export interface ObserverAction {
   action_id: ActionId;

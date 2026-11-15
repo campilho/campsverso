@@ -1,7 +1,7 @@
 import type { EnvelopeV1, ObserverMotion, ObserverState } from "@campsverso/contracts";
 import { describe, expect, it } from "vitest";
 
-import { MAX_TILES_PER_SECOND, MotionClock, pathFrom, positionAt, smoothedAt } from "./motion.ts";
+import { MotionClock, pathFrom, positionAt } from "./motion.ts";
 import { applyMergePatch } from "./patch.ts";
 import { entityColor, tileColor } from "./render/skin.ts";
 import { DisplayClock, MAX_AHEAD, clockText, isLive } from "./simclock.ts";
@@ -208,10 +208,11 @@ describe("relógio da tela", () => {
     const clock = new DisplayClock();
     clock.reset(at72, 0);
     frames(clock, at72, 0, 2000); // ~102,4 pela estimativa
-    const pulsed = { ...at72, pulse: { tick: 103, alive: true } };
+    // O pulso traz o tick que o kernel vai rodar: 104 diz que o 103 já rodou.
+    const pulsed = { ...at72, pulse: { tick: 104, alive: true } };
     clock.observe(pulsed, 2000);
     expect(frames(clock, pulsed, 2050, 3000).at(-1)).toBeGreaterThan(103.5);
-    const silent = { ...pulsed, pulse: { tick: 103, alive: false } };
+    const silent = { ...pulsed, pulse: { tick: 104, alive: false } };
     clock.observe(silent, 3000);
     const frozen = frames(clock, silent, 3050, 9000, isLive(silent, true));
     expect(frozen.at(-1)).toBe(frozen[0]);
@@ -274,65 +275,7 @@ describe("linha do tempo", () => {
   });
 });
 
-describe("caminhada que chega atrasada à tela", () => {
-  // 6 tiles a 3 por tick: parte no tick 10 e chega no 12.
-  const walk: ObserverMotion = {
-    path: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }, { x: 4, y: 0 }, { x: 5, y: 0 }, { x: 6, y: 0 }],
-    depart_tick: 10,
-    tiles_per_tick: 3,
-  };
-
-  it("começa da origem quando foi vista no meio do primeiro tick, sem pular tiles", () => {
-    expect(positionAt(walk, 10.8).x).toBeCloseTo(2.4); // o desenho cru pularia 2,4 tiles
-    expect(smoothedAt(walk, 10.8, 10.8)).toEqual({ x: 0, y: 0 });
-    const a = smoothedAt(walk, 11.2, 10.8).x;
-    const b = smoothedAt(walk, 11.6, 10.8).x;
-    expect(a).toBeGreaterThan(0);
-    expect(b).toBeGreaterThan(a);
-    expect(smoothedAt(walk, 12, 10.8)).toEqual({ x: 6, y: 0 }); // chega junto com o kernel
-  });
-
-  it("aberta já na segunda metade do caminho, segue o kernel sem voltar à origem", () => {
-    expect(smoothedAt(walk, 11.5, 11.5)).toEqual(positionAt(walk, 11.5));
-  });
-
-  it("a memória guarda o tick em que cada trajeto foi visto", () => {
-    const clock = new MotionClock();
-    expect(clock.at("camps", walk, undefined, 10.5, 0)).toEqual({ x: 0, y: 0 });
-    expect(clock.at("camps", walk, undefined, 12, 10_000)).toEqual({ x: 6, y: 0 });
-    const next = { ...walk, depart_tick: 20 };
-    expect(clock.at("camps", next, undefined, 20, 20_000)).toEqual({ x: 0, y: 0 });
-  });
-
-  it("um trajeto lento segue o kernel: o teto de velocidade não entra", () => {
-    const clock = new MotionClock();
-    expect(clock.at("camps", walk, undefined, 10, 0)).toEqual({ x: 0, y: 0 });
-    expect(clock.at("camps", walk, undefined, 11, 100_000)).toEqual(positionAt(walk, 11));
-  });
-});
-
-describe("teto de velocidade do desenho (ADR-0057)", () => {
-  // 30 tiles num tick: a 72×, 36 tiles por segundo; a tela anda no máximo MAX_TILES_PER_SECOND.
-  const dash: ObserverMotion = {
-    path: [{ x: 0, y: 0 }, ...Array.from({ length: 30 }, (_, i) => ({ x: i + 1, y: 0 }))],
-    depart_tick: 10,
-    tiles_per_tick: 30,
-  };
-
-  it("fica para trás do kernel e alcança no ritmo do teto, mesmo depois de o trajeto acabar", () => {
-    const clock = new MotionClock();
-    expect(clock.at("camps", dash, undefined, 10, 0)).toEqual({ x: 0, y: 0 });
-    // Meio segundo depois o kernel já chegou (tick 11); a tela andou 6 tiles.
-    expect(clock.at("camps", dash, undefined, 11, 500)).toEqual({ x: MAX_TILES_PER_SECOND / 2, y: 0 });
-    // O trajeto sumiu do estado (chegou): a tela termina a caminhada até o destino.
-    expect(clock.at("camps", undefined, { x: 30, y: 0 }, 11.5, 1_000)).toEqual({ x: MAX_TILES_PER_SECOND, y: 0 });
-    expect(clock.at("camps", undefined, { x: 30, y: 0 }, 13, 5_000)).toEqual({ x: 30, y: 0 });
-    // Parada em outro lugar, que não é o fim do trajeto: vai direto.
-    expect(clock.at("camps", undefined, { x: 2, y: 2 }, 14, 5_100)).toEqual({ x: 2, y: 2 });
-  });
-});
-
-describe("o desenho não salta (achados do usuário no mapa d)", () => {
+describe("o teclado (ADR-0057; achados do usuário no mapa d)", () => {
   const line = (from: number, to: number): ObserverMotion["path"] =>
     pathFrom({ x: from, y: 0 }, [{ x: to, y: 0 }]);
 
@@ -345,46 +288,50 @@ describe("o desenho não salta (achados do usuário no mapa d)", () => {
     ]);
   });
 
-  it("um destino novo no meio da caminhada segue de onde o avatar aparecia", () => {
+  it("a seta segurada anda no ritmo do teclado, mais devagar que o kernel", () => {
     const clock = new MotionClock();
-    const first: ObserverMotion = { path: line(0, 30), depart_tick: 10, tiles_per_tick: 30 };
-    clock.at("camps", first, undefined, 10, 0);
-    expect(clock.at("camps", first, undefined, 11, 500)).toEqual({ x: 6, y: 0 }); // o kernel já chegou
-    // O kernel parte do tile 20 para o 25: a tela continua do 6, pelo caminho velho.
-    const next: ObserverMotion = { path: line(20, 25), depart_tick: 11, tiles_per_tick: 30 };
-    expect(clock.at("camps", next, undefined, 11, 500)).toEqual({ x: 6, y: 0 });
-    expect(clock.at("camps", next, undefined, 12, 1_000)).toEqual({ x: 12, y: 0 });
-    expect(clock.at("camps", undefined, { x: 25, y: 0 }, 13, 3_000)).toEqual({ x: 25, y: 0 });
+    clock.pace("camps", 6);
+    const run: ObserverMotion = { path: line(0, 30), depart_tick: 10, tiles_per_tick: 30, action_id: "seta" };
+    clock.at("camps", run, { x: 30, y: 0 }, 10, 0);
+    let at = clock.at("camps", run, { x: 30, y: 0 }, 10, 0);
+    for (let ms = 50; ms <= 1000; ms += 50) {
+      at = clock.at("camps", run, { x: 30, y: 0 }, 10 + ms / 833, ms);
+    }
+    expect(at?.x).toBeCloseTo(6, 5);
+    clock.pace("camps", undefined); // a seta solta: o desenho volta a seguir o kernel, depressa
+    for (let ms = 1050; ms <= 3000; ms += 50) {
+      at = clock.at("camps", run, { x: 30, y: 0 }, 12, ms);
+    }
+    expect(at).toEqual({ x: 30, y: 0 });
   });
 
-  it("parar logo depois de soltar a tecla: o desenho para ali, sem ir e voltar", () => {
+  it("soltar a seta logo depois: o desenho para no tile à frente, sem ir e voltar", () => {
     const clock = new MotionClock();
-    const run: ObserverMotion = { path: line(0, 30), depart_tick: 10, tiles_per_tick: 30 };
-    clock.at("camps", run, undefined, 10, 0);
-    clock.at("camps", run, undefined, 11, 500); // a tela no 6, o kernel no 30
-    const back: ObserverMotion = { path: line(30, 7), depart_tick: 11, tiles_per_tick: 30 };
-    expect(clock.at("camps", back, undefined, 11, 600)).toEqual({ x: 6, y: 0 });
-    expect(clock.at("camps", back, undefined, 11.1, 700)).toEqual({ x: 7, y: 0 }); // e não vai ao 30
-    expect(clock.at("camps", back, undefined, 12, 2_000)).toEqual({ x: 7, y: 0 });
-    expect(clock.at("camps", undefined, { x: 7, y: 0 }, 12, 2_100)).toEqual({ x: 7, y: 0 });
+    clock.pace("camps", 6);
+    const run: ObserverMotion = { path: line(0, 30), depart_tick: 10, tiles_per_tick: 30, action_id: "ida" };
+    for (let ms = 0; ms <= 1000; ms += 50) {
+      clock.at("camps", run, { x: 30, y: 0 }, 10 + ms / 833, ms); // a tela no 6, o kernel no 30
+    }
+    const back: ObserverMotion = { path: line(30, 7), depart_tick: 11, tiles_per_tick: 30, action_id: "volta" };
+    const xs: number[] = [];
+    for (let ms = 1050; ms <= 3000; ms += 50) {
+      xs.push(clock.at("camps", back, { x: 7, y: 0 }, 11 + (ms - 1000) / 833, ms)?.x ?? Number.NaN);
+    }
+    expect(Math.max(...xs)).toBeLessThanOrEqual(7);
+    expect(xs.at(-1)).toBe(7);
   });
 
   it("um trajeto que começou e terminou entre duas atualizações chega pelo evento", () => {
     const clock = new MotionClock();
     expect(clock.at("camps", undefined, { x: 0, y: 0 }, 10, 0)).toEqual({ x: 0, y: 0 });
-    clock.observe("camps", { path: line(0, 24), depart_tick: 10, tiles_per_tick: 30 }, 0);
-    // O estado já diz que ele chegou; a tela anda até lá no ritmo do teto.
-    expect(clock.at("camps", undefined, { x: 24, y: 0 }, 11, 1_000)).toEqual({ x: MAX_TILES_PER_SECOND, y: 0 });
-    expect(clock.at("camps", undefined, { x: 24, y: 0 }, 12, 3_000)).toEqual({ x: 24, y: 0 });
-  });
-
-  it("o ritmo do teclado: o desenho anda mais devagar que o teto", () => {
-    const clock = new MotionClock();
-    clock.pace("camps", 6);
-    const run: ObserverMotion = { path: line(0, 30), depart_tick: 10, tiles_per_tick: 30 };
-    clock.at("camps", run, undefined, 10, 0);
-    expect(clock.at("camps", run, undefined, 11, 1_000)).toEqual({ x: 6, y: 0 });
-    clock.pace("camps", undefined);
-    expect(clock.at("camps", run, undefined, 11, 1_500)).toEqual({ x: 6 + MAX_TILES_PER_SECOND / 2, y: 0 });
+    clock.observe("camps", { path: line(0, 24), depart_tick: 10, tiles_per_tick: 30, action_id: "rapido" }, 0);
+    // O estado já diz que ele chegou; a tela anda até lá pelo caminho, sem aparecer no destino.
+    const first = clock.at("camps", undefined, { x: 24, y: 0 }, 11, 16);
+    expect(first?.x).toBeLessThan(24);
+    let at = first;
+    for (let ms = 32; ms <= 2000; ms += 16) {
+      at = clock.at("camps", undefined, { x: 24, y: 0 }, 11 + ms / 833, ms);
+    }
+    expect(at).toEqual({ x: 24, y: 0 });
   });
 });

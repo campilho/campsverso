@@ -318,6 +318,10 @@
               "tiles_per_tick": {
                 "type": "number",
                 "exclusiveMinimum": 0
+              },
+              "action_id": {
+                "$ref": "contracts://common/defs.v1#/$defs/action_id",
+                "description": "A ação do trajeto (o do `world.entity.moved`): dois trajetos no mesmo tick são dois trajetos."
               }
             }
           }

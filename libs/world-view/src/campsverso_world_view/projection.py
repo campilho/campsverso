@@ -212,11 +212,15 @@ class Projection:
     def _on_world_entity_moved(self, data: Mapping[str, Any]) -> None:
         entity_id = str(data["entity_id"])
         path = path_from(data["origin"], list(data["waypoints"]))
-        self.motion[entity_id] = {
+        motion: dict[str, Any] = {
             "path": path,
             "depart_tick": int(data["depart_tick"]),
             "tiles_per_tick": float(data["tiles_per_tick"]),
         }
+        if data.get("action_id") is not None:
+            # A tela distingue dois trajetos que saem no mesmo tick (ADR-0078).
+            motion["action_id"] = str(data["action_id"])
+        self.motion[entity_id] = motion
         if entity_id in self.entities:
             self.entities[entity_id]["position"] = path[-1]  # onde vai estar ao chegar
 

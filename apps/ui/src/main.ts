@@ -16,7 +16,7 @@ import { Connection, type View } from "./connection.ts";
 import { button, el } from "./dom.ts";
 import { fogKey } from "./fog.ts";
 import { loadLocale } from "./locale.ts";
-import { motionClock, pathFrom } from "./motion.ts";
+import { pathFrom } from "./motion.ts";
 import { CreditsDialog } from "./panels/credits.ts";
 import { CommandsHelp } from "./panels/help.ts";
 import { renderHud } from "./panels/hud.ts";
@@ -107,10 +107,11 @@ const icons = new ItemIcons(() => {
   lastClock = ""; // a folha dos ícones chegou: o HUD se redesenha no próximo quadro
 });
 // Para os testes no navegador (Playwright): onde fica, na tela, o centro de um tile; o que o
-// jogador enxerga nele; o ícone de um item.
+// jogador enxerga nele; o ícone de um item; onde a tela desenhou um avatar no último quadro.
 Object.assign(window, {
   campsverso: {
     tileCenter: (x: number, y: number) => map.clientOf?.(x, y),
+    drawn: (id: string) => map.motion.drawn(id),
     sight: (x: number, y: number) => map.sight?.(x, y),
     itemIcon: (item: string) => icons.url(item),
   },
@@ -261,9 +262,14 @@ function observeMove(data: Record<string, unknown>): void {
   if (typeof data.entity_id !== "string" || origin === undefined || waypoints === undefined) {
     return;
   }
-  motionClock.observe(
+  map.motion.observe(
     data.entity_id,
-    { path: pathFrom(origin, waypoints), depart_tick: Number(data.depart_tick), tiles_per_tick: Number(data.tiles_per_tick) },
+    {
+      path: pathFrom(origin, waypoints),
+      depart_tick: Number(data.depart_tick),
+      tiles_per_tick: Number(data.tiles_per_tick),
+      ...(typeof data.action_id === "string" ? { action_id: data.action_id } : {}),
+    },
     performance.now(),
   );
 }
@@ -400,8 +406,8 @@ function renderQueue(): void {
 
 /** Onde o avatar aparece na tela agora (o trajeto interpolado, arredondado ao tile). */
 function avatarTile(state: ObserverState): { x: number; y: number } | undefined {
-  const motion = state.motion[avatarId()];
-  const at = motionClock.at(avatarId(), motion, state.entities[avatarId()]?.position, shownTick, performance.now());
+  // Onde a tela o desenhou no último quadro, sem andar nada (a tela é quem anda o desenho).
+  const at = map.motion.drawn(avatarId()) ?? state.entities[avatarId()]?.position;
   return at === undefined ? undefined : { x: Math.round(at.x), y: Math.round(at.y) };
 }
 
@@ -534,7 +540,7 @@ function startHold(state: ObserverState, key: string, delta: readonly [number, n
     return;
   }
   hold = { key, delta, from, since: performance.now(), sentAt: 0 };
-  motionClock.pace(avatarId(), HOLD_TILES_PER_SECOND);
+  map.motion.pace(avatarId(), HOLD_TILES_PER_SECOND);
   paced = true;
   steerHold(state, performance.now());
 }
@@ -650,7 +656,7 @@ function frame(now: number): void {
     if (hold !== undefined) {
       steerHold(state, now);
     } else if (paced && !holding() && state.actions[avatarId()] === undefined) {
-      motionClock.pace(avatarId(), undefined); // a caminhada do teclado acabou: o desenho volta ao teto
+      map.motion.pace(avatarId(), undefined); // a caminhada do teclado acabou: o desenho volta a seguir o kernel
       paced = false;
     }
     if (run === null && inControl(state, avatarId())) {

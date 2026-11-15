@@ -3,11 +3,14 @@ import type { ObserverState } from "@campsverso/contracts";
 
 import type { ArtManifest } from "../art/manifest.ts";
 import type { Sight } from "../fog.ts";
+import type { MotionClock } from "../motion.ts";
 import type { TileGrid } from "../tiled.ts";
 
 export interface WorldRenderer {
   /** O elemento que vai na página e recebe os cliques. */
   readonly element: HTMLElement;
+  /** Onde cada avatar aparece nesta tela, e o caminho que o desenho faz (ADR-0078): cada tela tem o seu. */
+  readonly motion: MotionClock;
   setGrid(grid: TileGrid): void;
   setArt(art: ArtManifest): void;
   /** Desenha o estado no tick mostrado (fracionário); a tela chama a cada quadro. */

@@ -1,4 +1,15 @@
-/** Onde uma entidade está no meio de um trajeto: interpolação para desenhar, nunca regra (escopo §9). */
+/** Onde uma entidade está no meio de um trajeto: interpolação para desenhar, nunca regra (escopo §9).
+ *
+ * O desenho segue o tempo do trajeto que o kernel publicou (ADR-0078, decisão 14): a posição sai do
+ * tick de saída, do passo e do relógio da tela. Quando o kernel corrige (um destino novo, uma
+ * interrupção, uma reconexão), a tela não salta: anda pelo caminho até onde o kernel diz e o alcança
+ * depressa. Só um lugar longe do caminho (entrar no mundo, uma reconexão) reposiciona o avatar de
+ * uma vez. É só desenho: o kernel não espera nem adianta nada.
+ *
+ * Antes (ADR-0057) havia um teto de 12 tiles por segundo: acelerado, o desenho ficava para trás, o
+ * atraso se acumulava de um trajeto para o outro, e o avatar saltava para o destino quando o trajeto
+ * acabava (o pulo que o usuário viu). Agora o desenho anda na velocidade do kernel, que é a verdade.
+ */
 import type { ObserverMotion, Position } from "@campsverso/contracts";
 
 export interface Point {
@@ -6,13 +17,18 @@ export interface Point {
   readonly y: number;
 }
 
-/** Teto do desenho, em tiles por segundo real (ADR-0057).
- *
- * A 30 tiles por minuto simulado, o 72× daria 36 tiles por segundo na tela: um pulo. Acima do teto, a
- * tela fica para trás do kernel e o alcança em seguida, inclusive depois de o trajeto terminar. A 1× e a
- * 6× o teto nunca é atingido. É só desenho: o kernel não espera nem adianta nada.
- */
-export const MAX_TILES_PER_SECOND = 12;
+/** Em quanto tempo real a tela desfaz a maior parte de um atraso (constante de tempo, em ms). */
+export const CATCH_MS = 200;
+/** A menor velocidade com que a tela desfaz um atraso, em tiles por segundo real. */
+export const CATCH_TILES_PER_SECOND = 4;
+/** Fora do caminho, acima desta distância a tela reposiciona o avatar de uma vez, em vez de andar
+ * até lá (entrar no mundo, uma reconexão longe). Pelo caminho, o atraso sempre se desfaz andando. */
+export const SNAP_TILES = 16;
+/** O quanto a tela acompanha o kernel num quadro, no máximo; o resto vira atraso, desfeito depressa.
+ * A 720× o kernel anda uns 6 tiles por quadro; um salto do relógio da tela anda muito mais. */
+export const FOLLOW_TILES_PER_FRAME = 8;
+/** O maior intervalo entre dois quadros que conta para andar: a aba em segundo plano não acumula. */
+export const MAX_FRAME_MS = 50;
 
 /** Quantos tiles do trajeto já foram andados no tick dado (fracionário), limitado ao fim. */
 export function stepsAt(motion: ObserverMotion, tick: number): number {
@@ -56,56 +72,128 @@ export function positionAt(motion: ObserverMotion, tick: number): Point {
   return pointAt(motion.path, stepsAt(motion, tick));
 }
 
-/** Quando o trajeto chega à tela, o kernel já o começou: a caminhada aparece um pouco adiantada.
- *
- * Para não pular tiles, a tela começa o desenho da origem no tick em que viu o trajeto e alcança o
- * tempo do kernel até a chegada, andando um pouco mais depressa. Na chegada, os dois coincidem.
- * É só desenho: o kernel não espera nem adianta nada (escopo §9).
- */
-export function smoothedSteps(motion: ObserverMotion, tick: number, seenTick: number): number {
-  const lag = Math.max(0, seenTick - motion.depart_tick);
-  const arrival = motion.depart_tick + (motion.path.length - 1) / motion.tiles_per_tick;
-  // Visto já na segunda metade (a página abriu no meio da caminhada): sem volta à origem.
-  if (lag === 0 || tick >= arrival || lag > (arrival - motion.depart_tick) / 2) {
-    return stepsAt(motion, tick);
+/** A chave de um trajeto: a ação que o pôs em marcha. Dois trajetos que saem no mesmo tick (a
+ * tecla segurada, cliques rápidos) são dois trajetos. Sem a ação (um estado antigo), a saída e o
+ * destino. */
+export function motionKey(motion: ObserverMotion): string {
+  if (motion.action_id !== undefined) {
+    return `ação ${motion.action_id}`;
   }
-  const caught = Math.min(1, Math.max(0, (tick - seenTick) / (arrival - seenTick)));
-  return stepsAt(motion, tick - lag * (1 - caught));
-}
-
-export function smoothedAt(motion: ObserverMotion, tick: number, seenTick: number): Point {
-  return pointAt(motion.path, smoothedSteps(motion, tick, seenTick));
-}
-
-/** Até onde a tela já desenhou um trajeto, para respeitar o teto de velocidade. O desenho pode
- * começar por uma emenda (`offset` pontos antes do trajeto do kernel): de onde o avatar aparecia
- * até a origem do trajeto novo. */
-interface Walker {
-  readonly key: string;
-  readonly path: readonly Point[];
-  readonly offset: number;
-  steps: number;
-  ms: number;
+  const end = motion.path[motion.path.length - 1];
+  return `${String(motion.depart_tick)} → ${String(end?.x)},${String(end?.y)}`;
 }
 
 function same(a: Point | undefined, b: Point | undefined): boolean {
   return a !== undefined && b !== undefined && a.x === b.x && a.y === b.y;
 }
 
-/** Lembra em que tick a tela viu cada trajeto pela primeira vez, e até onde já o desenhou.
+function distance(a: Point, b: Point): number {
+  return Math.hypot(b.x - a.x, b.y - a.y);
+}
+
+/** Uma linha de pontos medida pelo comprimento, para andar por ela com passos fracionários. */
+class Route {
+  readonly points: readonly Point[];
+  private readonly lengths: readonly number[];
+
+  constructor(points: readonly Point[]) {
+    const kept: Point[] = [];
+    for (const point of points) {
+      if (!same(kept[kept.length - 1], point)) {
+        kept.push({ x: point.x, y: point.y });
+      }
+    }
+    this.points = kept.length > 0 ? kept : [{ x: 0, y: 0 }];
+    const lengths = [0];
+    for (let i = 1; i < this.points.length; i++) {
+      const a = this.points[i - 1];
+      const b = this.points[i];
+      lengths.push((lengths[i - 1] ?? 0) + (a === undefined || b === undefined ? 0 : distance(a, b)));
+    }
+    this.lengths = lengths;
+  }
+
+  get length(): number {
+    return this.lengths[this.lengths.length - 1] ?? 0;
+  }
+
+  get end(): Point {
+    return this.points[this.points.length - 1] ?? { x: 0, y: 0 };
+  }
+
+  /** O ponto a `s` tiles do começo, pelo caminho. */
+  at(s: number): Point {
+    if (s <= 0) {
+      return this.points[0] ?? { x: 0, y: 0 };
+    }
+    for (let i = 1; i < this.points.length; i++) {
+      const until = this.lengths[i] ?? 0;
+      if (s <= until) {
+        const from = this.points[i - 1] ?? { x: 0, y: 0 };
+        const to = this.points[i] ?? from;
+        const start = this.lengths[i - 1] ?? 0;
+        const t = until > start ? (s - start) / (until - start) : 1;
+        return { x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t };
+      }
+    }
+    return this.end;
+  }
+
+  /** O comprimento até o ponto `p` do caminho mais perto de `near`, ou nada se ele não está nele. */
+  find(p: Point, near: number): number | undefined {
+    let best: number | undefined;
+    this.points.forEach((point, i) => {
+      const at = this.lengths[i] ?? 0;
+      if (same(point, p) && (best === undefined || Math.abs(at - near) < Math.abs(best - near))) {
+        best = at;
+      }
+    });
+    return best;
+  }
+
+  /** Os pontos do caminho de `from` a `to`, nessa ordem: para a frente ou para trás. */
+  between(from: number, to: number): Point[] {
+    const points = [this.at(from)];
+    const forward = to >= from;
+    const inside = this.points
+      .map((point, i) => ({ point, at: this.lengths[i] ?? 0 }))
+      .filter(({ at }) => (forward ? at > from && at < to : at < from && at > to));
+    for (const { point } of forward ? inside : inside.reverse()) {
+      points.push(point);
+    }
+    points.push(this.at(to));
+    return points;
+  }
+}
+
+/** Um caminho sendo desenhado: a emenda de onde o avatar aparecia, e o trajeto do kernel. */
+interface Walker {
+  readonly key: string;
+  readonly route: Route;
+  /** Onde o trajeto do kernel começa no caminho, em tiles. */
+  readonly offset: number;
+  /** O trajeto do kernel, que dá o tempo; sem ele, o desenho só alcança o fim do caminho. */
+  readonly motion: ObserverMotion | undefined;
+  /** Até onde o desenho já andou, em tiles; nunca volta. */
+  steps: number;
+  /** O último quadro, no relógio da página; nunca volta. */
+  ms: number;
+  /** Onde o kernel estava no quadro anterior, para saber quanto ele andou neste. */
+  goal: number | undefined;
+}
+
+/** Lembra, para uma tela, onde cada avatar aparece e o caminho que o desenho está fazendo.
  *
- * Um trajeto novo no meio de outro (um destino novo, o teclado) não salta: o desenho segue do
- * ponto em que o avatar aparecia, pelo resto do trajeto velho até a origem do novo. Se o novo
- * termina nesse caminho (parar logo depois de soltar a tecla), o desenho para ali, sem ir e voltar.
- * E um trajeto que começou e terminou entre duas atualizações da tela (a 144× e a 720×) chega pelo
- * evento (`observe`): sem ele, o avatar aparecia já no destino (achados do usuário no mapa d). */
+ * Cada tela tem o seu (a página, cada miniatura da arena): numa memória só, as miniaturas, todas
+ * com o avatar `camps`, emendavam o desenho de uma corrida no da outra. */
 export class MotionClock {
-  private readonly seen = new Map<string, number>();
   private readonly walkers = new Map<string, Walker>();
   private readonly paces = new Map<string, number>();
+  private readonly drawnAt = new Map<string, Point>();
 
-  /** O ritmo do desenho de uma entidade, em tiles por segundo real (o teclado anda mais devagar
-   * que o teto, para o desenho não alcançar o kernel e parar); `undefined` volta ao teto. */
+  /** O ritmo do desenho de uma entidade, em tiles por segundo real. O teclado anda mais devagar
+   * que o kernel, de propósito, para o desenho não alcançá-lo e parar (ADR-0057); `undefined`
+   * volta a seguir o kernel. */
   pace(id: string, tilesPerSecond: number | undefined): void {
     if (tilesPerSecond === undefined) {
       this.paces.delete(id);
@@ -114,85 +202,109 @@ export class MotionClock {
     }
   }
 
+  /** Onde a entidade apareceu no último quadro desenhado, sem andar nada. */
+  drawn(id: string): Point | undefined {
+    return this.drawnAt.get(id);
+  }
+
   /** Um trajeto que chegou pelo evento `world.entity.moved`: começa a ser desenhado mesmo que o
-   * estado nunca o mostre. */
+   * estado nunca o mostre (começou e terminou entre duas atualizações, a 144× e a 720×). */
   observe(id: string, motion: ObserverMotion, nowMs: number): void {
-    const key = `${id}@${String(motion.depart_tick)}`;
+    const key = motionKey(motion);
     if (this.walkers.get(id)?.key !== key) {
-      this.start(id, key, motion.path, nowMs);
+      this.begin(id, key, motion.path, motion, nowMs);
     }
   }
 
-  /** Onde desenhar a entidade agora: no trajeto em curso ou parada em `rest`. Parada no fim de um
-   * trajeto que a tela ainda não terminou de desenhar, ela termina a caminhada no ritmo do teto. */
+  /** Onde desenhar a entidade agora: no trajeto em curso, ou parada em `rest`, onde o kernel a pôs. */
   at(id: string, motion: ObserverMotion | undefined, rest: Point | undefined, tick: number, nowMs: number): Point | undefined {
-    const walker = this.walkers.get(id);
-    if (motion === undefined) {
-      if (walker === undefined || rest === undefined) {
-        return rest;
-      }
-      const last = walker.path.length - 1;
-      if (walker.steps >= last || !same(walker.path[last], rest)) {
-        this.walkers.delete(id);
-        return rest;
-      }
-      walker.steps = Math.min(last, walker.steps + this.budget(id, walker, nowMs));
-      walker.ms = nowMs;
-      return pointAt(walker.path, walker.steps);
+    if (motion === undefined && rest === undefined) {
+      this.forget(id); // saiu do mundo
+      return undefined;
     }
-    const key = `${id}@${String(motion.depart_tick)}`;
-    const target = smoothedSteps(motion, tick, this.firstSeen(id, key, tick));
-    const current = walker?.key === key ? walker : this.start(id, key, motion.path, nowMs);
-    const ahead = Math.min(current.path.length - 1, target + current.offset, current.steps + this.budget(id, current, nowMs));
-    current.steps = Math.max(current.steps, ahead); // o desenho nunca volta
-    current.ms = nowMs;
-    return pointAt(current.path, current.steps);
+    let walker = this.walkers.get(id);
+    if (motion !== undefined) {
+      const key = motionKey(motion);
+      if (walker?.key !== key) {
+        walker = this.begin(id, key, motion.path, motion, nowMs);
+      }
+    } else if (rest !== undefined && !same(walker?.route.end ?? this.drawnAt.get(id), rest)) {
+      // O kernel pôs a entidade noutro lugar: um trajeto interrompido, outra ação, a reconexão.
+      walker = this.drawnAt.has(id) ? this.begin(id, `parada ${String(rest.x)},${String(rest.y)}`, [rest], undefined, nowMs) : undefined;
+    }
+    if (walker === undefined) {
+      return this.remember(id, rest);
+    }
+    const goal = Math.min(walker.route.length, walker.motion === undefined ? walker.route.length : walker.offset + stepsAt(walker.motion, tick));
+    const point = this.remember(id, this.advance(id, walker, goal, nowMs));
+    if (motion === undefined && walker.steps >= walker.route.length) {
+      this.walkers.delete(id); // chegou onde o kernel o pôs
+    }
+    return point;
   }
 
-  /** Começa o desenho de um trajeto: de onde o avatar aparece agora, sem saltar, se o desenho do
-   * anterior ainda não terminou. Terminado, o avatar estava onde o kernel o pôs: o trajeto novo
-   * parte da origem dele. */
-  private start(id: string, key: string, path: readonly Position[], nowMs: number): Walker {
-    const old = this.walkers.get(id);
-    const origin = path[0];
-    let prefix: Point[] = [];
-    if (old !== undefined && origin !== undefined && old.steps < old.path.length - 1) {
-      const drawn = pointAt(old.path, old.steps);
-      if (!same(drawn, origin)) {
-        const from = Math.floor(old.steps);
-        const reached = old.path.findIndex((p, i) => i > from && same(p, origin));
-        prefix = [drawn, ...(reached > from ? old.path.slice(from + 1, reached) : [])];
+  private forget(id: string): void {
+    this.walkers.delete(id);
+    this.drawnAt.delete(id);
+  }
+
+  private remember(id: string, point: Point | undefined): Point | undefined {
+    if (point === undefined) {
+      this.drawnAt.delete(id);
+    } else {
+      this.drawnAt.set(id, point);
+    }
+    return point;
+  }
+
+  /** Anda o desenho para `goal`: no ritmo do kernel, e desfazendo depressa o que estiver atrasado. */
+  private advance(id: string, walker: Walker, goal: number, nowMs: number): Point {
+    const dt = Math.min(MAX_FRAME_MS, Math.max(0, nowMs - walker.ms));
+    walker.ms = Math.max(walker.ms, nowMs);
+    const walked = walker.goal === undefined ? 0 : Math.min(FOLLOW_TILES_PER_FRAME, Math.max(0, goal - walker.goal));
+    walker.goal = goal;
+    const lag = goal - walker.steps;
+    if (lag > 0) {
+      const pace = this.paces.get(id);
+      if (pace !== undefined) {
+        walker.steps += Math.min(lag, (pace * dt) / 1000);
+      } else {
+        const catchUp = Math.max(lag * (1 - Math.exp(-dt / CATCH_MS)), (CATCH_TILES_PER_SECOND * dt) / 1000);
+        walker.steps += Math.min(lag, Math.max(walked, catchUp));
       }
     }
+    return walker.route.at(walker.steps);
+  }
+
+  /** Começa a desenhar um caminho a partir de onde a entidade aparece agora: pelo caminho velho até
+   * a origem do novo, para a frente ou para trás; perto, em linha reta; longe, de uma vez. */
+  private begin(id: string, key: string, path: readonly Position[], motion: ObserverMotion | undefined, nowMs: number): Walker {
+    const old = this.walkers.get(id);
+    const drawn = old === undefined ? this.drawnAt.get(id) : old.route.at(old.steps);
+    const origin = path[0] ?? drawn ?? { x: 0, y: 0 };
+    let prefix: Point[] = [];
+    if (drawn !== undefined && !same(drawn, origin)) {
+      const found = old?.route.find(origin, old.steps);
+      if (old !== undefined && found !== undefined) {
+        prefix = old.route.between(old.steps, found);
+      } else if (distance(drawn, origin) <= SNAP_TILES) {
+        prefix = [drawn, ...pathFrom({ x: Math.round(drawn.x), y: Math.round(drawn.y) }, [origin])];
+      }
+    }
+    // O destino novo já está na emenda (soltar a seta logo depois): o desenho para ali, sem ir e voltar.
     const end = path[path.length - 1];
-    const stop = prefix.findIndex((p) => same(p, end));
-    const walker: Walker =
-      stop >= 0
-        ? { key, path: prefix.slice(0, stop + 1), offset: stop, steps: 0, ms: nowMs }
-        : { key, path: [...prefix, ...path], offset: prefix.length, steps: 0, ms: nowMs };
+    const stop = prefix.findIndex((point, i) => i > 0 && same(point, end));
+    const route = new Route(stop >= 0 ? prefix.slice(0, stop + 1) : [...prefix, ...path]);
+    const walker: Walker = {
+      key,
+      route,
+      offset: stop >= 0 ? route.length : new Route([...prefix, origin]).length,
+      motion: stop >= 0 ? undefined : motion,
+      steps: 0,
+      ms: old?.ms ?? nowMs,
+      goal: undefined,
+    };
     this.walkers.set(id, walker);
     return walker;
   }
-
-  /** Quantos tiles a tela pode andar desde o último quadro, no ritmo da entidade. */
-  private budget(id: string, walker: Walker, nowMs: number): number {
-    return (Math.max(0, nowMs - walker.ms) * (this.paces.get(id) ?? MAX_TILES_PER_SECOND)) / 1000;
-  }
-
-  private firstSeen(id: string, key: string, tick: number): number {
-    let first = this.seen.get(key);
-    if (first === undefined) {
-      first = tick;
-      this.seen.set(key, first);
-      for (const old of this.seen.keys()) {
-        if (old.startsWith(`${id}@`) && old !== key) {
-          this.seen.delete(old);
-        }
-      }
-    }
-    return first;
-  }
 }
-
-/** Uma só memória para quem desenha e para quem acha o avatar sob o clique. */
-export const motionClock = new MotionClock();

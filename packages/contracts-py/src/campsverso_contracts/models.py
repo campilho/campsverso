@@ -3220,6 +3220,10 @@ class ObserverMotion(BaseModel):
     Tick do kernel (1 minuto simulado na fazenda).
     """
     tiles_per_tick: Annotated[float, Field(gt=0.0)]
+    action_id: Annotated[str | None, Field(pattern="^act-[0-9]{6,}$", title="ActionId")] = None
+    """
+    A ação do trajeto (o do `world.entity.moved`): dois trajetos no mesmo tick são dois trajetos.
+    """
 
 
 class ObserverAction(BaseModel):

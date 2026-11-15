@@ -11,7 +11,8 @@
  * - **Mudou o ritmo, a âncora vem para onde a tela está**, e a escala nova vale daí em diante.
  * - **Sem conexão, com o kernel sem sinal, na pausa ou no modo máximo, não anda sozinha.** E nunca
  *   passa de `MAX_AHEAD` ticks além da última âncora.
- * - **O pulso do kernel (ADR-0051) também ancora:** a cada segundo chega o tick de verdade, mesmo
+ * - **O pulso do kernel (ADR-0051) também ancora,** no tick anterior ao dele, o último que o kernel
+ *   rodou (ADR-0078): a cada segundo chega o tick de verdade, mesmo
  *   sem evento.
  */
 import type { ObserverState } from "@campsverso/contracts";
@@ -31,9 +32,20 @@ function rate(state: ObserverState): number {
   return clock.scale / session.tick_seconds / 1000;
 }
 
-/** O tick mais recente que se sabe de verdade: o do último evento ou o do pulso do kernel. */
+/** O tick mais recente que se sabe de verdade: o do último evento ou o do pulso do kernel. É o que
+ * o gateway usa para medir a vista do jogador (e a névoa, para fazer a mesma conta). */
 export function knownTick(state: ObserverState): number {
   return Math.max(state.tick, state.pulse?.tick ?? 0);
+}
+
+/** O tick mais recente que o kernel já rodou: o do último evento, ou o anterior ao do pulso.
+ *
+ * O pulso traz o tick que o kernel vai rodar (ele roda o tick N, publica os fatos com N e passa a
+ * N+1). Ancorar o relógio da tela no pulso punha o desenho um tick inteiro à frente: a 1×, com o
+ * tick de um minuto, a caminhada aparecia inteira de uma vez, e o avatar ficava parado o resto do
+ * minuto (ADR-0078, o andar sem pulo). */
+export function ranTick(state: ObserverState): number {
+  return Math.max(state.tick, (state.pulse?.tick ?? 0) - 1);
 }
 
 /** O relógio anda sozinho na tela? Só com conexão e com o kernel dando sinal (ADR-0051). */
@@ -55,7 +67,7 @@ export class DisplayClock {
 
   /** Um welcome: começa de novo, inclusive para trás (pode ser outra sessão do mundo). */
   reset(state: ObserverState, nowMs: number): void {
-    this.shown = this.anchorTick = this.stateTick = knownTick(state);
+    this.shown = this.anchorTick = this.stateTick = ranTick(state);
     this.anchorAt = this.frameAt = nowMs;
     this.settings = settings(state);
   }
@@ -64,7 +76,7 @@ export class DisplayClock {
    * onde a tela está. */
   observe(state: ObserverState, nowMs: number): void {
     const current = settings(state);
-    const known = knownTick(state);
+    const known = ranTick(state);
     if (current !== this.settings) {
       this.anchorTick = Math.max(this.shown, known);
       this.anchorAt = nowMs;
@@ -96,7 +108,7 @@ export class DisplayClock {
         this.shown = Math.min(shown, this.anchorTick + MAX_AHEAD);
       }
     }
-    this.shown = Math.max(this.shown, knownTick(state));
+    this.shown = Math.max(this.shown, ranTick(state));
     return this.shown;
   }
 }
