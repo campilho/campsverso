@@ -11,12 +11,15 @@ import {
   EMPTY,
   animationFor,
   colorNumber,
+  facedTile,
   facingOf,
   frameOf,
+  inUseFrame,
   lookOf,
   seasonSheet,
   seasonTint,
   seatAt,
+  seatedAnimation,
   shadeOf,
   tileLook,
   visualMapFor,
@@ -80,6 +83,8 @@ function columnsOf(scene: Phaser.Scene, sheet: string): number {
 class ThingView {
   private readonly box: Phaser.GameObjects.Rectangle;
   private readonly image: Phaser.GameObjects.Image;
+  /** O quadro por cima de quem está no tile (o encosto da cadeira). */
+  private readonly front: Phaser.GameObjects.Image;
   private readonly label: Phaser.GameObjects.Text;
   private readonly badge: Phaser.GameObjects.Arc;
   private readonly mark: Phaser.GameObjects.Arc;
@@ -87,12 +92,14 @@ class ThingView {
   constructor(scene: Phaser.Scene) {
     this.box = scene.add.rectangle(0, 0, TILE - 6, TILE - 6, 0xffffff).setStrokeStyle(1, 0x000000, 0.45);
     this.image = scene.add.image(0, 0, "__DEFAULT").setVisible(false).setOrigin(0.5, 1);
+    this.front = scene.add.image(0, 0, "__DEFAULT").setVisible(false).setOrigin(0.5, 1);
     this.label = scene.add.text(0, 0, "", { fontFamily: FONT, fontSize: "9px", color: "#ffffff" }).setOrigin(0.5);
     this.badge = scene.add.circle(0, 0, 3.5, 0x4fc3f7).setVisible(false).setStrokeStyle(1, 0x0b3d5c);
     this.mark = scene.add.circle(0, 0, 3.5, 0xe0a33a).setVisible(false).setStrokeStyle(1, 0x4a2e0c);
   }
 
-  show(scene: Phaser.Scene, look: Resolved, x: number, y: number): void {
+  /** `frame` troca o quadro do manifesto: a tela da mesa em uso. */
+  show(scene: Phaser.Scene, look: Resolved, x: number, y: number, frame?: number): void {
     const cx = x * TILE + TILE / 2;
     const cy = y * TILE + TILE / 2;
     const depth = depthAt(y);
@@ -105,12 +112,18 @@ class ThingView {
     }
     this.image.setVisible(sheet !== undefined).setPosition(cx, (y + 1) * TILE).setDepth(depth);
     if (sheet !== undefined) {
-      this.image.setTexture(sheet, look.frame ?? 0).setScale(look.scale ?? 1);
+      this.image.setTexture(sheet, frame ?? look.frame ?? 0).setScale(look.scale ?? 1);
       if (look.tint === undefined) {
         this.image.clearTint();
       } else {
         this.image.setTint(colorNumber(look.tint));
       }
+    }
+    // O avatar no tile fica em depthAt(y) + 0.5: o encosto vem logo por cima dele.
+    const front = sheet === undefined ? undefined : look.front;
+    this.front.setVisible(front !== undefined).setPosition(cx, (y + 1) * TILE).setDepth(depth + 0.6);
+    if (sheet !== undefined && front !== undefined) {
+      this.front.setTexture(sheet, front).setScale(look.scale ?? 1);
     }
     this.label.setText(sheet === undefined ? (look.label ?? "") : "").setPosition(cx, cy + 1).setDepth(depth + 0.1);
     const [badge] = look.badges;
@@ -126,7 +139,7 @@ class ThingView {
   }
 
   destroy(): void {
-    for (const object of [this.box, this.image, this.label, this.badge, this.mark]) {
+    for (const object of [this.box, this.image, this.front, this.label, this.badge, this.mark]) {
       object.destroy();
     }
   }
@@ -207,7 +220,7 @@ class AvatarView {
     const target = action?.params.target;
     const thing = typeof target === "string" ? state.entities[target]?.position : undefined;
     // Parado num assento, senta olhando para o lado dele, qualquer que seja a ação (ADR-0078).
-    const seated = seat !== undefined && !asleep && doing !== "move" ? art?.seated : undefined;
+    const seated = seat !== undefined && !asleep && doing !== "move" ? seatedAnimation(art, action?.action) : undefined;
     this.facing =
       seated !== undefined && seat !== undefined
         ? seat
@@ -239,7 +252,12 @@ class AvatarView {
         .setPosition(bed.cx - (width * scale) / 2 - x * scale, bed.top + dy - y * scale)
         .setDepth(depthAt(bed.y) + 0.6);
     } else {
-      this.sprite.setCrop().setOrigin(0.5, 1).setScale(1).setPosition(cx, (at.y + 1) * TILE + FEET).setDepth(depth);
+      this.sprite
+        .setCrop()
+        .setOrigin(0.5, 1)
+        .setScale(1)
+        .setPosition(cx, (at.y + 1) * TILE + (art?.feet ?? FEET))
+        .setDepth(depth);
     }
     if (inBed === undefined && sheet !== undefined && animation !== undefined) {
       // O relógio acelerado acelera as ações; pausado, tudo para.
@@ -323,6 +341,8 @@ class WorldScene extends Phaser.Scene {
   private readonly things = new Map<string, ThingView>();
   private readonly avatars = new Map<string, AvatarView>();
   private readonly seen = new Map<string, Point>(); // onde cada avatar aparece agora, em tiles
+  /** O que fazem os que estão sentados, pelo tile à frente do assento: a mesa em uso. */
+  private readonly using = new Map<string, string[]>();
   /** O caminho que o desenho de cada avatar faz nesta tela (ADR-0078). */
   readonly motion = new MotionClock();
   /** O que cada avatar disse por último, enquanto o balão dura (ADR-0078). */
@@ -392,7 +412,7 @@ class WorldScene extends Phaser.Scene {
       this.terrainDirty = true;
     }
     this.drawAvatars(frame, time);
-    this.drawThings(this.fogged(state));
+    this.drawThings(this.fogged(state), time);
     this.aim();
     this.tint(state.season);
     // Com zoom, o que não rola encolhe em volta do centro: o retângulo cresce na mesma conta.
@@ -569,7 +589,7 @@ class WorldScene extends Phaser.Scene {
     this.fogDrawn = false;
   }
 
-  private drawThings(entities: ObserverState["entities"]): void {
+  private drawThings(entities: ObserverState["entities"], time: number): void {
     const seen = new Set<string>();
     for (const [id, entity] of Object.entries(entities)) {
       if (entity?.position === undefined || entity.kind === "avatar") {
@@ -581,7 +601,10 @@ class WorldScene extends Phaser.Scene {
         view = new ThingView(this);
         this.things.set(id, view);
       }
-      view.show(this, lookOf(this.art, entity.kind, entity.attributes), entity.position.x, entity.position.y);
+      const { x, y } = entity.position;
+      const users = this.using.get(`${String(x)},${String(y)}`) ?? [];
+      const busy = inUseFrame(this.art.kinds?.[entity.kind]?.in_use, users, time / 1000);
+      view.show(this, lookOf(this.art, entity.kind, entity.attributes), x, y, busy);
     }
     for (const [id, view] of this.things) {
       if (!seen.has(id)) {
@@ -594,6 +617,7 @@ class WorldScene extends Phaser.Scene {
   private drawAvatars(frame: Frame, time: number): void {
     const { state, tick } = frame;
     const seen = new Set<string>();
+    this.using.clear();
     for (const [id, entity] of Object.entries(state.entities)) {
       if (entity?.kind !== "avatar") {
         continue;
@@ -614,6 +638,12 @@ class WorldScene extends Phaser.Scene {
       const art = this.art.avatars?.[id] ?? this.art.avatars?.["*"];
       const said = this.balloons.current(id, performance.now());
       const seat = seatAt(this.art, state.entities, at);
+      const doing = state.actions[id]?.action;
+      if (seat !== undefined && doing !== undefined) {
+        const ahead = facedTile(at, seat);
+        const key = `${String(ahead.x)},${String(ahead.y)}`;
+        this.using.set(key, [...(this.using.get(key) ?? []), doing]);
+      }
       view.show(this, lookOf(this.art, "avatar", entity.attributes), art, frame, id, at, time, this.bedOf(state, id), said, seat);
     }
     for (const [id, view] of this.avatars) {

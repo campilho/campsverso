@@ -32,6 +32,17 @@ export interface Look {
   /** Cor do chão por baixo do quadro: o canteiro cavado na grama da Boa Vista continua de terra
    * com a planta em cima (na fazenda 1, a terra vem do mapa). */
   readonly ground?: string;
+  /** Um quadro da mesma folha desenhado por cima de quem está no tile: o encosto da cadeira de
+   * escritório, na frente de quem senta de costas (a arte da fase 1). */
+  readonly front?: number;
+}
+
+/** Uma coisa que se mexe enquanto alguém sentado de frente para ela faz uma das ações: a tela da
+ * mesa rolando código enquanto o dev trabalha. */
+export interface InUse {
+  readonly actions: readonly string[];
+  readonly frames: readonly number[];
+  readonly fps?: number;
 }
 
 export interface Variant {
@@ -47,6 +58,8 @@ export interface KindArt extends Look {
   /** Um assento (a cadeira do escritório, ADR-0078): quem para em cima dele senta, olhando para
    * este lado. */
   readonly seat?: Facing;
+  /** Os quadros de quando está em uso (`InUse`). */
+  readonly in_use?: InUse;
 }
 
 export interface Animation {
@@ -72,6 +85,10 @@ export interface AvatarArt {
   /** A animação de quem está parado num assento, qualquer que seja a ação (trabalhar, esperar,
    * falar): o Camps senta na cadeira da mesa e o vigia na dele. */
   readonly seated?: string;
+  /** Sentado, a animação de algumas ações no lugar da de sentado: digitar enquanto trabalha. */
+  readonly seated_actions?: Readonly<Record<string, string>>;
+  /** Quantos pixels o pé fica acima da borda de baixo do quadro (o LPC, 2; a fase 1, 0). */
+  readonly feet?: number;
   /** As ações em que o avatar não aparece: atrás da porta do banheiro (ADR-0080). */
   readonly hidden?: readonly string[];
   /** Um recorte de um quadro da folha, para o HUD. */
@@ -243,6 +260,30 @@ export function animationFor(art: AvatarArt | undefined, action: string | undefi
     return art.idle;
   }
   return art.actions?.[action] ?? art.actions?.["*"] ?? art.idle;
+}
+
+/** A animação de quem está sentado: a da ação, quando o manifesto tem (digitar ao trabalhar); senão,
+ * a de sentado. */
+export function seatedAnimation(art: AvatarArt | undefined, action: string | undefined): string | undefined {
+  return (action === undefined ? undefined : art?.seated_actions?.[action]) ?? art?.seated;
+}
+
+const AHEAD: Readonly<Record<Facing, readonly [number, number]>> = { up: [0, -1], left: [-1, 0], down: [0, 1], right: [1, 0] };
+
+/** O tile à frente de quem está em `at`, olhando para `facing`: o que a pessoa sentada usa. */
+export function facedTile(at: { readonly x: number; readonly y: number }, facing: Facing): { x: number; y: number } {
+  const [dx, dy] = AHEAD[facing];
+  return { x: at.x + dx, y: at.y + dy };
+}
+
+/** O quadro de uma coisa em uso, quando alguém sentado de frente para ela faz uma das ações dela;
+ * fora disso, nenhum (fica o quadro de sempre). */
+export function inUseFrame(inUse: InUse | undefined, actions: readonly string[], seconds: number): number | undefined {
+  if (inUse === undefined || inUse.frames.length === 0 || !actions.some((action) => inUse.actions.includes(action))) {
+    return undefined;
+  }
+  const index = Math.floor(Math.max(0, seconds) * (inUse.fps ?? 4)) % inUse.frames.length;
+  return inUse.frames[index];
 }
 
 /** Uma coisa no mundo, do jeito que o assento precisa dela: o tipo e o lugar. */

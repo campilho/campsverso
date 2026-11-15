@@ -4,12 +4,15 @@ import { loadArt } from "./load.ts";
 import {
   animationFor,
   colorNumber,
+  facedTile,
   facingOf,
   frameOf,
+  inUseFrame,
   lookOf,
   mergeManifests,
   rooted,
   seatAt,
+  seatedAnimation,
   shadeOf,
   tileLook,
   visualMapFor,
@@ -157,6 +160,50 @@ describe("manifesto de arte (ADR-0053)", () => {
     expect(credits).toEqual([{ layer: "farm_camps", url: "/content/art/farm_camps/CREDITS.csv" }]);
     const empty = await loadArt(() => Promise.resolve(new Response("", { status: 404 })));
     expect(empty).toEqual({ manifest: { version: 1 }, credits: [], layers: [] });
+  });
+
+  it("a camada de teste da arte só entra quando a URL pede, por cima das outras", async () => {
+    const trial: ArtManifest = { version: 1, tiles: { grass: { color: "#123456" } } };
+    const files: Record<string, unknown> = {
+      "/content/art/index.json": { layers: ["farm", "farm_camps"], optional: ["fase1"] },
+      "/content/art/farm/art.json": GENRE,
+      "/content/art/farm_camps/art.json": SCENARIO,
+      "/content/art/fase1/art.json": trial,
+    };
+    const get = (url: string): Promise<Response> =>
+      Promise.resolve(url in files ? new Response(JSON.stringify(files[url])) : new Response("", { status: 404 }));
+    const plain = await loadArt(get);
+    expect(plain.layers).toEqual(["farm", "farm_camps"]);
+    expect(plain.manifest.tiles?.grass?.color).toBe("#00ff00");
+    const asked = await loadArt(get, ["fase1", "outra"]);
+    expect(asked.layers).toEqual(["farm", "farm_camps", "fase1"]);
+    expect(asked.manifest.tiles?.grass?.color).toBe("#123456");
+  });
+});
+
+describe("a arte da fase 1 do escritório", () => {
+  it("sentado, a ação pode ter animação própria: digitar ao trabalhar", () => {
+    const art = { sheet: "camps", seated: "sit", seated_actions: { work: "type" } };
+    expect(seatedAnimation(art, "work")).toBe("type");
+    expect(seatedAnimation(art, "wait")).toBe("sit");
+    expect(seatedAnimation(art, undefined)).toBe("sit");
+    expect(seatedAnimation({ sheet: "camps", seated: "sit" }, "work")).toBe("sit"); // a LPC
+  });
+
+  it("a mesa em uso: alguém sentado de frente para ela faz uma das ações dela", () => {
+    expect(facedTile({ x: 5, y: 7 }, "up")).toEqual({ x: 5, y: 6 });
+    expect(facedTile({ x: 5, y: 7 }, "left")).toEqual({ x: 4, y: 7 });
+    const screen = { actions: ["work"], frames: [1, 2, 3], fps: 2 };
+    expect(inUseFrame(screen, ["work"], 0)).toBe(1);
+    expect(inUseFrame(screen, ["work"], 0.6)).toBe(2);
+    expect(inUseFrame(screen, ["wait", "work"], 1.6)).toBe(1); // o ciclo recomeça
+    expect(inUseFrame(screen, ["wait"], 1)).toBeUndefined(); // sentado, mas sem trabalhar
+    expect(inUseFrame(undefined, ["work"], 1)).toBeUndefined(); // a LPC não tem
+  });
+
+  it("o encosto da cadeira vem com a aparência", () => {
+    const art: ArtManifest = { version: 1, kinds: { chair: { sheet: "cadeira", frame: 0, front: 1, seat: "up" } } };
+    expect(lookOf(art, "chair", {}).front).toBe(1);
   });
 });
 
