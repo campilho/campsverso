@@ -1,6 +1,6 @@
 # Plano do M24 — O dev pensa e cria
 
-*Proposto em 15/nov/2026, depois do fechamento do M23 (ADR-0078 e ADR-0079). Espera a aprovação do usuário. É o segundo marco da v0.4 (ADR-0077): a mente chega ao dev do escritório e ele passa a trabalhar de verdade, num espaço de trabalho isolado, com a entrega num patch que o humano aplica. Entra também o que o usuário pediu em 15/nov: a copa e as pausas.*
+*Proposto em 15/nov/2026, depois do fechamento do M23 (ADR-0078 e ADR-0079). **Aprovado em 15/nov/2026 como recomendado, com duas ressalvas do usuário (ADR-0080):** as pausas são só ilustrativas, feitas por uma rotina que não custa nada; e o orçamento estourado desliga a mente, e a rotina assume. É o segundo marco da v0.4 (ADR-0077): a mente chega ao dev do escritório e ele passa a trabalhar de verdade, num espaço de trabalho isolado, com a entrega num patch que o humano aplica. Entra também o que o usuário pediu em 15/nov: a copa e as pausas.*
 
 **Pronto quando:**
 - **A mente:** o dev pensa com um modelo pelo nosso harness: o Haiku, o Sonnet, o Opus ou o Fable pela API, e o Astra pela OpenRouter. O script fica de reserva, e cada modelo passou na prova de conformidade.
@@ -10,14 +10,14 @@
   - você pede o testador no quadro, e o dev o faz;
   - o testador passa no teste de aceite, e o humano aplica;
   - ele aparece na bancada como o primeiro robô, e o dev passa a chamá-lo.
-- **A copa e as pausas:**
-  - a sede, o café e o banheiro sobem ao longo do dia, com um sorteio;
-  - o dev-script vai à pausa, e o dev com LLM decide;
-  - o almoço é na copa.
+- **A mente com rotina:**
+  - o modelo só é chamado quando há trabalho;
+  - sem trabalho, uma rotina determinística conduz o dev de graça: o café, a água, o banheiro e o almoço na copa;
+  - trabalhando num código, ele fica sentado na mesa.
 - **A fala:** falar com o dev interrompe o que ele faz, e ele responde.
 - **O orçamento:**
   - há teto por dia e por pedido, que muda com o mundo vivo;
-  - estourar deixa o dev "sem bateria" (ele volta ao script), sem parar o escritório.
+  - estourar desliga a mente: a rotina assume, o dev avisa que não pode mais programar, e o escritório segue.
 - **A fazenda intacta:** os soaks e as fitas da fazenda continuam iguais.
 
 ## O que o levantamento mostrou
@@ -51,25 +51,27 @@
 
 ## 1. O mundo do dev
 
-### 1.1 A copa e as pausas
+### 1.1 A rotina e a copa
 
-- **Três necessidades novas** no gênero `office`, de 0 a 100: `sede`, `cafe` e `banheiro`.
-  - Sobem durante o expediente, com taxas em múltiplos de 15 por hora.
-  - Um sistema do gênero sorteia, a cada hora, um salto em cada uma pelo gerador `pausas`. É determinístico pela seed.
-- **Cada necessidade tem um limiar** (por exemplo, 70) que pede uma decisão ao dev.
-- **Ignorar tem um preço:** acima de 90, o trabalho rende a metade.
-  - No dev-script, isso é o trabalho simulado contando a metade.
-  - No dev com LLM, o pedido leva mais tempo do mundo.
-- **As ações novas:**
+As pausas são ilustrativas: não pesam no trabalho do dev (ressalva do usuário, ADR-0080).
 
-  | Ação | Onde | O que faz | Duração |
-  |---|---|---|---|
-  | `drink` | ao lado do bebedouro | zera a sede | 30 s |
-  | `coffee` | ao lado da cafeteira da copa | zera o café | 2 min |
-  | `restroom` | ao lado da porta do banheiro | o dev sai pela porta e volta; zera o banheiro | 4 min |
+- **A rotina** é um script determinístico que conduz o dev quando a mente não tem o que fazer (§2.5). Ela não custa nada.
+- **O que a rotina faz:**
+  - fica na mesa, sentado;
+  - vai ao bebedouro, faz um café na copa e vai ao banheiro;
+  - almoça na copa.
+  - Os horários saem de um sorteio pelo dia, sempre o mesmo para o mesmo dia.
+- **As ações novas,** baratas e sem efeito no trabalho:
 
-- **Tudo é dado do cartucho:** as taxas, os saltos, os limiares, o preço de ignorar, as durações e os lugares.
-- **O dev-script** vai à pausa quando passa do limiar. O dev com LLM vê as necessidades na foto e decide. Se ele ignora a sede o dia inteiro, é um dado do pedido, e não um defeito.
+  | Ação | Onde | Duração |
+  |---|---|---|
+  | `drink` | ao lado do bebedouro | 30 s |
+  | `coffee` | ao lado da cafeteira da copa | 2 min |
+  | `restroom` | ao lado da porta do banheiro: o dev sai pela porta e volta | 4 min |
+  | `lunch` | na mesa da copa | até as 13h |
+
+- **Sem necessidades no kernel:** nada de sede ou café que suba e cobre um preço. Os tempos, os lugares e a frequência das pausas são dados do cenário.
+- **O dev-script de hoje** continua com o trabalho simulado, para os mundos sem mente, os testes e o soak. A rotina é a parte dele sem os pedidos, mais as pausas.
 
 ### 1.2 A copa e o almoço
 
@@ -77,13 +79,9 @@
   - a geladeira, o micro-ondas, a pia, a cafeteira e uma mesa com duas cadeiras;
   - a porta do banheiro na parede ao lado.
 - **O mapa cresce.** O lugar exato sai com a arte: o teste do Claude Design já tem as peças, e sem ele usamos peças LPC de cozinha.
-- **O almoço passa a ser na copa,** das 12 às 13:
-  - uma ação `lunch` na mesa da copa, que dura até as 13h;
-  - o dev-script vai;
-  - o dev com LLM tem o horário nas notas e decide.
-- **No arquivo do cenário,** o almoço é na `copa` ou na `rua` (como hoje), e `livre` ou `obrigatório`.
-  - O escritório do Campsverso fica com a copa e o almoço livre.
-  - Um dev que trabalha no almoço é, de novo, um dado.
+- **O almoço passa a ser na copa,** das 12 às 13, pela rotina. O dev não sai mais pela porta.
+- **No meio de um trabalho ao meio-dia,** o dev almoça quando a sessão acabar, até as 13h.
+- **No arquivo do cenário,** o almoço é na `copa` ou na `rua`, como hoje.
 
 ### 1.3 A fala que interrompe
 
@@ -92,6 +90,7 @@
 - **O trabalho é `partial`,** então o progresso fica guardado.
 - **Nenhum contrato muda.** A alternativa era um `decision_requested.v2` com um motivo novo, e todos os consumidores mudariam juntos.
 - **Para o dev-script nada muda:** ele já responde entre um bloco de um minuto e outro.
+- **Na rotina,** a fala é trabalho para a mente: o gerente fala com o dev na copa, e a mente assume para responder (§2.5).
 
 ## 2. A mente no dev
 
@@ -129,6 +128,22 @@
   - pela OpenRouter: o Astra.
 - **A criação** (§4) fica com o melhor da prova entre o Sonnet e o Opus.
 - **As fitas do escritório** (`make fita CARTUCHO=office_campsverso`) gravam um dia com o repositório de exemplo, e o CI só as reproduz.
+
+### 2.5 A mente com rotina
+
+É uma versão híbrida do nosso harness: o modelo pensa quando há trabalho, e a rotina conduz o resto (ressalva do usuário, ADR-0080).
+
+- **Há trabalho para a mente** quando:
+  - há um pedido no quadro a fazer;
+  - há um pedido dele em andamento ou devolvido;
+  - há uma entrega a avisar;
+  - alguém falou com ele.
+  - Quem decide é uma função do cenário que lê a foto.
+- **Sem trabalho,** a rotina decide, de graça.
+- **Um controlador só para o kernel:** o avatar continua com o controlador `llm`, e a troca é por dentro. Cada proposta leva a intenção, e as da rotina começam com "rotina:".
+- **A tela mostra quem conduz:** "pensando (Sonnet)" ou "rotina".
+- **O custo de um dia a 1×** cai muito: o modelo não é chamado para esperar, sentar ou tomar café.
+- **A reserva continua:** três falhas seguidas do modelo devolvem o dev ao dev-script, como na fazenda.
 
 ## 3. A oficina
 
@@ -223,20 +238,22 @@ São ferramentas do computador, e não ações do mundo. A mente as chama durant
   - o `llm.call.completed.v1` ganha o campo opcional `ticket_id`, que a mente preenche com o pedido em que está;
   - a guarda soma por pedido, além de por dia e no total.
 - **O `cmd.ops.budget.set`:** você muda os tetos com o mundo vivo, pela tela do operador.
-- **Estourar:**
-  - no escritório, o dev fica "sem bateria": a mente para de chamar o modelo e devolve o dev ao script, e o escritório segue;
+- **Estourar** (ressalva do usuário, ADR-0080):
+  - no escritório, a mente desliga e a rotina assume;
+  - o dev diz uma vez "Fiquei sem bateria: não consigo mais programar hoje.";
+  - os pedidos esperam no quadro, e o escritório segue;
   - na fazenda, o mundo continua pausando (`on_exceeded` no arquivo do mundo).
-- **A guarda dá sinal de vida** (`ops.heartbeat.v1`). Sem o sinal, a mente para de chamar o modelo.
+- **A guarda dá sinal de vida** (`ops.heartbeat.v1`). Sem o sinal, a mente desliga do mesmo jeito.
 
 ## 6. A tela
 
 - **O monitor da mesa** mostra o último passo da oficina, como "lendo tools/robos/testador.py" ou "rodando os testes: 12 passaram". Com a arte nova, a tela do monitor acende.
 - **O painel mostra:**
-  - a sede, o café e o banheiro do dev, em barras, como nas referências;
+  - quem conduz o dev: a mente, com o modelo, ou a rotina;
   - o custo do pedido.
 - **No quadro,** o pedido entregue tem o "ver o patch": o resumo e o diff.
 - **A bancada** mostra os robôs.
-- **A copa e a porta do banheiro:** o dev entra e some por uns minutos, sem nada desenhado lá dentro.
+- **A copa e a porta do banheiro:** na rotina, o dev entra e some por uns minutos, sem nada desenhado lá dentro.
 
 ## 7. Contratos
 
@@ -253,16 +270,17 @@ São ferramentas do computador, e não ações do mundo. A mente as chama durant
 ## 8. Testes do marco
 
 - **Unidade:**
-  - as pausas, iguais com a mesma seed;
+  - a rotina, igual para o mesmo dia;
   - as ações da copa;
+  - a mente com rotina: quando a mente assume e quando a rotina volta;
   - a fala que interrompe;
   - os textos da mente vindos do cartucho, e o pedido da fazenda byte a byte;
   - a revisão que cobre o feriado;
   - o adaptador da oficina num repositório temporário, com o caminho que escapa recusado e a rede negada dentro do `rodar_testes`;
   - a constituição, os testes apagados e as palavras proibidas, com uma lista de teste;
-  - o teto por pedido, o `budget.set` e o sinal de vida.
+  - o teto por pedido, o `budget.set` e o sinal de vida, com a rotina assumindo.
 - **Ponta a ponta, com as fitas:** um dia do escritório com o dev com LLM num repositório de exemplo (`tests/fixtures/oficina/`). O repositório de verdade mudaria as respostas das ferramentas, e a fita deixaria de bater.
-- **O soak:** o escritório em 5 dias com o dev-script e as pausas, com os invariantes:
+- **O soak:** o escritório em 5 dias com o dev-script e a rotina, com os invariantes:
   - todo pedido de dia útil entregue;
   - as pausas acontecem;
   - ninguém na copa fora do expediente.
@@ -276,7 +294,7 @@ São ferramentas do computador, e não ações do mundo. A mente as chama durant
 ## 9. Ordem do trabalho, em quatro partes
 
 1. **O mundo, sem API:**
-   - as pausas, a copa e o almoço;
+   - a rotina, a copa e o almoço;
    - a fala que interrompe;
    - a mente sem a fazenda;
    - a revisão do dia;
@@ -289,6 +307,7 @@ São ferramentas do computador, e não ações do mundo. A mente as chama durant
    - o monitor e o "ver o patch".
 3. **A mente no dev, com pouca API:**
    - os pacotes da mente e as fitas;
+   - a mente com rotina;
    - a prova de conformidade dos cinco modelos;
    - um dia do escritório com o dev com LLM.
 4. **A criação, com API:**
@@ -320,19 +339,9 @@ São ferramentas do computador, e não ações do mundo. A mente as chama durant
 ## 12. Decisões
 
 1. **Quatro partes:** o mundo, a oficina, a mente e a criação, com a arte ao lado. *Recomendação: sim.*
-2. **As pausas por necessidades:**
-   - a sede, o café e o banheiro, com taxas, limiares e saltos sorteados;
-   - ignorar acima de 90 faz o trabalho render a metade;
-   - tudo nos dados do cartucho.
-
-   *Recomendação: sim.*
+2. **As pausas são ilustrativas,** feitas pela rotina, sem necessidades no kernel e sem efeito no trabalho. *Ressalva do usuário: sim.*
 3. **A copa num canto da sala e o banheiro como porta,** com o lugar exato definido junto com a arte. *Recomendação: sim.*
-4. **O almoço na copa, das 12 às 13, livre:**
-   - o dev-script vai;
-   - o dev com LLM decide;
-   - o cenário escolhe entre copa e rua, e entre livre e obrigatório.
-
-   *Recomendação: sim.*
+4. **O almoço na copa, das 12 às 13, pela rotina.** No meio de um trabalho, o dev almoça quando ele acabar. *Recomendação: sim.*
 5. **Falar com o dev interrompe a ação dele** por `action_interrupted`, quando o cartucho declara. Sem contrato novo. *Recomendação: sim.*
 6. **Os pacotes da mente do gênero e do cenário,** e a mente genérica sem as palavras da fazenda, com as fitas da fazenda valendo. *Recomendação: sim.*
 7. **A revisão do dia ao chegar,** cobrindo os dias sem revisão, no máximo três. *Recomendação: sim.*
@@ -361,9 +370,10 @@ São ferramentas do computador, e não ações do mundo. A mente as chama durant
 15. **O orçamento:**
     - o teto por pedido;
     - o `cmd.ops.budget.set`;
-    - no escritório, estourar devolve o dev ao script, sem pausar o mundo;
+    - no escritório, estourar desliga a mente, a rotina assume, e o dev avisa que não pode mais programar, sem pausar o mundo;
     - na fazenda, segue pausando.
 
-    *Recomendação: sim.*
-16. **O sinal de vida da guarda:** sem ele, a mente para de chamar o modelo. *Recomendação: sim, no lugar de pausar o mundo, que a §6 do plano macro previa.*
+    *Ressalva do usuário: sim.*
+16. **O sinal de vida da guarda:** sem ele, a mente desliga e a rotina assume. *Sim, no lugar de pausar o mundo, que a §6 do plano macro previa.*
 17. **As fitas do escritório com um repositório de exemplo.** *Recomendação: sim.*
+18. **A mente com rotina** (§2.5): o modelo só quando há trabalho, a rotina determinística no resto, sob o mesmo controlador `llm`. *Ressalva do usuário: sim.*
