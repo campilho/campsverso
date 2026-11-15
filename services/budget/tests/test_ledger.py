@@ -1,5 +1,5 @@
-"""O livro-caixa da guarda (ADR-0058): cada limiar avisa uma vez, por dia e no total; reentrega
-não conta."""
+"""O livro-caixa da guarda (ADR-0058): cada limiar avisa uma vez, por dia e no total; o teto
+estourado avisa de novo a cada chamada cobrada; reentrega não conta."""
 
 import json
 
@@ -15,7 +15,15 @@ def test_avisos_saem_uma_vez_por_limiar_e_a_reentrega_nao_conta() -> None:
     assert ledger.by_day == {"1": 0.5}
     (exceeded,) = ledger.record("c", 1, 0.25)
     assert (exceeded.threshold_pct, exceeded.exceeded, exceeded.spent_usd) == (100, True, 0.75)
-    assert ledger.record("d", 1, 0.25) == []  # já avisado: nada até virar o dia
+    (again,) = ledger.record("d", 1, 0.25)  # o teto do dia segue estourado: avisa de novo
+    assert (again.scope, again.threshold_pct, again.repeated, again.spent_usd) == (
+        "day",
+        100,
+        True,
+        1.0,
+    )
+    assert exceeded.repeated is False
+    assert ledger.record("d", 1, 0.25) == []  # a reentrega da mesma chamada continua sem contar
     (fresh,) = ledger.record("e", 2, 0.30)  # dia novo: 50% de novo
     assert (fresh.day, fresh.threshold_pct) == (2, 50)
     assert ledger.total == 1.3
@@ -34,3 +42,8 @@ def test_teto_total_e_ida_e_volta_em_json() -> None:
     (exceeded,) = copy.record("y", 1, 0.2)
     assert (exceeded.scope, exceeded.exceeded) == ("total", True)
     assert copy.record("x", 1, 0.9) == []  # os ids vistos também voltam
+    # O teto do mundo não vira com o dia, e o que já estourou sobrevive à ida e volta em JSON.
+    later = BudgetLedger(copy.limits, json.loads(json.dumps(copy.export())))
+    (repeat,) = later.record("z", 9, 0.01)
+    assert (repeat.scope, repeat.day, repeat.repeated) == ("total", None, True)
+    assert repeat.exceeded

@@ -9,6 +9,7 @@ from campsverso_contracts import subject
 from campsverso_testkit.farm import WORLD
 from campsverso_testkit.pipeline import Pipeline
 
+RESUME = "campsverso.cmd.clock.resume.v1"
 LIMITS = BudgetLimits(usd_per_sim_day=0.6, usd_total=10.0)
 
 
@@ -92,4 +93,60 @@ async def test_estourar_o_teto_do_dia_pausa_o_mundo_e_o_gasto_sobrevive_a_uma_qu
     )
     assert again.ledger.total == 0.75
     assert again.ledger.record(pipeline.inner.published[-5][1]["id"], 1, 0.25) == []
+    await guard.stop()
+
+
+async def test_retomado_com_o_teto_estourado_a_proxima_chamada_pausa_de_novo() -> None:
+    """Só o operador retoma o mundo. Se ele retomar sem subir o teto, a guarda não deixa o gasto
+    seguir: a chamada cobrada seguinte pausa de novo, sem repetir os avisos de limiar."""
+    pipeline = Pipeline(controller="none")
+    guard = BudgetService(
+        WORLD,
+        BudgetLimits(usd_per_sim_day=0.6, usd_total=1.0),
+        pipeline.bus,
+        MemoryBlobStore(),
+        pipeline.clock,
+        pipeline.ids,
+        pipeline.telemetry,
+    )
+    await guard.start()
+    await pipeline.start()
+
+    async def call(seq: int, tick: int, cost: float) -> None:
+        await pipeline.bus.publish(subject(COMPLETED, WORLD), _call(pipeline, seq, tick, cost))
+
+    async def resume() -> None:
+        envelope = _call(pipeline, 0, 0, 0.0)
+        del envelope["tick"], envelope["simtime"]
+        envelope["source"], envelope["actor"] = "/operator/teste", "human/operator"
+        envelope["type"], envelope["data"] = RESUME, {}
+        envelope["dataschema"] = "contracts://commands/clock/resume.v1"
+        await pipeline.bus.publish(subject(RESUME, WORLD), envelope)
+        assert pipeline.core.paused is False
+
+    def published() -> list[str]:
+        kinds = (THRESHOLD, PAUSE, EXCEEDED)
+        return [e["type"] for _, e in pipeline.inner.published if e["type"] in kinds]
+
+    await call(0, 10, 0.70)  # o dia estoura de uma vez: 50, 80 e 100% do dia, e 50% do mundo
+    assert pipeline.core.paused is True
+    assert published() == [THRESHOLD, THRESHOLD, THRESHOLD, PAUSE, EXCEEDED, THRESHOLD]
+
+    await resume()
+    await call(1, 20, 0.05)  # o teto do dia continua estourado: pausa de novo, sem limiar novo
+    assert pipeline.core.paused is True
+    assert published()[6:] == [PAUSE, EXCEEDED]
+    assert guard.paused_times == 2
+
+    await resume()
+    await call(2, 30, 0.40)  # o dia de novo, e o mundo passa de 80% e do teto dele
+    assert pipeline.core.paused is True
+    assert published()[8:] == [PAUSE, EXCEEDED, THRESHOLD, THRESHOLD, EXCEEDED]
+    assert guard.paused_times == 3  # uma pausa por chamada, mesmo com os dois tetos
+    assert [e["scope"] for e in pipeline.of_type("ops.budget.exceeded.v1")] == [
+        "day",
+        "day",
+        "day",
+        "total",
+    ]
     await guard.stop()

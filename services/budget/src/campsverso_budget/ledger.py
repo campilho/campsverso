@@ -1,6 +1,10 @@
 """O livro-caixa da guarda (ADR-0058): quanto já se gastou por dia simulado e no total, e quais
 avisos já saíram. Função pura do que entrou; serializável em JSON, para voltar depois de uma
-queda."""
+queda.
+
+Cada limiar avisa uma vez. O teto é diferente: depois de estourado, toda chamada cobrada devolve o
+aviso de novo, marcado `repeated`, para a guarda pausar outra vez. Sem isso, o operador retomava o
+mundo e o gasto seguia sem limite."""
 
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -24,6 +28,7 @@ class Notice:
     threshold_pct: int
     spent_usd: float
     limit_usd: float
+    repeated: bool = False  # o teto já tinha estourado: pausa de novo, sem limiar novo
 
     @property
     def exceeded(self) -> bool:
@@ -50,7 +55,8 @@ class BudgetLedger:
         }
 
     def record(self, event_id: str, day: int, cost_usd: float) -> list[Notice]:
-        """Soma uma chamada cobrada e devolve os avisos novos, do menor limiar ao maior."""
+        """Soma uma chamada cobrada e devolve os avisos novos, do menor limiar ao maior. Com um teto
+        já estourado, devolve o aviso dele de novo (`repeated`)."""
         if event_id in self.seen:
             return []
         self.seen.append(event_id)
@@ -66,6 +72,8 @@ class BudgetLedger:
     def _notices(self, scope: Scope, day: int | None, spent: float, limit: float) -> list[Notice]:
         key = f"{scope}:{day}" if day is not None else scope
         announced = self.reached.setdefault(key, [])
+        if THRESHOLDS[-1] in announced:  # o gasto só cresce: o teto continua estourado
+            return [Notice(scope, day, THRESHOLDS[-1], spent, limit, repeated=True)]
         notices: list[Notice] = []
         for pct in THRESHOLDS:
             if pct not in announced and spent >= limit * pct / 100:

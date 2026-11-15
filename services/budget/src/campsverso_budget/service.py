@@ -6,7 +6,8 @@ cobradas (`charged`), por dia simulado (pelo tick do envelope) e no total do mun
 `ops.budget.exceeded` e `cmd.clock.pause` com `reason: budget`. O livro-caixa vai para um arquivo
 antes de cada confirmação; depois de uma queda, a guarda retoma dele e o JetStream entrega o
 resto. Só o operador retoma o mundo; se o teto continuar estourado, a próxima chamada cobrada
-pausa de novo.
+pausa de novo: sai outro `cmd.clock.pause` e outro `ops.budget.exceeded`, sem repetir o limiar. Para
+seguir de verdade, o operador sobe o teto no arquivo do mundo e reinicia a guarda.
 """
 
 import json
@@ -99,14 +100,16 @@ class BudgetService:
                 notices = self.ledger.record(
                     str(envelope["id"]), day, float(envelope["data"]["cost_usd"])
                 )
+                pause = True  # um só cmd.clock.pause por chamada, mesmo com os dois tetos
                 for notice in notices:
-                    await self._announce(notice, envelope)
+                    await self._announce(notice, envelope, pause=pause)
+                    pause = pause and not notice.exceeded
             self._save()
         except Exception as error:
             self.failure = error
             raise
 
-    async def _announce(self, notice: Notice, cause: Mapping[str, Any]) -> None:
+    async def _announce(self, notice: Notice, cause: Mapping[str, Any], *, pause: bool) -> None:
         data: dict[str, Any] = {
             "scope": notice.scope,
             "spent_usd": notice.spent_usd,
@@ -114,13 +117,15 @@ class BudgetService:
         }
         if notice.day is not None:
             data["day"] = notice.day
-        await self._publish(
-            THRESHOLD, {**data, "threshold_pct": notice.threshold_pct}, cause, "system/budget"
-        )
+        if not notice.repeated:  # o limiar avisa uma vez; a pausa se repete
+            await self._publish(
+                THRESHOLD, {**data, "threshold_pct": notice.threshold_pct}, cause, "system/budget"
+            )
         if notice.exceeded:
-            await self._publish(PAUSE, {"reason": "budget"}, cause, "system/budget")
+            if pause:
+                await self._publish(PAUSE, {"reason": "budget"}, cause, "system/budget")
+                self.paused_times += 1
             await self._publish(EXCEEDED, {**data, "paused": True}, cause, "system/budget")
-            self.paused_times += 1
             self._telemetry.warning(
                 "budget.exceeded",
                 scope=notice.scope,
