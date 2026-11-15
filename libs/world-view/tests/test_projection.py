@@ -841,4 +841,14 @@ def test_o_custo_das_mentes_vem_das_chamadas_cobradas() -> None:
     hit = {"scope": "total", "spent_usd": 10.0, "limit_usd": 10.0, "paused": True}
     p.apply("observer", ev(15, 1700, "ops.budget.exceeded.v1", **hit))
     assert p.costs["budget"] == {**hit, "exceeded": True}
+    # O v2 do aviso, com o teto por pedido (ADR-0080), cai no mesmo lugar, com o pedido.
+    ticket = {
+        "scope": "ticket",
+        "ticket_id": "pedido-3",
+        "spent_usd": 1.02,
+        "limit_usd": 1.0,
+        "paused": False,
+    }
+    p.apply("observer", ev(16, 1800, "ops.budget.exceeded.v2", **ticket))
+    assert p.costs["budget"] == {**ticket, "exceeded": True}
     assert Projection(p.export()).costs == p.costs  # sobrevive à gravação do gateway

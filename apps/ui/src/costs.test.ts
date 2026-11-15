@@ -1,7 +1,7 @@
 import type { ObserverState } from "@campsverso/contracts";
 import { describe, expect, it } from "vitest";
 
-import { budgetLine, costLines, totalCost, usd } from "./costs.ts";
+import { budgetLine, costLines, guardLine, totalCost, usd } from "./costs.ts";
 
 function state(day: number, costs?: ObserverState["costs"]): ObserverState {
   return {
@@ -58,5 +58,25 @@ describe("o custo das mentes (ADR-0074)", () => {
     expect(budgetLine(state(3, { minds: MINDS }))).toBeUndefined();
     expect(totalCost(state(3, { minds: MINDS }))).toBe("US$ 0,073");
     expect(totalCost(state(3))).toBeUndefined();
+  });
+
+  it("o teto do pedido e a mente que desliga no escritório (ADR-0080)", () => {
+    const ticket = { scope: "ticket", ticket_id: "pedido-003", spent_usd: 1.02, limit_usd: 1, exceeded: true, paused: false };
+    expect(budgetLine(state(3, { budget: ticket }))).toBe("Bateu o teto do pedido-003 (US$ 1,02 de US$ 1,00): a mente larga o pedido.");
+    const day = { scope: "day", day: 3, spent_usd: 3.1, limit_usd: 3, exceeded: true, paused: false };
+    expect(budgetLine(state(3, { budget: day }))).toBe("Bateu o teto do dia (US$ 3,10 de US$ 3,00): a mente desligou.");
+    const warned = { scope: "ticket", ticket_id: "pedido-003", spent_usd: 0.5, limit_usd: 1, threshold_pct: 50, exceeded: false };
+    expect(budgetLine(state(3, { budget: warned }))).toBe("50% do teto do pedido-003 (US$ 0,500 de US$ 1,00).");
+  });
+
+  it("o sinal de vida da guarda, com os tetos e o que estourou (ADR-0080)", () => {
+    const limits = { usd_per_sim_day: 3, usd_per_ticket: 1, usd_total: 30 };
+    const guard = { alive: true, limits, spent_total_usd: 4.37, spent_day_usd: 1.12, day: 3, exceeded: ["pedido-003"] };
+    expect(guardLine(state(3, { guard }))).toBe(
+      "Guarda: dia US$ 1,12 de US$ 3,00 · pedido até US$ 1,00 · total US$ 4,37 de US$ 30,00 · estourado: pedido-003.",
+    );
+    const silent = { alive: false, limits: { usd_per_sim_day: 3, usd_total: 30 }, spent_total_usd: 0, exceeded: [] };
+    expect(guardLine(state(3, { guard: silent }))).toBe("Guarda sem sinal: dia US$ 0,00 de US$ 3,00 · total US$ 0,00 de US$ 30,00.");
+    expect(guardLine(state(3))).toBeUndefined();
   });
 });

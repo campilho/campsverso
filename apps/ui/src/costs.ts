@@ -26,18 +26,38 @@ export function costLines(state: ObserverState): string[] {
   return lines;
 }
 
-/** O último aviso do orçamento, em uma linha; nada sem aviso. */
+/** O último aviso do orçamento, em uma linha; nada sem aviso. No escritório (ADR-0080), o teto do
+ * dia ou do total desliga a mente, sem pausar o mundo, e o de um pedido faz a mente largá-lo. */
 export function budgetLine(state: ObserverState): string | undefined {
   const budget = state.costs?.budget;
   if (budget === undefined) {
     return undefined;
   }
-  const scope = budget.scope === "day" ? "o teto do dia" : "o teto total";
+  const ticket = budget.scope === "ticket";
+  const scope = ticket ? `o teto do ${budget.ticket_id ?? "pedido"}` : budget.scope === "day" ? "o teto do dia" : "o teto total";
   const spent = `${usd(budget.spent_usd)} de ${usd(budget.limit_usd)}`;
   if (budget.exceeded) {
-    return `Bateu ${scope} (${spent})${budget.paused === true ? ": o mundo pausou" : ""}.`;
+    const effect = budget.paused === true ? ": o mundo pausou" : ticket ? ": a mente larga o pedido" : budget.paused === false ? ": a mente desligou" : "";
+    return `Bateu ${scope} (${spent})${effect}.`;
   }
   return `${String(budget.threshold_pct ?? "?")}% d${scope} (${spent}).`;
+}
+
+/** O sinal de vida da guarda (ADR-0080), em uma linha: o gasto do dia e o total contra os tetos, o
+ * teto por pedido, o que está estourado e se a guarda ficou sem sinal; nada sem sinal nenhum. */
+export function guardLine(state: ObserverState): string | undefined {
+  const guard = state.costs?.guard;
+  if (guard === undefined) {
+    return undefined;
+  }
+  const { limits } = guard;
+  const parts = [
+    `dia ${usd(guard.spent_day_usd ?? 0)} de ${usd(limits.usd_per_sim_day)}`,
+    ...(limits.usd_per_ticket === undefined ? [] : [`pedido até ${usd(limits.usd_per_ticket)}`]),
+    `total ${usd(guard.spent_total_usd)} de ${usd(limits.usd_total)}`,
+  ];
+  const over = guard.exceeded.length === 0 ? "" : ` · estourado: ${guard.exceeded.join(", ")}`;
+  return `Guarda${guard.alive ? "" : " sem sinal"}: ${parts.join(" · ")}${over}.`;
 }
 
 /** O total de todas as mentes, para o cartão de cada corrida na arena; nada sem custo. */

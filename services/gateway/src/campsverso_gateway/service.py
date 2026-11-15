@@ -57,9 +57,11 @@ PROPOSE = "campsverso.cmd.action.propose.v1"
 POSSESS = "campsverso.cmd.avatar.possess.v1"
 RELEASE = "campsverso.cmd.avatar.release.v1"
 PLAY_COMMANDS = (PROPOSE, POSSESS, RELEASE)
+# Os tetos do orçamento com o mundo vivo, só pela tela do operador (ADR-0080).
+BUDGET_SET = "campsverso.cmd.ops.budget.set.v1"
 COMMANDS: Mapping[View, tuple[str, ...]] = {
     "player": PLAY_COMMANDS,
-    "operator": (*CLOCK_COMMANDS, *PLAY_COMMANDS),
+    "operator": (*CLOCK_COMMANDS, *PLAY_COMMANDS, BUDGET_SET),
 }
 # No sandbox, quem joga também opera: pausar e mudar a velocidade pela tela do jogador (ADR-0074,
 # decisão 16). Avançar tick a tick e trocar o modo seguem só do operador.
@@ -81,6 +83,7 @@ PROJECTED = ("world", "agent")
 RECENT_IDS = 4096  # os ids recentes guardados: a reentrega do JetStream é do que ainda não teve ack
 QUEUE_LIMIT = 2000  # mensagens esperando uma UI lenta; acima disso, a conexão cai
 PULSE = "campsverso.live.kernel.v1"
+GUARD_PULSE = "campsverso.live.budget.v1"
 COMMAND_REJECTED = "campsverso.world.command.rejected.v1"
 PULSES_TO_SILENCE = 3  # pulsos perdidos até o kernel ficar "sem sinal" (ADR-0051)
 
@@ -154,6 +157,8 @@ class GatewayService:
         self._clients: set[_Client] = set()
         self._consumers: list[Consumer] = []
         self._live: Subscription | None = None
+        self._guard_live: Subscription | None = None
+        self._guard: dict[str, Any] | None = None  # o último sinal da guarda e quando chegou
         self._pulse: dict[str, Any] | None = None  # o último pulso e quando chegou
         self._states = self._views()  # como ficou no último flush, por visão
         self._flusher: asyncio.Task[None] | None = None
@@ -196,6 +201,7 @@ class GatewayService:
             durable = f"gateway-{w}-{'agents' if stream == 'agent' else stream}"
             self._consumers.append(await self._bus.consume(pattern, durable, handler))
         self._live = await self._bus.subscribe(f"campsverso.{w}.live.kernel", self._on_pulse)
+        self._guard_live = await self._bus.subscribe(f"campsverso.{w}.live.budget", self._on_guard)
         self._flusher = asyncio.create_task(self._flush_loop())
 
     async def stop(self) -> None:
@@ -206,9 +212,10 @@ class GatewayService:
         for consumer in self._consumers:
             await consumer.unsubscribe()
         self._consumers.clear()
-        if self._live is not None:
-            await self._live.unsubscribe()
-            self._live = None
+        for live in (self._live, self._guard_live):
+            if live is not None:
+                await live.unsubscribe()
+        self._live = self._guard_live = None
 
     async def caught_up(self) -> None:
         """Todos os streams entregues até agora já estão na projeção (para testes e para subir)."""
@@ -245,6 +252,30 @@ class GatewayService:
             "at": self._clock.monotonic(),
         }
 
+    async def _on_guard(self, _: str, message: Envelope) -> None:
+        """O sinal de vida da guarda de orçamento (ADR-0080): como o pulso, só na memória."""
+        if message.get("type") != GUARD_PULSE or not isinstance(message.get("limits"), Mapping):
+            return
+        self._guard = {"message": dict(message), "at": self._clock.monotonic()}
+
+    def _guard_state(self) -> dict[str, Any] | None:
+        """Os tetos, o gasto e o que está estourado; `alive` é falso depois de 3 sinais perdidos."""
+        if self._guard is None:
+            return None
+        message = cast(Mapping[str, Any], self._guard["message"])
+        every = float(message.get("pulse_seconds") or 5.0)
+        silent = self._clock.monotonic() - self._guard["at"] > PULSES_TO_SILENCE * every
+        state: dict[str, Any] = {
+            "alive": not silent,
+            "limits": dict(cast(Mapping[str, Any], message["limits"])),
+            "spent_total_usd": float(message.get("spent_total_usd") or 0.0),
+            "exceeded": [str(x) for x in cast(list[Any], message.get("exceeded") or [])],
+        }
+        for key in ("spent_day_usd", "day"):
+            if message.get(key) is not None:
+                state[key] = message[key]
+        return state
+
     def _pulse_state(self) -> dict[str, Any] | None:
         if self._pulse is None:
             return None
@@ -276,7 +307,7 @@ class GatewayService:
     def _views(self) -> dict[View, dict[str, Any]]:
         pulse = self._pulse_state()
         return {
-            "operator": observer_state(self.projection, pulse),
+            "operator": observer_state(self.projection, pulse, self._guard_state()),
             "player": player_state(self.projection, self._avatar, pulse),
         }
 

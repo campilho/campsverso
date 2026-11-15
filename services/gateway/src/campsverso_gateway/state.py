@@ -21,10 +21,14 @@ def without_nulls(value: Any) -> Any:
 
 
 def observer_state(
-    projection: Projection, pulse: Mapping[str, Any] | None = None
+    projection: Projection,
+    pulse: Mapping[str, Any] | None = None,
+    guard: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """O estado da UI; `pulse` é o último pulso do kernel, já com `alive` (ADR-0051)."""
+    """O estado da UI; `pulse` é o último pulso do kernel, já com `alive` (ADR-0051), e `guard` o
+    último sinal da guarda de orçamento, que vai para `costs.guard` (ADR-0080)."""
     p = projection
+    costs = p.costs if guard is None else {**p.costs, "guard": guard}
     return without_nulls(
         {
             "cartridge": p.cartridge,
@@ -49,7 +53,7 @@ def observer_state(
             "decisions": p.decisions,
             "metrics": p.metrics,
             "memory": p.memory,
-            "costs": p.costs,  # só o operador (ADR-0074); a visão do jogador o tira
+            "costs": costs,  # só o operador (ADR-0074); a visão do jogador o tira
         }
     )
 

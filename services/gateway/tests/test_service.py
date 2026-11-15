@@ -16,6 +16,7 @@ from campsverso_adapters import (
     ValidatingBus,
 )
 from campsverso_gateway.service import (
+    BUDGET_SET,
     COMMAND,
     HUMAN_ID,
     PLAY_COMMANDS,
@@ -298,6 +299,51 @@ async def test_pulso_do_kernel_e_sem_sinal(rig: Rig) -> None:
     rig.gateway.flush()
     assert (await operator.receive_until("update"))["patch"] == {"pulse": {"alive": False}}
     assert rig.pipeline.inner.announced[-1][1] is pulse  # nada do pulso em `published`
+
+
+async def test_sinal_da_guarda_e_os_tetos_pela_tela_do_operador(rig: Rig) -> None:
+    """O sinal de vida da guarda entra em `costs.guard`, só na visão do operador, e fica sem sinal
+    depois de 3 intervalos; só o operador manda os tetos novos (ADR-0080)."""
+    rig.gateway.flush()
+    operator, _ = await rig.connect("operator")
+    player, _ = await rig.connect("player")
+    signal = {
+        "type": "campsverso.live.budget.v1",
+        "worldid": WORLD,
+        "limits": {"usd_per_sim_day": 3.0, "usd_per_ticket": 1.0, "usd_total": 30.0},
+        "spent_total_usd": 4.37,
+        "spent_day_usd": 1.12,
+        "day": 8,
+        "exceeded": ["pedido-3"],
+        "pulse_seconds": 5,
+        "sent_at": "2026-11-16T12:01:05.120Z",
+    }
+    await rig.pipeline.inner.announce(f"campsverso.{WORLD}.live.budget", signal)
+    rig.gateway.flush()
+    update = await operator.receive_until("update")
+    assert MESSAGES.validate(dict(update)) == []
+    assert update["patch"]["costs"]["guard"] == {
+        "alive": True,
+        "limits": {"usd_per_sim_day": 3.0, "usd_per_ticket": 1.0, "usd_total": 30.0},
+        "spent_total_usd": 4.37,
+        "spent_day_usd": 1.12,
+        "day": 8,
+        "exceeded": ["pedido-3"],
+    }
+    rig.pipeline.clock.advance(15.5)
+    rig.gateway.flush()
+    assert (await operator.receive_until("update"))["patch"] == {
+        "costs": {"guard": {"alive": False}}
+    }
+
+    limits = {"usd_per_sim_day": 5.0, "reason": "o testador"}
+    assert (await _ask(player, BUDGET_SET, limits))["error"]["code"] == "not_allowed"
+    reply = await _ask(operator, BUDGET_SET, limits)
+    assert reply["ok"] is True
+    (sent,) = [e for e in rig.pipeline.envelopes if e["type"] == BUDGET_SET]
+    assert (sent["actor"], sent["data"]) == ("human/operador", limits)
+    nothing = await _ask(operator, BUDGET_SET, {"reason": "sem teto"})
+    assert nothing["error"]["code"] == "invalid_command"
 
 
 async def _ask(client: MemoryClient, command: str, data: Mapping[str, Any]) -> Mapping[str, Any]:

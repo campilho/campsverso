@@ -6,13 +6,20 @@
  */
 import type { EnvelopeV1, EventLabel, ObserverState, RealtimeReplyV1 } from "@campsverso/contracts";
 
-import { budgetLine, costLines } from "../costs.ts";
+import { budgetLine, costLines, guardLine } from "../costs.ts";
 import { button, el } from "../dom.ts";
 import { metricTable } from "../metrics.ts";
 import { clockText } from "../simclock.ts";
 import { describe, matches, shortType, summarize, type TimelineFilter, type Visibility } from "../timeline.ts";
 
 const CMD = "campsverso.cmd.clock.";
+/** Os tetos do orçamento com o mundo vivo (ADR-0080): quem aceita é a guarda. */
+export const BUDGET_SET = "campsverso.cmd.ops.budget.set.v1";
+const LIMITS = [
+  ["usd_per_sim_day", "dia"],
+  ["usd_per_ticket", "pedido"],
+  ["usd_total", "total"],
+] as const;
 const VISIBILITIES: readonly Visibility[] = ["world", "agent", "internal", "observer"];
 const SHOWN = 300;
 
@@ -24,6 +31,11 @@ export class OperatorPanel {
   private readonly decision = el("section", { className: "card" });
   private readonly notebook = el("section", { className: "card notebook" });
   private readonly costs = el("section", { className: "card costs" });
+  private readonly costLines = el("div");
+  /** O formulário dos tetos fica fora do redesenho do custo: o sinal da guarda chega a cada 5 s e
+   * apagaria o que o operador está digitando. */
+  private readonly limits = el("form", { className: "limits" });
+  private readonly limitInputs = new Map<(typeof LIMITS)[number][0], HTMLInputElement>();
   private readonly metrics = el("section", { className: "card metrics" });
   private readonly filters = el("div", { className: "filters" });
   private readonly list = el("ol", { className: "timeline" });
@@ -37,6 +49,8 @@ export class OperatorPanel {
     this.send = send;
     this.onFilter = onFilter;
     this.buildFilters();
+    this.buildLimits();
+    this.costs.replaceChildren(el("h3", {}, "Custo"), this.costLines, this.limits);
     root.replaceChildren(
       el("h2", {}, "Painel do operador"),
       this.controls,
@@ -46,6 +60,33 @@ export class OperatorPanel {
       this.metrics,
       el("section", { className: "card grow" }, el("h3", {}, "Linha do tempo"), this.filters, this.list),
     );
+  }
+
+  private buildLimits(): void {
+    const fields = LIMITS.map(([key, label]) => {
+      const input = el("input");
+      input.type = "number";
+      input.min = "0.01";
+      input.step = "0.01";
+      input.name = key;
+      this.limitInputs.set(key, input);
+      return el("label", {}, `${label} US$ `, input);
+    });
+    const submit = el("button", {}, "Mudar os tetos");
+    submit.type = "submit";
+    this.limits.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data: Record<string, unknown> = { reason: "pela tela do operador" };
+      for (const [key, input] of this.limitInputs) {
+        const value = Number(input.value);
+        if (input.value !== "" && Number.isFinite(value) && value > 0) {
+          data[key] = value;
+        }
+      }
+      this.send(BUDGET_SET, data);
+    });
+    this.limits.hidden = true;
+    this.limits.replaceChildren(...fields, submit);
   }
 
   private buildFilters(): void {
@@ -220,17 +261,26 @@ export class OperatorPanel {
   private renderCosts(state: ObserverState): void {
     const lines = costLines(state);
     const budget = budgetLine(state);
-    const key = JSON.stringify([lines, budget]);
+    const guard = guardLine(state);
+    const limits = state.costs?.guard?.limits;
+    const key = JSON.stringify([lines, budget, guard, limits]);
     if (key === this.shown.costs) {
       return;
     }
     this.shown.costs = key;
-    this.costs.hidden = lines.length === 0 && budget === undefined;
-    this.costs.replaceChildren(
-      el("h3", {}, "Custo"),
+    this.costs.hidden = lines.length === 0 && budget === undefined && guard === undefined;
+    this.costLines.replaceChildren(
       el("ul", {}, ...lines.map((line) => el("li", {}, line))),
-      ...(budget === undefined ? [] : [el("p", { className: "hint" }, budget)]),
+      ...[guard, budget].filter((line) => line !== undefined).map((line) => el("p", { className: "hint" }, line)),
     );
+    // Os tetos de agora nos campos, menos no que o operador está editando.
+    this.limits.hidden = limits === undefined;
+    for (const [key, input] of this.limitInputs) {
+      const value = limits?.[key];
+      if (document.activeElement !== input) {
+        input.value = value === undefined ? "" : String(value);
+      }
+    }
   }
 
   private renderTimeline(timeline: readonly EnvelopeV1[], labels: readonly EventLabel[]): void {

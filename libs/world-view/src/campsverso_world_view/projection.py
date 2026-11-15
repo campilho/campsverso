@@ -605,7 +605,7 @@ class Projection:
             "limit_usd": float(data["limit_usd"]),
             "exceeded": exceeded,
         }
-        for key in ("day", "threshold_pct", "paused"):
+        for key in ("day", "ticket_id", "threshold_pct", "paused"):  # v1 e v2 (ADR-0080)
             if data.get(key) is not None:
                 notice[key] = data[key]
         self.costs["budget"] = notice
