@@ -15,7 +15,7 @@ Um escritório de programação em tempo real. Um dev de IA, o Camps, mora nele;
 | Dia | começa às 00:00 (o dia do calendário) |
 | Fases | madrugada 00:00, manhã 06:00, tarde 12:00, noite 18:00 |
 | Expediente | de segunda a sexta, das 09:00 às 18:00 |
-| Almoço | das 12:00 às 13:00, fora do escritório |
+| Almoço | das 12:00 às 13:00, na copa (ADR-0080; até o M23, fora do escritório) |
 | Feriados | os nacionais, na lista do cenário |
 
 O escritório vivo é o mundo `office-campsverso-01` (`make escritorio`). O `office-campsverso-teste` (modo máximo, com o gerente-script) serve aos testes e ao soak, e o `office-campsverso-demo` começa numa segunda às 08:59, para ver o dev em qualquer dia.
@@ -33,6 +33,11 @@ Uma sala de 20 × 14 tiles com as paredes, e o corredor embaixo.
 | Porta | (9, 13) | `door` |
 | Cadeira do vigia | (11, 12) | `chair` |
 | Entrada | (9, 15) | o tile do corredor por onde todos entram e saem |
+| Bebedouro | (1, 2) | `water_cooler`, bloqueia |
+| Balcão da copa | (16 a 18, 7 e 8) | `copa_counter`, bloqueia: a pia e a cafeteira |
+| Mesa da copa | (15, 11) | `copa_table`, bloqueia |
+| Cadeira da copa | (15, 12) | `chair` |
+| Porta do banheiro | (17, 13) | `restroom_door`, na parede de baixo; quem entra some atrás dela |
 
 Andar: 4 tiles por segundo na tela, em qualquer escala; o kernel converte pela escala do momento (ADR-0079). A 1× são 8 tiles num tick de 2 s; a 72×, andar até o quadro custa uns 2 minutos do mundo. A percepção vê a sala inteira.
 
@@ -73,12 +78,16 @@ Uma entidade `ticket` guardada no quadro, com os atributos:
 | `deliver` | dev | ao lado da mesa | 6 s | entrega o pedido terminado |
 | `accept_ticket` | gerente | ao lado do quadro | 6 s | aceita o entregue |
 | `return_ticket` | gerente | ao lado do quadro | 10 s | devolve com o comentário; o pedido volta a "a fazer" e o trabalho recomeça |
+| `drink` | todos | ao lado do bebedouro | 30 s | uma pausa da rotina, ilustrativa (ADR-0080) |
+| `coffee` | todos | ao lado do balcão da copa | 2 min | um café, ilustrativo |
+| `restroom` | todos | ao lado da porta do banheiro | 4 min | some atrás da porta, ilustrativo |
+| `lunch` | todos | ao lado da mesa da copa | até as 13:00 | o almoço, só na hora dele |
 
 Fora do papel, a ação é recusada (`not_allowed`); longe do lugar, `not_adjacent`.
 
 ## 7. Os eventos
 
-`campsverso.office.ticket.created.v1`, `taken`, `delivered`, `accepted` e `returned`, mais a fala (`campsverso.avatar.spoke.v1`) e a entrada e a saída de cada um (`avatar.entered` e `avatar.left`, com os motivos `expediente`, `almoco`, `plantao`, `possessed` e `released`).
+`campsverso.office.ticket.created.v1`, `taken`, `delivered`, `accepted` e `returned`, mais a fala (`campsverso.avatar.spoke.v1`) e a entrada e a saída de cada um (`avatar.entered` e `avatar.left`, com os motivos `expediente`, `plantao`, `possessed` e `released`; `almoco` só quando o almoço é na rua). Falar com alguém (`say` com `to`) interrompe a ação dele, que decide de novo (`action_interrupted`; ADR-0080).
 
 ## 8. Os scripts
 
@@ -87,7 +96,8 @@ Fora do papel, a ação é recusada (`not_allowed`); longe do lugar, `not_adjace
   - cumprimenta o gerente quando ele chega;
   - pega o pedido mais antigo e avisa;
   - trabalha em blocos de um minuto, entrega e avisa;
-  - sem pedido, espera na cadeira.
+  - avisa o almoço e almoça na copa, das 12 às 13, mesmo com um pedido em andamento;
+  - sem pedido, segue a rotina (ADR-0080): as pausas do dia, num sorteio pelo dia (dois cafés perto das 10:00 e das 15:30, água a cada uns 100 minutos, o banheiro duas vezes), e a cadeira da mesa no resto. As pausas são ilustrativas e não pesam no trabalho.
 - **O vigia:** faz a ronda nos 10 primeiros minutos de cada hora e passa o resto na cadeira da porta.
 - **O gerente-script** (só nos testes e no soak):
   - escreve três pedidos por dia, às 09:30, 10:30 e 14:00;
