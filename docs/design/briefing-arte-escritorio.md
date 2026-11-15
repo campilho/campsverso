@@ -2,13 +2,13 @@
 
 Um teste de arte para o escritório do Campsverso, antes de refazer tudo. O que sair daqui vai para a tela de verdade, ao lado da arte LPC de hoje, e o usuário decide olhando (ADR-0079 e o diário de 15/11).
 
-O texto entre as linhas abaixo é o pedido, para colar no Claude Design. O resto deste arquivo é para nós.
+O texto entre as linhas abaixo é o pedido, para colar num projeto novo do Claude Design, com três anexos de `docs/design`: `escritorio-retro-image2.webp`, `escritorio-crescimento.webp` e `escritorio/sprites.js`. O resto deste arquivo é para nós.
 
 ---
 
 ## O pedido
 
-Quero a arte de um jogo de escritório em pixel art, desenhada em código, como no protótipo do escritório que você fez em 08/11 (o `sprites.js`, com cada boneco montado por funções e os quadros de andar e trabalhar). Desta vez a vista é outra: **de cima, em 3/4**, como num RPG de 16 bits. Não é o corte em andares do protótipo.
+Quero a arte de um jogo de escritório em pixel art, desenhada em código. O arquivo anexo `sprites.js` mostra o jeito: cada boneco é montado por funções, com os quadros de andar e de trabalhar. Ele é de um protótipo antigo, com o escritório em corte, de lado. Desta vez a vista é outra: **de cima, em 3/4**, como num RPG de 16 bits.
 
 **O alvo de estilo** é a imagem anexa do cubículo (`escritorio-retro-image2.webp`):
 - contorno escuro em tudo;
@@ -50,7 +50,11 @@ Desenhe cada peça numa folha (spritesheet) separada, sobre fundo transparente, 
    - **a cadeira de escritório**, vista de costas;
    - **a divisória de cubículo**, em pedaços que se emendam: reta, canto e ponta;
    - **o arquivo de aço, a planta em vaso e a lixeira**.
-4. **Os três personagens**, cada um numa folha de quadros de **64 × 64**. O personagem tem uns 40 a 48 px de altura, com o pé na borda de baixo do quadro.
+4. **A copa**, onde o dev almoça e faz as pausas, em quadros de 96 × 64 ou de um tile:
+   - a geladeira, o micro-ondas, a pia com o armário e a cafeteira de copa;
+   - uma mesa de refeição com duas cadeiras, vistas de lado;
+   - a porta do banheiro, com a plaquinha.
+5. **Os três personagens**, cada um numa folha de quadros de **64 × 64**. O personagem tem uns 40 a 48 px de altura, com o pé na borda de baixo do quadro.
    - **O Camps,** o dev: barba cheia, óculos, cabelo castanho curto, camisa vermelha, jeans.
    - **O gerente,** um senhor grisalho de bigode: terno grafite, camisa branca, gravata vermelha, sapato preto.
    - **O vigia,** a farda azul-marinho, o boné com aba e a lanterna na mão.
@@ -66,6 +70,7 @@ Cada animação tem as quatro direções, uma por linha, nesta ordem: **para cim
 | usar | 6 | estender a mão para uma coisa à frente: pegar uma ficha no quadro, apertar um botão |
 | sentado | 1 | sentado na cadeira; para cima é de costas, com as mãos no teclado |
 | digitando | 4 | sentado de costas, digitando (só para cima) |
+| beber | 3 | levar o copo ou a xícara à boca, em pé |
 
 O gerente não precisa de sentado nem de digitando.
 
@@ -73,7 +78,7 @@ O gerente não precisa de sentado nem de digitando.
 
 - **Um único HTML com JavaScript**, como no protótipo, em que cada peça é uma função que desenha num canvas.
 - **Uma página de prancha:** mostra todas as folhas lado a lado, com o nome de cada uma, e tem um botão "baixar PNG" por folha (`canvas.toBlob`).
-- **Uma prévia da sala montada** com as peças, no tamanho 20 × 17, e os três personagens se mexendo:
+- **Uma prévia da sala montada** com as peças, no tamanho 20 × 17, com a copa num canto, e os três personagens se mexendo:
   - o Camps sentado digitando;
   - o gerente andando pela sala;
   - o vigia parado na porta.
@@ -84,7 +89,7 @@ O gerente não precisa de sentado nem de digitando.
 
 ## Para nós: o que fazer com a entrega
 
-1. **Guardar** os arquivos que o Claude Design entregar em `docs/design/escritorio-arte/`, sem mudar nada, como foi feito com o protótipo.
+1. **Guardar** os arquivos que o Claude Design entregar em `docs/design/escritorio-arte/`, sem mudar nada, como foi feito com o protótipo. O Claude Design avulso (claude.ai/design) fecha até 14/12/2026 e passa a viver dentro do Claude: o que importa precisa estar no repositório antes disso.
 2. **Gerar os PNGs:**
    - uma ferramenta nossa abre a página num navegador sem tela (Playwright, como os testes da tela) e salva cada folha;
    - os PNGs vão para uma pasta de teste, fora de `cartridges/`.
