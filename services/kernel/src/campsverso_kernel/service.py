@@ -36,6 +36,9 @@ from campsverso_ports import (
 _RECENT_IDS = 10_000  # seq -> id, para resolver causationid entre fatos próximos
 _PUBLISH_BATCH = 256
 _RETRY_SECONDS = 1.0
+# Os comandos que passam pelo mesmo stream mas são de outro serviço: os tetos do orçamento são da
+# guarda (ADR-0080). O kernel consome `cmd.>` inteiro e os deixa de lado.
+FOREIGN_COMMANDS = ("campsverso.cmd.ops.",)
 
 
 class KernelService:
@@ -114,6 +117,8 @@ class KernelService:
     async def _on_commands(self, batch: Sequence[tuple[str, Envelope]]) -> None:
         try:
             for _, envelope in batch:
+                if str(envelope.get("type", "")).startswith(FOREIGN_COMMANDS):
+                    continue  # de outro serviço: não entra no diário nem vira recusa
                 self.submit(envelope)
             self.commands_arrived.set()
             await self.publish_pending()

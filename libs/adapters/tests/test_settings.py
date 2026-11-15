@@ -84,3 +84,24 @@ def test_o_relogio_ancorado_no_real(tmp_path: Path) -> None:
     world.write_text(base + "clock: {anchor: lua}\n", encoding="utf-8")
     with pytest.raises(ValueError, match="anchor inválido"):
         load_world(world)
+
+
+def test_o_orcamento_do_escritorio() -> None:
+    """ADR-0080: o escritório tem teto por pedido e, no teto do dia ou do total, desliga a mente em
+    vez de pausar o mundo. Sem orçamento, a guarda não sobe, e o `make escritorio` caía junto."""
+    for name in ("office-campsverso-01", "office-campsverso-demo"):
+        budget = load_world(REPO / "config" / "worlds" / f"{name}.yaml", root=REPO).budget
+        assert budget is not None
+        assert (budget.usd_per_ticket, budget.on_exceeded) == (1.0, "mind_off")
+
+
+def test_o_que_fazer_no_teto(tmp_path: Path) -> None:
+    base = "worldid: lab-01\ncartridge: lab\nseed: 1\nstart: 2026-11-16T00:00:00-03:00\n"
+    world = tmp_path / "mundo.yaml"
+    world.write_text(base + "budget: {usd_per_sim_day: 1, usd_total: 5}\n", encoding="utf-8")
+    budget = load_world(world).budget
+    assert budget is not None
+    assert (budget.on_exceeded, budget.usd_per_ticket) == ("pause", None)  # o padrão das fazendas
+    world.write_text(base + "budget: {usd_per_sim_day: 1, usd_total: 5, on_exceeded: dormir}\n")
+    with pytest.raises(ValueError, match="on_exceeded inválido"):
+        load_world(world)

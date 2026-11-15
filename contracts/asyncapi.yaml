@@ -301,6 +301,17 @@ channels:
     messages:
       CmdClockStepV1:
         $ref: '#/components/messages/CmdClockStepV1'
+  CmdOpsBudgetSetV1:
+    address: campsverso.{worldid}.cmd.ops.budget.set.v1
+    title: campsverso.cmd.ops.budget.set.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      CmdOpsBudgetSetV1:
+        $ref: '#/components/messages/CmdOpsBudgetSetV1'
   CmdRulesToggleV1:
     address: campsverso.{worldid}.cmd.rules.toggle.v1
     title: campsverso.cmd.rules.toggle.v1
@@ -587,6 +598,28 @@ channels:
     messages:
       OpsBudgetExceededV1:
         $ref: '#/components/messages/OpsBudgetExceededV1'
+  OpsBudgetExceededV2:
+    address: campsverso.{worldid}.observer.ops.budget.exceeded.v2
+    title: campsverso.ops.budget.exceeded.v2
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      OpsBudgetExceededV2:
+        $ref: '#/components/messages/OpsBudgetExceededV2'
+  OpsBudgetLimitsChangedV1:
+    address: campsverso.{worldid}.observer.ops.budget.limits_changed.v1
+    title: campsverso.ops.budget.limits_changed.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      OpsBudgetLimitsChangedV1:
+        $ref: '#/components/messages/OpsBudgetLimitsChangedV1'
   OpsBudgetThresholdReachedV1:
     address: campsverso.{worldid}.observer.ops.budget.threshold_reached.v1
     title: campsverso.ops.budget.threshold_reached.v1
@@ -598,6 +631,17 @@ channels:
     messages:
       OpsBudgetThresholdReachedV1:
         $ref: '#/components/messages/OpsBudgetThresholdReachedV1'
+  OpsBudgetThresholdReachedV2:
+    address: campsverso.{worldid}.observer.ops.budget.threshold_reached.v2
+    title: campsverso.ops.budget.threshold_reached.v2
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      OpsBudgetThresholdReachedV2:
+        $ref: '#/components/messages/OpsBudgetThresholdReachedV2'
   PerceptionDeliveredV1:
     address: campsverso.{worldid}.agent.{avatar_id}.perception.delivered.v1
     title: campsverso.perception.delivered.v1
@@ -940,6 +984,18 @@ channels:
         $ref: '#/components/messages/RealtimeUpdateV1'
       RealtimeWelcomeV1:
         $ref: '#/components/messages/RealtimeWelcomeV1'
+  LiveBudgetV1:
+    address: campsverso.{worldid}.live.budget
+    title: campsverso.live.budget.v1
+    description: 'Fora dos streams: não fica no histórico nem no arquivo JSONL.'
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      LiveBudgetV1:
+        $ref: '#/components/messages/LiveBudgetV1'
   LiveKernelV1:
     address: campsverso.{worldid}.live.kernel
     title: campsverso.live.kernel.v1
@@ -1128,6 +1184,13 @@ operations:
     messages:
     - $ref: '#/channels/CmdClockStepV1/messages/CmdClockStepV1'
     x-producer: operator
+  sendCmdOpsBudgetSetV1:
+    action: send
+    channel:
+      $ref: '#/channels/CmdOpsBudgetSetV1'
+    messages:
+    - $ref: '#/channels/CmdOpsBudgetSetV1/messages/CmdOpsBudgetSetV1'
+    x-producer: operator
   sendCmdRulesToggleV1:
     action: send
     channel:
@@ -1310,12 +1373,33 @@ operations:
     messages:
     - $ref: '#/channels/OpsBudgetExceededV1/messages/OpsBudgetExceededV1'
     x-producer: budget
+  sendOpsBudgetExceededV2:
+    action: send
+    channel:
+      $ref: '#/channels/OpsBudgetExceededV2'
+    messages:
+    - $ref: '#/channels/OpsBudgetExceededV2/messages/OpsBudgetExceededV2'
+    x-producer: budget
+  sendOpsBudgetLimitsChangedV1:
+    action: send
+    channel:
+      $ref: '#/channels/OpsBudgetLimitsChangedV1'
+    messages:
+    - $ref: '#/channels/OpsBudgetLimitsChangedV1/messages/OpsBudgetLimitsChangedV1'
+    x-producer: budget
   sendOpsBudgetThresholdReachedV1:
     action: send
     channel:
       $ref: '#/channels/OpsBudgetThresholdReachedV1'
     messages:
     - $ref: '#/channels/OpsBudgetThresholdReachedV1/messages/OpsBudgetThresholdReachedV1'
+    x-producer: budget
+  sendOpsBudgetThresholdReachedV2:
+    action: send
+    channel:
+      $ref: '#/channels/OpsBudgetThresholdReachedV2'
+    messages:
+    - $ref: '#/channels/OpsBudgetThresholdReachedV2/messages/OpsBudgetThresholdReachedV2'
     x-producer: budget
   sendPerceptionDeliveredV1:
     action: send
@@ -1548,6 +1632,13 @@ operations:
     messages:
     - $ref: '#/channels/Realtime/messages/RealtimeWelcomeV1'
     x-producer: gateway
+  sendLiveBudgetV1:
+    action: send
+    channel:
+      $ref: '#/channels/LiveBudgetV1'
+    messages:
+    - $ref: '#/channels/LiveBudgetV1/messages/LiveBudgetV1'
+    x-producer: budget
   sendLiveKernelV1:
     action: send
     channel:
@@ -2382,6 +2473,32 @@ components:
           type: integer
           minimum: 1
           maximum: 1440
+    CmdOpsBudgetSetV1:
+      title: CmdOpsBudgetSetV1
+      description: Pede à guarda de orçamento novos tetos, com o mundo vivo (ADR-0080). Os tetos que não
+        vêm ficam como estão. Quem consome é a guarda, e não o kernel; ela responde com ops.budget.limits_changed.
+      type: object
+      additionalProperties: false
+      required:
+      - reason
+      minProperties: 2
+      properties:
+        usd_per_sim_day:
+          type: number
+          exclusiveMinimum: 0
+          description: O teto de cada dia simulado.
+        usd_per_ticket:
+          type: number
+          exclusiveMinimum: 0
+          description: O teto de cada pedido do escritório (ADR-0080).
+        usd_total:
+          type: number
+          exclusiveMinimum: 0
+          description: O teto do mundo inteiro.
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
     CmdRulesToggleV1:
       title: CmdRulesToggleV1
       description: Pede a alternância de uma regra (ADR-0015).
@@ -3269,6 +3386,10 @@ components:
         avatar_id:
           $ref: '#/components/schemas/EntityId'
           description: O avatar em nome de quem se decidiu, quando houver.
+        ticket_id:
+          $ref: '#/components/schemas/EntityId'
+          description: 'O pedido do escritório em que a mente trabalhava (ADR-0080): a guarda soma o gasto
+            por pedido.'
         provider:
           $ref: '#/components/schemas/Token'
           description: 'O provedor do adaptador: anthropic, openrouter…'
@@ -3766,6 +3887,70 @@ components:
         paused:
           type: boolean
           description: Verdadeiro quando a guarda publicou cmd.clock.pause com reason budget.
+    OpsBudgetExceededV2:
+      title: OpsBudgetExceededV2
+      description: 'O gasto com modelos estourou um teto (ADR-0058, ADR-0080). No dia e no total, o que
+        acontece é do mundo (`budget.on_exceeded`): a guarda pausa o mundo (`paused`) ou, no escritório,
+        a mente desliga e a rotina assume, com o mundo seguindo. No pedido, o mundo nunca pausa: a mente
+        larga aquele pedido. Substitui o v1.'
+      type: object
+      additionalProperties: false
+      required:
+      - scope
+      - spent_usd
+      - limit_usd
+      - paused
+      properties:
+        scope:
+          enum:
+          - day
+          - ticket
+          - total
+          description: O teto do dia simulado, o de um pedido do escritório (ADR-0080) ou o do mundo inteiro.
+        day:
+          $ref: '#/components/schemas/Day'
+          description: O dia simulado, quando o escopo é day.
+        ticket_id:
+          $ref: '#/components/schemas/EntityId'
+          description: O pedido, quando o escopo é ticket.
+        spent_usd:
+          type: number
+          minimum: 0
+        limit_usd:
+          type: number
+          exclusiveMinimum: 0
+        paused:
+          type: boolean
+          description: Verdadeiro quando a guarda publicou cmd.clock.pause com reason budget. Falso no
+            escritório (a mente desliga) e no teto de um pedido.
+    OpsBudgetLimitsChangedV1:
+      title: OpsBudgetLimitsChangedV1
+      description: A guarda de orçamento passou a valer com estes tetos, pedidos pelo operador com cmd.ops.budget.set
+        (ADR-0080). São os tetos inteiros, depois da mudança. Um teto que sobe acima do gasto deixa de
+        estar estourado, e os avisos dele voltam a valer.
+      type: object
+      additionalProperties: false
+      required:
+      - usd_per_sim_day
+      - usd_total
+      - reason
+      properties:
+        usd_per_sim_day:
+          type: number
+          exclusiveMinimum: 0
+          description: O teto de cada dia simulado.
+        usd_per_ticket:
+          type: number
+          exclusiveMinimum: 0
+          description: O teto de cada pedido do escritório (ADR-0080).
+        usd_total:
+          type: number
+          exclusiveMinimum: 0
+          description: O teto do mundo inteiro.
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
     OpsBudgetThresholdReachedV1:
       title: OpsBudgetThresholdReachedV1
       description: O gasto com modelos passou de 50, 80 ou 100% de um teto (ADR-0058). Publicado pela
@@ -3786,6 +3971,42 @@ components:
         day:
           $ref: '#/components/schemas/Day'
           description: O dia simulado, quando o escopo é day.
+        spent_usd:
+          type: number
+          minimum: 0
+        limit_usd:
+          type: number
+          exclusiveMinimum: 0
+        threshold_pct:
+          enum:
+          - 50
+          - 80
+          - 100
+    OpsBudgetThresholdReachedV2:
+      title: OpsBudgetThresholdReachedV2
+      description: 'O gasto com modelos passou de 50, 80 ou 100% de um teto (ADR-0058, ADR-0080): do dia,
+        de um pedido ou do total. Publicado pela guarda de orçamento. Substitui o v1, que não tinha o
+        teto por pedido.'
+      type: object
+      additionalProperties: false
+      required:
+      - scope
+      - threshold_pct
+      - spent_usd
+      - limit_usd
+      properties:
+        scope:
+          enum:
+          - day
+          - ticket
+          - total
+          description: O teto do dia simulado, o de um pedido do escritório (ADR-0080) ou o do mundo inteiro.
+        day:
+          $ref: '#/components/schemas/Day'
+          description: O dia simulado, quando o escopo é day.
+        ticket_id:
+          $ref: '#/components/schemas/EntityId'
+          description: O pedido, quando o escopo é ticket.
         spent_usd:
           type: number
           minimum: 0
@@ -4788,6 +5009,76 @@ components:
         forecast:
           type: boolean
           description: 'O tempo de um dia que ainda não chegou: a previsão, publicada na véspera (ADR-0069).'
+    LiveBudgetV1:
+      title: LiveBudgetV1
+      description: 'O sinal de vida da guarda de orçamento (ADR-0080), como o pulso do kernel (ADR-0051):
+        os tetos e o gasto, a cada pulse_seconds de tempo real. Vai para campsverso.<mundo>.live.budget,
+        que nenhum stream guarda. Sem ele, a mente do escritório desliga e a rotina assume.'
+      type: object
+      additionalProperties: false
+      required:
+      - type
+      - worldid
+      - limits
+      - spent_total_usd
+      - exceeded
+      - pulse_seconds
+      - sent_at
+      properties:
+        type:
+          const: campsverso.live.budget.v1
+        worldid:
+          type: string
+          pattern: ^[a-z0-9]+(-[a-z0-9]+)*$
+          maxLength: 64
+        limits:
+          type: object
+          title: BudgetLimits
+          additionalProperties: false
+          required:
+          - usd_per_sim_day
+          - usd_total
+          properties:
+            usd_per_sim_day:
+              type: number
+              exclusiveMinimum: 0
+              description: O teto de cada dia simulado.
+            usd_per_ticket:
+              type: number
+              exclusiveMinimum: 0
+              description: O teto de cada pedido do escritório (ADR-0080).
+            usd_total:
+              type: number
+              exclusiveMinimum: 0
+              description: O teto do mundo inteiro.
+        spent_total_usd:
+          type: number
+          minimum: 0
+          description: O gasto desde o começo do mundo.
+        spent_day_usd:
+          type: number
+          minimum: 0
+          description: O gasto do último dia com chamadas.
+        day:
+          $ref: '#/components/schemas/Day'
+          description: Esse dia.
+        exceeded:
+          type: array
+          description: 'Os tetos estourados agora: day (o do último dia), total, ou o id de um pedido.'
+          items:
+            type: string
+            minLength: 1
+            maxLength: 64
+          maxItems: 64
+        pulse_seconds:
+          type: number
+          exclusiveMinimum: 0
+          description: O intervalo entre sinais; quem escuta usa para saber quando a guarda ficou sem
+            sinal.
+        sent_at:
+          type: string
+          format: date-time
+          description: Relógio de parede de quem mandou.
     LiveKernelV1:
       title: LiveKernelV1
       description: 'Pulso do kernel: o tick de verdade e o relógio, a cada kernel.pulse_seconds de tempo
@@ -5288,7 +5579,8 @@ components:
               title: ObserverCosts
               description: 'O que as chamadas de modelo custaram (ADR-0074), projetado dos eventos llm.call.completed
                 cobrados e dos avisos ops.budget.*: por controlador, o gasto do último dia com chamadas
-                e o total; e o último aviso do orçamento. Só a visão do operador o vê.'
+                e o total; e o último aviso do orçamento. Só a visão do operador o vê; e o sinal de vida
+                da guarda (ADR-0080).'
               additionalProperties: false
               properties:
                 minds:
@@ -5331,7 +5623,7 @@ components:
                 budget:
                   type: object
                   title: ObserverBudget
-                  description: O último aviso da guarda de orçamento (ADR-0058).
+                  description: O último aviso da guarda de orçamento (ADR-0058; o teto por pedido, ADR-0080).
                   additionalProperties: false
                   required:
                   - scope
@@ -5344,6 +5636,9 @@ components:
                       maxLength: 64
                     day:
                       $ref: '#/components/schemas/Day'
+                    ticket_id:
+                      $ref: '#/components/schemas/EntityId'
+                      description: O pedido, quando o escopo é ticket (ADR-0080).
                     spent_usd:
                       type: number
                       minimum: 0
@@ -5359,6 +5654,56 @@ components:
                     paused:
                       type: boolean
                       description: A guarda pausou o mundo.
+                guard:
+                  type: object
+                  title: ObserverGuard
+                  additionalProperties: false
+                  description: 'O último sinal de vida da guarda de orçamento (ADR-0080): os tetos de
+                    agora, o gasto e o que está estourado. `alive` vira falso depois de 3 sinais perdidos.
+                    Ausente até o primeiro sinal.'
+                  required:
+                  - alive
+                  - limits
+                  - spent_total_usd
+                  - exceeded
+                  properties:
+                    alive:
+                      type: boolean
+                    limits:
+                      type: object
+                      title: ObserverGuardLimits
+                      additionalProperties: false
+                      required:
+                      - usd_per_sim_day
+                      - usd_total
+                      properties:
+                        usd_per_sim_day:
+                          type: number
+                          exclusiveMinimum: 0
+                          description: O teto de cada dia simulado.
+                        usd_per_ticket:
+                          type: number
+                          exclusiveMinimum: 0
+                          description: O teto de cada pedido do escritório (ADR-0080).
+                        usd_total:
+                          type: number
+                          exclusiveMinimum: 0
+                          description: O teto do mundo inteiro.
+                    spent_total_usd:
+                      type: number
+                      minimum: 0
+                    spent_day_usd:
+                      type: number
+                      minimum: 0
+                    day:
+                      $ref: '#/components/schemas/Day'
+                    exceeded:
+                      type: array
+                      items:
+                        type: string
+                        minLength: 1
+                        maxLength: 64
+                      maxItems: 64
             decisions:
               type: object
               additionalProperties:
@@ -5628,6 +5973,16 @@ components:
         $ref: '#/components/schemas/CmdClockStepV1'
       x-visibility: observer
       x-producer: operator
+    CmdOpsBudgetSetV1:
+      name: campsverso.cmd.ops.budget.set.v1
+      title: CmdOpsBudgetSetV1
+      summary: Pede à guarda de orçamento novos tetos, com o mundo vivo (ADR-0080). Os tetos que não vêm
+        ficam como estão. Quem consome é a guarda, e não o kernel; ela responde com ops.budget.limits_changed.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CmdOpsBudgetSetV1'
+      x-visibility: observer
+      x-producer: operator
     CmdRulesToggleV1:
       name: campsverso.cmd.rules.toggle.v1
       title: CmdRulesToggleV1
@@ -5879,6 +6234,29 @@ components:
         $ref: '#/components/schemas/OpsBudgetExceededV1'
       x-visibility: observer
       x-producer: budget
+    OpsBudgetExceededV2:
+      name: campsverso.ops.budget.exceeded.v2
+      title: OpsBudgetExceededV2
+      summary: 'O gasto com modelos estourou um teto (ADR-0058, ADR-0080). No dia e no total, o que acontece
+        é do mundo (`budget.on_exceeded`): a guarda pausa o mundo (`paused`) ou, no escritório, a mente
+        desliga e a rotina assume, com o mundo seguindo. No pedido, o mundo nunca pausa: a mente larga
+        aquele pedido. Substitui o v1.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/OpsBudgetExceededV2'
+      x-visibility: observer
+      x-producer: budget
+    OpsBudgetLimitsChangedV1:
+      name: campsverso.ops.budget.limits_changed.v1
+      title: OpsBudgetLimitsChangedV1
+      summary: A guarda de orçamento passou a valer com estes tetos, pedidos pelo operador com cmd.ops.budget.set
+        (ADR-0080). São os tetos inteiros, depois da mudança. Um teto que sobe acima do gasto deixa de
+        estar estourado, e os avisos dele voltam a valer.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/OpsBudgetLimitsChangedV1'
+      x-visibility: observer
+      x-producer: budget
     OpsBudgetThresholdReachedV1:
       name: campsverso.ops.budget.threshold_reached.v1
       title: OpsBudgetThresholdReachedV1
@@ -5887,6 +6265,17 @@ components:
       contentType: application/json
       payload:
         $ref: '#/components/schemas/OpsBudgetThresholdReachedV1'
+      x-visibility: observer
+      x-producer: budget
+    OpsBudgetThresholdReachedV2:
+      name: campsverso.ops.budget.threshold_reached.v2
+      title: OpsBudgetThresholdReachedV2
+      summary: 'O gasto com modelos passou de 50, 80 ou 100% de um teto (ADR-0058, ADR-0080): do dia,
+        de um pedido ou do total. Publicado pela guarda de orçamento. Substitui o v1, que não tinha o
+        teto por pedido.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/OpsBudgetThresholdReachedV2'
       x-visibility: observer
       x-producer: budget
     PerceptionDeliveredV1:
@@ -6187,6 +6576,16 @@ components:
       contentType: application/json
       payload:
         $ref: '#/components/schemas/RealtimeWelcomeV1'
+    LiveBudgetV1:
+      name: campsverso.live.budget.v1
+      title: LiveBudgetV1
+      summary: 'O sinal de vida da guarda de orçamento (ADR-0080), como o pulso do kernel (ADR-0051):
+        os tetos e o gasto, a cada pulse_seconds de tempo real. Vai para campsverso.<mundo>.live.budget,
+        que nenhum stream guarda. Sem ele, a mente do escritório desliga e a rotina assume.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/LiveBudgetV1'
+      x-producer: budget
     LiveKernelV1:
       name: campsverso.live.kernel.v1
       title: LiveKernelV1

@@ -4,7 +4,16 @@ from typing import Any
 
 from campsverso_adapters import MemoryBlobStore
 from campsverso_budget.ledger import BudgetLimits
-from campsverso_budget.service import COMPLETED, EXCEEDED, PAUSE, THRESHOLD, BudgetService
+from campsverso_budget.service import (
+    COMPLETED,
+    EXCEEDED,
+    LIMITS_CHANGED,
+    PAUSE,
+    PULSE,
+    SET,
+    THRESHOLD,
+    BudgetService,
+)
 from campsverso_contracts import subject
 from campsverso_testkit.farm import WORLD
 from campsverso_testkit.pipeline import Pipeline
@@ -14,9 +23,15 @@ LIMITS = BudgetLimits(usd_per_sim_day=0.6, usd_total=10.0)
 
 
 def _call(
-    pipeline: Pipeline, seq: int, tick: int, cost: float, *, charged: bool = True
+    pipeline: Pipeline,
+    seq: int,
+    tick: int,
+    cost: float,
+    *,
+    charged: bool = True,
+    ticket_id: str | None = None,
 ) -> dict[str, Any]:
-    return {
+    envelope: dict[str, Any] = {
         "specversion": "1.0",
         "id": pipeline.ids.new_id(),
         "source": "/controller-runner/llm/haiku",
@@ -45,6 +60,9 @@ def _call(
             "stop_reason": "tool_use",
         },
     }
+    if ticket_id is not None:
+        envelope["data"]["ticket_id"] = ticket_id
+    return envelope
 
 
 async def test_estourar_o_teto_do_dia_pausa_o_mundo_e_o_gasto_sobrevive_a_uma_queda() -> None:
@@ -66,7 +84,7 @@ async def test_estourar_o_teto_do_dia_pausa_o_mundo_e_o_gasto_sobrevive_a_uma_qu
     await call(1, 20, 0.40, charged=False)  # reproduzida da fita: não conta
     await call(2, 30, 0.25)
     assert pipeline.core.paused is False
-    assert [n["threshold_pct"] for n in pipeline.of_type("ops.budget.threshold_reached.v1")] == [
+    assert [n["threshold_pct"] for n in pipeline.of_type("ops.budget.threshold_reached.v2")] == [
         50,
         80,
     ]
@@ -74,7 +92,7 @@ async def test_estourar_o_teto_do_dia_pausa_o_mundo_e_o_gasto_sobrevive_a_uma_qu
     assert pipeline.core.paused is True  # o kernel recebeu cmd.clock.pause pelo barramento
     pauses = pipeline.of_type("cmd.clock.pause.v1")
     assert pauses == [{"reason": "budget"}]
-    (exceeded,) = pipeline.of_type("ops.budget.exceeded.v1")
+    (exceeded,) = pipeline.of_type("ops.budget.exceeded.v2")
     assert exceeded == {
         "scope": "day",
         "day": 1,
@@ -143,10 +161,125 @@ async def test_retomado_com_o_teto_estourado_a_proxima_chamada_pausa_de_novo() -
     assert pipeline.core.paused is True
     assert published()[8:] == [PAUSE, EXCEEDED, THRESHOLD, THRESHOLD, EXCEEDED]
     assert guard.paused_times == 3  # uma pausa por chamada, mesmo com os dois tetos
-    assert [e["scope"] for e in pipeline.of_type("ops.budget.exceeded.v1")] == [
+    assert [e["scope"] for e in pipeline.of_type("ops.budget.exceeded.v2")] == [
         "day",
         "day",
         "day",
         "total",
     ]
+    await guard.stop()
+
+
+def _guard(pipeline: Pipeline, limits: BudgetLimits, **kw: Any) -> BudgetService:
+    return BudgetService(
+        WORLD,
+        limits,
+        pipeline.bus,
+        MemoryBlobStore(),
+        pipeline.clock,
+        pipeline.ids,
+        pipeline.telemetry,
+        **kw,
+    )
+
+
+async def test_no_escritorio_o_teto_desliga_a_mente_e_o_mundo_segue() -> None:
+    """`on_exceeded: mind_off` (ADR-0080): no teto do dia, a guarda avisa sem pedir a pausa; quem
+    reage é a mente, que desliga e deixa a rotina conduzir o dev."""
+    pipeline = Pipeline(controller="none")
+    guard = _guard(
+        pipeline, BudgetLimits(usd_per_sim_day=0.6, usd_total=10.0), on_exceeded="mind_off"
+    )
+    await guard.start()
+    await pipeline.start()
+    await pipeline.bus.publish(subject(COMPLETED, WORLD), _call(pipeline, 0, 10, 0.7))
+    assert pipeline.core.paused is False
+    assert [e["type"] for _, e in pipeline.inner.published if e["type"] == PAUSE] == []
+    (exceeded,) = pipeline.of_type("ops.budget.exceeded.v2")
+    assert (exceeded["scope"], exceeded["paused"]) == ("day", False)
+    assert guard.paused_times == 0
+    await guard.stop()
+
+
+async def test_o_teto_do_pedido_nunca_pausa_o_mundo() -> None:
+    """O pedido estourado é da mente, que larga o pedido (ADR-0080): mesmo no mundo que pausa, a
+    guarda só avisa, com o id do pedido."""
+    pipeline = Pipeline(controller="none")
+    limits = BudgetLimits(usd_per_sim_day=10.0, usd_total=100.0, usd_per_ticket=1.0)
+    guard = _guard(pipeline, limits)
+    await guard.start()
+    await pipeline.start()
+    await pipeline.bus.publish(
+        subject(COMPLETED, WORLD), _call(pipeline, 0, 10, 1.2, ticket_id="pedido-1")
+    )
+    assert pipeline.core.paused is False
+    (exceeded,) = pipeline.of_type("ops.budget.exceeded.v2")
+    assert exceeded == {
+        "scope": "ticket",
+        "ticket_id": "pedido-1",
+        "spent_usd": 1.2,
+        "limit_usd": 1.0,
+        "paused": False,
+    }
+    assert guard.ledger.exceeded_now() == ["pedido-1"]
+    await guard.stop()
+
+
+async def test_o_operador_sobe_o_teto_com_o_mundo_vivo_e_a_guarda_da_sinal_de_vida() -> None:
+    """`cmd.ops.budget.set` (ADR-0080): a guarda troca os tetos, publica o fato e um sinal de vida
+    logo atrás; o kernel deixa o comando de lado, sem recusa e sem diário. O sinal sai em
+    `live.budget`, sem envelope (o exemplo do contrato confere o formato)."""
+    pipeline = Pipeline(controller="none")
+    guard = _guard(
+        pipeline, BudgetLimits(usd_per_sim_day=0.6, usd_total=10.0), on_exceeded="mind_off"
+    )
+    pulses: list[dict[str, Any]] = []
+
+    async def heard(_: str, message: Any) -> None:
+        pulses.append(dict(message))
+
+    await pipeline.inner.subscribe(f"campsverso.{WORLD}.live.budget", heard)
+    await guard.start()
+    await pipeline.start()
+    await guard.announce_pulse(5.0)
+    assert pulses[-1]["exceeded"] == []
+    assert pulses[-1]["limits"] == {
+        "usd_per_sim_day": 0.6,
+        "usd_total": 10.0,
+    }
+    await pipeline.bus.publish(subject(COMPLETED, WORLD), _call(pipeline, 0, 10, 0.7))
+    await guard.announce_pulse(5.0)
+    assert pulses[-1]["exceeded"] == ["day"]
+    assert (pulses[-1]["day"], pulses[-1]["spent_day_usd"]) == (1, 0.7)
+
+    command = _call(pipeline, 0, 10, 0.0)
+    command["source"], command["actor"] = "/gateway/teste", "human/operador"
+    command["type"], command["dataschema"] = SET, "contracts://commands/ops/budget.set.v1"
+    command["data"] = {"usd_per_sim_day": 2.0, "usd_per_ticket": 1.0, "reason": "o testador"}
+    await pipeline.bus.publish(subject(SET, WORLD), command)
+    (changed,) = pipeline.of_type("ops.budget.limits_changed.v1")
+    assert changed == {
+        "usd_per_sim_day": 2.0,
+        "usd_per_ticket": 1.0,
+        "usd_total": 10.0,
+        "reason": "o testador",
+    }
+    assert [
+        e["causationid"] for _, e in pipeline.inner.published if e["type"] == LIMITS_CHANGED
+    ] == [command["id"]]
+    assert pulses[-1]["type"] == PULSE
+    assert pulses[-1]["exceeded"] == []
+    assert pulses[-1]["limits"]["usd_per_ticket"] == 1.0
+    assert pipeline.of_type("world.command.rejected.v1") == []
+    assert set(pulses[-1]) == {
+        "type",
+        "worldid",
+        "limits",
+        "spent_total_usd",
+        "spent_day_usd",
+        "day",
+        "exceeded",
+        "pulse_seconds",
+        "sent_at",
+    }
     await guard.stop()

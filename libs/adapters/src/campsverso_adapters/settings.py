@@ -103,6 +103,10 @@ type ClockMode = Literal["continuous", "max"]
 class BudgetSettings:
     usd_per_sim_day: float  # teto por dia simulado (ADR-0058)
     usd_total: float  # teto do mundo inteiro
+    usd_per_ticket: float | None = None  # teto por pedido do escritório (ADR-0080)
+    # No teto do dia e no total: `pause` pausa o mundo (as fazendas); `mind_off` deixa o mundo
+    # seguir, e a mente desliga (o escritório, ADR-0080).
+    on_exceeded: Literal["pause", "mind_off"] = "pause"
 
 
 @dataclass(frozen=True, slots=True)
@@ -293,13 +297,22 @@ def load_world(path: Path, root: Path | None = None) -> WorldSettings:
                 Mapping[str, Mapping[str, Any]], doc.get("controllers") or {}
             ).items()
         },
-        budget=None
-        if budget is None
-        else BudgetSettings(
-            usd_per_sim_day=float(budget["usd_per_sim_day"]), usd_total=float(budget["usd_total"])
-        ),
+        budget=None if budget is None else _budget(budget),
         minds={
             str(avatar): _mind(str(avatar), raw, root or Path.cwd())
             for avatar, raw in cast(Mapping[str, Mapping[str, Any]], doc.get("minds") or {}).items()
         },
+    )
+
+
+def _budget(doc: Mapping[str, Any]) -> BudgetSettings:
+    on_exceeded = doc.get("on_exceeded", "pause")
+    if on_exceeded not in ("pause", "mind_off"):
+        raise ValueError(f"budget.on_exceeded inválido: {on_exceeded!r} (use pause ou mind_off)")
+    ticket = doc.get("usd_per_ticket")
+    return BudgetSettings(
+        usd_per_sim_day=float(doc["usd_per_sim_day"]),
+        usd_total=float(doc["usd_total"]),
+        usd_per_ticket=None if ticket is None else float(ticket),
+        on_exceeded=on_exceeded,
     )

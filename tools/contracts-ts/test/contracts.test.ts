@@ -9,10 +9,10 @@ describe("validador ajv dos contratos", () => {
     expect(checkExamples()).toEqual([]);
   });
 
-  it("conhece os 71 eventos (os da v0.1 e da v0.2, os da Morada do Sol, os 4 das encomendas, a entrada e a saída do avatar, os 3 do contrato de trabalho, a fala, o relógio que alcança o real e os 5 do pedido do escritório) e 10 comandos", () => {
+  it("conhece os 74 eventos (os da v0.1 e da v0.2, os da Morada do Sol, os 4 das encomendas, a entrada e a saída do avatar, os 3 do contrato de trabalho, a fala, o relógio que alcança o real, os 5 do pedido do escritório, os 2 avisos do orçamento na v2 e os tetos mudados) e 11 comandos", () => {
     const kinds = typeInfos(loadSchemas()).map((info) => info.kind);
-    expect(kinds.filter((kind) => kind === "event")).toHaveLength(71);
-    expect(kinds.filter((kind) => kind === "command")).toHaveLength(10);
+    expect(kinds.filter((kind) => kind === "event")).toHaveLength(74);
+    expect(kinds.filter((kind) => kind === "command")).toHaveLength(11);
   });
 
   it("recusa um evento da regra oculta publicado como world", () => {

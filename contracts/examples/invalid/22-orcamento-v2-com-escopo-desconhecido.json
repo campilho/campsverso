@@ -1,0 +1,28 @@
+{
+  "expect_error": "payload_schema",
+  "description": "Teto de orçamento v2 com escopo fora de day, ticket e total.",
+  "event": {
+    "specversion": "1.0",
+    "id": "01a12d2b-6c37-7e50-9d00-4e6802771b70",
+    "source": "/budget/office-campsverso-01",
+    "type": "campsverso.ops.budget.exceeded.v2",
+    "time": "2026-10-18T03:00:00Z",
+    "datacontenttype": "application/json",
+    "dataschema": "contracts://events/ops/budget.exceeded.v2",
+    "worldid": "office-campsverso-01",
+    "cartridge": "office_campsverso",
+    "tick": 16230,
+    "simtime": "2026-11-16T09:01:00-03:00",
+    "seq": 44,
+    "provenance": "simulated",
+    "visibility": "observer",
+    "actor": "system/budget",
+    "data": {
+      "scope": "week",
+      "ticket_id": "pedido-3",
+      "spent_usd": 1.02,
+      "limit_usd": 1.0,
+      "paused": false
+    }
+  }
+}

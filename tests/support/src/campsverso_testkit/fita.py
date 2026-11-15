@@ -88,8 +88,8 @@ def summary(pipeline: Pipeline) -> dict[str, Any]:
         ),
         "faints": len(pipeline.of_type("avatar.fainted.v1")),
         "needs": pipeline.core.world.needs_points("camps"),
-        "budget_notices": len(pipeline.of_type("ops.budget.threshold_reached.v1")),
-        "budget_exceeded": len(pipeline.of_type("ops.budget.exceeded.v1")),
+        "budget_notices": len(pipeline.of_type("ops.budget.threshold_reached.v2")),
+        "budget_exceeded": len(pipeline.of_type("ops.budget.exceeded.v2")),
     }
 
 

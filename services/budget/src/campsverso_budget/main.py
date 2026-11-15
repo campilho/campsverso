@@ -3,8 +3,9 @@
     uv run python -m campsverso_budget.main --env config/env/local.yaml \
         --world config/worlds/farm-camps-01.yaml
 
-O teto vem do arquivo do mundo (`budget`); a senha do NATS vem de NATS_BUDGET_PASSWORD, gerada
-por `make secrets`.
+O teto vem do arquivo do mundo (`budget`), até o operador mudá-lo com o mundo vivo
+(`cmd.ops.budget.set`, ADR-0080); o sinal de vida sai a cada PULSE_SECONDS. A senha do NATS vem
+de NATS_BUDGET_PASSWORD, gerada por `make secrets`.
 """
 
 import argparse
@@ -27,6 +28,9 @@ from campsverso_adapters import (
 )
 from campsverso_budget.ledger import BudgetLimits
 from campsverso_budget.service import BudgetService
+
+# O sinal de vida da guarda (ADR-0080): a mente do escritório desliga depois de 3 sinais perdidos.
+PULSE_SECONDS = 5.0
 
 
 def _parse(argv: Sequence[str]) -> argparse.Namespace:
@@ -57,14 +61,18 @@ async def run(args: argparse.Namespace) -> int:
         telemetry=telemetry,
     )
     data_dir: Path = args.data_dir or env.data_dir
+    clock = SystemWallClock()
     service = BudgetService(
         world.worldid,
-        BudgetLimits(world.budget.usd_per_sim_day, world.budget.usd_total),
+        BudgetLimits(
+            world.budget.usd_per_sim_day, world.budget.usd_total, world.budget.usd_per_ticket
+        ),
         bus,
         DiskBlobStore(data_dir / "budget"),
-        SystemWallClock(),
+        clock,
         Uuid7Ids(),
         telemetry,
+        on_exceeded=world.budget.on_exceeded,
     )
     stop = asyncio.Event()
     for signum in (signal.SIGINT, signal.SIGTERM):
@@ -76,9 +84,15 @@ async def run(args: argparse.Namespace) -> int:
             worldid=world.worldid,
             usd_per_sim_day=world.budget.usd_per_sim_day,
             usd_total=world.budget.usd_total,
+            usd_per_ticket=world.budget.usd_per_ticket,
+            on_exceeded=world.budget.on_exceeded,
             spent_usd=service.ledger.total,
         )
+        next_pulse = 0.0
         while not stop.is_set() and service.failure is None:
+            if clock.monotonic() >= next_pulse:
+                next_pulse = clock.monotonic() + PULSE_SECONDS
+                await service.announce_pulse(PULSE_SECONDS)
             with contextlib.suppress(TimeoutError):
                 await asyncio.wait_for(stop.wait(), 0.5)
         if service.failure is not None:

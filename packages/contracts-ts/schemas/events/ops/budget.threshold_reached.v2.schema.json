@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/ops/budget.threshold_reached.v2",
+  "title": "OpsBudgetThresholdReachedV2",
+  "description": "O gasto com modelos passou de 50, 80 ou 100% de um teto (ADR-0058, ADR-0080): do dia, de um pedido ou do total. Publicado pela guarda de orçamento. Substitui o v1, que não tinha o teto por pedido.",
+  "x-type": "campsverso.ops.budget.threshold_reached.v2",
+  "x-visibility": "observer",
+  "x-producer": "budget",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "scope",
+    "threshold_pct",
+    "spent_usd",
+    "limit_usd"
+  ],
+  "properties": {
+    "scope": {
+      "enum": [
+        "day",
+        "ticket",
+        "total"
+      ],
+      "description": "O teto do dia simulado, o de um pedido do escritório (ADR-0080) ou o do mundo inteiro."
+    },
+    "day": {
+      "$ref": "contracts://common/defs.v1#/$defs/day",
+      "description": "O dia simulado, quando o escopo é day."
+    },
+    "ticket_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "O pedido, quando o escopo é ticket."
+    },
+    "spent_usd": {
+      "type": "number",
+      "minimum": 0
+    },
+    "limit_usd": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "threshold_pct": {
+      "enum": [
+        50,
+        80,
+        100
+      ]
+    }
+  }
+}

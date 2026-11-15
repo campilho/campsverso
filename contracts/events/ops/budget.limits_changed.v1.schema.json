@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/ops/budget.limits_changed.v1",
+  "title": "OpsBudgetLimitsChangedV1",
+  "description": "A guarda de orçamento passou a valer com estes tetos, pedidos pelo operador com cmd.ops.budget.set (ADR-0080). São os tetos inteiros, depois da mudança. Um teto que sobe acima do gasto deixa de estar estourado, e os avisos dele voltam a valer.",
+  "x-type": "campsverso.ops.budget.limits_changed.v1",
+  "x-visibility": "observer",
+  "x-producer": "budget",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "usd_per_sim_day",
+    "usd_total",
+    "reason"
+  ],
+  "properties": {
+    "usd_per_sim_day": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "O teto de cada dia simulado."
+    },
+    "usd_per_ticket": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "O teto de cada pedido do escritório (ADR-0080)."
+    },
+    "usd_total": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "O teto do mundo inteiro."
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    }
+  }
+}

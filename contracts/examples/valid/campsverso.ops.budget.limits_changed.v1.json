@@ -1,0 +1,24 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c37-7e50-9d00-4e6802771b72",
+  "source": "/budget/office-campsverso-01",
+  "type": "campsverso.ops.budget.limits_changed.v1",
+  "time": "2026-10-18T03:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/ops/budget.limits_changed.v1",
+  "worldid": "office-campsverso-01",
+  "cartridge": "office_campsverso",
+  "tick": 16230,
+  "simtime": "2026-11-16T09:01:00-03:00",
+  "seq": 43,
+  "provenance": "simulated",
+  "visibility": "observer",
+  "actor": "system/budget",
+  "data": {
+    "usd_per_sim_day": 5.0,
+    "usd_per_ticket": 1.5,
+    "usd_total": 40.0,
+    "reason": "o pedido do testador é maior"
+  },
+  "causationid": "01a12d2b-6c36-726b-911f-ed5c8ad5b3a0"
+}

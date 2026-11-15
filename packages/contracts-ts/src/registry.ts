@@ -162,6 +162,12 @@ export const CONTRACT_TYPES = {
     producer: "operator",
     dataschema: "contracts://commands/clock/step.v1",
   },
+  "campsverso.cmd.ops.budget.set.v1": {
+    kind: "command",
+    visibility: "observer",
+    producer: "operator",
+    dataschema: "contracts://commands/ops/budget.set.v1",
+  },
   "campsverso.cmd.rules.toggle.v1": {
     kind: "command",
     visibility: "observer",
@@ -318,11 +324,29 @@ export const CONTRACT_TYPES = {
     producer: "budget",
     dataschema: "contracts://events/ops/budget.exceeded.v1",
   },
+  "campsverso.ops.budget.exceeded.v2": {
+    kind: "event",
+    visibility: "observer",
+    producer: "budget",
+    dataschema: "contracts://events/ops/budget.exceeded.v2",
+  },
+  "campsverso.ops.budget.limits_changed.v1": {
+    kind: "event",
+    visibility: "observer",
+    producer: "budget",
+    dataschema: "contracts://events/ops/budget.limits_changed.v1",
+  },
   "campsverso.ops.budget.threshold_reached.v1": {
     kind: "event",
     visibility: "observer",
     producer: "budget",
     dataschema: "contracts://events/ops/budget.threshold_reached.v1",
+  },
+  "campsverso.ops.budget.threshold_reached.v2": {
+    kind: "event",
+    visibility: "observer",
+    producer: "budget",
+    dataschema: "contracts://events/ops/budget.threshold_reached.v2",
   },
   "campsverso.perception.delivered.v1": {
     kind: "event",
@@ -528,6 +552,7 @@ export interface PayloadByType {
   "campsverso.cmd.clock.set_mode.v1": T.CmdClockSetModeV1;
   "campsverso.cmd.clock.set_scale.v1": T.CmdClockSetScaleV1;
   "campsverso.cmd.clock.step.v1": T.CmdClockStepV1;
+  "campsverso.cmd.ops.budget.set.v1": T.CmdOpsBudgetSetV1;
   "campsverso.cmd.rules.toggle.v1": T.CmdRulesToggleV1;
   "campsverso.economy.labor.dismissed.v1": T.EconomyLaborDismissedV1;
   "campsverso.economy.labor.ended.v1": T.EconomyLaborEndedV1;
@@ -554,7 +579,10 @@ export interface PayloadByType {
   "campsverso.office.ticket.returned.v1": T.OfficeTicketReturnedV1;
   "campsverso.office.ticket.taken.v1": T.OfficeTicketTakenV1;
   "campsverso.ops.budget.exceeded.v1": T.OpsBudgetExceededV1;
+  "campsverso.ops.budget.exceeded.v2": T.OpsBudgetExceededV2;
+  "campsverso.ops.budget.limits_changed.v1": T.OpsBudgetLimitsChangedV1;
   "campsverso.ops.budget.threshold_reached.v1": T.OpsBudgetThresholdReachedV1;
+  "campsverso.ops.budget.threshold_reached.v2": T.OpsBudgetThresholdReachedV2;
   "campsverso.perception.delivered.v1": T.PerceptionDeliveredV1;
   "campsverso.perception.updated.v1": T.PerceptionUpdatedV1;
   "campsverso.rules.effect_applied.v1": T.RulesEffectAppliedV1;

@@ -690,6 +690,29 @@ class CmdClockStepV1(BaseModel):
     ticks: Annotated[int, Field(ge=1, le=1440)]
 
 
+class CmdOpsBudgetSetV1(BaseModel):
+    """
+    Pede à guarda de orçamento novos tetos, com o mundo vivo (ADR-0080). Os tetos que não vêm ficam como estão. Quem consome é a guarda, e não o kernel; ela responde com ops.budget.limits_changed.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    usd_per_sim_day: Annotated[float | None, Field(gt=0.0)] = None
+    """
+    O teto de cada dia simulado.
+    """
+    usd_per_ticket: Annotated[float | None, Field(gt=0.0)] = None
+    """
+    O teto de cada pedido do escritório (ADR-0080).
+    """
+    usd_total: Annotated[float | None, Field(gt=0.0)] = None
+    """
+    O teto do mundo inteiro.
+    """
+    reason: Annotated[str, Field(max_length=500, min_length=1)]
+
+
 class CmdRulesToggleV1(BaseModel):
     """
     Pede a alternância de uma regra (ADR-0015).
@@ -1675,6 +1698,13 @@ class LlmCallCompletedV1(BaseModel):
     """
     O avatar em nome de quem se decidiu, quando houver.
     """
+    ticket_id: Annotated[
+        str | None,
+        Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId"),
+    ] = None
+    """
+    O pedido do escritório em que a mente trabalhava (ADR-0080): a guarda soma o gasto por pedido.
+    """
     provider: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
     """
     O provedor do adaptador: anthropic, openrouter…
@@ -2139,6 +2169,60 @@ class OpsBudgetExceededV1(BaseModel):
     """
 
 
+class OpsBudgetExceededV2(BaseModel):
+    """
+    O gasto com modelos estourou um teto (ADR-0058, ADR-0080). No dia e no total, o que acontece é do mundo (`budget.on_exceeded`): a guarda pausa o mundo (`paused`) ou, no escritório, a mente desliga e a rotina assume, com o mundo seguindo. No pedido, o mundo nunca pausa: a mente larga aquele pedido. Substitui o v1.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    scope: Literal["day", "ticket", "total"]
+    """
+    O teto do dia simulado, o de um pedido do escritório (ADR-0080) ou o do mundo inteiro.
+    """
+    day: Annotated[int | None, Field(ge=1, title="Day")] = None
+    """
+    O dia simulado, quando o escopo é day.
+    """
+    ticket_id: Annotated[
+        str | None,
+        Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId"),
+    ] = None
+    """
+    O pedido, quando o escopo é ticket.
+    """
+    spent_usd: Annotated[float, Field(ge=0.0)]
+    limit_usd: Annotated[float, Field(gt=0.0)]
+    paused: bool
+    """
+    Verdadeiro quando a guarda publicou cmd.clock.pause com reason budget. Falso no escritório (a mente desliga) e no teto de um pedido.
+    """
+
+
+class OpsBudgetLimitsChangedV1(BaseModel):
+    """
+    A guarda de orçamento passou a valer com estes tetos, pedidos pelo operador com cmd.ops.budget.set (ADR-0080). São os tetos inteiros, depois da mudança. Um teto que sobe acima do gasto deixa de estar estourado, e os avisos dele voltam a valer.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    usd_per_sim_day: Annotated[float, Field(gt=0.0)]
+    """
+    O teto de cada dia simulado.
+    """
+    usd_per_ticket: Annotated[float | None, Field(gt=0.0)] = None
+    """
+    O teto de cada pedido do escritório (ADR-0080).
+    """
+    usd_total: Annotated[float, Field(gt=0.0)]
+    """
+    O teto do mundo inteiro.
+    """
+    reason: Annotated[str, Field(max_length=500, min_length=1)]
+
+
 class OpsBudgetThresholdReachedV1(BaseModel):
     """
     O gasto com modelos passou de 50, 80 ou 100% de um teto (ADR-0058). Publicado pela guarda de orçamento.
@@ -2154,6 +2238,34 @@ class OpsBudgetThresholdReachedV1(BaseModel):
     day: Annotated[int | None, Field(ge=1, title="Day")] = None
     """
     O dia simulado, quando o escopo é day.
+    """
+    spent_usd: Annotated[float, Field(ge=0.0)]
+    limit_usd: Annotated[float, Field(gt=0.0)]
+    threshold_pct: Literal[50, 80, 100]
+
+
+class OpsBudgetThresholdReachedV2(BaseModel):
+    """
+    O gasto com modelos passou de 50, 80 ou 100% de um teto (ADR-0058, ADR-0080): do dia, de um pedido ou do total. Publicado pela guarda de orçamento. Substitui o v1, que não tinha o teto por pedido.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    scope: Literal["day", "ticket", "total"]
+    """
+    O teto do dia simulado, o de um pedido do escritório (ADR-0080) ou o do mundo inteiro.
+    """
+    day: Annotated[int | None, Field(ge=1, title="Day")] = None
+    """
+    O dia simulado, quando o escopo é day.
+    """
+    ticket_id: Annotated[
+        str | None,
+        Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId"),
+    ] = None
+    """
+    O pedido, quando o escopo é ticket.
     """
     spent_usd: Annotated[float, Field(ge=0.0)]
     limit_usd: Annotated[float, Field(gt=0.0)]
@@ -3228,6 +3340,65 @@ class WorldWeatherChangedV1(BaseModel):
     """
 
 
+class BudgetLimits(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    usd_per_sim_day: Annotated[float, Field(gt=0.0)]
+    """
+    O teto de cada dia simulado.
+    """
+    usd_per_ticket: Annotated[float | None, Field(gt=0.0)] = None
+    """
+    O teto de cada pedido do escritório (ADR-0080).
+    """
+    usd_total: Annotated[float, Field(gt=0.0)]
+    """
+    O teto do mundo inteiro.
+    """
+
+
+class ExceededItem(RootModel[str]):
+    root: Annotated[str, Field(max_length=64, min_length=1)]
+
+
+class LiveBudgetV1(BaseModel):
+    """
+    O sinal de vida da guarda de orçamento (ADR-0080), como o pulso do kernel (ADR-0051): os tetos e o gasto, a cada pulse_seconds de tempo real. Vai para campsverso.<mundo>.live.budget, que nenhum stream guarda. Sem ele, a mente do escritório desliga e a rotina assume.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    type: Literal["campsverso.live.budget.v1"]
+    worldid: Annotated[str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$")]
+    limits: Annotated[BudgetLimits, Field(title="BudgetLimits")]
+    spent_total_usd: Annotated[float, Field(ge=0.0)]
+    """
+    O gasto desde o começo do mundo.
+    """
+    spent_day_usd: Annotated[float | None, Field(ge=0.0)] = None
+    """
+    O gasto do último dia com chamadas.
+    """
+    day: Annotated[int | None, Field(ge=1, title="Day")] = None
+    """
+    Esse dia.
+    """
+    exceeded: Annotated[list[ExceededItem], Field(max_length=64)]
+    """
+    Os tetos estourados agora: day (o do último dia), total, ou o id de um pedido.
+    """
+    pulse_seconds: Annotated[float, Field(gt=0.0)]
+    """
+    O intervalo entre sinais; quem escuta usa para saber quando a guarda ficou sem sinal.
+    """
+    sent_at: AwareDatetime
+    """
+    Relógio de parede de quem mandou.
+    """
+
+
 class LiveKernelV1(BaseModel):
     """
     Pulso do kernel: o tick de verdade e o relógio, a cada kernel.pulse_seconds de tempo real. Vai para campsverso.<mundo>.live.kernel, que nenhum stream guarda: não entra no histórico, no arquivo JSONL nem no replay (ADR-0051).
@@ -3602,7 +3773,7 @@ class ObserverMindCost(BaseModel):
 
 class ObserverBudget(BaseModel):
     """
-    O último aviso da guarda de orçamento (ADR-0058).
+    O último aviso da guarda de orçamento (ADR-0058; o teto por pedido, ADR-0080).
     """
 
     model_config = ConfigDict(
@@ -3612,6 +3783,13 @@ class ObserverBudget(BaseModel):
     day: Annotated[int | None, Field(ge=1, title="Day")] = None
     """
     Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+    ticket_id: Annotated[
+        str | None,
+        Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId"),
+    ] = None
+    """
+    O pedido, quando o escopo é ticket (ADR-0080).
     """
     spent_usd: Annotated[float, Field(ge=0.0)]
     limit_usd: Annotated[float, Field(ge=0.0)]
@@ -3626,9 +3804,46 @@ class ObserverBudget(BaseModel):
     """
 
 
+class ObserverGuardLimits(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    usd_per_sim_day: Annotated[float, Field(gt=0.0)]
+    """
+    O teto de cada dia simulado.
+    """
+    usd_per_ticket: Annotated[float | None, Field(gt=0.0)] = None
+    """
+    O teto de cada pedido do escritório (ADR-0080).
+    """
+    usd_total: Annotated[float, Field(gt=0.0)]
+    """
+    O teto do mundo inteiro.
+    """
+
+
+class ObserverGuard(BaseModel):
+    """
+    O último sinal de vida da guarda de orçamento (ADR-0080): os tetos de agora, o gasto e o que está estourado. `alive` vira falso depois de 3 sinais perdidos. Ausente até o primeiro sinal.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    alive: bool
+    limits: Annotated[ObserverGuardLimits, Field(title="ObserverGuardLimits")]
+    spent_total_usd: Annotated[float, Field(ge=0.0)]
+    spent_day_usd: Annotated[float | None, Field(ge=0.0)] = None
+    day: Annotated[int | None, Field(ge=1, title="Day")] = None
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+    exceeded: Annotated[list[ExceededItem], Field(max_length=64)]
+
+
 class ObserverCosts(BaseModel):
     """
-    O que as chamadas de modelo custaram (ADR-0074), projetado dos eventos llm.call.completed cobrados e dos avisos ops.budget.*: por controlador, o gasto do último dia com chamadas e o total; e o último aviso do orçamento. Só a visão do operador o vê.
+    O que as chamadas de modelo custaram (ADR-0074), projetado dos eventos llm.call.completed cobrados e dos avisos ops.budget.*: por controlador, o gasto do último dia com chamadas e o total; e o último aviso do orçamento. Só a visão do operador o vê; e o sinal de vida da guarda (ADR-0080).
     """
 
     model_config = ConfigDict(
@@ -3640,7 +3855,11 @@ class ObserverCosts(BaseModel):
     """
     budget: Annotated[ObserverBudget | None, Field(title="ObserverBudget")] = None
     """
-    O último aviso da guarda de orçamento (ADR-0058).
+    O último aviso da guarda de orçamento (ADR-0058; o teto por pedido, ADR-0080).
+    """
+    guard: Annotated[ObserverGuard | None, Field(title="ObserverGuard")] = None
+    """
+    O último sinal de vida da guarda de orçamento (ADR-0080): os tetos de agora, o gasto e o que está estourado. `alive` vira falso depois de 3 sinais perdidos. Ausente até o primeiro sinal.
     """
 
 
@@ -3738,7 +3957,7 @@ class ObserverState(BaseModel):
     """
     costs: Annotated[ObserverCosts | None, Field(title="ObserverCosts")] = None
     """
-    O que as chamadas de modelo custaram (ADR-0074), projetado dos eventos llm.call.completed cobrados e dos avisos ops.budget.*: por controlador, o gasto do último dia com chamadas e o total; e o último aviso do orçamento. Só a visão do operador o vê.
+    O que as chamadas de modelo custaram (ADR-0074), projetado dos eventos llm.call.completed cobrados e dos avisos ops.budget.*: por controlador, o gasto do último dia com chamadas e o total; e o último aviso do orçamento. Só a visão do operador o vê; e o sinal de vida da guarda (ADR-0080).
     """
     decisions: dict[str, ObserverDecision]
     metrics: dict[str, dict[str, float | dict[str, float]]] | None = None

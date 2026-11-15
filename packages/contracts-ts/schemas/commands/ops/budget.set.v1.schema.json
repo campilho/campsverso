@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://commands/ops/budget.set.v1",
+  "title": "CmdOpsBudgetSetV1",
+  "description": "Pede à guarda de orçamento novos tetos, com o mundo vivo (ADR-0080). Os tetos que não vêm ficam como estão. Quem consome é a guarda, e não o kernel; ela responde com ops.budget.limits_changed.",
+  "x-type": "campsverso.cmd.ops.budget.set.v1",
+  "x-visibility": "observer",
+  "x-producer": "operator",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "reason"
+  ],
+  "minProperties": 2,
+  "properties": {
+    "usd_per_sim_day": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "O teto de cada dia simulado."
+    },
+    "usd_per_ticket": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "O teto de cada pedido do escritório (ADR-0080)."
+    },
+    "usd_total": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "O teto do mundo inteiro."
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    }
+  }
+}

@@ -33,6 +33,10 @@
       "$ref": "contracts://common/defs.v1#/$defs/entity_id",
       "description": "O avatar em nome de quem se decidiu, quando houver."
     },
+    "ticket_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "O pedido do escritório em que a mente trabalhava (ADR-0080): a guarda soma o gasto por pedido."
+    },
     "provider": {
       "$ref": "contracts://common/defs.v1#/$defs/token",
       "description": "O provedor do adaptador: anthropic, openrouter…"

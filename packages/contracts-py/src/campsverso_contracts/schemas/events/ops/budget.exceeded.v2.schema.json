@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/ops/budget.exceeded.v2",
+  "title": "OpsBudgetExceededV2",
+  "description": "O gasto com modelos estourou um teto (ADR-0058, ADR-0080). No dia e no total, o que acontece é do mundo (`budget.on_exceeded`): a guarda pausa o mundo (`paused`) ou, no escritório, a mente desliga e a rotina assume, com o mundo seguindo. No pedido, o mundo nunca pausa: a mente larga aquele pedido. Substitui o v1.",
+  "x-type": "campsverso.ops.budget.exceeded.v2",
+  "x-visibility": "observer",
+  "x-producer": "budget",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "scope",
+    "spent_usd",
+    "limit_usd",
+    "paused"
+  ],
+  "properties": {
+    "scope": {
+      "enum": [
+        "day",
+        "ticket",
+        "total"
+      ],
+      "description": "O teto do dia simulado, o de um pedido do escritório (ADR-0080) ou o do mundo inteiro."
+    },
+    "day": {
+      "$ref": "contracts://common/defs.v1#/$defs/day",
+      "description": "O dia simulado, quando o escopo é day."
+    },
+    "ticket_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "O pedido, quando o escopo é ticket."
+    },
+    "spent_usd": {
+      "type": "number",
+      "minimum": 0
+    },
+    "limit_usd": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "paused": {
+      "type": "boolean",
+      "description": "Verdadeiro quando a guarda publicou cmd.clock.pause com reason budget. Falso no escritório (a mente desliga) e no teto de um pedido."
+    }
+  }
+}

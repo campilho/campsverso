@@ -557,8 +557,10 @@ async def run_spec(
     if api is not None:
         await api.aclose()  # antes de o laço desta corrida fechar
     report = compute(pipeline.envelopes)
+    # Os tetos como sempre saíram no arquivo da corrida: sem o do pedido, que a fazenda não tem.
+    limits = None if spec.limits is None else spec.limits.export()
     result: dict[str, Any] = {
-        "spec": asdict(spec),
+        "spec": {**asdict(spec), "limits": limits},
         **summary(pipeline),
         "aborted_day": aborted,
         "budget_day": budget_day,

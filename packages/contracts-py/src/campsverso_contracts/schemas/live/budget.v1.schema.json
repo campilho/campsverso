@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://live/budget.v1",
+  "title": "LiveBudgetV1",
+  "description": "O sinal de vida da guarda de orçamento (ADR-0080), como o pulso do kernel (ADR-0051): os tetos e o gasto, a cada pulse_seconds de tempo real. Vai para campsverso.<mundo>.live.budget, que nenhum stream guarda. Sem ele, a mente do escritório desliga e a rotina assume.",
+  "x-message": "campsverso.live.budget.v1",
+  "x-producer": "budget",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "type",
+    "worldid",
+    "limits",
+    "spent_total_usd",
+    "exceeded",
+    "pulse_seconds",
+    "sent_at"
+  ],
+  "properties": {
+    "type": {
+      "const": "campsverso.live.budget.v1"
+    },
+    "worldid": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "limits": {
+      "type": "object",
+      "title": "BudgetLimits",
+      "additionalProperties": false,
+      "required": [
+        "usd_per_sim_day",
+        "usd_total"
+      ],
+      "properties": {
+        "usd_per_sim_day": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "O teto de cada dia simulado."
+        },
+        "usd_per_ticket": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "O teto de cada pedido do escritório (ADR-0080)."
+        },
+        "usd_total": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "O teto do mundo inteiro."
+        }
+      }
+    },
+    "spent_total_usd": {
+      "type": "number",
+      "minimum": 0,
+      "description": "O gasto desde o começo do mundo."
+    },
+    "spent_day_usd": {
+      "type": "number",
+      "minimum": 0,
+      "description": "O gasto do último dia com chamadas."
+    },
+    "day": {
+      "$ref": "contracts://common/defs.v1#/$defs/day",
+      "description": "Esse dia."
+    },
+    "exceeded": {
+      "type": "array",
+      "description": "Os tetos estourados agora: day (o do último dia), total, ou o id de um pedido.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      },
+      "maxItems": 64
+    },
+    "pulse_seconds": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "O intervalo entre sinais; quem escuta usa para saber quando a guarda ficou sem sinal."
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Relógio de parede de quem mandou."
+    }
+  }
+}

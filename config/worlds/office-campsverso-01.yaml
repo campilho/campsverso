@@ -18,3 +18,12 @@ clock:  # estado inicial do relógio; depois, só por comandos
 helpers:  # o vigia, que fica sempre que o dev não está
   script: escritorio  # entry point campsverso.controllers (cartridges/office/script)
   avatars: [vigia]
+
+# Tetos de gasto com modelos (ADR-0058, ADR-0080). No escritório, o teto do dia ou do total desliga
+# a mente e a rotina conduz o dev, sem pausar o mundo; o de um pedido faz a mente largá-lo. Os
+# números são provisórios, até a mente chegar (M24, parte 3); o operador os muda com o mundo vivo.
+budget:
+  usd_per_sim_day: 3.00
+  usd_per_ticket: 1.00
+  usd_total: 30.00
+  on_exceeded: mind_off

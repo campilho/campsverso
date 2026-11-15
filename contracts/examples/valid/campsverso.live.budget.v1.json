@@ -1,0 +1,17 @@
+{
+  "type": "campsverso.live.budget.v1",
+  "worldid": "office-campsverso-01",
+  "limits": {
+    "usd_per_sim_day": 3.0,
+    "usd_per_ticket": 1.0,
+    "usd_total": 30.0
+  },
+  "spent_total_usd": 4.37,
+  "spent_day_usd": 1.12,
+  "day": 8,
+  "exceeded": [
+    "pedido-3"
+  ],
+  "pulse_seconds": 5,
+  "sent_at": "2026-11-16T12:01:05.120Z"
+}

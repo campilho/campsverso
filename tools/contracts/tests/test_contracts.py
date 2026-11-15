@@ -15,15 +15,16 @@ def test_exemplos_do_repositorio_validam_e_cobrem_todos_os_tipos(
     assert checks.check_examples(contracts) == []
 
 
-def test_catalogo_tem_71_eventos_e_10_comandos(contracts: catalog.Contracts) -> None:
+def test_catalogo_tem_74_eventos_e_11_comandos(contracts: catalog.Contracts) -> None:
     """Os 38 da v0.1, os dois de sono v2 (ADR-0042), o delta da percepção (ADR-0056), os quatro de
     modelo e orçamento (ADR-0058), os cinco de memória (ADR-0060), a entidade guardada
     (ADR-0062), a entidade removida, a troca de estação e a planta comida (ADR-0067), a entrada
-    e a saída do avatar e os três do contrato de trabalho (ADR-0072), e a fala, o relógio que
-    alcança o real, com o comando dele, e os cinco do pedido do escritório (ADR-0078)."""
+    e a saída do avatar e os três do contrato de trabalho (ADR-0072), a fala, o relógio que
+    alcança o real, com o comando dele, e os cinco do pedido do escritório (ADR-0078), e os dois
+    avisos do orçamento na v2, os tetos mudados e o comando deles (ADR-0080)."""
     kinds = [f.kind for f in contracts.by_type.values()]
-    assert kinds.count("event") == 71
-    assert kinds.count("command") == 10
+    assert kinds.count("event") == 74
+    assert kinds.count("command") == 11
 
 
 def test_exemplo_invalido_em_valid_quebra_o_check(contracts_copy: Path) -> None:

@@ -86,7 +86,7 @@ async def test_a_tubulacao_da_mente_com_uma_porta_falsa() -> None:
     assert port.lengths[0] == 1  # a foto abre a janela
     assert max(port.lengths) > 20  # a janela cresce: cada delta é um turno
     assert port.lengths.count(1) == len(snapshots)  # e cada foto zera a janela
-    assert pipeline.of_type("ops.budget.exceeded.v1") == []
+    assert pipeline.of_type("ops.budget.exceeded.v2") == []
     assert pipeline.core.world.avatar_map["camps"].controller.id == LLM_ID
 
 
@@ -129,7 +129,7 @@ async def test_dois_dias_do_camps_pela_fita() -> None:
     assert pipeline.mind.no_tool <= 2  # uma narração sem ferramenta vira `wait`; acontece
     assert pipeline.mind.reflections >= 1
     assert pipeline.of_type("avatar.fainted.v1") == []
-    assert pipeline.of_type("ops.budget.exceeded.v1") == []
+    assert pipeline.of_type("ops.budget.exceeded.v2") == []
     done = Counter(str(a["action"]) for a in pipeline.of_type("action.completed.v1"))
     assert done["plant"] >= 8
     assert done["sleep"] >= 1
@@ -237,7 +237,7 @@ async def test_dois_dias_do_camps_na_boa_vista_pela_fita() -> None:
     assert _by(calls, "charged") == {False}
     assert pipeline.mind is not None
     assert pipeline.mind.reflections >= 1
-    assert pipeline.of_type("ops.budget.exceeded.v1") == []
+    assert pipeline.of_type("ops.budget.exceeded.v2") == []
     done = Counter(str(a["action"]) for a in pipeline.of_type("action.completed.v1"))
     assert done["dig"] >= 2
     assert done["plant"] >= 2

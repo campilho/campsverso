@@ -509,7 +509,7 @@
         "costs": {
           "type": "object",
           "title": "ObserverCosts",
-          "description": "O que as chamadas de modelo custaram (ADR-0074), projetado dos eventos llm.call.completed cobrados e dos avisos ops.budget.*: por controlador, o gasto do último dia com chamadas e o total; e o último aviso do orçamento. Só a visão do operador o vê.",
+          "description": "O que as chamadas de modelo custaram (ADR-0074), projetado dos eventos llm.call.completed cobrados e dos avisos ops.budget.*: por controlador, o gasto do último dia com chamadas e o total; e o último aviso do orçamento. Só a visão do operador o vê; e o sinal de vida da guarda (ADR-0080).",
           "additionalProperties": false,
           "properties": {
             "minds": {
@@ -567,7 +567,7 @@
             "budget": {
               "type": "object",
               "title": "ObserverBudget",
-              "description": "O último aviso da guarda de orçamento (ADR-0058).",
+              "description": "O último aviso da guarda de orçamento (ADR-0058; o teto por pedido, ADR-0080).",
               "additionalProperties": false,
               "required": [
                 "scope",
@@ -582,6 +582,10 @@
                 },
                 "day": {
                   "$ref": "contracts://common/defs.v1#/$defs/day"
+                },
+                "ticket_id": {
+                  "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+                  "description": "O pedido, quando o escopo é ticket (ADR-0080)."
                 },
                 "spent_usd": {
                   "type": "number",
@@ -602,6 +606,69 @@
                 "paused": {
                   "type": "boolean",
                   "description": "A guarda pausou o mundo."
+                }
+              }
+            },
+            "guard": {
+              "type": "object",
+              "title": "ObserverGuard",
+              "additionalProperties": false,
+              "description": "O último sinal de vida da guarda de orçamento (ADR-0080): os tetos de agora, o gasto e o que está estourado. `alive` vira falso depois de 3 sinais perdidos. Ausente até o primeiro sinal.",
+              "required": [
+                "alive",
+                "limits",
+                "spent_total_usd",
+                "exceeded"
+              ],
+              "properties": {
+                "alive": {
+                  "type": "boolean"
+                },
+                "limits": {
+                  "type": "object",
+                  "title": "ObserverGuardLimits",
+                  "additionalProperties": false,
+                  "required": [
+                    "usd_per_sim_day",
+                    "usd_total"
+                  ],
+                  "properties": {
+                    "usd_per_sim_day": {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "description": "O teto de cada dia simulado."
+                    },
+                    "usd_per_ticket": {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "description": "O teto de cada pedido do escritório (ADR-0080)."
+                    },
+                    "usd_total": {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "description": "O teto do mundo inteiro."
+                    }
+                  }
+                },
+                "spent_total_usd": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "spent_day_usd": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "day": {
+                  "$ref": "contracts://common/defs.v1#/$defs/day"
+                },
+                "exceeded": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "maxItems": 64
                 }
               }
             }

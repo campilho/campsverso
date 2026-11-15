@@ -1041,6 +1041,38 @@
         }
       }
     },
+    "CmdOpsBudgetSetV1": {
+      "title": "CmdOpsBudgetSetV1",
+      "description": "Pede à guarda de orçamento novos tetos, com o mundo vivo (ADR-0080). Os tetos que não vêm ficam como estão. Quem consome é a guarda, e não o kernel; ela responde com ops.budget.limits_changed.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reason"
+      ],
+      "minProperties": 2,
+      "properties": {
+        "usd_per_sim_day": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "O teto de cada dia simulado."
+        },
+        "usd_per_ticket": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "O teto de cada pedido do escritório (ADR-0080)."
+        },
+        "usd_total": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "O teto do mundo inteiro."
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      }
+    },
     "CmdRulesToggleV1": {
       "title": "CmdRulesToggleV1",
       "description": "Pede a alternância de uma regra (ADR-0015).",
@@ -2186,6 +2218,10 @@
           "$ref": "#/$defs/EntityId",
           "description": "O avatar em nome de quem se decidiu, quando houver."
         },
+        "ticket_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "O pedido do escritório em que a mente trabalhava (ADR-0080): a guarda soma o gasto por pedido."
+        },
         "provider": {
           "$ref": "#/$defs/Token",
           "description": "O provedor do adaptador: anthropic, openrouter…"
@@ -2813,6 +2849,81 @@
         }
       }
     },
+    "OpsBudgetExceededV2": {
+      "title": "OpsBudgetExceededV2",
+      "description": "O gasto com modelos estourou um teto (ADR-0058, ADR-0080). No dia e no total, o que acontece é do mundo (`budget.on_exceeded`): a guarda pausa o mundo (`paused`) ou, no escritório, a mente desliga e a rotina assume, com o mundo seguindo. No pedido, o mundo nunca pausa: a mente larga aquele pedido. Substitui o v1.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "spent_usd",
+        "limit_usd",
+        "paused"
+      ],
+      "properties": {
+        "scope": {
+          "enum": [
+            "day",
+            "ticket",
+            "total"
+          ],
+          "description": "O teto do dia simulado, o de um pedido do escritório (ADR-0080) ou o do mundo inteiro."
+        },
+        "day": {
+          "$ref": "#/$defs/Day",
+          "description": "O dia simulado, quando o escopo é day."
+        },
+        "ticket_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "O pedido, quando o escopo é ticket."
+        },
+        "spent_usd": {
+          "type": "number",
+          "minimum": 0
+        },
+        "limit_usd": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "paused": {
+          "type": "boolean",
+          "description": "Verdadeiro quando a guarda publicou cmd.clock.pause com reason budget. Falso no escritório (a mente desliga) e no teto de um pedido."
+        }
+      }
+    },
+    "OpsBudgetLimitsChangedV1": {
+      "title": "OpsBudgetLimitsChangedV1",
+      "description": "A guarda de orçamento passou a valer com estes tetos, pedidos pelo operador com cmd.ops.budget.set (ADR-0080). São os tetos inteiros, depois da mudança. Um teto que sobe acima do gasto deixa de estar estourado, e os avisos dele voltam a valer.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "usd_per_sim_day",
+        "usd_total",
+        "reason"
+      ],
+      "properties": {
+        "usd_per_sim_day": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "O teto de cada dia simulado."
+        },
+        "usd_per_ticket": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "O teto de cada pedido do escritório (ADR-0080)."
+        },
+        "usd_total": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "O teto do mundo inteiro."
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      }
+    },
     "OpsBudgetThresholdReachedV1": {
       "title": "OpsBudgetThresholdReachedV1",
       "description": "O gasto com modelos passou de 50, 80 ou 100% de um teto (ADR-0058). Publicado pela guarda de orçamento.",
@@ -2835,6 +2946,51 @@
         "day": {
           "$ref": "#/$defs/Day",
           "description": "O dia simulado, quando o escopo é day."
+        },
+        "spent_usd": {
+          "type": "number",
+          "minimum": 0
+        },
+        "limit_usd": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "threshold_pct": {
+          "enum": [
+            50,
+            80,
+            100
+          ]
+        }
+      }
+    },
+    "OpsBudgetThresholdReachedV2": {
+      "title": "OpsBudgetThresholdReachedV2",
+      "description": "O gasto com modelos passou de 50, 80 ou 100% de um teto (ADR-0058, ADR-0080): do dia, de um pedido ou do total. Publicado pela guarda de orçamento. Substitui o v1, que não tinha o teto por pedido.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "threshold_pct",
+        "spent_usd",
+        "limit_usd"
+      ],
+      "properties": {
+        "scope": {
+          "enum": [
+            "day",
+            "ticket",
+            "total"
+          ],
+          "description": "O teto do dia simulado, o de um pedido do escritório (ADR-0080) ou o do mundo inteiro."
+        },
+        "day": {
+          "$ref": "#/$defs/Day",
+          "description": "O dia simulado, quando o escopo é day."
+        },
+        "ticket_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "O pedido, quando o escopo é ticket."
         },
         "spent_usd": {
           "type": "number",
@@ -4145,6 +4301,91 @@
         }
       }
     },
+    "LiveBudgetV1": {
+      "title": "LiveBudgetV1",
+      "description": "O sinal de vida da guarda de orçamento (ADR-0080), como o pulso do kernel (ADR-0051): os tetos e o gasto, a cada pulse_seconds de tempo real. Vai para campsverso.<mundo>.live.budget, que nenhum stream guarda. Sem ele, a mente do escritório desliga e a rotina assume.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "worldid",
+        "limits",
+        "spent_total_usd",
+        "exceeded",
+        "pulse_seconds",
+        "sent_at"
+      ],
+      "properties": {
+        "type": {
+          "const": "campsverso.live.budget.v1"
+        },
+        "worldid": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 64
+        },
+        "limits": {
+          "type": "object",
+          "title": "BudgetLimits",
+          "additionalProperties": false,
+          "required": [
+            "usd_per_sim_day",
+            "usd_total"
+          ],
+          "properties": {
+            "usd_per_sim_day": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "O teto de cada dia simulado."
+            },
+            "usd_per_ticket": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "O teto de cada pedido do escritório (ADR-0080)."
+            },
+            "usd_total": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "O teto do mundo inteiro."
+            }
+          }
+        },
+        "spent_total_usd": {
+          "type": "number",
+          "minimum": 0,
+          "description": "O gasto desde o começo do mundo."
+        },
+        "spent_day_usd": {
+          "type": "number",
+          "minimum": 0,
+          "description": "O gasto do último dia com chamadas."
+        },
+        "day": {
+          "$ref": "#/$defs/Day",
+          "description": "Esse dia."
+        },
+        "exceeded": {
+          "type": "array",
+          "description": "Os tetos estourados agora: day (o do último dia), total, ou o id de um pedido.",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "maxItems": 64
+        },
+        "pulse_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "O intervalo entre sinais; quem escuta usa para saber quando a guarda ficou sem sinal."
+        },
+        "sent_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Relógio de parede de quem mandou."
+        }
+      }
+    },
     "LiveKernelV1": {
       "title": "LiveKernelV1",
       "description": "Pulso do kernel: o tick de verdade e o relógio, a cada kernel.pulse_seconds de tempo real. Vai para campsverso.<mundo>.live.kernel, que nenhum stream guarda: não entra no histórico, no arquivo JSONL nem no replay (ADR-0051).",
@@ -4785,7 +5026,7 @@
             "costs": {
               "type": "object",
               "title": "ObserverCosts",
-              "description": "O que as chamadas de modelo custaram (ADR-0074), projetado dos eventos llm.call.completed cobrados e dos avisos ops.budget.*: por controlador, o gasto do último dia com chamadas e o total; e o último aviso do orçamento. Só a visão do operador o vê.",
+              "description": "O que as chamadas de modelo custaram (ADR-0074), projetado dos eventos llm.call.completed cobrados e dos avisos ops.budget.*: por controlador, o gasto do último dia com chamadas e o total; e o último aviso do orçamento. Só a visão do operador o vê; e o sinal de vida da guarda (ADR-0080).",
               "additionalProperties": false,
               "properties": {
                 "minds": {
@@ -4839,7 +5080,7 @@
                 "budget": {
                   "type": "object",
                   "title": "ObserverBudget",
-                  "description": "O último aviso da guarda de orçamento (ADR-0058).",
+                  "description": "O último aviso da guarda de orçamento (ADR-0058; o teto por pedido, ADR-0080).",
                   "additionalProperties": false,
                   "required": [
                     "scope",
@@ -4854,6 +5095,10 @@
                     },
                     "day": {
                       "$ref": "#/$defs/Day"
+                    },
+                    "ticket_id": {
+                      "$ref": "#/$defs/EntityId",
+                      "description": "O pedido, quando o escopo é ticket (ADR-0080)."
                     },
                     "spent_usd": {
                       "type": "number",
@@ -4874,6 +5119,69 @@
                     "paused": {
                       "type": "boolean",
                       "description": "A guarda pausou o mundo."
+                    }
+                  }
+                },
+                "guard": {
+                  "type": "object",
+                  "title": "ObserverGuard",
+                  "additionalProperties": false,
+                  "description": "O último sinal de vida da guarda de orçamento (ADR-0080): os tetos de agora, o gasto e o que está estourado. `alive` vira falso depois de 3 sinais perdidos. Ausente até o primeiro sinal.",
+                  "required": [
+                    "alive",
+                    "limits",
+                    "spent_total_usd",
+                    "exceeded"
+                  ],
+                  "properties": {
+                    "alive": {
+                      "type": "boolean"
+                    },
+                    "limits": {
+                      "type": "object",
+                      "title": "ObserverGuardLimits",
+                      "additionalProperties": false,
+                      "required": [
+                        "usd_per_sim_day",
+                        "usd_total"
+                      ],
+                      "properties": {
+                        "usd_per_sim_day": {
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "description": "O teto de cada dia simulado."
+                        },
+                        "usd_per_ticket": {
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "description": "O teto de cada pedido do escritório (ADR-0080)."
+                        },
+                        "usd_total": {
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "description": "O teto do mundo inteiro."
+                        }
+                      }
+                    },
+                    "spent_total_usd": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "spent_day_usd": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "day": {
+                      "$ref": "#/$defs/Day"
+                    },
+                    "exceeded": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
+                      },
+                      "maxItems": 64
                     }
                   }
                 }

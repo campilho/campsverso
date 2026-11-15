@@ -746,6 +746,27 @@ export interface CmdClockStepV1 {
   ticks: number;
 }
 /**
+ * Pede à guarda de orçamento novos tetos, com o mundo vivo (ADR-0080). Os tetos que não vêm ficam como estão. Quem consome é a guarda, e não o kernel; ela responde com ops.budget.limits_changed.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "CmdOpsBudgetSetV1".
+ */
+export interface CmdOpsBudgetSetV1 {
+  /**
+   * O teto de cada dia simulado.
+   */
+  usd_per_sim_day?: number;
+  /**
+   * O teto de cada pedido do escritório (ADR-0080).
+   */
+  usd_per_ticket?: number;
+  /**
+   * O teto do mundo inteiro.
+   */
+  usd_total?: number;
+  reason: string;
+}
+/**
  * Pede a alternância de uma regra (ADR-0015).
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
@@ -1238,6 +1259,7 @@ export interface LlmCallCompletedV1 {
   controller: ControllerRef;
   purpose: Token;
   avatar_id?: EntityId;
+  ticket_id?: EntityId;
   provider: Token;
   model: string;
   /**
@@ -1527,6 +1549,47 @@ export interface OpsBudgetExceededV1 {
   paused: boolean;
 }
 /**
+ * O gasto com modelos estourou um teto (ADR-0058, ADR-0080). No dia e no total, o que acontece é do mundo (`budget.on_exceeded`): a guarda pausa o mundo (`paused`) ou, no escritório, a mente desliga e a rotina assume, com o mundo seguindo. No pedido, o mundo nunca pausa: a mente larga aquele pedido. Substitui o v1.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "OpsBudgetExceededV2".
+ */
+export interface OpsBudgetExceededV2 {
+  /**
+   * O teto do dia simulado, o de um pedido do escritório (ADR-0080) ou o do mundo inteiro.
+   */
+  scope: "day" | "ticket" | "total";
+  day?: Day;
+  ticket_id?: EntityId;
+  spent_usd: number;
+  limit_usd: number;
+  /**
+   * Verdadeiro quando a guarda publicou cmd.clock.pause com reason budget. Falso no escritório (a mente desliga) e no teto de um pedido.
+   */
+  paused: boolean;
+}
+/**
+ * A guarda de orçamento passou a valer com estes tetos, pedidos pelo operador com cmd.ops.budget.set (ADR-0080). São os tetos inteiros, depois da mudança. Um teto que sobe acima do gasto deixa de estar estourado, e os avisos dele voltam a valer.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "OpsBudgetLimitsChangedV1".
+ */
+export interface OpsBudgetLimitsChangedV1 {
+  /**
+   * O teto de cada dia simulado.
+   */
+  usd_per_sim_day: number;
+  /**
+   * O teto de cada pedido do escritório (ADR-0080).
+   */
+  usd_per_ticket?: number;
+  /**
+   * O teto do mundo inteiro.
+   */
+  usd_total: number;
+  reason: string;
+}
+/**
  * O gasto com modelos passou de 50, 80 ou 100% de um teto (ADR-0058). Publicado pela guarda de orçamento.
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
@@ -1538,6 +1601,23 @@ export interface OpsBudgetThresholdReachedV1 {
    */
   scope: "day" | "total";
   day?: Day;
+  spent_usd: number;
+  limit_usd: number;
+  threshold_pct: 50 | 80 | 100;
+}
+/**
+ * O gasto com modelos passou de 50, 80 ou 100% de um teto (ADR-0058, ADR-0080): do dia, de um pedido ou do total. Publicado pela guarda de orçamento. Substitui o v1, que não tinha o teto por pedido.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "OpsBudgetThresholdReachedV2".
+ */
+export interface OpsBudgetThresholdReachedV2 {
+  /**
+   * O teto do dia simulado, o de um pedido do escritório (ADR-0080) ou o do mundo inteiro.
+   */
+  scope: "day" | "ticket" | "total";
+  day?: Day;
+  ticket_id?: EntityId;
   spent_usd: number;
   limit_usd: number;
   threshold_pct: 50 | 80 | 100;
@@ -2083,6 +2163,54 @@ export interface WorldWeatherChangedV1 {
   forecast?: boolean;
 }
 /**
+ * O sinal de vida da guarda de orçamento (ADR-0080), como o pulso do kernel (ADR-0051): os tetos e o gasto, a cada pulse_seconds de tempo real. Vai para campsverso.<mundo>.live.budget, que nenhum stream guarda. Sem ele, a mente do escritório desliga e a rotina assume.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "LiveBudgetV1".
+ */
+export interface LiveBudgetV1 {
+  type: "campsverso.live.budget.v1";
+  worldid: string;
+  limits: BudgetLimits;
+  /**
+   * O gasto desde o começo do mundo.
+   */
+  spent_total_usd: number;
+  /**
+   * O gasto do último dia com chamadas.
+   */
+  spent_day_usd?: number;
+  day?: Day;
+  /**
+   * Os tetos estourados agora: day (o do último dia), total, ou o id de um pedido.
+   *
+   * @maxItems 64
+   */
+  exceeded: string[];
+  /**
+   * O intervalo entre sinais; quem escuta usa para saber quando a guarda ficou sem sinal.
+   */
+  pulse_seconds: number;
+  /**
+   * Relógio de parede de quem mandou.
+   */
+  sent_at: string;
+}
+export interface BudgetLimits {
+  /**
+   * O teto de cada dia simulado.
+   */
+  usd_per_sim_day: number;
+  /**
+   * O teto de cada pedido do escritório (ADR-0080).
+   */
+  usd_per_ticket?: number;
+  /**
+   * O teto do mundo inteiro.
+   */
+  usd_total: number;
+}
+/**
  * Pulso do kernel: o tick de verdade e o relógio, a cada kernel.pulse_seconds de tempo real. Vai para campsverso.<mundo>.live.kernel, que nenhum stream guarda: não entra no histórico, no arquivo JSONL nem no replay (ADR-0051).
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
@@ -2373,7 +2501,7 @@ export interface ObserverNote {
   text: string;
 }
 /**
- * O que as chamadas de modelo custaram (ADR-0074), projetado dos eventos llm.call.completed cobrados e dos avisos ops.budget.*: por controlador, o gasto do último dia com chamadas e o total; e o último aviso do orçamento. Só a visão do operador o vê.
+ * O que as chamadas de modelo custaram (ADR-0074), projetado dos eventos llm.call.completed cobrados e dos avisos ops.budget.*: por controlador, o gasto do último dia com chamadas e o total; e o último aviso do orçamento. Só a visão do operador o vê; e o sinal de vida da guarda (ADR-0080).
  */
 export interface ObserverCosts {
   /**
@@ -2383,6 +2511,7 @@ export interface ObserverCosts {
     [k: string]: ObserverMindCost | undefined;
   };
   budget?: ObserverBudget;
+  guard?: ObserverGuard;
 }
 export interface ObserverMindCost {
   avatar_id?: EntityId;
@@ -2406,11 +2535,12 @@ export interface ObserverMindCost {
   advisor_usd?: number;
 }
 /**
- * O último aviso da guarda de orçamento (ADR-0058).
+ * O último aviso da guarda de orçamento (ADR-0058; o teto por pedido, ADR-0080).
  */
 export interface ObserverBudget {
   scope: string;
   day?: Day;
+  ticket_id?: EntityId;
   spent_usd: number;
   limit_usd: number;
   threshold_pct?: number;
@@ -2422,6 +2552,34 @@ export interface ObserverBudget {
    * A guarda pausou o mundo.
    */
   paused?: boolean;
+}
+/**
+ * O último sinal de vida da guarda de orçamento (ADR-0080): os tetos de agora, o gasto e o que está estourado. `alive` vira falso depois de 3 sinais perdidos. Ausente até o primeiro sinal.
+ */
+export interface ObserverGuard {
+  alive: boolean;
+  limits: ObserverGuardLimits;
+  spent_total_usd: number;
+  spent_day_usd?: number;
+  day?: Day;
+  /**
+   * @maxItems 64
+   */
+  exceeded: string[];
+}
+export interface ObserverGuardLimits {
+  /**
+   * O teto de cada dia simulado.
+   */
+  usd_per_sim_day: number;
+  /**
+   * O teto de cada pedido do escritório (ADR-0080).
+   */
+  usd_per_ticket?: number;
+  /**
+   * O teto do mundo inteiro.
+   */
+  usd_total: number;
 }
 /**
  * Último pedido de decisão do avatar.

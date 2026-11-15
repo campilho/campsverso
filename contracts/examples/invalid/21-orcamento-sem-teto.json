@@ -1,0 +1,24 @@
+{
+  "expect_error": "payload_schema",
+  "description": "Comando de orçamento sem nenhum teto, só com o motivo.",
+  "event": {
+    "specversion": "1.0",
+    "id": "01a12d2b-6c36-726b-911f-ed5c8ad5b3a0",
+    "source": "/gateway/office-campsverso-01",
+    "type": "campsverso.cmd.ops.budget.set.v1",
+    "time": "2026-10-11T22:00:00Z",
+    "datacontenttype": "application/json",
+    "dataschema": "contracts://commands/ops/budget.set.v1",
+    "worldid": "office-campsverso-01",
+    "cartridge": "office_campsverso",
+    "tick": 16230,
+    "simtime": "2026-11-16T09:01:00-03:00",
+    "seq": 47,
+    "provenance": "simulated",
+    "visibility": "observer",
+    "data": {
+      "reason": "nada a mudar"
+    },
+    "actor": "human/operador"
+  }
+}
