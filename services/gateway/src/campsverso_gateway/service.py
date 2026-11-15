@@ -364,6 +364,10 @@ class GatewayService:
             return self._reply(request_id, "invalid_message", "`data` precisa ser um objeto")
         if command not in self._commands[view]:
             return self._reply(request_id, "not_allowed", f"a visão {view} não manda {command}")
+        target = cast(Mapping[str, Any], data).get("avatar_id")
+        if command in (POSSESS, RELEASE) and target != self._avatar:
+            # A cadeira do jogador é uma só (ADR-0078): no escritório, o gerente, e nunca o dev.
+            return self._reply(request_id, "not_allowed", f"esta tela só assume {self._avatar}")
         envelope = self._envelope(view, command, dict(cast(Mapping[str, Any], data)))
         problems = self._validator.validate(envelope)
         if problems:

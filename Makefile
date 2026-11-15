@@ -21,7 +21,7 @@ NATS_LOG := data/nats/nats-server.log
 NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR BUDGET MIND HELPERS
 
 .DEFAULT_GOAL := help
-.PHONY: help setup contracts check lint fmt types test arch contracts-check compat \
+.PHONY: help setup contracts check lint fmt types test arch contracts-check compat escritorio \
         up stop run ui ui-build sandbox jogar soak replay metrics ui-e2e mapa-visual mapa-variantes sessoes tools secrets fita corrida \
         arena arena-report arena-humano assistir juiz
 
@@ -93,6 +93,9 @@ stop: ## derruba o NATS que o make up subiu
 
 run: up ui-build ## sobe os cinco processos com o honcho (Procfile); UI em http://127.0.0.1:8765/?view=operator
 	$(PY) honcho start -f Procfile
+
+escritorio: up ui-build ## o escritório vivo (ADR-0078): a 1×, no relógio de São Paulo; entre como o gerente em http://127.0.0.1:8765/?assumir=1
+	MUNDO=office-campsverso-01 SCRIPT=dev $(PY) honcho start -f Procfile
 
 ui-build: ## compila a UI em apps/ui/dist, que o gateway serve
 	$(PNPM) -s --filter @campsverso/ui build

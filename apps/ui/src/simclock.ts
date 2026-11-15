@@ -123,7 +123,8 @@ function offsetMinutes(simTime: string): number {
   return match[1] === "-" ? -minutes : minutes;
 }
 
-/** Hora simulada (HH:MM) no tick dado, a partir da hora do último evento (`sim_time`). */
+/** Hora simulada (HH:MM) no tick dado, a partir da hora do último evento (`sim_time`). Num mundo
+ * de tick menor que o minuto (o escritório, em tempo real; ADR-0078), com os segundos. */
 export function clockText(state: ObserverState, tick: number): string {
   const base = state.sim_time === undefined ? Number.NaN : Date.parse(state.sim_time);
   if (state.sim_time === undefined || state.session === undefined || Number.isNaN(base)) {
@@ -131,5 +132,11 @@ export function clockText(state: ObserverState, tick: number): string {
   }
   const elapsed = (Math.floor(tick) - state.tick) * state.session.tick_seconds * 1000;
   const local = base + elapsed + offsetMinutes(state.sim_time) * 60_000;
-  return new Date(local).toISOString().slice(11, 16);
+  return new Date(local).toISOString().slice(11, state.session.tick_seconds < 60 ? 19 : 16);
+}
+
+/** O mundo anda em tempo real: um tick menor que o minuto (o escritório, ADR-0078). A tela não
+ * oferece mudar a velocidade dele. */
+export function realTime(state: ObserverState): boolean {
+  return (state.session?.tick_seconds ?? 60) < 60;
 }

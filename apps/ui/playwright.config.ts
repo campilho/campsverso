@@ -13,6 +13,7 @@ import { defineConfig } from "@playwright/test";
 const PORT = Number(process.env.CAMPSVERSO_E2E_PORT ?? "8799");
 const MORADA = PORT - 1;
 const ARENA = PORT - 2;
+const OFFICE = PORT - 3; // o escritório (ADR-0078)
 const WORLD = process.env.MUNDO ?? "farm-camps-01"; // MUNDO=farm-boavista-01 abre a fazenda 2 (ADR-0062)
 const ci = process.env.CI !== undefined;
 const stamp = String(Date.now());
@@ -58,10 +59,12 @@ export default defineConfig({
     { name: "fazenda", testMatch: /smoke\.spec\.ts/, use: { baseURL: `http://127.0.0.1:${String(PORT)}` } },
     { name: "morada", testMatch: /morada\.spec\.ts/, use: { baseURL: `http://127.0.0.1:${String(MORADA)}` } },
     { name: "arena", testMatch: /arena\.spec\.ts/, use: { baseURL: `http://127.0.0.1:${String(ARENA)}` } },
+    { name: "escritorio", testMatch: /escritorio\.spec\.ts/, use: { baseURL: `http://127.0.0.1:${String(OFFICE)}` } },
   ],
   webServer: [
     server(sandbox(WORLD, PORT), PORT),
     server(sandbox("farm-morada-do-sol-01", MORADA, true), MORADA),
     server(`uv run --locked python -m campsverso_testkit.assistir --out data/sandbox/e2e-arena-${stamp} --port ${String(ARENA)}`, ARENA),
+    server(sandbox("office-campsverso-demo", OFFICE), OFFICE),
   ],
 });

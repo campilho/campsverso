@@ -530,6 +530,93 @@ aside.operator {
   gap: 10px;
 }
 
+/* O escritório (ADR-0078): o quadro dos pedidos e a conversa do gerente. */
+aside.office {
+  flex: 0 0 360px;
+  min-width: 0;
+  max-width: 360px;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* O atributo `hidden` vence o `display` das partes do painel: só o gerente as vê. */
+aside.office [hidden] {
+  display: none !important;
+}
+
+aside.office .board {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+aside.office .column h3 {
+  margin: 4px 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+aside.office .ticket {
+  background: rgba(255, 255, 255, 0.06);
+  border-left: 3px solid var(--muted);
+  border-radius: 3px;
+  padding: 4px 6px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+aside.office .fazendo .ticket {
+  border-left-color: #f2c14e;
+}
+
+aside.office .entregue .ticket {
+  border-left-color: #7bd88f;
+}
+
+aside.office .aceito .ticket {
+  opacity: 0.6;
+}
+
+aside.office .ticket p {
+  margin: 4px 0;
+}
+
+aside.office .comment {
+  color: var(--bad);
+}
+
+aside.office .row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+aside.office input,
+aside.office textarea,
+aside.office select {
+  font: inherit;
+  min-width: 0;
+}
+
+aside.office input.speech {
+  flex: 1 1 auto;
+}
+
+aside.office .new-ticket {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+aside.office textarea {
+  min-height: 3.2em;
+  resize: vertical;
+}
+
 aside h2 {
   margin: 0;
   font-size: 15px;
@@ -696,6 +783,7 @@ li.rejected .type {
     flex-direction: column;
   }
 
+  aside.office,
   aside.operator {
     flex-basis: auto;
     width: 100%;

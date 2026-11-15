@@ -28,6 +28,7 @@ import {
 import { el } from "../dom.ts";
 import { FogMemory, FogStore, lightHeld, serverCenter, visionRadius, type Sight } from "../fog.ts";
 import { MotionClock, type Point } from "../motion.ts";
+import { Balloons } from "../speech.ts";
 import { progressOf } from "../progress.ts";
 import { tileAt, type TileGrid } from "../tiled.ts";
 import { tileUnder, type WorldRenderer } from "./renderer.ts";
@@ -134,6 +135,7 @@ class AvatarView {
   private readonly sprite: Phaser.GameObjects.Sprite;
   private readonly tag: Phaser.GameObjects.Text;
   private readonly bar: Phaser.GameObjects.Graphics;
+  private readonly balloon: Phaser.GameObjects.Text;
   private facing: Facing = "down";
   private last: Point | undefined;
   private walked = 0;
@@ -151,6 +153,19 @@ class AvatarView {
       .setOrigin(0.5, 1)
       .setDepth(60);
     this.bar = scene.add.graphics().setDepth(60);
+    // O balão de fala (ADR-0078): o que o avatar disse, sobre a cabeça, por um tempo.
+    this.balloon = scene.add
+      .text(0, 0, "", {
+        fontFamily: FONT,
+        fontSize: "12px",
+        color: "#1b1b1b",
+        backgroundColor: "#fffdf5",
+        padding: { x: 6, y: 4 },
+        wordWrap: { width: 190 },
+      })
+      .setOrigin(0.5, 1)
+      .setDepth(62)
+      .setVisible(false);
   }
 
   show(
@@ -162,6 +177,7 @@ class AvatarView {
     at: Point,
     time: number,
     bed?: Bed,
+    said?: string,
   ): void {
     const { state, tick } = frame;
     const cx = at.x * TILE + TILE / 2;
@@ -230,10 +246,21 @@ class AvatarView {
       this.bar.fillStyle(0x141414, 0.8).fillRect(tx - width / 2 - 1, top - 1, width + 2, 6);
       this.bar.fillStyle(0x7bd88f, 1).fillRect(tx - width / 2, top, width * progress.fraction, 4);
     }
+    this.balloon.setVisible(said !== undefined);
+    if (said !== undefined) {
+      if (this.balloon.text !== said) {
+        this.balloon.setText(said);
+      }
+      // Acima do rótulo da ação, quando há; dentro do que a câmera mostra, como o rótulo.
+      const above = progress === undefined ? top - 2 : top - 22;
+      const half = this.balloon.width / 2 + 2;
+      const x = view.width > 0 ? Phaser.Math.Clamp(tx, view.x + half, view.right - half) : tx;
+      this.balloon.setPosition(x, Math.max(view.y + this.balloon.height + 2, above));
+    }
   }
 
   destroy(): void {
-    for (const object of [this.body, this.initial, this.sprite, this.tag, this.bar]) {
+    for (const object of [this.body, this.initial, this.sprite, this.tag, this.bar, this.balloon]) {
       object.destroy();
     }
   }
@@ -269,6 +296,8 @@ class WorldScene extends Phaser.Scene {
   private readonly seen = new Map<string, Point>(); // onde cada avatar aparece agora, em tiles
   /** O caminho que o desenho de cada avatar faz nesta tela (ADR-0078). */
   readonly motion = new MotionClock();
+  /** O que cada avatar disse por último, enquanto o balão dura (ADR-0078). */
+  readonly balloons = new Balloons();
   /** Quem a câmera segue; parar de seguir é arrastar, voltar é o botão. */
   follow: string | undefined;
   following = true;
@@ -554,7 +583,8 @@ class WorldScene extends Phaser.Scene {
         this.avatars.set(id, view);
       }
       const art = this.art.avatars?.[id] ?? this.art.avatars?.["*"];
-      view.show(this, lookOf(this.art, "avatar", entity.attributes), art, frame, id, at, time, this.bedOf(state, id));
+      const said = this.balloons.current(id, performance.now());
+      view.show(this, lookOf(this.art, "avatar", entity.attributes), art, frame, id, at, time, this.bedOf(state, id), said);
     }
     for (const [id, view] of this.avatars) {
       if (!seen.has(id)) {
@@ -661,6 +691,10 @@ export class PhaserRenderer implements WorldRenderer {
   readonly element: HTMLElement;
   private readonly scene = new WorldScene();
   readonly motion = this.scene.motion;
+
+  speak(avatarId: string, text: string): void {
+    this.scene.balloons.hear(avatarId, text, performance.now());
+  }
   private readonly game: Phaser.Game;
   private size = { width: 32, height: 18 };
   private grid = { width: 32, height: 18 };

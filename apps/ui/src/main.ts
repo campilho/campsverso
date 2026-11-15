@@ -21,15 +21,16 @@ import { CreditsDialog } from "./panels/credits.ts";
 import { CommandsHelp } from "./panels/help.ts";
 import { renderHud } from "./panels/hud.ts";
 import { ActionMenu } from "./panels/menu.ts";
+import { OfficePanel, isOffice } from "./panels/office.ts";
 import { OperatorPanel } from "./panels/operator.ts";
 import { Portrait } from "./panels/portrait.ts";
 import { contentsOf, holdTarget, inControl, menuFor, proposal, refusalText, thingAt, tileMenu, walkTo, type MenuEntry, type Tile } from "./play.ts";
 import { busyText, progressOf } from "./progress.ts";
-import { ActionQueue, type Step } from "./queue.ts";
+import { ActionQueue, idle, type Step } from "./queue.ts";
 import { MapCanvas } from "./render/canvas.ts";
 import { PhaserRenderer } from "./render/phaser.ts";
 import type { WorldRenderer } from "./render/renderer.ts";
-import { DisplayClock, clockText, isLive } from "./simclock.ts";
+import { DisplayClock, clockText, isLive, realTime } from "./simclock.ts";
 import { describe, shortType } from "./timeline.ts";
 import { Store } from "./store.ts";
 import { parseTiledMap, tileAt as terrainAt, type TileGrid } from "./tiled.ts";
@@ -97,7 +98,10 @@ function alignFoot(): void {
   }
 }
 const world = el("section", { className: "world" }, control, map.element, foot, hud);
-app.replaceChildren(header, el("main", {}, world, view === "operator" && aside));
+// O escritório (ADR-0078): o quadro dos pedidos e a conversa do gerente, ao lado do mapa.
+const officeAside = el("aside", { className: "office" });
+officeAside.hidden = true;
+app.replaceChildren(header, el("main", {}, world, officeAside, view === "operator" && aside));
 
 const menu = new ActionMenu(document.body);
 const help = new CommandsHelp(world); // sobre o mapa, sem cobrir o painel do operador
@@ -126,6 +130,41 @@ const panel =
   view === "operator"
     ? new OperatorPanel(aside, (command, data) => { connection.send(command, data); }, () => { dirty = true; })
     : undefined;
+
+/** O gerente vai até a porta e, quando chegar, a tela o devolve: ele sai do escritório. */
+let leaving = false;
+
+/** O dev, para quem o gerente fala (o avatar de papel `dev` que está no escritório). */
+function devOf(state: ObserverState): string | undefined {
+  return Object.entries(state.entities).find(([, e]) => e?.kind === "avatar" && e.attributes.papel === "dev" && e.position !== undefined)?.[0];
+}
+
+function officeStep(label: string, action: string, params: Record<string, unknown>): void {
+  queue.push({ label, proposal: { avatar_id: avatarId(), action, params }, near: "quadro" });
+  dirty = true;
+}
+
+const office = new OfficePanel(officeAside, {
+  write: (ticket) => {
+    officeStep(`Escrever o pedido "${ticket.title}"`, "write_ticket", { ...ticket });
+  },
+  accept: (ticketId) => {
+    officeStep(`Aceitar ${ticketId}`, "accept_ticket", { target: ticketId });
+  },
+  giveBack: (ticketId, comment) => {
+    officeStep(`Devolver ${ticketId}`, "return_ticket", { target: ticketId, comment });
+  },
+  speak: (text) => {
+    const state = store.state;
+    const dev = state === undefined ? undefined : devOf(state);
+    connection.send(PROPOSE, { avatar_id: avatarId(), action: "say", params: { text, ...(dev === undefined ? {} : { to: dev }) } });
+  },
+  leave: () => {
+    queue.clear();
+    queue.push({ label: "Ir até a porta", proposal: { avatar_id: avatarId(), action: "move", params: { near: "porta" } } });
+    leaving = true;
+  },
+});
 
 const clock = new DisplayClock();
 let welcomes = 0;
@@ -233,6 +272,9 @@ store.onChange(() => {
 store.onEvents((events) => {
   for (const event of events) {
     const data = event.data as Record<string, unknown> | undefined;
+    if (event.type === SPOKE && typeof data?.avatar_id === "string" && typeof data.text === "string") {
+      map.speak?.(data.avatar_id, data.text); // o balão (ADR-0078); a linha do tempo guarda o texto inteiro
+    }
     if (event.type === MOVED && data !== undefined) {
       observeMove(data);
       continue;
@@ -255,6 +297,7 @@ store.onEvents((events) => {
 /** O trajeto que chega pelo evento: a tela o desenha mesmo que ele comece e termine entre duas
  * atualizações (a 144× e a 720×; achado do usuário no mapa d). */
 const MOVED = "campsverso.world.entity.moved.v1";
+const SPOKE = "campsverso.avatar.spoke.v1";
 
 function observeMove(data: Record<string, unknown>): void {
   const origin = data.origin as Tile | undefined;
@@ -305,7 +348,7 @@ function renderControl(state: ObserverState): void {
   const mine = inControl(state, avatarId());
   const controller = state.controllers[avatarId()];
   const busy = state.actions[avatarId()] !== undefined || state.asleep[avatarId()] === true;
-  const clockable = playerClock();
+  const clockable = playerClock() && !realTime(state); // o escritório anda em tempo real (ADR-0078)
   const { paused, scale } = state.clock;
   const key = JSON.stringify([mine, controller, busy, store.status, state.clock.mode, clockable, paused, scale]);
   if (key === lastControl) {
@@ -679,7 +722,17 @@ function frame(now: number): void {
       renderHud(hud, state, tick, avatarId(), store.status, portrait.element, (item) => icons.url(item));
       lastClock = shownClock;
     }
+    if (leaving && queue.list.length === 0 && idle(state, avatarId())) {
+      leaving = false;
+      if (inControl(state, avatarId())) {
+        connection.send(RELEASE, { avatar_id: avatarId() }); // na porta: sai do escritório
+      }
+    }
     if (panelDue) {
+      officeAside.hidden = !isOffice(state);
+      if (!officeAside.hidden) {
+        office.render(state, run === null && inControl(state, avatarId()));
+      }
       panel?.render(state, avatarId(), store.welcome?.commands ?? [], store.timeline, store.lastReply);
       dirty = false;
       lastPanel = now;

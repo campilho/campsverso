@@ -4,9 +4,10 @@
 
 worldid: office-campsverso-01
 cartridge: office_campsverso
-script: dev  # o dev-script (cartridges/office/script): o controlador que o make run sobe
-seed: 20261116  # o primeiro dia útil do escritório
-start: "2026-11-16T00:00:00-03:00"
+script: dev
+player: gerente  # a cadeira do jogador: o humano entra como o gerente (ADR-0077)  # o dev-script (cartridges/office/script): o controlador que o make run sobe
+seed: 20261116
+start: "2026-11-09T00:00:00-03:00"  # uma segunda-feira no passado: ao subir, a âncora salta até agora
 
 clock:  # estado inicial do relógio; depois, só por comandos
   mode: continuous

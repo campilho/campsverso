@@ -5,6 +5,7 @@
 worldid: office-campsverso-teste
 cartridge: office_campsverso
 script: dev
+player: gerente
 seed: 20261116
 start: "2026-11-16T00:00:00-03:00"  # uma segunda-feira
 

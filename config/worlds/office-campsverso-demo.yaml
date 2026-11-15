@@ -1,0 +1,19 @@
+# Mundo office-campsverso-demo: o escritório numa segunda-feira de manhã, para ver o dev em
+# qualquer dia (o sandbox o roda a 72×) e para o teste no navegador (ADR-0078). O escritório de
+# verdade é o office-campsverso-01, em tempo real.
+
+worldid: office-campsverso-demo
+cartridge: office_campsverso
+script: dev
+player: gerente
+seed: 20261116
+start: "2026-11-16T08:59:00-03:00"  # um minuto antes de o dev chegar
+
+clock:
+  mode: continuous
+  scale: 72
+  paused: false
+
+helpers:
+  script: escritorio
+  avatars: [vigia]

@@ -232,3 +232,9 @@ def test_o_gerente_aceita_ou_devolve_com_o_comentario() -> None:
     )
     again = _act(core, "gerente", "accept_ticket", {"target": "pedido-001"}, HUMAN["id"])
     assert _only(again, "action.rejected")[0]["reason"] == "wrong_state"
+
+
+def test_um_mundo_que_comeca_fora_de_uma_troca_de_fase_ja_sabe_a_fase() -> None:
+    core = _core(datetime(2026, 11, 16, 8, 59, tzinfo=SAO_PAULO))
+    phases = _only(core.drain(), "world.clock.phase_changed")
+    assert phases == [{"phase": "manha", "day": 1}]

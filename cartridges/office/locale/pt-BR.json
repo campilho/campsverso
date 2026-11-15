@@ -1,0 +1,25 @@
+{
+  "names": {
+    "desk": "mesa",
+    "board": "quadro dos pedidos",
+    "bench": "bancada",
+    "chair": "cadeira",
+    "door": "porta",
+    "ticket": "pedido"
+  },
+  "attributes": {
+    "estado": "estado",
+    "tamanho": "tamanho",
+    "trabalho": "trabalho",
+    "papel": "papel"
+  },
+  "actions": {
+    "write_ticket": "Escrevendo um pedido",
+    "take_ticket": "Pegando um pedido",
+    "work": "Trabalhando",
+    "deliver": "Entregando",
+    "accept_ticket": "Aceitando",
+    "return_ticket": "Devolvendo",
+    "say": "Falando"
+  }
+}

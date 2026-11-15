@@ -44,7 +44,12 @@ def _world_file(
     out: Path, mind: str | None = None, source: Path = WORLD, *, paused: bool = False
 ) -> Path:
     world = yaml.safe_load(source.read_text(encoding="utf-8"))
-    world["clock"] = {"mode": "continuous", "scale": 72, "paused": paused}
+    clock = cast(dict[str, Any], world.get("clock") or {})
+    if clock.get("anchor") == "wall":
+        # O escritório anda em tempo real e, ao subir, salta até agora (ADR-0078): o relógio fica.
+        world["clock"] = {**clock, "paused": paused}
+    else:
+        world["clock"] = {"mode": "continuous", "scale": 72, "paused": paused}
     minds = cast(dict[str, dict[str, Any]], world.get("minds") or {})
     for avatar, settings in list(minds.items()):
         if mind is not None and settings.get("mind") == mind:

@@ -142,6 +142,9 @@ class WorldSettings:
     helper_script: str = "ajudante"  # o script deles (entry point campsverso.controllers)
     # O relógio ancorado no real (ADR-0078): ao subir, o mundo salta até agora. Só no modo contínuo.
     anchor: Literal["wall"] | None = None
+    # A cadeira do jogador (ADR-0078): o avatar que a tela do jogador assume. No escritório, o
+    # gerente: nenhum humano assume o dev.
+    player: str = "camps"
 
 
 def _read(path: Path) -> Mapping[str, Any]:
@@ -271,6 +274,7 @@ def load_world(path: Path, root: Path | None = None) -> WorldSettings:
         raise ValueError("clock.anchor: wall pede o modo contínuo (o mundo em tempo real)")
     return WorldSettings(
         anchor=anchor,
+        player=str(doc.get("player") or "camps"),
         helpers=tuple(str(a) for a in cast(list[Any], helpers.get("avatars") or [])),
         helper_script=str(helpers.get("script") or "ajudante"),
         worldid=str(doc["worldid"]),

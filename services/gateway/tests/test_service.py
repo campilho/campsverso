@@ -340,6 +340,18 @@ async def test_jogador_assume_joga_e_devolve(rig: Rig) -> None:
     assert released["controller"] == {"type": "script", "id": "script/farmer-v1"}
 
 
+async def test_a_tela_so_assume_a_cadeira_do_jogador(rig: Rig) -> None:
+    """ADR-0078: a cadeira do jogador é uma só (no escritório, o gerente, e nunca o dev). Pedir
+    outro avatar é recusado pelo gateway, sem chegar ao kernel."""
+    rig.gateway.flush()
+    player, _ = await rig.connect("player")
+    other = {"avatar_id": "dita", "controller": {"type": "human", "id": "x"}}
+    reply = await _ask(player, POSSESS, other)
+    assert not reply["ok"]
+    assert reply["error"]["code"] == "not_allowed"
+    assert (await _ask(player, RELEASE, {"avatar_id": "dita"}))["error"]["code"] == "not_allowed"
+
+
 async def test_jogador_ve_a_recusa_do_proprio_comando(rig: Rig) -> None:
     """Com o mundo no modo máximo, o kernel recusa o humano; o jogador vê o motivo (ADR-0051)."""
     rig.gateway.flush()

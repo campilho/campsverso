@@ -15,15 +15,25 @@ export interface Locale {
   readonly names?: Readonly<Record<string, string>>;
   /** O nome de um atributo que a tela mostra (`charges` vira "cargas"). */
   readonly attributes?: Readonly<Record<string, string>>;
+  /** O rótulo de uma ação em andamento, para a barra sobre o avatar (`work` vira "Trabalhando"):
+   * o escritório não tem menu de onde tirar o rótulo (ADR-0078). */
+  readonly actions?: Readonly<Record<string, string>>;
 }
 
 let names: Record<string, string> = {};
 let attributes: Record<string, string> = {};
+let actions: Record<string, string> = {};
 
 /** Junta os arquivos das camadas, na ordem do índice da arte. */
 export function setLocale(layers: readonly Locale[]): void {
   names = Object.assign({}, ...layers.map((l) => l.names ?? {})) as Record<string, string>;
   attributes = Object.assign({}, ...layers.map((l) => l.attributes ?? {})) as Record<string, string>;
+  actions = Object.assign({}, ...layers.map((l) => l.actions ?? {})) as Record<string, string>;
+}
+
+/** O rótulo de uma ação pelo arquivo da língua, se a camada o declarou. */
+export function actionName(id: string): string | undefined {
+  return actions[id];
 }
 
 /** Lê o arquivo da língua de cada camada; uma camada sem ele não muda nada. */

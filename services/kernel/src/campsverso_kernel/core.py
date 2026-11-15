@@ -378,6 +378,15 @@ class KernelCore:
             avatar.add_pending("session_started")
         for avatar_id in sorted(world.avatar_map):
             self._through_door(avatar_id)  # o gerente-script dos testes já começa lá dentro
+        minute = self.calendar.minute_of_day(self.tick)
+        if self._phases and minute not in self._phases:
+            # Um mundo que não começa numa troca de fase (o escritório de demonstração, às 08:59):
+            # a fase em vigor, para a tela e as mentes não ficarem sem ela até a próxima troca.
+            current = max((m for m in self._phases if m <= minute), default=max(self._phases))
+            world.emit_fact(
+                "campsverso.world.clock.phase_changed.v1",
+                {"phase": self._phases[current], "day": world.day},
+            )
         starters = [
             s
             for s in self.definition.systems.values()

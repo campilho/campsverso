@@ -15,6 +15,8 @@ export interface WorldRenderer {
   setArt(art: ArtManifest): void;
   /** Desenha o estado no tick mostrado (fracionário); a tela chama a cada quadro. */
   draw(state: ObserverState, tick: number): void;
+  /** Um avatar falou (ADR-0078): o balão sobre a cabeça dele; o canvas de depuração não desenha. */
+  speak?(avatarId: string, text: string): void;
   /** Quem a câmera segue, num mapa maior que a tela (ADR-0067); o canvas de depuração não segue. */
   follow?(entityId: string): void;
   /** Volta a seguir quem a câmera segue, depois de arrastar o mapa (a tecla espaço; ADR-0068). */

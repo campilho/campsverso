@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "kinds": {
+    "desk": {
+      "color": "#8a5a35"
+    },
+    "board": {
+      "color": "#e8e2cf"
+    },
+    "bench": {
+      "color": "#6b6f76"
+    },
+    "chair": {
+      "color": "#3d5a86"
+    },
+    "door": {
+      "color": "#a87b4f"
+    }
+  },
+  "phases": {
+    "noite": {
+      "shade": 0.3
+    },
+    "madrugada": {
+      "shade": 0.42
+    }
+  }
+}

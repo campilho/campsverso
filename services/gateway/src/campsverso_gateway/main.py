@@ -32,8 +32,6 @@ from campsverso_adapters.realtime_fastapi import FastApiRealtime
 from campsverso_gateway.service import GatewayService
 from campsverso_gateway.watch import WatchService
 
-AVATAR = "camps"  # o único avatar da v0.1 (ADR-0022)
-
 
 def _parse(argv: Sequence[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="campsverso_gateway.main")
@@ -42,7 +40,9 @@ def _parse(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument("--data-dir", type=Path, help="substitui data_dir do ambiente")
     parser.add_argument("--nats-url", help="substitui nats.url do ambiente")
     parser.add_argument("--port", type=int, help="substitui gateway.port do ambiente")
-    parser.add_argument("--avatar", default=AVATAR, help="avatar acompanhado pela UI")
+    parser.add_argument(
+        "--avatar", help="avatar acompanhado pela UI (padrão: a cadeira do jogador do mundo)"
+    )
     parser.add_argument(
         "--watch", type=Path, help="assistir as corridas de uma rodada da arena (ADR-0068)"
     )
@@ -108,7 +108,7 @@ async def run(args: argparse.Namespace) -> int:
     data_dir: Path = args.data_dir or env.data_dir
     service = GatewayService(
         world.worldid,
-        args.avatar,
+        args.avatar or world.player,
         world.cartridge,
         nats,
         DiskBlobStore(data_dir / "gateway"),

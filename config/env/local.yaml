@@ -62,9 +62,11 @@ gateway:  # o WebSocket da UI (ADR-0050); só local, sem login
     farm_morada_do_sol-b: cartridges/farm_morada_do_sol/sim/src/campsverso_farm_morada_do_sol_sim/data/maps/b.tmj  # as variantes (ADR-0070)
     farm_morada_do_sol-c: cartridges/farm_morada_do_sol/sim/src/campsverso_farm_morada_do_sol_sim/data/maps/c.tmj
     farm_morada_do_sol-d: cartridges/farm_morada_do_sol/sim/src/campsverso_farm_morada_do_sol_sim/data/maps/d.tmj  # o mapa do M21 (ADR-0074)
+    office_campsverso: cartridges/office_campsverso/sim/src/campsverso_office_campsverso_sim/data/map.tmj  # o escritório (ADR-0078)
   ui_dir: apps/ui/dist  # a UI compilada (make ui-build); sem ela, só pelo Vite (make ui)
   art:  # arte dos cartuchos, do gênero ao cenário; a tela junta os manifestos nesta ordem (ADR-0053)
-    - {name: farm, dir: cartridges/farm/art}
-    - {name: farm_camps, dir: cartridges/farm_camps/art}
+    - {name: farm, dir: cartridges/farm/art, only_for: [farm_camps, farm_boavista, farm_morada_do_sol]}  # as fazendas, e não o escritório
+    - {name: farm_camps, dir: cartridges/farm_camps/art, only_for: [farm_camps, farm_boavista, farm_morada_do_sol]}
     - {name: farm_boavista, dir: cartridges/farm_boavista/art, only_for: [farm_boavista, farm_morada_do_sol]}  # a fazenda 2 e quem a estende
     - {name: farm_morada_do_sol, dir: cartridges/farm_morada_do_sol/art, only_for: [farm_morada_do_sol]}  # só na fazenda 3
+    - {name: office, dir: cartridges/office/art, only_for: [office_campsverso]}  # o escritório (ADR-0078)
