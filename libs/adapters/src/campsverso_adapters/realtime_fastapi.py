@@ -8,7 +8,9 @@
   pasta `locale/` ao lado da `art/` de cada camada; a tela os junta na ordem do índice da arte.
 - `/`: a UI compilada, quando há uma pasta para ela (fora do modo de desenvolvimento).
 
-Só escuta no endereço dado (127.0.0.1 na v0.1): não há login.
+Só escuta no endereço dado (127.0.0.1 na v0.1): não há login. Escutar só na própria máquina não
+basta contra o navegador: uma página de qualquer site pode abrir um WebSocket para 127.0.0.1. Por
+isso o `/ws` confere a origem, e só aceita a tela servida por esta máquina.
 """
 
 import contextlib
@@ -17,6 +19,7 @@ import re
 from collections.abc import AsyncIterator, Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any, cast
+from urllib.parse import urlsplit
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
@@ -27,12 +30,30 @@ from campsverso_ports import ConnectionClosedError, ConnectionHandler, Message, 
 
 VIEWS: tuple[View, ...] = ("player", "operator")
 POLICY_VIOLATION = 1008  # código WebSocket para pedido fora das regras
+LOOPBACK = frozenset({"localhost", "127.0.0.1", "::1"})  # os nomes desta máquina
 LANGUAGE_FILE = re.compile(r"[a-z]{2}(-[A-Z]{2})?\.json")  # pt-BR.json, en.json
 
 
 # Os mapas e a arte mudam com o repositório (as margens da água do ADR-0070 ficaram pretas numa
 # tela com o terrain.png antigo no cache): o navegador confere a cada vez, e o ETag responde 304.
 REVALIDATE = {"Cache-Control": "no-cache"}
+
+
+def local_origin(origin: str | None, host: str) -> bool:
+    """A origem do pedido de WebSocket é esta máquina (ou o endereço em que o gateway escuta)?
+
+    Todo navegador manda `Origin` ao abrir um WebSocket, e a página não consegue trocá-lo: a tela
+    do gateway e a do Vite chegam de `localhost` ou `127.0.0.1`, em qualquer porta, e a página de
+    outro site chega com o nome dele (inclusive um nome que aponta para 127.0.0.1). Sem `Origin`
+    não é um navegador, e sim um processo desta máquina, como os testes: esse a origem não segura.
+    """
+    if origin is None:
+        return True
+    try:
+        name = urlsplit(origin).hostname
+    except ValueError:
+        return False
+    return name is not None and (name in LOOPBACK or name == host)
 
 
 class _WsConnection:
@@ -96,7 +117,7 @@ class FastApiRealtime:
         async def ws(  # pyright: ignore[reportUnusedFunction]
             websocket: WebSocket, view: str = "player", run: str | None = None
         ) -> None:
-            if view not in VIEWS:
+            if view not in VIEWS or not local_origin(websocket.headers.get("origin"), self.host):
                 await websocket.close(code=POLICY_VIOLATION)
                 return
             await websocket.accept()

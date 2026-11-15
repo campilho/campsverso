@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 import websockets
 
-from campsverso_adapters.realtime_fastapi import FastApiRealtime
+from campsverso_adapters.realtime_fastapi import FastApiRealtime, local_origin
 from campsverso_ports import RealtimeConnection
 
 
@@ -67,6 +67,29 @@ async def test_visao_desconhecida_e_recusada(server: str) -> None:
     with pytest.raises(websockets.exceptions.WebSocketException):
         async with websockets.connect(f"ws://{server}/ws?view=visitor") as ws:
             await ws.recv()
+
+
+async def test_a_pagina_de_outro_site_nao_abre_o_websocket(server: str) -> None:
+    # A tela desta máquina, pelo gateway ou pelo Vite, em qualquer porta.
+    for origin in ("http://127.0.0.1:8765", "http://localhost:5173", "http://[::1]:8765"):
+        async with websockets.connect(f"ws://{server}/ws?view=operator", origin=origin) as ws:  # pyright: ignore[reportArgumentType]
+            assert json.loads(await ws.recv()) == {"view": "operator"}
+    # Outro site, um nome que aponta para 127.0.0.1 (DNS rebinding) e uma página sem origem.
+    for origin in ("https://evil.example", f"http://evil.example:{server.split(':')[1]}", "null"):
+        with pytest.raises(websockets.exceptions.InvalidStatus) as refused:
+            async with websockets.connect(f"ws://{server}/ws?view=player", origin=origin) as ws:  # pyright: ignore[reportArgumentType]
+                await ws.recv()
+        assert refused.value.response.status_code == 403
+
+
+def test_origem_local() -> None:
+    assert local_origin(None, "127.0.0.1")  # um processo desta máquina, não um navegador
+    assert local_origin("http://localhost:8765", "127.0.0.1")
+    assert local_origin("http://192.168.0.7:8765", "192.168.0.7")  # o endereço em que escuta
+    assert not local_origin("http://192.168.0.7:8765", "127.0.0.1")
+    assert not local_origin("http://localhost.evil.example", "127.0.0.1")
+    assert not local_origin("null", "127.0.0.1")
+    assert not local_origin("http://[::1", "127.0.0.1")  # origem malformada
 
 
 async def test_mapa_do_cartucho_e_saude(server: str) -> None:
