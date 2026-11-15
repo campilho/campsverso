@@ -12,7 +12,10 @@ clock:
   default_scale: 1 # tempo real
 
 movement:
-  tiles_per_minute: 72 # 1,2 tile por segundo: o andar de uma pessoa num tile de um metro
+  # O passo de tela (ADR-0079): 4 tiles por segundo na tela, em qualquer escala. O kernel converte
+  # pela escala do momento: a 1× são 8 tiles num tick de 2 s; a 72×, um tile a cada 9 ticks (18 s
+  # do mundo). Andar no relógio do mundo (1,2 tile por segundo) virava 86 tiles por segundo a 72×.
+  screen_tiles_per_second: 4
 
 perception:
   radius: null # a sala inteira

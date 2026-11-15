@@ -34,7 +34,7 @@ Uma sala de 20 × 14 tiles com as paredes, e o corredor embaixo.
 | Cadeira do vigia | (11, 12) | `chair` |
 | Entrada | (9, 15) | o tile do corredor por onde todos entram e saem |
 
-Andar: 72 tiles por minuto (1,2 tile por segundo). A percepção vê a sala inteira.
+Andar: 4 tiles por segundo na tela, em qualquer escala; o kernel converte pela escala do momento (ADR-0079). A 1× são 8 tiles num tick de 2 s; a 72×, andar até o quadro custa uns 2 minutos do mundo. A percepção vê a sala inteira.
 
 ## 4. O elenco
 

@@ -120,7 +120,7 @@ Nos ids, "ticket", em inglês, como manda a convenção; na tela, "pedido".
 
 A chegada e a saída do dev e do vigia são sistemas do cartucho, como os turnos dos ajudantes da Morada.
 
-**O dev anda a 72 tiles por minuto,** 1,2 tile por segundo, que é o andar de uma pessoa num tile de um metro.
+**O dev anda a 72 tiles por minuto,** 1,2 tile por segundo, que é o andar de uma pessoa num tile de um metro. (Revisto pela ADR-0079: 4 tiles por segundo na tela, em qualquer escala.)
 
 ## 2. O tempo real
 

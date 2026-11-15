@@ -74,7 +74,7 @@ class OfficeCartridge:
                 default_scale=float(clock["default_scale"]),
             )
         )
-        world.set_tiles_per_minute(float(data["movement"]["tiles_per_minute"]))
+        world.set_screen_tiles_per_second(float(data["movement"]["screen_tiles_per_second"]))
         radius = data["perception"]["radius"]
         world.set_perception_radius(None if radius is None else int(radius))
         world.merge_data(config.NAMESPACE, data)
