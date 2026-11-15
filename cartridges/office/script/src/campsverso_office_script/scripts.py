@@ -118,6 +118,11 @@ def heard_from_others(view: View) -> list[Mapping[str, Any]]:
 # ---------------------------------------------------------------------------------- o dev
 
 
+# Quantos minutos antes do almoço o dev avisa: o bloco de trabalho é de um minuto, então dois
+# minutos garantem uma decisão na janela.
+LUNCH_NOTICE_MINUTES = 2
+
+
 @dataclass
 class DevScript:
     """O dev-script (ADR-0078, decisão 11): o quadro, a mesa, a entrega e as frases prontas."""
@@ -126,6 +131,7 @@ class DevScript:
     sizes: Mapping[str, int]
     announced: set[str] = field(default_factory=set[str])  # os pedidos já anunciados
     greeted: int = 0  # o dia do último bom-dia
+    lunched: int = 0  # o dia do último aviso do almoço
 
     @classmethod
     def load(cls) -> DevScript:
@@ -163,6 +169,13 @@ class DevScript:
         if manager_id is not None and present(view, manager_id) and self.greeted != day_of(view):
             self.greeted = day_of(view)
             return say(self._line("morning"), manager_id, "cumprimentar o gerente")
+        # O aviso do almoço, nos minutos antes da saída: sem ele, o dev sumia da sala ao meio-dia
+        # (a primeira partida do usuário no escritório).
+        lunch = minutes(str(self.config["lunch_at"]))
+        if lunch - LUNCH_NOTICE_MINUTES <= minute_of(view) < lunch and self.lunched != day_of(view):
+            self.lunched = day_of(view)
+            listener = manager_id if manager_id is not None and present(view, manager_id) else None
+            return say(self._line("lunch"), listener, "avisar que vou almoçar")
         board = next(iter(entities(view, "board")), None)
         desk = next((d for d in entities(view, "desk") if attrs(d).get("dono") == mine), None)
         chair = next(iter(entities(view, "chair")), None)

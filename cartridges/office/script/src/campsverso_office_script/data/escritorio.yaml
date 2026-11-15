@@ -7,11 +7,13 @@ dev:
   id: script/dev
   chunk_seconds: 60 # trabalha um minuto por vez e, entre um bloco e outro, responde a quem falou
   wait_seconds: 60
+  lunch_at: "12:00" # o almoço do cenário (escritorio.yaml do office_campsverso): o dev avisa antes
   lines:
     morning: "Bom dia!"
     took: "Peguei o pedido {number}: {title}."
     delivered: "Entreguei o pedido {number}: {title}."
     noted: "Anotado."
+    lunch: "Vou almoçar. Volto à uma."
 
 vigia:
   id: script/vigia

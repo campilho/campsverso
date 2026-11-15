@@ -110,6 +110,19 @@ def test_o_dev_avisa_trabalha_em_blocos_e_entrega() -> None:
     assert dev.decide(_view(at=(5, 7), tickets=done))["action"] == "deliver"
 
 
+def test_o_dev_avisa_que_vai_almocar_uma_vez_nos_minutos_antes() -> None:
+    dev = _dev()
+    doing = [_ticket(1, "fazendo", "camps")]
+    dev.announced.add("pedido-001")
+    assert dev.decide(_view(at=(5, 7), hhmm="11:57", tickets=doing))["action"] == "work"
+    notice = dev.decide(_view(at=(5, 7), hhmm="11:58", tickets=doing))
+    assert notice["action"] == "say"
+    assert notice["params"] == {"text": "Vou almoçar. Volto à uma.", "to": "gerente"}
+    assert dev.decide(_view(at=(5, 7), hhmm="11:59", tickets=doing))["action"] == "work"
+    alone = _dev().decide(_view(at=(5, 7), hhmm="11:59", manager_in=False))
+    assert alone["params"] == {"text": "Vou almoçar. Volto à uma."}  # sem o gerente, para a sala
+
+
 def test_sem_pedido_o_dev_espera_na_mesa() -> None:
     proposal = _dev().decide(_view(at=(5, 7)))
     assert proposal["action"] == "wait"
