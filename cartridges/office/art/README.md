@@ -1,31 +1,20 @@
 # Arte do gênero office
 
-O que é de todo escritório (ADR-0078), recortado de três pacotes LPC e completado com desenho próprio no estilo deles. As cores do desenho próprio são tiradas dos próprios pacotes.
+O que é de todo escritório, na arte do Claude Design (ADR-0082): pixel art desenhada em código, vista de cima em 3/4, com uma paleta só e o contorno escuro em tudo. As folhas originais, a prévia e a página que as desenha ficam em `docs/design/escritorio-arte/`; esta pasta recebe cópias, feitas por `make arte-escritorio` (`campsverso_tools.office_art`), e o tileset montado a partir delas.
 
-- `art.json`: o manifesto do gênero. A cadeira é um assento (`seat`): quem para nela senta, olhando para a mesa.
-- `terrain.png` e `terrain.tsj`: os tiles do mapa visual, cada um com um nome:
-  - o chão de tábuas e o piso xadrez do corredor, do pacote de interiores;
-  - a parede do fundo em duas linhas (`north-t`, `north-b`): a moldura dourada, o reboco claro com listras finas, o rodameio, o lambri em painéis e o rodapé, desenho próprio;
-  - a moldura das paredes do lado vista de cima, a parede de baixo com a face curta que dá para o corredor e a porta, desenho próprio;
-  - a decoração da parede, em peças de dois tiles de altura (`-t` e `-b`): a janela e o quadro de avisos pequeno (desenho próprio), o relógio (interiores), o bebedouro (The Office) e a estante (Wooden Furniture).
-- `objects.png`: os móveis, em quadros de 96 × 64, desenhados com o pé no tile da coisa:
-  - 0, a mesa do Camps, vista do lado de quem senta, com o notebook ligado, o telefone vermelho e a xícara;
-  - 1, a bancada, uma mesa dobrável cinza com a cafeteira e um notebook claro;
-  - 2, o quadro dos pedidos, de cortiça, com as fichas nas quatro colunas, de pé na frente da parede (desenho próprio);
-  - 3, a cadeira, de costas;
-  - 4, o balcão da copa, com a pia e o tampo do pacote de interiores e a cafeteira e a xícara do escritório (ADR-0080);
-  - 5, a mesa redonda da copa, do pacote de interiores.
-- A porta do banheiro (`door-wc`) é um tile da parede de baixo, fechada, com a plaquinha "WC": desenho próprio. O bebedouro e a porta do banheiro não têm quadro de móvel; o mapa visual os desenha.
+- `art.json`: o manifesto do gênero.
+  - A cadeira de escritório é um assento (`seat`), de costas, em duas camadas: a base atrás e o encosto (`front`) por cima de quem senta.
+  - A cadeira da copa é um assento de lado, virado para a mesinha pelo atributo `virada`.
+  - A mesa do dev rola o código na tela enquanto alguém faz `work` ao lado dela (`in_use`); a máquina de café serve no `coffee`, o micro-ondas do balcão liga no `microwave`, a geladeira abre no `fridge` e a porta do banheiro abre no `restroom`.
+  - A TV passa o jogo e o bebedouro borbulha sempre (`loop`).
+  - A divisória dos cubículos é desenhada sobre cada tile `partition` do mapa lógico (`tile_props`), com o quadro pela máscara dos vizinhos, e cobre o pé de quem passa atrás dela.
+  - O quadro dos pedidos, o micro-ondas, a porta da sala e as portas do banheiro usam a folha vazia (`vazio.png`): o mapa visual, o balcão e o bloco do banheiro já os desenham.
+- `terreno.png` e `terreno.tsj`: os tiles do mapa visual, cada um com um nome: o carpete em quatro variações e a faixa de sombra junto ao rodapé, o corredor xadrez, a parede do fundo em duas linhas, as paredes do lado e os cantos, a parede de baixo e a porta, o tapete 3 x 3 e, em duas metades (`-t` e `-b`), o quadro dos pedidos em módulos, a janela com a cidade e o relógio.
+- As folhas dos móveis, uma por peça, com o pé na borda de baixo do quadro: a mesa, as cadeiras, a divisória, o arquivo, a planta, a lixeira, a geladeira, o balcão da copa, a máquina de café, o bebedouro, a mesinha, o sofá, o móvel da TV, os pufes e o bloco do banheiro.
 - Os nomes que a tela mostra ficam em `../locale/pt-BR.json` (ADR-0075).
 
 O mapa visual de cada escritório fica na pasta de arte do cenário e é gerado por `make mapa-visual`.
 
 ## Licença
 
-A arte desta pasta é distribuída sob **CC-BY-SA 3.0** ou **GPL 3.0**, como as originais, e exige crédito a cada autor. O código do Campsverso continua MIT.
-
-- `CREDITS.csv` dá os créditos arquivo por arquivo.
-- Os textos de atribuição dos três pacotes estão em `credits/`:
-  - `lpc-the-office.txt`: [LPC Revised: The Office](https://opengameart.org/content/lpc-revised-the-office), de Eliza Wyatt e Lanea Zimmerman, OGA-BY 3.0;
-  - `lpc-wooden-furniture.txt`: [LPC Wooden Furniture](https://opengameart.org/content/lpc-wooden-furniture);
-  - `lpc-house-interior.txt`: [[LPC] House interior and decorations](https://opengameart.org/content/lpc-house-interior-and-decorations), de Tuomo Untinen e outros.
+Desenho próprio do Campsverso, sob a mesma licença do código (MIT). `CREDITS.csv` dá os créditos arquivo por arquivo.

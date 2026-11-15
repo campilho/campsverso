@@ -22,7 +22,7 @@ NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR BUDGET MIND
 
 .DEFAULT_GOAL := help
 .PHONY: help setup contracts check lint fmt types test arch contracts-check compat escritorio aplicar \
-        up stop run ui ui-build sandbox jogar soak replay metrics ui-e2e mapa-visual mapa-variantes sessoes tools secrets fita corrida \
+        up stop run ui ui-build sandbox jogar soak replay metrics ui-e2e mapa-visual mapa-variantes arte-escritorio sessoes tools secrets fita corrida \
         arena arena-report arena-humano assistir juiz
 
 help: ## lista os alvos
@@ -187,6 +187,9 @@ mapa-variantes: ## regrava as variantes do mapa da Morada do Sol a partir das re
 
 mapa-visual: ## regrava o mapa visual das fazendas e do escritório a partir do mapa lógico (ADR-0053)
 	$(PY) python -m campsverso_tools.visual_map
+
+arte-escritorio: ## copia as folhas da arte do escritório (docs/design/escritorio-arte) para os cartuchos e monta o tileset (ADR-0082); depois, make mapa-visual
+	$(PY) python -m campsverso_tools.office_art
 
 sessoes: ## tempo e tokens por turno e por marco em docs/custos (MARCO=M5 marca os turnos novos)
 	$(PY) python -m campsverso_tools.sessions $(if $(MARCO),--marco $(MARCO),)

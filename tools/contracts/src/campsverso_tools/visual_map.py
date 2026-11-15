@@ -3,12 +3,12 @@
     uv run python -m campsverso_tools.visual_map [--check]   # ou: make mapa-visual
 
 O mapa lógico (`map.tmj` do cenário) é a verdade do kernel. Este arquivo só diz como desenhá-lo
-com os tiles LPC do gênero, onde cada tile tem um nome. Nas fazendas (`cartridges/farm/art/
-terrain.tsj`): bordas do rio, da terra do caminho e da cerca viva, a terra arada dos canteiros, o
-chão e as paredes da casa sem telhado. No escritório (`cartridges/office/art/terrain.tsj`,
-ADR-0078): o chão de tábuas, o corredor, a parede do fundo com reboco e lambri, a moldura das
-paredes vista de cima e a decoração da parede que a pasta de arte do cenário lista (`decor.json`).
-O kernel nunca lê o resultado.
+com os tiles do gênero, onde cada tile tem um nome. Nas fazendas (`cartridges/farm/art/
+terrain.tsj`, LPC): bordas do rio, da terra do caminho e da cerca viva, a terra arada dos
+canteiros, o chão e as paredes da casa sem telhado. No escritório (`cartridges/office/art/
+terreno.tsj`, a arte do Claude Design, ADR-0082): o carpete com a sombra do rodapé, o tapete, o
+corredor, as paredes e os cantos, a porta e a decoração da parede do fundo que a pasta de arte do
+cenário lista (`decor.json`). O kernel nunca lê o resultado.
 
 Ajustes pedidos depois vão nas regras daqui; rodar de novo regrava `map-visual.tmj`. Com `--check`,
 só confere se o arquivo gravado está em dia.
@@ -26,8 +26,8 @@ TILESET = REPO / "cartridges/farm/art/terrain.tsj"
 FARMS = ("farm_camps", "farm_boavista", "farm_morada_do_sol")  # as fazendas com mapa próprio
 OFFICES = ("office_campsverso",)  # os escritórios (ADR-0078)
 SCENARIOS = (*FARMS, *OFFICES)
-OFFICE_TILESET = REPO / "cartridges/office/art/terrain.tsj"
-OFFICE_TILESET_IMAGE = "../../office/art/terrain.png"
+OFFICE_TILESET = REPO / "cartridges/office/art/terreno.tsj"
+OFFICE_TILESET_IMAGE = "../../office/art/terreno.png"
 
 
 def logic_map(scenario: str) -> Path:
@@ -185,25 +185,57 @@ def _trees(types: Grid, first: int) -> list[int]:
     return data
 
 
-# O escritório (ADR-0078). Tipo lógico -> tiles possíveis no chão (o teste de coerência usa a mesma
-# tabela). A parede vira a face do fundo (duas linhas, quando há sala logo abaixo dela), a moldura
-# do lado vista de cima, a face curta que dá para o corredor, ou o vazio fora da sala.
+# O escritório (ADR-0078; a arte nova, ADR-0082). Tipo lógico -> tiles possíveis no chão (o teste
+# de coerência usa a mesma tabela). O chão é o carpete em quatro variações, com a faixa de sombra
+# junto ao rodapé; o tapete se monta 3 x 3 pelos vizinhos; a divisória é desenhada pela tela por
+# cima do carpete. A parede vira a face do fundo (duas linhas sobre a sala), a moldura do lado
+# vista de cima, os cantos, a face curta que dá para o corredor, ou o vazio fora da sala.
 ROOM = {"floor", "furniture", "door", "partition", "rug"}
+CARPET = {"carpete-0", "carpete-1", "carpete-2", "carpete-3", "carpete-sombra"}
+RUG = {f"tapete-{k}" for k in range(9)}
 OFFICE_GROUND = {
-    "floor": {"floor"},
-    "furniture": {"floor"},
-    "partition": {"floor"},  # a divisória dos cubículos, desenhada por cima (ADR-0082)
-    "rug": {"floor"},  # o tapete da sala de descompressão
-    "door": {"door"},
-    "corridor": {"hall"},
-    "restroom": {"door-wc"},  # a porta do banheiro (ADR-0080)
-    "wall": {"north-t", "north-b", "side-w", "side-e", "south", "void"},
+    "floor": CARPET,
+    "furniture": CARPET | RUG,  # os pufes e o sofá ficam em cima do tapete
+    "partition": CARPET,  # a divisória dos cubículos, desenhada pela tela (ADR-0082)
+    "rug": RUG,  # o tapete da sala de descompressão
+    "door": {"porta-aberta"},
+    "corridor": {"corredor"},
+    "restroom": {"baixo"},  # as portas do banheiro: o bloco do banheiro as desenha (ADR-0082)
+    "wall": {
+        "fundo-cima",
+        "fundo-baixo",
+        "lado-esq",
+        "lado-dir",
+        "canto-fundo-esq",
+        "canto-fundo-dir",
+        "canto-baixo-esq",
+        "canto-baixo-dir",
+        "baixo",
+        "void",
+    },
 }
 
 
 def decor_file(scenario: str) -> Path:
     """A decoração do mapa visual do cenário: peças de dois tiles de altura, como a janela."""
     return REPO / f"cartridges/{scenario}/art/decor.json"
+
+
+def _int32(n: int) -> int:
+    n &= 0xFFFFFFFF
+    return n - 0x1_0000_0000 if n >= 0x8000_0000 else n
+
+
+def _imul(a: int, b: int) -> int:
+    return _int32(a * b)
+
+
+def noise(x: int, y: int, seed: int) -> float:
+    """O `hash` da página da arte do escritório, igual bit a bit: a mesma variação de carpete em
+    cada tile que a prévia do Claude Design mostra."""
+    n = _int32(_imul(x, 374761393) + _imul(y, 668265263) + _imul(seed, 1442695041))
+    n = _imul(n ^ ((n & 0xFFFFFFFF) >> 13), 1274126177)
+    return ((n ^ ((n & 0xFFFFFFFF) >> 16)) & 0xFFFFFFFF) / 4294967296
 
 
 def _office_ground(types: Grid, x: int, y: int) -> str:
@@ -216,32 +248,50 @@ def _office_ground(types: Grid, x: int, y: int) -> str:
         if at(cx, cy) != "wall":
             return None
         if at(cx, cy + 1) in ROOM:
-            return "north-b"
+            return "fundo-baixo"
         if at(cx, cy + 1) == "wall" and at(cx, cy + 2) in ROOM:
-            return "north-t"
+            return "fundo-cima"
         return None
 
     def inside(cx: int, cy: int) -> bool:
         return at(cx, cy) in ROOM or north(cx, cy) is not None
 
+    def rug(cx: int, cy: int) -> bool:
+        """O tapete passa por baixo dos móveis que estão em cima dele (os pufes, o sofá): um tile
+        de móvel com tapete em dois lados ou mais é tapete também."""
+        kind = at(cx, cy)
+        if kind != "furniture":
+            return kind == "rug"
+        around = ((cx - 1, cy), (cx + 1, cy), (cx, cy - 1), (cx, cy + 1))
+        return sum(at(nx, ny) == "rug" for nx, ny in around) >= 2
+
     kind = types[y][x]
-    if kind in ("floor", "furniture", "partition", "rug"):
-        return "floor"
+    if rug(x, y):
+        col = 0 if not rug(x - 1, y) else 2 if not rug(x + 1, y) else 1
+        row = 0 if not rug(x, y - 1) else 2 if not rug(x, y + 1) else 1
+        return f"tapete-{row * 3 + col}"
+    if kind in ("floor", "furniture", "partition"):
+        if north(x, y - 1) == "fundo-baixo":
+            return "carpete-sombra"  # a faixa junto ao rodapé da parede do fundo
+        h = noise(x, y, 99)
+        return "carpete-3" if h < 0.06 else f"carpete-{int(h * 3)}"
     if kind == "door":
-        return "door"
-    if kind == "restroom":  # a porta do banheiro, na parede de baixo (ADR-0080)
-        return "door-wc"
+        return "porta-aberta"
+    if kind == "restroom":
+        return "baixo"
     if kind == "corridor":
-        return "hall"
+        return "corredor"
     face = north(x, y)
     if face is not None:
         return face
     if at(x, y + 1) == "corridor":
-        return "south"
+        if at(x - 1, y) is None:
+            return "canto-baixo-esq"
+        return "canto-baixo-dir" if at(x + 1, y) is None else "baixo"
     if inside(x + 1, y):
-        return "side-w"
+        return "canto-fundo-esq" if at(x, y - 1) is None else "lado-esq"
     if inside(x - 1, y):
-        return "side-e"
+        return "canto-fundo-dir" if at(x, y - 1) is None else "lado-dir"
     return "void"
 
 

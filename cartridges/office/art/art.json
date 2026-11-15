@@ -3,73 +3,94 @@
   "tile_size": 32,
   "credits": "CREDITS.csv",
   "sheets": {
-    "office-terrain": {
-      "image": "terrain.png",
-      "frame_width": 32,
-      "frame_height": 32
-    },
-    "office-objects": {
-      "image": "objects.png",
-      "frame_width": 96,
-      "frame_height": 64
-    }
+    "office-terreno": { "image": "terreno.png", "frame_width": 32, "frame_height": 32 },
+    "vazio": { "image": "vazio.png", "frame_width": 32, "frame_height": 32 },
+    "mesa_dev": { "image": "mesa_dev.png", "frame_width": 96, "frame_height": 64 },
+    "cadeira": { "image": "cadeira.png", "frame_width": 32, "frame_height": 64 },
+    "cadeira_lado": { "image": "cadeira_lado.png", "frame_width": 32, "frame_height": 64 },
+    "divisoria": { "image": "divisoria.png", "frame_width": 32, "frame_height": 64 },
+    "arquivo": { "image": "arquivo.png", "frame_width": 32, "frame_height": 64 },
+    "planta": { "image": "planta.png", "frame_width": 32, "frame_height": 64 },
+    "lixeira": { "image": "lixeira.png", "frame_width": 32, "frame_height": 32 },
+    "geladeira": { "image": "geladeira.png", "frame_width": 32, "frame_height": 64 },
+    "balcao_copa": { "image": "balcao_copa.png", "frame_width": 96, "frame_height": 64 },
+    "maquina_cafe": { "image": "maquina_cafe.png", "frame_width": 32, "frame_height": 64 },
+    "bebedouro": { "image": "bebedouro.png", "frame_width": 32, "frame_height": 64 },
+    "mesa_copa": { "image": "mesa_copa.png", "frame_width": 32, "frame_height": 64 },
+    "sofa_costas": { "image": "sofa_costas.png", "frame_width": 96, "frame_height": 64 },
+    "movel_tv": { "image": "movel_tv.png", "frame_width": 96, "frame_height": 64 },
+    "puff": { "image": "puff.png", "frame_width": 32, "frame_height": 32 },
+    "banheiro": { "image": "banheiro.png", "frame_width": 128, "frame_height": 96 }
   },
   "tiles": {
-    "wall": {
-      "color": "#5b3026"
-    },
-    "floor": {
-      "color": "#896f42"
-    },
-    "door": {
-      "color": "#b78c41"
-    },
-    "corridor": {
-      "color": "#c4b59f"
-    },
-    "furniture": {
-      "color": "#803526"
-    },
-    "restroom": {
-      "color": "#684415"
-    }
+    "wall": { "color": "#cdbb8f" },
+    "floor": { "color": "#4b5875" },
+    "door": { "color": "#b07541" },
+    "corridor": { "color": "#c9ced4" },
+    "furniture": { "color": "#4b5875" },
+    "restroom": { "color": "#b07541" },
+    "partition": { "color": "#e7d9b4" },
+    "rug": { "color": "#b07541" }
+  },
+  "tile_props": {
+    "partition": { "sheet": "divisoria", "autotile": "mask4" }
   },
   "kinds": {
     "desk": {
-      "sheet": "office-objects",
-      "frame": 0
+      "sheet": "mesa_dev",
+      "frame": 0,
+      "in_use": { "actions": ["work"], "frames": [1, 2, 3], "fps": 3 }
     },
-    "bench": {
-      "sheet": "office-objects",
-      "frame": 1
+    "chair": { "sheet": "cadeira", "frame": 0, "front": 1, "seat": "up" },
+    "copa_chair": {
+      "sheet": "cadeira_lado",
+      "frame": 0,
+      "variants": [
+        { "when": { "virada": "direita" }, "look": { "frame": 0, "seat": "right" } },
+        { "when": { "virada": "esquerda" }, "look": { "frame": 1, "seat": "left" } }
+      ]
     },
-    "board": {
-      "sheet": "office-objects",
-      "frame": 2
+    "board": { "sheet": "vazio", "frame": 0 },
+    "door": { "sheet": "vazio", "frame": 0 },
+    "microwave": { "sheet": "vazio", "frame": 0 },
+    "restroom_door": { "sheet": "vazio", "frame": 0 },
+    "water_cooler": { "sheet": "bebedouro", "frame": 0, "loop": { "frames": [0, 1], "fps": 1 } },
+    "coffee_machine": {
+      "sheet": "maquina_cafe",
+      "frame": 0,
+      "in_use": { "actions": ["coffee"], "frames": [1] }
     },
-    "chair": {
-      "sheet": "office-objects",
-      "frame": 3,
-      "seat": "up"
-    },
-    "door": {},
     "copa_counter": {
-      "sheet": "office-objects",
-      "frame": 4
+      "sheet": "balcao_copa",
+      "frame": 0,
+      "in_use": { "actions": ["microwave"], "frames": [1] }
     },
-    "copa_table": {
-      "sheet": "office-objects",
-      "frame": 5
+    "fridge": { "sheet": "geladeira", "frame": 0, "in_use": { "actions": ["fridge"], "frames": [1] } },
+    "trash": { "sheet": "lixeira", "frame": 0 },
+    "copa_table": { "sheet": "mesa_copa", "frame": 0 },
+    "file_cabinet": { "sheet": "arquivo", "frame": 0 },
+    "plant": { "sheet": "planta", "frame": 0 },
+    "tv": { "sheet": "movel_tv", "frame": 0, "loop": { "frames": [1, 2], "fps": 2 } },
+    "sofa": { "sheet": "sofa_costas", "frame": 0 },
+    "puff": {
+      "sheet": "puff",
+      "frame": 0,
+      "variants": [
+        { "when": { "cor": "amarelo" }, "look": { "frame": 0 } },
+        { "when": { "cor": "vermelho" }, "look": { "frame": 1 } },
+        { "when": { "cor": "azul" }, "look": { "frame": 2 } }
+      ]
     },
-    "water_cooler": {},
-    "restroom_door": {}
+    "restroom": {
+      "sheet": "banheiro",
+      "frame": 0,
+      "dx": 48,
+      "width": 4,
+      "in_use": { "actions": ["restroom"], "frames": [1] }
+    }
   },
   "phases": {
-    "noite": {
-      "shade": 0.3
-    },
-    "madrugada": {
-      "shade": 0.42
-    }
+    "noite": { "shade": 0.3 },
+    "madrugada": { "shade": 0.42 }
   }
 }

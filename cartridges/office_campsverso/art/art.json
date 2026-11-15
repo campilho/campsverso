@@ -3,244 +3,60 @@
   "credits": "CREDITS.csv",
   "visual_map": "map-visual.tmj",
   "sheets": {
-    "camps": {
-      "image": "camps.png",
-      "frame_width": 64,
-      "frame_height": 64
-    },
-    "gerente": {
-      "image": "gerente.png",
-      "frame_width": 64,
-      "frame_height": 64
-    },
-    "vigia": {
-      "image": "vigia.png",
-      "frame_width": 64,
-      "frame_height": 64
-    }
+    "camps": { "image": "camps.png", "frame_width": 64, "frame_height": 64 },
+    "gerente": { "image": "gerente.png", "frame_width": 64, "frame_height": 64 },
+    "vigia": { "image": "vigia.png", "frame_width": 64, "frame_height": 64 }
   },
   "avatars": {
     "camps": {
       "sheet": "camps",
+      "feet": 0,
+      "label_above": 62,
       "animations": {
-        "thrust": {
-          "row": 0,
-          "frames": [
-            0,
-            1,
-            2,
-            3,
-            4,
-            5,
-            6,
-            7
-          ],
-          "fps": 9
-        },
-        "walk": {
-          "row": 4,
-          "frames": [
-            1,
-            2,
-            3,
-            4,
-            5,
-            6,
-            7,
-            8
-          ],
-          "per_tile": 4
-        },
-        "idle": {
-          "row": 8,
-          "frames": [
-            0,
-            0,
-            1
-          ],
-          "fps": 2
-        },
-        "lying": {
-          "row": 12,
-          "frames": [
-            5
-          ],
-          "single": true
-        },
-        "sit": {
-          "row": 13,
-          "frames": [
-            2
-          ],
-          "fps": 1
-        }
+        "walk": { "row": 0, "frames": [0, 1, 2, 3, 4, 5, 6, 7], "per_tile": 8 },
+        "idle": { "row": 4, "frames": [0, 0, 0, 0, 0, 1], "fps": 3 },
+        "sit": { "row": 12, "frames": [0], "fps": 1 },
+        "type": { "row": 16, "frames": [0, 1, 2, 3], "fps": 6, "single": true }
       },
-      "actions": {
-        "move": "walk",
-        "say": "idle",
-        "wait": "idle",
-        "*": "thrust"
-      },
+      "actions": { "move": "walk", "*": "idle" },
       "idle": "idle",
-      "asleep": "lying",
+      "asleep": "idle",
       "seated": "sit",
-      "portrait": {
-        "frame": 90,
-        "x": 16,
-        "y": 9,
-        "size": 32
-      },
-      "hidden": [
-        "restroom"
-      ]
+      "seated_actions": { "work": "type" },
+      "hidden": ["restroom"],
+      "portrait": { "frame": 48, "x": 16, "y": 14, "size": 32 }
     },
     "gerente": {
       "sheet": "gerente",
+      "feet": 0,
+      "label_above": 62,
       "animations": {
-        "thrust": {
-          "row": 0,
-          "frames": [
-            0,
-            1,
-            2,
-            3,
-            4,
-            5,
-            6,
-            7
-          ],
-          "fps": 9
-        },
-        "walk": {
-          "row": 4,
-          "frames": [
-            1,
-            2,
-            3,
-            4,
-            5,
-            6,
-            7,
-            8
-          ],
-          "per_tile": 4
-        },
-        "idle": {
-          "row": 8,
-          "frames": [
-            0,
-            0,
-            1
-          ],
-          "fps": 2
-        },
-        "lying": {
-          "row": 12,
-          "frames": [
-            5
-          ],
-          "single": true
-        },
-        "sit": {
-          "row": 13,
-          "frames": [
-            2
-          ],
-          "fps": 1
-        }
+        "walk": { "row": 0, "frames": [0, 1, 2, 3, 4, 5, 6, 7], "per_tile": 8 },
+        "idle": { "row": 4, "frames": [0, 0, 0, 0, 0, 1], "fps": 3 },
+        "sit": { "row": 4, "frames": [0], "fps": 1 }
       },
-      "actions": {
-        "move": "walk",
-        "say": "idle",
-        "wait": "idle",
-        "*": "thrust"
-      },
+      "actions": { "move": "walk", "*": "idle" },
       "idle": "idle",
-      "asleep": "lying",
+      "asleep": "idle",
       "seated": "sit",
-      "portrait": {
-        "frame": 90,
-        "x": 16,
-        "y": 9,
-        "size": 32
-      },
-      "hidden": [
-        "restroom"
-      ]
+      "hidden": ["restroom"],
+      "portrait": { "frame": 48, "x": 16, "y": 14, "size": 32 }
     },
     "vigia": {
       "sheet": "vigia",
+      "feet": 0,
+      "label_above": 62,
       "animations": {
-        "thrust": {
-          "row": 0,
-          "frames": [
-            0,
-            1,
-            2,
-            3,
-            4,
-            5,
-            6,
-            7
-          ],
-          "fps": 9
-        },
-        "walk": {
-          "row": 4,
-          "frames": [
-            1,
-            2,
-            3,
-            4,
-            5,
-            6,
-            7,
-            8
-          ],
-          "per_tile": 4
-        },
-        "idle": {
-          "row": 8,
-          "frames": [
-            0,
-            0,
-            1
-          ],
-          "fps": 2
-        },
-        "lying": {
-          "row": 12,
-          "frames": [
-            5
-          ],
-          "single": true
-        },
-        "sit": {
-          "row": 13,
-          "frames": [
-            2
-          ],
-          "fps": 1
-        }
+        "walk": { "row": 0, "frames": [0, 1, 2, 3, 4, 5, 6, 7], "per_tile": 8 },
+        "idle": { "row": 4, "frames": [0, 0, 0, 0, 0, 1], "fps": 3 },
+        "sit": { "row": 4, "frames": [0], "fps": 1 }
       },
-      "actions": {
-        "move": "walk",
-        "say": "idle",
-        "wait": "idle",
-        "*": "thrust"
-      },
+      "actions": { "move": "walk", "*": "idle" },
       "idle": "idle",
-      "asleep": "lying",
+      "asleep": "idle",
       "seated": "sit",
-      "portrait": {
-        "frame": 90,
-        "x": 16,
-        "y": 9,
-        "size": 32
-      },
-      "hidden": [
-        "restroom"
-      ]
+      "hidden": ["restroom"],
+      "portrait": { "frame": 48, "x": 16, "y": 14, "size": 32 }
     }
   }
 }

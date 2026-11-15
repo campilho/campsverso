@@ -105,8 +105,9 @@ OFFICE_ART = {
 
 
 def test_o_mapa_visual_do_escritorio_combina_com_o_mapa_logico() -> None:
-    """O escritório (ADR-0078): cada tile do chão cabe no tipo lógico, a parede do fundo tem duas
-    linhas de face sobre a sala, e a decoração fica na parede do fundo ou num tile de móvel."""
+    """O escritório (ADR-0078; a arte nova, ADR-0082): cada tile do chão cabe no tipo lógico, a
+    parede do fundo tem duas linhas de face sobre a sala, a faixa de sombra fica junto ao rodapé, o
+    tapete fecha o 3 x 3 nos cantos, e o que fica pendurado vai na parede do fundo."""
     scenario = "office_campsverso"
     logic = _json(visual_map.logic_map(scenario))
     tileset = _json(visual_map.OFFICE_TILESET)
@@ -122,13 +123,36 @@ def test_o_mapa_visual_do_escritorio_combina_com_o_mapa_logico() -> None:
     for i, gid in enumerate(ground["data"]):
         x, y = i % width, i // width
         assert names[gid] in visual_map.OFFICE_GROUND[types[y][x]], (x, y, names[gid])
-        if names[gid] == "north-b":
+        if names[gid] == "fundo-baixo":
             assert types[y + 1][x] in visual_map.ROOM
-    for i, gid in enumerate(over["data"]):
-        x, y = i % width, i // width
-        if gid:
-            under = names[ground["data"][i]]
-            assert under.startswith("north-") or types[y][x] == "furniture", (x, y, under)
+        if names[gid] == "carpete-sombra":
+            assert names[ground["data"][i - width]] == "fundo-baixo", (x, y)
+    rug = [
+        (i % width, i // width)
+        for i, t in enumerate(ground["data"])
+        if names[t].startswith("tapete")
+    ]
+    corners = {names[ground["data"][y * width + x]] for x, y in rug if (x, y) in _corners(rug)}
+    assert corners == {"tapete-0", "tapete-2", "tapete-6", "tapete-8"}
+    hung = [i for i, gid in enumerate(over["data"]) if gid]
+    assert len(hung) == 2 * len(decor["pieces"])  # cada peça em duas metades
+    for i in hung:
+        under = names[ground["data"][i]]
+        assert under.startswith("fundo-"), (i % width, i // width, under)
+
+
+def _corners(tiles: list[tuple[int, int]]) -> set[tuple[int, int]]:
+    xs, ys = [x for x, _ in tiles], [y for _, y in tiles]
+    return {(x, y) for x in (min(xs), max(xs)) for y in (min(ys), max(ys))}
+
+
+def test_a_arte_do_escritorio_esta_em_dia_com_as_folhas_do_design() -> None:
+    """As folhas dos cartuchos são cópias das de `docs/design/escritorio-arte/folhas/`, e o tileset
+    sai delas igual a cada rodada (`make arte-escritorio`; ADR-0082)."""
+    from campsverso_tools import office_art
+
+    for path, content in office_art.outputs().items():
+        assert path.read_bytes() == content, path.relative_to(REPO)
 
 
 def test_os_manifestos_do_escritorio_apontam_para_quadros_que_existem() -> None:
@@ -147,8 +171,21 @@ def test_os_manifestos_do_escritorio_apontam_para_quadros_que_existem() -> None:
     for kind, art in manifests["office"]["kinds"].items():
         if "sheet" in art:
             columns, rows = sheets[art["sheet"]]
-            assert art["frame"] < columns * rows, kind
+            frames = [art["frame"], *(v["look"].get("frame", 0) for v in art.get("variants", []))]
+            frames += [
+                *art.get("in_use", {}).get("frames", []),
+                *art.get("loop", {}).get("frames", []),
+            ]
+            frames += [art["front"]] if "front" in art else []
+            assert max(frames) < columns * rows, kind
+    for name, prop in manifests["office"]["tile_props"].items():
+        columns, rows = sheets[prop["sheet"]]
+        assert columns * rows >= (16 if prop.get("autotile") == "mask4" else 1), name
     assert manifests["office"]["kinds"]["chair"]["seat"] == "up"
+    # Cada tipo de entidade do mapa lógico tem arte (ADR-0082): nada vira um quadrado de cor.
+    logic = _json(visual_map.logic_map("office_campsverso"))
+    objects = next(layer for layer in logic["layers"] if layer["type"] == "objectgroup")
+    assert {o["type"] for o in objects["objects"]} <= set(manifests["office"]["kinds"])
     cast = scenario["avatars"]
     assert set(cast) == {"camps", "gerente", "vigia"}
     for name, avatar in cast.items():

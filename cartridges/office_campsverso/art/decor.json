@@ -1,35 +1,15 @@
 {
-  "about": "A decoração da parede do escritório (ADR-0078): peças de dois tiles de altura, desenhadas por cima do mapa visual (make mapa-visual). Na planta nova (ADR-0082), o bebedouro foi para a copa e a estante saiu.",
+  "about": "O que fica pendurado na parede do fundo do escritório (ADR-0082), como na prévia do Claude Design: o quadro dos pedidos em módulos de uma coluna, a janela com a cidade e o relógio. Peças de dois tiles de altura, desenhadas por cima do mapa visual (make mapa-visual).",
   "pieces": [
-    {
-      "tile": "window",
-      "x": 3,
-      "y": 0
-    },
-    {
-      "tile": "window",
-      "x": 5,
-      "y": 0
-    },
-    {
-      "tile": "clock",
-      "x": 7,
-      "y": 0
-    },
-    {
-      "tile": "notes",
-      "x": 12,
-      "y": 0
-    },
-    {
-      "tile": "window",
-      "x": 14,
-      "y": 0
-    },
-    {
-      "tile": "window",
-      "x": 16,
-      "y": 0
-    }
+    { "tile": "quadro-comeco", "x": 2, "y": 0 },
+    { "tile": "quadro-meio", "x": 3, "y": 0 },
+    { "tile": "quadro-meio", "x": 4, "y": 0 },
+    { "tile": "quadro-fim", "x": 5, "y": 0 },
+    { "tile": "janela-comeco", "x": 7, "y": 0 },
+    { "tile": "janela-meioA", "x": 8, "y": 0 },
+    { "tile": "janela-meioB", "x": 9, "y": 0 },
+    { "tile": "janela-meioA", "x": 10, "y": 0 },
+    { "tile": "janela-fim", "x": 11, "y": 0 },
+    { "tile": "relogio", "x": 12, "y": 0 }
   ]
 }
