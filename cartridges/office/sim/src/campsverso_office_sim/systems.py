@@ -1,6 +1,7 @@
 """Os sistemas do gênero office (ADR-0078): quem está no escritório a cada hora.
 
-O dev chega na abertura, sai para almoçar e vai embora no fim do expediente; o vigia fica sempre
+O dev chega na abertura, sai para almoçar (quando o almoço é na rua; na copa, fica) e vai embora no
+fim do expediente; o vigia fica sempre
 que o dev não está, à noite, no fim de semana e nos feriados (o almoço não conta). Tudo pela data e
 pela hora do relógio do mundo: funções do estado e do tick (princípio 4).
 """
@@ -10,7 +11,16 @@ from dataclasses import dataclass
 from typing import Any
 
 from campsverso_cartridge_api import DailyAt, OnSessionStart, SystemContext, Trigger, WorldOps
-from campsverso_office_sim.config import AVATAR, DEV, GUARD, at_lunch, door, office_hours, workday
+from campsverso_office_sim.config import (
+    AVATAR,
+    DEV,
+    GUARD,
+    at_lunch,
+    door,
+    lunch_out,
+    office_hours,
+    workday,
+)
 from campsverso_office_sim.config import minutes as minute_of
 
 
@@ -39,7 +49,7 @@ def staff(ctx: SystemContext, ops: WorldOps) -> None:
     opens, closes = minute_of(str(rules["opens"])), minute_of(str(rules["closes"]))
     wanted: dict[str, tuple[bool, str]] = {}
     for dev in _with_role(ctx, DEV):
-        lunch = at_lunch(view) and workday(view)
+        lunch = at_lunch(view) and workday(view) and lunch_out(view)
         wanted[dev] = (office_hours(view), "almoco" if lunch else "expediente")
     after_hours = not workday(view) or not opens <= view.minute_of_day < closes
     for guard in _with_role(ctx, GUARD):

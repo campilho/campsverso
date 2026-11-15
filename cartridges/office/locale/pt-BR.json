@@ -5,7 +5,11 @@
     "bench": "bancada",
     "chair": "cadeira",
     "door": "porta",
-    "ticket": "pedido"
+    "ticket": "pedido",
+    "water_cooler": "bebedouro",
+    "copa_counter": "balcão da copa",
+    "copa_table": "mesa da copa",
+    "restroom_door": "porta do banheiro"
   },
   "attributes": {
     "estado": "estado",
@@ -20,6 +24,10 @@
     "deliver": "Entregando",
     "accept_ticket": "Aceitando",
     "return_ticket": "Devolvendo",
-    "say": "Falando"
+    "say": "Falando",
+    "drink": "Bebendo água",
+    "coffee": "Tomando um café",
+    "restroom": "No banheiro",
+    "lunch": "Almoçando"
   }
 }

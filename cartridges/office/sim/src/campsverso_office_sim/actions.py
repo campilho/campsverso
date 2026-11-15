@@ -22,10 +22,16 @@ from campsverso_cartridge_api import (
 )
 from campsverso_office_sim.config import (
     BOARD,
+    COPA_COUNTER,
+    COPA_TABLE,
     DESK,
     DEV,
     MANAGER,
+    RESTROOM_DOOR,
     TICKET,
+    WATER_COOLER,
+    at_lunch,
+    lunch_end,
     section,
     tick_seconds,
 )
@@ -119,7 +125,7 @@ class OfficeAction:
         return float(section(ctx.view, "actions", self.name)["seconds"])
 
     def validate(self, ctx: ActionContext) -> Validation:
-        if role(ctx.view, ctx.avatar_id) != self.role:
+        if self.role and role(ctx.view, ctx.avatar_id) != self.role:
             return Rejection("not_allowed", f"só o {self.role} faz {self.name}")
         rejection = self.check(ctx)
         if rejection is not None:
@@ -446,6 +452,47 @@ class ReturnTicket(OfficeAction):
         )
 
 
+@dataclass(frozen=True)
+class Break(OfficeAction):
+    """Uma pausa da rotina (ADR-0080): beber água, um café, o banheiro, o almoço. É ilustrativa:
+    não mexe em nada do mundo, e qualquer um faz, ao lado da coisa."""
+
+    kind: str = ""
+    role: ClassVar[str] = ""  # qualquer um
+    shared: ClassVar[bool] = False
+
+    def check(self, ctx: ActionContext) -> Rejection | None:
+        things = ctx.view.entities(self.kind)
+        if not things:
+            return Rejection("invalid_params", f"não há {self.kind} no escritório")
+        if not any(adjacent(ctx.view, ctx.avatar_id, thing) for thing in things):
+            return Rejection("not_adjacent", f"longe de {self.kind}")
+        return None
+
+    def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
+        pass
+
+
+@dataclass(frozen=True)
+class Lunch(Break):
+    """O almoço na copa, só na hora do almoço, até ela acabar."""
+
+    def check(self, ctx: ActionContext) -> Rejection | None:
+        if not at_lunch(ctx.view):
+            return Rejection("invalid_params", "fora da hora do almoço")
+        return super().check(ctx)
+
+    def seconds(self, ctx: ActionContext) -> float:
+        return float(max(60, (lunch_end(ctx.view) - ctx.view.minute_of_day) * 60))
+
+
+BREAKS: tuple[OfficeAction, ...] = (
+    Break("drink", WATER_COOLER),
+    Break("coffee", COPA_COUNTER),
+    Break("restroom", RESTROOM_DOOR),
+    Lunch("lunch", COPA_TABLE),
+)
+
 ALL_ACTIONS: tuple[OfficeAction, ...] = (
     WriteTicket(),
     TakeTicket(),
@@ -453,4 +500,5 @@ ALL_ACTIONS: tuple[OfficeAction, ...] = (
     Deliver(),
     AcceptTicket(),
     ReturnTicket(),
+    *BREAKS,
 )

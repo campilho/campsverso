@@ -10,7 +10,7 @@
  "tilewidth": 32,
  "tileheight": 32,
  "nextlayerid": 3,
- "nextobjectid": 7,
+ "nextobjectid": 12,
  "properties": [
   {
    "name": "source",
@@ -186,9 +186,29 @@
     2,
     2,
     2,
+    5,
+    5,
+    5,
+    1,
+    1,
     2,
     2,
     2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    5,
+    5,
+    5,
     1,
     1,
     2,
@@ -245,27 +265,7 @@
     2,
     2,
     2,
-    2,
-    2,
-    2,
-    2,
-    1,
-    1,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
+    5,
     2,
     2,
     2,
@@ -307,7 +307,7 @@
     1,
     1,
     1,
-    1,
+    6,
     1,
     1,
     4,
@@ -509,6 +509,111 @@
        "value": "Cadeira do vigia"
       }
      ]
+    },
+    {
+     "id": 7,
+     "name": "bebedouro",
+     "type": "water_cooler",
+     "x": 32,
+     "y": 64,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Bebedouro"
+      },
+      {
+       "name": "blocking",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 8,
+     "name": "balcao-copa",
+     "type": "copa_counter",
+     "x": 544,
+     "y": 256,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Balcão da copa"
+      },
+      {
+       "name": "blocking",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 9,
+     "name": "mesa-copa",
+     "type": "copa_table",
+     "x": 480,
+     "y": 352,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Mesa da copa"
+      },
+      {
+       "name": "blocking",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 10,
+     "name": "cadeira-copa",
+     "type": "chair",
+     "x": 480,
+     "y": 384,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Cadeira da copa"
+      }
+     ]
+    },
+    {
+     "id": 11,
+     "name": "porta-banheiro",
+     "type": "restroom_door",
+     "x": 544,
+     "y": 416,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "display_name",
+       "type": "string",
+       "value": "Porta do banheiro"
+      }
+     ]
     }
    ]
   }
@@ -519,12 +624,12 @@
    "name": "office-v0",
    "tilewidth": 32,
    "tileheight": 32,
-   "tilecount": 5,
-   "columns": 5,
+   "tilecount": 6,
+   "columns": 6,
    "margin": 0,
    "spacing": 0,
    "image": "office-placeholder.png",
-   "imagewidth": 160,
+   "imagewidth": 192,
    "imageheight": 32,
    "tiles": [
     {
@@ -594,6 +699,22 @@
     {
      "id": 4,
      "type": "furniture",
+     "properties": [
+      {
+       "name": "passable",
+       "type": "bool",
+       "value": false
+      },
+      {
+       "name": "water",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 5,
+     "type": "restroom",
      "properties": [
       {
        "name": "passable",

@@ -7,6 +7,7 @@ office:
     workdays: [1, 2, 3, 4, 5]
     opens: "09:00"
     lunch: ["12:00", "13:00"]
+    lunch_where: copa # o dev almoça na copa, pela rotina (ADR-0080)
     closes: "18:00"
     # Os feriados nacionais (o expediente não abre).
     holidays:

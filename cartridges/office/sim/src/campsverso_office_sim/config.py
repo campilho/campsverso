@@ -22,6 +22,13 @@ AVATAR, DESK, CHAIR, BOARD, BENCH, DOOR, TICKET = (
     "door",
     "ticket",
 )
+# A copa e as pausas da rotina (ADR-0080): ilustrativas, sem efeito no trabalho.
+WATER_COOLER, COPA_COUNTER, COPA_TABLE, RESTROOM_DOOR = (
+    "water_cooler",
+    "copa_counter",
+    "copa_table",
+    "restroom_door",
+)
 # Os papéis, no atributo `papel` de cada avatar (ADR-0077: o dev é sempre um LLM ou um script).
 DEV, MANAGER, GUARD = "dev", "gerente", "vigia"
 
@@ -64,10 +71,20 @@ def at_lunch(view: WorldView) -> bool:
     return start <= view.minute_of_day < end
 
 
+def lunch_out(view: WorldView) -> bool:
+    """O almoço é na rua (o dev sai pela porta) ou na copa (fica na sala; ADR-0080)."""
+    return str(section(view, "schedule").get("lunch_where", "rua")) == "rua"
+
+
+def lunch_end(view: WorldView) -> int:
+    """O minuto do dia em que o almoço acaba."""
+    return minutes(str(section(view, "schedule")["lunch"][1]))
+
+
 def office_hours(view: WorldView) -> bool:
     """O dev está no escritório agora: num dia de expediente, entre a abertura e o fim, fora do
-    almoço."""
+    almoço quando o almoço é na rua."""
     rules = section(view, "schedule")
     now = view.minute_of_day
     open_now = minutes(str(rules["opens"])) <= now < minutes(str(rules["closes"]))
-    return workday(view) and open_now and not at_lunch(view)
+    return workday(view) and open_now and not (at_lunch(view) and lunch_out(view))

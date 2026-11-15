@@ -20,6 +20,9 @@ movement:
 perception:
   radius: null # a sala inteira
 
+speech:
+  interrupts: true # falar com alguém interrompe o que ele faz, e ele responde (ADR-0080)
+
 ticket:
   title_max: 80
   description_max: 1000
@@ -37,6 +40,7 @@ schedule:
   workdays: [1, 2, 3, 4, 5]
   opens: "09:00"
   lunch: ["12:00", "13:00"]
+  lunch_where: rua # rua: o dev sai pela porta; copa: almoça na sala (ADR-0080)
   closes: "18:00"
   holidays: {}
 
@@ -47,6 +51,11 @@ actions:
   work: { interrupt: partial } # o tamanho do pedido dá a duração
   deliver: { seconds: 6, interrupt: cancel }
   accept_ticket: { seconds: 6, interrupt: cancel }
+  # As pausas da rotina (ADR-0080): ilustrativas, sem efeito no trabalho.
+  drink: { seconds: 30, interrupt: cancel }
+  coffee: { seconds: 120, interrupt: cancel }
+  restroom: { seconds: 240, interrupt: cancel }
+  lunch: { interrupt: cancel } # até o fim da hora do almoço
   return_ticket: { seconds: 10, interrupt: cancel }
 
 # A linha do tempo (ADR-0068): como cada fato se conta.
@@ -84,6 +93,19 @@ labels:
   - event: campsverso.avatar.left.v1
     where: { reason: released }
     text: "saiu do escritório"
+  # As pausas da rotina (ADR-0080).
+  - event: campsverso.action.accepted.v1
+    where: { action: drink }
+    text: "foi beber água"
+  - event: campsverso.action.accepted.v1
+    where: { action: coffee }
+    text: "foi tomar um café"
+  - event: campsverso.action.accepted.v1
+    where: { action: restroom }
+    text: "foi ao banheiro"
+  - event: campsverso.action.accepted.v1
+    where: { action: lunch }
+    text: "foi almoçar na copa"
 
 # As métricas do dia (ADR-0054), contadas pela projeção comum.
 metrics:

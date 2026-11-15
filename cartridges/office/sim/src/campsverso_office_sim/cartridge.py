@@ -29,6 +29,10 @@ def _kinds() -> tuple[KindDef, ...]:
         KindDef(config.BENCH, blocking=True),
         KindDef(config.DOOR),
         KindDef(config.TICKET),
+        KindDef(config.WATER_COOLER, blocking=True),
+        KindDef(config.COPA_COUNTER, blocking=True),
+        KindDef(config.COPA_TABLE, blocking=True),
+        KindDef(config.RESTROOM_DOOR),
     )
 
 
@@ -77,6 +81,7 @@ class OfficeCartridge:
         world.set_screen_tiles_per_second(float(data["movement"]["screen_tiles_per_second"]))
         radius = data["perception"]["radius"]
         world.set_perception_radius(None if radius is None else int(radius))
+        world.set_interrupt_on_speech(bool(data["speech"]["interrupts"]))
         world.merge_data(config.NAMESPACE, data)
         for kind in _kinds():
             world.define_kind(kind)
