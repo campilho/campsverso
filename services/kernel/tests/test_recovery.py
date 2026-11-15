@@ -17,6 +17,7 @@ from campsverso_adapters import (
 )
 from campsverso_kernel import Engine, KernelService, RecoveryError, open_world, run_version
 from campsverso_kernel.core import KernelCore, WorldConfig
+from campsverso_kernel.pacer import RealTimePacer
 from campsverso_kernel.snapshot import SnapshotError, decode, document, encode, restore
 from campsverso_kernel.testing import RULES, START, LabCartridge, command, make_core
 from campsverso_kernel.version import RunVersion
@@ -269,7 +270,7 @@ def test_motor_agenda_snapshot_a_cada_bloco() -> None:
     assert restored.log.next_seq == snapshots[1].next_seq
 
 
-def _set_scale(command_id: str, reason: str) -> dict[str, Any]:
+def _set_scale(command_id: str, reason: str, scale: float = 500) -> dict[str, Any]:
     return {
         "specversion": "1.0",
         "id": command_id,
@@ -284,7 +285,7 @@ def _set_scale(command_id: str, reason: str) -> dict[str, Any]:
         "actor": "human/operator",
         "provenance": "simulated",
         "visibility": "observer",
-        "data": {"scale": 500, "reason": reason},
+        "data": {"scale": scale, "reason": reason},
     }
 
 
@@ -304,3 +305,19 @@ async def test_comando_fora_do_contrato_e_recusado_e_reexecutado_igual() -> None
     assert lab.recovery is not None
     assert lab.recovery.inputs == 3  # as três entradas reexecutadas, com os mesmos fatos
     assert service.core.scale == 500
+
+
+@pytest.mark.parametrize("validated", [True, False])
+async def test_escala_infinita_ou_nan_e_recusada_e_o_relogio_segue(validated: bool) -> None:
+    """O `json` do Python lê `1e999` e `NaN`, e o schema só pede um número maior que zero. Uma
+    escala assim derrubava o ritmo do relógio: o validador a recusa, e o núcleo também."""
+    lab = Lab(validator=ContractValidator() if validated else None)
+    await lab.service.start()
+    ids = SequentialUuid7Ids()
+    for scale in (json.loads("1e999"), json.loads("NaN"), 10**400):
+        lab.service.submit(_set_scale(ids.new_id(), "operator", scale))
+    await lab.service.run_ticks(3)
+    rejected = [e["data"] for e in lab.events if e["type"].endswith("command.rejected.v1")]
+    assert [r["reason"] for r in rejected] == ["invalid_command"] * 3
+    assert lab.service.core.scale == 72  # a escala do cartucho de laboratório, intacta
+    assert RealTimePacer(60, lab.service.core.scale).ticks_for(1.0) == 1

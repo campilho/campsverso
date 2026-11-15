@@ -12,6 +12,7 @@ arquivo de eventos dela pela mesma projeção do gateway, sem barramento e sem k
 
 import asyncio
 import json
+import math
 from collections import deque
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
@@ -279,12 +280,27 @@ class WatchService:
         elif command == f"{CLOCK}resume.v1":
             run.paused = False
         elif command in (f"{CLOCK}set_scale.v1", f"{CLOCK}set_mode.v1"):
+            scale = None if data.get("scale") is None else _scale(data["scale"])
+            if data.get("scale") is not None and scale is None:
+                return _reply(request, "invalid_command", "a escala precisa ser positiva e finita")
             run.mode = str(data.get("mode") or "continuous")
-            if data.get("scale") is not None:
-                run.scale = float(data["scale"])
+            if scale is not None:
+                run.scale = scale
         else:
             return _reply(request, "read_only", "assistir não muda o mundo")
         return {"type": REPLY, "request_id": request, "ok": True, "command_id": self._ids.new_id()}
+
+
+def _scale(value: Any) -> float | None:
+    """A escala como no contrato, um número positivo e finito; fora disso, None. Uma escala
+    infinita travava a reprodução de todos que assistem à corrida."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    try:
+        scale = float(value)
+    except OverflowError:  # um inteiro que não cabe num float
+        return None
+    return scale if math.isfinite(scale) and scale > 0 else None
 
 
 def _reply(request_id: str, code: str, text: str) -> Message:

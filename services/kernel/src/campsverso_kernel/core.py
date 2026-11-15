@@ -455,9 +455,12 @@ class KernelCore:
         return None
 
     def _set_scale(self, command: Mapping[str, Any], data: Mapping[str, Any]) -> str | None:
-        scale = float(data["scale"])
-        if scale <= 0:
-            return "invalid_command:a escala precisa ser positiva"
+        try:
+            scale = float(data["scale"])
+        except OverflowError:  # um inteiro que não cabe num float
+            scale = math.inf
+        if not math.isfinite(scale) or scale <= 0:  # NaN e infinito derrubariam o ritmo do relógio
+            return "invalid_command:a escala precisa ser positiva e finita"
         previous, self.scale = self.scale, scale
         self.world.emit_fact(
             "campsverso.world.clock.scale_changed.v1",

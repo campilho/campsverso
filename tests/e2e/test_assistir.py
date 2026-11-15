@@ -57,6 +57,34 @@ async def test_a_corrida_gravada_toca_no_relogio_de_reproducao(tmp_path: Path) -
     assert "camps" in whole["entities"]
 
 
+async def test_o_relogio_de_reproducao_recusa_escala_fora_do_contrato(tmp_path: Path) -> None:
+    """A escala de quem assiste vale para todos que assistem à corrida: uma infinita travava a
+    reprodução. O operador só muda para um número positivo e finito."""
+    _write(tmp_path / "script", await _day(), done=True)
+    service = _service(tmp_path)
+    run = service._runs["script"]  # pyright: ignore[reportPrivateUsage]
+
+    class Operator:
+        view = "operator"
+
+    def ask(data: dict[str, Any]) -> dict[str, Any]:
+        message = {
+            "type": "campsverso.realtime.command.v1",
+            "request_id": "r1",
+            "command": "campsverso.cmd.clock.set_scale.v1",
+            "data": data,
+        }
+        return dict(service._command(run, cast(Any, Operator()), message))  # pyright: ignore[reportPrivateUsage]
+
+    for bad in (json.loads("1e999"), json.loads("NaN"), 10**400, 0, -3, "72", True):
+        reply = ask({"scale": bad, "mode": "max"})
+        assert (reply["ok"], reply["error"]["code"]) == (False, "invalid_command")
+    assert (run.scale, run.mode) == (1440.0, "continuous")  # nada mudou, nem o modo
+    assert ask({"scale": 144, "reason": "operator"})["ok"] is True
+    assert run.scale == 144.0
+    service.advance(run, 10)  # o relógio de reprodução segue andando
+
+
 async def test_a_corrida_em_andamento_e_seguida_enquanto_o_arquivo_cresce(tmp_path: Path) -> None:
     envelopes = await _day()
     half = len(envelopes) // 2

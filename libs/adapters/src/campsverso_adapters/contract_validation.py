@@ -1,15 +1,20 @@
 """Validação de envelopes contra os contratos empacotados em campsverso_contracts (critério A2).
 
 Os códigos de erro são os mesmos do validador de desenvolvimento (tools/contracts).
+
+Infinito e NaN não são números do JSON, mas o `json` do Python os lê (`1e999`, `Infinity`, `NaN`)
+e o `type: number` do jsonschema os aceita. Aqui eles não são números, como no ajv em modo estrito:
+uma escala infinita derrubava o relógio do kernel.
 """
 
 import json
+import math
 from dataclasses import dataclass
 from importlib.resources import files
 from importlib.resources.abc import Traversable
-from typing import Any
+from typing import Any, cast
 
-from jsonschema import Draft202012Validator, ValidationError
+from jsonschema import Draft202012Validator, ValidationError, validators
 from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
 
@@ -24,6 +29,27 @@ class Problem:
 
     def __str__(self) -> str:
         return f"[{self.code}] {self.message}"
+
+
+def _finite_number(_checker: Any, instance: Any) -> bool:
+    if isinstance(instance, bool) or not isinstance(instance, (int, float)):
+        return False
+    try:
+        return math.isfinite(instance)
+    except OverflowError:  # um inteiro que não cabe num float: para o ajv, infinito
+        return False
+
+
+# O stub do jsonschema não declara o tipo de `extend`: a classe nova é um validador como o da base.
+_STRICT: Any = validators.extend(  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+    Draft202012Validator,
+    type_checker=Draft202012Validator.TYPE_CHECKER.redefine("number", _finite_number),
+)
+
+
+def _validator(schema: dict[str, Any], registry: Registry[Any]) -> Draft202012Validator:
+    checker = Draft202012Validator.FORMAT_CHECKER
+    return cast(Draft202012Validator, _STRICT(schema, registry=registry, format_checker=checker))
 
 
 def _schema_files(folder: Traversable) -> list[dict[str, Any]]:
@@ -54,14 +80,9 @@ class ContractValidator:
         ]
         registry: Registry[Any] = Registry[Any]().with_resources(resources)
         by_id = {str(s["$id"]): s for s in schemas}
-        checker = Draft202012Validator.FORMAT_CHECKER
-        self._envelope = Draft202012Validator(
-            by_id["contracts://envelope/envelope.v1"], registry=registry, format_checker=checker
-        )
+        self._envelope = _validator(by_id["contracts://envelope/envelope.v1"], registry)
         self._payloads = {
-            name: Draft202012Validator(
-                by_id[info.dataschema], registry=registry, format_checker=checker
-            )
+            name: _validator(by_id[info.dataschema], registry)
             for name, info in CONTRACT_TYPES.items()
         }
 
