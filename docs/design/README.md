@@ -88,7 +88,18 @@ O M23 entregou o escritório em arte LPC. Na partida dele, o usuário achou que 
 | O prédio em quatro salas (pesquisa, roteiro, estúdio, arte) e a recepção com o vigia, em vista de cima | [escritorio-quatro-salas-image2.webp](escritorio-quatro-salas-image2.webp) | Image2 (ChatGPT) | a planta com várias salas e um corredor, o vigia na recepção, a luz quente das luminárias; serve ao estúdio do CampsCast |
 | O Campsverso Companion: o escritório num aparelho de mesa, com o toque num agente, os detalhes da tarefa, os comandos simples e o PR até a entrega | [companion-replay.webp](companion-replay.webp) | não registrada | uma vertente possível: o replay e o acompanhamento do mundo num aparelho à parte, só com o que o contrato `realtime` já entrega |
 
-**O próximo passo** é um teste de arte com o Claude Design, desenhando em código como no protótipo, na vista de cima em 3/4. O pedido está em [briefing-arte-escritorio.md](briefing-arte-escritorio.md), com o que fazer com a entrega.
+**O teste de arte.** O pedido está em [briefing-arte-escritorio.md](briefing-arte-escritorio.md), agora na v2: duas fases, a imagem-alvo só para cores e materiais (a perspectiva dela não cabe na grade), as regras de encaixe (âncora, pegada, camadas), o mapa das folhas e a API de exportação.
+
+### A arte da fase 1 (15/11)
+
+Em [escritorio-arte/](escritorio-arte/): a fatia que basta para decidir entre a arte nova e a LPC, desenhada em código na vista de cima em 3/4, com uma paleta de 45 cores.
+
+- **O que tem:** o chão, as paredes e a porta; a janela de dia e de noite; o relógio; o quadro dos pedidos em módulos e as fichas soltas; o cubículo (a mesa com a tela animada, a cadeira em duas camadas, a divisória em 16 peças, o rack com o botão de publicar); o arquivo, a planta e a lixeira; o Camps, o gerente e o vigia andando e parados, e o Camps sentado e digitando.
+- **Como abrir:** [escritorio-arte.html](escritorio-arte/escritorio-arte.html), no navegador, mostra a sala animada, a paleta e a prancha, com um "baixar PNG" por folha. As folhas já exportadas estão em [folhas/](escritorio-arte/folhas/), com o [metadados.json](escritorio-arte/folhas/metadados.json) para o manifesto, e a prévia em [previa/](escritorio-arte/previa/).
+- **Exportar de novo:** da raiz, `NODE_PATH=apps/ui/node_modules node docs/design/escritorio-arte/ferramentas/exportar-folhas.js docs/design/escritorio-arte/escritorio-arte.html <pasta>`, com o Playwright do `apps/ui`.
+- **Origem:** o Claude desenhou numa sessão do Cowork, em 15/11/2026, e não no Claude Design; o pedido serviu igual. O desenho é original: nada vem da LPC nem de outros pacotes.
+- **Fora do lint:** a pasta está nos `ignores` do `eslint.config.js`, como o protótipo.
+- **O que falta:** as decisões em aberto do pedido (os agentes humanos ou robôs; a altura da parede do fundo) e o passo 2 em diante: o manifesto de teste e as capturas lado a lado com a LPC.
 
 Uma quarta referência fica fora do repositório: a capa de um vídeo do YouTube sobre jogos de Mega Drive, que não é nossa. Ela mostra o clima de 16 bits que se quer: vista de cima em 3/4, folhagem densa, sombras marcadas e um personagem pequeno num cenário rico.
 

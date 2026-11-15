@@ -1,23 +1,44 @@
-# Pedido ao Claude Design: a arte do escritório
+# Pedido de arte: o escritório (v2)
 
 Um teste de arte para o escritório do Campsverso, antes de refazer tudo. O que sair daqui vai para a tela de verdade, ao lado da arte LPC de hoje, e o usuário decide olhando (ADR-0079 e o diário de 15/11).
 
-O texto entre as linhas abaixo é o pedido, para colar num projeto novo do Claude Design, com três anexos de `docs/design`: `escritorio-retro-image2.webp`, `escritorio-crescimento.webp` e `escritorio/sprites.js`. O resto deste arquivo é para nós.
+**Estado (15/11):** a fase 1 foi desenhada pelo Claude numa sessão do Cowork, a partir deste pedido, e está em [escritorio-arte/](escritorio-arte/). Falta o passo 2 em diante de "Para nós".
+
+**O que mudou da v1:**
+
+- o pedido agora tem duas fases. A fase 1 é uma fatia pequena, que basta para decidir; a fase 2 é o resto, e só sai se a arte nova ganhar;
+- a imagem de referência passa a valer só para cores, materiais e contorno. A perspectiva dela não entra;
+- o pedido agora define âncoras, pegadas, camadas e o mapa das folhas, que o manifesto vai precisar;
+- os personagens partem de um corpo-base parametrizável;
+- o quadro dos pedidos, a janela e as divisórias passam a ser modulares;
+- a página expõe uma API para exportar as folhas sem clicar em nada.
+
+O texto entre as linhas abaixo é o pedido. Os anexos são `escritorio-retro-image2.webp`, `escritorio-crescimento.webp` e `escritorio/sprites.js`. O resto deste arquivo é para nós.
 
 ---
 
 ## O pedido
 
-Quero a arte de um jogo de escritório em pixel art, desenhada em código. O arquivo anexo `sprites.js` mostra o jeito: cada boneco é montado por funções, com os quadros de andar e de trabalhar. Ele é de um protótipo antigo, com o escritório em corte, de lado. Desta vez a vista é outra: **de cima, em 3/4**, como num RPG de 16 bits.
+Quero a arte de um jogo de escritório em pixel art, desenhada em código. O arquivo anexo `sprites.js` mostra o jeito: cada boneco é montado por funções (cabeça, tronco, braços, pernas), com a aparência vinda de dados. Ele é de um protótipo antigo, com o escritório em corte, de lado. Desta vez a vista é **de cima, em 3/4, como num RPG de 16 bits**.
 
-**O alvo de estilo** é a imagem anexa do cubículo (`escritorio-retro-image2.webp`):
-- contorno escuro em tudo;
-- divisórias de cubículo bege, carpete azul-acinzentado, mesa de madeira;
-- monitor de tubo bege com a tela verde, arquivo de aço cinza, plantas em vaso;
-- a janela com a cidade ao fundo;
-- personagens com a cabeça um pouco grande.
+### O alvo de estilo
 
-A segunda imagem anexa (`escritorio-crescimento.webp`) mostra a mesma sala crescendo: um dev, depois o dev e o revisor, depois o squad. Desenhe as peças para que a sala possa crescer assim, por peças soltas, e não como uma pintura única.
+Da imagem do cubículo (`escritorio-retro-image2.webp`), aproveite:
+- o contorno escuro em tudo;
+- as cores e os materiais: divisória bege, carpete azul-acinzentado, mesa de madeira, monitor de tubo bege com a tela verde, arquivo de aço cinza, plantas em vaso, a janela com a cidade;
+- os personagens com a cabeça um pouco grande.
+
+**Não aproveite a perspectiva.** A imagem mistura ângulos: as divisórias têm linhas de fuga em diagonal, e o arquivo e o rack estão tortos. Aqui a projeção é a do RPG:
+- o chão é de tiles quadrados;
+- as alturas sobem na vertical, em escala cheia;
+- só se vê a face sul de cada coisa (a que dá para a câmera) e o topo;
+- nada vai em diagonal.
+
+Uma divisória que corre de norte a sul aparece só como uma faixa fina, o topo dela.
+
+**Nos personagens, vale o texto, não a imagem.** O homem na porta da imagem não é o gerente.
+
+A segunda imagem (`escritorio-crescimento.webp`) mostra a sala crescendo: um dev, depois o dev e o revisor, depois o squad. Desenhe as peças para que a sala cresça assim, por peças soltas. Os cubículos ficam **abertos para o sul**, para que a divisória não esconda quem está sentado.
 
 **Tudo é desenho original seu.** Não copie nem recorte pacotes de terceiros (LPC, itch.io etc.).
 
@@ -29,80 +50,147 @@ A segunda imagem anexa (`escritorio-crescimento.webp`) mostra a mesma sala cresc
 - Linha 13: a parede de baixo, com a porta na coluna 9.
 - Linhas 14 a 16: o corredor, de piso xadrez.
 
+### As regras de encaixe
+
+- **Quadro e pegada.** Cada peça declara o tamanho do quadro (múltiplos de 32 na largura) e a pegada no chão, em tiles: os tiles que ela ocupa e bloqueia. O quadro pode ser mais alto que a pegada. A altura da peça sobe para os tiles de cima.
+- **Âncora.** É o ponto do quadro que coincide com o meio da borda de baixo da pegada. Em quase tudo, ela fica em (largura/2, altura): o pé encosta na última linha do quadro, contorno incluído. Os personagens usam quadros de 64 de largura sobre tiles de 32, com a âncora em (32, 64).
+- **Camadas.** A tela desenha por ordem da borda de baixo da pegada. No empate, a ordem é a peça de trás, depois o personagem, depois a peça da frente. A cadeira de escritório vem em duas camadas: o assento e a base atrás, o encosto na frente.
+- **Sentado.** O quadro do sentado vai no mesmo lugar do quadro em pé, no tile da cadeira. O corpo já vem desenhado na altura do assento. Para cima (de costas, na mesa), o corpo vem encostado na mesa. A cadeira fica no tile logo abaixo do meio da mesa.
+- **Contorno.** Contorne a silhueta de cada peça solta e de cada personagem. Peças que se emendam (paredes, divisórias, carpete) têm contorno só nas bordas expostas, nunca na junta. Os tiles de chão não têm contorno.
+- **Espelhar é permitido.** A direita pode ser a esquerda espelhada. Se um acessório trocar de mão, como a lanterna, tudo bem.
+
+### A paleta
+
+- **Uma paleta só, declarada no começo do código, com no máximo 48 cores**, organizadas em rampas: claro, base e sombra de cada material.
+- **Nenhuma cor calculada.** Nada de clarear, escurecer ou misturar em tempo de execução. Sombras e luzes são entradas da paleta.
+- **Pixel art de verdade:** sem antialiasing, sem degradê (pontilhado pode), sem transparência parcial.
+- A página mostra quantas cores foram usadas.
+
 ### As peças
 
-Desenhe cada peça numa folha (spritesheet) separada, sobre fundo transparente, com o pé da peça na borda de baixo do tile dela.
+Cada peça vai numa folha (spritesheet) separada, sobre fundo transparente.
 
-1. **O chão e as paredes**, em tiles de 32 × 32:
-   - o carpete da sala;
-   - o piso do corredor;
-   - a parede do fundo em dois tiles: o de cima e o de baixo, com o rodapé;
-   - as paredes do lado, vistas de cima;
-   - a parede de baixo, com a face curta que dá para o corredor;
-   - a porta, fechada e aberta.
-2. **Na parede do fundo**, cada uma com dois tiles de altura:
-   - a janela com a cidade, de dia e de noite;
-   - o relógio, o quadro de avisos pequeno, o bebedouro e a estante.
-3. **Os móveis**, em quadros de **96 × 64** (três tiles de largura e dois de altura):
-   - **a mesa do dev**, vista do lado de quem senta: o monitor de tubo, o teclado, o telefone e a xícara. Também uma versão com a tela do monitor acesa, com linhas de código em 3 quadros, para animar enquanto o dev trabalha;
-   - **a bancada**, uma mesa comprida com a cafeteira e um notebook;
-   - **o quadro dos pedidos**, de cortiça, com as fichas coloridas em quatro colunas (a fazer, fazendo, entregue, aceito). Não escreva os nomes das colunas; a tela escreve;
-   - **a cadeira de escritório**, vista de costas;
-   - **a divisória de cubículo**, em pedaços que se emendam: reta, canto e ponta;
-   - **o arquivo de aço, a planta em vaso e a lixeira**.
-4. **A copa**, onde o dev almoça e faz as pausas, em quadros de 96 × 64 ou de um tile:
-   - a geladeira, o micro-ondas, a pia com o armário e a cafeteira de copa;
-   - uma mesa de refeição com duas cadeiras, vistas de lado;
-   - a porta do banheiro, com a plaquinha.
-5. **Os três personagens**, cada um numa folha de quadros de **64 × 64**. O personagem tem uns 40 a 48 px de altura, com o pé na borda de baixo do quadro.
-   - **O Camps,** o dev: barba cheia, óculos, cabelo castanho curto, camisa vermelha, jeans.
-   - **O gerente,** um senhor grisalho de bigode: terno grafite, camisa branca, gravata vermelha, sapato preto.
-   - **O vigia,** a farda azul-marinho, o boné com aba e a lanterna na mão.
+**1. O chão e as paredes** (tiles de 32 × 32):
+- o carpete da sala, em 4 variações para quebrar a repetição, e uma faixa de sombra pontilhada para a linha 2, junto ao rodapé;
+- o piso xadrez do corredor;
+- a parede do fundo, com o tile de cima (com o topo) e o de baixo (com o rodapé);
+- as paredes do lado, vistas de cima (só o topo);
+- os quatro cantos: fundo com lado e lado com baixo;
+- a parede de baixo, com o topo e a face curta que dá para o corredor;
+- a porta na parede de baixo, fechada e aberta, com os batentes.
 
-### As animações
+**2. Na parede do fundo** (quadros de 32 de largura e 64 de altura, nas linhas 0 e 1):
+- a janela com a cidade, de dia e de noite, em módulos que emendam: começo, dois meios diferentes e fim;
+- o relógio e o quadro de avisos pequeno;
+- **o quadro dos pedidos**, de cortiça, em módulos de um tile: começo, meio e fim. **Cada módulo é uma coluna**, e 4 colunas são 4 tiles; com 5 colunas, entra mais um meio. No alto de cada coluna fica uma faixa clara vazia, onde a tela escreve o nome. Não escreva os nomes;
+- as **fichas**, como sprites soltos de uns 10 × 8 px, em 5 cores (o tipo do pedido). A tela as põe nas colunas conforme o estado real. Uma versão com as fichas pregadas fica só na prévia;
+- o quadro branco da especificação (64 × 64), em branco, porque a tela escreve.
 
-Cada animação tem as quatro direções, uma por linha, nesta ordem: **para cima, para a esquerda, para baixo, para a direita**.
+**3. Os móveis** (cada um com o seu quadro e a sua pegada):
 
-| Animação | Quadros por direção | O que é |
-|---|---|---|
-| andar | 8 | o ciclo de passos; o primeiro quadro é o pé no chão |
-| parado | 2 | respirar, piscar |
-| usar | 6 | estender a mão para uma coisa à frente: pegar uma ficha no quadro, apertar um botão |
-| sentado | 1 | sentado na cadeira; para cima é de costas, com as mãos no teclado |
-| digitando | 4 | sentado de costas, digitando (só para cima) |
-| beber | 3 | levar o copo ou a xícara à boca, em pé |
+| Peça | Quadro | Pegada | Quadros |
+|---|---|---|---|
+| mesa do dev, vista do lado de quem senta: monitor de tubo, teclado, telefone, xícara | 96 × 64 | 3 × 1 | 4: tela apagada e 3 de código rolando |
+| cadeira de escritório, de costas | 32 × 64 | 1 × 1 | 3: base (atrás), encosto (frente), inteira (vazia) |
+| rack do servidor, com o botão vermelho de publicar | 32 × 64 | 1 × 1 | 3: LEDs A, LEDs B, botão apertado |
+| divisória de cubículo | 32 × 64 | 1 × 1 | 16 (abaixo) |
+| arquivo de aço | 32 × 64 | 1 × 1 | 1 |
+| planta em vaso | 32 × 64 | 1 × 1 | 1 |
+| lixeira | 32 × 32 | 1 × 1 | 1 |
+| bancada, com cafeteira e notebook | 96 × 64 | 3 × 1 | 1 |
+| impressora matricial (vai sobre a mesa ou a bancada) | 32 × 32 | – | 2: parada, imprimindo |
+| mesa redonda de reunião | 96 × 64 | 3 × 2 | 1 |
 
-O gerente não precisa de sentado nem de digitando.
+**A divisória é um autotile de 16 peças.** Cada peça liga o centro do tile aos vizinhos marcados numa máscara de 4 bits (norte = 1, leste = 2, sul = 4, oeste = 8). A folha tem 4 × 4 quadros, na ordem da máscara (0 a 15). A divisória corre pelo centro do tile, tem uns 28 px de altura e um topo de 4 a 5 px. Os trechos leste-oeste mostram a face sul; os trechos norte-sul mostram só o topo, e a ponta sul mostra a face.
+
+**4. A copa:**
+- a geladeira, 32 × 64;
+- a pia com o armário, 64 × 64, com pegada 2 × 1;
+- o micro-ondas e a cafeteira de copa, 32 × 32 cada, que vão sobre a pia ou a bancada;
+- a mesa de refeição, 64 × 64, com pegada 2 × 1;
+- as cadeiras, vistas de lado (para a esquerda e para a direita), também em duas camadas;
+- a porta do banheiro, com a plaquinha, na parede do fundo (32 × 64). A copa fica num canto de cima da sala.
+
+### Os personagens
+
+Monte os personagens a partir de **um corpo-base parametrizável**: pele, cabelo e penteado, barba e bigode, óculos, camisa, calça, sapato e acessório (paletó com gravata, boné, lanterna). Cada personagem é uma configuração desse corpo. Assim, quem chegar depois (o revisor, o squad) sai da mesma base.
+
+- **O Camps,** o dev: barba cheia, óculos, cabelo castanho curto, camisa vermelha de manga comprida, jeans, sapato marrom.
+- **O gerente,** um senhor grisalho de bigode: terno grafite, camisa branca, gravata vermelha, sapato preto.
+- **O vigia:** farda azul-marinho, boné com aba e a lanterna na mão.
+
+Os quadros são de **64 × 64**. O personagem tem de 44 a 46 px de altura, com a âncora em (32, 64).
+
+### As animações e o mapa da folha
+
+Todos os personagens usam **a mesma folha**: 8 colunas (512 px) e 23 linhas. O que um personagem não tem fica transparente, para o manifesto ser o mesmo para todos. As direções vêm nesta ordem: **para cima, para a esquerda, para baixo, para a direita**.
+
+| Linhas | Animação | Quadros | O que é |
+|---|---|---|---|
+| 0–3 | andar | 8 | o ciclo de passos, um tile por ciclo; o quadro 0 é o pé no chão |
+| 4–7 | parado | 2 | respirar e piscar |
+| 8–11 | usar | 6 | estender a mão para uma coisa à frente: pegar uma ficha, apertar o botão |
+| 12–15 | sentado | 1 | na cadeira; para cima é de costas, com as mãos no teclado |
+| 16 | digitando | 4 | sentado de costas, digitando (só para cima) |
+| 17–20 | beber | 3 | levar o copo ou a xícara à boca, em pé |
+| 21–22 | comer sentado | 4 | à mesa da copa, para a esquerda e para a direita |
+
+O gerente não tem sentado, digitando nem comer.
 
 ### A entrega
 
-- **Um único HTML com JavaScript**, como no protótipo, em que cada peça é uma função que desenha num canvas.
-- **Uma página de prancha:** mostra todas as folhas lado a lado, com o nome de cada uma, e tem um botão "baixar PNG" por folha (`canvas.toBlob`).
-- **Uma prévia da sala montada** com as peças, no tamanho 20 × 17, com a copa num canto, e os três personagens se mexendo:
-  - o Camps sentado digitando;
-  - o gerente andando pela sala;
-  - o vigia parado na porta.
-- **Uma paleta só**, declarada no começo do código.
-- **Pixel art de verdade:** sem antialiasing e sem degradê, com as cores contadas.
+- **Um único HTML com JavaScript**, em que cada peça é uma função que desenha num canvas.
+- **Uma prancha:** todas as folhas lado a lado, ampliadas, com o nome, o tamanho do quadro e um botão "baixar PNG" por folha (`canvas.toBlob`).
+- **Uma prévia da sala montada**, em 20 × 17, com o Camps sentado digitando, o gerente andando pela sala e o vigia parado na porta. Tem uma chave de dia e noite.
+- **Uma API para exportar sem clicar:**
+  - `window.folhas()` devolve `{ nome: dataURL }`;
+  - `window.metadados()` devolve, para cada folha, o tamanho do quadro, as colunas, as linhas, a pegada, a âncora, a camada e o mapa de animações;
+  - `window.quadroPrevia(i, { noite })` devolve o quadro `i` da prévia, em passos de 100 ms.
+- **Tudo determinístico:** nada de `Math.random` sem semente. Rodar duas vezes dá os mesmos pixels.
+
+### As fases
+
+**Fase 1 (a fatia, que decide):**
+- a paleta inteira;
+- o carpete, o corredor, as paredes, os cantos e a porta;
+- a janela (dia e noite) e o relógio;
+- o quadro dos pedidos com as fichas;
+- um cubículo completo: a mesa com a tela animada, a cadeira nas duas camadas, as 16 divisórias e o rack;
+- o arquivo, a planta e a lixeira;
+- o Camps andando, parado, sentado e digitando;
+- o gerente andando e parado;
+- o vigia andando e parado;
+- a prévia.
+
+**Fase 2 (só se a arte nova ganhar):**
+- o resto das peças e das animações: usar, beber e comer;
+- a copa, a bancada, a impressora, a mesa de reunião e o quadro branco;
+- o revisor e o squad, a partir do corpo-base.
 
 ---
 
 ## Para nós: o que fazer com a entrega
 
-1. **Guardar** os arquivos que o Claude Design entregar em `docs/design/escritorio-arte/`, sem mudar nada, como foi feito com o protótipo. O Claude Design avulso (claude.ai/design) fecha até 14/12/2026 e passa a viver dentro do Claude: o que importa precisa estar no repositório antes disso.
-2. **Gerar os PNGs:**
-   - uma ferramenta nossa abre a página num navegador sem tela (Playwright, como os testes da tela) e salva cada folha;
-   - os PNGs vão para uma pasta de teste, fora de `cartridges/`.
-3. **Montar o manifesto** de teste:
+1. **Guardar** os arquivos em `docs/design/escritorio-arte/`, sem mudar nada. O Claude Design avulso (claude.ai/design) fecha até 14/12/2026 e passa a viver dentro do Claude: o que importa precisa estar no repositório antes disso.
+2. **Gerar os PNGs.** Uma ferramenta nossa abre a página num navegador sem tela (Playwright, como os testes da tela), chama `window.folhas()` e `window.metadados()` e salva tudo numa pasta de teste, fora de `cartridges/`.
+3. **Montar o manifesto** de teste a partir de `metadados()`:
    - as animações entram com a linha da primeira direção e as colunas (`Animation` em `apps/ui/src/art/manifest.ts`);
    - o andar usa `per_tile`;
-   - a mesa ganha o quadro da tela acesa.
+   - a mesa ganha os quadros da tela acesa;
+   - a divisória entra como autotile por máscara;
+   - o quadro dos pedidos se monta por colunas, com as fichas por cima.
 4. **Ver lado a lado:**
    - o sandbox do escritório com a arte LPC de hoje e com a arte nova;
    - capturas das duas no mesmo minuto do dia;
    - o usuário escolhe.
 5. **Se a arte nova ganhar:**
+   - pedir a fase 2;
    - ela entra no gênero `office` e no cenário `office_campsverso` no lugar da LPC;
    - os créditos passam a ser só do Campsverso;
    - uma ADR revê a arte LPC da ADR-0077.
 6. **Se não ganhar,** o plano B é um pacote comercial de interiores modernos. Conferir a licença antes: em geral ela proíbe redistribuir os arquivos, e o repositório é público.
+
+### Decisões em aberto
+
+- **Os agentes são humanos ou robôs?** O protótipo tinha robôs retrô (o revisor de pernas com lupa, o integrador de monociclo, o pesquisador drone, o mensageiro de tubo). A imagem do crescimento mostra humanos. O corpo-base humano serve ao squad humano. Se forem robôs, a fase 2 precisa de corpos-base de robô, um por tipo, nas mesmas regras de folha.
+- **A altura da parede do fundo.** Com dois tiles (64 px) e o personagem de 46 px, o pé-direito fica baixo, e a cidade na janela fica apertada. Se a grade puder mudar, três tiles ficam mais perto da imagem.

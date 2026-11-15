@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Campsverso · escritório · arte (fase 1)</title>
+<style>
+  :root { --fundo: #14121c; --painel: #1f1c2b; --borda: #34304a; --texto: #ece6d6; --fraco: #a9a3b8; --destaque: #f2c94c; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fundo); color: var(--texto); font: 15px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  header, main { max-width: 1400px; margin: 0 auto; padding: 24px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 12px; color: var(--destaque); }
+  h3 { font-size: 14px; margin: 0; }
+  p { margin: 4px 0; color: var(--fraco); }
+  canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+  .barra { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+  button { font: inherit; color: var(--texto); background: var(--painel); border: 1px solid var(--borda); border-radius: 6px; padding: 6px 12px; cursor: pointer; min-height: 36px; }
+  button[aria-pressed="true"] { border-color: var(--destaque); color: var(--destaque); }
+  .moldura { overflow: auto; border: 1px solid var(--borda); border-radius: 8px; background: #000; max-width: 100%; }
+  .grupo { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+  .folha { background: var(--painel); border: 1px solid var(--borda); border-radius: 8px; padding: 12px; }
+  .folha .tela { background: repeating-conic-gradient(#2a2638 0% 25%, #221f2e 0% 50%) 0 0 / 16px 16px; margin: 8px 0; overflow: auto; max-width: 100%; }
+  .folha small { color: var(--fraco); display: block; }
+  .paleta { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+  .cor { display: flex; gap: 8px; align-items: center; font-size: 12px; }
+  .cor i { width: 24px; height: 24px; border-radius: 4px; border: 1px solid var(--borda); flex: none; }
+  .cor.nao { opacity: .45; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Campsverso · escritório · arte da fase 1</h1>
+  <p>Pixel art desenhada em código, de cima em 3/4, tiles de 32 px. Cada peça é uma função; cada folha sai em PNG.</p>
+  <p id="contagem"></p>
+</header>
+<main>
+  <h2>A sala montada (20 × 17)</h2>
+  <div class="barra">
+    <button id="bt-dia" aria-pressed="true">dia</button>
+    <button id="bt-noite" aria-pressed="false">noite</button>
+    <button id="bt-pausa" aria-pressed="false">pausar</button>
+    <span>escala</span>
+    <button class="bt-escala" data-e="1" aria-pressed="false">1×</button>
+    <button class="bt-escala" data-e="2" aria-pressed="true">2×</button>
+    <button class="bt-escala" data-e="3" aria-pressed="false">3×</button>
+  </div>
+  <div class="moldura"><canvas id="sala" width="640" height="544"></canvas></div>
+
+  <h2>A paleta</h2>
+  <div class="paleta" id="paleta"></div>
+
+  <h2>A prancha</h2>
+  <div id="prancha"></div>
+</main>
+<script>
+'use strict';
+// =====================================================================
+// Campsverso · escritório · arte em pixel, desenhada em código (fase 1)
+// Vista de cima em 3/4. Tiles de 32 px. Desenho original.
+// =====================================================================
+
+// ------------------------------------------------------------ PALETA
+// A única fonte de cor. Nenhuma cor é calculada em tempo de execução.
+// Rampas: claro, base e sombra de cada material.
+const PALETA = {
+  contorno: '#1b1726',
+  // neutros
+  escuro: '#26222f', grafiteEsc: '#33353e', grafite: '#4a4d57', cinzaEsc: '#6b7280',
+  cinza: '#9aa1ab', cinzaCl: '#c9ced4', branco: '#f6f2e8',
+  // bege e creme: paredes, divisórias, o monitor de tubo
+  begeEsc: '#85735a', begeSomb: '#ae9b72', bege: '#cdbb8f', creme: '#e7d9b4', cremeCl: '#f4ead0',
+  // madeira: mesa, rodapé, porta, cortiça, vaso
+  madCl: '#d49b5d', mad: '#b07541', madEsc: '#7e5032', madMEsc: '#563521',
+  // carpete
+  carpCl: '#5b6987', carp: '#4b5875', carpEsc: '#3b4660',
+  // azul: jeans e prédios de dia
+  azulCl: '#86a2cb', azul: '#5a76a6', azulEsc: '#3e5580',
+  // marinho: a farda do vigia e a cidade de noite
+  marCl: '#3d4d7c', mar: '#2c3961', marEsc: '#1e2645',
+  // céu
+  ceu: '#8fcbee', ceuCl: '#c8e8f8',
+  // verde: plantas e LEDs
+  verdeCl: '#78c25a', verde: '#4c9a3f', verdeEsc: '#2f6b30',
+  // a tela de fósforo verde
+  telaFundo: '#10301f', telaTexto: '#3fd17a', telaBrilho: '#a8f5c4',
+  // vermelho: a camisa do Camps, a gravata, o botão de publicar
+  vermCl: '#e8635a', verm: '#c63b3b', vermEsc: '#8e2630',
+  // pele
+  peleCl: '#f0c49c', pele: '#dca378', peleSomb: '#b77d58',
+  // cabelo castanho
+  cabCl: '#8b5a33', cab: '#66401f', cabEsc: '#452914',
+  // amarelo: luz, janelas acesas, distintivo, maçaneta
+  amarelo: '#f2c94c', amareloCl: '#fbe7a0',
+};
+const CORES_USADAS = new Set();
+
+// ------------------------------------------------------------ núcleo
+// Um sprite é uma grade de nomes da paleta (ou null = transparente).
+class Spr {
+  constructor(w, h) { this.w = w; this.h = h; this.px = new Array(w * h).fill(null); }
+  ok(x, y) { return x >= 0 && y >= 0 && x < this.w && y < this.h; }
+  p(x, y, c) {
+    x = Math.round(x); y = Math.round(y);
+    if (c == null || !this.ok(x, y)) return this;
+    if (!(c in PALETA)) throw new Error('cor fora da paleta: ' + c);
+    this.px[y * this.w + x] = c; return this;
+  }
+  g(x, y) { return this.ok(x, y) ? this.px[y * this.w + x] : null; }
+  r(x, y, w, h, c) { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) this.p(x + i, y + j, c); return this; }
+  hl(x0, x1, y, c) { for (let x = x0; x <= x1; x++) this.p(x, y, c); return this; }
+  vl(x, y0, y1, c) { for (let y = y0; y <= y1; y++) this.p(x, y, c); return this; }
+  pts(l, c) { for (const [x, y] of l) this.p(x, y, c); return this; }
+  apaga(x, y) { if (this.ok(x, y)) this.px[y * this.w + x] = null; return this; }
+  // troca de cor só onde já há pixel daquela cor
+  troca(de, para) { for (let i = 0; i < this.px.length; i++) if (this.px[i] === de) this.px[i] = para; return this; }
+  linha(x0, y0, x1, y1, c, e = 1) {
+    const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1);
+    for (let i = 0; i <= n; i++) this.r(Math.round(x0 + (x1 - x0) * i / n), Math.round(y0 + (y1 - y0) * i / n), e, e, c);
+    return this;
+  }
+  disco(cx, cy, r, c) {
+    for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) if (x * x + y * y <= r * r + r * 0.5) this.p(cx + x, cy + y, c);
+    return this;
+  }
+  cola(o, dx = 0, dy = 0) {
+    for (let y = 0; y < o.h; y++) for (let x = 0; x < o.w; x++) { const c = o.px[y * o.w + x]; if (c) this.p(x + dx, y + dy, c); }
+    return this;
+  }
+  // contorno de 1 px por fora da silhueta (vizinhança de 4)
+  contorno(c = 'contorno') {
+    const out = this.px.slice();
+    for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w; x++) {
+      if (this.px[y * this.w + x]) continue;
+      if (this.g(x - 1, y) || this.g(x + 1, y) || this.g(x, y - 1) || this.g(x, y + 1)) out[y * this.w + x] = c;
+    }
+    this.px = out; return this;
+  }
+  espelha() {
+    const o = new Spr(this.w, this.h);
+    for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w; x++) o.px[y * this.w + (this.w - 1 - x)] = this.px[y * this.w + x];
+    return o;
+  }
+  clone() { const o = new Spr(this.w, this.h); o.px = this.px.slice(); return o; }
+  pinta(ctx, dx = 0, dy = 0) {
+    for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w; x++) {
+      const c = this.px[y * this.w + x];
+      if (c) { CORES_USADAS.add(c); ctx.fillStyle = PALETA[c]; ctx.fillRect(dx + x, dy + y, 1, 1); }
+    }
+  }
+  canvas() {
+    if (this._cv) return this._cv;
+    const cv = document.createElement('canvas'); cv.width = this.w; cv.height = this.h;
+    this.pinta(cv.getContext('2d')); this._cv = cv; return cv;
+  }
+}
+
+// Ruído determinístico: mesma entrada, mesmo pixel.
+function hash(x, y, s) {
+  let n = (Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(s, 1442695041)) | 0;
+  n = Math.imul(n ^ (n >>> 13), 1274126177);
+  return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+}
+const T = 32;   // lado do tile
+
+// =====================================================================
+// CENÁRIO: chão, paredes, porta, janela, relógio, quadro dos pedidos
+// =====================================================================
+
+// ---- carpete: 4 variações; a 5ª é a faixa de sombra junto ao rodapé
+function carpete(v) {
+  const s = new Spr(T, T).r(0, 0, T, T, 'carp');
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+    // trama: pontos regulares bem leves, que emendam de tile para tile
+    if ((x + 2 * y) % 8 === 0 && y % 2 === 0) s.p(x, y, 'carpEsc');
+    const h = hash(x, y, 31 + v * 7);
+    if (h < 0.035) { s.p(x, y, 'carpEsc'); s.p(x + 1, y, 'carpEsc'); }
+    else if (h > 0.982) s.p(x, y, 'carpCl');
+  }
+  if (v === 3) s.pts([[9, 20], [10, 20], [11, 21], [21, 9], [22, 9]], 'carpCl');
+  return s;
+}
+function carpeteSombra() {
+  const s = carpete(0);
+  s.r(0, 0, T, 3, 'carpEsc');
+  for (let y = 3; y < 7; y++) for (let x = 0; x < T; x++) {
+    const dens = y < 5 ? (x + y) % 2 === 0 : (x + 2 * y) % 4 === 0;
+    if (dens) s.p(x, y, 'carpEsc');
+  }
+  return s;
+}
+
+// ---- piso xadrez do corredor (quadrados de 16)
+function corredor() {
+  const s = new Spr(T, T);
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+    const escuro = ((x >> 4) + (y >> 4)) % 2 === 1;
+    s.p(x, y, escuro ? 'cinza' : 'cinzaCl');
+    if (escuro && ((x & 15) === 15 || (y & 15) === 15)) s.p(x, y, 'cinzaEsc');
+    if (!escuro && ((x & 15) === 0 || (y & 15) === 0)) s.p(x, y, 'branco');
+    else if (hash(x, y, 4) < 0.03) s.p(x, y, escuro ? 'cinzaEsc' : 'cinza');
+  }
+  return s;
+}
+
+// ---- parede do fundo: tile de cima (com o topo) e de baixo (com o rodapé)
+function paredeFundoCima() {
+  const s = new Spr(T, T).r(0, 0, T, T, 'creme');
+  s.hl(0, 31, 0, 'contorno').r(0, 1, T, 4, 'begeEsc').hl(0, 31, 1, 'begeSomb').hl(0, 31, 5, 'contorno').hl(0, 31, 6, 'begeSomb');
+  for (let x = 0; x < T; x += 2) if (hash(x, 3, 5) < 0.3) s.p(x, 3, 'madEsc');
+  return s;
+}
+function paredeFundoBaixo() {
+  const s = new Spr(T, T).r(0, 0, T, 10, 'creme');
+  s.hl(0, 31, 10, 'cremeCl').hl(0, 31, 11, 'begeSomb');           // moldura
+  s.r(0, 12, T, 10, 'bege');                                       // lambri
+  for (let x = 3; x < T; x += 8) s.vl(x, 13, 20, 'begeSomb');      // juntas do lambri
+  s.hl(0, 31, 22, 'madCl').r(0, 23, T, 6, 'mad').hl(0, 31, 29, 'madEsc').hl(0, 31, 30, 'madMEsc').hl(0, 31, 31, 'contorno');
+  return s;
+}
+
+// ---- paredes do lado (só o topo, visto de cima). Esquerda; a direita é espelho.
+function paredeLado() {
+  const s = new Spr(T, T).r(0, 0, 22, T, 'escuro');
+  s.vl(22, 0, 31, 'contorno').r(23, 0, 7, T, 'begeEsc').vl(23, 0, 31, 'begeSomb').vl(30, 0, 31, 'madEsc').vl(31, 0, 31, 'contorno');
+  return s;
+}
+function cantoFundo() {           // linha 0, coluna 0: o topo do lado vira para a direita
+  const s = paredeFundoCima();
+  s.r(0, 0, 22, T, 'escuro').vl(22, 0, 31, 'contorno');
+  s.r(23, 1, 9, 4, 'begeEsc').hl(23, 31, 1, 'begeSomb').hl(23, 31, 0, 'contorno');
+  s.r(23, 5, 7, 27, 'begeEsc').vl(23, 1, 31, 'begeSomb').vl(30, 6, 31, 'madEsc').vl(31, 6, 31, 'contorno');
+  return s;
+}
+function cantoFundoMeio() {       // linha 1, coluna 0
+  return paredeLado();
+}
+// ---- parede de baixo: topo e face curta que dá para o corredor
+function paredeBaixo() {
+  const s = new Spr(T, T);
+  s.hl(0, 31, 0, 'contorno').r(0, 1, T, 8, 'begeEsc').hl(0, 31, 1, 'begeSomb').hl(0, 31, 9, 'contorno');
+  s.hl(0, 31, 10, 'begeSomb').r(0, 11, T, 10, 'creme');
+  s.hl(0, 31, 21, 'madCl').r(0, 22, T, 6, 'mad').hl(0, 31, 28, 'madEsc').hl(0, 31, 29, 'madMEsc').r(0, 30, T, 2, 'contorno');
+  return s;
+}
+function cantoBaixo() {           // linha 13, coluna 0
+  const s = paredeBaixo();
+  s.r(0, 0, 22, T, 'escuro').vl(22, 0, 31, 'contorno');
+  s.r(23, 0, 9, 9, 'begeEsc').vl(23, 0, 9, 'begeSomb').hl(23, 31, 9, 'contorno');
+  return s;
+}
+// ---- a porta na parede de baixo, com os batentes
+function batentes(s) {
+  for (const x0 of [0, 28]) {
+    s.r(x0, 0, 4, T, 'madEsc').vl(x0 + 1, 0, 31, 'mad').vl(x0, 0, 31, 'contorno').vl(x0 + 3, 0, 31, 'contorno');
+  }
+  s.hl(0, 31, 30, 'contorno').hl(0, 31, 31, 'contorno');
+}
+function portaFechada() {
+  const s = paredeBaixo();
+  s.r(4, 0, 24, 10, 'madMEsc').hl(4, 27, 0, 'contorno').r(4, 3, 24, 3, 'madEsc').hl(4, 27, 3, 'mad');   // a folha vista de cima
+  s.r(4, 10, 24, 20, 'mad').hl(4, 27, 10, 'madCl');
+  s.r(7, 13, 8, 14, 'madEsc').r(17, 13, 8, 14, 'madEsc').r(8, 14, 6, 12, 'mad').r(18, 14, 6, 12, 'mad');   // almofadas
+  s.r(23, 19, 2, 2, 'amarelo').p(23, 19, 'amareloCl');
+  batentes(s); return s;
+}
+function portaAberta() {
+  const s = new Spr(T, T);
+  s.r(4, 0, 24, 11, 'carp').r(4, 11, 24, 21, 'cremeCl');
+  for (let x = 4; x < 28; x++) for (let y = 11; y < 30; y++) if (((x >> 4) + ((y + 5) >> 4)) % 2) s.p(x, y, 'cinza');
+  s.hl(4, 27, 10, 'madEsc').hl(4, 27, 11, 'madCl');                         // soleira
+  s.r(23, 0, 4, 22, 'mad').vl(23, 0, 21, 'madCl').vl(26, 0, 21, 'madEsc').p(24, 9, 'amarelo');   // a folha aberta, rente ao batente
+  batentes(s); return s;
+}
+
+// ---- janela com a cidade: módulos começo, meio A, meio B e fim; de dia e de noite
+const PREDIOS = {     // [x, largura, topo, tom]  (tom 0 = longe, 1 = perto)
+  comeco: [[8, 7, 22, 0], [15, 6, 15, 1], [21, 5, 26, 0], [26, 6, 19, 1]],
+  meioA: [[2, 6, 18, 0], [8, 8, 12, 1], [16, 5, 24, 0], [21, 7, 17, 1], [28, 4, 28, 0]],
+  meioB: [[2, 5, 25, 0], [7, 6, 20, 1], [13, 9, 10, 0], [22, 5, 22, 1], [27, 5, 15, 0]],
+  fim: [[2, 6, 16, 1], [8, 5, 23, 0], [13, 7, 19, 1], [20, 4, 27, 0]],
+};
+function janela(tipo, noite) {
+  const s = new Spr(T, 64);
+  const g0 = tipo === 'comeco' ? 8 : 2, g1 = tipo === 'fim' ? 23 : 31;     // vidro de x=g0 a g1
+  const ceu = noite ? 'marEsc' : 'ceu', ceuB = noite ? 'mar' : 'ceuCl';
+  s.r(g0, 10, g1 - g0 + 1, 35, ceu).r(g0, 38, g1 - g0 + 1, 7, ceuB);
+  // céu: nuvem de dia, estrelas e lua de noite
+  if (!noite && tipo === 'meioA') s.r(4, 16, 9, 2, 'branco').r(6, 15, 4, 1, 'branco').hl(5, 11, 18, 'ceuCl');
+  if (!noite && tipo === 'fim') s.r(10, 13, 6, 2, 'branco').hl(11, 15, 15, 'ceuCl');
+  if (noite) {
+    for (let y = 11; y < 30; y++) for (let x = g0; x <= g1; x++) if (hash(x, y, tipo.length) < 0.025) s.p(x, y, 'amareloCl');
+    if (tipo === 'meioB') s.disco(25, 15, 3, 'amareloCl').p(26, 14, 'branco');
+  }
+  for (const [x, w, top, tom] of PREDIOS[tipo]) {
+    const cor = noite ? (tom ? 'mar' : 'marCl') : (tom ? 'azul' : 'azulCl');
+    const corB = noite ? 'marEsc' : (tom ? 'azulEsc' : 'azul');
+    for (let xx = x; xx < Math.min(x + w, g1 + 1); xx++) for (let y = top; y <= 44; y++) {
+      if (xx < g0) continue;
+      s.p(xx, y, xx === x + w - 1 ? corB : cor);
+    }
+    // janelinhas dos prédios
+    for (let y = top + 2; y < 43; y += 3) for (let xx = x + 1; xx < Math.min(x + w - 1, g1); xx += 2) {
+      const h = hash(xx, y, 7 + tom);
+      if (noite) { if (h < 0.45) s.p(xx, y, 'amarelo'); }
+      else if (h < 0.6) s.p(xx, y, tom ? 'azulCl' : 'ceuCl');
+    }
+    if (!noite) s.hl(x, Math.min(x + w - 1, g1), top, tom ? 'azulCl' : 'ceuCl');
+  }
+  if (!noite) s.pts([[g0 + 3, 34], [g0 + 4, 33], [g0 + 5, 32], [g0 + 4, 35], [g0 + 5, 34]], 'ceuCl');   // reflexo
+  // caixilho
+  const cx = (x0, x1) => { s.r(x0, 8, x1 - x0 + 1, 2, 'branco').r(x0, 45, x1 - x0 + 1, 2, 'cinzaCl'); };
+  cx(tipo === 'comeco' ? 4 : 0, tipo === 'fim' ? 27 : 31);
+  if (tipo === 'comeco') s.r(4, 8, 4, 39, 'branco').vl(7, 10, 44, 'cinzaCl');
+  else s.r(0, 8, 2, 39, 'branco').vl(1, 10, 44, 'cinzaCl');
+  if (tipo === 'fim') s.r(24, 8, 4, 39, 'branco').vl(24, 10, 44, 'cinzaCl');
+  // peitoril
+  const p0 = tipo === 'comeco' ? 2 : 0, p1 = tipo === 'fim' ? 29 : 31;
+  s.r(p0, 47, p1 - p0 + 1, 2, 'cremeCl').hl(p0, p1, 49, 'begeSomb');
+  // contorno só nas bordas expostas
+  const x0 = tipo === 'comeco' ? 3 : 0, x1 = tipo === 'fim' ? 28 : 31;
+  s.hl(x0, x1, 7, 'contorno').hl(p0, p1, 50, 'contorno');
+  if (tipo === 'comeco') { s.vl(3, 7, 46, 'contorno').vl(1, 47, 50, 'contorno').hl(1, 3, 46, 'contorno'); }
+  if (tipo === 'fim') { s.vl(28, 7, 46, 'contorno').vl(30, 47, 50, 'contorno').hl(28, 30, 46, 'contorno'); }
+  s.hl(g0, g1, 9, 'cinzaCl');
+  return s;
+}
+
+// ---- relógio de parede
+function relogio() {
+  const s = new Spr(T, 64);
+  s.disco(16, 20, 8, 'contorno').disco(16, 20, 7, 'cinzaEsc').disco(16, 20, 6, 'branco');
+  s.pts([[16, 15], [21, 20], [16, 25], [11, 20]], 'cinzaEsc');
+  s.linha(16, 20, 16, 16, 'contorno').linha(16, 20, 19, 19, 'contorno').p(16, 20, 'verm');
+  s.pts([[13, 16], [12, 17]], 'cremeCl');
+  s.pts([[24, 22], [24, 23], [23, 25], [22, 26], [20, 28]], 'begeSomb');       // sombra na parede
+  return s;
+}
+
+// ---- quadro dos pedidos: um módulo por coluna (começo, meio, fim)
+function quadroPedidos(tipo) {
+  const s = new Spr(T, 64);
+  const x0 = tipo === 'comeco' ? 2 : 0, x1 = tipo === 'fim' ? 29 : 31;
+  s.r(x0, 6, x1 - x0 + 1, 3, 'mad').hl(x0, x1, 6, 'madCl');                    // moldura de cima
+  s.r(x0, 46, x1 - x0 + 1, 3, 'madEsc').hl(x0, x1, 46, 'mad');                  // moldura de baixo
+  const c0 = tipo === 'comeco' ? 5 : 0, c1 = tipo === 'fim' ? 26 : 31;
+  s.r(c0, 9, c1 - c0 + 1, 37, 'madCl');                                         // cortiça
+  for (let y = 9; y < 46; y++) for (let x = c0; x <= c1; x++) {
+    const h = hash(x, y, 77);
+    if (h < 0.16) s.p(x, y, 'mad'); else if (h > 0.96) s.p(x, y, 'amareloCl');
+  }
+  s.r(c0 + 2, 11, c1 - c0 - 3, 6, 'cremeCl').hl(c0 + 2, c1 - 2, 17, 'begeSomb');   // faixa do título (a tela escreve)
+  if (tipo === 'comeco') s.r(2, 6, 3, 43, 'mad').vl(2, 6, 48, 'madCl').vl(4, 9, 45, 'madEsc');
+  else s.vl(0, 9, 45, 'madEsc').vl(1, 9, 45, 'mad');                            // divisória entre colunas
+  if (tipo === 'fim') s.r(27, 6, 3, 43, 'mad').vl(27, 9, 45, 'madEsc').vl(29, 6, 48, 'madEsc');
+  // contorno nas bordas expostas e sombra na parede
+  const ex0 = tipo === 'comeco' ? 1 : 0, ex1 = tipo === 'fim' ? 30 : 31;
+  s.hl(ex0, ex1, 5, 'contorno').hl(ex0, ex1, 49, 'contorno').hl(ex0, ex1, 50, 'begeSomb');
+  if (tipo === 'comeco') s.vl(1, 5, 49, 'contorno');
+  if (tipo === 'fim') s.vl(30, 5, 49, 'contorno').vl(31, 7, 50, 'begeSomb');
+  return s;
+}
+// ---- fichas soltas (10 × 10), uma cor por tipo de pedido
+const FICHA_CORES = ['vermCl', 'amarelo', 'verdeCl', 'azulCl', 'cinzaCl'];
+function ficha(i) {
+  const s = new Spr(10, 10);
+  s.r(1, 1, 8, 8, 'branco').r(1, 1, 8, 2, FICHA_CORES[i]);
+  s.hl(2, 6, 5, 'cinzaCl').hl(2, 5, 7, 'cinzaCl');
+  s.p(8, 8, 'cremeCl');
+  s.contorno();
+  return s;
+}
+
+// =====================================================================
+// MÓVEIS: mesa do dev, cadeira, divisória (autotile), rack, arquivo,
+// planta, lixeira
+// =====================================================================
+
+// Um objeto pequeno com o próprio contorno, para colar sobre outro.
+function item(w, h, fn) { const s = new Spr(w, h); fn(s); return s.contorno(); }
+
+// ---- o código que rola na tela: [recuo, comprimento, (vão, comprimento)...]
+const CODIGO = [
+  [0, 3, 1, 6, 1, 2], [2, 4, 1, 7], [2, 2, 1, 3, 1, 5], [4, 8, 1, 4], [4, 5], [2, 1],
+  [0, 1], [0, 3, 1, 5, 1, 3], [2, 6, 1, 2, 1, 4], [4, 3, 1, 9], [2, 1], [0, 1],
+];
+function tela(s, x0, y0, f) {        // tela de 23 × 18 a partir de (x0, y0)
+  if (f === 0) {
+    s.r(x0, y0, 23, 18, 'grafiteEsc');
+    s.pts([[x0 + 3, y0 + 4], [x0 + 4, y0 + 3], [x0 + 5, y0 + 2], [x0 + 3, y0 + 6], [x0 + 4, y0 + 5]], 'cinzaEsc');
+    return;
+  }
+  s.r(x0, y0, 23, 18, 'telaFundo');
+  const ini = (f - 1) * 2;
+  for (let k = 0; k < 8; k++) {
+    const linha = CODIGO[(ini + k) % CODIGO.length], y = y0 + 1 + k * 2;
+    let x = x0 + 1 + linha[0];
+    for (let i = 1; i < linha.length; i += 2) {
+      const cor = i === 1 && k % 3 === 0 ? 'telaBrilho' : 'telaTexto';
+      for (let j = 0; j < linha[i] && x < x0 + 22; j++, x++) s.p(x, y, cor);
+      x += linha[i + 1] || 0;
+    }
+    if (k === 7 && f !== 2) s.r(x + 1, y - 1, 2, 2, 'telaBrilho');      // cursor
+  }
+}
+
+// ---- mesa do dev (96 × 64, pegada 3 × 1): f = 0 apagada, 1–3 tela acesa
+function mesaDev(f) {
+  const s = new Spr(96, 64);
+  // tampo
+  s.r(1, 17, 94, 31, 'mad').hl(1, 94, 17, 'madEsc').hl(1, 94, 47, 'madCl');
+  for (let i = 0; i < 16; i++) {
+    const x = 3 + Math.floor(hash(i, 0, 3) * 82), y = 20 + Math.floor(hash(i, 1, 3) * 25), l = 3 + Math.floor(hash(i, 2, 3) * 9);
+    s.hl(x, Math.min(x + l, 93), y, i % 3 ? 'madEsc' : 'madCl');
+  }
+  // frente: gaveteiros e o vão das pernas
+  s.r(1, 48, 94, 15, 'madEsc');
+  s.r(27, 48, 42, 15, 'madMEsc').hl(27, 68, 48, 'contorno');
+  for (const x0 of [2, 70]) {
+    s.r(x0, 49, 24, 13, 'mad').hl(x0, x0 + 23, 49, 'madCl').hl(x0, x0 + 23, 55, 'madEsc');
+    s.hl(x0 + 9, x0 + 14, 52, 'cinzaCl').hl(x0 + 9, x0 + 14, 58, 'cinzaCl').hl(x0 + 9, x0 + 14, 53, 'madMEsc').hl(x0 + 9, x0 + 14, 59, 'madMEsc');
+  }
+  s.hl(1, 94, 62, 'madMEsc');
+  s.contorno();
+  // papéis
+  s.cola(item(19, 13, o => {
+    o.r(2, 2, 15, 9, 'cremeCl').r(1, 1, 15, 9, 'branco');
+    for (const y of [3, 5, 7]) o.hl(3, 12 - (y % 3), y, 'cinzaCl');
+  }), 4, 34);
+  // telefone
+  s.cola(item(18, 14, o => {
+    o.r(1, 5, 16, 8, 'bege').hl(1, 16, 5, 'creme').hl(1, 16, 12, 'begeSomb');
+    for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) o.p(8 + i * 2, 7 + j * 2, 'begeEsc');
+    o.r(2, 1, 14, 3, 'grafite').hl(3, 14, 1, 'cinzaEsc').r(1, 2, 2, 3, 'grafite').r(15, 2, 2, 3, 'grafite');
+  }), 4, 21);
+  // monitor de tubo
+  s.cola(item(32, 39, o => {
+    o.r(7, 1, 18, 7, 'bege').hl(8, 23, 1, 'creme').vl(24, 2, 7, 'begeSomb');
+    o.hl(10, 21, 3, 'begeSomb').hl(10, 21, 5, 'begeSomb');
+    o.r(1, 8, 30, 26, 'creme').vl(1, 8, 33, 'cremeCl').hl(1, 30, 8, 'cremeCl').vl(30, 9, 33, 'begeSomb').hl(2, 30, 33, 'begeSomb');
+    o.r(3, 10, 25, 20, 'begeSomb').hl(4, 27, 29, 'cremeCl').vl(27, 11, 29, 'cremeCl');
+    tela(o, 4, 11, f);
+    for (const [x, y] of [[4, 11], [26, 11], [4, 28], [26, 28]]) o.p(x, y, 'begeSomb');
+    o.hl(5, 9, 31, 'begeSomb').p(25, 31, f ? 'verdeCl' : 'verdeEsc');
+    o.r(10, 34, 12, 4, 'bege').hl(10, 21, 37, 'begeSomb');
+  }), 32, 0);
+  // teclado e mouse
+  s.cola(item(30, 8, o => {
+    o.r(1, 1, 28, 6, 'bege').hl(1, 28, 1, 'creme').hl(1, 28, 6, 'begeSomb');
+    for (let y = 2; y <= 4; y += 2) for (let x = 2; x < 28; x += 2) o.p(x, y, 'cremeCl');
+    o.hl(10, 19, 5, 'cremeCl');
+  }), 33, 41);
+  s.cola(item(6, 7, o => { o.r(1, 1, 4, 5, 'creme').hl(1, 4, 5, 'begeSomb').p(2, 2, 'begeSomb'); }), 66, 40);
+  // xícara de café
+  s.cola(item(10, 11, o => {
+    o.r(1, 2, 6, 8, 'branco').vl(6, 2, 9, 'cinzaCl').hl(1, 6, 1, 'cinzaCl').hl(2, 5, 2, 'madEsc');
+    o.vl(7, 4, 7, 'branco').vl(8, 4, 7, 'branco').p(7, 5, null);
+  }), 76, 30);
+  // porta-lápis
+  s.cola(item(9, 15, o => {
+    o.vl(2, 1, 6, 'verm').vl(4, 2, 6, 'azul').vl(6, 0, 6, 'amarelo');
+    o.r(1, 6, 7, 8, 'cinzaEsc').vl(1, 6, 13, 'cinza').hl(1, 7, 6, 'cinza');
+  }), 84, 19);
+  return s;
+}
+
+// ---- cadeira de escritório, de costas (32 × 64), em duas camadas
+function cadeiraBase() {
+  const s = new Spr(32, 64);
+  s.r(7, 40, 18, 6, 'grafite').hl(7, 24, 40, 'cinzaEsc').hl(7, 24, 45, 'grafiteEsc');
+  s.r(15, 46, 2, 6, 'cinzaEsc').vl(15, 46, 51, 'cinza');
+  s.linha(16, 52, 5, 55, 'grafiteEsc', 2).linha(16, 52, 26, 55, 'grafiteEsc', 2);
+  s.linha(15, 53, 9, 57, 'grafiteEsc', 2).linha(16, 53, 22, 57, 'grafiteEsc', 2).r(15, 52, 2, 5, 'grafiteEsc');
+  for (const [x, y] of [[4, 56], [26, 56], [8, 58], [22, 58], [15, 58]]) s.r(x, y, 2, 2, 'escuro');
+  return s.contorno();
+}
+function cadeiraEncosto() {
+  const s = new Spr(32, 64);
+  s.r(9, 33, 14, 12, 'grafite').apaga(9, 33).apaga(22, 33);
+  s.hl(10, 21, 33, 'cinzaEsc').vl(9, 34, 43, 'cinzaEsc').vl(22, 34, 44, 'grafiteEsc').hl(9, 22, 44, 'grafiteEsc');
+  s.hl(11, 20, 38, 'grafiteEsc').hl(11, 20, 39, 'cinzaEsc');
+  s.r(15, 45, 2, 2, 'grafiteEsc');
+  s.r(4, 38, 4, 2, 'escuro').r(24, 38, 4, 2, 'escuro').vl(5, 40, 42, 'escuro').vl(26, 40, 42, 'escuro').hl(4, 7, 38, 'grafite').hl(24, 27, 38, 'grafite');
+  return s.contorno();
+}
+function cadeira(f) {
+  if (f === 0) return cadeiraBase();
+  if (f === 1) return cadeiraEncosto();
+  return cadeiraBase().clone().cola(cadeiraEncosto());
+}
+
+// ---- divisória de cubículo: autotile por máscara (N=1, L=2, S=4, O=8)
+function divisoria(m) {
+  const N = m & 1, E = m & 2, S = m & 4, W = m & 8, ew = E || W;
+  const s = new Spr(32, 64);
+  const painel = (x0, x1) => {
+    s.r(x0, 18, x1 - x0 + 1, 4, 'creme').hl(x0, x1, 18, 'cremeCl').hl(x0, x1, 21, 'begeSomb');
+    s.r(x0, 22, x1 - x0 + 1, 24, 'bege');
+    for (let y = 23; y < 46; y++) for (let x = x0; x <= x1; x++) if ((x + y * 3) % 7 === 0 && y % 2) s.p(x, y, 'begeSomb');
+    s.hl(x0, x1, 22, 'begeSomb').hl(x0, x1, 33, 'begeSomb').hl(x0, x1, 34, 'creme');
+    s.r(x0, 46, x1 - x0 + 1, 4, 'begeEsc').hl(x0, x1, 46, 'begeSomb');
+  };
+  // topo norte-sul; as laterais só são desenhadas quando ele passa por cima de um painel
+  const topo = (y0, y1, lados) => {
+    s.r(14, y0, 4, y1 - y0 + 1, 'creme').vl(14, y0, y1, 'cremeCl').vl(17, y0, y1, 'begeSomb');
+    if (lados) s.vl(13, y0, y1, 'contorno').vl(18, y0, y1, 'contorno');
+  };
+  if (E) painel(14, 31);
+  if (W) painel(0, 17);
+  if (!ew && !S) painel(14, 17);                       // ponta: a face sul do poste
+  if (!ew && S) s.r(14, 18, 4, 4, 'creme');
+  if (N) topo(4, ew ? 17 : 18, false);
+  if (S) topo(ew ? 22 : 18, 36, ew);
+  // contorno por fora, menos nas emendas com o vizinho de cima e de baixo
+  const antes = s.px.slice();
+  s.contorno();
+  for (let x = 13; x <= 18; x++) {
+    if (N) for (let y = 0; y < 4; y++) s.px[y * 32 + x] = antes[y * 32 + x];
+    if (S && !ew) for (let y = 37; y < 64; y++) if (!antes[y * 32 + x]) s.px[y * 32 + x] = null;
+  }
+  return s;
+}
+
+// ---- rack do servidor com o botão de publicar (32 × 64): f 0–1 LEDs, 2 botão apertado
+function rack(f) {
+  const s = new Spr(32, 64);
+  s.r(6, 10, 20, 5, 'grafite').hl(6, 25, 10, 'cinzaEsc');
+  s.r(6, 15, 20, 47, 'grafiteEsc').vl(6, 15, 61, 'grafite').vl(25, 15, 61, 'escuro');
+  for (let k = 0; k < 3; k++) {
+    const y = 17 + k * 7;
+    s.r(8, y, 16, 5, 'escuro').hl(8, 23, y, 'grafite');
+    for (let x = 10; x < 17; x += 2) s.vl(x, y + 2, y + 3, 'grafiteEsc');
+    for (let i = 0; i < 3; i++) {
+      const h = hash(k, i, f === 2 ? 9 : f);
+      s.p(19 + i * 2, y + 2, h < 0.5 ? 'verdeCl' : h < 0.7 ? 'amarelo' : 'verdeEsc');
+    }
+  }
+  s.r(8, 39, 16, 19, 'grafite').hl(8, 23, 39, 'cinzaEsc').hl(8, 23, 57, 'grafiteEsc');
+  const d = f === 2 ? 1 : 0;
+  s.disco(16, 47, 5, 'escuro').disco(16, 46, 5, 'cinzaCl').disco(16, 46 + d, 4, f === 2 ? 'vermCl' : 'verm');
+  s.pts([[19, 48 + d], [18, 49 + d], [20, 47 + d], [17, 50 + d]], 'vermEsc');
+  s.pts([[14, 44 + d], [13, 45 + d], [14, 45 + d]], f === 2 ? 'amareloCl' : 'vermCl');
+  s.r(10, 53, 12, 3, 'cremeCl').hl(10, 21, 55, 'begeSomb');
+  s.r(7, 62, 3, 1, 'escuro').r(22, 62, 3, 1, 'escuro');
+  return s.contorno();
+}
+
+// ---- arquivo de aço (32 × 64)
+function arquivo() {
+  const s = new Spr(32, 64);
+  s.r(6, 21, 20, 5, 'cinzaCl').hl(6, 25, 21, 'branco');
+  s.r(6, 26, 20, 37, 'cinza').vl(6, 26, 62, 'cinzaCl').vl(24, 26, 62, 'cinzaEsc').vl(25, 26, 62, 'cinzaEsc');
+  for (let k = 0; k < 4; k++) {
+    const y = 27 + k * 9;
+    if (k < 3) s.hl(7, 23, y + 8, 'cinzaEsc');
+    s.r(12, y + 1, 7, 2, 'cremeCl').hl(12, 18, y + 3, 'cinzaEsc');
+    s.hl(13, 17, y + 5, 'cinzaCl').hl(13, 17, y + 6, 'grafite');
+  }
+  s.hl(6, 25, 62, 'cinzaEsc');
+  return s.contorno();
+}
+
+// ---- planta em vaso (32 × 64)
+function folha(s, bx, by, angGraus, L, curva, frente) {
+  const a = angGraus * Math.PI / 180, dx = Math.sin(a), dy = -Math.cos(a), px = Math.cos(a), py = Math.sin(a);
+  for (let t = 0; t <= 1.0001; t += 1 / (L * 2)) {
+    const cx = bx + dx * L * t, cy = by + dy * L * t + curva * t * t;
+    const w = 3.2 * Math.sin(Math.PI * Math.min(1, t * 1.15));
+    for (let k = -w; k <= w; k += 0.5) {
+      const cor = Math.abs(k) < 0.6 ? (frente ? 'verde' : 'verdeEsc') : (k < 0 ? (frente ? 'verdeCl' : 'verde') : (frente ? 'verde' : 'verdeEsc'));
+      s.p(cx + px * k, cy + py * k, cor);
+    }
+  }
+}
+function planta() {
+  const s = new Spr(32, 64);
+  for (const [a, L, c] of [[-62, 15, 5], [58, 15, 5], [-28, 19, 2], [30, 18, 2]]) folha(s, 16, 49, a, L, c, false);
+  for (const [a, L, c] of [[-80, 12, 6], [78, 12, 6], [-45, 16, 3], [44, 16, 3], [-10, 21, 0], [12, 17, 1]]) folha(s, 16, 49, a, L, c, true);
+  // vaso
+  s.r(9, 48, 14, 3, 'madCl').hl(10, 21, 48, 'madMEsc').hl(9, 22, 50, 'mad');
+  for (let y = 51; y <= 62; y++) { const i = y > 57 ? 1 : 0; s.hl(10 + i, 21 - i, y, 'mad'); s.p(10 + i, y, 'madCl'); s.p(20 - i, y, 'madEsc'); s.p(21 - i, y, 'madEsc'); }
+  s.hl(11, 20, 62, 'madEsc');
+  return s.contorno();
+}
+
+// ---- lixeira de tela (32 × 32)
+function lixeira() {
+  const s = new Spr(32, 32);
+  s.disco(14, 12, 3, 'branco').disco(18, 11, 2, 'cremeCl').pts([[13, 11], [15, 13], [12, 12]], 'cinzaCl');
+  s.r(9, 14, 14, 2, 'cinzaCl').hl(9, 22, 14, 'branco').hl(10, 21, 15, 'grafite');
+  for (let y = 16; y <= 30; y++) {
+    const i = Math.floor((y - 16) / 7), x0 = 10 + i, x1 = 21 - i;
+    for (let x = x0; x <= x1; x++) s.p(x, y, (x + y) % 2 === 0 ? 'cinzaEsc' : 'cinza');
+  }
+  s.hl(11, 20, 30, 'cinzaEsc');
+  return s.contorno();
+}
+
+// =====================================================================
+// PERSONAGENS: um corpo-base parametrizável, em quadros de 64 × 64
+// Âncora (32, 64): o contorno do pé encosta na última linha.
+// Direções: 0 cima, 1 esquerda, 2 baixo, 3 direita (= esquerda espelhada)
+// =====================================================================
+const PELE = ['peleCl', 'pele', 'peleSomb'];
+const PERSONAGENS = {
+  camps: {
+    nome: 'Camps', pele: PELE, cabelo: ['cabCl', 'cab', 'cabEsc'], penteado: 'curto', barba: true, oculos: true,
+    tronco: ['vermCl', 'verm', 'vermEsc'], calca: ['azulCl', 'azul', 'azulEsc'], cinto: 'madMEsc', fivela: 'cinzaCl',
+    sapato: ['madEsc', 'madMEsc'], anims: ['andar', 'parado', 'sentado', 'digitando'],
+  },
+  gerente: {
+    nome: 'Gerente', pele: PELE, cabelo: ['branco', 'cinzaCl', 'cinza'], penteado: 'grisalho', bigode: true, paleto: true,
+    gravata: ['vermCl', 'verm', 'vermEsc'], tronco: ['cinzaEsc', 'grafite', 'grafiteEsc'], calca: ['cinzaEsc', 'grafite', 'grafiteEsc'],
+    sapato: ['grafiteEsc', 'escuro'], anims: ['andar', 'parado'],
+  },
+  vigia: {
+    nome: 'Vigia', pele: ['pele', 'peleSomb', 'cabCl'], cabelo: ['cab', 'cabEsc', 'escuro'], penteado: 'bone', farda: true, lanterna: true,
+    tronco: ['marCl', 'mar', 'marEsc'], calca: ['marCl', 'mar', 'marEsc'], cinto: 'escuro', fivela: 'amarelo',
+    sapato: ['grafiteEsc', 'escuro'], anims: ['andar', 'parado'],
+  },
+};
+// Mapa da folha (igual para todos): [linha da 1ª direção, quadros, direções]
+const MAPA_PERSONAGEM = {
+  andar: [0, 8, 4], parado: [4, 2, 4], usar: [8, 6, 4], sentado: [12, 1, 4],
+  digitando: [16, 4, 1], beber: [17, 3, 4], comer: [21, 4, 2],
+};
+
+const BOB = [0, 1, 0, -1, 0, 1, 0, -1];
+const SOBE_A = [0, 0, 0, 0, 1, 2, 2, 1], SOBE_B = [1, 2, 2, 1, 0, 0, 0, 0];
+function pose(anim, f) {
+  if (anim === 'andar') {
+    const c = Math.cos(2 * Math.PI * f / 8);
+    return { u: BOB[f], sobeA: SOBE_A[f], sobeB: SOBE_B[f], maoA: Math.round(c), maoB: -Math.round(c), c,
+      liftA: Math.max(0, Math.round(-2 * Math.sin(2 * Math.PI * f / 8))), liftB: Math.max(0, Math.round(2 * Math.sin(2 * Math.PI * f / 8))) };
+  }
+  if (anim === 'parado') return { u: f, sobeA: 0, sobeB: 0, maoA: 0, maoB: 0, c: 0, liftA: 0, liftB: 0, pisca: f === 1 };
+  return { u: 2, sentado: true, sobeA: 0, sobeB: 0, maoA: 0, maoB: 0, c: 0, liftA: 0, liftB: 0 };
+}
+
+// ------------------------------------------------------------ peças do corpo
+function quadril(s, d, ty) {
+  const [lc, lb, ls] = d.calca;
+  s.r(25, ty + 13, 14, 3, lb).vl(25, ty + 13, ty + 15, lc).vl(38, ty + 14, ty + 15, ls);
+  if (!d.paleto) { s.hl(25, 38, ty + 13, d.cinto || lb); if (d.fivela) s.r(31, ty + 13, 2, 1, d.fivela); }
+}
+function pernaFrente(s, d, x0, ty, sobe, esq, costas) {
+  const [lc, lb, ls] = d.calca, [sb, ss] = d.sapato;
+  const yb = 62 - sobe;
+  for (let y = ty + 16; y <= yb - 3; y++) s.p(x0, y, esq ? lc : lb).r(x0 + 1, y, 3, 1, lb).p(x0 + 4, y, ls);
+  const sx = esq ? x0 - 1 : x0;
+  if (costas) { s.r(x0, yb - 2, 5, 2, sb).hl(x0, x0 + 4, yb, ss); }
+  else { s.r(sx, yb - 2, 6, 2, sb).hl(sx, sx + 5, yb, ss).p(esq ? sx + 1 : sx + 4, yb - 2, ss); }
+}
+function troncoBloco(s, d, ty, linhas = 13) {
+  const [tc, tb, ts] = d.tronco;
+  s.r(25, ty, 14, linhas, tb).apaga(25, ty).apaga(38, ty);
+  s.vl(25, ty + 1, ty + linhas - 1, tc).vl(37, ty + 1, ty + linhas - 1, ts).vl(38, ty + 1, ty + linhas - 1, ts);
+  s.hl(26, 37, ty + linhas - 1, ts);
+}
+function bracoFrente(s, d, x0, ty, dy, esq) {
+  const [tc, tb, ts] = d.tronco, [pc, pb, ps] = d.pele;
+  const y1 = ty + 10 + dy;
+  for (let y = ty + 1; y <= y1; y++) s.p(x0, y, esq ? tc : tb).p(x0 + 1, y, tb).p(x0 + 2, y, ts);
+  s.apaga(esq ? x0 : x0 + 2, ty + 1);
+  if (d.paleto) s.hl(x0, x0 + 2, y1, 'branco');
+  s.r(x0, y1 + 1, 3, 3, pb).p(esq ? x0 + 2 : x0, y1 + 3, ps).p(esq ? x0 : x0 + 2, y1 + 1, pc);
+}
+function lanterna(s, x, y) {        // (x, y): o punho, logo abaixo da mão
+  s.r(x, y, 3, 4, 'cinzaEsc').vl(x, y, y + 3, 'cinza');
+  s.r(x - 1, y + 4, 5, 2, 'cinza').hl(x - 1, x + 3, y + 4, 'cinzaCl').hl(x, x + 2, y + 6, 'amareloCl');
+}
+function detalheTronco(s, d, ty, vista) {
+  const [tc, tb, ts] = d.tronco;
+  if (d.paleto) {
+    const [gc, gb, gs] = d.gravata;
+    s.r(25, ty + 12, 14, 2, tb).vl(25, ty + 12, ty + 13, tc).hl(26, 38, ty + 13, ts);          // o paletó cobre o cinto
+    if (vista === 'frente') {
+      s.hl(29, 34, ty, 'branco').hl(30, 33, ty + 1, 'branco').pts([[30, ty + 2], [33, ty + 2], [30, ty + 3], [33, ty + 3]], 'branco');
+      s.r(31, ty + 1, 2, 1, gs).r(31, ty + 2, 2, 5, gb).vl(31, ty + 2, ty + 6, gc).p(31, ty + 7, gb).p(32, ty + 7, gs);
+      s.linha(29, ty + 1, 30, ty + 6, ts).linha(34, ty + 1, 33, ty + 6, ts);
+      s.p(32, ty + 9, 'cinza').p(35, ty + 3, 'branco').vl(31, ty + 11, ty + 13, ts);
+    } else if (vista === 'costas') {
+      s.hl(29, 34, ty, 'branco').vl(31, ty + 9, ty + 13, ts).pts([[27, ty + 1], [36, ty + 1]], ts);
+    }
+  } else if (d.farda) {
+    if (vista === 'frente') { s.hl(27, 29, ty + 4, ts).hl(34, 36, ty + 4, ts).r(27, ty + 2, 2, 2, 'amarelo').p(27, ty + 2, 'amareloCl'); s.hl(25, 27, ty, ts).hl(36, 38, ty, ts); }
+    if (vista === 'costas') s.hl(25, 27, ty, ts).hl(36, 38, ty, ts);
+  } else if (vista === 'frente') {
+    s.pts([[32, ty + 4], [32, ty + 7], [32, ty + 10]], ts).hl(27, 29, ty + 4, ts);
+  }
+}
+
+// ------------------------------------------------------------ cabeças
+function cabecaFrente(s, d, hy, o) {
+  const [pc, pb, ps] = d.pele, [cc, cb, cs] = d.cabelo;
+  s.r(29, hy + 15, 6, 1, ps);                                                  // pescoço
+  s.r(25, hy + 3, 14, 11, pb).hl(26, 37, hy + 14, pb).vl(38, hy + 4, hy + 13, ps).p(37, hy + 14, ps);
+  s.vl(26, hy + 4, hy + 6, pc);
+  s.vl(24, hy + 7, hy + 9, pb).p(24, hy + 8, ps).vl(39, hy + 7, hy + 9, ps);   // orelhas
+  if (o.pisca) s.hl(27, 28, hy + 8, 'contorno').hl(35, 36, hy + 8, 'contorno');
+  else s.vl(28, hy + 7, hy + 8, 'contorno').vl(35, hy + 7, hy + 8, 'contorno');
+  s.hl(27, 29, hy + 5, cs).hl(34, 36, hy + 5, cs);                              // sobrancelhas
+  s.p(32, hy + 10, ps).p(31, hy + 10, pc);                                    // nariz
+  s.hl(30, 33, hy + 13, ps);                                                  // boca
+  // cabelo
+  if (d.penteado === 'curto') {
+    s.hl(28, 35, hy, cb).hl(26, 37, hy + 1, cb).hl(25, 38, hy + 2, cb).hl(24, 39, hy + 3, cb).hl(24, 30, hy + 4, cb).hl(37, 39, hy + 4, cb);
+    s.vl(24, hy + 5, hy + 6, cb).vl(39, hy + 5, hy + 6, cb);
+    s.hl(29, 32, hy + 1, cc).hl(26, 28, hy + 2, cc).p(25, hy + 3, cc);
+    s.hl(37, 38, hy + 2, cs).hl(38, 39, hy + 3, cs).pts([[29, hy + 4], [30, hy + 4], [33, hy + 3], [39, hy + 4]], cs);
+  } else if (d.penteado === 'grisalho') {
+    s.hl(28, 35, hy, cb).hl(26, 37, hy + 1, cb).hl(25, 38, hy + 2, cb).hl(24, 27, hy + 3, cb).hl(32, 33, hy + 3, cb).hl(36, 39, hy + 3, cb);
+    s.vl(24, hy + 4, hy + 6, cb).vl(39, hy + 4, hy + 6, cs).p(25, hy + 4, cb).p(38, hy + 4, cs);
+    s.hl(29, 32, hy + 1, cc).hl(26, 27, hy + 2, cc).hl(36, 38, hy + 2, cs).p(33, hy + 3, cs);
+    s.pts([[27, hy + 4], [36, hy + 4]], ps);                                   // entradas
+  } else if (d.penteado === 'bone') {
+    s.hl(27, 36, hy - 1, 'mar').hl(25, 38, hy, 'mar').r(24, hy + 1, 16, 3, 'mar').hl(24, 39, hy + 4, 'marEsc');
+    s.hl(27, 29, hy, 'marCl').hl(25, 26, hy + 1, 'marCl').vl(39, hy + 1, hy + 3, 'marEsc');
+    s.r(31, hy + 1, 2, 2, 'amarelo').p(31, hy + 1, 'amareloCl');
+    s.hl(23, 40, hy + 5, 'marEsc').hl(25, 38, hy + 6, ps);
+    s.vl(24, hy + 6, hy + 7, cs).vl(39, hy + 6, hy + 7, cs);
+  }
+  if (d.barba) {
+    s.vl(25, hy + 5, hy + 11, cb).vl(38, hy + 5, hy + 11, cs).vl(24, hy + 5, hy + 6, cb).vl(39, hy + 5, hy + 6, cb);
+    s.hl(25, 26, hy + 10, cb).hl(37, 38, hy + 10, cs);
+    s.hl(25, 38, hy + 11, cb).hl(29, 34, hy + 11, cb);
+    s.hl(25, 29, hy + 12, cb).hl(34, 38, hy + 12, cb).p(30, hy + 12, cb).p(33, hy + 12, cb).hl(31, 32, hy + 12, 'vermEsc');
+    s.hl(25, 38, hy + 13, cb).hl(26, 37, hy + 14, cb).hl(27, 36, hy + 15, cb).hl(29, 34, hy + 16, cs);
+    s.vl(37, hy + 11, hy + 14, cs).hl(30, 35, hy + 15, cs).pts([[27, hy + 13], [29, hy + 14], [26, hy + 12], [31, hy + 11]], cc);
+  } else if (d.bigode) {
+    s.hl(28, 35, hy + 11, cb).p(28, hy + 12, cb).p(35, hy + 12, cs).p(29, hy + 11, cc).p(35, hy + 11, cs);
+  }
+  if (d.oculos) {
+    const a = 'grafiteEsc';
+    for (const x0 of [26, 33]) {
+      s.hl(x0, x0 + 4, hy + 6, a).hl(x0, x0 + 4, hy + 9, a).vl(x0, hy + 6, hy + 9, a).vl(x0 + 4, hy + 6, hy + 9, a);
+      s.p(x0 + 3, hy + 7, 'ceuCl');
+    }
+    s.hl(31, 32, hy + 7, a).p(25, hy + 7, a).p(38, hy + 7, a);
+  }
+}
+
+function cabecaCostas(s, d, hy) {
+  const [pc, pb, ps] = d.pele, [cc, cb, cs] = d.cabelo;
+  s.r(27, hy + 9, 10, 7, pb).vl(36, hy + 9, hy + 15, ps).vl(35, hy + 13, hy + 15, ps);   // nuca e pescoço
+  const forma = (y0, y1, cor) => {
+    const larg = { 0: [28, 35], 1: [26, 37], 2: [25, 38] };
+    for (let y = y0; y <= y1; y++) { const k = y - hy, [a, b] = larg[k] || [24, 39]; s.hl(a, b, y, cor); }
+  };
+  if (d.penteado === 'bone') {
+    forma(hy, hy + 4, 'mar'); s.hl(27, 36, hy - 1, 'mar').hl(27, 29, hy, 'marCl').hl(25, 26, hy + 1, 'marCl').vl(39, hy + 1, hy + 4, 'marEsc');
+    s.r(29, hy + 3, 6, 2, 'marEsc').r(31, hy + 3, 2, 1, cs);
+    s.r(24, hy + 5, 16, 4, cb).hl(26, 37, hy + 9, cb).hl(24, 39, hy + 5, cs).vl(39, hy + 5, hy + 8, cs).pts([[29, hy + 7], [34, hy + 6]], cs);
+    s.hl(27, 36, hy + 10, ps);
+  } else {
+    const g = d.penteado === 'grisalho', fim = g ? hy + 9 : hy + 11;
+    forma(hy, fim, cb);
+    if (g) s.hl(26, 37, fim + 1, cb).hl(27, 36, fim + 2, ps);
+    else s.hl(26, 37, hy + 12, cb).hl(29, 34, hy + 12, cb);
+    s.hl(28, 31, hy + 1, cc).hl(26, 27, hy + 2, cc).vl(25, hy + 3, hy + 4, cc);
+    s.vl(39, hy + 3, fim, cs).vl(38, hy + 8, fim, cs).hl(26, 37, fim + 1, cs);
+    s.pts([[31, hy + 5], [34, hy + 7], [28, hy + 8], [35, hy + 4], [30, hy + 9]], cs);
+  }
+  s.vl(24, hy + 7, hy + 9, pb).p(24, hy + 8, ps).vl(39, hy + 7, hy + 9, ps);       // orelhas
+  if (d.barba) s.vl(24, hy + 10, hy + 13, cs).vl(39, hy + 10, hy + 13, cs).vl(25, hy + 11, hy + 13, cs).vl(38, hy + 11, hy + 13, cs);
+  if (d.oculos) s.p(24, hy + 6, 'grafiteEsc').p(39, hy + 6, 'grafiteEsc');
+}
+
+function cabecaPerfil(s, d, hy, o) {             // olhando para a esquerda
+  const [pc, pb, ps] = d.pele, [cc, cb, cs] = d.cabelo;
+  s.r(30, hy + 15, 4, 1, ps);
+  s.r(25, hy + 3, 10, 11, pb).hl(26, 33, hy + 14, pb).vl(25, hy + 3, hy + 6, pc);
+  s.vl(24, hy + 9, hy + 10, pb).p(24, hy + 10, ps);                       // nariz
+  s.vl(33, hy + 11, hy + 13, ps).vl(34, hy + 10, hy + 13, ps);
+  s.r(32, hy + 7, 2, 3, pb).p(33, hy + 8, ps).p(32, hy + 9, ps);           // orelha
+  if (o.pisca) s.hl(26, 27, hy + 8, 'contorno'); else s.vl(27, hy + 7, hy + 8, 'contorno');
+  s.hl(26, 28, hy + 5, cs);
+  s.p(26, hy + 12, ps);
+  if (d.penteado === 'curto') {
+    s.hl(29, 35, hy, cb).hl(27, 37, hy + 1, cb).hl(26, 38, hy + 2, cb).hl(25, 38, hy + 3, cb).hl(25, 27, hy + 4, cb).hl(30, 38, hy + 4, cb);
+    s.r(34, hy + 5, 5, 5, cb).hl(35, 37, hy + 10, cb).hl(35, 36, hy + 11, cs).vl(31, hy + 5, hy + 7, cb);
+    s.hl(29, 32, hy + 1, cc).hl(27, 28, hy + 2, cc).p(26, hy + 3, cc);
+    s.vl(38, hy + 3, hy + 9, cs).pts([[37, hy + 10], [26, hy + 4], [27, hy + 4], [35, hy + 6]], cs);
+  } else if (d.penteado === 'grisalho') {
+    s.hl(29, 35, hy, cb).hl(27, 37, hy + 1, cb).hl(27, 38, hy + 2, cb).hl(30, 38, hy + 3, cb);
+    s.r(34, hy + 4, 5, 6, cb).vl(31, hy + 4, hy + 6, cb).hl(35, 37, hy + 10, cs);
+    s.hl(29, 32, hy + 1, cc).vl(38, hy + 2, hy + 9, cs).p(28, hy + 3, ps);
+  } else if (d.penteado === 'bone') {
+    s.hl(28, 35, hy - 1, 'mar').hl(26, 37, hy, 'mar').r(25, hy + 1, 14, 3, 'mar').hl(25, 38, hy + 4, 'marEsc');
+    s.hl(28, 30, hy, 'marCl').hl(26, 27, hy + 1, 'marCl').vl(38, hy + 1, hy + 3, 'marEsc');
+    s.r(27, hy + 1, 2, 2, 'amarelo').p(27, hy + 1, 'amareloCl');
+    s.hl(20, 30, hy + 5, 'marEsc').hl(25, 31, hy + 6, ps);
+    s.r(34, hy + 5, 5, 4, cb).vl(38, hy + 5, hy + 8, cs);
+  }
+  if (d.barba) {
+    s.vl(31, hy + 5, hy + 10, cb).hl(30, 34, hy + 10, cb);
+    s.hl(25, 34, hy + 11, cb).hl(25, 34, hy + 12, cb).p(26, hy + 12, 'vermEsc').hl(24, 25, hy + 11, cb);
+    s.hl(25, 34, hy + 13, cb).hl(25, 33, hy + 14, cb).hl(26, 32, hy + 15, cb).hl(27, 30, hy + 16, cs);
+    s.vl(33, hy + 11, hy + 14, cs).vl(34, hy + 11, hy + 13, cs).hl(28, 32, hy + 15, cs).pts([[27, hy + 13], [29, hy + 12]], cc);
+  } else if (d.bigode) {
+    s.hl(24, 28, hy + 11, cb).p(24, hy + 12, cs).p(25, hy + 11, cc);
+  }
+  if (d.oculos) {
+    const a = 'grafiteEsc';
+    s.hl(25, 28, hy + 6, a).hl(25, 28, hy + 9, a).vl(25, hy + 6, hy + 9, a).vl(28, hy + 6, hy + 9, a);
+    s.p(26, hy + 7, 'ceuCl').hl(29, 32, hy + 7, a);
+  }
+}
+
+// ------------------------------------------------------------ vistas
+function frente(s, d, o) {
+  const [lc, lb, ls] = d.calca, [sb, ss] = d.sapato, [tc, tb, ts] = d.tronco, [pc, pb, ps] = d.pele;
+  const u = o.sentado ? 4 : o.u, ty = 34 + u, hy = 19 + u;
+  quadril(s, d, ty);
+  if (o.sentado) {
+    for (const [x0, esq] of [[24, true], [33, false]]) {
+      s.r(x0, ty + 16, 7, 2, lb).hl(x0, x0 + 6, ty + 16, lc).hl(x0, x0 + 6, ty + 17, ls);        // joelhos
+      for (let y = ty + 18; y <= 58; y++) s.p(x0 + 1, y, esq ? lc : lb).r(x0 + 2, y, 3, 1, lb).p(x0 + 5, y, ls);
+      s.r(x0 + 1, 59, 5, 3, sb).hl(x0 + 1, x0 + 5, 62, ss);
+    }
+  } else {
+    pernaFrente(s, d, 26, ty, o.sobeA, true, false);
+    pernaFrente(s, d, 33, ty, o.sobeB, false, false);
+  }
+  troncoBloco(s, d, ty);
+  detalheTronco(s, d, ty, 'frente');
+  if (d.lanterna) lanterna(s, 39, ty + 14 + o.maoB);
+  if (o.sentado) {
+    for (const [x0, esq] of [[22, true], [39, false]]) {
+      for (let y = ty + 1; y <= ty + 8; y++) s.p(x0, y, esq ? tc : tb).p(x0 + 1, y, tb).p(x0 + 2, y, ts);
+      s.apaga(esq ? x0 : x0 + 2, ty + 1);
+      s.linha(esq ? 23 : 39, ty + 8, esq ? 25 : 37, ty + 11, tb, 2);
+      s.r(esq ? 26 : 35, ty + 11, 3, 3, pb).p(esq ? 26 : 37, ty + 13, ps);
+    }
+  } else {
+    bracoFrente(s, d, 22, ty, o.maoA, true);
+    bracoFrente(s, d, 39, ty, o.maoB, false);
+  }
+  cabecaFrente(s, d, hy, o);
+}
+
+function costas(s, d, o) {
+  const u = o.u, ty = 34 + u, hy = 19 + u;
+  quadril(s, d, ty);
+  pernaFrente(s, d, 26, ty, o.sobeA, true, true);
+  pernaFrente(s, d, 33, ty, o.sobeB, false, true);
+  troncoBloco(s, d, ty);
+  detalheTronco(s, d, ty, 'costas');
+  if (d.lanterna) lanterna(s, 22, ty + 14 + o.maoA);
+  bracoFrente(s, d, 22, ty, o.maoA, true);
+  bracoFrente(s, d, 39, ty, o.maoB, false);
+  cabecaCostas(s, d, hy);
+}
+
+function perfil(s, d, o) {
+  const [lc, lb, ls] = d.calca, [sb, ss] = d.sapato, [tc, tb, ts] = d.tronco, [pc, pb, ps] = d.pele;
+  const u = o.u, ty = 34 + u, hy = 19 + u, c = o.c;
+  const perna = (fx, sobe, perto) => {
+    const yb = 62 - sobe, y0 = ty + 15, y1 = yb - 4;
+    for (let y = y0; y <= y1; y++) {
+      const cx = Math.round(31 + (fx - 31) * (y - y0) / Math.max(1, y1 - y0));
+      s.p(cx - 2, y, perto ? lc : lb).p(cx - 1, y, perto ? lb : ls).p(cx, y, perto ? lb : ls).p(cx + 1, y, ls);
+    }
+    s.r(fx - 2, yb - 3, 4, 1, perto ? sb : ss).r(fx - 4, yb - 2, 6, 2, perto ? sb : ss).hl(fx - 4, fx + 1, yb, ss);
+  };
+  const braco = (hx, longe) => {
+    for (let y = ty + 1; y <= ty + 10; y++) {
+      const cx = Math.round(32 + (hx - 32) * (y - ty - 1) / 9);
+      s.p(cx - 1, y, longe ? ts : tc).p(cx, y, longe ? ts : tb).p(cx + 1, y, ts);
+    }
+    if (d.paleto) s.hl(hx - 1, hx + 1, ty + 10, longe ? 'cinzaCl' : 'branco');
+    if (d.lanterna && !longe) lanterna(s, hx - 1, ty + 14);
+    s.r(hx - 1, ty + 11, 3, 3, longe ? ps : pb).p(hx + 1, ty + 13, ps);
+  };
+  if (o.sentado) {
+    s.r(30, ty + 13, 6, 3, ls);                                            // perna de trás (quase toda escondida)
+    s.r(28, ty + 13, 8, 3, lb).hl(28, 35, ty + 13, d.cinto || lb);
+    s.r(21, ty + 13, 12, 4, lb).hl(21, 32, ty + 13, lc).hl(21, 32, ty + 16, ls);   // coxa para a frente
+    for (let y = ty + 17; y <= 58; y++) s.p(21, y, lc).r(22, y, 2, 1, lb).p(24, y, ls);
+    s.r(17, 59, 8, 3, sb).hl(17, 24, 62, ss).r(21, 58, 4, 1, sb);
+  } else {
+    perna(Math.round(31 + 4 * c), o.liftB, false);
+    s.r(28, ty + 13, 8, 3, lb).vl(28, ty + 13, ty + 15, lc);
+    if (!d.paleto) { s.hl(28, 35, ty + 13, d.cinto || lb); if (d.fivela) s.p(28, ty + 13, d.fivela); }
+  }
+  if (!o.sentado) braco(Math.round(31 - 3 * c), true);
+  // tronco de lado
+  s.r(27, ty, 10, 13, tb).apaga(27, ty).apaga(36, ty).vl(27, ty + 1, ty + 12, tc).vl(35, ty + 1, ty + 12, ts).vl(36, ty + 1, ty + 12, ts).hl(28, 36, ty + 12, ts);
+  if (d.paleto) {
+    const [gc, gb, gs] = d.gravata;
+    s.r(27, ty + 12, 10, 2, tb).vl(27, ty + 12, ty + 13, tc).hl(28, 36, ty + 13, ts);
+    s.vl(27, ty, ty + 2, 'branco').vl(26, ty + 1, ty + 6, gb).p(26, ty + 1, gs).p(26, ty + 6, gs).linha(28, ty, 29, ty + 4, ts).p(28, ty + 8, 'cinza');
+  } else if (d.farda) {
+    s.hl(28, 30, ty + 4, ts).r(28, ty + 2, 2, 2, 'amarelo');
+  } else s.pts([[28, ty + 5], [28, ty + 8]], ts);
+  if (!o.sentado) perna(Math.round(31 - 4 * c), o.liftA, true);
+  braco(o.sentado ? 28 : Math.round(31 + 3 * c), false);
+  cabecaPerfil(s, d, hy, o);
+}
+
+// Sentado de costas, na mesa, com as mãos no teclado. O corpo vem encostado na mesa
+// (mais alto no quadro); o encosto da cadeira cobre a parte de baixo das costas.
+function costasMesa(s, d, f) {
+  const [tc, tb, ts] = d.tronco, [pc, pb, ps] = d.pele;
+  const ty = 27, hy = 12;
+  const braco = (dy) => {
+    const b = new Spr(64, 64);
+    b.linha(19, 30, 21, 19, tb, 3).linha(19, 30, 21, 19, tc, 1);         // antebraço
+    b.r(21, 15 + dy, 3, 3, pb).p(21, 15 + dy, pc).p(23, 17 + dy, ps);  // mão no teclado
+    b.linha(24, 28, 19, 31, tb, 3).linha(24, 28, 19, 31, tc, 1);         // braço até o cotovelo
+    b.pts([[19, 33], [20, 33], [21, 33]], ts);
+    return b;
+  };
+  s.cola(braco(f === 1 ? -1 : 0));
+  s.cola(braco(f === 3 ? -1 : 0).espelha());
+  s.r(25, ty, 14, 15, tb).apaga(25, ty).apaga(38, ty).vl(25, ty + 1, ty + 14, tc).vl(37, ty + 1, ty + 14, ts).vl(38, ty + 1, ty + 14, ts);
+  s.pts([[29, ty + 4], [30, ty + 5], [34, ty + 4], [33, ty + 5]], ts);      // dobras da camisa
+  cabecaCostas(s, d, hy);
+}
+
+function humano(id, anim, dir, f) {
+  const d = PERSONAGENS[id];
+  if (!d.anims.includes(anim)) return null;
+  if (anim === 'digitando' && dir !== 0) return null;
+  if (dir === 3) { const e = humano(id, anim, 1, f); return e && e.espelha(); }
+  const s = new Spr(64, 64);
+  if (anim === 'digitando' || (anim === 'sentado' && dir === 0)) costasMesa(s, d, anim === 'digitando' ? f : 0);
+  else {
+    const o = pose(anim, f);
+    if (dir === 2) frente(s, d, o); else if (dir === 0) costas(s, d, o); else perfil(s, d, o);
+  }
+  return s.contorno();
+}
+
+// =====================================================================
+// FOLHAS: cada peça numa folha, com os metadados para o manifesto
+// =====================================================================
+const JANELAS = ['comeco', 'meioA', 'meioB', 'fim'];
+const MODULOS = ['comeco', 'meio', 'fim'];
+const DIRECOES = ['cima', 'esquerda', 'baixo', 'direita'];
+
+function folhaPersonagem(id) {
+  return {
+    nome: id, grupo: 'personagens', q: [64, 64], col: 8, lin: 23, pegada: [1, 1], ancora: [32, 64], camada: 'personagem',
+    animacoes: Object.fromEntries(Object.entries(MAPA_PERSONAGEM).map(([a, [linha, quadros, dirs]]) =>
+      [a, { linha, quadros, direcoes: dirs === 4 ? DIRECOES : dirs === 1 ? ['cima'] : ['esquerda', 'direita'], tem: PERSONAGENS[id].anims.includes(a) }])),
+    desenha: (c, l) => {
+      for (const [a, [linha, quadros, dirs]] of Object.entries(MAPA_PERSONAGEM)) {
+        if (l < linha || l >= linha + dirs || c >= quadros) continue;
+        const dir = dirs === 4 ? l - linha : dirs === 1 ? 0 : (l - linha ? 3 : 1);
+        return humano(id, a, dir, c);
+      }
+      return null;
+    },
+  };
+}
+
+const FOLHAS = [
+  { nome: 'carpete', grupo: 'chão e paredes', q: [32, 32], col: 5, lin: 1, pegada: [1, 1], ancora: [16, 32], camada: 'chao',
+    quadros: ['v0', 'v1', 'v2', 'v3', 'sombra (linha 2)'], desenha: c => c < 4 ? carpete(c) : carpeteSombra() },
+  { nome: 'corredor', grupo: 'chão e paredes', q: [32, 32], col: 1, lin: 1, pegada: [1, 1], ancora: [16, 32], camada: 'chao',
+    quadros: ['xadrez'], desenha: () => corredor() },
+  { nome: 'parede_fundo', grupo: 'chão e paredes', q: [32, 32], col: 2, lin: 1, pegada: [1, 1], ancora: [16, 32], camada: 'chao',
+    quadros: ['cima (linha 0)', 'baixo (linha 1)'], desenha: c => c ? paredeFundoBaixo() : paredeFundoCima() },
+  { nome: 'parede_lado', grupo: 'chão e paredes', q: [32, 32], col: 6, lin: 1, pegada: [1, 1], ancora: [16, 32], camada: 'chao',
+    quadros: ['lado esq', 'lado dir', 'canto fundo esq', 'canto fundo dir', 'canto baixo esq', 'canto baixo dir'],
+    desenha: c => { const f = [paredeLado, paredeLado, cantoFundo, cantoFundo, cantoBaixo, cantoBaixo][c](); return c % 2 ? f.espelha() : f; } },
+  { nome: 'parede_baixo', grupo: 'chão e paredes', q: [32, 32], col: 3, lin: 1, pegada: [1, 1], ancora: [16, 32], camada: 'chao',
+    quadros: ['parede', 'porta fechada', 'porta aberta'], desenha: c => [paredeBaixo, portaFechada, portaAberta][c]() },
+  { nome: 'janela_dia', grupo: 'parede do fundo', q: [32, 64], col: 4, lin: 1, pegada: null, ancora: [16, 64], camada: 'parede',
+    quadros: JANELAS, desenha: c => janela(JANELAS[c], false) },
+  { nome: 'janela_noite', grupo: 'parede do fundo', q: [32, 64], col: 4, lin: 1, pegada: null, ancora: [16, 64], camada: 'parede',
+    quadros: JANELAS, desenha: c => janela(JANELAS[c], true) },
+  { nome: 'relogio', grupo: 'parede do fundo', q: [32, 64], col: 1, lin: 1, pegada: null, ancora: [16, 64], camada: 'parede',
+    quadros: ['relógio'], desenha: () => relogio() },
+  { nome: 'quadro_pedidos', grupo: 'parede do fundo', q: [32, 64], col: 3, lin: 1, pegada: null, ancora: [16, 64], camada: 'parede',
+    quadros: MODULOS, nota: 'um módulo por coluna; a faixa clara é onde a tela escreve o nome', desenha: c => quadroPedidos(MODULOS[c]) },
+  { nome: 'fichas', grupo: 'parede do fundo', q: [10, 10], col: 5, lin: 1, pegada: null, ancora: [5, 10], camada: 'parede',
+    quadros: FICHA_CORES, nota: 'a tela pendura as fichas conforme o estado real', desenha: c => ficha(c) },
+  { nome: 'mesa_dev', grupo: 'móveis', q: [96, 64], col: 4, lin: 1, pegada: [3, 1], ancora: [48, 64], camada: 'normal',
+    quadros: ['apagada', 'tela 1', 'tela 2', 'tela 3'], desenha: c => mesaDev(c) },
+  { nome: 'cadeira', grupo: 'móveis', q: [32, 64], col: 3, lin: 1, pegada: [1, 1], ancora: [16, 64], camada: 'normal',
+    quadros: ['base (atrás)', 'encosto (frente)', 'inteira'], camadas: ['atras', 'frente', 'normal'], desenha: c => cadeira(c) },
+  { nome: 'divisoria', grupo: 'móveis', q: [32, 64], col: 4, lin: 4, pegada: [1, 1], ancora: [16, 64], camada: 'normal',
+    autotile: { mascara: { N: 1, L: 2, S: 4, O: 8 }, ordem: 'quadro = máscara (0–15), linha a linha' }, desenha: (c, l) => divisoria(l * 4 + c) },
+  { nome: 'rack', grupo: 'móveis', q: [32, 64], col: 3, lin: 1, pegada: [1, 1], ancora: [16, 64], camada: 'normal',
+    quadros: ['LEDs A', 'LEDs B', 'botão apertado'], desenha: c => rack(c) },
+  { nome: 'arquivo', grupo: 'móveis', q: [32, 64], col: 1, lin: 1, pegada: [1, 1], ancora: [16, 64], camada: 'normal', quadros: ['arquivo'], desenha: () => arquivo() },
+  { nome: 'planta', grupo: 'móveis', q: [32, 64], col: 1, lin: 1, pegada: [1, 1], ancora: [16, 64], camada: 'normal', quadros: ['planta'], desenha: () => planta() },
+  { nome: 'lixeira', grupo: 'móveis', q: [32, 32], col: 1, lin: 1, pegada: [1, 1], ancora: [16, 32], camada: 'normal', quadros: ['lixeira'], desenha: () => lixeira() },
+  folhaPersonagem('camps'), folhaPersonagem('gerente'), folhaPersonagem('vigia'),
+];
+
+// ---- cache de quadros e montagem das folhas
+const QUADROS = new Map();
+function quadro(nome, c = 0, l = 0) {
+  const k = nome + '|' + c + '|' + l;
+  if (!QUADROS.has(k)) QUADROS.set(k, FOLHAS.find(f => f.nome === nome).desenha(c, l));
+  return QUADROS.get(k);
+}
+const CANVAS_FOLHA = new Map();
+function montaFolha(def) {
+  if (CANVAS_FOLHA.has(def.nome)) return CANVAS_FOLHA.get(def.nome);
+  const [w, h] = def.q, cv = document.createElement('canvas');
+  cv.width = w * def.col; cv.height = h * def.lin;
+  const ctx = cv.getContext('2d');
+  for (let l = 0; l < def.lin; l++) for (let c = 0; c < def.col; c++) {
+    const s = quadro(def.nome, c, l);
+    if (s) s.pinta(ctx, c * w, l * h);
+  }
+  CANVAS_FOLHA.set(def.nome, cv); return cv;
+}
+
+// ---- API para exportar sem clicar
+window.folhas = () => Object.fromEntries(FOLHAS.map(f => [f.nome, montaFolha(f).toDataURL('image/png')]));
+window.metadados = () => {
+  FOLHAS.forEach(montaFolha);
+  return {
+    versao: 'fase-1', tile: T, paleta: PALETA, coresUsadas: [...CORES_USADAS].sort(),
+    folhas: Object.fromEntries(FOLHAS.map(f => [f.nome, {
+      arquivo: f.nome + '.png', grupo: f.grupo, quadro: f.q, colunas: f.col, linhas: f.lin, pegada: f.pegada, ancora: f.ancora, camada: f.camada,
+      ...(f.quadros ? { quadros: f.quadros } : {}), ...(f.camadas ? { camadasPorQuadro: f.camadas } : {}),
+      ...(f.animacoes ? { animacoes: f.animacoes, andar: 'per_tile: 8 quadros por tile' } : {}),
+      ...(f.autotile ? { autotile: f.autotile } : {}), ...(f.nota ? { nota: f.nota } : {}),
+    }])),
+  };
+};
+
+// =====================================================================
+// PRÉVIA: a sala montada (20 × 17) com as peças, em passos de 100 ms
+// =====================================================================
+const SALA = { L: 20, A: 17 };
+const PORTA = [9, 13];
+
+// ---- o cubículo: as células de divisória e a máscara de cada uma
+// dois cubículos lado a lado: o do Camps e uma mesa vaga, para a equipe crescer
+const DIV = new Set(['7,4', '8,4', '9,4', '10,4', '11,4', '12,4', '13,4', '14,4', '15,4', '7,5', '7,6', '11,5', '11,6', '15,5', '15,6']);
+const temDiv = (c, l) => DIV.has(c + ',' + l);
+function mascara(c, l) { return (temDiv(c, l - 1) ? 1 : 0) | (temDiv(c + 1, l) ? 2 : 0) | (temDiv(c, l + 1) ? 4 : 0) | (temDiv(c - 1, l) ? 8 : 0); }
+
+// ---- fundo estático: chão, paredes e o que está pendurado nelas
+function fundo(noite) {
+  const cv = document.createElement('canvas'); cv.width = SALA.L * T; cv.height = SALA.A * T;
+  const ctx = cv.getContext('2d');
+  const tile = (nome, c, l, col, lin = 0) => ctx.drawImage(quadro(nome, c, lin).canvas(), col * T, l * T);
+  for (let l = 0; l < SALA.A; l++) for (let c = 0; c < SALA.L; c++) {
+    if (l >= 14) tile('corredor', 0, l, c);
+    else if (l === 13) {
+      if (c === 0) tile('parede_lado', 4, l, c); else if (c === 19) tile('parede_lado', 5, l, c);
+      else if (c === PORTA[0]) tile('parede_baixo', 2, l, c); else tile('parede_baixo', 0, l, c);
+    } else if (c === 0 || c === 19) {
+      tile('parede_lado', l === 0 ? (c ? 3 : 2) : (c ? 1 : 0), l, c);
+    } else if (l <= 1) tile('parede_fundo', l, l, c);
+    else if (l === 2) tile('carpete', 4, l, c);
+    else { const h = hash(c, l, 99); tile('carpete', h < 0.06 ? 3 : Math.floor(h * 3), l, c); }
+  }
+  // na parede do fundo
+  const na = (nome, c, col) => ctx.drawImage(quadro(nome, c).canvas(), col * T, 0);
+  const jan = ['comeco', 'meioA', 'meioB', 'meioA', 'meioB', 'meioA', 'meioB', 'fim'];
+  jan.forEach((t, i) => na(noite ? 'janela_noite' : 'janela_dia', JANELAS.indexOf(t), 6 + i));
+  na('relogio', 0, 3);
+  ['comeco', 'meio', 'meio', 'fim'].forEach((t, i) => na('quadro_pedidos', MODULOS.indexOf(t), 15 + i));
+  // as fichas, como a tela as penduraria: [coluna, posição, cor]
+  const fichas = [[0, 0, 0], [0, 1, 3], [0, 2, 1], [1, 0, 2], [2, 0, 3], [2, 1, 0], [3, 0, 2], [3, 1, 1], [3, 2, 4], [3, 3, 2]];
+  for (const [k, p, cor] of fichas) {
+    const c0 = k === 0 ? 5 : 2;
+    ctx.drawImage(quadro('fichas', cor).canvas(), (15 + k) * T + c0 + 1 + (p % 2) * 12, 19 + Math.floor(p / 2) * 12);
+  }
+  return cv;
+}
+
+// ---- o caminho do gerente: [coluna, linha] ou ['pausa', ticks, direção]
+const CAMINHO = [[5, 9], [17, 9], [17, 3], ['pausa', 12, 0], [17, 9], [5, 9], ['pausa', 16, 2]];
+const PASSO = 4;    // px por tick: 8 ticks por tile (andar per_tile)
+function gerenteNoTick(t) {
+  const etapas = [];
+  let pos = CAMINHO[0];
+  for (const e of CAMINHO.slice(1)) {
+    if (e[0] === 'pausa') { etapas.push({ tipo: 'pausa', n: e[1], dir: e[2], pos }); continue; }
+    const dx = e[0] - pos[0], dy = e[1] - pos[1], n = (Math.abs(dx) + Math.abs(dy)) * T / PASSO;
+    const dir = dx > 0 ? 3 : dx < 0 ? 1 : dy < 0 ? 0 : 2;
+    etapas.push({ tipo: 'andar', n, dir, de: pos, para: e }); pos = e;
+  }
+  const total = etapas.reduce((a, e) => a + e.n, 0);
+  let k = ((t % total) + total) % total;
+  for (const e of etapas) {
+    if (k >= e.n) { k -= e.n; continue; }
+    if (e.tipo === 'pausa') return { x: e.pos[0] * T, y: e.pos[1] * T, anim: 'parado', dir: e.dir, f: (k % 30) < 2 ? 1 : 0 };
+    const fr = k / e.n;
+    return { x: (e.de[0] + (e.para[0] - e.de[0]) * fr) * T, y: (e.de[1] + (e.para[1] - e.de[1]) * fr) * T, anim: 'andar', dir: e.dir, f: k % 8 };
+  }
+}
+const CICLO_GERENTE = (() => { let n = 0, pos = CAMINHO[0]; for (const e of CAMINHO.slice(1)) { if (e[0] === 'pausa') n += e[1]; else { n += (Math.abs(e[0] - pos[0]) + Math.abs(e[1] - pos[1])) * T / PASSO; pos = e; } } return n; })();
+
+const LIN_ANIM = (anim, dir) => MAPA_PERSONAGEM[anim][0] + (MAPA_PERSONAGEM[anim][2] === 1 ? 0 : dir);
+
+// ---- os objetos da sala num tick: { x, y (canto do quadro), base (borda de baixo da pegada), ordem, spr }
+function objetos(t) {
+  const o = [];
+  const poe = (spr, col, lin, larg = 1, ordem = 1) => o.push({ spr, x: col * T + larg * T / 2 - spr.w / 2, y: (lin + 1) * T - spr.h, base: (lin + 1) * T, ordem });
+  for (const k of DIV) { const [c, l] = k.split(',').map(Number); poe(quadro('divisoria', mascara(c, l) % 4, mascara(c, l) >> 2), c, l); }
+  poe(quadro('mesa_dev', 1 + Math.floor(t / 5) % 3), 8, 5, 3);
+  poe(quadro('cadeira', 0), 9, 6, 1, 0);
+  poe(quadro('camps', t % 4, LIN_ANIM('digitando', 0)), 9, 6, 1, 1);
+  poe(quadro('cadeira', 1), 9, 6, 1, 2);
+  poe(quadro('lixeira'), 10, 6);
+  poe(quadro('mesa_dev', 0), 12, 5, 3);
+  poe(quadro('cadeira', 2), 13, 6);
+  poe(quadro('rack', Math.floor(t / 6) % 2), 16, 5);
+  poe(quadro('arquivo'), 1, 2); poe(quadro('arquivo'), 2, 2);
+  poe(quadro('planta'), 14, 2); poe(quadro('planta'), 6, 6); poe(quadro('planta'), 1, 12); poe(quadro('planta'), 18, 12);
+  // o vigia na porta, do lado do corredor
+  poe(quadro('vigia', (t % 37) < 2 ? 1 : 0, LIN_ANIM('parado', 2)), PORTA[0], 14);
+  // o gerente andando
+  const g = gerenteNoTick(t), sg = quadro('gerente', g.f, LIN_ANIM(g.anim, g.dir));
+  o.push({ spr: sg, x: g.x + T / 2 - 32, y: g.y + T - 64, base: g.y + T, ordem: 1 });
+  return o.sort((a, b) => a.base - b.base || a.ordem - b.ordem);
+}
+
+const FUNDOS = {};
+function desenhaPrevia(ctx, t, noite) {
+  const k = noite ? 'noite' : 'dia';
+  if (!FUNDOS[k]) FUNDOS[k] = fundo(noite);
+  ctx.drawImage(FUNDOS[k], 0, 0);
+  for (const ob of objetos(t)) ctx.drawImage(ob.spr.canvas(), Math.round(ob.x), Math.round(ob.y));
+}
+window.quadroPrevia = (i, op = {}) => {
+  const cv = document.createElement('canvas'); cv.width = SALA.L * T; cv.height = SALA.A * T;
+  desenhaPrevia(cv.getContext('2d'), i, !!op.noite);
+  return cv.toDataURL('image/png');
+};
+window.cicloPrevia = () => CICLO_GERENTE;
+
+
+// ------------------------------------------------------------ a página
+(function pagina() {
+  const sala = document.getElementById('sala'), ctx = sala.getContext('2d');
+  let noite = false, pausa = false, escala = 2, t = 0, ultimo = 0;
+  const aplicaEscala = () => { sala.style.width = sala.width * escala + 'px'; sala.style.height = sala.height * escala + 'px'; };
+  aplicaEscala();
+  const marca = (sel, el) => document.querySelectorAll(sel).forEach(b => b.setAttribute('aria-pressed', b === el ? 'true' : 'false'));
+  document.getElementById('bt-dia').onclick = e => { noite = false; marca('#bt-dia, #bt-noite', e.currentTarget); };
+  document.getElementById('bt-noite').onclick = e => { noite = true; marca('#bt-dia, #bt-noite', e.currentTarget); };
+  document.getElementById('bt-pausa').onclick = e => { pausa = !pausa; e.currentTarget.setAttribute('aria-pressed', String(pausa)); e.currentTarget.textContent = pausa ? 'continuar' : 'pausar'; };
+  document.querySelectorAll('.bt-escala').forEach(b => b.onclick = () => { escala = +b.dataset.e; marca('.bt-escala', b); aplicaEscala(); });
+  function laco(ms) {
+    if (!pausa && ms - ultimo >= 100) { t++; ultimo = ms; }
+    desenhaPrevia(ctx, t, noite);
+    requestAnimationFrame(laco);
+  }
+  requestAnimationFrame(laco);
+
+  // prancha, agrupada
+  const prancha = document.getElementById('prancha');
+  const grupos = {};
+  for (const f of FOLHAS) {
+    if (!grupos[f.grupo]) { const h = document.createElement('h3'); h.textContent = f.grupo; h.style.margin = '20px 0 8px'; prancha.append(h); grupos[f.grupo] = Object.assign(document.createElement('div'), { className: 'grupo' }); prancha.append(grupos[f.grupo]); }
+    const cv = montaFolha(f), card = document.createElement('div'); card.className = 'folha';
+    const z = f.q[0] <= 16 ? 6 : f.grupo === 'personagens' ? 1 : 2;
+    const h = document.createElement('h3'); h.textContent = f.nome + '.png';
+    const info = document.createElement('small');
+    info.textContent = `quadro ${f.q[0]}×${f.q[1]} · ${f.col}×${f.lin} quadros` + (f.pegada ? ` · pegada ${f.pegada[0]}×${f.pegada[1]}` : ' · na parede') + ` · âncora (${f.ancora})`;
+    const tela = document.createElement('div'); tela.className = 'tela';
+    const vis = document.createElement('canvas'); vis.width = cv.width; vis.height = cv.height;
+    vis.getContext('2d').drawImage(cv, 0, 0); vis.style.width = cv.width * z + 'px'; vis.style.height = cv.height * z + 'px';
+    tela.append(vis);
+    const bt = document.createElement('button'); bt.textContent = 'baixar PNG';
+    bt.onclick = () => cv.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = f.nome + '.png'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); });
+    card.append(h, info, tela, bt);
+    if (f.nota) { const n = document.createElement('small'); n.textContent = f.nota; card.append(n); }
+    grupos[f.grupo].append(card);
+  }
+
+  // paleta e contagem
+  const pal = document.getElementById('paleta');
+  for (const [nome, hex] of Object.entries(PALETA)) {
+    const d = document.createElement('div'); d.className = 'cor' + (CORES_USADAS.has(nome) ? '' : ' nao');
+    const i = document.createElement('i'); i.style.background = hex;
+    d.append(i, document.createTextNode(nome + ' ' + hex)); pal.append(d);
+  }
+  document.getElementById('contagem').textContent = `${CORES_USADAS.size} cores usadas, de ${Object.keys(PALETA).length} na paleta · sem antialiasing, sem degradê, sem transparência parcial`;
+})();
+</script>
+</body>
+</html>

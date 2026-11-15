@@ -1,0 +1,785 @@
+{
+  "versao": "fase-1",
+  "tile": 32,
+  "paleta": {
+    "contorno": "#1b1726",
+    "escuro": "#26222f",
+    "grafiteEsc": "#33353e",
+    "grafite": "#4a4d57",
+    "cinzaEsc": "#6b7280",
+    "cinza": "#9aa1ab",
+    "cinzaCl": "#c9ced4",
+    "branco": "#f6f2e8",
+    "begeEsc": "#85735a",
+    "begeSomb": "#ae9b72",
+    "bege": "#cdbb8f",
+    "creme": "#e7d9b4",
+    "cremeCl": "#f4ead0",
+    "madCl": "#d49b5d",
+    "mad": "#b07541",
+    "madEsc": "#7e5032",
+    "madMEsc": "#563521",
+    "carpCl": "#5b6987",
+    "carp": "#4b5875",
+    "carpEsc": "#3b4660",
+    "azulCl": "#86a2cb",
+    "azul": "#5a76a6",
+    "azulEsc": "#3e5580",
+    "marCl": "#3d4d7c",
+    "mar": "#2c3961",
+    "marEsc": "#1e2645",
+    "ceu": "#8fcbee",
+    "ceuCl": "#c8e8f8",
+    "verdeCl": "#78c25a",
+    "verde": "#4c9a3f",
+    "verdeEsc": "#2f6b30",
+    "telaFundo": "#10301f",
+    "telaTexto": "#3fd17a",
+    "telaBrilho": "#a8f5c4",
+    "vermCl": "#e8635a",
+    "verm": "#c63b3b",
+    "vermEsc": "#8e2630",
+    "peleCl": "#f0c49c",
+    "pele": "#dca378",
+    "peleSomb": "#b77d58",
+    "cabCl": "#8b5a33",
+    "cab": "#66401f",
+    "cabEsc": "#452914",
+    "amarelo": "#f2c94c",
+    "amareloCl": "#fbe7a0"
+  },
+  "coresUsadas": [
+    "amarelo",
+    "amareloCl",
+    "azul",
+    "azulCl",
+    "azulEsc",
+    "bege",
+    "begeEsc",
+    "begeSomb",
+    "branco",
+    "cab",
+    "cabCl",
+    "cabEsc",
+    "carp",
+    "carpCl",
+    "carpEsc",
+    "ceu",
+    "ceuCl",
+    "cinza",
+    "cinzaCl",
+    "cinzaEsc",
+    "contorno",
+    "creme",
+    "cremeCl",
+    "escuro",
+    "grafite",
+    "grafiteEsc",
+    "mad",
+    "madCl",
+    "madEsc",
+    "madMEsc",
+    "mar",
+    "marCl",
+    "marEsc",
+    "pele",
+    "peleCl",
+    "peleSomb",
+    "telaBrilho",
+    "telaFundo",
+    "telaTexto",
+    "verde",
+    "verdeCl",
+    "verdeEsc",
+    "verm",
+    "vermCl",
+    "vermEsc"
+  ],
+  "folhas": {
+    "carpete": {
+      "arquivo": "carpete.png",
+      "grupo": "chão e paredes",
+      "quadro": [
+        32,
+        32
+      ],
+      "colunas": 5,
+      "linhas": 1,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        16,
+        32
+      ],
+      "camada": "chao",
+      "quadros": [
+        "v0",
+        "v1",
+        "v2",
+        "v3",
+        "sombra (linha 2)"
+      ]
+    },
+    "corredor": {
+      "arquivo": "corredor.png",
+      "grupo": "chão e paredes",
+      "quadro": [
+        32,
+        32
+      ],
+      "colunas": 1,
+      "linhas": 1,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        16,
+        32
+      ],
+      "camada": "chao",
+      "quadros": [
+        "xadrez"
+      ]
+    },
+    "parede_fundo": {
+      "arquivo": "parede_fundo.png",
+      "grupo": "chão e paredes",
+      "quadro": [
+        32,
+        32
+      ],
+      "colunas": 2,
+      "linhas": 1,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        16,
+        32
+      ],
+      "camada": "chao",
+      "quadros": [
+        "cima (linha 0)",
+        "baixo (linha 1)"
+      ]
+    },
+    "parede_lado": {
+      "arquivo": "parede_lado.png",
+      "grupo": "chão e paredes",
+      "quadro": [
+        32,
+        32
+      ],
+      "colunas": 6,
+      "linhas": 1,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        16,
+        32
+      ],
+      "camada": "chao",
+      "quadros": [
+        "lado esq",
+        "lado dir",
+        "canto fundo esq",
+        "canto fundo dir",
+        "canto baixo esq",
+        "canto baixo dir"
+      ]
+    },
+    "parede_baixo": {
+      "arquivo": "parede_baixo.png",
+      "grupo": "chão e paredes",
+      "quadro": [
+        32,
+        32
+      ],
+      "colunas": 3,
+      "linhas": 1,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        16,
+        32
+      ],
+      "camada": "chao",
+      "quadros": [
+        "parede",
+        "porta fechada",
+        "porta aberta"
+      ]
+    },
+    "janela_dia": {
+      "arquivo": "janela_dia.png",
+      "grupo": "parede do fundo",
+      "quadro": [
+        32,
+        64
+      ],
+      "colunas": 4,
+      "linhas": 1,
+      "pegada": null,
+      "ancora": [
+        16,
+        64
+      ],
+      "camada": "parede",
+      "quadros": [
+        "comeco",
+        "meioA",
+        "meioB",
+        "fim"
+      ]
+    },
+    "janela_noite": {
+      "arquivo": "janela_noite.png",
+      "grupo": "parede do fundo",
+      "quadro": [
+        32,
+        64
+      ],
+      "colunas": 4,
+      "linhas": 1,
+      "pegada": null,
+      "ancora": [
+        16,
+        64
+      ],
+      "camada": "parede",
+      "quadros": [
+        "comeco",
+        "meioA",
+        "meioB",
+        "fim"
+      ]
+    },
+    "relogio": {
+      "arquivo": "relogio.png",
+      "grupo": "parede do fundo",
+      "quadro": [
+        32,
+        64
+      ],
+      "colunas": 1,
+      "linhas": 1,
+      "pegada": null,
+      "ancora": [
+        16,
+        64
+      ],
+      "camada": "parede",
+      "quadros": [
+        "relógio"
+      ]
+    },
+    "quadro_pedidos": {
+      "arquivo": "quadro_pedidos.png",
+      "grupo": "parede do fundo",
+      "quadro": [
+        32,
+        64
+      ],
+      "colunas": 3,
+      "linhas": 1,
+      "pegada": null,
+      "ancora": [
+        16,
+        64
+      ],
+      "camada": "parede",
+      "quadros": [
+        "comeco",
+        "meio",
+        "fim"
+      ],
+      "nota": "um módulo por coluna; a faixa clara é onde a tela escreve o nome"
+    },
+    "fichas": {
+      "arquivo": "fichas.png",
+      "grupo": "parede do fundo",
+      "quadro": [
+        10,
+        10
+      ],
+      "colunas": 5,
+      "linhas": 1,
+      "pegada": null,
+      "ancora": [
+        5,
+        10
+      ],
+      "camada": "parede",
+      "quadros": [
+        "vermCl",
+        "amarelo",
+        "verdeCl",
+        "azulCl",
+        "cinzaCl"
+      ],
+      "nota": "a tela pendura as fichas conforme o estado real"
+    },
+    "mesa_dev": {
+      "arquivo": "mesa_dev.png",
+      "grupo": "móveis",
+      "quadro": [
+        96,
+        64
+      ],
+      "colunas": 4,
+      "linhas": 1,
+      "pegada": [
+        3,
+        1
+      ],
+      "ancora": [
+        48,
+        64
+      ],
+      "camada": "normal",
+      "quadros": [
+        "apagada",
+        "tela 1",
+        "tela 2",
+        "tela 3"
+      ]
+    },
+    "cadeira": {
+      "arquivo": "cadeira.png",
+      "grupo": "móveis",
+      "quadro": [
+        32,
+        64
+      ],
+      "colunas": 3,
+      "linhas": 1,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        16,
+        64
+      ],
+      "camada": "normal",
+      "quadros": [
+        "base (atrás)",
+        "encosto (frente)",
+        "inteira"
+      ],
+      "camadasPorQuadro": [
+        "atras",
+        "frente",
+        "normal"
+      ]
+    },
+    "divisoria": {
+      "arquivo": "divisoria.png",
+      "grupo": "móveis",
+      "quadro": [
+        32,
+        64
+      ],
+      "colunas": 4,
+      "linhas": 4,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        16,
+        64
+      ],
+      "camada": "normal",
+      "autotile": {
+        "mascara": {
+          "N": 1,
+          "L": 2,
+          "S": 4,
+          "O": 8
+        },
+        "ordem": "quadro = máscara (0–15), linha a linha"
+      }
+    },
+    "rack": {
+      "arquivo": "rack.png",
+      "grupo": "móveis",
+      "quadro": [
+        32,
+        64
+      ],
+      "colunas": 3,
+      "linhas": 1,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        16,
+        64
+      ],
+      "camada": "normal",
+      "quadros": [
+        "LEDs A",
+        "LEDs B",
+        "botão apertado"
+      ]
+    },
+    "arquivo": {
+      "arquivo": "arquivo.png",
+      "grupo": "móveis",
+      "quadro": [
+        32,
+        64
+      ],
+      "colunas": 1,
+      "linhas": 1,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        16,
+        64
+      ],
+      "camada": "normal",
+      "quadros": [
+        "arquivo"
+      ]
+    },
+    "planta": {
+      "arquivo": "planta.png",
+      "grupo": "móveis",
+      "quadro": [
+        32,
+        64
+      ],
+      "colunas": 1,
+      "linhas": 1,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        16,
+        64
+      ],
+      "camada": "normal",
+      "quadros": [
+        "planta"
+      ]
+    },
+    "lixeira": {
+      "arquivo": "lixeira.png",
+      "grupo": "móveis",
+      "quadro": [
+        32,
+        32
+      ],
+      "colunas": 1,
+      "linhas": 1,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        16,
+        32
+      ],
+      "camada": "normal",
+      "quadros": [
+        "lixeira"
+      ]
+    },
+    "camps": {
+      "arquivo": "camps.png",
+      "grupo": "personagens",
+      "quadro": [
+        64,
+        64
+      ],
+      "colunas": 8,
+      "linhas": 23,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        32,
+        64
+      ],
+      "camada": "personagem",
+      "animacoes": {
+        "andar": {
+          "linha": 0,
+          "quadros": 8,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "parado": {
+          "linha": 4,
+          "quadros": 2,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "usar": {
+          "linha": 8,
+          "quadros": 6,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": false
+        },
+        "sentado": {
+          "linha": 12,
+          "quadros": 1,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "digitando": {
+          "linha": 16,
+          "quadros": 4,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": true
+        },
+        "beber": {
+          "linha": 17,
+          "quadros": 3,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": false
+        },
+        "comer": {
+          "linha": 21,
+          "quadros": 4,
+          "direcoes": [
+            "esquerda",
+            "direita"
+          ],
+          "tem": false
+        }
+      },
+      "andar": "per_tile: 8 quadros por tile"
+    },
+    "gerente": {
+      "arquivo": "gerente.png",
+      "grupo": "personagens",
+      "quadro": [
+        64,
+        64
+      ],
+      "colunas": 8,
+      "linhas": 23,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        32,
+        64
+      ],
+      "camada": "personagem",
+      "animacoes": {
+        "andar": {
+          "linha": 0,
+          "quadros": 8,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "parado": {
+          "linha": 4,
+          "quadros": 2,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "usar": {
+          "linha": 8,
+          "quadros": 6,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": false
+        },
+        "sentado": {
+          "linha": 12,
+          "quadros": 1,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": false
+        },
+        "digitando": {
+          "linha": 16,
+          "quadros": 4,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": false
+        },
+        "beber": {
+          "linha": 17,
+          "quadros": 3,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": false
+        },
+        "comer": {
+          "linha": 21,
+          "quadros": 4,
+          "direcoes": [
+            "esquerda",
+            "direita"
+          ],
+          "tem": false
+        }
+      },
+      "andar": "per_tile: 8 quadros por tile"
+    },
+    "vigia": {
+      "arquivo": "vigia.png",
+      "grupo": "personagens",
+      "quadro": [
+        64,
+        64
+      ],
+      "colunas": 8,
+      "linhas": 23,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        32,
+        64
+      ],
+      "camada": "personagem",
+      "animacoes": {
+        "andar": {
+          "linha": 0,
+          "quadros": 8,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "parado": {
+          "linha": 4,
+          "quadros": 2,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "usar": {
+          "linha": 8,
+          "quadros": 6,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": false
+        },
+        "sentado": {
+          "linha": 12,
+          "quadros": 1,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": false
+        },
+        "digitando": {
+          "linha": 16,
+          "quadros": 4,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": false
+        },
+        "beber": {
+          "linha": 17,
+          "quadros": 3,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": false
+        },
+        "comer": {
+          "linha": 21,
+          "quadros": 4,
+          "direcoes": [
+            "esquerda",
+            "direita"
+          ],
+          "tem": false
+        }
+      },
+      "andar": "per_tile: 8 quadros por tile"
+    }
+  }
+}

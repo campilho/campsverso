@@ -12,6 +12,7 @@ export default defineConfig(
       ".claude/**", // local de cada máquina: os worktrees das tarefas do Claude Code
       "packages/contracts-ts/src/**", // GERADO a partir de contracts/
       "docs/design/escritorio/**", // protótipo do Claude Design para o navegador, referência e não código do projeto
+      "docs/design/escritorio-arte/**", // arte desenhada em código para o navegador (fase 1), referência e não código do projeto
     ],
   },
   js.configs.recommended,
