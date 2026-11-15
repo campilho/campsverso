@@ -30,7 +30,7 @@ import { ActionQueue, idle, type Step } from "./queue.ts";
 import { MapCanvas } from "./render/canvas.ts";
 import { PhaserRenderer } from "./render/phaser.ts";
 import type { WorldRenderer } from "./render/renderer.ts";
-import { DisplayClock, clockText, isLive, realTime } from "./simclock.ts";
+import { DisplayClock, clockText, isLive, realTime, tickSeconds } from "./simclock.ts";
 import { describe, shortType } from "./timeline.ts";
 import { Store } from "./store.ts";
 import { parseTiledMap, tileAt as terrainAt, type TileGrid } from "./tiled.ts";
@@ -545,8 +545,17 @@ const STEPS: Readonly<Record<string, readonly [number, number]>> = {
 /** Segurar uma seta anda neste ritmo, em tiles por segundo real (achado do usuário no mapa d: um
  * passo por toque esperava um tick do mundo para começar). O kernel aceita cada trecho só no tick
  * seguinte, então o destino vai adiante do desenho o que o avatar anda num tick (`lead`), e o
- * desenho, nesse ritmo, segue sem parar. Soltar a seta para no tile logo à frente. */
+ * desenho, nesse ritmo, segue sem parar. Soltar a seta para no tile logo à frente. Num mundo com
+ * passo de tela (o escritório, ADR-0079), o ritmo é o dele: andando a 6 contra os 4 do kernel, o
+ * desenho alcançava o kernel e parava, aos trancos (achado do usuário a 1×, ADR-0081). */
 const HOLD_TILES_PER_SECOND = 6;
+/** Quanto tempo real a parada leva para chegar ao kernel e o desenho atrás dele: a soltura mira
+ * onde o kernel vai estar depois disso, e não onde ele aparece agora (ADR-0081). */
+const RELEASE_LATENCY_S = 0.2;
+
+function holdPace(state: ObserverState): number {
+  return state.session?.screen_tiles_per_second ?? HOLD_TILES_PER_SECOND;
+}
 /** De quanto em quanto tempo um trecho novo vai ao kernel, enquanto a seta está segurada. */
 const HOLD_SEND_MS = 200;
 /** Depois de soltar, por quanto tempo uma recusa de andar ainda é da caminhada do teclado. */
@@ -557,6 +566,7 @@ interface Hold {
   readonly delta: readonly [number, number];
   readonly from: Tile;
   readonly since: number;
+  readonly pace: number;
   sent?: Tile;
   sentAt: number;
 }
@@ -576,10 +586,10 @@ function sendMove(target: Tile): void {
 
 /** Quantos tiles o avatar anda num tick do mundo, no ritmo do teclado: o quanto o destino vai
  * adiante do desenho. */
-function lead(state: ObserverState): number {
+function lead(state: ObserverState, pace: number): number {
   const scale = state.clock.scale ?? 72;
-  const tick = (state.session?.tick_seconds ?? 60) / Math.max(1, scale);
-  return Math.ceil(HOLD_TILES_PER_SECOND * tick) + 1;
+  const tick = tickSeconds(state.session) / Math.max(1, scale);
+  return Math.ceil(pace * tick) + 1;
 }
 
 function startHold(state: ObserverState, key: string, delta: readonly [number, number]): void {
@@ -587,8 +597,9 @@ function startHold(state: ObserverState, key: string, delta: readonly [number, n
   if (from === undefined) {
     return;
   }
-  hold = { key, delta, from, since: performance.now(), sentAt: 0 };
-  map.motion.pace(avatarId(), HOLD_TILES_PER_SECOND);
+  const pace = holdPace(state);
+  hold = { key, delta, from, since: performance.now(), pace, sentAt: 0 };
+  map.motion.pace(avatarId(), pace);
   paced = true;
   steerHold(state, performance.now());
 }
@@ -598,8 +609,8 @@ function steerHold(state: ObserverState, now: number): void {
   if (hold === undefined || now - hold.sentAt < HOLD_SEND_MS) {
     return;
   }
-  const walked = Math.floor(((now - hold.since) / 1000) * HOLD_TILES_PER_SECOND);
-  const target = holdTarget(state, hold.from, hold.delta, 1 + walked + lead(state));
+  const walked = Math.floor(((now - hold.since) / 1000) * hold.pace);
+  const target = holdTarget(state, hold.from, hold.delta, 1 + walked + lead(state, hold.pace));
   if (target.x === hold.from.x && target.y === hold.from.y) {
     return; // a cerca logo à frente: nada a mandar
   }
@@ -626,18 +637,23 @@ function releaseHold(): void {
   }
   const [dx, dy] = released.delta;
   const along = (t: Tile): number => (t.x - released.from.x) * dx + (t.y - released.from.y) * dy;
-  // Nunca antes do tile em que o kernel já está entrando: o passo começado termina (ADR-0079), e
-  // parar atrás dele faria o avatar voltar. Com a tela lenta (a aba em segundo plano), o desenho
-  // fica para trás do kernel, e o tile à frente do desenho ficava tiles atrás dele.
+  // Nunca antes do tile em que o kernel vai estar entrando quando a parada chegar: depois do atraso
+  // da rede, no tick seguinte. O passo começado termina (ADR-0079), e parar atrás dele faria o
+  // avatar voltar. Com a tela lenta (a aba em segundo plano), o desenho fica para trás do kernel,
+  // e o tile à frente do desenho ficava tiles atrás dele. A 1×, com o tick de 250 ms, a parada
+  // sem o atraso chegava com o kernel um tile além, e ele voltava (ADR-0081).
   const motion = state.motion[avatarId()];
+  const tickReal = tickSeconds(state.session) / Math.max(1, state.clock.scale ?? 72);
+  const applied = Math.floor(shownTick + RELEASE_LATENCY_S / tickReal) + 1;
   const kernel =
     motion === undefined
       ? state.entities[avatarId()]?.position
-      : motion.path[Math.min(motion.path.length - 1, Math.ceil(stepsAt(motion, shownTick) - 1e-9))];
+      : motion.path[Math.min(motion.path.length - 1, Math.ceil(stepsAt(motion, applied) - 1e-9))];
   const ahead = holdTarget(state, me, released.delta, 1);
   const stop = kernel !== undefined && along(kernel) > along(ahead) ? { x: kernel.x, y: kernel.y } : ahead;
   if (along(released.sent) > along(stop)) {
     sendMove(stop);
+    map.motion.limit(avatarId(), stop, HOLD_GRACE_MS); // o desenho não passa da parada (ADR-0081)
   }
 }
 

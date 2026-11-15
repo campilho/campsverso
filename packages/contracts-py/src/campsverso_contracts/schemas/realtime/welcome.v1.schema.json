@@ -98,8 +98,7 @@
           "title": "ObserverSession",
           "additionalProperties": false,
           "required": [
-            "cartridge_version",
-            "tick_seconds"
+            "cartridge_version"
           ],
           "properties": {
             "cartridge_version": {
@@ -107,7 +106,19 @@
             },
             "tick_seconds": {
               "type": "integer",
-              "minimum": 1
+              "minimum": 1,
+              "description": "O passo em segundos inteiros, quando cabe neles; num tick menor, vem `tick_ms` (ADR-0081)."
+            },
+            "tick_ms": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 60000,
+              "description": "O passo, em milissegundos simulados (ADR-0081). Vem sempre do gateway novo."
+            },
+            "screen_tiles_per_second": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "O passo de tela (ADR-0079): quantos tiles um avatar anda por segundo na tela, em qualquer escala. A tela anda nesse ritmo com o teclado; sem ele, o andar é do relógio do mundo."
             },
             "map": {
               "type": "object",

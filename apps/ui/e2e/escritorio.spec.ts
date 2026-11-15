@@ -59,4 +59,40 @@ test("o gerente entra, escreve um pedido, fala com o dev e aceita a entrega", as
   await page.screenshot({ path: `${SHOTS}/escritorio.png` });
   await office.getByRole("button", { name: "Aceitar" }).click();
   await expect(office.locator(".aceito")).toContainText("#1", { timeout: 30_000 });
+
+  // A 1×, o andar responde como a 72× (ADR-0081): com o tick de 250 ms, o kernel aceita um comando
+  // a cada quarto de segundo. Com o tick de 2 s, a seta solta passava até 8 tiles do ponto e
+  // voltava, e o clique esperava até 2 s.
+  await page.getByRole("button", { name: "1×", exact: true }).click();
+  await expect(hud).toContainText(/(^|\D)1×/, { timeout: 10_000 });
+  const before = await drawn("gerente");
+  expect(before).toBeDefined();
+  const down: number[] = [];
+  await page.keyboard.down("ArrowDown");
+  for (let i = 0; i < 25; i++) {
+    if (i === 10) {
+      await page.keyboard.up("ArrowDown");
+    }
+    await page.waitForTimeout(100);
+    down.push((await drawn("gerente"))?.y ?? Number.NaN);
+  }
+  expect(down.every((y, i) => i === 0 || y >= (down[i - 1] ?? y) - 0.01), JSON.stringify(down)).toBe(true); // nunca volta
+  const released = down[9] ?? Number.NaN;
+  const end = down.at(-1) ?? Number.NaN;
+  expect(end - (before?.y ?? 0)).toBeGreaterThanOrEqual(3); // um segundo a 4 tiles por segundo
+  // Soltou: para logo, sem voltar. A 1× ele ainda anda uns 2 tiles (meio segundo): a parada chega
+  // ao kernel no tick seguinte, depois da rede. Com o tick de 2 s, passava até 8 tiles e voltava.
+  expect(end - released, JSON.stringify(down)).toBeLessThanOrEqual(3.5);
+
+  const here = await drawn("gerente");
+  const goal = { x: Math.round(here?.x ?? 0), y: Math.round(here?.y ?? 0) - 3 };
+  const at = await page.evaluate(
+    ([x, y]) => (window as unknown as { campsverso: { tileCenter(x: number, y: number): { x: number; y: number } } }).campsverso.tileCenter(x, y),
+    [goal.x, goal.y] as const,
+  );
+  const clicked = Date.now();
+  await page.mouse.click(at.x, at.y);
+  await expect.poll(async () => (await drawn("gerente"))?.y ?? 0, { intervals: [25], timeout: 3_000 }).toBeLessThan(end - 0.05);
+  expect(Date.now() - clicked).toBeLessThan(800); // o clique anda em menos de um segundo
+  await expect.poll(() => drawn("gerente"), { timeout: 5_000 }).toEqual(goal);
 });

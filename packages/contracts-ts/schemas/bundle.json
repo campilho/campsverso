@@ -4147,6 +4147,11 @@
           "minimum": 1,
           "description": "Duração de um tick em segundos simulados."
         },
+        "screen_tiles_per_second": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "O passo de tela (ADR-0079): quantos tiles um avatar anda por segundo na tela, em qualquer escala. A tela anda nesse ritmo com o teclado; sem ele, o andar é do relógio do mundo."
+        },
         "mode": {
           "$ref": "#/$defs/ClockMode"
         },
@@ -4165,6 +4170,135 @@
         "map": {
           "type": "object",
           "title": "SessionMap",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "width",
+            "height"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9_-]+$"
+            },
+            "width": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "rows": {
+              "$ref": "#/$defs/TerrainRows",
+              "description": "O terreno do mapa inteiro, publicado uma vez (ADR-0056): quem decide passa a enxergar onde pode pisar."
+            },
+            "legend": {
+              "$ref": "#/$defs/TerrainLegend"
+            }
+          }
+        },
+        "affordances": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Affordance"
+          },
+          "description": "Catálogo de ações que o cartucho oferece a quem joga (ADR-0051). O menu só sugere; quem decide é o kernel."
+        },
+        "metrics": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/Metric"
+          },
+          "description": "Catálogo de métricas do dia que o cartucho declara (ADR-0054)."
+        },
+        "labels": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/EventLabel"
+          },
+          "description": "Os rótulos da linha do tempo que o cartucho declara (ADR-0068)."
+        },
+        "perception": {
+          "$ref": "#/$defs/PerceptionConfig",
+          "description": "O raio de percepção declarado pelo cartucho; vale para todos os atores (ADR-0056)."
+        },
+        "items": {
+          "type": "object",
+          "description": "O peso de cada item, para a tela desenhar o que ocupa num contêiner (M21).",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "weight"
+            ],
+            "properties": {
+              "weight": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "WorldSessionStartedV2": {
+      "title": "WorldSessionStartedV2",
+      "description": "Mundo carregado ou retomado a partir de snapshot. O v2 leva o passo em milissegundos (`tick_ms`), para um tick menor que um segundo (o escritório, ADR-0081); o kernel publica o v1 quando o tick cabe em segundos inteiros.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cartridge_version",
+        "seed",
+        "tick_ms",
+        "mode",
+        "paused",
+        "scale",
+        "resumed",
+        "map"
+      ],
+      "properties": {
+        "cartridge_version": {
+          "$ref": "#/$defs/Semver"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Seed registrada; os fluxos de RNG nomeados derivam dela."
+        },
+        "tick_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60000,
+          "description": "O passo, em milissegundos simulados; divide um minuto."
+        },
+        "screen_tiles_per_second": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "O passo de tela (ADR-0079): quantos tiles um avatar anda por segundo na tela, em qualquer escala. A tela anda nesse ritmo com o teclado; sem ele, o andar é do relógio do mundo."
+        },
+        "mode": {
+          "$ref": "#/$defs/ClockMode"
+        },
+        "paused": {
+          "type": "boolean"
+        },
+        "scale": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Segundos simulados por segundo real."
+        },
+        "resumed": {
+          "type": "boolean",
+          "description": "Verdadeiro quando o mundo foi retomado a partir de snapshot."
+        },
+        "map": {
+          "type": "object",
+          "title": "SessionMapV2",
           "additionalProperties": false,
           "required": [
             "id",
@@ -4648,8 +4782,7 @@
               "title": "ObserverSession",
               "additionalProperties": false,
               "required": [
-                "cartridge_version",
-                "tick_seconds"
+                "cartridge_version"
               ],
               "properties": {
                 "cartridge_version": {
@@ -4657,7 +4790,19 @@
                 },
                 "tick_seconds": {
                   "type": "integer",
-                  "minimum": 1
+                  "minimum": 1,
+                  "description": "O passo em segundos inteiros, quando cabe neles; num tick menor, vem `tick_ms` (ADR-0081)."
+                },
+                "tick_ms": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 60000,
+                  "description": "O passo, em milissegundos simulados (ADR-0081). Vem sempre do gateway novo."
+                },
+                "screen_tiles_per_second": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "description": "O passo de tela (ADR-0079): quantos tiles um avatar anda por segundo na tela, em qualquer escala. A tela anda nesse ritmo com o teclado; sem ele, o andar é do relógio do mundo."
                 },
                 "map": {
                   "type": "object",

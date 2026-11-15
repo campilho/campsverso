@@ -32,6 +32,11 @@
       "minimum": 1,
       "description": "Duração de um tick em segundos simulados."
     },
+    "screen_tiles_per_second": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "O passo de tela (ADR-0079): quantos tiles um avatar anda por segundo na tela, em qualquer escala. A tela anda nesse ritmo com o teclado; sem ele, o andar é do relógio do mundo."
+    },
     "mode": {
       "$ref": "contracts://common/defs.v1#/$defs/clock_mode"
     },

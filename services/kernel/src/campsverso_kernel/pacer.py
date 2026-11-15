@@ -4,7 +4,7 @@
 class RealTimePacer:
     """Não lê relógio: recebe o tempo real decorrido de quem o mediu (princípio 4)."""
 
-    def __init__(self, tick_seconds: int, scale: float) -> None:
+    def __init__(self, tick_seconds: float, scale: float) -> None:
         self._tick_seconds = tick_seconds
         self.scale = scale
         self._accumulated = 0.0  # segundos simulados ainda não virados em ticks; negativo é dívida

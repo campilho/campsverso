@@ -2089,6 +2089,10 @@ export interface WorldSessionStartedV1 {
    * Duração de um tick em segundos simulados.
    */
   tick_seconds: number;
+  /**
+   * O passo de tela (ADR-0079): quantos tiles um avatar anda por segundo na tela, em qualquer escala. A tela anda nesse ritmo com o teclado; sem ele, o andar é do relógio do mundo.
+   */
+  screen_tiles_per_second?: number;
   mode: ClockMode;
   paused: boolean;
   /**
@@ -2129,6 +2133,72 @@ export interface WorldSessionStartedV1 {
   };
 }
 export interface SessionMap {
+  id: string;
+  width: number;
+  height: number;
+  rows?: TerrainRows;
+  legend?: TerrainLegend;
+}
+/**
+ * Mundo carregado ou retomado a partir de snapshot. O v2 leva o passo em milissegundos (`tick_ms`), para um tick menor que um segundo (o escritório, ADR-0081); o kernel publica o v1 quando o tick cabe em segundos inteiros.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "WorldSessionStartedV2".
+ */
+export interface WorldSessionStartedV2 {
+  cartridge_version: Semver;
+  /**
+   * Seed registrada; os fluxos de RNG nomeados derivam dela.
+   */
+  seed: number;
+  /**
+   * O passo, em milissegundos simulados; divide um minuto.
+   */
+  tick_ms: number;
+  /**
+   * O passo de tela (ADR-0079): quantos tiles um avatar anda por segundo na tela, em qualquer escala. A tela anda nesse ritmo com o teclado; sem ele, o andar é do relógio do mundo.
+   */
+  screen_tiles_per_second?: number;
+  mode: ClockMode;
+  paused: boolean;
+  /**
+   * Segundos simulados por segundo real.
+   */
+  scale: number;
+  /**
+   * Verdadeiro quando o mundo foi retomado a partir de snapshot.
+   */
+  resumed: boolean;
+  map: SessionMapV2;
+  /**
+   * Catálogo de ações que o cartucho oferece a quem joga (ADR-0051). O menu só sugere; quem decide é o kernel.
+   */
+  affordances?: Affordance[];
+  /**
+   * Catálogo de métricas do dia que o cartucho declara (ADR-0054).
+   *
+   * @maxItems 64
+   */
+  metrics?: Metric[];
+  /**
+   * Os rótulos da linha do tempo que o cartucho declara (ADR-0068).
+   *
+   * @maxItems 256
+   */
+  labels?: EventLabel[];
+  perception?: PerceptionConfig;
+  /**
+   * O peso de cada item, para a tela desenhar o que ocupa num contêiner (M21).
+   */
+  items?: {
+    [k: string]:
+      | {
+          weight: number;
+        }
+      | undefined;
+  };
+}
+export interface SessionMapV2 {
   id: string;
   width: number;
   height: number;
@@ -2390,7 +2460,18 @@ export interface ObserverState {
 }
 export interface ObserverSession {
   cartridge_version: Semver;
-  tick_seconds: number;
+  /**
+   * O passo em segundos inteiros, quando cabe neles; num tick menor, vem `tick_ms` (ADR-0081).
+   */
+  tick_seconds?: number;
+  /**
+   * O passo, em milissegundos simulados (ADR-0081). Vem sempre do gateway novo.
+   */
+  tick_ms?: number;
+  /**
+   * O passo de tela (ADR-0079): quantos tiles um avatar anda por segundo na tela, em qualquer escala. A tela anda nesse ritmo com o teclado; sem ele, o andar é do relógio do mundo.
+   */
+  screen_tiles_per_second?: number;
   map?: ObserverMap;
   /**
    * O catálogo de ações do session.started, para montar os menus (ADR-0051).

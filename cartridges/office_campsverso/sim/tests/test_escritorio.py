@@ -15,7 +15,8 @@ SAO_PAULO = timezone(timedelta(hours=-3))
 MONDAY = datetime(2026, 11, 16, tzinfo=SAO_PAULO)
 HUMAN = {"type": "human", "id": "human/camps-browser"}
 DEV = "script/dev"
-TICKS_PER_HOUR = 1800  # o tick de 2 s
+TICKS_PER_SECOND = 4  # o tick de 250 ms (ADR-0081)
+TICKS_PER_HOUR = 3600 * TICKS_PER_SECOND
 
 
 def _core(start: datetime = MONDAY) -> KernelCore:
@@ -185,7 +186,7 @@ def test_pegar_trabalhar_parar_para_o_almoco_na_copa_e_entregar() -> None:
             "data": {"avatar_id": "camps", "action": "work", "params": {}},
         }
     )
-    for _ in range(150):  # cinco minutos de trabalho
+    for _ in range(5 * 60 * TICKS_PER_SECOND):  # cinco minutos de trabalho
         core.step()
     _act(core, "camps", "move", {"near": "mesa-copa"}, DEV)  # para: o trabalho fica guardado
     worked = core.world.entity_map["pedido-001"].attributes["trabalho"]
@@ -198,7 +199,7 @@ def test_pegar_trabalhar_parar_para_o_almoco_na_copa_e_entregar() -> None:
     early = _act(core, "camps", "deliver", {}, DEV)
     assert _only(early, "action.rejected")[0]["reason"] == "not_done"
     (rest,) = _only(_act(core, "camps", "work", {}, DEV), "action.accepted")
-    assert rest["duration_ticks"] == (900 - worked) // 2  # só o que faltava
+    assert rest["duration_ticks"] == (900 - worked) * TICKS_PER_SECOND  # só o que faltava
     (delivered,) = _only(_act(core, "camps", "deliver", {}, DEV), "office.ticket.delivered")
     assert delivered["worked_seconds"] == 900
 
@@ -217,7 +218,7 @@ def test_as_pausas_da_rotina_ao_lado_de_cada_coisa() -> None:
         _act(core, "camps", "move", {"near": thing}, DEV)
         facts = _act(core, "camps", action, {}, DEV)
         (accepted,) = _only(facts, "action.accepted")
-        assert accepted["duration_ticks"] == seconds // 2
+        assert accepted["duration_ticks"] == seconds * TICKS_PER_SECOND
         assert _only(facts, "action.completed")
     _act(core, "camps", "move", {"near": "mesa-copa"}, DEV)
     early = _act(core, "camps", "lunch", {}, DEV)
@@ -270,3 +271,17 @@ def test_um_mundo_que_comeca_fora_de_uma_troca_de_fase_ja_sabe_a_fase() -> None:
     core = _core(datetime(2026, 11, 16, 8, 59, tzinfo=SAO_PAULO))
     phases = _only(core.drain(), "world.clock.phase_changed")
     assert phases == [{"phase": "manha", "day": 1}]
+
+
+def test_a_sessao_do_escritorio_vai_na_v2_com_o_tick_de_250_ms() -> None:
+    """ADR-0081: o tick menor que um segundo vai em milissegundos, no `session.started.v2`, com o
+    passo de tela para o teclado da tela; a 1x, o avatar anda um tile por tick."""
+    core = KernelCore(
+        build_world("office_campsverso"), WorldConfig("office-teste", 1, MONDAY), (), "test"
+    )
+    core.start()
+    (session,) = _only(core.drain(), "world.session.started.v2")
+    assert (session["tick_ms"], session["screen_tiles_per_second"]) == (250, 4)
+    assert "tick_seconds" not in session
+    assert core.scale == 1
+    assert core.tiles_per_tick() == 1.0

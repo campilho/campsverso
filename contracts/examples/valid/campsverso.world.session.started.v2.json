@@ -1,0 +1,296 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c36-726b-911f-ed5c8ad5b3b1",
+  "source": "/kernel/farm-camps-01",
+  "type": "campsverso.world.session.started.v2",
+  "time": "2026-10-11T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/world/session.started.v2",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 64,
+  "simtime": "2026-03-02T07:04:00-03:00",
+  "seq": 1,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "cartridge_version": "0.1.0",
+    "seed": 20261011,
+    "tick_ms": 250,
+    "screen_tiles_per_second": 4,
+    "mode": "continuous",
+    "paused": false,
+    "scale": 1,
+    "resumed": false,
+    "map": {
+      "id": "farm_camps",
+      "width": 32,
+      "height": 18,
+      "rows": [
+        "TTTTTTTTTTTTTTTTTTTTTTTTTTTTRRRR",
+        "TGGGGGGGGGGGGGGGGGGGGGGGGGGGRRRR",
+        "TGWWWWWGGGGGGGGGGGGGGGGGGGGGRRRR",
+        "TGWFFFWGGGGGGGGGGGGGGGGGGGGGRRRR",
+        "TGWFFFWGGGGGGGGGGGGGGGGGGGGGRRRR",
+        "TGWWDWWGGGGGGGGGGGGGGGGGGGGGRRRR",
+        "TGGGPGGGGGGGGGGGGGGGGGGGGGGGRRRR",
+        "TGGGPGGGGGGGGGGGGGGGGGGGGGGGRRRR",
+        "TGGGPGGGGGGGGGGGGGGGGGGGGGGGRRRR",
+        "TGGGPGGGSSSSGGGGGGGGGGGGSSSSRRRR",
+        "TGGGPGGGSSSSGGGGGGGGGGGGSSSSRRRR",
+        "TGGGPGGGGGGGGGGGGGGGGGGGGGGGRRRR",
+        "TGGGPGGGGGGGGGGGGGGGGGGGGGGGRRRR",
+        "TGGGPPPPPPPPPPPPPPPPPPPPPPPPRRRR",
+        "TGGGGGGGGGGGGGGPGGGGGGGGGGGGRRRR",
+        "TGGGGGGGGGGGGGGPGGGGGGGGGGGGRRRR",
+        "TGGGGGGGGGGGGGGPGGGGGGGGGGGGRRRR",
+        "TTTTTTTTTTTTTTTEETTTTTTTTTTTRRRR"
+      ],
+      "legend": {
+        "D": {
+          "kind": "door",
+          "properties": {
+            "passable": true,
+            "water": false
+          }
+        },
+        "E": {
+          "kind": "entrance",
+          "properties": {
+            "passable": true,
+            "water": false
+          }
+        },
+        "F": {
+          "kind": "floor",
+          "properties": {
+            "passable": true,
+            "water": false
+          }
+        },
+        "G": {
+          "kind": "grass",
+          "properties": {
+            "passable": true,
+            "water": false
+          }
+        },
+        "P": {
+          "kind": "path",
+          "properties": {
+            "passable": true,
+            "water": false
+          }
+        },
+        "R": {
+          "kind": "river",
+          "properties": {
+            "passable": false,
+            "water": true
+          }
+        },
+        "S": {
+          "kind": "soil",
+          "properties": {
+            "passable": true,
+            "water": false
+          }
+        },
+        "T": {
+          "kind": "tree",
+          "properties": {
+            "passable": false,
+            "water": false
+          }
+        },
+        "W": {
+          "kind": "wall",
+          "properties": {
+            "passable": false,
+            "water": false
+          }
+        }
+      }
+    },
+    "affordances": [
+      {
+        "action": "water",
+        "label": "Regar",
+        "on": [
+          "plot"
+        ],
+        "target": true,
+        "cost": {
+          "energy": 2,
+          "minutes": 2
+        }
+      },
+      {
+        "action": "eat",
+        "label": "Comer",
+        "on": [
+          "self"
+        ],
+        "target": false,
+        "params": [
+          {
+            "name": "item",
+            "label": "Comida",
+            "choices": [
+              "rabanete",
+              "batata"
+            ],
+            "source": "inventory"
+          }
+        ]
+      },
+      {
+        "action": "buy",
+        "label": "Comprar",
+        "on": [
+          "kiosk"
+        ],
+        "target": true,
+        "cost": {
+          "energy": 0,
+          "minutes": 2
+        },
+        "note": "aberto das 08:00 às 18:00",
+        "params": [
+          {
+            "name": "item",
+            "label": "Semente",
+            "choices": [
+              "semente_rabanete",
+              "semente_batata"
+            ],
+            "source": "any",
+            "prices": {
+              "semente_rabanete": 10,
+              "semente_batata": 20
+            },
+            "price_attribute": "preco_",
+            "stock_attribute": "estoque_hoje"
+          },
+          {
+            "name": "qty",
+            "label": "Quantidade",
+            "source": "any",
+            "minimum": 1,
+            "default": 1
+          }
+        ]
+      },
+      {
+        "action": "harvest",
+        "label": "Colher",
+        "on": [
+          "plot"
+        ],
+        "target": true,
+        "cost": {
+          "energy": 0.5,
+          "minutes": 3
+        },
+        "requires": [
+          {
+            "attribute": "stage",
+            "values": [
+              "madura"
+            ],
+            "hint": "ainda não está madura"
+          }
+        ]
+      },
+      {
+        "action": "plant",
+        "label": "Plantar",
+        "on": [
+          "plot"
+        ],
+        "target": true,
+        "requires": [
+          {
+            "attribute": "crop",
+            "values": [
+              null
+            ],
+            "hint": "o canteiro já tem planta"
+          },
+          {
+            "item": "semente_rabanete",
+            "hint": "sem semente"
+          }
+        ],
+        "params": [
+          {
+            "name": "crop",
+            "label": "Cultura",
+            "choices": [
+              "rabanete"
+            ],
+            "source": "any",
+            "held_prefix": "semente_",
+            "option_notes": {
+              "rabanete": "a comida mais rápida"
+            }
+          }
+        ]
+      }
+    ],
+    "metrics": [
+      {
+        "id": "colheitas",
+        "label": "Colheitas",
+        "kind": "count",
+        "event": "campsverso.action.completed.v1",
+        "where": {
+          "action": "harvest"
+        },
+        "by": {
+          "field": "params.target",
+          "attribute": "group"
+        }
+      },
+      {
+        "id": "pico_fome",
+        "label": "Pico de fome",
+        "kind": "max_need",
+        "need": "fome"
+      },
+      {
+        "id": "moedas",
+        "label": "Moedas no fim do dia",
+        "kind": "item",
+        "item": "moeda"
+      }
+    ],
+    "perception": {
+      "radius": null
+    },
+    "labels": [
+      {
+        "event": "campsverso.action.completed.v1",
+        "where": {
+          "action": "plant"
+        },
+        "text": "plantou {params.crop} no {params.target}"
+      },
+      {
+        "event": "campsverso.world.item.created.v1",
+        "where": {
+          "reason": "harvest"
+        },
+        "text": "colheu {qty} {item}"
+      }
+    ],
+    "items": {
+      "rabanete": {
+        "weight": 1
+      },
+      "adubo": {
+        "weight": 1
+      }
+    }
+  }
+}

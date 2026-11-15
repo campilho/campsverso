@@ -11,7 +11,9 @@ from campsverso_cartridge_api.model import Attributes, ControllerRef, Direction,
 class ClockDef:
     """Passo fixo e fases do dia (tempo §3.1; bíblia §3)."""
 
-    tick_seconds: int
+    # O passo, em segundos simulados: inteiro na fazenda (60), fração no escritório (0,25;
+    # ADR-0081). O kernel o guarda em milissegundos inteiros, que precisam dividir um minuto.
+    tick_seconds: float
     day_starts_at: str  # "HH:MM": virada do dia (dia agrícola na fazenda)
     phases: tuple[tuple[str, str], ...]  # (nome, "HH:MM")
     default_scale: float = 1.0  # segundos simulados por segundo real no modo contínuo

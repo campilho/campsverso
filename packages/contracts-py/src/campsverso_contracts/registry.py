@@ -692,6 +692,14 @@ CONTRACT_TYPES: Final[dict[str, ContractType]] = {
             models.WorldSessionStartedV1,
         ),
         ContractType(
+            "campsverso.world.session.started.v2",
+            "event",
+            "world",
+            "kernel",
+            "contracts://events/world/session.started.v2",
+            models.WorldSessionStartedV2,
+        ),
+        ContractType(
             "campsverso.world.snapshot.created.v1",
             "event",
             "internal",

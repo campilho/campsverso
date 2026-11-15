@@ -29,7 +29,7 @@ function rate(state: ObserverState): number {
   if (session === undefined || clock.paused !== false || clock.mode !== "continuous" || clock.scale === undefined) {
     return 0;
   }
-  return clock.scale / session.tick_seconds / 1000;
+  return clock.scale / tickSeconds(session) / 1000;
 }
 
 /** O tick mais recente que se sabe de verdade: o do último evento ou o do pulso do kernel. É o que
@@ -130,13 +130,23 @@ export function clockText(state: ObserverState, tick: number): string {
   if (state.sim_time === undefined || state.session === undefined || Number.isNaN(base)) {
     return "--:--";
   }
-  const elapsed = (Math.floor(tick) - state.tick) * state.session.tick_seconds * 1000;
+  const step = tickSeconds(state.session);
+  const elapsed = (Math.floor(tick) - state.tick) * step * 1000;
   const local = base + elapsed + offsetMinutes(state.sim_time) * 60_000;
-  return new Date(local).toISOString().slice(11, state.session.tick_seconds < 60 ? 19 : 16);
+  return new Date(local).toISOString().slice(11, step < 60 ? 19 : 16);
 }
 
 /** O mundo anda em tempo real: um tick menor que o minuto (o escritório, ADR-0078). A tela não
  * oferece mudar a velocidade dele. */
 export function realTime(state: ObserverState): boolean {
-  return (state.session?.tick_seconds ?? 60) < 60;
+  return tickSeconds(state.session) < 60;
+}
+
+/** O passo do mundo em segundos: o `tick_ms` quando vem, num tick menor que o segundo (o
+ * escritório, ADR-0081), ou os segundos inteiros; sem sessão, o minuto da fazenda. */
+export function tickSeconds(session: ObserverState["session"]): number {
+  if (session?.tick_ms !== undefined) {
+    return session.tick_ms / 1000;
+  }
+  return session?.tick_seconds ?? 60;
 }

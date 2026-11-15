@@ -2,7 +2,10 @@
 # Os números do cenário (o expediente, os feriados, a porta) ficam no cenário; aqui, o padrão.
 
 clock:
-  tick_seconds: 2 # a medida do M23 escolhe entre 1, 2 e 5 s (ADR-0078, decisão 1)
+  # 250 ms (ADR-0081): o kernel aplica um comando na virada do tick, e a 1× um tick de 2 s fazia o
+  # clique esperar até 2 s e a seta solta passar até 8 tiles do ponto. Os 2 s do M23 eram a medida
+  # do custo (ADR-0078, decisão 1), e o custo está nas decisões dos scripts, e não nos ticks.
+  tick_seconds: 0.25
   day_starts_at: "00:00" # o dia do calendário: o escritório não tem dia agrícola
   phases:
     madrugada: "00:00"
@@ -13,7 +16,7 @@ clock:
 
 movement:
   # O passo de tela (ADR-0079): 4 tiles por segundo na tela, em qualquer escala. O kernel converte
-  # pela escala do momento: a 1× são 8 tiles num tick de 2 s; a 72×, um tile a cada 9 ticks (18 s
+  # pela escala do momento: a 1× é um tile num tick de 250 ms; a 72×, um tile a cada 72 ticks (18 s
   # do mundo). Andar no relógio do mundo (1,2 tile por segundo) virava 86 tiles por segundo a 72×.
   screen_tiles_per_second: 4
 

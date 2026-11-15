@@ -6,6 +6,7 @@ from datetime import date, datetime, timedelta
 from campsverso_cartridge_api import ClockDef, YearDef
 
 MINUTES_PER_DAY = 1440
+MS_PER_DAY = 86_400_000
 DAYS_PER_YEAR = 365  # o ano do calendário; o bissexto não muda as estações
 
 
@@ -31,7 +32,9 @@ def format_hhmm(minute: int) -> str:
 @dataclass(frozen=True, slots=True)
 class Calendar:
     start: datetime  # com fuso; tick 0
-    tick_seconds: int
+    tick_ms: (
+        int  # o passo em milissegundos inteiros (ADR-0081): 60.000 na fazenda, 250 no escritório
+    )
     day_starts_at: int  # minuto do dia em que o dia vira
     year: YearDef | None = None  # o ano acelerado com estações (ADR-0067)
 
@@ -39,9 +42,28 @@ class Calendar:
     def create(cls, start: datetime, clock: ClockDef, year: YearDef | None = None) -> Calendar:
         if start.tzinfo is None:
             raise ValueError("a data-base do calendário precisa de fuso horário")
-        if clock.tick_seconds <= 0 or 60 % clock.tick_seconds != 0:
-            raise ValueError("o tick precisa dividir um minuto (horários HH:MM exatos)")
-        return cls(start, clock.tick_seconds, parse_hhmm(clock.day_starts_at), year)
+        tick_ms = round(clock.tick_seconds * 1000)
+        if tick_ms <= 0 or tick_ms != clock.tick_seconds * 1000 or 60_000 % tick_ms != 0:
+            raise ValueError(
+                "o tick precisa ser de milissegundos inteiros que dividem um minuto"
+                " (horários HH:MM exatos)"
+            )
+        return cls(start, tick_ms, parse_hhmm(clock.day_starts_at), year)
+
+    @property
+    def tick_seconds(self) -> float:
+        """O passo em segundos, para as contas de tempo real (a escala, o passo de tela)."""
+        return self.tick_ms / 1000
+
+    @property
+    def whole_seconds(self) -> int | None:
+        """O passo em segundos inteiros, quando ele cabe neles; None num tick menor que o segundo
+        ou quebrado (o `session.started` vai então na v2, com `tick_ms`)."""
+        return self.tick_ms // 1000 if self.tick_ms % 1000 == 0 else None
+
+    @property
+    def ticks_per_day(self) -> int:
+        return MS_PER_DAY // self.tick_ms
 
     def date_of(self, day: int) -> date | None:
         """A data do calendário no dia `day` (ADR-0067): o ano do mundo começa em `year.start` e
@@ -68,23 +90,26 @@ class Calendar:
 
     @property
     def ticks_per_minute(self) -> int:
-        return 60 // self.tick_seconds
+        return 60_000 // self.tick_ms
 
     def simtime(self, tick: int) -> datetime:
-        return self.start + timedelta(seconds=tick * self.tick_seconds)
+        return self.start + timedelta(milliseconds=tick * self.tick_ms)
 
     def simtime_iso(self, tick: int) -> str:
         return self.simtime(tick).isoformat(timespec="seconds")
 
     def _absolute_minute(self, tick: int) -> int:
         start_minute = self.start.hour * 60 + self.start.minute
-        return start_minute + (tick * self.tick_seconds) // 60
+        return start_minute + (tick * self.tick_ms) // 60_000
 
     def minute_of_day(self, tick: int) -> int:
         return self._absolute_minute(tick) % MINUTES_PER_DAY
 
     def is_minute_start(self, tick: int) -> bool:
-        return (self.start.second + tick * self.tick_seconds) % 60 == 0
+        return self._ms_into_minute(tick) == 0
+
+    def _ms_into_minute(self, tick: int) -> int:
+        return (self.start.second * 1000 + tick * self.tick_ms) % 60_000
 
     def day(self, tick: int) -> int:
         """Dia 1 é o dia que contém o tick 0; o dia vira em `day_starts_at`."""
@@ -100,5 +125,4 @@ class Calendar:
         Num tick menor que um minuto (o escritório, ADR-0078), o tick de agora pode cair no meio
         de um minuto: os segundos já passados nele saem da conta, e o salto cai no minuto exato."""
         delta = (minute - self.minute_of_day(tick)) % MINUTES_PER_DAY or MINUTES_PER_DAY
-        into = (self.start.second + tick * self.tick_seconds) % 60
-        return (delta * 60 - into) // self.tick_seconds
+        return (delta * 60_000 - self._ms_into_minute(tick)) // self.tick_ms

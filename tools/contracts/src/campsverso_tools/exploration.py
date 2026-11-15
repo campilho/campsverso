@@ -22,6 +22,20 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, cast
 
+# O começo da sessão, nas duas versões: o v2 leva o passo em milissegundos (ADR-0081).
+SESSION_STARTED = (
+    "campsverso.world.session.started.v1",
+    "campsverso.world.session.started.v2",
+)
+
+
+def day_ticks(session: Mapping[str, Any]) -> int:
+    """Os ticks de um dia simulado pelo `session.started`: 1.440 na fazenda, 345.600 no
+    escritório."""
+    ms = session.get("tick_ms")
+    return 86_400_000 // (int(ms) if ms is not None else int(session["tick_seconds"]) * 1000)
+
+
 WATER_RADIUS = 4  # R-001: a grama até 4 tiles da água cresce mais (bíblias 2 §10 e 3 §8)
 CROW_DISTANCE = 18  # R-002: os corvos comem a mais de 18 tiles da porta (bíblia 3 §8)
 SCARECROW_RADIUS = 6  # e o espantalho protege até 6 tiles
@@ -123,9 +137,7 @@ def _when(envelope: Mapping[str, Any], ticks_per_day: int) -> tuple[int, str]:
 def explore(envelopes: Iterable[Mapping[str, Any]], avatar: str = AVATAR) -> Exploration | None:
     """As métricas de exploração da corrida; `None` sem o mapa no `session.started`."""
     ordered = sorted(envelopes, key=lambda e: (int(e.get("tick") or 0), int(e.get("seq") or 0)))
-    start = next(
-        (e for e in ordered if e.get("type") == "campsverso.world.session.started.v1"), None
-    )
+    start = next((e for e in ordered if e.get("type") in SESSION_STARTED), None)
     if start is None:
         return None
     session = cast(Mapping[str, Any], start["data"])
@@ -137,7 +149,7 @@ def explore(envelopes: Iterable[Mapping[str, Any]], avatar: str = AVATAR) -> Exp
         int(terrain.get("width") or len(rows[0])),
         int(terrain.get("height") or len(rows)),
     )
-    ticks_per_day = 86400 // int(session["tick_seconds"])
+    ticks_per_day = day_ticks(session)
     perception = cast(Mapping[str, Any], session.get("perception") or {})
     by_phase = cast(Mapping[str, int], perception.get("by_phase") or {})
     lights = cast(Mapping[str, int], perception.get("lights") or {})

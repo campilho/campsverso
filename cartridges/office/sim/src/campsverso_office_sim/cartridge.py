@@ -72,7 +72,7 @@ class OfficeCartridge:
         clock = data["clock"]
         world.configure_clock(
             ClockDef(
-                tick_seconds=int(clock["tick_seconds"]),
+                tick_seconds=float(clock["tick_seconds"]),  # 0,25 s (ADR-0081)
                 day_starts_at=str(clock["day_starts_at"]),
                 phases=tuple((name, str(hhmm)) for name, hhmm in clock["phases"].items()),
                 default_scale=float(clock["default_scale"]),

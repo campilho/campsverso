@@ -38,7 +38,7 @@ from campsverso_ports import (
 )
 from campsverso_world_view import OBSERVER_PROJECTED, Projection
 
-SESSION = "campsverso.world.session.started.v1"
+SESSION = ("campsverso.world.session.started.v1", "campsverso.world.session.started.v2")
 PROJECTED = frozenset({"world", "agent"})
 CLOCK = "campsverso.cmd.clock."
 START_SCALE = 1440.0  # um dia por minuto, a velocidade com que uma corrida gravada começa
@@ -60,7 +60,7 @@ class _Run:
     scale: float = START_SCALE
     paused: bool = False
     play_tick: float = 0.0
-    tick_seconds: int = 60
+    tick_seconds: float = 60
     worldid: str = ""
 
     def status(self) -> Mapping[str, Any]:
@@ -144,9 +144,12 @@ class WatchService:
 
     def _apply(self, run: _Run, envelope: Envelope) -> None:
         kind = str(envelope["type"])
-        if kind == SESSION:
+        if kind in SESSION:
             data = cast(Mapping[str, Any], envelope["data"])
-            run.tick_seconds = int(data.get("tick_seconds") or 60)
+            ms = data.get("tick_ms")  # o v2, num tick menor que o segundo (ADR-0081)
+            run.tick_seconds = (
+                int(ms) / 1000 if ms is not None else int(data.get("tick_seconds") or 60)
+            )
             run.worldid = str(envelope.get("worldid") or "")
         visibility = str(envelope.get("visibility"))
         from_kernel = str(envelope.get("source", "")).startswith("/kernel/")

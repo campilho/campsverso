@@ -510,6 +510,12 @@ export const CONTRACT_TYPES = {
     producer: "kernel",
     dataschema: "contracts://events/world/session.started.v1",
   },
+  "campsverso.world.session.started.v2": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/world/session.started.v2",
+  },
   "campsverso.world.snapshot.created.v1": {
     kind: "event",
     visibility: "internal",
@@ -610,6 +616,7 @@ export interface PayloadByType {
   "campsverso.world.need.changed.v1": T.WorldNeedChangedV1;
   "campsverso.world.need.threshold_crossed.v1": T.WorldNeedThresholdCrossedV1;
   "campsverso.world.session.started.v1": T.WorldSessionStartedV1;
+  "campsverso.world.session.started.v2": T.WorldSessionStartedV2;
   "campsverso.world.snapshot.created.v1": T.WorldSnapshotCreatedV1;
   "campsverso.world.weather.changed.v1": T.WorldWeatherChangedV1;
 }

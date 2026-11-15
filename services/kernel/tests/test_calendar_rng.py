@@ -53,11 +53,36 @@ def test_ticks_ate_o_horario_num_tick_menor_que_o_minuto() -> None:
     assert office.ticks_until(16215, parse_hhmm("09:00")) == 43185  # das 09:00:30: amanhã
 
 
+def test_o_tick_de_250_ms() -> None:
+    """ADR-0081: o escritório anda em quartos de segundo. O calendário conta em milissegundos, e
+    o salto até um horário cai no minuto exato também no meio de um segundo."""
+    office = Calendar.create(datetime(2026, 11, 16, 0, 0, tzinfo=BRT), ClockDef(0.25, "00:00", ()))
+    assert (office.tick_ms, office.tick_seconds, office.whole_seconds) == (250, 0.25, None)
+    assert (office.ticks_per_minute, office.ticks_per_day) == (240, 345_600)
+    assert office.simtime_iso(4) == "2026-11-16T00:00:01-03:00"
+    assert office.simtime(1) == datetime(2026, 11, 16, 0, 0, 0, 250_000, tzinfo=BRT)
+    assert office.ticks_until(0, parse_hhmm("01:00")) == 14_400
+    assert office.ticks_until(3, parse_hhmm("01:00")) == 14_397  # das 00:00:00,75
+    tick = 3 + office.ticks_until(3, parse_hhmm("09:00"))
+    assert office.simtime_iso(tick) == "2026-11-16T09:00:00-03:00"
+    assert office.is_minute_start(tick)
+    assert not office.is_minute_start(tick + 1)
+    assert office.minute_of_day(tick + 239) == 540
+    assert office.minute_of_day(tick + 240) == 541
+    assert office.day(345_599) == 1
+    assert office.day(345_600) == 2
+    assert CAL.whole_seconds == 60  # a fazenda segue em segundos inteiros, no session.started v1
+
+
 def test_calendario_exige_fuso_e_tick_que_divide_o_minuto() -> None:
     with pytest.raises(ValueError, match="fuso"):
         Calendar.create(datetime(2026, 10, 10, 6, 0), CLOCK)
     with pytest.raises(ValueError, match="minuto"):
         Calendar.create(CAL.start, ClockDef(tick_seconds=90, day_starts_at="06:00", phases=()))
+    with pytest.raises(ValueError, match="milissegundos"):  # 700 ms não divide o minuto
+        Calendar.create(CAL.start, ClockDef(tick_seconds=0.7, day_starts_at="06:00", phases=()))
+    with pytest.raises(ValueError, match="milissegundos"):  # meio milissegundo
+        Calendar.create(CAL.start, ClockDef(tick_seconds=0.0005, day_starts_at="06:00", phases=()))
 
 
 def test_splitmix64_reproduz_o_vetor_de_referencia() -> None:

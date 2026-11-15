@@ -156,9 +156,9 @@ async def run(
 ) -> SoakResult:
     out.mkdir(parents=True, exist_ok=True)
     world = _world_file(out, river_bonus, source)
-    # Um dia em ticks pelo relógio do cartucho: 1.440 na fazenda, 43.200 no escritório (ADR-0078).
+    # Um dia em ticks pelo relógio do cartucho: 1.440 na fazenda, 345.600 no escritório (ADR-0081).
     cartridge = str(yaml.safe_load(source.read_text(encoding="utf-8"))["cartridge"])
-    per_day = DAY * 60 // build_world(cartridge).clock.tick_seconds
+    per_day = DAY * 60_000 // round(build_world(cartridge).clock.tick_seconds * 1000)
     target = days * per_day
     with nats_server(out) as nats:
         bus = await NatsBus.connect(

@@ -33,7 +33,7 @@ from campsverso_office_sim.config import (
     at_lunch,
     lunch_end,
     section,
-    tick_seconds,
+    tick_ms,
 )
 
 # Os estados do pedido, no atributo `estado`.
@@ -345,7 +345,9 @@ class Work(OfficeAction):
         if mine is None:
             return
         done = int(cast(int, mine.attributes.get("trabalho", 0)))
-        worked = min(total_seconds(ctx.view, mine), done + elapsed_ticks * tick_seconds(ctx.view))
+        worked = min(
+            total_seconds(ctx.view, mine), done + elapsed_ticks * tick_ms(ctx.view) // 1000
+        )
         ops.set_attributes(mine.entity_id, visible={"trabalho": worked})
 
 

@@ -296,7 +296,7 @@ def test_o_relogio_ancorado_salta_ate_agora_e_roda_o_que_vence_no_caminho() -> N
     core = _core()
     core.drain()
     now = START + timedelta(hours=26, seconds=59)
-    to_tick = tick_of(START, now, 60)
+    to_tick = tick_of(START, now, 60_000)
     assert to_tick == 26 * 60  # os segundos que sobram não fazem um tick
     command_id = "01a12d2b-6c36-7a10-9c4e-3f1d2a7b8c90"
     jump = catch_up_command("lab-02", "lab_office", core.tick, to_tick, now, command_id)

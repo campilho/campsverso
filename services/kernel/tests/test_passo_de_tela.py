@@ -187,6 +187,26 @@ def test_o_destino_no_tile_em_que_ja_entrava_para_ali() -> None:
     assert core.world.avatar_map["ana"].action is None
 
 
+def test_parar_no_tile_em_que_esta_na_virada_do_tile() -> None:
+    """A 1x, com um número inteiro de tiles por tick, o avatar está sempre na virada de um tile, e a
+    parada da seta solta pede o tile em que ele está. Antes, ela era recusada (`already_there`) e
+    o andar velho seguia até o fim (ADR-0081)."""
+    core = _core(1)  # 8 tiles por tick
+    _walk(core, 11)
+    _run(core, 1)  # parte e anda um tick inteiro
+    here = _ana(core)
+    assert here is not None
+    assert here == Position(9, 1)
+    assert core.world.avatar_map["ana"].action is not None  # ainda andando
+    _walk(core, here.x)
+    facts = _run(core, 3)
+    assert not _only(facts, "action.rejected")
+    assert _ana(core) == Position(9, 1)
+    assert core.world.avatar_map["ana"].action is None
+    _walk(core, 9)  # parado, pedir o tile em que está segue recusado
+    assert _only(_run(core, 1), "action.rejected")[0]["reason"] == "already_there"
+
+
 def test_sem_passo_de_tela_o_andar_segue_o_relogio_do_mundo() -> None:
     definition = build_world("lab", {"lab": LabCartridge()})
     core = KernelCore(definition, WorldConfig("lab-01", 7, START), RULES, rules_source="test")

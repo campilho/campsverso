@@ -52,10 +52,38 @@ def started() -> Projection:
     return p
 
 
+def test_a_sessao_do_tick_menor_que_um_segundo() -> None:
+    """O v2 do `session.started` leva o passo em milissegundos e o passo de tela (ADR-0081): a
+    sessão da tela ganha `tick_ms` sem `tick_seconds`, e o dia das métricas conta 345.600 ticks."""
+    p = Projection()
+    data: dict[str, Any] = {
+        "cartridge_version": "0.4.0",
+        "seed": 7,
+        "tick_ms": 250,
+        "screen_tiles_per_second": 4,
+        "mode": "continuous",
+        "paused": False,
+        "scale": 1,
+        "map": {"id": "office", "width": 20, "height": 17},
+    }
+    p.apply("world", ev(0, 0, "world.session.started.v2", **data))
+    assert p.session == {
+        "cartridge_version": "0.4.0",
+        "tick_ms": 250,
+        "screen_tiles_per_second": 4.0,
+        "map": {"id": "office", "width": 20, "height": 17},
+    }
+    p.apply("world", ev(1, 345_599, "world.clock.paused.v1", reason="x", by="y"))
+    assert p._metric_day() == "1"  # pyright: ignore[reportPrivateUsage]
+    p.apply("world", ev(2, 345_600, "world.clock.resumed.v1", by="y"))
+    assert p._metric_day() == "2"  # pyright: ignore[reportPrivateUsage]
+
+
 def test_sessao_e_relogio() -> None:
     p = started()
     assert p.session == {
         "cartridge_version": "0.1.0",
+        "tick_ms": 60_000,
         "tick_seconds": 60,
         "map": {"id": "farm_camps", "width": 32, "height": 18},
         "affordances": [{"action": "water", "label": "Regar", "on": ["plot"], "target": True}],

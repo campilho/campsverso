@@ -94,6 +94,24 @@ function distance(a: Point, b: Point): number {
   return Math.hypot(b.x - a.x, b.y - a.y);
 }
 
+/** Quantos tiles da origem o ponto `p` está, se ele fica no meio de um trecho do caminho (fora dos
+ * tiles); nada se ele não está no caminho. Os trechos são retos, de um tile, em 4 direções. */
+function along(path: readonly Position[], p: Point): number | undefined {
+  for (let i = 0; i + 1 < path.length; i++) {
+    const a = path[i];
+    const b = path[i + 1];
+    if (a === undefined || b === undefined) {
+      continue;
+    }
+    const t = a.x === b.x ? (p.y - a.y) / (b.y - a.y) : (p.x - a.x) / (b.x - a.x);
+    const onLine = a.x === b.x ? Math.abs(p.x - a.x) < 1e-9 : Math.abs(p.y - a.y) < 1e-9;
+    if (onLine && t > 1e-9 && t < 1 - 1e-9) {
+      return i + t;
+    }
+  }
+  return undefined;
+}
+
 /** Uma linha de pontos medida pelo comprimento, para andar por ela com passos fracionários. */
 class Route {
   readonly points: readonly Point[];
@@ -193,6 +211,15 @@ export class MotionClock {
   private readonly walkers = new Map<string, Walker>();
   private readonly paces = new Map<string, number>();
   private readonly drawnAt = new Map<string, Point>();
+  private readonly limits = new Map<string, { readonly tile: Point; readonly forMs: number; untilMs?: number }>();
+
+  /** Até onde o desenho pode ir pelo caminho de agora: o tile da parada que a seta solta mandou
+   * (ADR-0081). Até o kernel responder, o trajeto velho segue no estado, e o relógio da tela o
+   * desenhava além da parada; quando a parada chegava, o desenho voltava. Vale até chegar um
+   * trajeto que termina ali, ou por `forMs` no relógio dos quadros. */
+  limit(id: string, tile: Point, forMs: number): void {
+    this.limits.set(id, { tile: { x: tile.x, y: tile.y }, forMs });
+  }
 
   /** O ritmo do desenho de uma entidade, em tiles por segundo real. O teclado anda mais devagar
    * que o kernel, de propósito, para o desenho não alcançá-lo e parar (ADR-0057); `undefined`
@@ -238,7 +265,19 @@ export class MotionClock {
     if (walker === undefined) {
       return this.remember(id, rest);
     }
-    const goal = Math.min(walker.route.length, walker.motion === undefined ? walker.route.length : walker.offset + stepsAt(walker.motion, tick));
+    let goal = Math.min(walker.route.length, walker.motion === undefined ? walker.route.length : walker.offset + stepsAt(walker.motion, tick));
+    const limit = this.limits.get(id);
+    if (limit !== undefined) {
+      limit.untilMs ??= nowMs + limit.forMs;
+    }
+    if (limit?.untilMs !== undefined && nowMs > limit.untilMs) {
+      this.limits.delete(id);
+    } else if (limit !== undefined) {
+      const at = walker.route.find(limit.tile, walker.steps);
+      if (at !== undefined) {
+        goal = Math.min(goal, at);
+      }
+    }
     const point = this.remember(id, this.advance(id, walker, goal, nowMs));
     if (motion === undefined && walker.steps >= walker.route.length) {
       this.walkers.delete(id); // chegou onde o kernel o pôs
@@ -285,6 +324,28 @@ export class MotionClock {
     const old = this.walkers.get(id);
     const drawn = old === undefined ? this.drawnAt.get(id) : old.route.at(old.steps);
     const origin = path[0] ?? drawn ?? { x: 0, y: 0 };
+    const end = path[path.length - 1];
+    const limit = this.limits.get(id);
+    if (limit !== undefined && same(limit.tile, end)) {
+      this.limits.delete(id); // a parada chegou
+    }
+    // O desenho já está no caminho novo, à frente da origem: o relógio da tela andou o trajeto
+    // velho um pouco além do tick em que o kernel trocou de destino. O desenho espera o kernel
+    // passar por ele, em vez de voltar até a origem e andar de novo (o vaivém a 1×, ADR-0081).
+    const ahead = drawn === undefined || same(drawn, origin) ? undefined : along(path, drawn);
+    if (drawn !== undefined && ahead !== undefined && motion !== undefined) {
+      const walker: Walker = {
+        key,
+        route: new Route([drawn, ...path.slice(Math.floor(ahead) + 1)]),
+        offset: -ahead,
+        motion,
+        steps: 0,
+        ms: old?.ms ?? nowMs,
+        goal: undefined,
+      };
+      this.walkers.set(id, walker);
+      return walker;
+    }
     let prefix: Point[] = [];
     if (drawn !== undefined && !same(drawn, origin)) {
       const found = old?.route.find(origin, old.steps);
@@ -295,7 +356,6 @@ export class MotionClock {
       }
     }
     // O destino novo já está na emenda (soltar a seta logo depois): o desenho para ali, sem ir e voltar.
-    const end = path[path.length - 1];
     const stop = prefix.findIndex((point, i) => i > 0 && same(point, end));
     const route = new Route(stop >= 0 ? prefix.slice(0, stop + 1) : [...prefix, ...path]);
     const walker: Walker = {

@@ -24,7 +24,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, cast
 
-from campsverso_tools.exploration import explore
+from campsverso_tools.exploration import SESSION_STARTED, day_ticks, explore
 from campsverso_tools.exploration import lines as exploration_lines
 
 # Grupos de canteiros da Fazenda do Camps (bíblia §4): o leste fica perto do rio (R-001).
@@ -86,7 +86,7 @@ def plot_groups(envelopes: Iterable[Mapping[str, Any]]) -> dict[str, str]:
     for envelope in envelopes:
         kind = str(envelope.get("type", ""))
         data = cast(Mapping[str, Any], envelope.get("data") or {})
-        if kind == "campsverso.world.session.started.v1":
+        if kind in SESSION_STARTED:
             water = water_tiles(cast(Mapping[str, Any], data.get("map") or {}))
         elif kind == "campsverso.world.entity.spawned.v1" and data.get("kind") == "plot":
             attributes = cast(Mapping[str, Any], data.get("attributes") or {})
@@ -313,8 +313,8 @@ def compute(envelopes: Iterable[Mapping[str, Any]], avatar: str = AVATAR) -> Rep
     market = False
     for envelope in kernel:
         kind, data = str(envelope["type"]), envelope["data"]
-        if kind == "campsverso.world.session.started.v1":
-            ticks_per_day = 86400 // int(data["tick_seconds"])
+        if kind in SESSION_STARTED:
+            ticks_per_day = day_ticks(data)
             water = water_tiles(cast(Mapping[str, Any], data.get("map") or {}))
         last_tick = max(last_tick, int(envelope["tick"]))
         day = int(envelope["tick"]) // ticks_per_day + 1

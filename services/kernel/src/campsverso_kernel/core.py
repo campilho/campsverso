@@ -334,12 +334,22 @@ class KernelCore:
         world = self.world
         grid = self.definition.grid
         rows, legend = grid.terrain()  # o terreno inteiro, uma vez (ADR-0056)
+        # O passo vai em segundos inteiros, no v1 de sempre (a fazenda, byte a byte), ou em
+        # milissegundos, no v2, quando o tick é menor que um segundo (o escritório, ADR-0081).
+        whole = self.calendar.whole_seconds
+        tick: dict[str, Any] = (
+            {"tick_ms": self.calendar.tick_ms} if whole is None else {"tick_seconds": whole}
+        )
+        screen = self.definition.screen_tiles_per_second
         world.emit_fact(
-            "campsverso.world.session.started.v1",
+            "campsverso.world.session.started.v1"
+            if whole is not None
+            else "campsverso.world.session.started.v2",
             {
                 "cartridge_version": self.definition.top.version,
                 "seed": self.config.seed,
-                "tick_seconds": self.calendar.tick_seconds,
+                **tick,
+                **({} if screen is None else {"screen_tiles_per_second": screen}),
                 "mode": self.mode,
                 "paused": self.paused,
                 "scale": self.scale,
@@ -952,8 +962,9 @@ class KernelCore:
         return result, None
 
     def _ticks_for(self, seconds: float) -> int:
-        """Segundos simulados em ticks, pelo relógio do cartucho (ADR-0078): pelo menos um."""
-        return max(1, math.ceil(seconds / self.calendar.tick_seconds - 1e-9))
+        """Segundos simulados em ticks, pelo relógio do cartucho (ADR-0078): pelo menos um. A
+        conta é em milissegundos (ADR-0081), e a fazenda dá o mesmo de antes."""
+        return max(1, math.ceil(seconds * 1000 / self.calendar.tick_ms - 1e-9))
 
     def _validate_wait(self, params: Mapping[str, Any]) -> Validation:
         """Esperar `ticks` (de 1 a 60) ou `seconds` (de 1 a 3.600), que o kernel converte: num
@@ -994,12 +1005,16 @@ class KernelCore:
         lado da coisa ou do tile (ADR-0047; o tile, ADR-0068).
 
         No meio de um passo, o passo começado termina (ADR-0079): o andar novo parte do tile em que
-        o avatar está entrando, no tick em que chega nele; com o destino nesse tile, para ali."""
+        o avatar está entrando, no tick em que chega nele; com o destino nesse tile, para ali. Um
+        avatar andando que pede o tile em que está, na virada exata de um tile, também para: com o
+        tick de 250 ms, a 1x ele anda um tile por tick e está sempre na virada, e a parada da seta
+        solta era recusada (`already_there`), com o andar velho seguindo até o fim (ADR-0081)."""
         origin, depart = self._move_start(avatar)
-        stepping = depart > self.tick
+        running = avatar.action
+        stepping = depart > self.tick or (running is not None and running.trajectory is not None)
         speed = self.tiles_per_tick() * self.world.traits(avatar.avatar_id).speed  # ADR-0072
         stop = (
-            Accepted(depart - self.tick, "cancel"),
+            Accepted(max(1, depart - self.tick), "cancel"),
             Trajectory(origin, (origin,), depart, speed),
         )
         raw, near = params.get("target"), params.get("near")

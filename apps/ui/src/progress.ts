@@ -6,7 +6,7 @@
 import type { ObserverState } from "@campsverso/contracts";
 
 import { actionName } from "./locale.ts";
-import { clockText } from "./simclock.ts";
+import { clockText, tickSeconds } from "./simclock.ts";
 
 export interface Progress {
   readonly label: string;
@@ -58,7 +58,7 @@ export function busyText(state: ObserverState, avatarId: string, tick: number): 
   if (action === undefined) {
     return `${name} está ocupado.`;
   }
-  const seconds = Math.max(0, action.end_tick - tick) * (state.session?.tick_seconds ?? 60);
+  const seconds = Math.max(0, action.end_tick - tick) * tickSeconds(state.session);
   const minutes = Math.max(1, Math.ceil(seconds / 60));
   return `${name} está ocupado: ${actionLabel(state, action.action).toLowerCase()}, faltam ${String(minutes)} min.`;
 }

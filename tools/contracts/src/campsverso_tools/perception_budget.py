@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from campsverso_ports import ModelPort, ModelRequest
+from campsverso_tools.exploration import SESSION_STARTED, day_ticks
 from campsverso_tools.metrics import read_archive
 from campsverso_world_view import diff_views
 
@@ -121,8 +122,8 @@ def compute(envelopes: Iterable[Mapping[str, Any]], every: int = 20) -> Report:
     pending: dict[str, list[dict[str, Any]]] = {}  # avatar -> eventos desde a última entrega
     for envelope in envelopes:
         kind = str(envelope.get("type", ""))
-        if kind == "campsverso.world.session.started.v1":
-            ticks_per_day = 86400 // int(envelope["data"]["tick_seconds"])
+        if kind in SESSION_STARTED:
+            ticks_per_day = day_ticks(envelope["data"])
         tick = int(envelope.get("tick", 0))
         data = envelope.get("data")
         if not isinstance(data, Mapping):

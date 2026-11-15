@@ -9,13 +9,12 @@ SIGINT e SIGTERM param com elegância (snapshot antes de sair); kill -9 exercita
 
 import argparse
 import asyncio
-import math
 import os
 import signal
 import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, cast
 
@@ -64,9 +63,11 @@ def prepare(env: EnvSettings, world: WorldSettings) -> Prepared:
     rules_path = world.rules_file or cartridges[world.cartridge].rules_file()
     rules = YamlFlags(rules_path).rules() if rules_path is not None else ()
     source = "(nenhum)" if rules_path is None else f"{world.cartridge}/{rules_path.name}"
-    # O snapshot conta minutos simulados (ADR-0078): uma hora são 60 ticks na fazenda e 1.800
-    # num escritório de tick de 2 s, e não 720 snapshots por dia.
-    every = max(1, round(env.snapshot_every_minutes * 60 / definition.clock.tick_seconds))
+    # O snapshot conta minutos simulados (ADR-0078): uma hora são 60 ticks na fazenda e 14.400
+    # num escritório de tick de 250 ms (ADR-0081), e não um snapshot a cada poucos segundos.
+    every = max(
+        1, round(env.snapshot_every_minutes * 60_000 / round(definition.clock.tick_seconds * 1000))
+    )
     return Prepared(
         definition=definition,
         config=WorldConfig(world.worldid, world.seed, world.start, world.map),
@@ -79,9 +80,10 @@ def prepare(env: EnvSettings, world: WorldSettings) -> Prepared:
 CATCH_UP = "campsverso.cmd.clock.catch_up.v1"
 
 
-def tick_of(start: datetime, now: datetime, tick_seconds: int) -> int:
-    """O tick de agora num mundo ancorado no real (ADR-0078): o tempo desde o início, em ticks."""
-    return max(0, math.floor((now - start).total_seconds() / tick_seconds))
+def tick_of(start: datetime, now: datetime, tick_ms: int) -> int:
+    """O tick de agora num mundo ancorado no real (ADR-0078): o tempo desde o início, em ticks
+    de `tick_ms` milissegundos (ADR-0081)."""
+    return max(0, (now - start) // timedelta(milliseconds=tick_ms))
 
 
 def catch_up_command(
@@ -235,7 +237,7 @@ async def run(args: argparse.Namespace) -> int:
                 world.worldid,
                 prepared.definition.top.id,
                 core.tick,
-                tick_of(world.start, now, core.calendar.tick_seconds),
+                tick_of(world.start, now, core.calendar.tick_ms),
                 now,
                 Uuid7Ids().new_id(),
             )

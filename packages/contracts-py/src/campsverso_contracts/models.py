@@ -3267,6 +3267,10 @@ class WorldSessionStartedV1(BaseModel):
     """
     Duração de um tick em segundos simulados.
     """
+    screen_tiles_per_second: Annotated[float | None, Field(gt=0.0)] = None
+    """
+    O passo de tela (ADR-0079): quantos tiles um avatar anda por segundo na tela, em qualquer escala. A tela anda nesse ritmo com o teclado; sem ele, o andar é do relógio do mundo.
+    """
     mode: Annotated[Literal["continuous", "max"], Field(title="ClockMode")]
     """
     Modos do relógio na v0.1; a pausa é um estado à parte (ADR-0026).
@@ -3281,6 +3285,86 @@ class WorldSessionStartedV1(BaseModel):
     Verdadeiro quando o mundo foi retomado a partir de snapshot.
     """
     map: Annotated[SessionMap, Field(title="SessionMap")]
+    affordances: list[Affordance] | None = None
+    """
+    Catálogo de ações que o cartucho oferece a quem joga (ADR-0051). O menu só sugere; quem decide é o kernel.
+    """
+    metrics: Annotated[list[Metric] | None, Field(max_length=64)] = None
+    """
+    Catálogo de métricas do dia que o cartucho declara (ADR-0054).
+    """
+    labels: Annotated[list[EventLabel] | None, Field(max_length=256)] = None
+    """
+    Os rótulos da linha do tempo que o cartucho declara (ADR-0068).
+    """
+    perception: PerceptionConfig | None = None
+    """
+    O raio de percepção declarado pelo cartucho; vale para todos os atores (ADR-0056).
+    """
+    items: dict[str, Items] | None = None
+    """
+    O peso de cada item, para a tela desenhar o que ocupa num contêiner (M21).
+    """
+
+
+class SessionMapV2(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    id: Annotated[str, Field(max_length=64, min_length=1, pattern="^[a-z0-9_-]+$")]
+    width: Annotated[int, Field(ge=1)]
+    height: Annotated[int, Field(ge=1)]
+    rows: Annotated[
+        list[TerrainRow] | None,
+        Field(max_length=1024, min_length=1, title="TerrainRows"),
+    ] = None
+    """
+    O terreno do mapa inteiro, publicado uma vez (ADR-0056): quem decide passa a enxergar onde pode pisar.
+    """
+    legend: TerrainLegend | None = None
+
+
+class WorldSessionStartedV2(BaseModel):
+    """
+    Mundo carregado ou retomado a partir de snapshot. O v2 leva o passo em milissegundos (`tick_ms`), para um tick menor que um segundo (o escritório, ADR-0081); o kernel publica o v1 quando o tick cabe em segundos inteiros.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    cartridge_version: Annotated[
+        str,
+        Field(
+            pattern="^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+            title="Semver",
+        ),
+    ]
+    seed: Annotated[int, Field(ge=0)]
+    """
+    Seed registrada; os fluxos de RNG nomeados derivam dela.
+    """
+    tick_ms: Annotated[int, Field(ge=1, le=60000)]
+    """
+    O passo, em milissegundos simulados; divide um minuto.
+    """
+    screen_tiles_per_second: Annotated[float | None, Field(gt=0.0)] = None
+    """
+    O passo de tela (ADR-0079): quantos tiles um avatar anda por segundo na tela, em qualquer escala. A tela anda nesse ritmo com o teclado; sem ele, o andar é do relógio do mundo.
+    """
+    mode: Annotated[Literal["continuous", "max"], Field(title="ClockMode")]
+    """
+    Modos do relógio na v0.1; a pausa é um estado à parte (ADR-0026).
+    """
+    paused: bool
+    scale: Annotated[float, Field(gt=0.0)]
+    """
+    Segundos simulados por segundo real.
+    """
+    resumed: bool
+    """
+    Verdadeiro quando o mundo foi retomado a partir de snapshot.
+    """
+    map: Annotated[SessionMapV2, Field(title="SessionMapV2")]
     affordances: list[Affordance] | None = None
     """
     Catálogo de ações que o cartucho oferece a quem joga (ADR-0051). O menu só sugere; quem decide é o kernel.
@@ -3536,7 +3620,18 @@ class ObserverSession(BaseModel):
             title="Semver",
         ),
     ]
-    tick_seconds: Annotated[int, Field(ge=1)]
+    tick_seconds: Annotated[int | None, Field(ge=1)] = None
+    """
+    O passo em segundos inteiros, quando cabe neles; num tick menor, vem `tick_ms` (ADR-0081).
+    """
+    tick_ms: Annotated[int | None, Field(ge=1, le=60000)] = None
+    """
+    O passo, em milissegundos simulados (ADR-0081). Vem sempre do gateway novo.
+    """
+    screen_tiles_per_second: Annotated[float | None, Field(gt=0.0)] = None
+    """
+    O passo de tela (ADR-0079): quantos tiles um avatar anda por segundo na tela, em qualquer escala. A tela anda nesse ritmo com o teclado; sem ele, o andar é do relógio do mundo.
+    """
     map: Annotated[ObserverMap | None, Field(title="ObserverMap")] = None
     """
     O mapa do cartucho; o arquivo fica no gateway em /content/maps/<id>.tmj (ADR-0050).

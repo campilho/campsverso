@@ -281,3 +281,44 @@ describe("o trajeto perdido que termina em diagonal (a queda da aba no escritór
     expect(drawn.at(-1)).toEqual({ x: 5, y: 5 });
   });
 });
+
+describe("a seta a 1× com o tick de 250 ms (ADR-0081)", () => {
+  it("o destino novo começa atrás do desenho, no mesmo caminho: o desenho espera, sem voltar", () => {
+    const clock = new MotionClock();
+    const perMs = rate(60); // um tick por segundo, um tile por tick
+    const go: ObserverMotion = { path: line(0, 10), depart_tick: 10, tiles_per_tick: 1, action_id: "ida" };
+    // A tela anda 0,4 tick à frente do kernel; no tick 13 o kernel troca o destino (a seta
+    // segurada) e parte do tile 3, onde está; o trajeto novo chega um quarto de tick depois.
+    const further: ObserverMotion = { path: line(3, 12), depart_tick: 13, tiles_per_tick: 1, action_id: "adiante" };
+    const drawn = film(clock, 9000, (ms) => {
+      const kernel = 10 + ms * perMs;
+      const shown = kernel + 0.4;
+      return kernel < 13.25 ? { tick: shown, motion: go, rest: { x: 10, y: 0 } } : { tick: shown, motion: further, rest: { x: 12, y: 0 } };
+    });
+    expect(drawn.every((p, i) => i === 0 || p.x >= (drawn[i - 1]?.x ?? 0) - 1e-9)).toBe(true);
+    expect(drawn.at(-1)?.x ?? 0).toBeGreaterThan(8);
+  });
+
+  it("solta a seta: o desenho não passa da parada enquanto o kernel não responde", () => {
+    const clock = new MotionClock();
+    const perMs = rate(60);
+    const go: ObserverMotion = { path: line(0, 10), depart_tick: 10, tiles_per_tick: 1, action_id: "ida" };
+    const stop: ObserverMotion = { path: line(5, 5), depart_tick: 15, tiles_per_tick: 1, action_id: "parada" };
+    const drawn: Point[] = [];
+    for (let ms = 0; ms <= 9000; ms += FRAME_MS) {
+      const kernel = 10 + ms * perMs;
+      if (ms >= 4000 && ms < 4000 + FRAME_MS) {
+        clock.limit("camps", { x: 5, y: 0 }, 1500); // soltou no tile 4: a parada vai no 5
+      }
+      // A parada chega 1,5 tick depois (o tick e a rede): o trajeto velho ainda está no estado.
+      const motion = kernel < 15.5 ? go : stop;
+      const point = clock.at("camps", motion, kernel < 15.5 ? { x: 10, y: 0 } : { x: 5, y: 0 }, kernel + 0.4, ms);
+      if (point !== undefined) {
+        drawn.push(point);
+      }
+    }
+    expect(Math.max(...drawn.map((p) => p.x))).toBeLessThanOrEqual(5);
+    expect(drawn.every((p, i) => i === 0 || p.x >= (drawn[i - 1]?.x ?? 0) - 1e-9)).toBe(true);
+    expect(drawn.at(-1)).toEqual({ x: 5, y: 0 });
+  });
+});

@@ -44,8 +44,9 @@ def section(view: WorldView, *path: str) -> Mapping[str, Any]:
     return cast(Mapping[str, Any], node)
 
 
-def tick_seconds(view: WorldView) -> int:
-    return int(section(view, "clock")["tick_seconds"])
+def tick_ms(view: WorldView) -> int:
+    """O passo do escritório em milissegundos (ADR-0081)."""
+    return round(float(section(view, "clock")["tick_seconds"]) * 1000)
 
 
 def minutes(hhmm: str) -> int:

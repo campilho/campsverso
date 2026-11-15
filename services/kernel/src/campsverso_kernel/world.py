@@ -178,7 +178,7 @@ class World:
     # ------------------------------------------------------------- montagem
 
     def _unit_rate(self, need: str, per_hour: float) -> int:
-        exact = per_hour * SCALE * self.calendar.tick_seconds / 3600
+        exact = per_hour * SCALE * self.calendar.tick_ms / 3_600_000
         if abs(exact - round(exact)) > 1e-9:
             raise WorldRuleError(f"taxa de {need} ({per_hour}/h) não vira unidade inteira por tick")
         return round(exact)

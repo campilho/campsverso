@@ -23,6 +23,21 @@ OBSERVER_PROJECTED = (
 )
 
 
+# O começo da sessão: o v2 leva o passo em milissegundos, num tick menor que o segundo (ADR-0081).
+SESSION_STARTED = (
+    "campsverso.world.session.started.v1",
+    "campsverso.world.session.started.v2",
+)
+
+
+def session_tick_ms(session: Mapping[str, Any]) -> int:
+    """O passo em milissegundos de um `session.started` (v1 ou v2) ou da sessão projetada; sem
+    nenhum dos dois, o minuto da fazenda."""
+    if session.get("tick_ms") is not None:
+        return int(session["tick_ms"])
+    return int(session.get("tick_seconds") or 60) * 1000
+
+
 def _lookup(data: Mapping[str, Any], path: str) -> Any:
     """Um campo do evento por caminho com ponto (`params.target`); ausente vira None."""
     node: Any = data
@@ -169,7 +184,7 @@ class Projection:
             self.tick, self.simtime = tick, cast(str | None, envelope.get("simtime"))
         name = str(envelope["type"]).removeprefix("campsverso.").rsplit(".", 1)[0]
         data = cast(Mapping[str, Any], envelope["data"])
-        if str(envelope["type"]) == "campsverso.world.session.started.v1":
+        if str(envelope["type"]) in SESSION_STARTED:
             self._on_world_session_started(data)  # o catálogo precisa estar lá antes de contar
             for day in list(self.peaks):
                 self._show_peaks(day)
@@ -372,10 +387,12 @@ class Projection:
     # ------------------------------------------------------------- sessão e relógio
 
     def _on_world_session_started(self, data: Mapping[str, Any]) -> None:
-        self.session = {
-            "cartridge_version": data["cartridge_version"],
-            "tick_seconds": int(data["tick_seconds"]),
-        }
+        tick_ms = session_tick_ms(data)
+        self.session = {"cartridge_version": data["cartridge_version"], "tick_ms": tick_ms}
+        if tick_ms % 1000 == 0:
+            self.session["tick_seconds"] = tick_ms // 1000  # o de sempre, para a tela antiga
+        if data.get("screen_tiles_per_second") is not None:
+            self.session["screen_tiles_per_second"] = float(data["screen_tiles_per_second"])
         if data.get("map") is not None:
             self.session["map"] = dict(data["map"])
         if data.get("affordances"):
@@ -501,8 +518,8 @@ class Projection:
 
     def _metric_day(self) -> str:
         """O dia simulado do evento: o tick dividido pelos ticks de um dia, a partir do dia 1."""
-        tick_seconds = int((self.session or {}).get("tick_seconds", 60))
-        return str(self._event_tick // max(1, 86400 // tick_seconds) + 1)
+        tick_ms = session_tick_ms(self.session or {})
+        return str(self._event_tick // max(1, 86_400_000 // tick_ms) + 1)
 
     def _day_values(self, day: str) -> dict[str, Any]:
         values = self.metrics.setdefault(day, {})

@@ -38,14 +38,14 @@ from campsverso_ports import (
 )
 
 COMPLETED = "campsverso.llm.call.completed.v1"
-SESSION_STARTED = "campsverso.world.session.started.v1"
+SESSION_STARTED = ("campsverso.world.session.started.v1", "campsverso.world.session.started.v2")
 THRESHOLD = "campsverso.ops.budget.threshold_reached.v2"
 EXCEEDED = "campsverso.ops.budget.exceeded.v2"
 LIMITS_CHANGED = "campsverso.ops.budget.limits_changed.v1"
 SET = "campsverso.cmd.ops.budget.set.v1"
 PAUSE = "campsverso.cmd.clock.pause.v1"
 PULSE = "campsverso.live.budget.v1"
-DEFAULT_TICK_SECONDS = 60
+DEFAULT_TICK_MS = 60_000
 type OnExceeded = Literal["pause", "mind_off"]
 
 
@@ -70,7 +70,7 @@ class BudgetService:
         self._telemetry = telemetry
         self._key = f"{worldid}/ledger.json"
         self.ledger = self._load(limits)
-        self._tick_seconds = DEFAULT_TICK_SECONDS
+        self._tick_ms = DEFAULT_TICK_MS
         self._world: Consumer | None = None
         self._observer: Consumer | None = None
         self._commands: Consumer | None = None
@@ -91,7 +91,7 @@ class BudgetService:
     async def start(self) -> None:
         w = self._worldid
         self._world = await self._bus.consume(
-            f"campsverso.{w}.world.session.started.v1", f"budget-{w}-world", self._on_world
+            f"campsverso.{w}.world.session.started.*", f"budget-{w}-session", self._on_world
         )
         self._observer = await self._bus.consume(
             f"campsverso.{w}.observer.llm.>", f"budget-{w}-llm", self._on_llm
@@ -105,11 +105,14 @@ class BudgetService:
 
     async def _on_world(self, batch: Sequence[tuple[str, Envelope]]) -> None:
         for _, envelope in batch:
-            if envelope["type"] == SESSION_STARTED:
-                self._tick_seconds = int(envelope["data"]["tick_seconds"])
+            if envelope["type"] in SESSION_STARTED:
+                data = envelope["data"]
+                # O v2 leva o passo em milissegundos, num tick menor que o segundo (ADR-0081).
+                ms = data.get("tick_ms")
+                self._tick_ms = int(ms) if ms is not None else int(data["tick_seconds"]) * 1000
 
     def _day(self, tick: int) -> int:
-        return tick // (86_400 // self._tick_seconds) + 1
+        return tick // (86_400_000 // self._tick_ms) + 1
 
     async def _on_llm(self, batch: Sequence[tuple[str, Envelope]]) -> None:
         try:
