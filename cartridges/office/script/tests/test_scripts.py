@@ -29,6 +29,8 @@ def _view(
     tickets: list[dict[str, Any]] | None = None,
     heard: list[dict[str, Any]] | None = None,
     manager_in: bool = True,
+    copa: bool = False,
+    day: int = 1,
 ) -> dict[str, Any]:
     entities: list[dict[str, Any]] = [
         {"entity_id": "quadro", "kind": "board", "position": {"x": 9, "y": 2}, "attributes": {}},
@@ -52,9 +54,15 @@ def _view(
             "attributes": {"papel": "gerente"},
         },
         *(tickets or []),
+        *(COPA if copa else []),
     ]
     view: dict[str, Any] = {
-        "clock": {"tick": 0, "sim_time": f"2026-11-16T{hhmm}:00-03:00", "day": 1, "phase": "manha"},
+        "clock": {
+            "tick": 0,
+            "sim_time": f"2026-11-16T{hhmm}:00-03:00",
+            "day": day,
+            "phase": "manha",
+        },
         "weather": {"condition": "desconhecido", "day": 1},
         "self": {
             "entity_id": me,
@@ -68,6 +76,40 @@ def _view(
     if heard:
         view["heard"] = heard
     return view
+
+
+COPA: list[dict[str, Any]] = [
+    {
+        "entity_id": "bebedouro",
+        "kind": "water_cooler",
+        "position": {"x": 1, "y": 2},
+        "attributes": {},
+    },
+    {
+        "entity_id": "balcao-copa",
+        "kind": "copa_counter",
+        "position": {"x": 17, "y": 8},
+        "attributes": {},
+    },
+    {
+        "entity_id": "mesa-copa",
+        "kind": "copa_table",
+        "position": {"x": 15, "y": 11},
+        "attributes": {},
+    },
+    {
+        "entity_id": "cadeira-copa",
+        "kind": "chair",
+        "position": {"x": 15, "y": 12},
+        "attributes": {},
+    },
+    {
+        "entity_id": "porta-banheiro",
+        "kind": "restroom_door",
+        "position": {"x": 17, "y": 13},
+        "attributes": {},
+    },
+]
 
 
 def _dev() -> DevScript:
@@ -117,10 +159,12 @@ def test_o_dev_avisa_que_vai_almocar_uma_vez_nos_minutos_antes() -> None:
     assert dev.decide(_view(at=(5, 7), hhmm="11:57", tickets=doing))["action"] == "work"
     notice = dev.decide(_view(at=(5, 7), hhmm="11:58", tickets=doing))
     assert notice["action"] == "say"
-    assert notice["params"] == {"text": "Vou almoçar. Volto à uma.", "to": "gerente"}
+    assert notice["params"] == {"text": "Hora do almoço. Vou para a copa.", "to": "gerente"}
     assert dev.decide(_view(at=(5, 7), hhmm="11:59", tickets=doing))["action"] == "work"
     alone = _dev().decide(_view(at=(5, 7), hhmm="11:59", manager_in=False))
-    assert alone["params"] == {"text": "Vou almoçar. Volto à uma."}  # sem o gerente, para a sala
+    assert alone["params"] == {
+        "text": "Hora do almoço. Vou para a copa."
+    }  # sem o gerente, para a sala
 
 
 def test_sem_pedido_o_dev_espera_na_mesa() -> None:
@@ -166,3 +210,46 @@ def test_o_gerente_script_nao_escreve_no_dia_em_que_o_dev_nao_veio() -> None:
             del item["position"]
     assert manager.decide(holiday)["action"] == "wait"
     assert manager.decide(_view(me="gerente", at=(9, 3), hhmm="09:31"))["action"] == "write_ticket"
+
+
+# ------------------------------------------------------------------ a rotina (ADR-0080)
+
+
+def test_as_pausas_do_dia_saem_de_um_sorteio_que_se_repete() -> None:
+    routine = _dev().routine
+    assert routine is not None
+    plan = routine.plan("camps", 3)
+    assert plan == routine.plan("camps", 3)  # o mesmo dia, as mesmas pausas
+    assert plan != routine.plan("camps", 4)
+    assert sorted({action for _, action in plan}) == ["coffee", "drink", "restroom"]
+    assert all(9 * 60 + 20 <= minute <= 17 * 60 + 40 for minute, _ in plan)
+
+
+def test_sem_pedido_a_rotina_vai_ate_a_coisa_e_faz_a_pausa() -> None:
+    dev = _dev()
+    assert dev.routine is not None
+    first, action = dev.routine.plan("camps", 1)[0]
+    hhmm = f"{first // 60:02d}:{first % 60:02d}"
+    place = {"drink": "bebedouro", "coffee": "balcao-copa", "restroom": "porta-banheiro"}[action]
+    walk = dev.decide(_view(at=(5, 7), hhmm=hhmm, copa=True))
+    assert walk["action"] == "move"
+    assert walk["params"] == {"near": place}
+    assert walk["intent"].startswith("rotina:")
+    spot = next(e["position"] for e in COPA if e["entity_id"] == place)
+    beside = (spot["x"], spot["y"] - 1)  # ao lado, para a conta do script
+    done = dev.decide(_view(at=beside, hhmm=hhmm, copa=True))
+    assert done["action"] == action
+    again = dev.decide(_view(at=beside, hhmm=hhmm, copa=True))
+    assert again["action"] != action  # cada pausa uma vez
+
+
+def test_na_hora_do_almoco_o_dev_vai_para_a_copa_mesmo_com_pedido() -> None:
+    dev = _dev()
+    dev.announced.add("pedido-001")
+    doing = [_ticket(1, "fazendo", "camps")]
+    walk = dev.decide(_view(at=(5, 7), hhmm="12:05", tickets=doing, copa=True))
+    assert walk["params"] == {"target": {"x": 15, "y": 12}}  # a cadeira da copa
+    eat = dev.decide(_view(at=(15, 12), hhmm="12:06", tickets=doing, copa=True))
+    assert eat == {"action": "lunch", "params": {}, "intent": "rotina: almoçar"}
+    back = dev.decide(_view(at=(15, 12), hhmm="13:00", tickets=doing, copa=True))
+    assert back["params"] == {"target": {"x": 5, "y": 7}}  # de volta ao pedido

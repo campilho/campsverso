@@ -7,10 +7,16 @@ frase pronta a quem fala com ele (entender o que foi dito é do M24, com a mente
 ronda no começo de cada hora e passa o resto na cadeira. O gerente-script só existe nos testes e no
 soak: escreve os pedidos de um roteiro, cumprimenta o dev e aceita ou devolve o que foi entregue.
 
+A rotina (ADR-0080) é o que o dev faz quando não há pedido: almoça na copa, faz as pausas do dia
+(água, café, banheiro) e fica sentado na mesa. As pausas são ilustrativas e não custam nada; os
+horários saem de um sorteio pelo dia, o mesmo sempre que o dia se repete. O dev-script usa a rotina
+quando não tem pedido, e a mente com rotina (M24) a usa quando o modelo não tem trabalho.
+
 Os scripts lembram pouco, por instância (como o ajudante da fazenda lembra os canteiros): o que já
-anunciaram e o dia do bom-dia. O resto vem da foto.
+anunciaram, o dia do bom-dia e as pausas feitas. O resto vem da foto.
 """
 
+import random
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -24,6 +30,14 @@ type View = Mapping[str, Any]
 type Proposal = dict[str, Any]
 
 TODO, DOING, DELIVERED = "a_fazer", "fazendo", "entregue"
+# As coisas da copa e das pausas (os tipos do gênero office; ADR-0080).
+COOLER, COUNTER, COPA_TABLE, RESTROOM = (
+    "water_cooler",
+    "copa_counter",
+    "copa_table",
+    "restroom_door",
+)
+BREAK_PLACES = {"drink": COOLER, "coffee": COUNTER, "restroom": RESTROOM}
 
 
 def load_config() -> dict[str, Any]:
@@ -118,6 +132,84 @@ def heard_from_others(view: View) -> list[Mapping[str, Any]]:
 # ---------------------------------------------------------------------------------- o dev
 
 
+@dataclass
+class Routine:
+    """A rotina do dev (ADR-0080): o almoço na copa, as pausas do dia e a mesa. De graça."""
+
+    config: Mapping[str, Any]
+    done: dict[int, set[int]] = field(default_factory=dict[int, set[int]])  # pausas feitas, por dia
+
+    def plan(self, me: str, day: int) -> list[tuple[int, str]]:
+        """As pausas do dia, em minutos do dia: o sorteio pelo avatar e pelo dia, sempre igual."""
+        rng = random.Random(f"rotina:{me}:{day}")
+        spread = int(self.config["spread_minutes"])
+        start, end = minutes(str(self.config["start"])), minutes(str(self.config["end"]))
+
+        def jitter(minute: int) -> int:
+            return max(start, min(end, minute + rng.randint(-spread, spread)))
+
+        pauses = [(jitter(minutes(str(at))), "coffee") for at in self.config["coffee"]]
+        every = int(self.config["water_every_minutes"])
+        pauses += [(jitter(at), "drink") for at in range(start + every // 2, end, every)]
+        pauses += [
+            (rng.randint(start, end), "restroom")
+            for _ in range(int(self.config["restroom_per_day"]))
+        ]
+        return sorted(pauses)
+
+    def lunch(self, view: View) -> Proposal | None:
+        """Na hora do almoço, a mesa da copa: senta e almoça até o fim da hora."""
+        start, end = (minutes(str(hhmm)) for hhmm in self.config["lunch"])
+        if not start <= minute_of(view) < end:
+            return None
+        table = next(iter(entities(view, COPA_TABLE)), None)
+        if table is None:
+            return None
+        seat = chair_by(view, table)
+        if seat is not None and not at(position(view), *_xy(seat)):
+            return go_to(*_xy(seat), "rotina: ir almoçar na copa")
+        if seat is None and not adjacent(position(view), table.get("position")):
+            return go_near(str(table["entity_id"]), "rotina: ir almoçar na copa")
+        return {"action": "lunch", "params": {}, "intent": "rotina: almoçar"}
+
+    def pause(self, view: View) -> Proposal | None:
+        """A próxima pausa vencida: ir até a coisa e fazer a pausa."""
+        mine, day, now = me(view), day_of(view), minute_of(view)
+        done = self.done.setdefault(day, set())
+        for index, (minute, action) in enumerate(self.plan(mine, day)):
+            if index in done or minute > now:
+                continue
+            thing = next(iter(entities(view, BREAK_PLACES[action])), None)
+            if thing is None:
+                done.add(index)
+                continue
+            if not adjacent(position(view), thing.get("position")):
+                return go_near(str(thing["entity_id"]), f"rotina: ir {LABELS[action]}")
+            done.add(index)
+            return {"action": action, "params": {}, "intent": f"rotina: {LABELS[action]}"}
+        return None
+
+    def decide(
+        self, view: View, desk_chair: Mapping[str, Any] | None, wait_seconds: int
+    ) -> Proposal:
+        """O que a rotina faz agora: o almoço, uma pausa vencida, ou a mesa."""
+        found = self.lunch(view) or self.pause(view)
+        if found is not None:
+            return found
+        if desk_chair is not None and not at(position(view), *_xy(desk_chair)):
+            return go_to(*_xy(desk_chair), "rotina: voltar para a mesa")
+        return wait(wait_seconds, "rotina: esperar um pedido no quadro")
+
+
+LABELS = {"drink": "beber água", "coffee": "tomar um café", "restroom": "ao banheiro"}
+
+
+def chair_by(view: View, thing: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
+    """A cadeira ao lado da coisa (a mesa do dev, a mesa da copa)."""
+    spot = None if thing is None else thing.get("position")
+    return next((c for c in entities(view, "chair") if adjacent(c.get("position"), spot)), None)
+
+
 # Quantos minutos antes do almoço o dev avisa: o bloco de trabalho é de um minuto, então dois
 # minutos garantem uma decisão na janela.
 LUNCH_NOTICE_MINUTES = 2
@@ -132,6 +224,11 @@ class DevScript:
     announced: set[str] = field(default_factory=set[str])  # os pedidos já anunciados
     greeted: int = 0  # o dia do último bom-dia
     lunched: int = 0  # o dia do último aviso do almoço
+    routine: Routine | None = None
+
+    def __post_init__(self) -> None:
+        if self.routine is None:
+            self.routine = Routine(cast(Mapping[str, Any], self.config["routine"]))
 
     @classmethod
     def load(cls) -> DevScript:
@@ -178,7 +275,11 @@ class DevScript:
             return say(self._line("lunch"), listener, "avisar que vou almoçar")
         board = next(iter(entities(view, "board")), None)
         desk = next((d for d in entities(view, "desk") if attrs(d).get("dono") == mine), None)
-        chair = next(iter(entities(view, "chair")), None)
+        chair = chair_by(view, desk)
+        assert self.routine is not None
+        lunch = self.routine.lunch(view)  # o almoço vem antes do trabalho simulado
+        if lunch is not None:
+            return lunch
         doing = next(
             (
                 t
@@ -228,9 +329,7 @@ class DevScript:
                 "params": {"target": first["entity_id"]},
                 "intent": f"pegar o pedido {attrs(first)['numero']}",
             }
-        if chair is not None and not at(here, *_xy(chair)):
-            return self._sit(chair, desk, "voltar para a mesa")
-        return wait(int(self.config["wait_seconds"]), "esperar um pedido no quadro")
+        return self.routine.decide(view, chair, int(self.config["wait_seconds"]))
 
     def _sit(
         self, chair: Mapping[str, Any] | None, desk: Mapping[str, Any] | None, intent: str

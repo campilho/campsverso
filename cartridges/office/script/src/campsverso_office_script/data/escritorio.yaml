@@ -8,18 +8,28 @@ dev:
   chunk_seconds: 60 # trabalha um minuto por vez e, entre um bloco e outro, responde a quem falou
   wait_seconds: 60
   lunch_at: "12:00" # o almoço do cenário (escritorio.yaml do office_campsverso): o dev avisa antes
+  # A rotina (ADR-0080): o que o dev faz sem pedido. As pausas são ilustrativas; os horários
+  # saem de um sorteio pelo dia, deslocados até `spread_minutes` para mais ou para menos.
+  routine:
+    lunch: ["12:00", "13:00"] # na copa, como o cenário
+    start: "09:20"
+    end: "17:40"
+    coffee: ["10:00", "15:30"]
+    water_every_minutes: 100
+    restroom_per_day: 2
+    spread_minutes: 20
   lines:
     morning: "Bom dia!"
     took: "Peguei o pedido {number}: {title}."
     delivered: "Entreguei o pedido {number}: {title}."
     noted: "Anotado."
-    lunch: "Vou almoçar. Volto à uma."
+    lunch: "Hora do almoço. Vou para a copa."
 
 vigia:
   id: script/vigia
   # A ronda: os primeiros minutos de cada hora, passando por estes pontos; o resto, na cadeira.
   round_minutes: 10
-  points: [[9, 12], [9, 3], [16, 7], [4, 9], [17, 11]]
+  points: [[9, 12], [9, 3], [13, 7], [4, 9], [17, 11]]
   chair: [11, 12]
   wait_seconds: 120
 
