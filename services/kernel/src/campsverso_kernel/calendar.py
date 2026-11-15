@@ -95,6 +95,10 @@ class Calendar:
         return 1 + index(tick) - index(0)
 
     def ticks_until(self, tick: int, minute: int) -> int:
-        """Ticks até a próxima vez em que o relógio marca `minute` (de 1 até um dia inteiro)."""
+        """Ticks até a próxima vez em que o relógio marca `minute` (de 1 até um dia inteiro).
+
+        Num tick menor que um minuto (o escritório, ADR-0078), o tick de agora pode cair no meio
+        de um minuto: os segundos já passados nele saem da conta, e o salto cai no minuto exato."""
         delta = (minute - self.minute_of_day(tick)) % MINUTES_PER_DAY or MINUTES_PER_DAY
-        return delta * self.ticks_per_minute
+        into = (self.start.second + tick * self.tick_seconds) % 60
+        return (delta * 60 - into) // self.tick_seconds

@@ -1,0 +1,46 @@
+# Os scripts do escritório (ADR-0078). Os números repetem os do gênero office (o tamanho de cada
+# pedido), como os fazendeiros-script repetem os da fazenda: o script só lê a foto.
+
+sizes: { P: 15, M: 60, G: 180 } # minutos de trabalho simulado
+
+dev:
+  id: script/dev
+  chunk_seconds: 60 # trabalha um minuto por vez e, entre um bloco e outro, responde a quem falou
+  wait_seconds: 60
+  lines:
+    morning: "Bom dia!"
+    took: "Peguei o pedido {number}: {title}."
+    delivered: "Entreguei o pedido {number}: {title}."
+    noted: "Anotado."
+
+vigia:
+  id: script/vigia
+  # A ronda: os primeiros minutos de cada hora, passando por estes pontos; o resto, na cadeira.
+  round_minutes: 10
+  points: [[9, 12], [9, 3], [16, 7], [4, 9], [17, 11]]
+  chair: [11, 12]
+  wait_seconds: 120
+
+gerente:
+  id: script/gerente
+  # O roteiro dos testes: um pedido por horário, todo dia útil; devolve um de cada três.
+  tickets:
+    - at: "09:30"
+      title: "Ferramenta de busca no código"
+      description: "Achar um arquivo do repositório pelo nome."
+      acceptance: "Achar o CLAUDE.md digitando claude."
+      size: P
+    - at: "10:30"
+      title: "Resumo do diário"
+      description: "Um resumo curto do diário do dia."
+      acceptance: "Três frases, sem inventar nada."
+      size: M
+    - at: "14:00"
+      title: "Testador"
+      description: "Rodar os testes de um caminho e dizer o resultado."
+      acceptance: "Mostra quantos passaram e quantos falharam."
+      size: P
+  greeting: "Bom dia, Camps! Deixei pedidos no quadro."
+  return_every: 3
+  return_comment: "Falta o teste de aceite. Pode refazer?"
+  wait_seconds: 60

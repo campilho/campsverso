@@ -26,6 +26,9 @@ dependencies = [
   "campsverso-farm-boavista-mind",
   "campsverso-farm-morada-do-sol-sim",
   "campsverso-farm-morada-do-sol-mind",
+  "campsverso-office-sim",
+  "campsverso-office-script",
+  "campsverso-office-campsverso-sim",
   "campsverso-farm-mind",
   "campsverso-farm-camps-mind",
   "campsverso-tools",
@@ -62,6 +65,9 @@ members = [
   "cartridges/farm_boavista/mind",
   "cartridges/farm_morada_do_sol/sim",
   "cartridges/farm_morada_do_sol/mind",
+  "cartridges/office/sim",
+  "cartridges/office/script",
+  "cartridges/office_campsverso/sim",
   "tools/contracts",
   "tests/support",
 ]
@@ -88,6 +94,9 @@ campsverso-farm-boavista-sim = { workspace = true }
 campsverso-farm-boavista-mind = { workspace = true }
 campsverso-farm-morada-do-sol-sim = { workspace = true }
 campsverso-farm-morada-do-sol-mind = { workspace = true }
+campsverso-office-sim = { workspace = true }
+campsverso-office-script = { workspace = true }
+campsverso-office-campsverso-sim = { workspace = true }
 campsverso-farm-mind = { workspace = true }
 campsverso-farm-camps-mind = { workspace = true }
 campsverso-tools = { workspace = true }
@@ -162,9 +171,12 @@ root_packages = [
   "campsverso_budget",
   "campsverso_farm_sim",
   "campsverso_farm_script",
+  "campsverso_office_script",
   "campsverso_farm_camps_sim",
   "campsverso_farm_boavista_sim",
   "campsverso_farm_morada_do_sol_sim",
+  "campsverso_office_sim",
+  "campsverso_office_campsverso_sim",
   "campsverso_farm_mind",
   "campsverso_farm_camps_mind",
   "campsverso_farm_boavista_mind",
@@ -189,9 +201,12 @@ forbidden_modules = [
   "campsverso_budget",
   "campsverso_farm_sim",
   "campsverso_farm_script",
+  "campsverso_office_script",
   "campsverso_farm_camps_sim",
   "campsverso_farm_boavista_sim",
   "campsverso_farm_morada_do_sol_sim",
+  "campsverso_office_sim",
+  "campsverso_office_campsverso_sim",
   "campsverso_farm_mind",
   "campsverso_farm_camps_mind",
   "campsverso_farm_boavista_mind",
@@ -221,9 +236,12 @@ forbidden_modules = [
   "campsverso_budget",
   "campsverso_farm_sim",
   "campsverso_farm_script",
+  "campsverso_office_script",
   "campsverso_farm_camps_sim",
   "campsverso_farm_boavista_sim",
   "campsverso_farm_morada_do_sol_sim",
+  "campsverso_office_sim",
+  "campsverso_office_campsverso_sim",
   "campsverso_tools",
   "campsverso_testkit",
 ]
@@ -254,9 +272,12 @@ source_modules = [
 forbidden_modules = [
   "campsverso_farm_sim",
   "campsverso_farm_script",
+  "campsverso_office_script",
   "campsverso_farm_camps_sim",
   "campsverso_farm_boavista_sim",
   "campsverso_farm_morada_do_sol_sim",
+  "campsverso_office_sim",
+  "campsverso_office_campsverso_sim",
   "campsverso_farm_mind",
   "campsverso_farm_camps_mind",
   "campsverso_farm_boavista_mind",
@@ -281,6 +302,26 @@ forbidden_modules = [
   "campsverso_farm_camps_sim",
   "campsverso_farm_boavista_sim",
   "campsverso_farm_morada_do_sol_sim",
+  "campsverso_office_sim",
+  "campsverso_office_campsverso_sim",
+]
+
+[[tool.importlinter.contracts]]
+name = "Os scripts do escritório dependem só dos contratos (ADR-0011, ADR-0078)"
+type = "forbidden"
+source_modules = ["campsverso_office_script"]
+forbidden_modules = [
+  "campsverso_ports",
+  "campsverso_cartridge_api",
+  "campsverso_adapters",
+  "campsverso_kernel",
+  "campsverso_perception",
+  "campsverso_controller_runner",
+  "campsverso_gateway",
+  "campsverso_archiver",
+  "campsverso_budget",
+  "campsverso_office_sim",
+  "campsverso_office_campsverso_sim",
 ]
 
 [[tool.importlinter.contracts]]
@@ -291,6 +332,8 @@ source_modules = [
   "campsverso_farm_camps_sim",
   "campsverso_farm_boavista_sim",
   "campsverso_farm_morada_do_sol_sim",
+  "campsverso_office_sim",
+  "campsverso_office_campsverso_sim",
 ]
 forbidden_modules = [
   "campsverso_adapters",
@@ -321,9 +364,12 @@ forbidden_modules = [
   "campsverso_budget",
   "campsverso_farm_sim",
   "campsverso_farm_script",
+  "campsverso_office_script",
   "campsverso_farm_camps_sim",
   "campsverso_farm_boavista_sim",
   "campsverso_farm_morada_do_sol_sim",
+  "campsverso_office_sim",
+  "campsverso_office_campsverso_sim",
   "campsverso_tools",
   "campsverso_testkit",
 ]
@@ -357,7 +403,15 @@ forbidden_modules = [
   "campsverso_farm_morada_do_sol_mind",
   "campsverso_farm_boavista_sim",
   "campsverso_farm_morada_do_sol_sim",
+  "campsverso_office_sim",
+  "campsverso_office_campsverso_sim",
 ]
+
+[[tool.importlinter.contracts]]
+name = "O gênero do escritório não conhece o cenário que o estende (ADR-0031, ADR-0078)"
+type = "forbidden"
+source_modules = ["campsverso_office_sim"]
+forbidden_modules = ["campsverso_office_campsverso_sim"]
 
 [[tool.importlinter.contracts]]
 name = "Contratos e interfaces não dependem de implementações"
@@ -378,9 +432,12 @@ forbidden_modules = [
   "campsverso_budget",
   "campsverso_farm_sim",
   "campsverso_farm_script",
+  "campsverso_office_script",
   "campsverso_farm_camps_sim",
   "campsverso_farm_boavista_sim",
   "campsverso_farm_morada_do_sol_sim",
+  "campsverso_office_sim",
+  "campsverso_office_campsverso_sim",
   "campsverso_tools",
 ]
 
@@ -400,9 +457,12 @@ forbidden_modules = [
   "campsverso_budget",
   "campsverso_farm_sim",
   "campsverso_farm_script",
+  "campsverso_office_script",
   "campsverso_farm_camps_sim",
   "campsverso_farm_boavista_sim",
   "campsverso_farm_morada_do_sol_sim",
+  "campsverso_office_sim",
+  "campsverso_office_campsverso_sim",
   "campsverso_tools",
   "campsverso_testkit",
 ]
@@ -459,9 +519,12 @@ source_modules = [
   "campsverso_budget",
   "campsverso_farm_sim",
   "campsverso_farm_script",
+  "campsverso_office_script",
   "campsverso_farm_camps_sim",
   "campsverso_farm_boavista_sim",
   "campsverso_farm_morada_do_sol_sim",
+  "campsverso_office_sim",
+  "campsverso_office_campsverso_sim",
   "campsverso_farm_mind",
   "campsverso_farm_camps_mind",
   "campsverso_farm_boavista_mind",

@@ -60,6 +60,8 @@ WORLDS: dict[str, tuple[str, str, str]] = {
     "farm_camps": (WORLD, "farmer", "camps"),
     "farm_boavista": ("farm-boavista-01", "farmer2", "camps_boavista"),
     "farm_morada_do_sol": ("farm-morada-do-sol-01", "farmer2", "camps_morada"),
+    # O escritório de teste (ADR-0078): o dev-script, o vigia e o gerente-script; a mente é do M24.
+    "office_campsverso": ("office-campsverso-teste", "dev", ""),
 }
 
 type ControllerKind = Literal["script", "replay", "none", "llm"]
@@ -109,9 +111,18 @@ class Pipeline:
         self.clock = FakeWallClock()
         self.telemetry = MemoryTelemetry()
         validator = ContractValidator()
+        world_file = load_world(REPO / "config" / "worlds" / f"{worldid}.yaml", REPO)
+        office = cartridge.startswith("office")
         core = make_core(
-            seed, river_bonus=river_bonus, cartridge=cartridge, map_variant=map_variant
+            seed,
+            river_bonus=river_bonus,
+            cartridge=cartridge,
+            map_variant=map_variant,
+            worldid=worldid if office else None,
+            start=world_file.start if office else None,
         )
+        # Um dia em ticks pelo relógio do cartucho: 1.440 na fazenda, 43.200 no escritório.
+        self.day = core.calendar.ticks_per_minute * DAY
         if controller == "replay":
             core.configure_controllers({"camps": ControllerRef("replay", REPLAY_ID)})
         if controller == "llm":
@@ -120,7 +131,7 @@ class Pipeline:
         else:
             core.configure_clock("max", None, False)
         self.validator = validator
-        self.version = run_version(cartridge, 60)
+        self.version = run_version(cartridge, core.calendar.ticks_per_minute * 60)
         self.store, self.blobs = SqliteWorldStore(":memory:"), MemoryBlobStore()
         engine = Engine(core, self.version, validator)
         self.kernel = KernelService(
@@ -218,8 +229,14 @@ class Pipeline:
                 cartridge=cartridge,
                 sim_time=sim_time,
             )
+        # Os controladores do arquivo do mundo (o gerente-script do escritório de teste).
+        core.configure_controllers(
+            {
+                avatar: ControllerRef(cast(Any, kind), cid)
+                for avatar, (kind, cid) in world_file.controllers.items()
+            }
+        )
         # Os ajudantes (ADR-0072), como o processo `helpers`: um runner e um script por avatar.
-        world_file = load_world(REPO / "config" / "worlds" / f"{worldid}.yaml", REPO)
         self.helpers = [
             ControllerRunner(
                 worldid,
@@ -253,7 +270,7 @@ class Pipeline:
                 raise DeadlockError(f"o lockstep parou no tick {self.core.tick}")
 
     async def run_days(self, days: int) -> None:
-        await self.run_until(self.core.tick + days * DAY)
+        await self.run_until(self.core.tick + days * self.day)
 
     @property
     def envelopes(self) -> list[Envelope]:

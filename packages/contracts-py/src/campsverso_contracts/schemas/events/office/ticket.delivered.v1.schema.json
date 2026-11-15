@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/office/ticket.delivered.v1",
+  "title": "OfficeTicketDeliveredV1",
+  "description": "O dev entregou um pedido (ADR-0078): o pedido passa a \"entregue\" e espera o gerente.",
+  "x-type": "campsverso.office.ticket.delivered.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ticket_id",
+    "number",
+    "by",
+    "worked_seconds"
+  ],
+  "properties": {
+    "ticket_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "O pedido: a entidade no quadro."
+    },
+    "number": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "O número do pedido, na ordem em que foi escrito."
+    },
+    "by": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "worked_seconds": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Quanto tempo simulado de trabalho o pedido levou."
+    }
+  }
+}

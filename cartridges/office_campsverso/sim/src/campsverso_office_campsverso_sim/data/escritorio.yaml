@@ -1,0 +1,45 @@
+# O escritório do Campsverso (ADR-0077, ADR-0078): a sala, o elenco e o calendário.
+# Os números ficam na bíblia do escritório (docs/arquitetura/escritorio-campsverso-biblia.md).
+
+office:
+  door: { x: 9, y: 15 } # o tile do corredor por onde se entra e se sai
+  schedule:
+    workdays: [1, 2, 3, 4, 5]
+    opens: "09:00"
+    lunch: ["12:00", "13:00"]
+    closes: "18:00"
+    # Os feriados nacionais (o expediente não abre).
+    holidays:
+      "2026-11-02": Finados
+      "2026-11-15": Proclamação da República
+      "2026-11-20": Dia Nacional de Zumbi e da Consciência Negra
+      "2026-12-25": Natal
+      "2027-01-01": Confraternização Universal
+      "2027-03-26": Sexta-feira Santa
+      "2027-04-21": Tiradentes
+      "2027-05-01": Dia do Trabalhador
+      "2027-09-07": Independência
+      "2027-10-12": Nossa Senhora Aparecida
+      "2027-11-02": Finados
+      "2027-11-15": Proclamação da República
+      "2027-11-20": Dia Nacional de Zumbi e da Consciência Negra
+      "2027-12-25": Natal
+
+# O elenco (ADR-0077): o dev é sempre um LLM ou um script; o humano entra como o gerente.
+cast:
+  - id: camps
+    name: Camps
+    role: dev
+    controller: { type: script, id: script/dev }
+    accepts: [llm, script, replay]
+  - id: gerente
+    name: Gerente
+    role: gerente
+    controller: { type: script, id: script/gerente-fora } # fora do escritório até alguém o assumir
+    accepts: [human, script, replay]
+    enters_at_door: true
+  - id: vigia
+    name: Vigia
+    role: vigia
+    controller: { type: script, id: script/vigia }
+    accepts: [script, replay]

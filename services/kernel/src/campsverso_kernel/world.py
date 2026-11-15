@@ -522,6 +522,10 @@ class World:
         when = self.calendar.date_of(day)
         return None if when is None else when.isoformat()
 
+    @property
+    def today(self) -> str:
+        return self.calendar.simtime(self.tick).date().isoformat()
+
     def data(self, namespace: str) -> Mapping[str, Any]:
         return MappingProxyType(dict(self.definition.data.get(namespace, {})))
 

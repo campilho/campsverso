@@ -24,7 +24,7 @@ from typing import Any
 import yaml
 
 from campsverso_adapters import NatsBus, load_env, load_world
-from campsverso_kernel.loader import discover
+from campsverso_kernel.loader import build_world, discover
 from campsverso_ports import Envelope
 from campsverso_testkit.nats_server import REPO, NatsServer, nats_server
 from campsverso_tools.metrics import compute, read_archive
@@ -156,7 +156,10 @@ async def run(
 ) -> SoakResult:
     out.mkdir(parents=True, exist_ok=True)
     world = _world_file(out, river_bonus, source)
-    target = days * DAY
+    # Um dia em ticks pelo relógio do cartucho: 1.440 na fazenda, 43.200 no escritório (ADR-0078).
+    cartridge = str(yaml.safe_load(source.read_text(encoding="utf-8"))["cartridge"])
+    per_day = DAY * 60 // build_world(cartridge).clock.tick_seconds
+    target = days * per_day
     with nats_server(out) as nats:
         bus = await NatsBus.connect(
             nats.url,
@@ -192,7 +195,7 @@ async def run(
                 elif time.monotonic() - last_change > STALL_SECONDS:
                     result.reason = f"travou no tick {last_tick}"
                     break
-                day = latest["tick"] // DAY
+                day = latest["tick"] // per_day
                 if not quiet and day > reported:
                     reported = day
                     print(f"dia {day:3d} em {time.monotonic() - started:7.1f} s", flush=True)

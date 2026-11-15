@@ -1,0 +1,19 @@
+# Mundo office-campsverso-01: o escritório do Campsverso, a v0.4 (ADR-0077, ADR-0078).
+# O escritório vivo: roda a 1×, no relógio de São Paulo, e ao subir salta até agora. O humano entra
+# como o gerente pela tela do jogador; o dev é o dev-script no M23 (a mente chega no M24).
+
+worldid: office-campsverso-01
+cartridge: office_campsverso
+script: dev  # o dev-script (cartridges/office/script): o controlador que o make run sobe
+seed: 20261116  # o primeiro dia útil do escritório
+start: "2026-11-16T00:00:00-03:00"
+
+clock:  # estado inicial do relógio; depois, só por comandos
+  mode: continuous
+  scale: 1  # tempo real
+  paused: false
+  anchor: wall  # ao subir, o mundo salta até agora (ADR-0078)
+
+helpers:  # o vigia, que fica sempre que o dev não está
+  script: escritorio  # entry point campsverso.controllers (cartridges/office/script)
+  avatars: [vigia]

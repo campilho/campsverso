@@ -237,6 +237,39 @@
         "map": {
           "$ref": "contracts://common/defs.v1#/$defs/terrain_window",
           "description": "O terreno ao alcance do avatar, recortado ao raio (ADR-0056). Só na foto; o delta nunca o repete."
+        },
+        "heard": {
+          "type": "array",
+          "description": "As falas que o avatar ouviu desde a última entrega (ADR-0078): de quem estava perto, com o texto inteiro. Só vem quando houve alguma.",
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "title": "HeardSpeech",
+            "additionalProperties": false,
+            "required": [
+              "tick",
+              "avatar_id",
+              "text"
+            ],
+            "properties": {
+              "tick": {
+                "$ref": "contracts://common/defs.v1#/$defs/tick"
+              },
+              "avatar_id": {
+                "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+                "description": "Quem falou."
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 280
+              },
+              "listener_id": {
+                "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+                "description": "Com quem a fala era, se era com alguém."
+              }
+            }
+          }
         }
       }
     }

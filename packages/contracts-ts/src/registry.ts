@@ -282,6 +282,36 @@ export const CONTRACT_TYPES = {
     producer: "controller",
     dataschema: "contracts://events/memory/reflected.v1",
   },
+  "campsverso.office.ticket.accepted.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/office/ticket.accepted.v1",
+  },
+  "campsverso.office.ticket.created.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/office/ticket.created.v1",
+  },
+  "campsverso.office.ticket.delivered.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/office/ticket.delivered.v1",
+  },
+  "campsverso.office.ticket.returned.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/office/ticket.returned.v1",
+  },
+  "campsverso.office.ticket.taken.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/office/ticket.taken.v1",
+  },
   "campsverso.ops.budget.exceeded.v1": {
     kind: "event",
     visibility: "observer",
@@ -518,6 +548,11 @@ export interface PayloadByType {
   "campsverso.memory.belief.updated.v1": T.MemoryBeliefUpdatedV1;
   "campsverso.memory.noted.v1": T.MemoryNotedV1;
   "campsverso.memory.reflected.v1": T.MemoryReflectedV1;
+  "campsverso.office.ticket.accepted.v1": T.OfficeTicketAcceptedV1;
+  "campsverso.office.ticket.created.v1": T.OfficeTicketCreatedV1;
+  "campsverso.office.ticket.delivered.v1": T.OfficeTicketDeliveredV1;
+  "campsverso.office.ticket.returned.v1": T.OfficeTicketReturnedV1;
+  "campsverso.office.ticket.taken.v1": T.OfficeTicketTakenV1;
   "campsverso.ops.budget.exceeded.v1": T.OpsBudgetExceededV1;
   "campsverso.ops.budget.threshold_reached.v1": T.OpsBudgetThresholdReachedV1;
   "campsverso.perception.delivered.v1": T.PerceptionDeliveredV1;

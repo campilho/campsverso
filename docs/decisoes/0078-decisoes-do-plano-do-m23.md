@@ -84,3 +84,22 @@ Entre as duas, o usuário confere o andar na fazenda e dá o ok do push.
 - A regra "nenhum humano assume o dev" (ADR-0077) passa a ser garantida pelo kernel.
 - O contrato ganha a fala e os eventos do pedido, sem mudança incompatível.
 - O resultado da medida do tick entra aqui, num adendo, na parte 2.
+
+## Adendo (15/nov): a medida do tick e o que a parte 2 achou
+
+**O tick fica em 2 s.** Um dia simulado do escritório, em memória, com o dev-script, o vigia e o gerente-script:
+
+| Tick | Ticks por dia | Segundos por dia simulado | Entregas no dia |
+|---|---|---|---|
+| 1 s | 86.400 | 19,1 | 4 |
+| 2 s | 43.200 | 16,7 | 4 |
+| 5 s | 17.280 | 14,2 | 4 |
+
+O custo está nas decisões dos scripts, e não nos ticks: o tick pouco pesa no soak. Os 2 s ficam por três motivos:
+- um clique espera no máximo 2 s, e o primeiro responde na hora, pelo tick adiantado;
+- as taxas das necessidades, quando a energia e o café chegarem, rendem números inteiros em múltiplos de 15 por hora (com 1 s, só em múltiplos de 30);
+- o soak com os processos e o NATS leva uns 43 s por dia simulado.
+
+**O salto caía no meio do minuto.** Com um tick menor que o minuto, o tick de agora pode cair no meio dele. O `ticks_until` do calendário supunha o contrário, e um salto chegava às 01:00:02 em vez das 01:00:00. Por isso o expediente das 09:00 nunca disparava durante um salto, nem no relógio ancorado do escritório vivo. A conta passou a descontar os segundos já passados no minuto; com o tick de um minuto da fazenda, ela não muda.
+
+**Quem fala com o dev espera o fim do bloco.** A percepção entrega as falas que o avatar ouviu (o campo `heard` da foto), e o dev-script trabalha em blocos de um minuto, respondendo entre um e outro. Interromper o trabalho na hora em que alguém fala pediria um motivo novo de decisão: ampliar o enum do `avatar.decision_requested.v1` é incompatível, e fica para o M24, quando a mente chega e uma decisão a mais passa a custar.

@@ -1975,6 +1975,146 @@ class MemoryReflectedV1(BaseModel):
     """
 
 
+class OfficeTicketAcceptedV1(BaseModel):
+    """
+    O gerente aceitou um pedido entregue (ADR-0078): o pedido está pronto.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    ticket_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O pedido: a entidade no quadro.
+    """
+    number: Annotated[int, Field(ge=1)]
+    """
+    O número do pedido, na ordem em que foi escrito.
+    """
+    by: Annotated[str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+
+
+class OfficeTicketCreatedV1(BaseModel):
+    """
+    O gerente escreveu um pedido no quadro (ADR-0078): o que o dev deve olhar, escolher e fazer, com o teste de aceite, o "pronto quando".
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    ticket_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O pedido: a entidade no quadro.
+    """
+    number: Annotated[int, Field(ge=1)]
+    """
+    O número do pedido, na ordem em que foi escrito.
+    """
+    title: Annotated[str, Field(max_length=80, min_length=1)]
+    description: Annotated[str, Field(max_length=1000)]
+    acceptance: Annotated[str, Field(max_length=500)]
+    """
+    O teste de aceite do gerente: quando o pedido está pronto.
+    """
+    size: Literal["P", "M", "G"]
+    """
+    O tamanho; no M23, a duração do trabalho simulado do dev-script.
+    """
+    author: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Quem escreveu: o gerente.
+    """
+
+
+class OfficeTicketDeliveredV1(BaseModel):
+    """
+    O dev entregou um pedido (ADR-0078): o pedido passa a "entregue" e espera o gerente.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    ticket_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O pedido: a entidade no quadro.
+    """
+    number: Annotated[int, Field(ge=1)]
+    """
+    O número do pedido, na ordem em que foi escrito.
+    """
+    by: Annotated[str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    worked_seconds: Annotated[int, Field(ge=0)]
+    """
+    Quanto tempo simulado de trabalho o pedido levou.
+    """
+
+
+class OfficeTicketReturnedV1(BaseModel):
+    """
+    O gerente devolveu um pedido entregue (ADR-0078): o pedido volta para "a fazer", com o comentário.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    ticket_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O pedido: a entidade no quadro.
+    """
+    number: Annotated[int, Field(ge=1)]
+    """
+    O número do pedido, na ordem em que foi escrito.
+    """
+    by: Annotated[str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    comment: Annotated[str, Field(max_length=280, min_length=1)]
+    """
+    O que falta, nas palavras do gerente.
+    """
+
+
+class OfficeTicketTakenV1(BaseModel):
+    """
+    O dev pegou um pedido do quadro (ADR-0078): o pedido passa a "fazendo".
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    ticket_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O pedido: a entidade no quadro.
+    """
+    number: Annotated[int, Field(ge=1)]
+    """
+    O número do pedido, na ordem em que foi escrito.
+    """
+    by: Annotated[str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+
+
 class OpsBudgetExceededV1(BaseModel):
     """
     O gasto com modelos estourou um teto e a guarda pediu a pausa do mundo (ADR-0058). Só o operador retoma.
@@ -2173,6 +2313,30 @@ class ViewEntity(BaseModel):
     attributes: dict[str, str | float | bool | None]
 
 
+class HeardSpeech(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Quem falou.
+    """
+    text: Annotated[str, Field(max_length=280, min_length=1)]
+    listener_id: Annotated[
+        str | None,
+        Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId"),
+    ] = None
+    """
+    Com quem a fala era, se era com alguém.
+    """
+
+
 class PerceptionView(BaseModel):
     """
     Visão genérica: o que é da fazenda chega como atributo de entidade (ADR-0025).
@@ -2189,6 +2353,10 @@ class PerceptionView(BaseModel):
     map: TerrainWindow | None = None
     """
     O terreno ao alcance do avatar, recortado ao raio (ADR-0056). Só na foto; o delta nunca o repete.
+    """
+    heard: Annotated[list[HeardSpeech] | None, Field(max_length=50)] = None
+    """
+    As falas que o avatar ouviu desde a última entrega (ADR-0078): de quem estava perto, com o texto inteiro. Só vem quando houve alguma.
     """
 
 

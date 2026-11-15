@@ -55,6 +55,13 @@ class WorldView(Protocol):
         """A data do calendário do dia, "AAAA-MM-DD", se o cartucho declarou um ano."""
         ...
 
+    @property
+    def today(self) -> str:
+        """A data do relógio do mundo no tick de agora, "AAAA-MM-DD", no fuso do mundo
+        (ADR-0078): o dia da semana e os feriados do escritório. Não é a do ano acelerado da
+        fazenda (`date`)."""
+        ...
+
     def data(self, namespace: str) -> Mapping[str, Any]:
         """Dados do cartucho, já mesclados pelas camadas (ADR-0031)."""
         ...

@@ -521,6 +521,61 @@ channels:
     messages:
       MemoryReflectedV1:
         $ref: '#/components/messages/MemoryReflectedV1'
+  OfficeTicketAcceptedV1:
+    address: campsverso.{worldid}.world.office.ticket.accepted.v1
+    title: campsverso.office.ticket.accepted.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      OfficeTicketAcceptedV1:
+        $ref: '#/components/messages/OfficeTicketAcceptedV1'
+  OfficeTicketCreatedV1:
+    address: campsverso.{worldid}.world.office.ticket.created.v1
+    title: campsverso.office.ticket.created.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      OfficeTicketCreatedV1:
+        $ref: '#/components/messages/OfficeTicketCreatedV1'
+  OfficeTicketDeliveredV1:
+    address: campsverso.{worldid}.world.office.ticket.delivered.v1
+    title: campsverso.office.ticket.delivered.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      OfficeTicketDeliveredV1:
+        $ref: '#/components/messages/OfficeTicketDeliveredV1'
+  OfficeTicketReturnedV1:
+    address: campsverso.{worldid}.world.office.ticket.returned.v1
+    title: campsverso.office.ticket.returned.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      OfficeTicketReturnedV1:
+        $ref: '#/components/messages/OfficeTicketReturnedV1'
+  OfficeTicketTakenV1:
+    address: campsverso.{worldid}.world.office.ticket.taken.v1
+    title: campsverso.office.ticket.taken.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      OfficeTicketTakenV1:
+        $ref: '#/components/messages/OfficeTicketTakenV1'
   OpsBudgetExceededV1:
     address: campsverso.{worldid}.observer.ops.budget.exceeded.v1
     title: campsverso.ops.budget.exceeded.v1
@@ -1213,6 +1268,41 @@ operations:
     messages:
     - $ref: '#/channels/MemoryReflectedV1/messages/MemoryReflectedV1'
     x-producer: controller
+  sendOfficeTicketAcceptedV1:
+    action: send
+    channel:
+      $ref: '#/channels/OfficeTicketAcceptedV1'
+    messages:
+    - $ref: '#/channels/OfficeTicketAcceptedV1/messages/OfficeTicketAcceptedV1'
+    x-producer: kernel
+  sendOfficeTicketCreatedV1:
+    action: send
+    channel:
+      $ref: '#/channels/OfficeTicketCreatedV1'
+    messages:
+    - $ref: '#/channels/OfficeTicketCreatedV1/messages/OfficeTicketCreatedV1'
+    x-producer: kernel
+  sendOfficeTicketDeliveredV1:
+    action: send
+    channel:
+      $ref: '#/channels/OfficeTicketDeliveredV1'
+    messages:
+    - $ref: '#/channels/OfficeTicketDeliveredV1/messages/OfficeTicketDeliveredV1'
+    x-producer: kernel
+  sendOfficeTicketReturnedV1:
+    action: send
+    channel:
+      $ref: '#/channels/OfficeTicketReturnedV1'
+    messages:
+    - $ref: '#/channels/OfficeTicketReturnedV1/messages/OfficeTicketReturnedV1'
+    x-producer: kernel
+  sendOfficeTicketTakenV1:
+    action: send
+    channel:
+      $ref: '#/channels/OfficeTicketTakenV1'
+    messages:
+    - $ref: '#/channels/OfficeTicketTakenV1/messages/OfficeTicketTakenV1'
+    x-producer: kernel
   sendOpsBudgetExceededV1:
     action: send
     channel:
@@ -3517,6 +3607,136 @@ components:
           type: string
           pattern: ^[0-9a-f]{64}$
           description: Hash do pedido da reflexão, o mesmo do llm.call.completed.
+    OfficeTicketAcceptedV1:
+      title: OfficeTicketAcceptedV1
+      description: 'O gerente aceitou um pedido entregue (ADR-0078): o pedido está pronto.'
+      type: object
+      additionalProperties: false
+      required:
+      - ticket_id
+      - number
+      - by
+      properties:
+        ticket_id:
+          $ref: '#/components/schemas/EntityId'
+          description: 'O pedido: a entidade no quadro.'
+        number:
+          type: integer
+          minimum: 1
+          description: O número do pedido, na ordem em que foi escrito.
+        by:
+          $ref: '#/components/schemas/EntityId'
+    OfficeTicketCreatedV1:
+      title: OfficeTicketCreatedV1
+      description: 'O gerente escreveu um pedido no quadro (ADR-0078): o que o dev deve olhar, escolher
+        e fazer, com o teste de aceite, o "pronto quando".'
+      type: object
+      additionalProperties: false
+      required:
+      - ticket_id
+      - number
+      - title
+      - description
+      - acceptance
+      - size
+      - author
+      properties:
+        ticket_id:
+          $ref: '#/components/schemas/EntityId'
+          description: 'O pedido: a entidade no quadro.'
+        number:
+          type: integer
+          minimum: 1
+          description: O número do pedido, na ordem em que foi escrito.
+        title:
+          type: string
+          minLength: 1
+          maxLength: 80
+        description:
+          type: string
+          maxLength: 1000
+        acceptance:
+          type: string
+          maxLength: 500
+          description: 'O teste de aceite do gerente: quando o pedido está pronto.'
+        size:
+          enum:
+          - P
+          - M
+          - G
+          description: O tamanho; no M23, a duração do trabalho simulado do dev-script.
+        author:
+          $ref: '#/components/schemas/EntityId'
+          description: 'Quem escreveu: o gerente.'
+    OfficeTicketDeliveredV1:
+      title: OfficeTicketDeliveredV1
+      description: 'O dev entregou um pedido (ADR-0078): o pedido passa a "entregue" e espera o gerente.'
+      type: object
+      additionalProperties: false
+      required:
+      - ticket_id
+      - number
+      - by
+      - worked_seconds
+      properties:
+        ticket_id:
+          $ref: '#/components/schemas/EntityId'
+          description: 'O pedido: a entidade no quadro.'
+        number:
+          type: integer
+          minimum: 1
+          description: O número do pedido, na ordem em que foi escrito.
+        by:
+          $ref: '#/components/schemas/EntityId'
+        worked_seconds:
+          type: integer
+          minimum: 0
+          description: Quanto tempo simulado de trabalho o pedido levou.
+    OfficeTicketReturnedV1:
+      title: OfficeTicketReturnedV1
+      description: 'O gerente devolveu um pedido entregue (ADR-0078): o pedido volta para "a fazer", com
+        o comentário.'
+      type: object
+      additionalProperties: false
+      required:
+      - ticket_id
+      - number
+      - by
+      - comment
+      properties:
+        ticket_id:
+          $ref: '#/components/schemas/EntityId'
+          description: 'O pedido: a entidade no quadro.'
+        number:
+          type: integer
+          minimum: 1
+          description: O número do pedido, na ordem em que foi escrito.
+        by:
+          $ref: '#/components/schemas/EntityId'
+        comment:
+          type: string
+          minLength: 1
+          maxLength: 280
+          description: O que falta, nas palavras do gerente.
+    OfficeTicketTakenV1:
+      title: OfficeTicketTakenV1
+      description: 'O dev pegou um pedido do quadro (ADR-0078): o pedido passa a "fazendo".'
+      type: object
+      additionalProperties: false
+      required:
+      - ticket_id
+      - number
+      - by
+      properties:
+        ticket_id:
+          $ref: '#/components/schemas/EntityId'
+          description: 'O pedido: a entidade no quadro.'
+        number:
+          type: integer
+          minimum: 1
+          description: O número do pedido, na ordem em que foi escrito.
+        by:
+          $ref: '#/components/schemas/EntityId'
     OpsBudgetExceededV1:
       title: OpsBudgetExceededV1
       description: O gasto com modelos estourou um teto e a guarda pediu a pausa do mundo (ADR-0058).
@@ -3757,6 +3977,32 @@ components:
               $ref: '#/components/schemas/TerrainWindow'
               description: O terreno ao alcance do avatar, recortado ao raio (ADR-0056). Só na foto; o
                 delta nunca o repete.
+            heard:
+              type: array
+              description: 'As falas que o avatar ouviu desde a última entrega (ADR-0078): de quem estava
+                perto, com o texto inteiro. Só vem quando houve alguma.'
+              maxItems: 50
+              items:
+                type: object
+                title: HeardSpeech
+                additionalProperties: false
+                required:
+                - tick
+                - avatar_id
+                - text
+                properties:
+                  tick:
+                    $ref: '#/components/schemas/Tick'
+                  avatar_id:
+                    $ref: '#/components/schemas/EntityId'
+                    description: Quem falou.
+                  text:
+                    type: string
+                    minLength: 1
+                    maxLength: 280
+                  listener_id:
+                    $ref: '#/components/schemas/EntityId'
+                    description: Com quem a fala era, se era com alguém.
     PerceptionUpdatedV1:
       title: PerceptionUpdatedV1
       description: 'O delta da percepção (ADR-0028, ADR-0056): o que mudou desde a última entrega ao avatar
@@ -5573,6 +5819,53 @@ components:
         $ref: '#/components/schemas/MemoryReflectedV1'
       x-visibility: observer
       x-producer: controller
+    OfficeTicketAcceptedV1:
+      name: campsverso.office.ticket.accepted.v1
+      title: OfficeTicketAcceptedV1
+      summary: 'O gerente aceitou um pedido entregue (ADR-0078): o pedido está pronto.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/OfficeTicketAcceptedV1'
+      x-visibility: world
+      x-producer: kernel
+    OfficeTicketCreatedV1:
+      name: campsverso.office.ticket.created.v1
+      title: OfficeTicketCreatedV1
+      summary: 'O gerente escreveu um pedido no quadro (ADR-0078): o que o dev deve olhar, escolher e
+        fazer, com o teste de aceite, o "pronto quando".'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/OfficeTicketCreatedV1'
+      x-visibility: world
+      x-producer: kernel
+    OfficeTicketDeliveredV1:
+      name: campsverso.office.ticket.delivered.v1
+      title: OfficeTicketDeliveredV1
+      summary: 'O dev entregou um pedido (ADR-0078): o pedido passa a "entregue" e espera o gerente.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/OfficeTicketDeliveredV1'
+      x-visibility: world
+      x-producer: kernel
+    OfficeTicketReturnedV1:
+      name: campsverso.office.ticket.returned.v1
+      title: OfficeTicketReturnedV1
+      summary: 'O gerente devolveu um pedido entregue (ADR-0078): o pedido volta para "a fazer", com o
+        comentário.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/OfficeTicketReturnedV1'
+      x-visibility: world
+      x-producer: kernel
+    OfficeTicketTakenV1:
+      name: campsverso.office.ticket.taken.v1
+      title: OfficeTicketTakenV1
+      summary: 'O dev pegou um pedido do quadro (ADR-0078): o pedido passa a "fazendo".'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/OfficeTicketTakenV1'
+      x-visibility: world
+      x-producer: kernel
     OpsBudgetExceededV1:
       name: campsverso.ops.budget.exceeded.v1
       title: OpsBudgetExceededV1

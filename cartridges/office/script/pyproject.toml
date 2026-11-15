@@ -1,0 +1,18 @@
+[project]
+name = "campsverso-office-script"
+version = "0.1.0.dev0"
+description = "Os scripts do escritório (ADR-0078): o dev, o vigia e o gerente dos testes. Dependem só dos contratos."
+requires-python = ">=3.14"
+license = "MIT"
+dependencies = [
+  "campsverso-contracts",
+  "pyyaml>=6",
+]
+
+[project.entry-points."campsverso.controllers"]
+dev = "campsverso_office_script:dev"  # o dev-script, a linha de base (ADR-0078)
+escritorio = "campsverso_office_script:staff"  # uma fábrica: o vigia e o gerente-script
+
+[build-system]
+requires = ["uv_build>=0.13,<0.14"]
+build-backend = "uv_build"

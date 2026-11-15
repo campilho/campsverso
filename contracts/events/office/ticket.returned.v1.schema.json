@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/office/ticket.returned.v1",
+  "title": "OfficeTicketReturnedV1",
+  "description": "O gerente devolveu um pedido entregue (ADR-0078): o pedido volta para \"a fazer\", com o comentário.",
+  "x-type": "campsverso.office.ticket.returned.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ticket_id",
+    "number",
+    "by",
+    "comment"
+  ],
+  "properties": {
+    "ticket_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "O pedido: a entidade no quadro."
+    },
+    "number": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "O número do pedido, na ordem em que foi escrito."
+    },
+    "by": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "comment": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 280,
+      "description": "O que falta, nas palavras do gerente."
+    }
+  }
+}

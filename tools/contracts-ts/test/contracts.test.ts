@@ -9,9 +9,9 @@ describe("validador ajv dos contratos", () => {
     expect(checkExamples()).toEqual([]);
   });
 
-  it("conhece os 66 eventos (os da v0.1 e da v0.2, os da Morada do Sol, os 4 das encomendas, a entrada e a saída do avatar, os 3 do contrato de trabalho, a fala e o relógio que alcança o real) e 10 comandos", () => {
+  it("conhece os 71 eventos (os da v0.1 e da v0.2, os da Morada do Sol, os 4 das encomendas, a entrada e a saída do avatar, os 3 do contrato de trabalho, a fala, o relógio que alcança o real e os 5 do pedido do escritório) e 10 comandos", () => {
     const kinds = typeInfos(loadSchemas()).map((info) => info.kind);
-    expect(kinds.filter((kind) => kind === "event")).toHaveLength(66);
+    expect(kinds.filter((kind) => kind === "event")).toHaveLength(71);
     expect(kinds.filter((kind) => kind === "command")).toHaveLength(10);
   });
 

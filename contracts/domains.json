@@ -4,6 +4,6 @@
     "world", "action", "avatar", "perception", "cognition", "memory", "social", "rules",
     "experiment", "maintenance", "bridge", "director", "portal", "llm", "ops", "clock"
   ],
-  "cartridges": ["farm"],
+  "cartridges": ["farm", "office"],
   "libraries": ["economy"]
 }

@@ -2,12 +2,14 @@
 entregue a cada avatar (para o delta, ADR-0056) e a foto de `perception.delivered.v1` (catálogo
 §3.7) que a percepção monta para cada avatar."""
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import Any, cast
 
 from campsverso_world_view import Projection, diff_views
 
 MAX_PENDING = 1000  # eventos guardados por avatar entre uma entrega e outra (o contrato limita)
+SPOKE = "campsverso.avatar.spoke.v1"  # a fala (ADR-0078)
+MAX_HEARD = 50  # as falas de uma foto (o contrato limita)
 # O que não entra em "o que aconteceu": as próprias entregas e o pedido que elas respondem.
 _NOT_PERCEIVED = ("campsverso.perception.", "campsverso.avatar.decision_requested.")
 _SNAPSHOT_REASONS = frozenset({"session_started", "possessed"})
@@ -155,7 +157,31 @@ class PerceptionState(Projection):
         window = self.window(center, radius)
         if window is not None:
             view["map"] = window
+        heard = self.heard(avatar_id, near)
+        if heard:
+            view["heard"] = heard
         return view
+
+    def heard(self, avatar_id: str, near: Callable[[str], bool]) -> list[dict[str, Any]]:
+        """As falas desde a última entrega (ADR-0078): as que eram com o avatar e as de quem ele
+        vê. Não as dele mesmo."""
+        found: list[dict[str, Any]] = []
+        for seen in self.pending.get(avatar_id, []):
+            if seen["type"] != SPOKE:
+                continue
+            data = cast(Mapping[str, Any], seen["data"])
+            speaker, listener = str(data["avatar_id"]), data.get("listener_id")
+            if speaker == avatar_id or not (listener == avatar_id or near(speaker)):
+                continue
+            item: dict[str, Any] = {
+                "tick": seen["tick"],
+                "avatar_id": speaker,
+                "text": data["text"],
+            }
+            if listener is not None:
+                item["listener_id"] = str(listener)
+            found.append(item)
+        return found[-MAX_HEARD:]
 
     def window(self, center: Mapping[str, int] | None, radius: int | None) -> dict[str, Any] | None:
         """O terreno ao alcance (ADR-0056): as linhas recortadas ao raio e a legenda do que

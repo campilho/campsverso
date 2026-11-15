@@ -165,7 +165,7 @@ class KernelCore:
         for avatar_id, controller in sorted(controllers.items()):
             if not self._accepts(avatar_id, controller):
                 raise ValueError(f"{avatar_id} não aceita um controlador {controller.type}")
-        self._initial_controllers = dict(controllers)
+        self._initial_controllers |= dict(controllers)  # chamadas seguidas somam
 
     def _accepts(self, avatar_id: str, controller: ControllerRef) -> bool:
         """O avatar aceita esse tipo de controlador (ADR-0078): o dev não aceita `human`."""

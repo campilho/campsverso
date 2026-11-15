@@ -1,0 +1,92 @@
+# O gênero office (ADR-0077, ADR-0078): o escritório em tempo real, com o pedido no quadro.
+# Os números do cenário (o expediente, os feriados, a porta) ficam no cenário; aqui, o padrão.
+
+clock:
+  tick_seconds: 2 # a medida do M23 escolhe entre 1, 2 e 5 s (ADR-0078, decisão 1)
+  day_starts_at: "00:00" # o dia do calendário: o escritório não tem dia agrícola
+  phases:
+    madrugada: "00:00"
+    manha: "06:00"
+    tarde: "12:00"
+    noite: "18:00"
+  default_scale: 1 # tempo real
+
+movement:
+  tiles_per_minute: 72 # 1,2 tile por segundo: o andar de uma pessoa num tile de um metro
+
+perception:
+  radius: null # a sala inteira
+
+ticket:
+  title_max: 80
+  description_max: 1000
+  acceptance_max: 500
+  comment_max: 280
+  # O tamanho, em minutos de trabalho simulado: no M23, só o dev-script trabalha assim
+  # (ADR-0078, decisão 11). A partir do M24 o trabalho é de verdade.
+  sizes:
+    P: 15
+    M: 60
+    G: 180
+
+# O expediente do dev, em dias da semana de 1 (segunda) a 7 (domingo). O cenário dá os números.
+schedule:
+  workdays: [1, 2, 3, 4, 5]
+  opens: "09:00"
+  lunch: ["12:00", "13:00"]
+  closes: "18:00"
+  holidays: {}
+
+# Quanto dura cada ação, em segundos simulados (o kernel converte em ticks; ADR-0078).
+actions:
+  write_ticket: { seconds: 20, interrupt: cancel }
+  take_ticket: { seconds: 4, interrupt: cancel }
+  work: { interrupt: partial } # o tamanho do pedido dá a duração
+  deliver: { seconds: 6, interrupt: cancel }
+  accept_ticket: { seconds: 6, interrupt: cancel }
+  return_ticket: { seconds: 10, interrupt: cancel }
+
+# A linha do tempo (ADR-0068): como cada fato se conta.
+labels:
+  - event: campsverso.office.ticket.created.v1
+    text: "escreveu o pedido {number}: {title}"
+  - event: campsverso.office.ticket.taken.v1
+    text: "pegou o pedido {number}"
+  - event: campsverso.office.ticket.delivered.v1
+    text: "entregou o pedido {number}"
+  - event: campsverso.office.ticket.accepted.v1
+    text: "aceitou o pedido {number}"
+  - event: campsverso.office.ticket.returned.v1
+    text: "devolveu o pedido {number}: {comment}"
+  - event: campsverso.avatar.spoke.v1
+    text: "disse: “{text}”"
+  - event: campsverso.avatar.entered.v1
+    where: { reason: expediente }
+    text: "chegou ao escritório"
+  - event: campsverso.avatar.entered.v1
+    where: { reason: plantao }
+    text: "começou o plantão"
+  - event: campsverso.avatar.entered.v1
+    where: { reason: possessed }
+    text: "entrou no escritório"
+  - event: campsverso.avatar.left.v1
+    where: { reason: expediente }
+    text: "foi embora"
+  - event: campsverso.avatar.left.v1
+    where: { reason: almoco }
+    text: "saiu para almoçar"
+  - event: campsverso.avatar.left.v1
+    where: { reason: plantao }
+    text: "terminou o plantão"
+  - event: campsverso.avatar.left.v1
+    where: { reason: released }
+    text: "saiu do escritório"
+
+# As métricas do dia (ADR-0054), contadas pela projeção comum.
+metrics:
+  - { id: pedidos_escritos, label: "pedidos escritos", kind: count, event: campsverso.office.ticket.created.v1 }
+  - { id: pedidos_entregues, label: "pedidos entregues", kind: count, event: campsverso.office.ticket.delivered.v1 }
+  - { id: pedidos_aceitos, label: "pedidos aceitos", kind: count, event: campsverso.office.ticket.accepted.v1 }
+  - { id: pedidos_devolvidos, label: "pedidos devolvidos", kind: count, event: campsverso.office.ticket.returned.v1 }
+  - { id: trabalho, label: "segundos de trabalho entregues", kind: count, event: campsverso.office.ticket.delivered.v1, field: worked_seconds }
+  - { id: falas, label: "falas", kind: count, event: campsverso.avatar.spoke.v1 }

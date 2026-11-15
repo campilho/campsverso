@@ -1,0 +1,25 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c40-7a01-8b11-1a2b3c4d5e01",
+  "source": "/kernel/office-campsverso-01",
+  "type": "campsverso.office.ticket.created.v1",
+  "time": "2026-11-16T13:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/office/ticket.created.v1",
+  "worldid": "office-campsverso-01",
+  "cartridge": "office_campsverso",
+  "tick": 18000,
+  "simtime": "2026-11-16T10:00:00-03:00",
+  "seq": 5000,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "ticket_id": "pedido-003",
+    "number": 3,
+    "title": "Busca por nome",
+    "description": "Uma ferramenta que acha um arquivo do repositório pelo nome.",
+    "acceptance": "Achar o CLAUDE.md digitando claude.",
+    "size": "P",
+    "author": "gerente"
+  }
+}

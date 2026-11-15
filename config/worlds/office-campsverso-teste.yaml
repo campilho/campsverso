@@ -1,0 +1,20 @@
+# Mundo office-campsverso-teste: o escritório dos testes e do soak (ADR-0078, decisão 17).
+# O mesmo cartucho do escritório vivo, no modo máximo e sem a âncora, com o gerente-script, que
+# escreve os pedidos de um roteiro todo dia útil, no lugar do humano.
+
+worldid: office-campsverso-teste
+cartridge: office_campsverso
+script: dev
+seed: 20261116
+start: "2026-11-16T00:00:00-03:00"  # uma segunda-feira
+
+clock:
+  mode: max
+  paused: false
+
+controllers:  # o gerente começa com o script dos testes, e por isso já lá dentro
+  gerente: { type: script, id: script/gerente }
+
+helpers:
+  script: escritorio
+  avatars: [vigia, gerente]

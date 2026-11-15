@@ -41,6 +41,18 @@ def test_ticks_ate_o_proximo_horario() -> None:
     assert CAL.ticks_until(1380, parse_hhmm("06:00")) == 60
 
 
+def test_ticks_ate_o_horario_num_tick_menor_que_o_minuto() -> None:
+    """ADR-0078: com o tick de 2 s, o tick de agora cai no meio do minuto, e o salto precisa
+    cair no minuto exato; antes, chegava às 01:00:02 e o sistema das 09:00 nunca disparava."""
+    office = Calendar.create(datetime(2026, 11, 16, 0, 0, tzinfo=BRT), ClockDef(2, "00:00", ()))
+    assert office.ticks_until(0, parse_hhmm("01:00")) == 1800
+    assert office.ticks_until(1, parse_hhmm("01:00")) == 1799  # das 00:00:02
+    tick = 1 + office.ticks_until(1, parse_hhmm("09:00"))
+    assert office.simtime_iso(tick) == "2026-11-16T09:00:00-03:00"
+    assert office.is_minute_start(tick)
+    assert office.ticks_until(16215, parse_hhmm("09:00")) == 43185  # das 09:00:30: amanhã
+
+
 def test_calendario_exige_fuso_e_tick_que_divide_o_minuto() -> None:
     with pytest.raises(ValueError, match="fuso"):
         Calendar.create(datetime(2026, 10, 10, 6, 0), CLOCK)

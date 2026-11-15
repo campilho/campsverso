@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/office/ticket.taken.v1",
+  "title": "OfficeTicketTakenV1",
+  "description": "O dev pegou um pedido do quadro (ADR-0078): o pedido passa a \"fazendo\".",
+  "x-type": "campsverso.office.ticket.taken.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ticket_id",
+    "number",
+    "by"
+  ],
+  "properties": {
+    "ticket_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "O pedido: a entidade no quadro."
+    },
+    "number": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "O número do pedido, na ordem em que foi escrito."
+    },
+    "by": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    }
+  }
+}

@@ -6,6 +6,13 @@ Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão 
 
 ### M23
 
+- **O que o avatar ouviu** (ADR-0078): a foto da percepção (`perception.delivered.v1`, `view`) ganha o campo opcional `heard`, as falas que o avatar ouviu desde a última entrega (quem falou, o texto, com quem e o tick). É como o dev-script do escritório responde ao gerente. Interromper o trabalho quando alguém fala fica para o M24: pedir um motivo novo de decisão muda o enum do `avatar.decision_requested.v1`, o que é incompatível.
+- **O pedido do escritório** (ADR-0078): o domínio de cartucho `office` e cinco tipos novos, de visibilidade `world`, produtor `kernel`, publicados pelo gênero `office`:
+  - `campsverso.office.ticket.created.v1`: o gerente escreveu um pedido no quadro (o título, a descrição, o teste de aceite, o tamanho e o autor);
+  - `campsverso.office.ticket.taken.v1`: o dev pegou o pedido;
+  - `campsverso.office.ticket.delivered.v1`: o dev entregou, com o tempo de trabalho;
+  - `campsverso.office.ticket.accepted.v1`: o gerente aceitou;
+  - `campsverso.office.ticket.returned.v1`: o gerente devolveu, com o comentário.
 - **O relógio ancorado no real** (ADR-0078): o comando novo `campsverso.cmd.clock.catch_up.v1` (`to_tick`, `reason`; produtor `kernel`) e o tipo novo `campsverso.world.clock.caught_up.v1` (`from_tick`, `to_tick`, `reason`; visibilidade `world`). Num mundo em tempo real (o escritório), a raiz de composição do kernel manda o comando ao subir, e o mundo salta até o tick de agora, pulando o que não acontece e rodando o que vence no caminho. O diário guarda o comando, e o replay o refaz igual.
 - **A fala** (ADR-0078): o tipo novo `campsverso.avatar.spoke.v1`, de visibilidade `world`, produtor `kernel`. A ação `say` passa a ser do kernel, ao lado de `move` e `wait`: até 280 caracteres, para alguém que está no mundo (o parâmetro `to`, o campo `listener_id` do evento) ou para quem estiver perto. O evento leva o texto inteiro, sem reescrever, a ação e onde o avatar estava. É como o gerente, que o humano assume, conversa com o dev do escritório.
 - **O trajeto com a ação** (ADR-0078, o andar sem pulo): o trajeto do estado da tela (`realtime/welcome.v1`, `state.motion.<id>`) ganha o campo opcional `action_id`, o mesmo do `world.entity.moved.v1`. A tela identifica cada trajeto pela ação, e não mais pelo tick de saída: dois trajetos que saem no mesmo tick (a tecla segurada, cliques rápidos) deixam de se confundir.

@@ -1420,6 +1420,94 @@ export interface MemoryReflectedV1 {
   prompt_sha256?: string;
 }
 /**
+ * O gerente aceitou um pedido entregue (ADR-0078): o pedido está pronto.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "OfficeTicketAcceptedV1".
+ */
+export interface OfficeTicketAcceptedV1 {
+  ticket_id: EntityId;
+  /**
+   * O número do pedido, na ordem em que foi escrito.
+   */
+  number: number;
+  by: EntityId;
+}
+/**
+ * O gerente escreveu um pedido no quadro (ADR-0078): o que o dev deve olhar, escolher e fazer, com o teste de aceite, o "pronto quando".
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "OfficeTicketCreatedV1".
+ */
+export interface OfficeTicketCreatedV1 {
+  ticket_id: EntityId;
+  /**
+   * O número do pedido, na ordem em que foi escrito.
+   */
+  number: number;
+  title: string;
+  description: string;
+  /**
+   * O teste de aceite do gerente: quando o pedido está pronto.
+   */
+  acceptance: string;
+  /**
+   * O tamanho; no M23, a duração do trabalho simulado do dev-script.
+   */
+  size: "P" | "M" | "G";
+  author: EntityId;
+}
+/**
+ * O dev entregou um pedido (ADR-0078): o pedido passa a "entregue" e espera o gerente.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "OfficeTicketDeliveredV1".
+ */
+export interface OfficeTicketDeliveredV1 {
+  ticket_id: EntityId;
+  /**
+   * O número do pedido, na ordem em que foi escrito.
+   */
+  number: number;
+  by: EntityId;
+  /**
+   * Quanto tempo simulado de trabalho o pedido levou.
+   */
+  worked_seconds: number;
+}
+/**
+ * O gerente devolveu um pedido entregue (ADR-0078): o pedido volta para "a fazer", com o comentário.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "OfficeTicketReturnedV1".
+ */
+export interface OfficeTicketReturnedV1 {
+  ticket_id: EntityId;
+  /**
+   * O número do pedido, na ordem em que foi escrito.
+   */
+  number: number;
+  by: EntityId;
+  /**
+   * O que falta, nas palavras do gerente.
+   */
+  comment: string;
+}
+/**
+ * O dev pegou um pedido do quadro (ADR-0078): o pedido passa a "fazendo".
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "OfficeTicketTakenV1".
+ */
+export interface OfficeTicketTakenV1 {
+  ticket_id: EntityId;
+  /**
+   * O número do pedido, na ordem em que foi escrito.
+   */
+  number: number;
+  by: EntityId;
+}
+/**
  * O gasto com modelos estourou um teto e a guarda pediu a pausa do mundo (ADR-0058). Só o operador retoma.
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
@@ -1492,6 +1580,12 @@ export interface PerceptionView {
   containers: ViewContainer[];
   entities: ViewEntity[];
   map?: TerrainWindow;
+  /**
+   * As falas que o avatar ouviu desde a última entrega (ADR-0078): de quem estava perto, com o texto inteiro. Só vem quando houve alguma.
+   *
+   * @maxItems 50
+   */
+  heard?: HeardSpeech[];
 }
 export interface ViewClock {
   tick: Tick;
@@ -1534,6 +1628,12 @@ export interface ViewEntity {
   position?: Position;
   container_id?: EntityId;
   attributes: Attributes;
+}
+export interface HeardSpeech {
+  tick: Tick;
+  avatar_id: EntityId;
+  text: string;
+  listener_id?: EntityId;
 }
 /**
  * O delta da percepção (ADR-0028, ADR-0056): o que mudou desde a última entrega ao avatar e o que aconteceu no meio-tempo. Responde a um pedido de decisão como a foto, para os controladores que pedem deltas; a foto continua em perception.delivered.v1.

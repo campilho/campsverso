@@ -2611,6 +2611,171 @@
         }
       }
     },
+    "OfficeTicketAcceptedV1": {
+      "title": "OfficeTicketAcceptedV1",
+      "description": "O gerente aceitou um pedido entregue (ADR-0078): o pedido está pronto.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticket_id",
+        "number",
+        "by"
+      ],
+      "properties": {
+        "ticket_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "O pedido: a entidade no quadro."
+        },
+        "number": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "O número do pedido, na ordem em que foi escrito."
+        },
+        "by": {
+          "$ref": "#/$defs/EntityId"
+        }
+      }
+    },
+    "OfficeTicketCreatedV1": {
+      "title": "OfficeTicketCreatedV1",
+      "description": "O gerente escreveu um pedido no quadro (ADR-0078): o que o dev deve olhar, escolher e fazer, com o teste de aceite, o \"pronto quando\".",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticket_id",
+        "number",
+        "title",
+        "description",
+        "acceptance",
+        "size",
+        "author"
+      ],
+      "properties": {
+        "ticket_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "O pedido: a entidade no quadro."
+        },
+        "number": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "O número do pedido, na ordem em que foi escrito."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "acceptance": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "O teste de aceite do gerente: quando o pedido está pronto."
+        },
+        "size": {
+          "enum": [
+            "P",
+            "M",
+            "G"
+          ],
+          "description": "O tamanho; no M23, a duração do trabalho simulado do dev-script."
+        },
+        "author": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Quem escreveu: o gerente."
+        }
+      }
+    },
+    "OfficeTicketDeliveredV1": {
+      "title": "OfficeTicketDeliveredV1",
+      "description": "O dev entregou um pedido (ADR-0078): o pedido passa a \"entregue\" e espera o gerente.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticket_id",
+        "number",
+        "by",
+        "worked_seconds"
+      ],
+      "properties": {
+        "ticket_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "O pedido: a entidade no quadro."
+        },
+        "number": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "O número do pedido, na ordem em que foi escrito."
+        },
+        "by": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "worked_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Quanto tempo simulado de trabalho o pedido levou."
+        }
+      }
+    },
+    "OfficeTicketReturnedV1": {
+      "title": "OfficeTicketReturnedV1",
+      "description": "O gerente devolveu um pedido entregue (ADR-0078): o pedido volta para \"a fazer\", com o comentário.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticket_id",
+        "number",
+        "by",
+        "comment"
+      ],
+      "properties": {
+        "ticket_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "O pedido: a entidade no quadro."
+        },
+        "number": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "O número do pedido, na ordem em que foi escrito."
+        },
+        "by": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "comment": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 280,
+          "description": "O que falta, nas palavras do gerente."
+        }
+      }
+    },
+    "OfficeTicketTakenV1": {
+      "title": "OfficeTicketTakenV1",
+      "description": "O dev pegou um pedido do quadro (ADR-0078): o pedido passa a \"fazendo\".",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticket_id",
+        "number",
+        "by"
+      ],
+      "properties": {
+        "ticket_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "O pedido: a entidade no quadro."
+        },
+        "number": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "O número do pedido, na ordem em que foi escrito."
+        },
+        "by": {
+          "$ref": "#/$defs/EntityId"
+        }
+      }
+    },
     "OpsBudgetExceededV1": {
       "title": "OpsBudgetExceededV1",
       "description": "O gasto com modelos estourou um teto e a guarda pediu a pausa do mundo (ADR-0058). Só o operador retoma.",
@@ -2922,6 +3087,39 @@
             "map": {
               "$ref": "#/$defs/TerrainWindow",
               "description": "O terreno ao alcance do avatar, recortado ao raio (ADR-0056). Só na foto; o delta nunca o repete."
+            },
+            "heard": {
+              "type": "array",
+              "description": "As falas que o avatar ouviu desde a última entrega (ADR-0078): de quem estava perto, com o texto inteiro. Só vem quando houve alguma.",
+              "maxItems": 50,
+              "items": {
+                "type": "object",
+                "title": "HeardSpeech",
+                "additionalProperties": false,
+                "required": [
+                  "tick",
+                  "avatar_id",
+                  "text"
+                ],
+                "properties": {
+                  "tick": {
+                    "$ref": "#/$defs/Tick"
+                  },
+                  "avatar_id": {
+                    "$ref": "#/$defs/EntityId",
+                    "description": "Quem falou."
+                  },
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 280
+                  },
+                  "listener_id": {
+                    "$ref": "#/$defs/EntityId",
+                    "description": "Com quem a fala era, se era com alguém."
+                  }
+                }
+              }
             }
           }
         }
