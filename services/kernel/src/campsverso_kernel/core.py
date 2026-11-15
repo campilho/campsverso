@@ -930,9 +930,13 @@ class KernelCore:
         self, listener: Avatar, command_id: str, correlation: str | None
     ) -> None:
         """Quem ouve o próprio nome para o que está fazendo e decide de novo (ADR-0080). Só uma ação
-        em curso que aceita parar; quem está parado já vê a fala no próximo pedido de decisão."""
+        em curso que aceita parar; quem está parado já vê a fala no próximo pedido de decisão. O
+        humano nunca: ele lê a fala na tela, e o dev, ao avisar que entregou, cancelava o aceite que
+        o gerente acabava de começar."""
         running = listener.action
         if not listener.present or running is None or running.interrupt == "never":
+            return
+        if listener.controller.type == "human":
             return
         with self.world.context(caused_by=command_id, correlation=correlation):
             self.world.interrupt_action(listener.avatar_id, "cancelled")

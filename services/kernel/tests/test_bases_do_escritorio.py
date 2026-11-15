@@ -278,6 +278,22 @@ def test_falar_com_o_dev_interrompe_o_que_ele_faz_e_ele_decide_de_novo() -> None
     assert [d["reason"] for d in asked] == ["action_interrupted"]
 
 
+def test_a_fala_nao_interrompe_o_humano() -> None:
+    """O dev avisa que entregou enquanto o gerente, do humano, aceita: o aceite segue. O humano lê a
+    fala na tela e não decide por pedido de decisão (ADR-0080, achado no teste do navegador)."""
+    core = _core(tick_seconds=2)
+    core.submit(control("avatar.possess", {"avatar_id": "gerente", "controller": HUMAN}))
+    core.submit(_as("gerente", "think", {"seconds": 600}, HUMAN["id"]))
+    _run(core, 3)
+    core.submit(
+        _as("dev", "say", {"text": "Entreguei o pedido 1.", "to": "gerente"}, DEV_SCRIPT.id)
+    )
+    facts = _run(core, 2)
+    assert _only(facts, "avatar.spoke")
+    assert not _only(facts, "action.failed")
+    assert core.world.avatar_map["gerente"].action is not None
+
+
 def test_sem_a_opcao_do_cartucho_a_fala_nao_interrompe() -> None:
     facts = _dev_thinking_when_spoken_to(speech_interrupts=False)
     assert not _only(facts, "action.failed")
