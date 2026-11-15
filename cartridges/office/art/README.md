@@ -12,7 +12,10 @@ O que é de todo escritório (ADR-0078), recortado de três pacotes LPC e comple
   - 0, a mesa do Camps, vista do lado de quem senta, com o notebook ligado, o telefone vermelho e a xícara;
   - 1, a bancada, uma mesa dobrável cinza com a cafeteira e um notebook claro;
   - 2, o quadro dos pedidos, de cortiça, com as fichas nas quatro colunas, de pé na frente da parede (desenho próprio);
-  - 3, a cadeira, de costas.
+  - 3, a cadeira, de costas;
+  - 4, o balcão da copa, com a pia e o tampo do pacote de interiores e a cafeteira e a xícara do escritório (ADR-0080);
+  - 5, a mesa redonda da copa, do pacote de interiores.
+- A porta do banheiro (`door-wc`) é um tile da parede de baixo, fechada, com a plaquinha "WC": desenho próprio. O bebedouro e a porta do banheiro não têm quadro de móvel; o mapa visual os desenha.
 - Os nomes que a tela mostra ficam em `../locale/pt-BR.json` (ADR-0075).
 
 O mapa visual de cada escritório fica na pasta de arte do cenário e é gerado por `make mapa-visual`.

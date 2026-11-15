@@ -72,6 +72,8 @@ export interface AvatarArt {
   /** A animação de quem está parado num assento, qualquer que seja a ação (trabalhar, esperar,
    * falar): o Camps senta na cadeira da mesa e o vigia na dele. */
   readonly seated?: string;
+  /** As ações em que o avatar não aparece: atrás da porta do banheiro (ADR-0080). */
+  readonly hidden?: readonly string[];
   /** Um recorte de um quadro da folha, para o HUD. */
   readonly portrait?: { readonly frame: number; readonly x: number; readonly y: number; readonly size: number };
   /** Dormindo numa cama: só a cabeça (um recorte de um quadro) no travesseiro, `dy` abaixo do topo da cama. */

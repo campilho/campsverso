@@ -7,6 +7,7 @@ A camada de arte do cenário `office_campsverso` (ADR-0078). Os tiles e os móve
   - **O Camps:** o mesmo da fazenda, sem o chapéu e o regador, de óculos e de sapato. A camisa vermelha, o jeans e o cabelo castanho saíram da folha da fazenda, pixel a pixel.
   - **O gerente:** cabeça idosa, cabelo repartido grisalho e bigode, camisa social, paletó grafite, gravata vermelha, calça social e sapato preto. O paletó e a camisa social não têm as poses parado e sentado: o parado usa o primeiro quadro do andar, e o gerente nunca senta.
   - **O vigia:** cabelo raspado e bigode, a camisa da farda azul-marinho, calça e coturno pretos. O gerador não tem um boné que sirva, por isso ele trabalha sem chapéu.
+- Quem está no banheiro some da tela: a ação `restroom` está em `hidden` de cada personagem (ADR-0080).
 - `decor.json`: a decoração da parede, peça por peça: as janelas, o relógio, o quadro de avisos, o bebedouro e a estante.
 - `map-visual.tmj`: o mapa visual, gerado a partir do mapa lógico e de `decor.json` por `make mapa-visual`. O kernel nunca o lê.
 

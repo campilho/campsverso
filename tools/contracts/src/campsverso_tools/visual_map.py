@@ -194,6 +194,7 @@ OFFICE_GROUND = {
     "furniture": {"floor"},
     "door": {"door"},
     "corridor": {"hall"},
+    "restroom": {"door-wc"},  # a porta do banheiro (ADR-0080)
     "wall": {"north-t", "north-b", "side-w", "side-e", "south", "void"},
 }
 
@@ -226,6 +227,8 @@ def _office_ground(types: Grid, x: int, y: int) -> str:
         return "floor"
     if kind == "door":
         return "door"
+    if kind == "restroom":  # a porta do banheiro, na parede de baixo (ADR-0080)
+        return "door-wc"
     if kind == "corridor":
         return "hall"
     face = north(x, y)

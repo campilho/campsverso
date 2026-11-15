@@ -190,6 +190,10 @@ class AvatarView {
     const depth = depthAt(at.y) + 0.5;
     const action = state.actions[id];
     const asleep = state.asleep[id] === true;
+    if (action !== undefined && art?.hidden?.includes(action.action) === true) {
+      this.hide(); // atrás da porta do banheiro (ADR-0080)
+      return;
+    }
     const moved = this.last === undefined ? { x: 0, y: 0 } : { x: at.x - this.last.x, y: at.y - this.last.y };
     const step = Math.hypot(moved.x, moved.y);
     this.walked += step;
@@ -274,6 +278,14 @@ class AvatarView {
       const x = view.width > 0 ? Phaser.Math.Clamp(tx, view.x + half, view.right - half) : tx;
       this.balloon.setPosition(x, Math.max(view.y + this.balloon.height + 2, above));
     }
+  }
+
+  /** Some da tela sem sair do mundo; o próximo `show` o desenha de novo. */
+  private hide(): void {
+    for (const object of [this.body, this.initial, this.sprite, this.tag, this.balloon]) {
+      object.setVisible(false);
+    }
+    this.bar.clear();
   }
 
   destroy(): void {

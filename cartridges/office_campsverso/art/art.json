@@ -89,7 +89,10 @@
         "x": 16,
         "y": 9,
         "size": 32
-      }
+      },
+      "hidden": [
+        "restroom"
+      ]
     },
     "gerente": {
       "sheet": "gerente",
@@ -160,7 +163,10 @@
         "x": 16,
         "y": 9,
         "size": 32
-      }
+      },
+      "hidden": [
+        "restroom"
+      ]
     },
     "vigia": {
       "sheet": "vigia",
@@ -231,7 +237,10 @@
         "x": 16,
         "y": 9,
         "size": 32
-      }
+      },
+      "hidden": [
+        "restroom"
+      ]
     }
   }
 }

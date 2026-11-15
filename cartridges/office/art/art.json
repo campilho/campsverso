@@ -29,6 +29,9 @@
     },
     "furniture": {
       "color": "#803526"
+    },
+    "restroom": {
+      "color": "#684415"
     }
   },
   "kinds": {
@@ -49,7 +52,17 @@
       "frame": 3,
       "seat": "up"
     },
-    "door": {}
+    "door": {},
+    "copa_counter": {
+      "sheet": "office-objects",
+      "frame": 4
+    },
+    "copa_table": {
+      "sheet": "office-objects",
+      "frame": 5
+    },
+    "water_cooler": {},
+    "restroom_door": {}
   },
   "phases": {
     "noite": {
