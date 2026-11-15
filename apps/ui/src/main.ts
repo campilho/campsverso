@@ -16,7 +16,7 @@ import { Connection, type View } from "./connection.ts";
 import { button, el } from "./dom.ts";
 import { fogKey } from "./fog.ts";
 import { loadLocale } from "./locale.ts";
-import { pathFrom } from "./motion.ts";
+import { pathFrom, stepsAt } from "./motion.ts";
 import { CreditsDialog } from "./panels/credits.ts";
 import { CommandsHelp } from "./panels/help.ts";
 import { renderHud } from "./panels/hud.ts";
@@ -348,7 +348,7 @@ function renderControl(state: ObserverState): void {
   const mine = inControl(state, avatarId());
   const controller = state.controllers[avatarId()];
   const busy = state.actions[avatarId()] !== undefined || state.asleep[avatarId()] === true;
-  const clockable = playerClock() && !realTime(state); // o escritório anda em tempo real (ADR-0078)
+  const clockable = playerClock(); // no escritório, só o sandbox aceita (ADR-0079)
   const { paused, scale } = state.clock;
   const key = JSON.stringify([mine, controller, busy, store.status, state.clock.mode, clockable, paused, scale]);
   if (key === lastControl) {
@@ -378,6 +378,10 @@ function renderControl(state: ObserverState): void {
 
 const CLOCK = "campsverso.cmd.clock.";
 const PACES = [72, 144, 720, 1440] as const;
+/** No escritório, o tempo real e o dia acelerado: com o passo de tela (ADR-0079), o andar fica
+ * igual em todas. O escritório vivo (`make escritorio`) não mostra botão nenhum: o gateway dele não
+ * aceita o relógio do jogador. */
+const OFFICE_PACES = [1, 6, 24, 72] as const;
 
 /** No sandbox, quem joga também opera o relógio: o gateway diz se aceita (`--relogio-do-jogador`). */
 function playerClock(): boolean {
@@ -393,11 +397,12 @@ function togglePause(state: ObserverState): void {
 }
 
 /** Pausar ou retomar (tecla P) e as velocidades: 72x para o dia, 144x para andar mais rápido, 720x
- * e 1440x para a noite dormindo (uma noite de 10 horas em 25 segundos; achado do usuário no mapa d). */
+ * e 1440x para a noite dormindo (uma noite de 10 horas em 25 segundos; achado do usuário no mapa d).
+ * No escritório, 1×, 6×, 24× e 72× (achado do usuário na primeira partida do escritório). */
 function clockButtons(state: ObserverState): HTMLElement[] {
   const open = store.status === "open";
   const pause = button(state.clock.paused === true ? "Retomar (P)" : "Pausar (P)", () => { togglePause(state); }, open);
-  const paces = PACES.map((value) =>
+  const paces = (realTime(state) ? OFFICE_PACES : PACES).map((value) =>
     button(`${String(value)}×`, () => { connection.send(`${CLOCK}set_scale.v1`, { scale: value, reason: "human" }); }, open, state.clock.scale === value),
   );
   return [el("span", { className: "clock-buttons" }, pause, ...paces)];
@@ -621,7 +626,16 @@ function releaseHold(): void {
   }
   const [dx, dy] = released.delta;
   const along = (t: Tile): number => (t.x - released.from.x) * dx + (t.y - released.from.y) * dy;
-  const stop = holdTarget(state, me, released.delta, 1);
+  // Nunca antes do tile em que o kernel já está entrando: o passo começado termina (ADR-0079), e
+  // parar atrás dele faria o avatar voltar. Com a tela lenta (a aba em segundo plano), o desenho
+  // fica para trás do kernel, e o tile à frente do desenho ficava tiles atrás dele.
+  const motion = state.motion[avatarId()];
+  const kernel =
+    motion === undefined
+      ? state.entities[avatarId()]?.position
+      : motion.path[Math.min(motion.path.length - 1, Math.ceil(stepsAt(motion, shownTick) - 1e-9))];
+  const ahead = holdTarget(state, me, released.delta, 1);
+  const stop = kernel !== undefined && along(kernel) > along(ahead) ? { x: kernel.x, y: kernel.y } : ahead;
   if (along(released.sent) > along(stop)) {
     sendMove(stop);
   }

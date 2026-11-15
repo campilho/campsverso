@@ -15,6 +15,26 @@ test("o gerente entra, escreve um pedido, fala com o dev e aceita a entrega", as
   const office = page.locator("aside.office");
   await expect(office).toContainText("Quadro dos pedidos");
 
+  // A seta segurada anda no passo de tela, e soltar não faz o gerente voltar (ADR-0079): a 72×, o
+  // teclado troca o destino a cada 200 ms, e o passo começado termina antes de o avatar virar.
+  const drawn = (id: string): Promise<{ x: number; y: number } | undefined> =>
+    page.evaluate((who) => {
+      type Hook = { drawn(id: string): { x: number; y: number } | undefined };
+      return (window as unknown as { campsverso: Hook }).campsverso.drawn(who);
+    }, id);
+  await expect.poll(() => drawn("gerente"), { timeout: 20_000 }).toEqual({ x: 9, y: 15 });
+  const ys: number[] = [];
+  await page.keyboard.down("ArrowUp");
+  for (let i = 0; i < 30; i++) {
+    if (i === 10) {
+      await page.keyboard.up("ArrowUp");
+    }
+    await page.waitForTimeout(100);
+    ys.push((await drawn("gerente"))?.y ?? Number.NaN);
+  }
+  expect(ys.every((y, i) => i === 0 || y <= (ys[i - 1] ?? y) + 0.01)).toBe(true); // nunca volta
+  expect(15 - (ys.at(-1) ?? 15)).toBeGreaterThanOrEqual(3); // um segundo a 4 tiles por segundo
+
   await page.getByPlaceholder("Título").fill("Ferramenta de busca");
   await page.getByPlaceholder("O que fazer").fill("Achar um arquivo do repositório pelo nome.");
   await page.getByRole("button", { name: "Escrever no quadro" }).click();
