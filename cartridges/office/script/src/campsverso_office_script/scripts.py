@@ -286,6 +286,7 @@ class ManagerScript:
 
     config: Mapping[str, Any]
     greeted: int = 0
+    dev_came: int = 0  # o último dia em que o dev veio: sem ele, não é dia de escrever pedido
 
     @property
     def controller_type(self) -> str:
@@ -299,6 +300,8 @@ class ManagerScript:
         now, here = minute_of(view), position(view)
         dev = next((e for e in entities(view, "avatar") if attrs(e).get("papel") == "dev"), None)
         dev_id = None if dev is None else str(dev["entity_id"])
+        if dev_id is not None and present(view, dev_id):
+            self.dev_came = day_of(view)
         if dev_id is not None and present(view, dev_id) and self.greeted != day_of(view):
             self.greeted = day_of(view)
             return say(str(self.config["greeting"]), dev_id, "cumprimentar o dev")
@@ -308,7 +311,10 @@ class ManagerScript:
         near_board = adjacent(here, board.get("position"))
         written_today = self._written_today(view)
         script = cast(Sequence[Mapping[str, Any]], self.config["tickets"])
-        due = [t for t in script if minutes(str(t["at"])) <= now]
+        # Só nos dias em que o dev veio: no feriado e no fim de semana, o gerente também não escreve
+        # (o soak de 5 dias do M23 caiu num feriado, 20/11, e três pedidos ficaram para segunda).
+        workday = self.dev_came == day_of(view)
+        due = [t for t in script if workday and minutes(str(t["at"])) <= now]
         delivered = [t for t in tickets(view) if attrs(t)["estado"] == DELIVERED]
         if delivered or len(due) > written_today:
             if not near_board:

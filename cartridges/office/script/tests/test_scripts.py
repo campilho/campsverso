@@ -152,3 +152,17 @@ def test_o_gerente_script_escreve_o_que_venceu_e_devolve_um_de_cada_tres() -> No
     first = [_ticket(1, "entregue", "camps")]
     accepted = manager.decide(_view(me="gerente", at=(9, 3), hhmm="09:00", tickets=first))
     assert accepted["action"] == "accept_ticket"
+
+
+def test_o_gerente_script_nao_escreve_no_dia_em_que_o_dev_nao_veio() -> None:
+    """No feriado e no fim de semana o dev não vem, e os pedidos ficariam para o dia útil seguinte
+    (o soak de 5 dias do M23 caiu no 20/11)."""
+    manager = staff("gerente")
+    assert isinstance(manager, ManagerScript)
+    manager.greeted = 1
+    holiday = _view(me="gerente", at=(9, 3), hhmm="09:31")
+    for item in holiday["entities"]:
+        if item["entity_id"] == "camps":
+            del item["position"]
+    assert manager.decide(holiday)["action"] == "wait"
+    assert manager.decide(_view(me="gerente", at=(9, 3), hhmm="09:31"))["action"] == "write_ticket"
