@@ -78,6 +78,18 @@ Vista de cima em 3/4 ortogonal, como a fazenda e a arte LPC (as isométricas nã
 6. **"CI do PR #41 pendente"** marcado como `interno` nas imagens seria `world`: o CI é um fato externo, não uma regra oculta.
 7. **Vários avatares** na percepção, no gateway (posse por avatar) e na tela, antes do segundo agente.
 
+## O escritório depois do M23 (15/11)
+
+O M23 entregou o escritório em arte LPC. Na partida dele, o usuário achou que o LPC "ficou com uma cara estranha": serve para uma primeira versão, mas o alvo é outro. O alvo de agora é a `escritorio-retro-image2.webp`, acima. O alvo maior é a mesma sala crescendo, de um dev ao squad. Estas referências se juntaram às de cima:
+
+| Tela | Arquivo | Origem | O que ensina |
+|---|---|---|---|
+| O escritório que cresce em três quadros: um dev; o dev e o revisor; o squad, com a mesa de reunião | [escritorio-crescimento.webp](escritorio-crescimento.webp) | não registrada; o mesmo estilo da `escritorio-retro-image2.webp` | o crescimento por peças: cubículos novos no mesmo chão, o quadro com uma coluna a mais |
+| O prédio em quatro salas (pesquisa, roteiro, estúdio, arte) e a recepção com o vigia, em vista de cima | [escritorio-quatro-salas-image2.webp](escritorio-quatro-salas-image2.webp) | Image2 (ChatGPT) | a planta com várias salas e um corredor, o vigia na recepção, a luz quente das luminárias; serve ao estúdio do CampsCast |
+| O Campsverso Companion: o escritório num aparelho de mesa, com o toque num agente, os detalhes da tarefa, os comandos simples e o PR até a entrega | [companion-replay.webp](companion-replay.webp) | não registrada | uma vertente possível: o replay e o acompanhamento do mundo num aparelho à parte, só com o que o contrato `realtime` já entrega |
+
+Uma quarta referência fica fora do repositório: a capa de um vídeo do YouTube sobre jogos de Mega Drive, que não é nossa. Ela mostra o clima de 16 bits que se quer: vista de cima em 3/4, folhagem densa, sombras marcadas e um personagem pequeno num cenário rico.
+
 ## O estúdio (depois do escritório)
 
 Duas propostas do Claude Design para o estúdio do podcast, guardadas para quando ele chegar (ADR-0055 o põe depois do escritório, sobre a porta de efeitos externos que o escritório constrói).
