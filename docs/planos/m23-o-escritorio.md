@@ -1,6 +1,6 @@
 # Plano do M23 — O escritório
 
-*Proposto em 14/nov/2026, depois da ADR-0077. **Aprovado em 14/nov/2026 como recomendado (ADR-0078), em duas entregas:** a parte 1, as bases (o andar sem pulo, o tempo real no kernel, os controladores por avatar e a fala), e a parte 2, o escritório. É o primeiro marco da v0.4: o cartucho do escritório, em tempo real e na vista de cima com arte LPC, com o dev-script, o gerente que o humano assume e o vigia. A mente entra no M24. A referência visual é o par do Claude Design de outubro ([escritorio-dia.png](../design/escritorio-dia.png) e [escritorio-noite.png](../design/escritorio-noite.png)), sem o painel de energia, foco e café, que fica para quando houver necessidades.*
+*Proposto em 14/nov/2026, depois da ADR-0077. **Aprovado em 14/nov/2026 como recomendado (ADR-0078), em duas entregas:** a parte 1, as bases (o andar sem pulo, o tempo real no kernel, os controladores por avatar e a fala), e a parte 2, o escritório. **Feito em 15/nov/2026, em três partes e um acréscimo (§13).** É o primeiro marco da v0.4: o cartucho do escritório, em tempo real e na vista de cima com arte LPC, com o dev-script, o gerente que o humano assume e o vigia. A mente entra no M24. A referência visual é o par do Claude Design de outubro ([escritorio-dia.png](../design/escritorio-dia.png) e [escritorio-noite.png](../design/escritorio-noite.png)), sem o painel de energia, foco e café, que fica para quando houver necessidades.*
 
 **Pronto quando:**
 - existe um quarto mundo, `office-campsverso-01`: uma sala com a mesa e o computador do dev, a bancada, o quadro dos pedidos e a porta, em arte LPC;
@@ -341,3 +341,55 @@ Os créditos vão no `CREDITS.csv` de cada pasta e na tela, como hoje.
 15. **A tela do gerente:** a fala, o formulário do quadro, aceitar e devolver, e o "Sair". O painel ganha as métricas dos pedidos, e os textos novos vão para `locale`. *Recomendação: sim.*
 16. **A bíblia do escritório e o `make escritorio`** com o mundo persistente. *Recomendação: sim.*
 17. **O gerente-script e o soak de 5 dias,** com os invariantes da §9. *Recomendação: sim.*
+
+## 13. Como ficou
+
+Feito em 14 e 15/nov, com as 17 decisões como recomendado (ADR-0078). Ficou em três partes e um acréscimo, e não em duas: a arte esperou o ok do download, e a primeira partida do usuário pediu o passo de tela (ADR-0079).
+
+- **A parte 1, as bases** (`24becf6`, `b2183cf`):
+  - o andar sem pulo, com onze cenas quadro a quadro escritas antes do conserto: o desenho segue o tempo do trajeto do kernel, sem o teto de 12 tiles por segundo;
+  - os controladores aceitos por avatar, e nenhum humano no dev;
+  - a porta do gerente;
+  - as durações em segundos e o snapshot por minutos simulados;
+  - a fala (`say`, `avatar.spoke.v1`);
+  - o relógio ancorado no real (`clock.catch_up`).
+- **A parte 2, o escritório** (`d11cc57`, `11d4ee9`):
+  - o gênero `office` e o cenário `office_campsverso`, com o pedido no quadro, seis ações e cinco eventos `office.ticket.*`;
+  - o dev-script, o vigia e o gerente-script;
+  - a tela do gerente, com os balões, o quadro e a fala;
+  - a medida do tick: um dia simulado em 19,1 s com o tick de 1 s, 16,7 s com 2 s e 14,2 s com 5 s. Ficou o de 2 s.
+- **A parte 3, a arte LPC** (`f185d6c`, `bad241e`):
+  - os tiles, os móveis e o quadro, de três pacotes e de desenho próprio;
+  - o Camps, o gerente e o vigia, montados com o gerador de personagens;
+  - o assento: quem para na cadeira senta, olhando para a mesa.
+- **A partida do usuário** (15/nov, uns quatro minutos a 72×): ele escreveu um pedido, conversou com o dev e aceitou a entrega. Os tropeços viraram consertos:
+  - a aba do navegador caía num laço sem fim da emenda do desenho (`8a32b78`);
+  - o gerente parava dentro do desenho da mesa (`32946e5`);
+  - o boneco deslizava parado até o destino (`96bccc9`).
+- **O passo de tela** (ADR-0079; `a27ae67`, `855730a`, `10fa6aa`, `31db265`):
+  - o escritório anda 4 tiles por segundo na tela, em qualquer escala;
+  - o passo começado termina antes de o avatar virar;
+  - os botões 1×, 6×, 24× e 72× no sandbox do escritório;
+  - o aviso do almoço.
+- **As conferências:**
+  - o `make check` com `TZ=UTC` deu verde, com 712 testes em Python, 100 da tela e 3 dos contratos, e 16 contratos de arquitetura;
+  - o `make ui-e2e` passou 8 de 8: o escritório (o pedido, a conversa, a cadeira e a seta segurada) e o andar sem pulo na fazenda;
+  - os soaks das fazendas deram as mesmas métricas do M22, e não só as moedas: a fazenda 1 (1.175), a Boa Vista (220) e a Morada do Sol nos mapas a e d (85);
+  - o soak do escritório passou em 5 dias, de segunda, 16/11, a sexta, 20/11, um feriado:
+    - os 12 pedidos dos dias úteis foram entregues: 16 entregas, com 4 devolvidos e refeitos;
+    - nenhuma recusa e nenhum humano no dev;
+    - o dev ficou só no expediente;
+    - uns 60 s por dia simulado;
+    - o primeiro soak achou o gerente-script escrevendo três pedidos no feriado, e agora ele só escreve nos dias em que o dev veio;
+  - o replay do dia 2 do escritório reproduziu os 13.487 fatos, com o mesmo hash.
+- **O que mudou em relação ao plano:**
+  - **três partes, e não duas:** a arte foi a terceira, depois do ok do download;
+  - **o passo de tela,** que o plano não previa: a 72× o andar no relógio do mundo virava 86 tiles por segundo;
+  - **a arte LPC** serve como primeira versão, mas o usuário a achou com "uma cara estranha". O alvo agora é o cubículo da `escritorio-retro-image2.webp`, e um teste de arte com o Claude Design está em andamento (`docs/design/briefing-arte-escritorio.md`);
+  - **o vigia sem boné:** o gerador não tem um que sirva;
+  - **a sala tem 20 × 17 tiles:** são as 14 linhas da sala, mais as 3 do corredor.
+- **O que se achou no caminho:**
+  - quatro consertos de uma sessão paralela, commitados no `main` antes do M23 ir para ele: a escala infinita, a origem do WebSocket, a guarda que pausa de novo e o `make secrets`;
+  - o painel do navegador escondido desenha devagar, e o desenho fica para trás do mundo. Não é defeito, mas enganou a primeira leitura, e a seta solta voltava o gerente. Agora a parada nunca fica atrás do kernel;
+  - trocar o destino no meio de um tile voltava o avatar para o tile de trás. Não aparecia com o andar rápido.
+- **O custo:** nenhuma chamada de API no marco. O Claude Code levou 194 minutos ativos em 37 turnos, contando o plano macro da v0.4 e a sessão paralela. No fim, o uso do plano estava em 35% da janela de 5 horas e em 7% da semana.

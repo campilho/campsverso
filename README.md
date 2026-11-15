@@ -69,15 +69,21 @@ A pergunta: **num mundo maior, com estações, encomendas e regras escondidas em
 | M21: a terceira arena | a rodada do humano da v0.3; Claude, script 3 e oráculo; depois GPT e Gemini | concluído em 12/nov/2026 ([plano](docs/planos/m21-a-terceira-arena.md), ADR-0074, [o relatório](docs/arena/m21-terceira-energia.md): ninguém achou a água pela causa, e os maiores capturaram metade do valor de saber jogando a economia visível) |
 | M22: fechamento | critérios de aceite, o Astra consertado, diário, notas e a tag `v0.3.0` | concluído em 14/nov/2026 ([plano](docs/planos/m22-o-fechamento-da-v0.3.md), ADR-0076) |
 
-## Depois: v0.4.0 — O escritório que constrói a si mesmo
+## Em curso: v0.4.0 — O escritório que constrói a si mesmo
 
 Um escritório de programação com um único dev no começo, cujo trabalho é melhorar o próprio Campsverso: ele recebe tickets de nós, abre PRs, espera o CI, e quando um PR é mesclado o mundo reinicia na versão que ele mesmo escreveu. É o primeiro cartucho com efeitos externos. A ideia está em [ideia-escritorio-que-se-constroi.md](docs/planos/ideia-escritorio-que-se-constroi.md) e a direção na [ADR-0055](docs/decisoes/0055-a-v0-3-e-o-escritorio-que-se-constroi.md); a ordem (o escritório na v0.4, o estúdio na v0.5) está na [ADR-0064](docs/decisoes/0064-a-v0-3-e-a-fazenda-sofisticada.md). O [plano macro](docs/planos/v0.4-macro.md) (ADR-0077) começa direto no escritório, na vista de cima com arte LPC e em tempo real. O dev é sempre um LLM, e o humano entra no mundo como o gerente, para falar com ele e escrever os pedidos no quadro. Não há corridas: cada marco termina com o dev criando uma ferramenta que ele vai usar no marco seguinte, e cada marco lhe dá uma ferramenta nova, da API com o nosso harness ao Claude Code, ao Codex e ao Antigravity, a um computador só dele e a um telefone para falar com a gente.
+
+| Marco | Entrega | Situação |
+|---|---|---|
+| M23: o escritório | o gênero `office` e o cenário `office_campsverso` em tempo real; o andar sem pulo e o passo de tela; o gerente que o humano assume, com a fala; o pedido no quadro; o dev-script e o vigia; a arte LPC | concluído em 15/nov/2026 ([plano](docs/planos/m23-o-escritorio.md), ADR-0078 e ADR-0079) |
+| M24: o dev pensa e cria | a mente no dev, a oficina isolada, a entrega num patch que o humano aplica, a copa e as pausas, e o testador como o primeiro robô | plano proposto ([plano](docs/planos/m24-o-dev-pensa-e-cria.md)) |
+| M25 a M30 | o ciclo do PR, o Claude Code, o Codex e o Antigravity, o computador do dev, o telefone e o fechamento | a seguir ([plano macro](docs/planos/v0.4-macro.md)) |
 
 ## Como funciona
 
 ```mermaid
 flowchart LR
-    cart["Cartuchos<br/>farm → farm_camps → farm_boavista → farm_morada_do_sol"] -. "dados, ações e regras" .-> kernel
+    cart["Cartuchos<br/>farm → farm_camps → farm_boavista → farm_morada_do_sol<br/>office → office_campsverso"] -. "dados, ações e regras" .-> kernel
     libs["Bibliotecas que o cartucho escolhe<br/>economy e climate"] -. "mercado, encomendas, clima" .-> cart
     kernel["Kernel<br/>o único que escreve o mundo"] -- "eventos" --> nats[("NATS JetStream")]
     nats -- "comandos" --> kernel
