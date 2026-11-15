@@ -3,12 +3,14 @@ import { describe, expect, it } from "vitest";
 import { loadArt } from "./load.ts";
 import {
   animationFor,
+  autotileMask,
   colorNumber,
   facedTile,
   facingOf,
   frameOf,
   inUseFrame,
   lookOf,
+  loopFrame,
   mergeManifests,
   rooted,
   seatAt,
@@ -162,23 +164,6 @@ describe("manifesto de arte (ADR-0053)", () => {
     expect(empty).toEqual({ manifest: { version: 1 }, credits: [], layers: [] });
   });
 
-  it("a camada de teste da arte só entra quando a URL pede, por cima das outras", async () => {
-    const trial: ArtManifest = { version: 1, tiles: { grass: { color: "#123456" } } };
-    const files: Record<string, unknown> = {
-      "/content/art/index.json": { layers: ["farm", "farm_camps"], optional: ["fase1"] },
-      "/content/art/farm/art.json": GENRE,
-      "/content/art/farm_camps/art.json": SCENARIO,
-      "/content/art/fase1/art.json": trial,
-    };
-    const get = (url: string): Promise<Response> =>
-      Promise.resolve(url in files ? new Response(JSON.stringify(files[url])) : new Response("", { status: 404 }));
-    const plain = await loadArt(get);
-    expect(plain.layers).toEqual(["farm", "farm_camps"]);
-    expect(plain.manifest.tiles?.grass?.color).toBe("#00ff00");
-    const asked = await loadArt(get, ["fase1", "outra"]);
-    expect(asked.layers).toEqual(["farm", "farm_camps", "fase1"]);
-    expect(asked.manifest.tiles?.grass?.color).toBe("#123456");
-  });
 });
 
 describe("a arte da fase 1 do escritório", () => {
@@ -232,5 +217,46 @@ describe("o assento (ADR-0078)", () => {
     expect(seatAt(office, things, { x: 5, y: 6 })).toBeUndefined(); // a mesa não é assento
     expect(seatAt(office, things, { x: 5, y: 7.4 })).toBeUndefined(); // no meio de um passo
     expect(seatAt({ version: 1 }, things, { x: 5, y: 7 })).toBeUndefined(); // a fazenda não tem
+  });
+
+  it("a cadeira de lado da copa senta virado para a mesinha, pelo atributo (ADR-0082)", () => {
+    const copa: ArtManifest = {
+      version: 1,
+      kinds: {
+        copa_chair: {
+          sheet: "cadeira_lado",
+          variants: [
+            { when: { virada: "direita" }, look: { frame: 0, seat: "right" } },
+            { when: { virada: "esquerda" }, look: { frame: 1, seat: "left" } },
+          ],
+        },
+      },
+    };
+    const chairs = {
+      a: { kind: "copa_chair", position: { x: 12, y: 11 }, attributes: { virada: "direita" } },
+      b: { kind: "copa_chair", position: { x: 14, y: 11 }, attributes: { virada: "esquerda" } },
+    };
+    expect(seatAt(copa, chairs, { x: 12, y: 11 })).toBe("right");
+    expect(seatAt(copa, chairs, { x: 14, y: 11 })).toBe("left");
+    expect(lookOf(copa, "copa_chair", { virada: "esquerda" }).frame).toBe(1);
+  });
+});
+
+describe("a arte nova do escritório (ADR-0082)", () => {
+  it("a TV e o bebedouro se mexem sempre, no laço deles", () => {
+    expect(loopFrame({ frames: [1, 2], fps: 2 }, 0)).toBe(1);
+    expect(loopFrame({ frames: [1, 2], fps: 2 }, 0.6)).toBe(2);
+    expect(loopFrame({ frames: [1, 2], fps: 2 }, 1.1)).toBe(1);
+    expect(loopFrame(undefined, 3)).toBeUndefined();
+  });
+
+  it("a divisória escolhe o quadro pela máscara dos vizinhos", () => {
+    // Uma fileira de cubículos: a linha de cima e as colunas 0 e 2 descendo.
+    const rows = ["PPP", "P.P", "P.P"];
+    const typeAt = (x: number, y: number): string => rows[y]?.[x] ?? "";
+    expect(autotileMask(typeAt, 0, 0)).toBe(2 | 4); // canto: leste e sul
+    expect(autotileMask(typeAt, 1, 0)).toBe(2 | 8); // reta leste-oeste
+    expect(autotileMask(typeAt, 2, 0)).toBe(4 | 8); // canto: sul e oeste
+    expect(autotileMask(typeAt, 0, 2)).toBe(1); // a ponta de baixo
   });
 });

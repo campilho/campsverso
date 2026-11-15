@@ -35,6 +35,28 @@ export interface Look {
   /** Um quadro da mesma folha desenhado por cima de quem está no tile: o encosto da cadeira de
    * escritório, na frente de quem senta de costas (a arte da fase 1). */
   readonly front?: number;
+  /** Quanto o quadro anda, em pixels, a partir do pé no meio do tile: o bloco do banheiro, de 4
+   * tiles, começa no tile da coisa (ADR-0082). */
+  readonly dx?: number;
+  readonly dy?: number;
+  /** Um assento (a cadeira do escritório, ADR-0078): quem para em cima dele senta, olhando para
+   * este lado. Numa variante, o lado vem do atributo (a cadeira de lado da copa, ADR-0082). */
+  readonly seat?: Facing;
+}
+
+/** Uma coisa que se mexe sempre: a TV com o jogo, as bolhas do bebedouro (ADR-0082). */
+export interface Loop {
+  readonly frames: readonly number[];
+  readonly fps?: number;
+}
+
+/** Uma peça desenhada sobre cada tile de um tipo do mapa lógico, com a profundidade da linha dele:
+ * a divisória dos cubículos, que cobre o pé de quem passa atrás dela (ADR-0082). Com `autotile:
+ * "mask4"`, o quadro é a máscara dos vizinhos do mesmo tipo (norte 1, leste 2, sul 4, oeste 8). */
+export interface TileProp {
+  readonly sheet: string;
+  readonly frame?: number;
+  readonly autotile?: "mask4";
 }
 
 /** Uma coisa que se mexe enquanto alguém sentado de frente para ela faz uma das ações: a tela da
@@ -55,11 +77,13 @@ export interface KindArt extends Look {
   readonly variants?: readonly Variant[];
   /** Todas as que batem se somam por cima (badges, rótulos). */
   readonly overlays?: readonly Variant[];
-  /** Um assento (a cadeira do escritório, ADR-0078): quem para em cima dele senta, olhando para
-   * este lado. */
-  readonly seat?: Facing;
   /** Os quadros de quando está em uso (`InUse`). */
   readonly in_use?: InUse;
+  /** Os quadros que se repetem sempre (`Loop`). */
+  readonly loop?: Loop;
+  /** Quantos tiles a coisa ocupa para a direita, a partir do tile dela: quem está ao lado de
+   * qualquer um deles a usa (o bloco do banheiro, de 4 tiles). */
+  readonly width?: number;
 }
 
 export interface Animation {
@@ -89,6 +113,9 @@ export interface AvatarArt {
   readonly seated_actions?: Readonly<Record<string, string>>;
   /** Quantos pixels o pé fica acima da borda de baixo do quadro (o LPC, 2; a fase 1, 0). */
   readonly feet?: number;
+  /** A que altura do pé, em pixels, fica o rótulo da ação: acima da cabeça de quem senta encostado
+   * na mesa (padrão 50, o do personagem LPC). */
+  readonly label_above?: number;
   /** As ações em que o avatar não aparece: atrás da porta do banheiro (ADR-0080). */
   readonly hidden?: readonly string[];
   /** Um recorte de um quadro da folha, para o HUD. */
@@ -111,6 +138,8 @@ export interface ArtManifest {
   readonly sheets?: Readonly<Record<string, SheetDef>>;
   readonly tiles?: Readonly<Record<string, Look>>;
   readonly kinds?: Readonly<Record<string, KindArt>>;
+  /** As peças desenhadas sobre os tiles de um tipo, pelo nome do tipo (`TileProp`). */
+  readonly tile_props?: Readonly<Record<string, TileProp>>;
   /** Quanto escurecer em cada fase do dia (0 a 1). */
   readonly phases?: Readonly<Record<string, { readonly shade: number }>>;
   /** Em cada estação do ano acelerado (ADR-0067): a cor que tinge o chão e as folhas que trocam
@@ -286,10 +315,32 @@ export function inUseFrame(inUse: InUse | undefined, actions: readonly string[],
   return inUse.frames[index];
 }
 
-/** Uma coisa no mundo, do jeito que o assento precisa dela: o tipo e o lugar. */
+/** O quadro de uma coisa que se mexe sempre (`Loop`); sem laço, nenhum. */
+export function loopFrame(loop: Loop | undefined, seconds: number): number | undefined {
+  if (loop === undefined || loop.frames.length === 0) {
+    return undefined;
+  }
+  return loop.frames[Math.floor(Math.max(0, seconds) * (loop.fps ?? 2)) % loop.frames.length];
+}
+
+/** A máscara dos vizinhos do mesmo tipo de um tile (norte 1, leste 2, sul 4, oeste 8): o quadro
+ * do autotile da divisória (ADR-0082). */
+export function autotileMask(typeAt: (x: number, y: number) => string, x: number, y: number): number {
+  const type = typeAt(x, y);
+  return (
+    (typeAt(x, y - 1) === type ? 1 : 0) |
+    (typeAt(x + 1, y) === type ? 2 : 0) |
+    (typeAt(x, y + 1) === type ? 4 : 0) |
+    (typeAt(x - 1, y) === type ? 8 : 0)
+  );
+}
+
+/** Uma coisa no mundo, do jeito que o assento precisa dela: o tipo, o lugar e os atributos (o lado
+ * da cadeira da copa vem de um). */
 export interface Placed {
   readonly kind: string;
   readonly position?: { readonly x: number; readonly y: number } | undefined;
+  readonly attributes?: Readonly<Record<string, unknown>> | undefined;
 }
 
 /** O lado para onde olha quem está parado num assento, ou nada fora de um. Só vale em cima do
@@ -305,8 +356,11 @@ export function seatAt(
     return undefined;
   }
   for (const thing of Object.values(things)) {
-    const seat = thing === undefined ? undefined : manifest.kinds?.[thing.kind]?.seat;
-    if (seat !== undefined && thing?.position?.x === x && thing.position.y === y) {
+    if (thing?.position?.x !== x || thing.position.y !== y || manifest.kinds?.[thing.kind] === undefined) {
+      continue;
+    }
+    const seat = lookOf(manifest, thing.kind, thing.attributes ?? {}).seat;
+    if (seat !== undefined) {
       return seat;
     }
   }

@@ -10,12 +10,13 @@ import Phaser from "phaser";
 import {
   EMPTY,
   animationFor,
+  autotileMask,
   colorNumber,
-  facedTile,
   facingOf,
   frameOf,
   inUseFrame,
   lookOf,
+  loopFrame,
   seasonSheet,
   seasonTint,
   seatAt,
@@ -110,7 +111,10 @@ class ThingView {
     if (fill !== undefined) {
       this.box.setFillStyle(colorNumber(fill));
     }
-    this.image.setVisible(sheet !== undefined).setPosition(cx, (y + 1) * TILE).setDepth(depth);
+    // O pé do quadro no meio da borda de baixo do tile, andado de `dx` e `dy` (o bloco do banheiro).
+    const footX = cx + (look.dx ?? 0);
+    const footY = (y + 1) * TILE + (look.dy ?? 0);
+    this.image.setVisible(sheet !== undefined).setPosition(footX, footY).setDepth(depth);
     if (sheet !== undefined) {
       this.image.setTexture(sheet, frame ?? look.frame ?? 0).setScale(look.scale ?? 1);
       if (look.tint === undefined) {
@@ -121,7 +125,7 @@ class ThingView {
     }
     // O avatar no tile fica em depthAt(y) + 0.5: o encosto vem logo por cima dele.
     const front = sheet === undefined ? undefined : look.front;
-    this.front.setVisible(front !== undefined).setPosition(cx, (y + 1) * TILE).setDepth(depth + 0.6);
+    this.front.setVisible(front !== undefined).setPosition(footX, footY).setDepth(depth + 0.6);
     if (sheet !== undefined && front !== undefined) {
       this.front.setTexture(sheet, front).setScale(look.scale ?? 1);
     }
@@ -272,7 +276,7 @@ class AvatarView {
     const progress = progressOf(state, id, tick);
     const above = inBed !== undefined && bed !== undefined ? { cx: bed.cx, top: bed.top - 2 } : undefined;
     const tx = above?.cx ?? cx;
-    const top = above?.top ?? (drawn ? (at.y + 1) * TILE - 50 : at.y * TILE - 4);
+    const top = above?.top ?? (drawn ? (at.y + 1) * TILE - (art?.label_above ?? 50) : at.y * TILE - 4);
     this.tag.setVisible(progress !== undefined).setText(progress?.label ?? "");
     // Perto da borda, o rótulo fica inteiro dentro do que a câmera mostra (achado do usuário no
     // mapa d: "Cavar um canteiro aqui" saía do mapa); a barra continua sobre o avatar.
@@ -339,6 +343,8 @@ class WorldScene extends Phaser.Scene {
   private tinted: string | undefined;
   private season: string | undefined; // a estação já desenhada nas folhas do mapa visual
   private readonly things = new Map<string, ThingView>();
+  /** As peças sobre os tiles (a divisória, ADR-0082), refeitas quando o terreno muda. */
+  private props: Phaser.GameObjects.Image[] = [];
   private readonly avatars = new Map<string, AvatarView>();
   private readonly seen = new Map<string, Point>(); // onde cada avatar aparece agora, em tiles
   /** O que fazem os que estão sentados, pelo tile à frente do assento: a mesa em uso. */
@@ -398,6 +404,7 @@ class WorldScene extends Phaser.Scene {
     const height = this.scale.height;
     if (this.terrainDirty) {
       this.drawTerrain();
+      this.drawProps();
       this.terrainDirty = false;
     }
     const frame = this.frame;
@@ -444,6 +451,33 @@ class WorldScene extends Phaser.Scene {
     const cy = at.y * TILE + TILE / 2;
     for (let ring = 0; ring < LIGHT_RINGS; ring++) {
       this.light.fillStyle(color, step).fillCircle(cx, cy, outer * (1 - ring / LIGHT_RINGS));
+    }
+  }
+
+  /** As peças sobre os tiles de um tipo (ADR-0082): a divisória dos cubículos, com a profundidade
+   * da linha dela, como as coisas, para cobrir o pé de quem passa atrás. */
+  private drawProps(): void {
+    for (const image of this.props) {
+      image.destroy();
+    }
+    this.props = [];
+    const grid = this.grid;
+    const props = this.art.tile_props;
+    if (grid === undefined || props === undefined) {
+      return;
+    }
+    const typeAt = (x: number, y: number): string =>
+      x < 0 || y < 0 || x >= grid.width || y >= grid.height ? "" : tileAt(grid, x, y);
+    for (let y = 0; y < grid.height; y++) {
+      for (let x = 0; x < grid.width; x++) {
+        const prop = props[typeAt(x, y)];
+        if (prop === undefined || !this.textures.exists(prop.sheet)) {
+          continue;
+        }
+        const frame = prop.autotile === "mask4" ? autotileMask(typeAt, x, y) : (prop.frame ?? 0);
+        const image = this.add.image(x * TILE + TILE / 2, (y + 1) * TILE, prop.sheet, frame);
+        this.props.push(image.setOrigin(0.5, 1).setDepth(depthAt(y)));
+      }
     }
   }
 
@@ -602,8 +636,14 @@ class WorldScene extends Phaser.Scene {
         this.things.set(id, view);
       }
       const { x, y } = entity.position;
-      const users = this.using.get(`${String(x)},${String(y)}`) ?? [];
-      const busy = inUseFrame(this.art.kinds?.[entity.kind]?.in_use, users, time / 1000);
+      const kind = this.art.kinds?.[entity.kind];
+      // Quem está ao lado de qualquer tile da coisa a usa (o bloco do banheiro tem 4 de largura).
+      const users: string[] = [];
+      for (let dx = 0; dx < (kind?.width ?? 1); dx++) {
+        users.push(...(this.using.get(`${String(x + dx)},${String(y)}`) ?? []));
+      }
+      const seconds = time / 1000;
+      const busy = inUseFrame(kind?.in_use, users, seconds) ?? loopFrame(kind?.loop, seconds);
       view.show(this, lookOf(this.art, entity.kind, entity.attributes), x, y, busy);
     }
     for (const [id, view] of this.things) {
@@ -639,10 +679,16 @@ class WorldScene extends Phaser.Scene {
       const said = this.balloons.current(id, performance.now());
       const seat = seatAt(this.art, state.entities, at);
       const doing = state.actions[id]?.action;
-      if (seat !== undefined && doing !== undefined) {
-        const ahead = facedTile(at, seat);
-        const key = `${String(ahead.x)},${String(ahead.y)}`;
-        this.using.set(key, [...(this.using.get(key) ?? []), doing]);
+      if (doing !== undefined) {
+        // Quem faz uma ação usa o que está ao lado dele: a mesa diante da cadeira, a máquina de
+        // café, o micro-ondas no balcão, a porta do banheiro (ADR-0082).
+        const [ax, ay] = [Math.round(at.x), Math.round(at.y)];
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const key = `${String(ax + dx)},${String(ay + dy)}`;
+            this.using.set(key, [...(this.using.get(key) ?? []), doing]);
+          }
+        }
       }
       view.show(this, lookOf(this.art, "avatar", entity.attributes), art, frame, id, at, time, this.bedOf(state, id), said, seat);
     }
