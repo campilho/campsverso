@@ -187,6 +187,8 @@ sessoes: ## tempo e tokens por turno e por marco em docs/custos (MARCO=M5 marca 
 
 secrets: ## gera em .env (fora do git) as senhas do NATS que ainda faltam
 	@touch .env && chmod 600 .env
+	@# Uma última linha sem quebra (uma chave colada à mão) receberia a senha nova grudada nela.
+	@[ -z "$$(tail -c1 .env)" ] || echo >> .env
 	@for role in $(NATS_ROLES); do \
 	  grep -q "^NATS_$${role}_PASSWORD=" .env || echo "NATS_$${role}_PASSWORD=$$(openssl rand -hex 24)" >> .env; \
 	done
