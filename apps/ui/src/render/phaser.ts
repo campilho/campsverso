@@ -49,6 +49,9 @@ const mapKey = (url: string): string => `visual-map:${url}`;
 const VIEW = { width: 32, height: 18 };
 const DRAG = 6; // pixels de arrasto antes de virar arrastar, e não clique
 const FEET = 2; // os pés do LPC ficam um pouco acima da borda do quadro
+/** Por quanto tempo, depois do último quadro em que o desenho se mexeu, o avatar continua com a
+ * animação de andar: entre dois passos do teclado ele não pisca para o parado. */
+const WALK_HOLD_MS = 120;
 
 interface Frame {
   readonly state: ObserverState;
@@ -142,6 +145,7 @@ class AvatarView {
   private walked = 0;
   private animation: string | undefined;
   private since = 0;
+  private movedAt = Number.NEGATIVE_INFINITY;
 
   constructor(scene: Phaser.Scene, id: string) {
     this.body = scene.add.circle(0, 0, TILE * 0.34, 0xf5f5f5).setStrokeStyle(2, 0x1b1b1b);
@@ -187,20 +191,27 @@ class AvatarView {
     const action = state.actions[id];
     const asleep = state.asleep[id] === true;
     const moved = this.last === undefined ? { x: 0, y: 0 } : { x: at.x - this.last.x, y: at.y - this.last.y };
-    this.walked += Math.hypot(moved.x, moved.y);
+    const step = Math.hypot(moved.x, moved.y);
+    this.walked += step;
     this.last = at;
+    if (step > 1e-4) {
+      this.movedAt = time;
+    }
+    // O desenho que anda, anda com a animação de andar: a 72× a ação do kernel acaba antes de o
+    // desenho chegar, e o avatar deslizava parado até o destino (achado do usuário no escritório).
+    const doing = !asleep && time - this.movedAt < WALK_HOLD_MS ? "move" : action?.action;
     const target = action?.params.target;
     const thing = typeof target === "string" ? state.entities[target]?.position : undefined;
     // Parado num assento, senta olhando para o lado dele, qualquer que seja a ação (ADR-0078).
-    const seated = seat !== undefined && !asleep && action?.action !== "move" ? art?.seated : undefined;
+    const seated = seat !== undefined && !asleep && doing !== "move" ? art?.seated : undefined;
     this.facing =
       seated !== undefined && seat !== undefined
         ? seat
-        : action?.action === "move" || thing === undefined
+        : doing === "move" || thing === undefined
           ? facingOf(moved.x, moved.y, this.facing)
           : facingOf(thing.x - at.x, thing.y - at.y, this.facing);
 
-    const name = seated ?? animationFor(art, action?.action, asleep);
+    const name = seated ?? animationFor(art, doing, asleep);
     const animation = name === undefined ? undefined : art?.animations?.[name];
     const sheet = art !== undefined && scene.textures.exists(art.sheet) ? art.sheet : undefined;
     if (name !== this.animation) {
