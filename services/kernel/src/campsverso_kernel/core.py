@@ -912,6 +912,21 @@ class KernelCore:
             world.emit_fact(
                 "campsverso.avatar.spoke.v1", spoke, caused_by=command_id, correlation=correlation
             )
+            listener = world.avatar_map.get(str(params.get("to")))
+            if self.definition.interrupt_on_speech and listener is not None:
+                self._interrupt_listener(listener, command_id, correlation)
+
+    def _interrupt_listener(
+        self, listener: Avatar, command_id: str, correlation: str | None
+    ) -> None:
+        """Quem ouve o próprio nome para o que está fazendo e decide de novo (ADR-0080). Só uma ação
+        em curso que aceita parar; quem está parado já vê a fala no próximo pedido de decisão."""
+        running = listener.action
+        if not listener.present or running is None or running.interrupt == "never":
+            return
+        with self.world.context(caused_by=command_id, correlation=correlation):
+            self.world.interrupt_action(listener.avatar_id, "cancelled")
+        listener.add_pending("action_interrupted")
 
     def _validate(
         self, avatar: Avatar, name: str, params: Mapping[str, Any], action_id: str

@@ -56,6 +56,7 @@ class OfficeLab:
     """O laboratório com o dev, que não aceita humano, e o gerente, que vem de fora."""
 
     tick_seconds: int = 60
+    speech_interrupts: bool = True
     manifest: CartridgeManifest = field(
         default_factory=lambda: CartridgeManifest("lab_office", "0.1.0", ("lab",))
     )
@@ -83,16 +84,20 @@ class OfficeLab:
             )
         )
         world.add_action(Think())
+        world.set_interrupt_on_speech(self.speech_interrupts)
 
     def rules_file(self) -> Path | None:
         return None
 
 
 def _core(
-    tick_seconds: int = 60, controllers: dict[str, ControllerRef] | None = None
+    tick_seconds: int = 60,
+    controllers: dict[str, ControllerRef] | None = None,
+    speech_interrupts: bool = True,
 ) -> KernelCore:
     definition = build_world(
-        "lab_office", {"lab": LabCartridge(), "lab_office": OfficeLab(tick_seconds)}
+        "lab_office",
+        {"lab": LabCartridge(), "lab_office": OfficeLab(tick_seconds, speech_interrupts)},
     )
     core = KernelCore(definition, WorldConfig("lab-02", 7, START), RULES, rules_source="test")
     if controllers:
@@ -252,6 +257,31 @@ def test_a_fala_recusa_o_texto_vazio_longo_e_quem_nao_esta() -> None:
     ):
         core.submit(_as("dev", "say", params, DEV_SCRIPT.id))
         assert _only(_run(core), "action.rejected")[-1]["reason"] == reason
+
+
+def _dev_thinking_when_spoken_to(speech_interrupts: bool) -> list[Fact]:
+    core = _core(tick_seconds=2, speech_interrupts=speech_interrupts)
+    core.submit(control("avatar.possess", {"avatar_id": "gerente", "controller": HUMAN}))
+    core.submit(_as("dev", "think", {"seconds": 600}, DEV_SCRIPT.id))
+    _run(core, 3)
+    core.submit(_as("gerente", "say", {"text": "Camps, um minuto?", "to": "dev"}, HUMAN["id"]))
+    return _run(core, 2)
+
+
+def test_falar_com_o_dev_interrompe_o_que_ele_faz_e_ele_decide_de_novo() -> None:
+    """ADR-0080: o trabalho é parcial, então o progresso fica, e o dev responde."""
+    facts = _dev_thinking_when_spoken_to(speech_interrupts=True)
+    (failed,) = _only(facts, "action.failed")
+    who = (failed["avatar_id"], failed["action"], failed["reason"])
+    assert who == ("dev", "think", "cancelled")
+    asked = [d for d in _only(facts, "avatar.decision_requested") if d["avatar_id"] == "dev"]
+    assert [d["reason"] for d in asked] == ["action_interrupted"]
+
+
+def test_sem_a_opcao_do_cartucho_a_fala_nao_interrompe() -> None:
+    facts = _dev_thinking_when_spoken_to(speech_interrupts=False)
+    assert not _only(facts, "action.failed")
+    assert not [d for d in _only(facts, "avatar.decision_requested") if d["avatar_id"] == "dev"]
 
 
 # ------------------------------------------------------------------ o relógio ancorado

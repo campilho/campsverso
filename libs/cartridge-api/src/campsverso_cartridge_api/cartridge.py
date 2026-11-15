@@ -49,6 +49,11 @@ class WorldBuilder(Protocol):
         O kernel converte pela escala do momento; sem isso, o andar segue o relógio do mundo."""
         ...
 
+    def set_interrupt_on_speech(self, interrupts: bool) -> None:
+        """Falar com um avatar (`say` com `to`) interrompe a ação dele, que não seja `never`, e ele
+        decide de novo, com o motivo `action_interrupted` (ADR-0080)."""
+        ...
+
     def set_movement_cost(self, need: str, points_per_tile: float) -> None:
         """Andar gasta `points_per_tile` da necessidade por tile percorrido (ADR-0062)."""
         ...
