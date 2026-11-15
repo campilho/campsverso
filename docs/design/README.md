@@ -88,6 +88,8 @@ O M23 entregou o escritório em arte LPC. Na partida dele, o usuário achou que 
 | O prédio em quatro salas (pesquisa, roteiro, estúdio, arte) e a recepção com o vigia, em vista de cima | [escritorio-quatro-salas-image2.webp](escritorio-quatro-salas-image2.webp) | Image2 (ChatGPT) | a planta com várias salas e um corredor, o vigia na recepção, a luz quente das luminárias; serve ao estúdio do CampsCast |
 | O Campsverso Companion: o escritório num aparelho de mesa, com o toque num agente, os detalhes da tarefa, os comandos simples e o PR até a entrega | [companion-replay.webp](companion-replay.webp) | não registrada | uma vertente possível: o replay e o acompanhamento do mundo num aparelho à parte, só com o que o contrato `realtime` já entrega |
 
+**O próximo passo** é um teste de arte com o Claude Design, desenhando em código como no protótipo, na vista de cima em 3/4. O pedido está em [briefing-arte-escritorio.md](briefing-arte-escritorio.md), com o que fazer com a entrega.
+
 Uma quarta referência fica fora do repositório: a capa de um vídeo do YouTube sobre jogos de Mega Drive, que não é nossa. Ela mostra o clima de 16 bits que se quer: vista de cima em 3/4, folhagem densa, sombras marcadas e um personagem pequeno num cenário rico.
 
 ## O estúdio (depois do escritório)
