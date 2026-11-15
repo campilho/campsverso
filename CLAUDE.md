@@ -16,7 +16,8 @@ Leia antes de qualquer tarefa não trivial, nesta ordem:
 6. `docs/arquitetura/catalogo-eventos-v0.1.md` — eventos e comandos da v0.1 (depois do M0, guia de leitura dos schemas em `contracts/`)
 7. `docs/arquitetura/fazenda-boa-vista-biblia.md` — a fazenda 2 do M13: números, regras visíveis e ocultas, o fazendeiro-script 2
 8. `docs/arquitetura/fazenda-morada-do-sol-biblia.md` — a fazenda 3 do M16: o ano e as estações, o mapa com raio e marcos e as variantes b, c e d (M19 e M21), os canteiros que voltam a ser grama, as regras ocultas R-001 a R-004, o fazendeiro-script 3 e o oráculo (§16)
-9. `docs/decisoes/README.md` — índice das ADRs. **Uma ADR aceita prevalece sobre o texto dos documentos acima.**
+9. `docs/arquitetura/escritorio-campsverso-biblia.md` — o escritório do M23 (ADR-0078): o tempo real, a sala, o elenco, o pedido no quadro e os scripts
+10. `docs/decisoes/README.md` — índice das ADRs. **Uma ADR aceita prevalece sobre o texto dos documentos acima.**
 
 Se dois documentos conflitarem, ou se faltar uma decisão: **pare e pergunte**. Depois registre a decisão como ADR curto em `docs/decisoes/NNNN-titulo.md`.
 
@@ -93,6 +94,12 @@ campsverso/
       eval/                   # a prova do mundo e a rubrica do juiz (ADR-0070), fora da mente; farm_camps e farm_boavista têm a rubrica
       art/                    # o mapa visual com as árvores LPC por estação e o espantalho
       mind/                   # o manual e o catálogo da fazenda 3; entry point camps_morada
+    office/                   # gênero do escritório (ADR-0078): o pedido no quadro, o expediente, o tempo real
+      sim/                    # o pedido e as ações, o expediente e o vigia; office.yaml
+      script/                 # o dev-script, o vigia e o gerente-script dos testes
+      art/  locale/           # as cores até a arte LPC; os nomes e os rótulos das ações
+    office_campsverso/        # o escritório do Campsverso: estende office
+      sim/                    # a sala, o elenco (o dev nunca é humano; o gerente entra pela porta) e os feriados
   apps/
     ui/                       # Vite + Phaser
   tools/
@@ -140,6 +147,7 @@ make up           # sobe o NATS em segundo plano
 make stop         # derruba o NATS
 make run          # sobe o NATS e o Procfile (honcho): kernel, percepção, script, ajudantes, arquivador, gateway e orçamento
 make sandbox      # mundo descartável com tudo ligado, em data/sandbox/<data-hora> (não toca no oficial); MENTE=camps põe o LLM no Camps (ADR-0059; na Boa Vista, MENTE=camps_boavista; na Morada do Sol, MENTE=camps_morada); PAUSADO=1 começa com o relógio parado
+make escritorio   # o escritório vivo (ADR-0078): a 1×, no relógio de São Paulo, salta até agora ao subir; entre como o gerente em http://127.0.0.1:8765/?assumir=1 (make sandbox MUNDO=office-campsverso-demo mostra o dev a 72× em qualquer dia)
 make jogar        # o sandbox de quem joga: começa pausado e a tela do jogador assume o Camps ao abrir (MUNDO=farm-morada-do-sol-04); RETOMAR=data/sandbox/<pasta> continua
 make ui-build     # compila a UI em apps/ui/dist; o gateway a serve em http://127.0.0.1:8765
 make ui           # a UI em modo desenvolvimento (Vite), com proxy para o gateway
