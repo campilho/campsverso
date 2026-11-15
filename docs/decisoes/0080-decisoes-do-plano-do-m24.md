@@ -65,3 +65,17 @@ O plano foi aprovado em 15/nov como recomendado, com duas ressalvas do usuário:
 - **O escritório fica vivo o dia inteiro** sem custo, e o orçamento estourado não para nada além da programação.
 - **A rotina e o dev-script dividem o código.** O dev-script, com o trabalho simulado, continua nos mundos sem mente, nos testes e no soak.
 - **O plano macro (§6) muda num ponto:** a guarda caída não pausa o escritório. Ela desliga a mente.
+
+## Adendo (15/nov): o orçamento, como ficou
+
+A parte 1 fez o lado da guarda; a reação da mente vem com ela, na parte 3. Quatro pontos saíram diferentes do plano:
+
+1. **Os avisos com o pedido são um tipo novo** (`ops.budget.threshold_reached.v2` e `ops.budget.exceeded.v2`). O plano punha o escopo do pedido como campo opcional, mas o escopo já existia, com `day` e `total`, e acrescentar um valor ao enum é incompatível.
+2. **O sinal de vida é uma mensagem viva** (`live.budget.v1`), e não o evento `ops.heartbeat.v1`. Ele segue o pulso do kernel (ADR-0051): sai a cada 5 s num assunto que nenhum stream guarda, com os tetos, o gasto e o que está estourado. Um evento a cada 5 s encheria o arquivo de um mundo que roda o dia inteiro.
+3. **Mudar os tetos vira um fato** (`ops.budget.limits_changed.v1`), para que o arquivo registre quem subiu o teto, quando e por quê. Os tetos do comando ficam no livro-caixa da guarda e valem também depois de uma queda; o arquivo do mundo vale até o primeiro comando. Subir um teto acima do gasto desfaz o estouro e rearma os avisos.
+4. **O teto do pedido nunca pausa o mundo,** nem na fazenda. No dia e no total, quem decide é o mundo (`budget.on_exceeded`): `pause` nas fazendas, como antes; `mind_off` no escritório, onde o mundo segue e a mente desliga.
+
+O kernel consome todos os comandos do mundo e passa a deixar de lado os do domínio `ops`, que são da guarda: sem recusa e sem entrada no diário.
+
+**Um defeito do M23, achado no caminho.** O `make escritorio` caía assim que subia. O mundo do escritório não tinha `budget`, a guarda saía com erro, e o honcho derrubava os outros processos junto. Os mundos do escritório ganharam tetos provisórios (US$ 3 por dia, US$ 1 por pedido, US$ 30 no total, `mind_off`), que a parte 3 ajusta quando a mente chegar.
+

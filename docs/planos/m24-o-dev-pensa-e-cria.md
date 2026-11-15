@@ -243,7 +243,7 @@ São ferramentas do computador, e não ações do mundo. A mente as chama durant
   - o dev diz uma vez "Fiquei sem bateria: não consigo mais programar hoje.";
   - os pedidos esperam no quadro, e o escritório segue;
   - na fazenda, o mundo continua pausando (`on_exceeded` no arquivo do mundo).
-- **A guarda dá sinal de vida** (`ops.heartbeat.v1`). Sem o sinal, a mente desliga do mesmo jeito.
+- **A guarda dá sinal de vida** (`live.budget.v1`, como o pulso do kernel; o adendo da ADR-0080). Sem o sinal, a mente desliga do mesmo jeito.
 
 ## 6. A tela
 
@@ -260,11 +260,11 @@ São ferramentas do computador, e não ações do mundo. A mente as chama durant
 - **Campos opcionais:**
   - `office.ticket.delivered.v1`: `patch`;
   - `llm.call.completed.v1`: `ticket_id`;
-  - `ops.budget.exceeded.v1`: `scope` (dia, pedido ou total).
+  - ~~`ops.budget.exceeded.v1`: `scope` (dia, pedido ou total)~~: virou o v2, abaixo (o enum do escopo não muda no v1).
 - **Tipos novos:**
   - `campsverso.workshop.step.v1`, num domínio novo da plataforma, `workshop`, publicado pelo processo da mente;
   - `campsverso.cmd.ops.budget.set.v1`;
-  - `campsverso.ops.heartbeat.v1`.
+  - `campsverso.live.budget.v1` (no lugar do `ops.heartbeat.v1`), `campsverso.ops.budget.limits_changed.v1` e os avisos `ops.budget.*.v2`, com o escopo do pedido (o adendo da ADR-0080).
 - **O `decision_requested` não muda** (§1.3).
 
 ## 8. Testes do marco
