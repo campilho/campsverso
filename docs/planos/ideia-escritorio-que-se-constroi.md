@@ -1,6 +1,6 @@
 # Ideia: o escritório que constrói a si mesmo
 
-**Status:** escrito em 14/out/2026 como aprofundamento da ideia; em 17/out a direção foi adotada para a v0.3 (ADR-0055); em 20/out o escritório passou para a v0.4, depois da fazenda sofisticada (ADR-0064). As decisões da seção 10 continuam em aberto e vão para o plano macro da v0.3, com decisões numeradas, antes de qualquer código.
+**Status:** escrito em 14/out/2026 como aprofundamento da ideia; em 17/out a direção foi adotada para a v0.3 (ADR-0055); em 20/out o escritório passou para a v0.4, depois da fazenda sofisticada (ADR-0064). As decisões da seção 10 continuam em aberto e vão para o plano macro da v0.3, com decisões numeradas, antes de qualquer código. **Em 14/nov/2026, o plano macro da v0.4 (`v0.4-macro.md`, ADR-0077) tomou as decisões e mudou parte da ideia:** o dev é sempre um LLM e o humano entra como o gerente; robôs são ferramentas, nunca LLM; e o tempo é o real.
 
 ## A ideia
 
