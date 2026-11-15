@@ -9,6 +9,7 @@ import {
   lookOf,
   mergeManifests,
   rooted,
+  seatAt,
   shadeOf,
   tileLook,
   visualMapFor,
@@ -168,5 +169,21 @@ describe("créditos da arte (ADR-0053)", () => {
       ["camps.png", "bluecarrot16, ElizaWy", "https://a, https://b"],
       ["terrain.png", 'Sharm "Lanea"', ""],
     ]);
+  });
+});
+
+describe("o assento (ADR-0078)", () => {
+  const office: ArtManifest = { version: 1, kinds: { chair: { sheet: "objects", frame: 3, seat: "up" }, desk: { sheet: "objects", frame: 0 } } };
+  const things = {
+    cadeira: { kind: "chair", position: { x: 5, y: 7 } },
+    mesa: { kind: "desk", position: { x: 5, y: 6 } },
+    pedido: { kind: "ticket" },
+  };
+
+  it("só quem está em cima do tile do assento senta, olhando para o lado dele", () => {
+    expect(seatAt(office, things, { x: 5, y: 7 })).toBe("up");
+    expect(seatAt(office, things, { x: 5, y: 6 })).toBeUndefined(); // a mesa não é assento
+    expect(seatAt(office, things, { x: 5, y: 7.4 })).toBeUndefined(); // no meio de um passo
+    expect(seatAt({ version: 1 }, things, { x: 5, y: 7 })).toBeUndefined(); // a fazenda não tem
   });
 });

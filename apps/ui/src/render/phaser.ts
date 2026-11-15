@@ -16,6 +16,7 @@ import {
   lookOf,
   seasonSheet,
   seasonTint,
+  seatAt,
   shadeOf,
   tileLook,
   visualMapFor,
@@ -178,6 +179,7 @@ class AvatarView {
     time: number,
     bed?: Bed,
     said?: string,
+    seat?: Facing,
   ): void {
     const { state, tick } = frame;
     const cx = at.x * TILE + TILE / 2;
@@ -189,12 +191,16 @@ class AvatarView {
     this.last = at;
     const target = action?.params.target;
     const thing = typeof target === "string" ? state.entities[target]?.position : undefined;
+    // Parado num assento, senta olhando para o lado dele, qualquer que seja a ação (ADR-0078).
+    const seated = seat !== undefined && !asleep && action?.action !== "move" ? art?.seated : undefined;
     this.facing =
-      action?.action === "move" || thing === undefined
-        ? facingOf(moved.x, moved.y, this.facing)
-        : facingOf(thing.x - at.x, thing.y - at.y, this.facing);
+      seated !== undefined && seat !== undefined
+        ? seat
+        : action?.action === "move" || thing === undefined
+          ? facingOf(moved.x, moved.y, this.facing)
+          : facingOf(thing.x - at.x, thing.y - at.y, this.facing);
 
-    const name = animationFor(art, action?.action, asleep);
+    const name = seated ?? animationFor(art, action?.action, asleep);
     const animation = name === undefined ? undefined : art?.animations?.[name];
     const sheet = art !== undefined && scene.textures.exists(art.sheet) ? art.sheet : undefined;
     if (name !== this.animation) {
@@ -584,7 +590,8 @@ class WorldScene extends Phaser.Scene {
       }
       const art = this.art.avatars?.[id] ?? this.art.avatars?.["*"];
       const said = this.balloons.current(id, performance.now());
-      view.show(this, lookOf(this.art, "avatar", entity.attributes), art, frame, id, at, time, this.bedOf(state, id), said);
+      const seat = seatAt(this.art, state.entities, at);
+      view.show(this, lookOf(this.art, "avatar", entity.attributes), art, frame, id, at, time, this.bedOf(state, id), said, seat);
     }
     for (const [id, view] of this.avatars) {
       if (!seen.has(id)) {

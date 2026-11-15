@@ -44,6 +44,9 @@ export interface KindArt extends Look {
   readonly variants?: readonly Variant[];
   /** Todas as que batem se somam por cima (badges, rótulos). */
   readonly overlays?: readonly Variant[];
+  /** Um assento (a cadeira do escritório, ADR-0078): quem para em cima dele senta, olhando para
+   * este lado. */
+  readonly seat?: Facing;
 }
 
 export interface Animation {
@@ -66,6 +69,9 @@ export interface AvatarArt {
   readonly actions?: Readonly<Record<string, string>>;
   readonly idle?: string;
   readonly asleep?: string;
+  /** A animação de quem está parado num assento, qualquer que seja a ação (trabalhar, esperar,
+   * falar): o Camps senta na cadeira da mesa e o vigia na dele. */
+  readonly seated?: string;
   /** Um recorte de um quadro da folha, para o HUD. */
   readonly portrait?: { readonly frame: number; readonly x: number; readonly y: number; readonly size: number };
   /** Dormindo numa cama: só a cabeça (um recorte de um quadro) no travesseiro, `dy` abaixo do topo da cama. */
@@ -235,6 +241,33 @@ export function animationFor(art: AvatarArt | undefined, action: string | undefi
     return art.idle;
   }
   return art.actions?.[action] ?? art.actions?.["*"] ?? art.idle;
+}
+
+/** Uma coisa no mundo, do jeito que o assento precisa dela: o tipo e o lugar. */
+export interface Placed {
+  readonly kind: string;
+  readonly position?: { readonly x: number; readonly y: number } | undefined;
+}
+
+/** O lado para onde olha quem está parado num assento, ou nada fora de um. Só vale em cima do
+ * tile do assento: no meio de um passo, ninguém senta. */
+export function seatAt(
+  manifest: ArtManifest,
+  things: Readonly<Record<string, Placed | undefined>>,
+  at: { readonly x: number; readonly y: number },
+): Facing | undefined {
+  const x = Math.round(at.x);
+  const y = Math.round(at.y);
+  if (Math.abs(at.x - x) > 1e-6 || Math.abs(at.y - y) > 1e-6) {
+    return undefined;
+  }
+  for (const thing of Object.values(things)) {
+    const seat = thing === undefined ? undefined : manifest.kinds?.[thing.kind]?.seat;
+    if (seat !== undefined && thing?.position?.x === x && thing.position.y === y) {
+      return seat;
+    }
+  }
+  return undefined;
 }
 
 /** `#rrggbb` ou `hsl(h s% l%)` como número 0xRRGGBB, que é como o Phaser recebe cores. */
