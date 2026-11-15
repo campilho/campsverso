@@ -597,6 +597,233 @@ function lixeira() {
 }
 
 // =====================================================================
+// AMBIENTES: o banheiro, a copa e a sala de descompressão
+// =====================================================================
+
+// ---- o banheiro: um bloco de 4 × 3 tiles com teto e duas portas (128 × 96)
+// f = 0 portas fechadas, 1 a do masculino aberta, 2 a do feminino aberta
+function placa(s, x, y, cor, saia) {     // 9 × 9, com o bonequinho
+  s.r(x, y, 9, 9, cor).hl(x, x + 8, y, 'cremeCl').hl(x, x + 8, y + 8, 'contorno').vl(x, y, y + 8, 'contorno').vl(x + 8, y, y + 8, 'contorno');
+  s.r(x + 3, y + 2, 3, 2, 'branco');
+  if (saia) s.hl(x + 3, x + 5, y + 4, 'branco').hl(x + 2, x + 6, y + 5, 'branco').pts([[x + 3, y + 6], [x + 5, y + 6]], 'branco');
+  else s.r(x + 3, y + 4, 3, 2, 'branco').pts([[x + 3, y + 6], [x + 5, y + 6]], 'branco').pts([[x + 2, y + 4], [x + 6, y + 4]], 'branco');
+}
+function banheiro(f) {
+  const s = new Spr(128, 96);
+  // o teto, visto de cima
+  s.r(1, 1, 126, 35, 'bege').r(1, 1, 126, 3, 'begeEsc').r(1, 1, 3, 35, 'begeEsc').r(124, 1, 3, 35, 'begeEsc').hl(4, 123, 4, 'creme');
+  for (const x of [34, 66, 98]) s.vl(x, 5, 32, 'begeSomb');
+  s.hl(4, 123, 18, 'begeSomb');
+  s.disco(110, 11, 5, 'cinzaCl').disco(110, 11, 4, 'cinza');                       // o exaustor
+  for (const y of [9, 11, 13]) s.hl(107, 113, y, 'cinzaEsc');
+  s.r(1, 33, 126, 3, 'begeEsc').hl(1, 126, 36, 'contorno');
+  // a face da frente: parede, lambri e rodapé
+  s.r(1, 37, 126, 50, 'creme').hl(1, 126, 37, 'begeSomb');
+  s.hl(1, 126, 66, 'cremeCl').hl(1, 126, 67, 'begeSomb').r(1, 68, 126, 19, 'bege');
+  for (let x = 6; x < 127; x += 10) s.vl(x, 69, 85, 'begeSomb');
+  s.hl(1, 126, 87, 'madCl').r(1, 88, 126, 5, 'mad').hl(1, 126, 93, 'madEsc').hl(1, 126, 94, 'madMEsc');
+  // as duas portas (tiles 2 e 3 da sala)
+  [[38, 'azul', false, 1], [70, 'verm', true, 2]].forEach(([x0, cor, saia, k]) => {
+    s.r(x0 - 2, 46, 24, 49, 'madEsc').vl(x0 - 2, 46, 94, 'contorno').vl(x0 + 21, 46, 94, 'contorno').hl(x0 - 2, x0 + 21, 45, 'contorno');
+    if (f === k) {                                                                  // aberta para dentro: só o escuro
+      s.r(x0, 48, 20, 47, 'escuro').r(x0 + 16, 48, 4, 47, 'mad').vl(x0 + 16, 48, 94, 'madCl').hl(x0, x0 + 15, 48, 'grafiteEsc');
+    } else {
+      s.r(x0, 48, 20, 47, 'mad').vl(x0, 48, 94, 'madCl');
+      s.r(x0 + 3, 51, 14, 16, 'madEsc').r(x0 + 4, 52, 12, 14, 'mad').r(x0 + 3, 72, 14, 18, 'madEsc').r(x0 + 4, 73, 12, 16, 'mad');
+      s.r(saia ? x0 + 2 : x0 + 16, 70, 2, 2, 'amarelo').p(saia ? x0 + 2 : x0 + 16, 70, 'amareloCl');
+      placa(s, x0 + 6, 55, cor, saia);
+    }
+  });
+  return s.contorno();
+}
+
+// ---- geladeira (32 × 64): f 0 fechada, 1 aberta
+function geladeira(f) {
+  const s = new Spr(32, 64);
+  s.r(6, 5, 20, 5, 'cinzaCl').hl(6, 25, 5, 'branco');
+  s.r(6, 10, 20, 53, 'branco').vl(24, 10, 62, 'cinzaCl').vl(25, 10, 62, 'cinza');
+  s.hl(6, 25, 24, 'cinza').hl(6, 25, 25, 'cinzaCl');
+  s.vl(21, 13, 21, 'grafite').r(6, 60, 20, 3, 'grafite');
+  s.r(15, 14, 2, 2, 'azulCl').r(9, 15, 2, 2, 'vermCl');
+  if (f === 1) {
+    s.r(7, 26, 17, 33, 'amareloCl').hl(7, 23, 35, 'cinzaCl').hl(7, 23, 46, 'cinzaCl').vl(7, 26, 58, 'amarelo');
+    s.r(9, 30, 7, 5, 'branco').hl(9, 15, 30, 'azulCl').r(17, 31, 5, 4, 'verdeCl');      // as marmitas
+    s.r(10, 38, 2, 8, 'ceu').r(14, 40, 3, 6, 'vermCl').r(19, 39, 3, 7, 'cinzaCl');
+    s.r(26, 24, 4, 38, 'branco').vl(29, 24, 61, 'cinzaCl').vl(26, 24, 61, 'cinzaCl');   // a porta aberta
+  } else {
+    s.vl(21, 29, 42, 'grafite');
+    s.r(10, 30, 2, 2, 'amarelo').r(13, 34, 5, 6, 'cremeCl').hl(14, 16, 36, 'cinza').hl(14, 16, 38, 'cinza');   // ímã e bilhete
+  }
+  return s.contorno();
+}
+
+// ---- o balcão da copa (96 × 64, pegada 3 × 1): a pia e o micro-ondas; f 0 desligado, 1 ligado
+function balcaoCopa(f) {
+  const s = new Spr(96, 64);
+  s.r(1, 30, 94, 14, 'cinzaCl').hl(1, 94, 30, 'branco').hl(1, 94, 43, 'cinza');
+  s.r(1, 44, 94, 18, 'mad').hl(1, 94, 44, 'madCl').hl(1, 94, 61, 'madMEsc');
+  for (const x0 of [3, 27, 51, 75]) {
+    s.r(x0, 46, 20, 14, 'madEsc').r(x0 + 1, 47, 18, 12, 'mad');
+    s.vl(x0 % 48 === 3 ? x0 + 17 : x0 + 2, 50, 54, 'cinzaCl');
+  }
+  // a pia
+  s.r(6, 32, 24, 10, 'cinza').r(7, 33, 22, 8, 'cinzaEsc').hl(7, 28, 33, 'grafite').pts([[10, 36], [11, 36], [12, 37]], 'ceuCl');
+  s.vl(18, 20, 31, 'cinzaCl').hl(18, 23, 20, 'cinzaCl').vl(23, 21, 23, 'cinzaCl').p(19, 31, 'cinza').p(23, 26, 'ceu');
+  s.contorno();
+  // o escorredor com pratos
+  s.cola(item(16, 12, o => {
+    o.r(1, 8, 14, 3, 'cinza');
+    for (let x = 2; x < 14; x += 3) o.r(x, 1, 2, 8, 'branco').p(x + 1, 1, 'cinzaCl');
+  }), 33, 21);
+  // o micro-ondas
+  s.cola(item(38, 27, o => {
+    o.r(1, 1, 36, 4, 'cremeCl').r(1, 5, 36, 21, 'creme').vl(36, 5, 25, 'bege').hl(1, 36, 25, 'begeSomb');
+    o.r(4, 7, 22, 16, f ? 'amarelo' : 'escuro');
+    if (f) { o.r(6, 9, 18, 12, 'amareloCl').r(10, 16, 10, 3, 'branco').r(12, 15, 6, 2, 'vermCl'); }
+    else o.pts([[6, 9], [7, 8], [8, 9]], 'grafite');
+    o.r(28, 7, 6, 16, 'grafite').hl(29, 32, 9, f ? 'verdeCl' : 'verdeEsc');
+    for (let j = 0; j < 3; j++) o.pts([[29, 13 + j * 3], [32, 13 + j * 3]], 'cinza');
+  }), 54, 6);
+  return s;
+}
+
+// ---- a máquina de café sobre o armarinho (32 × 64): f 0 parada, 1 servindo
+function maquinaCafe(f) {
+  const s = new Spr(32, 64);
+  s.r(5, 40, 22, 23, 'mad').hl(5, 26, 40, 'madCl').r(7, 43, 18, 17, 'madEsc').r(8, 44, 16, 15, 'mad').vl(22, 49, 53, 'cinzaCl').hl(5, 26, 62, 'madMEsc');
+  s.r(7, 12, 18, 28, 'grafite').vl(7, 12, 39, 'cinzaEsc').r(7, 12, 18, 3, 'cinza').hl(7, 24, 12, 'cinzaCl');
+  s.r(9, 8, 4, 4, 'branco').r(15, 8, 4, 4, 'branco').hl(9, 12, 8, 'cinzaCl').hl(15, 18, 8, 'cinzaCl');   // xícaras em cima
+  s.pts([[10, 18]], 'vermCl').pts([[13, 18]], 'verdeCl').pts([[16, 18]], 'amarelo').r(19, 17, 4, 3, 'telaFundo').p(20, 18, 'telaTexto');
+  s.r(10, 23, 12, 15, 'escuro').r(14, 23, 4, 2, 'cinza').hl(10, 21, 37, 'cinzaEsc');
+  s.r(13, 32, 5, 5, 'branco').vl(17, 32, 36, 'cinzaCl').p(18, 33, 'branco');
+  if (f) { s.vl(15, 25, 31, 'madEsc').hl(13, 17, 32, 'madEsc').pts([[21, 6], [22, 4], [21, 2], [12, 4]], 'cinzaCl'); }
+  return s.contorno();
+}
+
+// ---- o bebedouro (32 × 64): f 0 e 1, as bolhas
+function bebedouro(f) {
+  const s = new Spr(32, 64);
+  s.r(9, 33, 14, 30, 'branco').vl(21, 33, 62, 'cinzaCl').vl(22, 33, 62, 'cinza').hl(9, 22, 33, 'cinzaCl');
+  s.r(11, 38, 2, 3, 'azul').r(18, 38, 2, 3, 'verm').r(10, 45, 11, 2, 'grafite');
+  s.hl(11, 19, 55, 'cinzaCl').hl(11, 19, 57, 'cinzaCl').hl(9, 22, 62, 'cinza');
+  s.r(13, 29, 6, 4, 'azul');
+  s.r(8, 8, 16, 21, 'azulCl').r(9, 6, 14, 2, 'azulCl').vl(10, 9, 27, 'ceuCl').vl(11, 9, 27, 'ceuCl').vl(22, 8, 28, 'azul').vl(23, 9, 27, 'azul');
+  s.hl(9, 22, 15, 'ceu').hl(9, 22, 23, 'ceu').r(9, 6, 14, 3, 'ceuCl');
+  s.pts(f ? [[15, 18], [16, 13], [17, 20]] : [[15, 25], [17, 21], [14, 16]], 'branco');
+  return s.contorno();
+}
+
+// ---- a mesinha redonda da copa (32 × 64)
+function mesaCopa() {
+  const s = new Spr(32, 64);
+  for (let y = -5; y <= 5; y++) for (let x = -11; x <= 11; x++) if (x * x / 121 + y * y / 25 <= 1) s.p(16 + x, 40 + y, y > 2 ? 'creme' : 'cremeCl');
+  s.hl(6, 25, 45, 'begeSomb').hl(8, 23, 46, 'begeSomb').pts([[9, 37], [10, 36], [11, 36]], 'branco');
+  s.r(15, 47, 2, 11, 'cinzaEsc').vl(15, 47, 57, 'cinza');
+  for (let x = -6; x <= 6; x++) s.p(16 + x, 59, 'grafite'); s.hl(12, 20, 58, 'grafite').hl(12, 20, 60, 'grafiteEsc');
+  s.contorno();
+  s.cola(item(7, 7, o => o.r(1, 1, 5, 5, 'branco').hl(1, 5, 1, 'cinzaCl').p(3, 2, 'cinzaCl')), 13, 34);   // o porta-guardanapo
+  return s;
+}
+
+// ---- a cadeira da copa, de lado (32 × 64): f 0 virada para a direita, 1 para a esquerda
+function cadeiraLado(f) {
+  if (f === 1) return cadeiraLado(0).espelha();
+  const s = new Spr(32, 64);
+  s.r(8, 26, 3, 21, 'mad').vl(8, 26, 46, 'madCl').hl(8, 10, 26, 'madCl').hl(9, 10, 33, 'madEsc').hl(9, 10, 38, 'madEsc');
+  s.r(10, 44, 13, 4, 'mad').hl(10, 22, 44, 'madCl').hl(10, 22, 47, 'madEsc');
+  s.vl(9, 48, 58, 'madEsc').vl(10, 48, 58, 'madEsc').vl(21, 48, 58, 'madEsc').vl(22, 48, 58, 'madEsc');
+  return s.contorno();
+}
+
+// ---- o sofá de costas, virado para a TV (96 × 64, pegada 3 × 1)
+function sofaCostas() {
+  const s = new Spr(96, 64);
+  s.r(1, 46, 94, 13, 'verdeEsc').hl(1, 94, 46, 'verde');
+  s.r(4, 28, 88, 19, 'verde').hl(5, 90, 28, 'verdeCl').hl(4, 91, 29, 'verdeCl').apaga(4, 28).apaga(91, 28);
+  for (const x of [33, 62]) s.vl(x, 30, 46, 'verdeEsc');
+  s.pts([[18, 37], [47, 37], [76, 37]], 'verdeEsc');
+  for (const x0 of [1, 86]) { s.r(x0, 34, 9, 23, 'verde').hl(x0 + 1, x0 + 7, 34, 'verdeCl').vl(x0 === 1 ? 1 : 94, 35, 56, 'verdeEsc'); }
+  s.r(4, 59, 3, 3, 'madMEsc').r(89, 59, 3, 3, 'madMEsc');
+  return s.contorno();
+}
+
+// ---- o sofá de lado, virado para a esquerda (32 × 96, pegada 1 × 2)
+function sofaLado() {
+  const s = new Spr(32, 96);
+  s.r(21, 10, 8, 58, 'verde').vl(21, 10, 67, 'verdeCl').vl(22, 10, 67, 'verdeCl');            // o topo do encosto
+  s.r(6, 20, 15, 48, 'verdeCl').hl(6, 20, 44, 'verde').hl(6, 20, 45, 'verdeEsc').vl(6, 20, 67, 'verde');   // as almofadas
+  s.r(5, 15, 16, 7, 'verde').hl(6, 19, 15, 'verdeCl');                                       // o braço do norte
+  s.r(5, 66, 16, 6, 'verde').hl(6, 19, 66, 'verdeCl');                                       // o braço do sul
+  s.r(5, 72, 24, 19, 'verdeEsc').hl(5, 28, 72, 'verde').r(21, 68, 8, 4, 'verdeEsc');         // a face sul
+  s.r(6, 91, 2, 3, 'madMEsc').r(26, 91, 2, 3, 'madMEsc');
+  return s.contorno();
+}
+
+// ---- o móvel com a TV de tubo e o videogame (64 × 64, pegada 2 × 1): f 0 desligada, 1–2 jogo
+function movelTv(f) {
+  const s = new Spr(64, 64);
+  s.r(2, 40, 60, 21, 'mad').hl(2, 61, 40, 'madCl').hl(2, 61, 41, 'madCl').r(6, 45, 52, 12, 'madMEsc').hl(2, 61, 60, 'madMEsc');
+  s.r(3, 61, 3, 2, 'madMEsc').r(58, 61, 3, 2, 'madMEsc');
+  s.contorno();
+  s.cola(item(20, 9, o => { o.r(1, 2, 18, 6, 'cinzaCl').hl(1, 18, 2, 'branco').hl(4, 13, 4, 'grafite').p(16, 5, 'vermCl').hl(3, 8, 7, 'cinza'); }), 8, 47);   // o console
+  s.cola(item(12, 11, o => { o.r(1, 1, 3, 9, 'grafite').r(5, 2, 3, 8, 'verm').r(9, 1, 2, 9, 'azul').hl(1, 3, 3, 'cremeCl').hl(5, 7, 4, 'cremeCl'); }), 34, 45);   // os cartuchos
+  s.cola(item(42, 36, o => {
+    o.linha(16, 6, 10, 0, 'cinza').linha(24, 6, 30, 0, 'cinza').p(10, 0, 'cinzaCl').p(30, 0, 'cinzaCl');
+    o.r(1, 6, 40, 28, 'grafite').hl(1, 40, 6, 'cinzaEsc').vl(1, 6, 33, 'cinzaEsc').r(5, 33, 4, 2, 'grafiteEsc').r(33, 33, 4, 2, 'grafiteEsc');
+    const x0 = 4, y0 = 9, w = 26, h = 21;
+    if (f === 0) o.r(x0, y0, w, h, 'grafiteEsc').pts([[x0 + 3, y0 + 4], [x0 + 4, y0 + 3], [x0 + 5, y0 + 2]], 'cinzaEsc');
+    else {
+      o.r(x0, y0, w, h, 'ceu').r(x0, y0 + 15, w, 6, 'verde').hl(x0, x0 + w - 1, y0 + 15, 'verdeCl');
+      o.r(x0 + 3, y0 + 3, 5, 2, 'branco').r(x0 + 15, y0 + 5, 6, 2, 'branco');
+      o.r(x0 + 14, y0 + 10, 6, 2, 'mad').hl(x0 + 14, x0 + 19, y0 + 10, 'madCl');
+      const px = f === 1 ? x0 + 6 : x0 + 10, py = f === 1 ? y0 + 12 : y0 + 7;
+      o.r(px, py, 2, 3, 'vermCl').p(px, py, 'peleCl');
+      o.p(x0 + 17, y0 + 7, f === 1 ? 'amarelo' : null).p(x0 + 22, y0 + 12, 'amarelo');
+    }
+    for (const [x, y] of [[x0, y0], [x0 + w - 1, y0], [x0, y0 + h - 1], [x0 + w - 1, y0 + h - 1]]) o.p(x, y, 'grafite');
+    o.disco(35, 13, 2, 'cinza').disco(35, 20, 2, 'cinza').p(35, 13, 'cinzaCl');
+    for (const y of [25, 27, 29]) o.hl(33, 37, y, 'grafiteEsc');
+  }), 11, 4);
+  s.cola(item(8, 5, o => o.r(1, 1, 6, 3, 'grafite').p(2, 2, 'vermCl').p(5, 2, 'cinza')), 2, 36);   // o controle
+  return s;
+}
+
+// ---- o puff (32 × 32): f = a cor
+const PUFF_CORES = [['amareloCl', 'amarelo', 'madCl'], ['vermCl', 'verm', 'vermEsc'], ['azulCl', 'azul', 'azulEsc']];
+function puff(f) {
+  const [c, b, e] = PUFF_CORES[f];
+  const s = new Spr(32, 32);
+  for (let y = 10; y <= 29; y++) for (let x = 4; x <= 27; x++) {
+    const dx = (x - 15.5) / 11.5, dy = (y - 21) / (y < 21 ? 10 : 8.5);
+    if (dx * dx + dy * dy <= 1) s.p(x, y, dx + dy > 0.7 ? e : (dx + dy < -0.7 ? c : b));
+  }
+  s.r(11, 15, 9, 3, e).hl(12, 18, 14, b).pts([[9, 14], [8, 16], [10, 13]], c);    // o afundado de quem senta
+  return s.contorno();
+}
+
+// ---- o tapete da sala de descompressão: 9 peças (3 × 3), cantos, bordas e miolo
+function tapete(c, l) {
+  const s = new Spr(T, T);
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+    const cx = x % 8, cy = y % 8;
+    s.p(x, y, Math.abs(cx - 4) + Math.abs(cy - 4) === 3 ? 'mad' : 'madEsc');
+  }
+  const banda = (d) => d === 0 ? null : d === 1 ? 'madCl' : d <= 3 ? 'mad' : d === 4 ? 'madCl' : null;
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+    const ds = [];
+    if (c === 0) ds.push(x); if (c === 2) ds.push(31 - x);
+    if (l === 0) ds.push(y); if (l === 2) ds.push(31 - y);
+    if (!ds.length) continue;
+    const d = Math.min(...ds);
+    if (d > 4) continue;
+    const franja = (l === 0 && y === 0) || (l === 2 && y === 31);
+    if (d === 0) { if (franja) { if (x % 2 === 0) s.p(x, y, 'cremeCl'); else s.apaga(x, y); } else s.p(x, y, 'madCl'); }
+    else s.p(x, y, banda(d));
+  }
+  return s;
+}
+
+// =====================================================================
 // PERSONAGENS: um corpo-base parametrizável, em quadros de 64 × 64
 // Âncora (32, 64): o contorno do pé encosta na última linha.
 // Direções: 0 cima, 1 esquerda, 2 baixo, 3 direita (= esquerda espelhada)
@@ -984,10 +1211,35 @@ const FOLHAS = [
   { nome: 'divisoria', grupo: 'móveis', q: [32, 64], col: 4, lin: 4, pegada: [1, 1], ancora: [16, 64], camada: 'normal',
     autotile: { mascara: { N: 1, L: 2, S: 4, O: 8 }, ordem: 'quadro = máscara (0–15), linha a linha' }, desenha: (c, l) => divisoria(l * 4 + c) },
   { nome: 'rack', grupo: 'móveis', q: [32, 64], col: 3, lin: 1, pegada: [1, 1], ancora: [16, 64], camada: 'normal',
-    quadros: ['LEDs A', 'LEDs B', 'botão apertado'], desenha: c => rack(c) },
+    quadros: ['LEDs A', 'LEDs B', 'botão apertado'], nota: 'para o futuro: fora da sala por enquanto', desenha: c => rack(c) },
   { nome: 'arquivo', grupo: 'móveis', q: [32, 64], col: 1, lin: 1, pegada: [1, 1], ancora: [16, 64], camada: 'normal', quadros: ['arquivo'], desenha: () => arquivo() },
   { nome: 'planta', grupo: 'móveis', q: [32, 64], col: 1, lin: 1, pegada: [1, 1], ancora: [16, 64], camada: 'normal', quadros: ['planta'], desenha: () => planta() },
   { nome: 'lixeira', grupo: 'móveis', q: [32, 32], col: 1, lin: 1, pegada: [1, 1], ancora: [16, 32], camada: 'normal', quadros: ['lixeira'], desenha: () => lixeira() },
+  { nome: 'banheiro', grupo: 'banheiro e copa', q: [128, 96], col: 3, lin: 1, pegada: [4, 3], ancora: [64, 96], camada: 'normal',
+    quadros: ['fechado', 'masculino aberta', 'feminino aberta'], portas: { masculino: [1, 2], feminino: [2, 2] },
+    nota: 'bloco com teto; as portas ficam na face sul, nos tiles 2 e 3 da pegada; quem entra some', desenha: c => banheiro(c) },
+  { nome: 'geladeira', grupo: 'banheiro e copa', q: [32, 64], col: 2, lin: 1, pegada: [1, 1], ancora: [16, 64], camada: 'normal',
+    quadros: ['fechada', 'aberta'], desenha: c => geladeira(c) },
+  { nome: 'balcao_copa', grupo: 'banheiro e copa', q: [96, 64], col: 2, lin: 1, pegada: [3, 1], ancora: [48, 64], camada: 'normal',
+    quadros: ['micro-ondas desligado', 'micro-ondas ligado'], nota: 'a pia à esquerda, o micro-ondas à direita', desenha: c => balcaoCopa(c) },
+  { nome: 'maquina_cafe', grupo: 'banheiro e copa', q: [32, 64], col: 2, lin: 1, pegada: [1, 1], ancora: [16, 64], camada: 'normal',
+    quadros: ['parada', 'servindo'], desenha: c => maquinaCafe(c) },
+  { nome: 'bebedouro', grupo: 'banheiro e copa', q: [32, 64], col: 2, lin: 1, pegada: [1, 1], ancora: [16, 64], camada: 'normal',
+    quadros: ['bolhas A', 'bolhas B'], desenha: c => bebedouro(c) },
+  { nome: 'mesa_copa', grupo: 'banheiro e copa', q: [32, 64], col: 1, lin: 1, pegada: [1, 1], ancora: [16, 64], camada: 'normal',
+    quadros: ['mesinha'], desenha: () => mesaCopa() },
+  { nome: 'cadeira_lado', grupo: 'banheiro e copa', q: [32, 64], col: 2, lin: 1, pegada: [1, 1], ancora: [16, 64], camada: 'normal',
+    quadros: ['virada para a direita', 'virada para a esquerda'], desenha: c => cadeiraLado(c) },
+  { nome: 'sofa_costas', grupo: 'descompressão', q: [96, 64], col: 1, lin: 1, pegada: [3, 1], ancora: [48, 64], camada: 'normal',
+    quadros: ['de costas, para a TV'], desenha: () => sofaCostas() },
+  { nome: 'sofa_lado', grupo: 'descompressão', q: [32, 96], col: 1, lin: 1, pegada: [1, 2], ancora: [16, 96], camada: 'normal',
+    quadros: ['virado para a esquerda'], desenha: () => sofaLado() },
+  { nome: 'movel_tv', grupo: 'descompressão', q: [64, 64], col: 3, lin: 1, pegada: [2, 1], ancora: [32, 64], camada: 'normal',
+    quadros: ['desligada', 'jogo 1', 'jogo 2'], nota: 'a TV de tubo, o videogame e os cartuchos', desenha: c => movelTv(c) },
+  { nome: 'puff', grupo: 'descompressão', q: [32, 32], col: 3, lin: 1, pegada: [1, 1], ancora: [16, 32], camada: 'normal',
+    quadros: ['amarelo', 'vermelho', 'azul'], desenha: c => puff(c) },
+  { nome: 'tapete', grupo: 'descompressão', q: [32, 32], col: 3, lin: 3, pegada: [1, 1], ancora: [16, 32], camada: 'chao',
+    nota: '3 × 3: cantos, bordas e miolo, que se repete', desenha: (c, l) => tapete(c, l) },
   folhaPersonagem('camps'), folhaPersonagem('gerente'), folhaPersonagem('vigia'),
 ];
 
@@ -1021,24 +1273,29 @@ window.metadados = () => {
       arquivo: f.nome + '.png', grupo: f.grupo, quadro: f.q, colunas: f.col, linhas: f.lin, pegada: f.pegada, ancora: f.ancora, camada: f.camada,
       ...(f.quadros ? { quadros: f.quadros } : {}), ...(f.camadas ? { camadasPorQuadro: f.camadas } : {}),
       ...(f.animacoes ? { animacoes: f.animacoes, andar: 'per_tile: 8 quadros por tile' } : {}),
-      ...(f.autotile ? { autotile: f.autotile } : {}), ...(f.nota ? { nota: f.nota } : {}),
+      ...(f.autotile ? { autotile: f.autotile } : {}), ...(f.portas ? { portas: f.portas } : {}), ...(f.nota ? { nota: f.nota } : {}),
     }])),
   };
 };
 
 // =====================================================================
 // PRÉVIA: a sala montada (20 × 17) com as peças, em passos de 100 ms
+// A planta (15/11, à noite): os cubículos em cima à esquerda, a sala de
+// descompressão em cima à direita, o banheiro embaixo à esquerda e a copa
+// embaixo à direita. Coordenadas em tiles: (coluna, linha).
 // =====================================================================
 const SALA = { L: 20, A: 17 };
 const PORTA = [9, 13];
 
-// ---- o cubículo: as células de divisória e a máscara de cada uma
-// dois cubículos lado a lado: o do Camps e uma mesa vaga, para a equipe crescer
-const DIV = new Set(['7,4', '8,4', '9,4', '10,4', '11,4', '12,4', '13,4', '14,4', '15,4', '7,5', '7,6', '11,5', '11,6', '15,5', '15,6']);
+// ---- os dois cubículos: as células de divisória e a máscara de cada uma
+const DIV = new Set(['2,3', '3,3', '4,3', '5,3', '6,3', '7,3', '8,3', '9,3', '10,3', '2,4', '2,5', '6,4', '6,5', '10,4', '10,5']);
 const temDiv = (c, l) => DIV.has(c + ',' + l);
 function mascara(c, l) { return (temDiv(c, l - 1) ? 1 : 0) | (temDiv(c + 1, l) ? 2 : 0) | (temDiv(c, l + 1) ? 4 : 0) | (temDiv(c - 1, l) ? 8 : 0); }
 
-// ---- fundo estático: chão, paredes e o que está pendurado nelas
+// ---- o tapete da descompressão
+const TAPETE = { c0: 14, c1: 18, l0: 3, l1: 6 };
+
+// ---- fundo estático: chão, tapete, paredes e o que está pendurado nelas
 function fundo(noite) {
   const cv = document.createElement('canvas'); cv.width = SALA.L * T; cv.height = SALA.A * T;
   const ctx = cv.getContext('2d');
@@ -1054,43 +1311,51 @@ function fundo(noite) {
     else if (l === 2) tile('carpete', 4, l, c);
     else { const h = hash(c, l, 99); tile('carpete', h < 0.06 ? 3 : Math.floor(h * 3), l, c); }
   }
-  // na parede do fundo
+  for (let l = TAPETE.l0; l <= TAPETE.l1; l++) for (let c = TAPETE.c0; c <= TAPETE.c1; c++) {
+    const tc = c === TAPETE.c0 ? 0 : c === TAPETE.c1 ? 2 : 1, tl = l === TAPETE.l0 ? 0 : l === TAPETE.l1 ? 2 : 1;
+    ctx.drawImage(quadro('tapete', tc, tl).canvas(), c * T, l * T);
+  }
+  // na parede do fundo: o quadro dos pedidos à esquerda, a janela, o relógio
   const na = (nome, c, col) => ctx.drawImage(quadro(nome, c).canvas(), col * T, 0);
-  const jan = ['comeco', 'meioA', 'meioB', 'meioA', 'meioB', 'meioA', 'meioB', 'fim'];
-  jan.forEach((t, i) => na(noite ? 'janela_noite' : 'janela_dia', JANELAS.indexOf(t), 6 + i));
-  na('relogio', 0, 3);
-  ['comeco', 'meio', 'meio', 'fim'].forEach((t, i) => na('quadro_pedidos', MODULOS.indexOf(t), 15 + i));
+  ['comeco', 'meio', 'meio', 'fim'].forEach((t, i) => na('quadro_pedidos', MODULOS.indexOf(t), 2 + i));
+  ['comeco', 'meioA', 'meioB', 'meioA', 'fim'].forEach((t, i) => na(noite ? 'janela_noite' : 'janela_dia', JANELAS.indexOf(t), 7 + i));
+  na('relogio', 0, 12);
   // as fichas, como a tela as penduraria: [coluna, posição, cor]
   const fichas = [[0, 0, 0], [0, 1, 3], [0, 2, 1], [1, 0, 2], [2, 0, 3], [2, 1, 0], [3, 0, 2], [3, 1, 1], [3, 2, 4], [3, 3, 2]];
   for (const [k, p, cor] of fichas) {
     const c0 = k === 0 ? 5 : 2;
-    ctx.drawImage(quadro('fichas', cor).canvas(), (15 + k) * T + c0 + 1 + (p % 2) * 12, 19 + Math.floor(p / 2) * 12);
+    ctx.drawImage(quadro('fichas', cor).canvas(), (2 + k) * T + c0 + 1 + (p % 2) * 12, 19 + Math.floor(p / 2) * 12);
   }
   return cv;
 }
 
-// ---- o caminho do gerente: [coluna, linha] ou ['pausa', ticks, direção]
-const CAMINHO = [[5, 9], [17, 9], [17, 3], ['pausa', 12, 0], [17, 9], [5, 9], ['pausa', 16, 2]];
+// ---- o caminho do gerente: [coluna, linha] ou ['pausa', ticks, direção, onde]
+// entra pela porta, vai ao quadro, passa na máquina de café e volta
+const CAMINHO = [[9, 12], [9, 7], [11, 7], [11, 2], [4, 2], ['pausa', 14, 0, 'quadro'], [11, 2], [11, 7], [11, 10], [13, 10],
+  ['pausa', 16, 0, 'cafe'], [9, 10], [9, 12], ['pausa', 14, 2, 'porta']];
 const PASSO = 4;    // px por tick: 8 ticks por tile (andar per_tile)
-function gerenteNoTick(t) {
+function etapasGerente() {
   const etapas = [];
   let pos = CAMINHO[0];
   for (const e of CAMINHO.slice(1)) {
-    if (e[0] === 'pausa') { etapas.push({ tipo: 'pausa', n: e[1], dir: e[2], pos }); continue; }
+    if (e[0] === 'pausa') { etapas.push({ tipo: 'pausa', n: e[1], dir: e[2], onde: e[3], pos }); continue; }
     const dx = e[0] - pos[0], dy = e[1] - pos[1], n = (Math.abs(dx) + Math.abs(dy)) * T / PASSO;
     const dir = dx > 0 ? 3 : dx < 0 ? 1 : dy < 0 ? 0 : 2;
     etapas.push({ tipo: 'andar', n, dir, de: pos, para: e }); pos = e;
   }
-  const total = etapas.reduce((a, e) => a + e.n, 0);
-  let k = ((t % total) + total) % total;
-  for (const e of etapas) {
+  return etapas;
+}
+const ETAPAS = etapasGerente();
+const CICLO_GERENTE = ETAPAS.reduce((a, e) => a + e.n, 0);
+function gerenteNoTick(t) {
+  let k = ((t % CICLO_GERENTE) + CICLO_GERENTE) % CICLO_GERENTE;
+  for (const e of ETAPAS) {
     if (k >= e.n) { k -= e.n; continue; }
-    if (e.tipo === 'pausa') return { x: e.pos[0] * T, y: e.pos[1] * T, anim: 'parado', dir: e.dir, f: (k % 30) < 2 ? 1 : 0 };
+    if (e.tipo === 'pausa') return { x: e.pos[0] * T, y: e.pos[1] * T, anim: 'parado', dir: e.dir, f: (k % 30) < 2 ? 1 : 0, onde: e.onde };
     const fr = k / e.n;
     return { x: (e.de[0] + (e.para[0] - e.de[0]) * fr) * T, y: (e.de[1] + (e.para[1] - e.de[1]) * fr) * T, anim: 'andar', dir: e.dir, f: k % 8 };
   }
 }
-const CICLO_GERENTE = (() => { let n = 0, pos = CAMINHO[0]; for (const e of CAMINHO.slice(1)) { if (e[0] === 'pausa') n += e[1]; else { n += (Math.abs(e[0] - pos[0]) + Math.abs(e[1] - pos[1])) * T / PASSO; pos = e; } } return n; })();
 
 const LIN_ANIM = (anim, dir) => MAPA_PERSONAGEM[anim][0] + (MAPA_PERSONAGEM[anim][2] === 1 ? 0 : dir);
 
@@ -1098,21 +1363,38 @@ const LIN_ANIM = (anim, dir) => MAPA_PERSONAGEM[anim][0] + (MAPA_PERSONAGEM[anim
 function objetos(t) {
   const o = [];
   const poe = (spr, col, lin, larg = 1, ordem = 1) => o.push({ spr, x: col * T + larg * T / 2 - spr.w / 2, y: (lin + 1) * T - spr.h, base: (lin + 1) * T, ordem });
+  const g = gerenteNoTick(t);
+  // os cubículos
   for (const k of DIV) { const [c, l] = k.split(',').map(Number); poe(quadro('divisoria', mascara(c, l) % 4, mascara(c, l) >> 2), c, l); }
-  poe(quadro('mesa_dev', 1 + Math.floor(t / 5) % 3), 8, 5, 3);
-  poe(quadro('cadeira', 0), 9, 6, 1, 0);
-  poe(quadro('camps', t % 4, LIN_ANIM('digitando', 0)), 9, 6, 1, 1);
-  poe(quadro('cadeira', 1), 9, 6, 1, 2);
-  poe(quadro('lixeira'), 10, 6);
-  poe(quadro('mesa_dev', 0), 12, 5, 3);
-  poe(quadro('cadeira', 2), 13, 6);
-  poe(quadro('rack', Math.floor(t / 6) % 2), 16, 5);
-  poe(quadro('arquivo'), 1, 2); poe(quadro('arquivo'), 2, 2);
-  poe(quadro('planta'), 14, 2); poe(quadro('planta'), 6, 6); poe(quadro('planta'), 1, 12); poe(quadro('planta'), 18, 12);
+  poe(quadro('mesa_dev', 1 + Math.floor(t / 5) % 3), 3, 4, 3);
+  poe(quadro('cadeira', 0), 4, 5, 1, 0);
+  poe(quadro('camps', t % 4, LIN_ANIM('digitando', 0)), 4, 5, 1, 1);
+  poe(quadro('cadeira', 1), 4, 5, 1, 2);
+  poe(quadro('lixeira'), 5, 5);
+  poe(quadro('mesa_dev', 0), 7, 4, 3);
+  poe(quadro('cadeira', 2), 8, 5);
+  poe(quadro('arquivo'), 12, 2); poe(quadro('arquivo'), 13, 2);
+  // a sala de descompressão
+  poe(quadro('movel_tv', 1 + Math.floor(t / 4) % 2), 15, 2, 2);
+  poe(quadro('sofa_costas'), 15, 5, 3);
+  poe(quadro('sofa_lado'), 18, 4);
+  poe(quadro('puff', 0), 14, 3); poe(quadro('puff', 2), 14, 5); poe(quadro('puff', 1), 17, 3);
+  // o banheiro
+  poe(quadro('banheiro', 0), 1, 11, 4);
+  // a copa: a linha da cozinha, as mesinhas e as cadeiras
+  poe(quadro('lixeira'), 12, 9);
+  poe(quadro('maquina_cafe', g.onde === 'cafe' ? 1 : 0), 13, 9);
+  poe(quadro('balcao_copa', (t % 60) < 20 ? 1 : 0), 14, 9, 3);
+  poe(quadro('geladeira', 0), 17, 9);
+  poe(quadro('bebedouro', Math.floor(t / 7) % 2), 18, 9);
+  for (const c of [12, 15, 18]) poe(quadro('mesa_copa'), c, 11);
+  for (const [c, f] of [[11, 0], [13, 1], [14, 0], [16, 1], [17, 0]]) poe(quadro('cadeira_lado', f), c, 11);
+  // as plantas
+  poe(quadro('planta'), 1, 2); poe(quadro('planta'), 1, 7); poe(quadro('planta'), 18, 7);
   // o vigia na porta, do lado do corredor
   poe(quadro('vigia', (t % 37) < 2 ? 1 : 0, LIN_ANIM('parado', 2)), PORTA[0], 14);
-  // o gerente andando
-  const g = gerenteNoTick(t), sg = quadro('gerente', g.f, LIN_ANIM(g.anim, g.dir));
+  // o gerente
+  const sg = quadro('gerente', g.f, LIN_ANIM(g.anim, g.dir));
   o.push({ spr: sg, x: g.x + T / 2 - 32, y: g.y + T - 64, base: g.y + T, ordem: 1 });
   return o.sort((a, b) => a.base - b.base || a.ordem - b.ordem);
 }

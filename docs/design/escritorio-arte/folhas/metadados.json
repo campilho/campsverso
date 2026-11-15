@@ -431,7 +431,8 @@
         "LEDs A",
         "LEDs B",
         "botão apertado"
-      ]
+      ],
+      "nota": "para o futuro: fora da sala por enquanto"
     },
     "arquivo": {
       "arquivo": "arquivo.png",
@@ -498,6 +499,292 @@
       "quadros": [
         "lixeira"
       ]
+    },
+    "banheiro": {
+      "arquivo": "banheiro.png",
+      "grupo": "banheiro e copa",
+      "quadro": [
+        128,
+        96
+      ],
+      "colunas": 3,
+      "linhas": 1,
+      "pegada": [
+        4,
+        3
+      ],
+      "ancora": [
+        64,
+        96
+      ],
+      "camada": "normal",
+      "quadros": [
+        "fechado",
+        "masculino aberta",
+        "feminino aberta"
+      ],
+      "portas": {
+        "masculino": [
+          1,
+          2
+        ],
+        "feminino": [
+          2,
+          2
+        ]
+      },
+      "nota": "bloco com teto; as portas ficam na face sul, nos tiles 2 e 3 da pegada; quem entra some"
+    },
+    "geladeira": {
+      "arquivo": "geladeira.png",
+      "grupo": "banheiro e copa",
+      "quadro": [
+        32,
+        64
+      ],
+      "colunas": 2,
+      "linhas": 1,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        16,
+        64
+      ],
+      "camada": "normal",
+      "quadros": [
+        "fechada",
+        "aberta"
+      ]
+    },
+    "balcao_copa": {
+      "arquivo": "balcao_copa.png",
+      "grupo": "banheiro e copa",
+      "quadro": [
+        96,
+        64
+      ],
+      "colunas": 2,
+      "linhas": 1,
+      "pegada": [
+        3,
+        1
+      ],
+      "ancora": [
+        48,
+        64
+      ],
+      "camada": "normal",
+      "quadros": [
+        "micro-ondas desligado",
+        "micro-ondas ligado"
+      ],
+      "nota": "a pia à esquerda, o micro-ondas à direita"
+    },
+    "maquina_cafe": {
+      "arquivo": "maquina_cafe.png",
+      "grupo": "banheiro e copa",
+      "quadro": [
+        32,
+        64
+      ],
+      "colunas": 2,
+      "linhas": 1,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        16,
+        64
+      ],
+      "camada": "normal",
+      "quadros": [
+        "parada",
+        "servindo"
+      ]
+    },
+    "bebedouro": {
+      "arquivo": "bebedouro.png",
+      "grupo": "banheiro e copa",
+      "quadro": [
+        32,
+        64
+      ],
+      "colunas": 2,
+      "linhas": 1,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        16,
+        64
+      ],
+      "camada": "normal",
+      "quadros": [
+        "bolhas A",
+        "bolhas B"
+      ]
+    },
+    "mesa_copa": {
+      "arquivo": "mesa_copa.png",
+      "grupo": "banheiro e copa",
+      "quadro": [
+        32,
+        64
+      ],
+      "colunas": 1,
+      "linhas": 1,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        16,
+        64
+      ],
+      "camada": "normal",
+      "quadros": [
+        "mesinha"
+      ]
+    },
+    "cadeira_lado": {
+      "arquivo": "cadeira_lado.png",
+      "grupo": "banheiro e copa",
+      "quadro": [
+        32,
+        64
+      ],
+      "colunas": 2,
+      "linhas": 1,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        16,
+        64
+      ],
+      "camada": "normal",
+      "quadros": [
+        "virada para a direita",
+        "virada para a esquerda"
+      ]
+    },
+    "sofa_costas": {
+      "arquivo": "sofa_costas.png",
+      "grupo": "descompressão",
+      "quadro": [
+        96,
+        64
+      ],
+      "colunas": 1,
+      "linhas": 1,
+      "pegada": [
+        3,
+        1
+      ],
+      "ancora": [
+        48,
+        64
+      ],
+      "camada": "normal",
+      "quadros": [
+        "de costas, para a TV"
+      ]
+    },
+    "sofa_lado": {
+      "arquivo": "sofa_lado.png",
+      "grupo": "descompressão",
+      "quadro": [
+        32,
+        96
+      ],
+      "colunas": 1,
+      "linhas": 1,
+      "pegada": [
+        1,
+        2
+      ],
+      "ancora": [
+        16,
+        96
+      ],
+      "camada": "normal",
+      "quadros": [
+        "virado para a esquerda"
+      ]
+    },
+    "movel_tv": {
+      "arquivo": "movel_tv.png",
+      "grupo": "descompressão",
+      "quadro": [
+        64,
+        64
+      ],
+      "colunas": 3,
+      "linhas": 1,
+      "pegada": [
+        2,
+        1
+      ],
+      "ancora": [
+        32,
+        64
+      ],
+      "camada": "normal",
+      "quadros": [
+        "desligada",
+        "jogo 1",
+        "jogo 2"
+      ],
+      "nota": "a TV de tubo, o videogame e os cartuchos"
+    },
+    "puff": {
+      "arquivo": "puff.png",
+      "grupo": "descompressão",
+      "quadro": [
+        32,
+        32
+      ],
+      "colunas": 3,
+      "linhas": 1,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        16,
+        32
+      ],
+      "camada": "normal",
+      "quadros": [
+        "amarelo",
+        "vermelho",
+        "azul"
+      ]
+    },
+    "tapete": {
+      "arquivo": "tapete.png",
+      "grupo": "descompressão",
+      "quadro": [
+        32,
+        32
+      ],
+      "colunas": 3,
+      "linhas": 3,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        16,
+        32
+      ],
+      "camada": "chao",
+      "nota": "3 × 3: cantos, bordas e miolo, que se repete"
     },
     "camps": {
       "arquivo": "camps.png",

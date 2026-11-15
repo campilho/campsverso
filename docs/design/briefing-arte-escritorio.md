@@ -2,7 +2,7 @@
 
 Um teste de arte para o escritório do Campsverso, antes de refazer tudo. O que sair daqui vai para a tela de verdade, ao lado da arte LPC de hoje, e o usuário decide olhando (ADR-0079 e o diário de 15/11).
 
-**Estado (15/11):** a fase 1 foi desenhada pelo Claude numa sessão do Cowork, a partir deste pedido, e está em [escritorio-arte/](escritorio-arte/). Falta o passo 2 em diante de "Para nós".
+**Estado (15/11):** a fase 1 foi desenhada pelo Claude numa sessão do Cowork, a partir deste pedido, e está em [escritorio-arte/](escritorio-arte/). À noite ganhou a planta nova, com o banheiro, a copa e a sala de descompressão. Falta o passo 2 em diante de "Para nós".
 
 **O que mudou da v1:**
 
@@ -103,13 +103,24 @@ Cada peça vai numa folha (spritesheet) separada, sobre fundo transparente.
 
 **A divisória é um autotile de 16 peças.** Cada peça liga o centro do tile aos vizinhos marcados numa máscara de 4 bits (norte = 1, leste = 2, sul = 4, oeste = 8). A folha tem 4 × 4 quadros, na ordem da máscara (0 a 15). A divisória corre pelo centro do tile, tem uns 28 px de altura e um topo de 4 a 5 px. Os trechos leste-oeste mostram a face sul; os trechos norte-sul mostram só o topo, e a ponta sul mostra a face.
 
-**4. A copa:**
-- a geladeira, 32 × 64;
-- a pia com o armário, 64 × 64, com pegada 2 × 1;
-- o micro-ondas e a cafeteira de copa, 32 × 32 cada, que vão sobre a pia ou a bancada;
-- a mesa de refeição, 64 × 64, com pegada 2 × 1;
-- as cadeiras, vistas de lado (para a esquerda e para a direita), também em duas camadas;
-- a porta do banheiro, com a plaquinha, na parede do fundo (32 × 64). A copa fica num canto de cima da sala.
+**4. O banheiro, a copa e a sala de descompressão** (a planta está em "Para nós"):
+
+| Peça | Quadro | Pegada | Quadros |
+|---|---|---|---|
+| o banheiro: um bloco com teto, para não ver dentro, e duas portas na face sul, masculino e feminino, com a plaquinha; quem entra some e volta depois | 128 × 96 | 4 × 3 | 3: fechado, a do masculino aberta, a do feminino aberta |
+| a geladeira | 32 × 64 | 1 × 1 | 2: fechada, aberta (com as marmitas) |
+| o balcão da copa, com a pia e o micro-ondas | 96 × 64 | 3 × 1 | 2: micro-ondas desligado e ligado |
+| a máquina de café, sobre um armarinho | 32 × 64 | 1 × 1 | 2: parada, servindo |
+| o bebedouro, com o garrafão | 32 × 64 | 1 × 1 | 2: as bolhas |
+| a mesinha redonda da copa | 32 × 64 | 1 × 1 | 1 |
+| a cadeira da copa, de lado | 32 × 64 | 1 × 1 | 2: virada para a direita e para a esquerda |
+| o sofá de costas, virado para a TV | 96 × 64 | 3 × 1 | 1 |
+| o sofá de lado | 32 × 96 | 1 × 2 | 1 |
+| o móvel com a TV de tubo, o videogame e os cartuchos | 64 × 64 | 2 × 1 | 3: desligada e 2 de jogo |
+| o puff | 32 × 32 | 1 × 1 | 3 cores |
+| o tapete da descompressão, em 9 peças (cantos, bordas, miolo) | 32 × 32 | 1 × 1 | 9 |
+
+O rack do servidor fica para o futuro: a folha existe, mas ele sai da sala por enquanto.
 
 ### Os personagens
 
@@ -137,6 +148,8 @@ Todos os personagens usam **a mesma folha**: 8 colunas (512 px) e 23 linhas. O q
 
 O gerente não tem sentado, digitando nem comer.
 
+A rotina do dev (ADR-0080) vai pedir animações novas: carregar a marmita andando, jogar videogame sentado no sofá (de costas) e cochilar no puff. Elas entram **só no fim da folha**, a partir da linha 23, para não mexer nas linhas que o manifesto já usa.
+
 ### A entrega
 
 - **Um único HTML com JavaScript**, em que cada peça é uma função que desenha num canvas.
@@ -162,14 +175,39 @@ O gerente não tem sentado, digitando nem comer.
 - o vigia andando e parado;
 - a prévia.
 
+**Fase 1, segunda parte (15/11, à noite):** a sala na planta nova, com o banheiro, a copa e a sala de descompressão.
+
 **Fase 2 (só se a arte nova ganhar):**
-- o resto das peças e das animações: usar, beber e comer;
-- a copa, a bancada, a impressora, a mesa de reunião e o quadro branco;
+- as animações da rotina: usar, beber, comer sentado, carregar a marmita, jogar videogame e cochilar;
+- a bancada dos robôs, a impressora, a mesa de reunião e o quadro branco;
 - o revisor e o squad, a partir do corpo-base.
 
 ---
 
 ## Para nós: o que fazer com a entrega
+
+### A planta proposta (15/11, à noite)
+
+O usuário pediu os cubículos mais para cima e para a esquerda, o quadro dos pedidos à esquerda, o banheiro no canto de baixo à esquerda, a copa no canto de baixo à direita e a sala de descompressão no canto de cima à direita. A prévia segue esta planta. Ela **difere da bíblia §3 e do `map.tmj` de hoje** (ADR-0080, com a copa à direita no meio e a porta do banheiro na parede de baixo): quem cuida do mapa decide e registra. Coordenadas em tiles, (coluna, linha):
+
+| Coisa | Tiles |
+|---|---|
+| Quadro dos pedidos | na parede, colunas 2 a 5; o gerente fica na linha 2, de frente para ele |
+| Janela | na parede, colunas 7 a 11 |
+| Relógio | na parede, coluna 12 |
+| Arquivos | (12, 2) e (13, 2) |
+| Divisórias | a linha 3, das colunas 2 a 10; e as colunas 2, 6 e 10, nas linhas 4 e 5 |
+| Mesa do Camps | (3 a 5, 4); a cadeira em (4, 5); a lixeira em (5, 5) |
+| Mesa vaga | (7 a 9, 4); a cadeira em (8, 5) |
+| Sala de descompressão | o tapete de (14, 3) a (18, 6); o móvel da TV em (15 e 16, 2); o sofá de costas em (15 a 17, 5); o sofá de lado em (18, 3 e 4); os puffs em (14, 3), (17, 3) e (14, 5) |
+| Banheiro | o bloco de (1, 9) a (4, 11); as portas em (2, 11), masculino, e (3, 11), feminino, usadas de (2, 12) e (3, 12) |
+| Copa, a linha da cozinha | a lixeira em (12, 9), a máquina de café em (13, 9), o balcão com a pia e o micro-ondas em (14 a 16, 9), a geladeira em (17, 9), o bebedouro em (18, 9); tudo usado da linha 10, de frente para cima |
+| Copa, as mesinhas | (12, 11), (15, 11) e (18, 11); as cadeiras de lado em (11, 11), (13, 11), (14, 11), (16, 11) e (17, 11) |
+| Plantas | (1, 2), (1, 7) e (18, 7) |
+| Porta | (9, 13); o vigia em (9, 14), no corredor |
+| Rack do servidor | fora, para o futuro |
+
+### Os passos
 
 1. **Guardar** os arquivos em `docs/design/escritorio-arte/`, sem mudar nada. O Claude Design avulso (claude.ai/design) fecha até 14/12/2026 e passa a viver dentro do Claude: o que importa precisa estar no repositório antes disso.
 2. **Gerar os PNGs.** Uma ferramenta nossa abre a página num navegador sem tela (Playwright, como os testes da tela), chama `window.folhas()` e `window.metadados()` e salva tudo numa pasta de teste, fora de `cartridges/`.
