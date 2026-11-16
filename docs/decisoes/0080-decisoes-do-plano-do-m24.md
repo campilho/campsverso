@@ -79,3 +79,15 @@ O kernel consome todos os comandos do mundo e passa a deixar de lado os do domí
 
 **Um defeito do M23, achado no caminho.** O `make escritorio` caía assim que subia. O mundo do escritório não tinha `budget`, a guarda saía com erro, e o honcho derrubava os outros processos junto. Os mundos do escritório ganharam tetos provisórios (US$ 3 por dia, US$ 1 por pedido, US$ 30 no total, `mind_off`), que a parte 3 ajusta quando a mente chegar.
 
+## Adendo (15/nov, à noite): a oficina, como ficou
+
+A parte 2 fez a oficina sem a mente. Quem a usa por enquanto é o dev-script, o script de reserva, para que o caminho inteiro possa ser testado sem modelo:
+- **a porta** (`WorkshopPort`, em `libs/ports`) e o **adaptador local** (`libs/adapters`): o clone raso pelo `file://`, com o próprio `.git`; o ambiente pelo `uv sync --offline --frozen`. Abrir um espaço leva cerca de 1 s;
+- **as oito ferramentas,** com os limites do plano. Toda ferramenta recusa o caminho que sai do espaço, inclusive por link simbólico, e o que entra no `.git`;
+- **os testes sob o `sandbox-exec`:** um teste que tenta a rede falha, e um que escreve fora do espaço também;
+- **a sessão no controlador:** a proposta de entrega do dev-script leva a sessão (os passos). O controlador a roda pela porta, publica um `workshop.step.v1` por passo, revisa o patch, guarda-o em `data/entregas/` e põe o resumo na entrega (`office.ticket.delivered.v1`, `patch`). Num mundo sem oficina (`workshop: true` no arquivo do mundo), a sessão sai da proposta, e a entrega vai como antes;
+- **a revisão** é uma função pura, montada na raiz de composição: os serviços não importam adaptadores (princípio 3). Ela recusa a constituição, uma ADR aceita mudada, um teste apagado ou a menos, uma verificação desligada e uma palavra da lista proibida (`privado/palavras-proibidas.txt`, que o adaptador lê se existir);
+- **o `make aplicar PEDIDO=N`** confere de novo e cria o ramo `dev/pedido-N` com o patch, numa worktree temporária: o checkout de quem roda não muda.
+
+A sessão do dev-script é fixa: ler o README, registrar o pedido em `docs/oficina/pedido-NNN.md`, ver as mudanças e pronto. A mente, na parte 3, troca a sessão fixa pela dela.
+

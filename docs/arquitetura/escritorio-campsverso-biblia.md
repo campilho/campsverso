@@ -22,22 +22,24 @@ O escritório vivo é o mundo `office-campsverso-01` (`make escritorio`). O `off
 
 ## 3. A sala
 
-Uma sala de 20 × 14 tiles com as paredes, e o corredor embaixo.
+Uma sala de 20 × 14 tiles com as paredes, e o corredor embaixo, na planta da arte nova (ADR-0082; a prévia em `docs/design/escritorio-arte/escritorio-arte.html`).
 
 | Coisa | Tile | Tipo |
 |---|---|---|
-| Quadro dos pedidos | (9, 2) | `board`, bloqueia |
-| Mesa do Camps | (5, 6) | `desk`, bloqueia; `dono: camps` |
-| Cadeira | (5, 7) | `chair` |
-| Bancada | (14 a 16, 5) | `bench`, bloqueia; os robôs vão ficar nela (M24 em diante) |
+| Quadro dos pedidos | (3, 1), na parede do fundo; o desenho vai das colunas 2 a 5 | `board` |
+| Os quatro cubículos | divisórias nas linhas 3 e 7 (colunas 2 a 10) e nas colunas 2, 6 e 10 | o tile `partition`, que não deixa passar; abertos para o sul |
+| Mesa do Camps | (4, 4), no cubículo de cima à esquerda; o desenho vai de 3 a 5 | `desk`, bloqueia; `dono: camps` |
+| Cadeira do Camps | (4, 5) | `chair` |
+| As outras mesas e cadeiras | (8, 4) e (8, 5); (4, 8) e (4, 9); (8, 8) e (8, 9) | `desk` e `chair`, vazias |
+| Arquivos | (12, 2) e (13, 2) | `file_cabinet`, bloqueiam |
+| Sala de descompressão | o tapete de (14, 3) a (18, 6), a TV em (16, 2), o sofá em (16, 5) e os pufes em (14, 3), (18, 3) e (18, 5) | `rug`, `tv`, `sofa` e `puff` |
+| A copa | a lixeira (12, 9), a máquina de café (13, 9), a pia (15, 9), o micro-ondas (16, 9), a geladeira (17, 9) e o bebedouro (18, 9) | `trash`, `coffee_machine`, `copa_counter`, `microwave`, `fridge` e `water_cooler`, bloqueiam |
+| As mesinhas da copa | (13, 11) e (17, 11), com as cadeiras de lado em (12, 11), (14, 11), (16, 11) e (18, 11) | `copa_table`; `copa_chair`, com a `virada` |
+| O banheiro | o bloco de (1, 11) a (4, 13), com as portas em (2, 13), masculino, e (3, 13), feminino | `restroom` e `restroom_door`; as portas dão para o corredor, e quem entra some |
+| Plantas | (1, 2), (1, 7) e (18, 7) | `plant`, bloqueiam |
 | Porta | (9, 13) | `door` |
-| Cadeira do vigia | (11, 12) | `chair` |
+| Posto do vigia | (11, 14), no corredor, ao lado da porta | |
 | Entrada | (9, 15) | o tile do corredor por onde todos entram e saem |
-| Bebedouro | (1, 2) | `water_cooler`, bloqueia |
-| Balcão da copa | (16 a 18, 7 e 8) | `copa_counter`, bloqueia: a pia e a cafeteira |
-| Mesa da copa | (15, 11) | `copa_table`, bloqueia |
-| Cadeira da copa | (15, 12) | `chair` |
-| Porta do banheiro | (17, 13) | `restroom_door`, na parede de baixo; quem entra some atrás dela |
 
 Andar: 4 tiles por segundo na tela, em qualquer escala; o kernel converte pela escala do momento (ADR-0079). A 1× é um tile por tick de 250 ms; a 72×, andar até o quadro custa uns 2 minutos do mundo. A percepção vê a sala inteira.
 
@@ -79,9 +81,12 @@ Uma entidade `ticket` guardada no quadro, com os atributos:
 | `accept_ticket` | gerente | ao lado do quadro | 6 s | aceita o entregue |
 | `return_ticket` | gerente | ao lado do quadro | 10 s | devolve com o comentário; o pedido volta a "a fazer" e o trabalho recomeça |
 | `drink` | todos | ao lado do bebedouro | 30 s | uma pausa da rotina, ilustrativa (ADR-0080) |
-| `coffee` | todos | ao lado do balcão da copa | 2 min | um café, ilustrativo |
-| `restroom` | todos | ao lado da porta do banheiro | 4 min | some atrás da porta, ilustrativo |
-| `lunch` | todos | ao lado da mesa da copa | até as 13:00 | o almoço, só na hora dele |
+| `coffee` | todos | ao lado da máquina de café | 2 min | um café, ilustrativo |
+| `restroom` | todos | ao lado da porta do banheiro, no corredor | 4 min | some atrás da porta, ilustrativo |
+| `fridge` | todos | ao lado da geladeira | 15 s | pega o almoço (ADR-0082) |
+| `microwave` | todos | ao lado do micro-ondas | 90 s | esquenta o almoço |
+| `lunch` | todos | ao lado da mesinha da copa | até as 12:55 | come, só na hora do almoço; os 5 minutos do fim são para jogar fora e voltar |
+| `trash` | todos | ao lado de uma lixeira | 5 s | joga fora o resto |
 
 Fora do papel, a ação é recusada (`not_allowed`); longe do lugar, `not_adjacent`.
 
@@ -96,9 +101,9 @@ Fora do papel, a ação é recusada (`not_allowed`); longe do lugar, `not_adjace
   - cumprimenta o gerente quando ele chega;
   - pega o pedido mais antigo e avisa;
   - trabalha em blocos de um minuto, entrega e avisa;
-  - avisa o almoço e almoça na copa, das 12 às 13, mesmo com um pedido em andamento;
+  - avisa o almoço e almoça na copa, das 12 às 13, mesmo com um pedido em andamento, em quatro etapas: a geladeira, o micro-ondas, a mesinha (sentado na cadeira de lado) e o lixo (ADR-0082);
   - sem pedido, segue a rotina (ADR-0080): as pausas do dia, num sorteio pelo dia (dois cafés perto das 10:00 e das 15:30, água a cada uns 100 minutos, o banheiro duas vezes), e a cadeira da mesa no resto. As pausas são ilustrativas e não pesam no trabalho.
-- **O vigia:** faz a ronda nos 10 primeiros minutos de cada hora e passa o resto na cadeira da porta.
+- **O vigia:** faz a ronda nos 10 primeiros minutos de cada hora e passa o resto de pé no posto, no corredor, ao lado da porta.
 - **O gerente-script** (só nos testes e no soak):
   - escreve três pedidos por dia, às 09:30, 10:30 e 14:00;
   - cumprimenta o dev;
