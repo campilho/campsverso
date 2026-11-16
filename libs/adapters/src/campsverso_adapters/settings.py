@@ -79,6 +79,16 @@ class PerceptionSettings:
 
 
 @dataclass(frozen=True, slots=True)
+class WorkshopSettings:
+    """A oficina do dev (ADR-0080): onde ficam os espaços de trabalho e as entregas, e a lista de
+    palavras proibidas, fora do git (`privado/`)."""
+
+    root: Path  # os clones, por mundo e por pedido
+    deliveries: Path  # os patches entregues
+    forbidden_words: Path | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class EnvSettings:
     data_dir: Path
     archive_dir: Path
@@ -94,6 +104,7 @@ class EnvSettings:
     routes: Mapping[str, str] = field(default_factory=dict[str, str])  # OpenRouter (ADR-0074)
     # O provedor flex de cada modelo na OpenRouter, pela metade do preço (ADR-0074, decisão 28).
     flex_routes: Mapping[str, str] = field(default_factory=dict[str, str])
+    workshop: WorkshopSettings | None = None  # a oficina (ADR-0080); None: data/oficina, sem lista
 
 
 type ClockMode = Literal["continuous", "max"]
@@ -146,6 +157,8 @@ class WorldSettings:
     helper_script: str = "ajudante"  # o script deles (entry point campsverso.controllers)
     # O relógio ancorado no real (ADR-0078): ao subir, o mundo salta até agora. Só no modo contínuo.
     anchor: Literal["wall"] | None = None
+    # A oficina do dev (ADR-0080): o controlador do dev roda a sessão de passos antes da entrega.
+    workshop: bool = False
     # A cadeira do jogador (ADR-0078): o avatar que a tela do jogador assume. No escritório, o
     # gerente: nenhum humano assume o dev.
     player: str = "camps"
@@ -169,7 +182,18 @@ def load_env(path: Path, root: Path | None = None) -> EnvSettings:
     models = cast(Mapping[str, Mapping[str, Any]], doc.get("models") or {})
     maps = cast(Mapping[str, str], gateway.get("maps") or {})
     art = cast(list[Mapping[str, str]], gateway.get("art") or [])
+    shop = cast(Mapping[str, Any], doc.get("workshop") or {})
+    data_dir = base / str(doc["data_dir"])
+    forbidden = shop.get("forbidden_words")
+    workshop = WorkshopSettings(
+        root=base / str(shop["root"]) if shop.get("root") else data_dir / "oficina",
+        deliveries=base / str(shop["deliveries"])
+        if shop.get("deliveries")
+        else data_dir / "entregas",
+        forbidden_words=None if forbidden is None else base / str(forbidden),
+    )
     return EnvSettings(
+        workshop=workshop,
         data_dir=base / str(doc["data_dir"]),
         archive_dir=base / str(archive["dir"]),
         validate_events=bool(doc.get("validate_events", True)),
@@ -278,6 +302,7 @@ def load_world(path: Path, root: Path | None = None) -> WorldSettings:
         raise ValueError("clock.anchor: wall pede o modo contínuo (o mundo em tempo real)")
     return WorldSettings(
         anchor=anchor,
+        workshop=bool(doc.get("workshop", False)),
         player=str(doc.get("player") or "camps"),
         helpers=tuple(str(a) for a in cast(list[Any], helpers.get("avatars") or [])),
         helper_script=str(helpers.get("script") or "ajudante"),

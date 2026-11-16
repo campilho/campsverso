@@ -52,6 +52,13 @@ archive:
   dir: data/archive  # data/archive/<mundo>/<AAAA-MM-DD>.jsonl (ADR-0043)
   compress_after_days: 7  # dias simulados; comprimir nunca apaga conteúdo (decisão 4)
 
+workshop:  # a oficina do dev do escritório (ADR-0080): um clone por pedido, e as entregas
+  root: data/oficina
+  deliveries: data/entregas
+  # A lista de palavras que uma entrega não pode ter, uma por linha, fora do git (privado/).
+  # Sem o arquivo, a revisão confere só a constituição e os testes.
+  forbidden_words: privado/palavras-proibidas.txt
+
 gateway:  # o WebSocket da UI (ADR-0050); só local, sem login
   host: 127.0.0.1
   port: 8765

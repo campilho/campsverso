@@ -65,9 +65,19 @@ from campsverso_ports.store import (
 )
 from campsverso_ports.telemetry import Telemetry
 from campsverso_ports.validation import EnvelopeValidator
+from campsverso_ports.workshop import (
+    TOOLS,
+    Patch,
+    PatchSummary,
+    ToolResult,
+    WorkshopError,
+    WorkshopPort,
+    Workspace,
+)
 
 __all__ = [
     "RETRYABLE_ERRORS",
+    "TOOLS",
     "BatchHandler",
     "Belief",
     "BeliefChange",
@@ -104,6 +114,8 @@ __all__ = [
     "ModelUsage",
     "Note",
     "OutboxRow",
+    "Patch",
+    "PatchSummary",
     "PermissionDeniedError",
     "Place",
     "Planting",
@@ -118,8 +130,12 @@ __all__ = [
     "Subscription",
     "Telemetry",
     "Tile",
+    "ToolResult",
     "View",
     "WallClock",
+    "WorkshopError",
+    "WorkshopPort",
+    "Workspace",
     "WorldStore",
     "canonical_request",
     "request_sha256",

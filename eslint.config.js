@@ -10,6 +10,7 @@ export default defineConfig(
       "**/dist/**",
       "**/.venv/**",
       ".claude/**", // local de cada máquina: os worktrees das tarefas do Claude Code
+      "data/**", // os dados dos mundos, fora do git: os clones da oficina do dev têm o repositório inteiro (ADR-0080)
       "packages/contracts-ts/src/**", // GERADO a partir de contracts/
       "docs/design/escritorio/**", // protótipo do Claude Design para o navegador, referência e não código do projeto
       "docs/design/escritorio-arte/**", // arte desenhada em código para o navegador (fase 1), referência e não código do projeto
