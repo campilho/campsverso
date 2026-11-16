@@ -91,3 +91,16 @@ A parte 2 fez a oficina sem a mente. Quem a usa por enquanto é o dev-script, o 
 
 A sessão do dev-script é fixa: ler o README, registrar o pedido em `docs/oficina/pedido-NNN.md`, ver as mudanças e pronto. A mente, na parte 3, troca a sessão fixa pela dela.
 
+## Adendo (15/nov, à noite): a mente com rotina, a primeira versão
+
+A parte 3 começou pelo que deixa o dev pensar de verdade no escritório. Três pontos saíram mais simples que o plano:
+- **A logística fica com a rotina.** Pegar o pedido, sentar, as pausas, o almoço, entregar e avisar são o dev-script, de graça. O modelo pensa em duas coisas: o trabalho do pedido e a conversa.
+- **O trabalho é uma sessão própria** (`WorkSession`, em `libs/mind`): uma conversa com o modelo, com as oito ferramentas da oficina e o pedido do quadro, separada da janela das decisões. Ela corre em segundo plano enquanto o dev aparece trabalhando na mesa (o `work` em blocos e, depois do tamanho simulado do pedido, sentado, pensando). No `pronto`, o patch é revisado e a entrega sai na hora, sem esperar um pedido de decisão (`propose_now`). Uma entrega com patch não precisa do tempo simulado.
+- **A fala é uma chamada curta:** quem fala com o dev recebe a resposta do modelo, com o que ele está fazendo; se o modelo falha, a rotina responde.
+
+**O controlador é um só para o kernel** (`llm`). A rotina precisa da foto inteira e o `llm` recebe deltas: a foto é refeita dos deltas (`apply_delta`, em `libs/world-view`).
+
+**O orçamento:** a sessão leva o `ticket_id` em cada chamada, e a guarda soma por pedido. A mente escuta o sinal de vida da guarda (`live.budget`): o teto do pedido para a sessão entre um passo e outro; o do dia ou do total, ou a guarda calada por 15 s, desliga a mente. O dev diz uma vez "Fiquei sem bateria: não consigo mais programar hoje.", e a rotina conduz. Com o teto subido, a mente volta.
+
+**Ficam para depois:** a mente sem os textos da fazenda e a revisão da manhã (a memória do escritório), a prova de conformidade dos cinco modelos e as fitas do escritório, que chamam a API e pedem o ok do usuário.
+
