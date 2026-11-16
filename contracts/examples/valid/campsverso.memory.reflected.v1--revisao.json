@@ -1,0 +1,34 @@
+{
+  "specversion": "1.0",
+  "id": "019a8f3c-2b10-7d21-9a00-5e0b2c4d6e71",
+  "source": "/controller-runner/llm/camps",
+  "type": "campsverso.memory.reflected.v1",
+  "time": "2026-11-16T12:10:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/memory/reflected.v1",
+  "worldid": "office-campsverso-01",
+  "cartridge": "office_campsverso",
+  "tick": 1036800,
+  "simtime": "2026-11-16T09:02:00-03:00",
+  "seq": 40,
+  "provenance": "simulated",
+  "visibility": "observer",
+  "actor": "llm/camps",
+  "data": {
+    "avatar_id": "camps",
+    "day": 5,
+    "days": [
+      4,
+      5
+    ],
+    "summary": "Na quinta entreguei o pedido 3, e o gerente devolveu: faltou o teste do caso vazio. Na sexta corrigi e ele aceitou.",
+    "plan": "Ler o teste de aceite antes de começar e cobrir o caso vazio em todo pedido.",
+    "beliefs": {
+      "formed": 1,
+      "updated": 0,
+      "retracted": 0,
+      "total": 1
+    },
+    "prompt_sha256": "4b1a4b1a4b1a4b1a4b1a4b1a4b1a4b1a4b1a4b1a4b1a4b1a4b1a4b1a4b1a4b1a"
+  }
+}

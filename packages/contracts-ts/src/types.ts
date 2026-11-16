@@ -1440,6 +1440,13 @@ export interface MemoryReflectedV1 {
    * Hash do pedido da reflexão, o mesmo do llm.call.completed.
    */
   prompt_sha256?: string;
+  /**
+   * Os dias revistos de uma vez, do mais antigo ao mais novo, quando a revisão cobre mais de um (a revisão da manhã do escritório, ADR-0080): a segunda revê a sexta. `day` é o mais novo deles.
+   *
+   * @minItems 1
+   * @maxItems 31
+   */
+  days?: [Day, ...Day[]];
 }
 /**
  * O gerente aceitou um pedido entregue (ADR-0078): o pedido está pronto.

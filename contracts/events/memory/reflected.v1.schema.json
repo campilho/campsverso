@@ -82,6 +82,14 @@
       "type": "string",
       "pattern": "^[0-9a-f]{64}$",
       "description": "Hash do pedido da reflexão, o mesmo do llm.call.completed."
+    },
+    "days": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 31,
+      "uniqueItems": true,
+      "items": {"$ref": "contracts://common/defs.v1#/$defs/day"},
+      "description": "Os dias revistos de uma vez, do mais antigo ao mais novo, quando a revisão cobre mais de um (a revisão da manhã do escritório, ADR-0080): a segunda revê a sexta. `day` é o mais novo deles."
     }
   }
 }

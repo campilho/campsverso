@@ -26,6 +26,13 @@ class Token(RootModel[str]):
     """
 
 
+class Day(RootModel[int]):
+    root: Annotated[int, Field(ge=1, title="Day")]
+    """
+    Dia simulado (dia agrícola, ADR-0018), começando em 1.
+    """
+
+
 class Position(BaseModel):
     """
     Posição em tiles.
@@ -2002,6 +2009,10 @@ class MemoryReflectedV1(BaseModel):
     prompt_sha256: Annotated[str | None, Field(pattern="^[0-9a-f]{64}$")] = None
     """
     Hash do pedido da reflexão, o mesmo do llm.call.completed.
+    """
+    days: Annotated[list[Day] | None, Field(max_length=31, min_length=1)] = None
+    """
+    Os dias revistos de uma vez, do mais antigo ao mais novo, quando a revisão cobre mais de um (a revisão da manhã do escritório, ADR-0080): a segunda revê a sexta. `day` é o mais novo deles.
     """
 
 
