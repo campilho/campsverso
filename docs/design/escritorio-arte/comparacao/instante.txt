@@ -1,2 +1,6 @@
-sala: Dia 1 · 10:25:30manhaclima: ?72× · pausadoao vivoGerentehuman · human/camps-browserparadoinventárioCamps · fazendo: work · trabalhar no pedido 1
-almoço: Dia 1 · 12:11:01tardeclima: ?72× · pausadoao vivoGerentehuman · human/camps-browserparadoinventárioCamps · fazendo: lunch · rotina: almoçar na copa
+sala-dia, quadro-fichas: Dia 1 · 09:50:43 (office-campsverso-demo, 72×; o gerente escreveu os pedidos 1 a 3)
+sala-almoco, copa-almoco: Dia 1 · 12:10:11 (o mesmo mundo; Camps · fazendo: lunch)
+sala-luminarias: Dia 1 · 20:10:07 (o escritório a partir das 17:58, 72×)
+sala-noite-vigia: Dia 1 · 21:05:26 (o mesmo mundo; Vigia · fazendo: move · fazer a ronda)
+sofa-jogando: Dia 1 · 09:12:00 (office-campsverso-demo; o gerente no sofá é um patch só da captura)
+mesa-dev: Dia 1 · 10:25:30 (a captura anterior)
