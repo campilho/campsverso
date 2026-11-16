@@ -22,9 +22,14 @@ A arte LPC do M23 ficou com uma cara estranha para o usuário. O teste de arte d
 4. **O café sai da máquina, e a água do bebedouro da copa.**
 5. **A arte nova substitui a LPC no escritório,** no gênero `office` e no cenário `office_campsverso`. Os créditos passam a ser só do Campsverso. As fazendas seguem com a LPC (ADR-0053).
 6. **A bancada sai da sala por enquanto.** Ela volta com os robôs, na parte 4 do M24, num cubículo livre ou numa peça nova.
+7. **Quem está no escritório faz as pausas do dev pelo menu** (o pedido do usuário): beber água, o café, as quatro etapas do almoço, o banheiro, ver TV e jogar videogame no sofá. As regras são as mesmas para todos e ficam no kernel. O almoço vale só das 12:00 às 13:00, e o sofá só do tapete, logo acima ou logo abaixo dele. A tela só ajuda a chegar:
+   - **sem névoa:** no escritório, sem raio de visão, a tela não esconde nada. Antes, o clique direito só andava, sem menu;
+   - **anda até a coisa:** a pausa sem alvo leva junto a coisa clicada (`near`), e a fila anda até o lado dela antes;
+   - **senta no assento virado para a coisa:** quando há um assento livre virado para ela, como a cadeira de lado da mesinha da copa, a fila anda até ele, e não a um lado qualquer. O assento vem do manifesto de arte, que a fazenda não tem;
+   - **diz o que se faz:** o rótulo sobre o avatar vem do arquivo da língua ("Jogando videogame") antes do rótulo do menu ("Jogar videogame").
 
 ## Consequências
 
-- **O que a arte ainda não tem fica parado:** usar, beber, comer e as animações da copa. O desenho delas vem depois, sem mudar o mundo.
+- **As animações vieram depois, sem mudar o mundo:** comer sentado, carregar a marmita, jogar videogame no sofá, a luz da noite e a lanterna do vigia.
 - **Os testes que conheciam a sala antiga** (a cadeira do dev em (5,7), o balcão da copa, o posto do vigia) passaram para a planta nova.
 - **Um soak de um dia** na planta nova: o almoço nas quatro etapas, duas idas ao banheiro pelo corredor, os 4 pedidos do dia entregues e nenhuma recusa.
