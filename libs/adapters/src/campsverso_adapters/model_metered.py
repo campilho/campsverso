@@ -183,6 +183,8 @@ class MeteredModel:
         }
         if request.avatar_id is not None:
             data["avatar_id"] = request.avatar_id
+        if request.ticket_id is not None:
+            data["ticket_id"] = request.ticket_id  # a guarda soma por pedido (ADR-0080)
         envelope: dict[str, Any] = {
             "specversion": "1.0",
             "id": self._ids.new_id(),

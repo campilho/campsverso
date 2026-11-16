@@ -23,7 +23,8 @@ RETRYABLE_ERRORS: frozenset[str] = frozenset({"rate_limit", "timeout", "connecti
 class ModelRequest:
     """O pedido. `messages` e `tools` seguem a Messages API (blocos `text`, `tool_use`,
     `tool_result`, e ferramentas com `input_schema`); `system` pode levar marcadores de cache.
-    `purpose` e `avatar_id` são metadados para o evento: não entram no hash do pedido."""
+    `purpose`, `avatar_id` e `ticket_id` são metadados para o evento: não entram no hash do
+    pedido. O `ticket_id` é o pedido do escritório em que a mente trabalha (ADR-0080)."""
 
     model: str
     messages: Sequence[Mapping[str, Any]]
@@ -33,6 +34,7 @@ class ModelRequest:
     effort: Effort | None = None
     purpose: str = "decision"
     avatar_id: str | None = None
+    ticket_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

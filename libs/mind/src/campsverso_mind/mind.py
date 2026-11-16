@@ -54,6 +54,11 @@ class Mind:
     craft: str = ""
     columns: Columns | None = None  # o que a ferramenta de comparação mede (ADR-0074)
     seasons: Seasons | None = None  # o manual em números, para os dias esperados (decisão 35)
+    # A oficina (ADR-0080): as ferramentas da sessão de trabalho, no formato da Messages API, e as
+    # instruções da sessão e da conversa. Só a mente do escritório as tem.
+    workshop: tuple[Mapping[str, Any], ...] = ()
+    session: str = ""
+    conversation: str = ""
 
     def extend(self, *, card: str | None = None, notes: str | None = None) -> Mind:
         """Uma camada por cima (ADR-0031): o cenário troca o cartão, ou as notas, do gênero."""

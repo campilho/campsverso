@@ -12,6 +12,7 @@ from campsverso_mind.memory import REFLECT_TOOL, Clock, Memory, MemorySettings, 
 from campsverso_mind.mind import Mind, ParamDef, ToolDef, load_columns, load_seasons, load_tools
 from campsverso_mind.playbook import PLAYBOOK_VERSION, playbook
 from campsverso_mind.seasons import Seasons
+from campsverso_mind.session import SessionResult, StepOutcome, WorkSession
 from campsverso_mind.tools import INTENT, NOTE, proposal_from, tool_specs
 from campsverso_mind.window import Window, reason_text
 
@@ -35,8 +36,11 @@ __all__ = [
     "ParamDef",
     "Question",
     "Seasons",
+    "SessionResult",
+    "StepOutcome",
     "ToolDef",
     "Window",
+    "WorkSession",
     "clock_of",
     "exam_request",
     "grade",
