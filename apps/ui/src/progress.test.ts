@@ -1,6 +1,7 @@
 import type { ObserverState } from "@campsverso/contracts";
 import { describe, expect, it } from "vitest";
 
+import { setLocale } from "./locale.ts";
 import { busyText, progressOf } from "./progress.ts";
 
 function state(overrides: Partial<ObserverState> = {}): ObserverState {
@@ -46,6 +47,25 @@ describe("barra de progresso e ocupado (ADR-0052)", () => {
     expect(progressOf(state({ actions: old }), "camps", 101)).toEqual({ label: "water" });
     const walking = { camps: { action_id: "act-2", action: "move", params: {}, applied_tick: 100, end_tick: 104 } };
     expect(progressOf(state({ actions: walking }), "camps", 101)).toEqual({ label: "Andando", fraction: 0.25 });
+  });
+
+  it("o arquivo da língua diz o que se faz, antes do rótulo do menu (ADR-0082)", () => {
+    const playing = {
+      gerente: { action_id: "act-3", action: "videogame", params: {}, applied_tick: 100, end_tick: 104, interrupt: "cancel" as const },
+    };
+    const office = state({
+      session: { cartridge_version: "0.1.0", tick_seconds: 1, affordances: [{ action: "videogame", label: "Jogar videogame", on: ["sofa"], target: false }] },
+      entities: { gerente: { kind: "avatar", display_name: "Gerente", position: { x: 4, y: 4 }, attributes: {} } },
+      actions: playing,
+    });
+    expect(progressOf(office, "gerente", 100)?.label).toBe("Jogar videogame");
+    setLocale([{ actions: { videogame: "Jogando videogame" } }]);
+    try {
+      expect(progressOf(office, "gerente", 102)).toEqual({ label: "Jogando videogame", fraction: 0.5 });
+      expect(busyText(office, "gerente", 101)).toContain("ocupado: jogando videogame");
+    } finally {
+      setLocale([]);
+    }
   });
 
   it("o sono tem barra até a hora de acordar", () => {

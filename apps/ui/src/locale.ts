@@ -15,8 +15,8 @@ export interface Locale {
   readonly names?: Readonly<Record<string, string>>;
   /** O nome de um atributo que a tela mostra (`charges` vira "cargas"). */
   readonly attributes?: Readonly<Record<string, string>>;
-  /** O rótulo de uma ação em andamento, para a barra sobre o avatar (`work` vira "Trabalhando"):
-   * o escritório não tem menu de onde tirar o rótulo (ADR-0078). */
+  /** O rótulo de uma ação em andamento, para a barra sobre o avatar (`work` vira "Trabalhando",
+   * `videogame` vira "Jogando videogame"); vale mais que o rótulo do menu (ADR-0078, ADR-0082). */
   readonly actions?: Readonly<Record<string, string>>;
 }
 

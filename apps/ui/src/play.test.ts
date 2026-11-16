@@ -342,3 +342,24 @@ describe("segurar a seta (achado do usuário no mapa d)", () => {
     expect(holdTarget(map, { x: 3, y: 0 }, [-1, 0], 5)).toEqual({ x: 3, y: 0 });
   });
 });
+
+describe("as pausas do escritório pelo menu (ADR-0082)", () => {
+  it("a ação sem alvo anda até a coisa clicada antes", () => {
+    const office = {
+      ...state(),
+      entities: {
+        ...state().entities,
+        sofa: { kind: "sofa", position: { x: 16, y: 5 }, attributes: {} },
+      },
+      session: {
+        cartridge_version: "0.4.0",
+        tick_seconds: 60,
+        affordances: [{ action: "videogame", label: "Jogar videogame", on: ["sofa", "tv"], target: false }],
+      },
+    } as unknown as ObserverState;
+    const [play] = menuFor(office, "camps", "sofa");
+    expect(play?.target).toBeUndefined();
+    expect(play?.near).toBe("sofa");
+  });
+});
+

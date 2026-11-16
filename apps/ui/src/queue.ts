@@ -1,7 +1,8 @@
 /** A fila de ações do humano, na tela (ADR-0068). O kernel não muda: ele recebe uma proposta por
  * vez, e a tela manda a próxima quando a anterior termina.
  *
- * - Um passo com alvo longe do avatar ganha antes um `move {near}` até o lado dele.
+ * - Um passo com alvo longe do avatar ganha antes um `move {near}` até o lado dele; com um assento
+ *   virado para o alvo, um `move {target}` até o assento (ADR-0082).
  * - Uma recusa, ou uma ação que falha, esvazia a fila; quem joga é avisado.
  * - O shift com o clique enfileira; sem o shift, o passo novo substitui a fila. O Esc a esvazia.
  */
@@ -15,6 +16,9 @@ export interface Step {
   readonly proposal: Proposal;
   /** O alvo de que o avatar precisa estar ao lado; vazio quando não há (andar, comer, dormir). */
   readonly near?: string | Tile;
+  /** O assento virado para o alvo, onde sentar antes da ação, no lugar do lado qualquer do `near`
+   * (a cadeira da mesinha da copa; ADR-0082). */
+  readonly seat?: Tile;
 }
 
 const SETTLED = new Set(["campsverso.action.completed.v1", "campsverso.action.rejected.v1", "campsverso.action.failed.v1"]);
@@ -58,7 +62,7 @@ export class ActionQueue {
       return undefined;
     }
     this.inFlight = true;
-    const walk = this.walked ? undefined : approach(state, avatarId, step.near);
+    const walk = this.walked ? undefined : sitDown(state, avatarId, step.seat) ?? approach(state, avatarId, step.near);
     if (walk !== undefined) {
       this.walked = true; // depois de andar, a ação vai de qualquer jeito: o kernel decide
       return walk;
@@ -82,4 +86,13 @@ export class ActionQueue {
     }
     return undefined;
   }
+}
+
+/** O passo até o assento, se o avatar não estiver nele. */
+function sitDown(state: ObserverState, avatarId: string, seat: Tile | undefined): Proposal | undefined {
+  const me = state.entities[avatarId]?.position;
+  if (seat === undefined || me === undefined || (me.x === seat.x && me.y === seat.y)) {
+    return undefined;
+  }
+  return { avatar_id: avatarId, action: "move", params: { target: { x: seat.x, y: seat.y } } };
 }

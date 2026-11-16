@@ -357,6 +357,7 @@ class WorldScene extends Phaser.Scene {
   fogOn = false;
   private fog = new FogMemory();
   private fogDrawn = false;
+  private fogless = false; // sem raio de visão na sessão (o escritório): sem névoa nenhuma
   private fogStore: FogStore | undefined; // a lembrança no navegador, na visão do jogador
   private fogLoaded = false;
   private fogSavedAt = 0;
@@ -691,6 +692,7 @@ class WorldScene extends Phaser.Scene {
     const id = this.follow;
     const at = id === undefined ? undefined : this.seen.get(id);
     const radius = id === undefined ? undefined : visionRadius(state, id);
+    this.fogless = id !== undefined && radius === undefined; // o avatar vê o mundo inteiro
     if (!this.fogOn || id === undefined || at === undefined || radius === undefined) {
       if (this.fogDrawn) {
         this.fogLayer.clear();
@@ -775,10 +777,16 @@ class WorldScene extends Phaser.Scene {
       .fillRect(x * TILE, y * TILE, TILE, TILE);
   }
 
-  /** O que o jogador enxerga num tile, com a névoa ligada; sem névoa, nada. */
+  /** O que o jogador enxerga num tile, com a névoa ligada; sem névoa, nada. Num mundo sem raio
+   * de visão (o escritório, que se vê inteiro), não há névoa: antes, tudo ficava "nunca visto", e o
+   * clique direito só andava, sem o menu das pausas (ADR-0082). */
   sightAt(x: number, y: number): Sight | undefined {
-    return this.fogOn ? this.fog.sight(x, y) : undefined;
+    if (!this.fogOn || this.fogless) {
+      return undefined;
+    }
+    return this.fog.sight(x, y);
   }
+
 
   /** Esquece o que foi visto: outra sessão, ou o operador desligou e ligou a névoa. */
   resetFog(): void {

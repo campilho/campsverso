@@ -18,6 +18,7 @@ import {
   minuteOfDay,
   rooted,
   seatAt,
+  seatFacing,
   seatedAnimation,
   shadeOf,
   sitSpot,
@@ -245,6 +246,36 @@ describe("o assento (ADR-0078)", () => {
     expect(seatAt(copa, chairs, { x: 12, y: 11 })).toBe("right");
     expect(seatAt(copa, chairs, { x: 14, y: 11 })).toBe("left");
     expect(lookOf(copa, "copa_chair", { virada: "esquerda" }).frame).toBe(1);
+  });
+
+  it("o assento virado para a mesinha, livre e mais perto de quem vai almoçar (ADR-0082)", () => {
+    const copa: ArtManifest = {
+      version: 1,
+      kinds: {
+        copa_chair: {
+          sheet: "cadeira_lado",
+          variants: [
+            { when: { virada: "direita" }, look: { frame: 0, seat: "right" } },
+            { when: { virada: "esquerda" }, look: { frame: 1, seat: "left" } },
+          ],
+        },
+        copa_table: { sheet: "mesinha", frame: 0 },
+      },
+    };
+    const things = {
+      a: { kind: "copa_chair", position: { x: 12, y: 11 }, attributes: { virada: "direita" } },
+      b: { kind: "copa_chair", position: { x: 14, y: 11 }, attributes: { virada: "esquerda" } },
+      c: { kind: "copa_chair", position: { x: 16, y: 11 }, attributes: { virada: "direita" } },
+      mesa: { kind: "copa_table", position: { x: 13, y: 11 } },
+    };
+    const table = { x: 13, y: 11 };
+    expect(seatFacing(copa, things, table, { x: 10, y: 9 })).toEqual({ x: 12, y: 11 });
+    expect(seatFacing(copa, things, table, { x: 15, y: 9 })).toEqual({ x: 14, y: 11 });
+    expect(seatFacing(copa, things, table, { x: 10, y: 9 }, [{ x: 12, y: 11 }])).toEqual({ x: 14, y: 11 });
+    expect(seatFacing(copa, things, table, { x: 10, y: 9 }, [{ x: 12, y: 11 }, { x: 14, y: 11 }])).toBeUndefined();
+    // A cadeira c está virada para a direita, para a outra mesinha: não serve a esta.
+    expect(seatFacing(copa, things, { x: 17, y: 11 }, { x: 10, y: 9 })).toEqual({ x: 16, y: 11 });
+    expect(seatFacing(copa, things, { x: 18, y: 9 }, { x: 10, y: 9 })).toBeUndefined(); // o bebedouro não tem
   });
 });
 

@@ -566,6 +566,35 @@ export function seatAt(
   return undefined;
 }
 
+/** O assento virado para a coisa em `spot` (a cadeira da mesinha da copa, a da mesa), fora dos
+ * tiles `taken` e o mais perto de `from`; nada quando a coisa não tem um. Quem escolhe uma pausa
+ * na coisa pelo menu senta nele antes, como a rotina do dev (ADR-0082). */
+export function seatFacing(
+  manifest: ArtManifest,
+  things: Readonly<Record<string, Placed | undefined>>,
+  spot: { readonly x: number; readonly y: number },
+  from: { readonly x: number; readonly y: number },
+  taken: readonly { readonly x: number; readonly y: number }[] = [],
+): { x: number; y: number } | undefined {
+  const seats: { x: number; y: number }[] = [];
+  for (const thing of Object.values(things)) {
+    const at = thing?.position;
+    if (thing === undefined || at === undefined || manifest.kinds?.[thing.kind] === undefined) {
+      continue;
+    }
+    const facing = lookOf(manifest, thing.kind, thing.attributes ?? {}).seat;
+    const faced = facing === undefined ? undefined : facedTile(at, facing);
+    if (faced?.x !== spot.x || faced.y !== spot.y) {
+      continue;
+    }
+    if (!taken.some((t) => t.x === at.x && t.y === at.y)) {
+      seats.push({ x: at.x, y: at.y });
+    }
+  }
+  const distance = (t: { x: number; y: number }): number => Math.abs(t.x - from.x) + Math.abs(t.y - from.y);
+  return seats.sort((a, b) => distance(a) - distance(b) || a.y - b.y || a.x - b.x)[0];
+}
+
 /** `#rrggbb` ou `hsl(h s% l%)` como número 0xRRGGBB, que é como o Phaser recebe cores. */
 export function colorNumber(css: string): number {
   const hex = /^#([0-9a-f]{6})$/i.exec(css);

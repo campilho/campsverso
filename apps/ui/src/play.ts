@@ -44,6 +44,9 @@ export interface MenuEntry {
   readonly label: string;
   /** A entidade clicada, ou o tile vazio (no menu do terreno). */
   readonly target?: string | Tile;
+  /** Aonde andar antes da ação, quando ela não leva a coisa no `target`: as pausas do escritório
+   * (beber, café, o sofá) são ao lado da coisa, sem ela nos parâmetros (ADR-0082). */
+  readonly near?: string;
   readonly params: readonly MenuParam[];
   /** Todo parâmetro de escolha tem ao menos uma opção. */
   readonly ready: boolean;
@@ -313,6 +316,7 @@ export function menuFor(state: ObserverState, avatarId: string, clicked: string)
         action: a.action,
         label: a.label,
         ...(a.target && target !== undefined ? { target } : {}),
+        ...(!a.target && target !== undefined ? { near: target } : {}),
         params,
         ready: blocked === undefined && params.every((p) => p.numeric || p.options.length > 0),
         ...(detail === undefined ? {} : { detail }),

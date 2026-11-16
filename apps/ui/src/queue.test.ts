@@ -108,6 +108,16 @@ describe("os menus do humano (ADR-0068)", () => {
 });
 
 describe("a fila de ações (ADR-0068)", () => {
+  it("com um assento, a fila senta nele antes da ação, e não só ao lado (ADR-0082)", () => {
+    const queue = new ActionQueue();
+    queue.push({ label: "Almoçar", proposal: { avatar_id: "camps", action: "lunch", params: {} }, near: "chest", seat: { x: 6, y: 5 } });
+    expect(queue.next(state(), "camps")).toEqual({ avatar_id: "camps", action: "move", params: { target: { x: 6, y: 5 } } });
+    const walked = { type: "campsverso.action.completed.v1", data: { avatar_id: "camps", action: "move" } } as unknown as EnvelopeV1;
+    queue.settle(walked, "camps");
+    const seated = state({ entities: { ...state().entities, camps: { kind: "avatar", position: { x: 6, y: 5 }, attributes: {} } } });
+    expect(queue.next(seated, "camps")).toEqual({ avatar_id: "camps", action: "lunch", params: {} });
+  });
+
   const water = { label: "Regar · plot-001", proposal: { avatar_id: "camps", action: "water", params: { target: "plot-001" } }, near: "plot-001" };
   const deposit = { label: "Guardar no baú", proposal: { avatar_id: "camps", action: "deposit", params: { target: "chest" } }, near: "chest" };
 

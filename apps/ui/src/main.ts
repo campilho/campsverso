@@ -12,6 +12,7 @@ import type { EnvelopeV1, ObserverState } from "@campsverso/contracts";
 
 import { ItemIcons } from "./art/icons.ts";
 import { loadArt, type LoadedArt } from "./art/load.ts";
+import { seatFacing } from "./art/manifest.ts";
 import { Connection, type View } from "./connection.ts";
 import { button, el } from "./dom.ts";
 import { fogKey } from "./fog.ts";
@@ -418,8 +419,23 @@ function stepFor(state: ObserverState, entry: MenuEntry, chosen: Record<string, 
   const where =
     typeof target === "string" ? (state.entities[target]?.display_name ?? target) : target === undefined ? "" : `(${String(target.x)}, ${String(target.y)})`;
   const label = [`${entry.label}${values.length > 0 ? ` (${values.join(", ")})` : ""}`, where].filter((part) => part !== "").join(" · ");
-  const near = entry.action === "move" ? undefined : target;
-  return { label, proposal: proposal(avatarId(), entry, chosen), ...(near === undefined ? {} : { near }) };
+  const near = entry.action === "move" ? undefined : (target ?? entry.near);
+  const seat = typeof near === "string" ? seatFor(state, near) : undefined;
+  return { label, proposal: proposal(avatarId(), entry, chosen), ...(near === undefined ? {} : { near }), ...(seat === undefined ? {} : { seat }) };
+}
+
+/** O assento livre virado para a coisa, mais perto de quem joga: a cadeira da mesinha da copa
+ * (ADR-0082). Os outros avatares ocupam o tile deles. */
+function seatFor(state: ObserverState, thing: string): Tile | undefined {
+  const spot = state.entities[thing]?.position;
+  const me = state.entities[avatarId()]?.position;
+  if (art === undefined || spot === undefined || me === undefined) {
+    return undefined;
+  }
+  const taken = Object.entries(state.entities)
+    .filter(([id, e]) => id !== avatarId() && e?.kind === "avatar" && e.position !== undefined)
+    .map(([, e]) => ({ x: e?.position?.x ?? -1, y: e?.position?.y ?? -1 }));
+  return seatFacing(art.manifest, state.entities, spot, me, taken);
 }
 
 /** Com o shift, o passo entra no fim da fila; sem, substitui a fila. Andar sem o shift vai na hora,

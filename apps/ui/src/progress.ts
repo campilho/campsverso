@@ -21,13 +21,15 @@ function fraction(start: number, end: number, tick: number): number {
 /** As ações do próprio kernel (ADR-0038), que nenhum cartucho põe no catálogo. */
 const KERNEL_LABELS: Readonly<Record<string, string>> = { move: "Andando", wait: "Esperando", say: "Falando" };
 
-/** O rótulo da ação no catálogo do cartucho ("Plantar"), no arquivo da língua ("Trabalhando", no
- * escritório, que não tem menu; ADR-0078), ou o nome dela. */
+/** O que o avatar está fazendo: o nome da ação no arquivo da língua, quando o cartucho o dá
+ * ("Jogando videogame", no escritório; ADR-0078), o rótulo do catálogo ("Plantar", na fazenda, que
+ * não tem a seção), ou o nome dela. O arquivo da língua vem antes porque o rótulo do catálogo é o
+ * que o menu oferece ("Jogar videogame"), e não o que se faz (ADR-0082). */
 export function actionLabel(state: ObserverState, action: string): string {
   return (
+    actionName(action) ??
     state.session?.affordances?.find((a) => a.action === action)?.label ??
     KERNEL_LABELS[action] ??
-    actionName(action) ??
     action
   );
 }
