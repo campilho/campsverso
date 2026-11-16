@@ -86,9 +86,11 @@ Uma entidade `ticket` guardada no quadro, com os atributos:
 | `fridge` | todos | ao lado da geladeira | 15 s | pega o almoço (ADR-0082) |
 | `microwave` | todos | ao lado do micro-ondas | 90 s | esquenta o almoço |
 | `lunch` | todos | ao lado da mesinha da copa | até as 12:55 | come, só na hora do almoço; os 5 minutos do fim são para jogar fora e voltar |
-| `trash` | todos | ao lado de uma lixeira | 5 s | joga fora o resto |
+| `trash` | todos | ao lado de uma lixeira | 5 s | joga fora o resto; entre a geladeira e o lixo, o avatar carrega a marmita (`carregando`) |
+| `tv` | todos | no tapete, logo acima ou abaixo do sofá | 10 min | vê TV sentado no sofá (ADR-0082) |
+| `videogame` | todos | no tapete, logo acima ou abaixo do sofá | 15 min | joga videogame sentado no sofá; a rotina joga uma partida por dia, à tarde |
 
-Fora do papel, a ação é recusada (`not_allowed`); longe do lugar, `not_adjacent`.
+Fora do papel, a ação é recusada (`not_allowed`); longe do lugar, `not_adjacent`. As pausas são de qualquer um: o gerente do humano as encontra no menu de cada coisa (ADR-0082).
 
 ## 7. Os eventos
 
