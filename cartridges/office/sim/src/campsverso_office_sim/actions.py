@@ -230,6 +230,7 @@ class WriteTicket(OfficeAction):
                     "dono": None,
                     "trabalho": 0,
                     "comentario": None,
+                    "patch": None,  # a referência da entrega da oficina (ADR-0080)
                 },
             )
         )
@@ -377,16 +378,37 @@ class Deliver(OfficeAction):
     def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
         mine = doing(ctx.view, ctx.avatar_id)
         assert mine is not None
-        ops.set_attributes(mine.entity_id, visible={"estado": DELIVERED})
-        ops.emit(
-            "campsverso.office.ticket.delivered.v1",
-            {
-                "ticket_id": mine.entity_id,
-                "number": int(cast(int, mine.attributes["numero"])),
-                "by": ctx.avatar_id,
-                "worked_seconds": int(cast(int, mine.attributes.get("trabalho", 0))),
-            },
-        )
+        patch = _patch(ctx.params.get("patch"))
+        visible: dict[str, Any] = {"estado": DELIVERED}
+        if patch is not None:
+            visible["patch"] = patch["ref"]  # o quadro mostra o "ver o patch" (ADR-0080)
+        ops.set_attributes(mine.entity_id, visible=visible)
+        data: dict[str, Any] = {
+            "ticket_id": mine.entity_id,
+            "number": int(cast(int, mine.attributes["numero"])),
+            "by": ctx.avatar_id,
+            "worked_seconds": int(cast(int, mine.attributes.get("trabalho", 0))),
+        }
+        if patch is not None:
+            data["patch"] = patch
+        ops.emit("campsverso.office.ticket.delivered.v1", data)
+
+
+def _patch(raw: object) -> dict[str, Any] | None:
+    """O resumo do patch da oficina, quando a entrega o traz (ADR-0080). O patch fica no depósito
+    de entregas; o mundo guarda só a referência e o resumo. Um resumo malformado fica de fora."""
+    if not isinstance(raw, Mapping):
+        return None
+    patch = cast(Mapping[str, Any], raw)
+    ref, base = patch.get("ref"), patch.get("base")
+    files = patch.get("files")
+    added, removed = patch.get("added"), patch.get("removed")
+    if not (isinstance(ref, str) and isinstance(base, str) and isinstance(files, list)):
+        return None
+    if not (isinstance(added, int) and isinstance(removed, int)):
+        return None
+    names = [str(f) for f in cast(list[Any], files)][:200]
+    return {"ref": ref, "base": base, "files": names, "added": added, "removed": removed}
 
 
 @dataclass(frozen=True)

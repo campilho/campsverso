@@ -1496,6 +1496,28 @@ export interface OfficeTicketDeliveredV1 {
    * Quanto tempo simulado de trabalho o pedido levou.
    */
   worked_seconds: number;
+  patch?: OfficeTicketPatch;
+}
+/**
+ * O que o dev entregou da oficina (ADR-0080): o patch contra o commit de onde o espaço de trabalho saiu, guardado no depósito de arquivos do mundo, e o resumo dele. Sem o campo, o trabalho foi só simulado (o dev-script de antes).
+ */
+export interface OfficeTicketPatch {
+  /**
+   * A chave do patch no depósito de arquivos do mundo.
+   */
+  ref: string;
+  /**
+   * O commit de onde o espaço de trabalho saiu.
+   */
+  base: string;
+  /**
+   * Os arquivos mudados.
+   *
+   * @maxItems 200
+   */
+  files: string[];
+  added: number;
+  removed: number;
 }
 /**
  * O gerente devolveu um pedido entregue (ADR-0078): o pedido volta para "a fazer", com o comentário.
@@ -1799,6 +1821,38 @@ export interface RulesToggledV1 {
   reason: string;
   experiment_id?: string;
   effective_at_tick: Tick;
+}
+/**
+ * Um passo do dev na oficina (ADR-0080): a ferramenta, o caminho e uma linha do que aconteceu. É o computador do dev, e não o mundo: quem publica é o controlador, e o kernel nunca o vê. A tela mostra o último passo no monitor da mesa; o arquivo guarda todos.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "WorkshopStepV1".
+ */
+export interface WorkshopStepV1 {
+  avatar_id: EntityId;
+  ticket_id: EntityId;
+  tool:
+    | "ver_arquivos"
+    | "ler"
+    | "buscar"
+    | "escrever"
+    | "editar"
+    | "rodar_testes"
+    | "ver_mudancas"
+    | "pronto";
+  /**
+   * O caminho no espaço de trabalho, quando a ferramenta usa um.
+   */
+  path?: string;
+  /**
+   * Uma linha do que aconteceu, como "rodando os testes: 12 passaram".
+   */
+  summary: string;
+  /**
+   * Falso quando a ferramenta recusou ou falhou.
+   */
+  ok: boolean;
+  duration_ms: number;
 }
 /**
  * O relógio ancorado no real alcançou o tick de agora (ADR-0078): o mundo andou de `from_tick` a `to_tick` de uma vez, ao subir de novo.

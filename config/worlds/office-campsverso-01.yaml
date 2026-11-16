@@ -27,3 +27,8 @@ budget:
   usd_per_ticket: 1.00
   usd_total: 30.00
   on_exceeded: mind_off
+
+# A oficina do dev (ADR-0080): na entrega, o controlador roda a sessão num clone deste repositório
+# (data/oficina/<mundo>/<pedido>/) e guarda o patch em data/entregas/. `make aplicar PEDIDO=N` o
+# põe num ramo.
+workshop: true

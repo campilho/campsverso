@@ -701,6 +701,17 @@ channels:
     messages:
       RulesToggledV1:
         $ref: '#/components/messages/RulesToggledV1'
+  WorkshopStepV1:
+    address: campsverso.{worldid}.observer.workshop.step.v1
+    title: campsverso.workshop.step.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorkshopStepV1:
+        $ref: '#/components/messages/WorkshopStepV1'
   WorldClockCaughtUpV1:
     address: campsverso.{worldid}.world.world.clock.caught_up.v1
     title: campsverso.world.clock.caught_up.v1
@@ -1447,6 +1458,13 @@ operations:
     messages:
     - $ref: '#/channels/RulesToggledV1/messages/RulesToggledV1'
     x-producer: kernel
+  sendWorkshopStepV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorkshopStepV1'
+    messages:
+    - $ref: '#/channels/WorkshopStepV1/messages/WorkshopStepV1'
+    x-producer: controller
   sendWorldClockCaughtUpV1:
     action: send
     channel:
@@ -3831,6 +3849,43 @@ components:
           type: integer
           minimum: 0
           description: Quanto tempo simulado de trabalho o pedido levou.
+        patch:
+          type: object
+          title: OfficeTicketPatch
+          additionalProperties: false
+          description: 'O que o dev entregou da oficina (ADR-0080): o patch contra o commit de onde o
+            espaço de trabalho saiu, guardado no depósito de arquivos do mundo, e o resumo dele. Sem o
+            campo, o trabalho foi só simulado (o dev-script de antes).'
+          required:
+          - ref
+          - base
+          - files
+          - added
+          - removed
+          properties:
+            ref:
+              type: string
+              pattern: ^[a-z0-9][a-z0-9/._-]*$
+              maxLength: 200
+              description: A chave do patch no depósito de arquivos do mundo.
+            base:
+              type: string
+              pattern: ^[0-9a-f]{40}$
+              description: O commit de onde o espaço de trabalho saiu.
+            files:
+              type: array
+              items:
+                type: string
+                minLength: 1
+                maxLength: 300
+              maxItems: 200
+              description: Os arquivos mudados.
+            added:
+              type: integer
+              minimum: 0
+            removed:
+              type: integer
+              minimum: 0
     OfficeTicketReturnedV1:
       title: OfficeTicketReturnedV1
       description: 'O gerente devolveu um pedido entregue (ADR-0078): o pedido volta para "a fazer", com
@@ -4407,6 +4462,52 @@ components:
           maxLength: 64
         effective_at_tick:
           $ref: '#/components/schemas/Tick'
+    WorkshopStepV1:
+      title: WorkshopStepV1
+      description: 'Um passo do dev na oficina (ADR-0080): a ferramenta, o caminho e uma linha do que
+        aconteceu. É o computador do dev, e não o mundo: quem publica é o controlador, e o kernel nunca
+        o vê. A tela mostra o último passo no monitor da mesa; o arquivo guarda todos.'
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - ticket_id
+      - tool
+      - summary
+      - ok
+      - duration_ms
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+        ticket_id:
+          $ref: '#/components/schemas/EntityId'
+          description: O pedido do espaço de trabalho.
+        tool:
+          enum:
+          - ver_arquivos
+          - ler
+          - buscar
+          - escrever
+          - editar
+          - rodar_testes
+          - ver_mudancas
+          - pronto
+        path:
+          type: string
+          minLength: 1
+          maxLength: 300
+          description: O caminho no espaço de trabalho, quando a ferramenta usa um.
+        summary:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: 'Uma linha do que aconteceu, como "rodando os testes: 12 passaram".'
+        ok:
+          type: boolean
+          description: Falso quando a ferramenta recusou ou falhou.
+        duration_ms:
+          type: integer
+          minimum: 0
     WorldClockCaughtUpV1:
       title: WorldClockCaughtUpV1
       description: 'O relógio ancorado no real alcançou o tick de agora (ADR-0078): o mundo andou de `from_tick`
@@ -6465,6 +6566,17 @@ components:
         $ref: '#/components/schemas/RulesToggledV1'
       x-visibility: internal
       x-producer: kernel
+    WorkshopStepV1:
+      name: campsverso.workshop.step.v1
+      title: WorkshopStepV1
+      summary: 'Um passo do dev na oficina (ADR-0080): a ferramenta, o caminho e uma linha do que aconteceu.
+        É o computador do dev, e não o mundo: quem publica é o controlador, e o kernel nunca o vê. A tela
+        mostra o último passo no monitor da mesa; o arquivo guarda todos.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorkshopStepV1'
+      x-visibility: observer
+      x-producer: controller
     WorldClockCaughtUpV1:
       name: campsverso.world.clock.caught_up.v1
       title: WorldClockCaughtUpV1

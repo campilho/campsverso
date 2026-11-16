@@ -1,9 +1,29 @@
 {
-  "$comment": "Domínios de tipos de evento e comando. Os do kernel são reservados (contratos §14.3); os de cartucho usam o nome do cartucho que declara o evento (ADR-0031); os de biblioteca são das bibliotecas de mundo que os cartuchos escolhem usar (ADR-0069).",
+  "$comment": "Domínios de tipos de evento e comando. Os do kernel são reservados (contratos §14.3); os de cartucho usam o nome do cartucho que declara o evento (ADR-0031); os de biblioteca são das bibliotecas de mundo que os cartuchos escolhem usar (ADR-0069); a oficina do dev (`workshop`, ADR-0080) é da plataforma.",
   "kernel": [
-    "world", "action", "avatar", "perception", "cognition", "memory", "social", "rules",
-    "experiment", "maintenance", "bridge", "director", "portal", "llm", "ops", "clock"
+    "world",
+    "action",
+    "avatar",
+    "perception",
+    "cognition",
+    "memory",
+    "social",
+    "rules",
+    "experiment",
+    "maintenance",
+    "bridge",
+    "director",
+    "portal",
+    "llm",
+    "ops",
+    "clock",
+    "workshop"
   ],
-  "cartridges": ["farm", "office"],
-  "libraries": ["economy"]
+  "cartridges": [
+    "farm",
+    "office"
+  ],
+  "libraries": [
+    "economy"
+  ]
 }

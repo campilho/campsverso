@@ -304,3 +304,26 @@ def test_a_sessao_do_escritorio_vai_na_v2_com_o_tick_de_250_ms() -> None:
     assert "tick_seconds" not in session
     assert core.scale == 1
     assert core.tiles_per_tick() == 1.0
+
+
+def test_a_entrega_com_o_patch_da_oficina() -> None:
+    """ADR-0080: a entrega leva o resumo do patch; o pedido guarda a referência, para o quadro."""
+    core = _core()
+    _until(core, "09:00")
+    _manager_in(core)
+    _write(core, size="P")
+    _act(core, "camps", "move", {"near": "quadro"}, DEV)
+    _act(core, "camps", "take_ticket", {}, DEV)
+    _act(core, "camps", "move", {"target": {"x": 4, "y": 5}}, DEV)
+    _act(core, "camps", "work", {}, DEV)
+    patch = {
+        "ref": "office-teste/pedido-001/x.patch",
+        "base": "a" * 40,
+        "files": ["docs/oficina/pedido-001.md"],
+        "added": 7,
+        "removed": 0,
+    }
+    facts = _act(core, "camps", "deliver", {"patch": patch}, DEV)
+    (delivered,) = _only(facts, "office.ticket.delivered")
+    assert delivered["patch"] == patch
+    assert core.world.entity_map["pedido-001"].attributes["patch"] == patch["ref"]

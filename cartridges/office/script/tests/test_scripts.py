@@ -133,7 +133,18 @@ def test_o_dev_avisa_trabalha_em_blocos_e_entrega() -> None:
     assert walk["action"] == "move"
     assert walk["params"] == {"target": {"x": 4, "y": 5}}
     done = [_ticket(1, "fazendo", "camps", trabalho=900)]
-    assert dev.decide(_view(at=(4, 5), tickets=done))["action"] == "deliver"
+    deliver = dev.decide(_view(at=(4, 5), tickets=done))
+    assert deliver["action"] == "deliver"
+    # A sessão na oficina (ADR-0080): o controlador a roda antes de propor a entrega.
+    session = deliver["workshop"]
+    assert session["ticket_id"] == "pedido-001"
+    assert [step["tool"] for step in session["steps"]] == [
+        "ler",
+        "escrever",
+        "ver_mudancas",
+        "pronto",
+    ]
+    assert session["steps"][1]["args"]["path"] == "docs/oficina/pedido-001.md"
 
 
 def test_o_dev_avisa_que_vai_almocar_uma_vez_nos_minutos_antes() -> None:

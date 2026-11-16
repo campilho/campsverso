@@ -233,6 +233,39 @@ def chair_by(
     return next((c for c in entities(view, kind) if adjacent(c.get("position"), spot)), None)
 
 
+def workshop_session(ticket: Mapping[str, Any]) -> dict[str, Any]:
+    """A sessão do dev-script na oficina (ADR-0080), o script de reserva: sem modelo, ele registra o
+    pedido num arquivo e entrega. O controlador a roda pela porta da oficina antes de propor a
+    entrega, e a tira da proposta num mundo sem oficina."""
+    a = attrs(ticket)
+    number = int(a["numero"])
+    lines = [
+        f"# Pedido {number}: {a.get('titulo', '')}",
+        "",
+        str(a.get("descricao") or ""),
+        "",
+        f"**Teste de aceite:** {a.get('aceite') or '(nenhum)'}",
+        "",
+        "Registrado pelo dev-script na oficina, sem modelo: o script de reserva do escritório.",
+        "",
+    ]
+    return {
+        "ticket_id": str(ticket["entity_id"]),
+        "steps": [
+            {"tool": "ler", "args": {"path": "README.md", "start": 1, "end": 20}},
+            {
+                "tool": "escrever",
+                "args": {
+                    "path": f"docs/oficina/pedido-{number:03d}.md",
+                    "content": "\n".join(lines),
+                },
+            },
+            {"tool": "ver_mudancas", "args": {}},
+            {"tool": "pronto", "args": {}},
+        ],
+    }
+
+
 # Quantos minutos antes do almoço o dev avisa: o bloco de trabalho é de um minuto, então dois
 # minutos garantem uma decisão na janela.
 LUNCH_NOTICE_MINUTES = 2
@@ -324,7 +357,12 @@ class DevScript:
             if not near_desk:
                 return self._sit(chair, desk, "ir para a mesa trabalhar")
             if int(attrs(doing).get("trabalho", 0)) >= total:
-                return {"action": "deliver", "params": {}, "intent": "entregar o pedido"}
+                return {
+                    "action": "deliver",
+                    "params": {},
+                    "intent": "entregar o pedido",
+                    "workshop": workshop_session(doing),
+                }
             chunk = int(self.config["chunk_seconds"])
             return {
                 "action": "work",

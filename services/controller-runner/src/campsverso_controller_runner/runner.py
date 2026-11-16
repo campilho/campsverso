@@ -19,6 +19,7 @@ from importlib.metadata import entry_points
 from typing import Any, Protocol, cast, runtime_checkable
 
 from campsverso_contracts import CONTRACT_TYPES, subject
+from campsverso_controller_runner.workshop import WorkshopSession
 from campsverso_mind import Mind
 from campsverso_ports import Consumer, Envelope, EventBus, IdGenerator, Telemetry, WallClock
 
@@ -173,6 +174,7 @@ class ControllerRunner:
         cartridge: str | None = None,
         possess: bool = False,
         sim_time: SimTime | None = None,
+        workshop: WorkshopSession | None = None,
     ) -> None:
         if possess and cartridge is None:
             raise ValueError("assumir o avatar exige o cartucho do mundo (vai no envelope)")
@@ -189,6 +191,7 @@ class ControllerRunner:
         self._cartridge = cartridge
         self._possess = possess
         self.sim_time = sim_time or SimTime()
+        self._workshop = workshop  # a oficina do dev do escritório (ADR-0080)
         self._last: Mapping[str, Any] | None = None
         self._last_proposal_at: datetime | None = None
         self._consumer: Consumer | None = None
@@ -199,6 +202,7 @@ class ControllerRunner:
         self.possessing = False
         self.released = 0
         self.failure: BaseException | None = None
+        self._cartridge_now: str | None = None
 
     @property
     def avatar_id(self) -> str:
@@ -277,6 +281,13 @@ class ControllerRunner:
         proposal = await self._decide(perception, data, decision)
         if proposal is None:
             return
+        session = cast(Mapping[str, Any] | None, proposal.pop("workshop", None))
+        if session is not None and self._workshop is not None:
+            # A sessão na oficina antes da entrega (ADR-0080); num mundo sem oficina, ela sai da
+            # proposta, e a entrega vai como antes.
+            self._cartridge_now = str(perception["cartridge"])
+            stamp = self._ids.derive(str(perception["id"]), "patch")
+            proposal = await self._workshop.run(proposal, session, stamp)
         if decision["reason"] == "action_rejected" and proposal == self._last:
             # A mesma proposta acabou de ser recusada: repetir só repetiria a recusa.
             proposal = dict(WAIT_AFTER_REJECTION)
@@ -305,35 +316,45 @@ class ControllerRunner:
             await self._mind.after_proposal()
             await self._publish_memory(str(perception["cartridge"]))
 
+    async def publish_observed(self, event_type: str, data: Mapping[str, Any]) -> None:
+        """Um fato do controlador para o operador e o arquivo: um passo na oficina (ADR-0080)."""
+        await self._publish_event(event_type, data, self._cartridge_now or self._cartridge or "")
+
     async def _publish_memory(self, cartridge: str) -> None:
         """O que a mente anotou, refletiu e passou a acreditar vai para o operador e o arquivo."""
         assert self._mind is not None
         for event in self._mind.drain_events():
-            event_type = str(event["type"])
-            info = CONTRACT_TYPES[event_type]
-            tick, simtime = self.sim_time()
-            envelope: dict[str, Any] = {
-                "specversion": "1.0",
-                "id": self._ids.new_id(),
-                "source": f"/controller-runner/{self.controller.controller_id}",
-                "type": event_type,
-                "time": _iso(self._clock.now()),
-                "datacontenttype": "application/json",
-                "dataschema": info.dataschema,
-                "worldid": self._worldid,
-                "cartridge": cartridge,
-                "tick": tick,
-                "seq": self._out_seq,
-                "actor": self.controller.controller_id,
-                "provenance": "simulated",
-                "visibility": info.visibility,
-                "data": dict(cast(Mapping[str, Any], event["data"])),
-            }
-            if simtime:
-                envelope["simtime"] = simtime
-            self._out_seq += 1
-            await self._bus.publish(subject(event_type, self._worldid), envelope)
+            await self._publish_event(
+                str(event["type"]), cast(Mapping[str, Any], event["data"]), cartridge
+            )
             self.memory_events += 1
+
+    async def _publish_event(
+        self, event_type: str, data: Mapping[str, Any], cartridge: str
+    ) -> None:
+        info = CONTRACT_TYPES[event_type]
+        tick, simtime = self.sim_time()
+        envelope: dict[str, Any] = {
+            "specversion": "1.0",
+            "id": self._ids.new_id(),
+            "source": f"/controller-runner/{self.controller.controller_id}",
+            "type": event_type,
+            "time": _iso(self._clock.now()),
+            "datacontenttype": "application/json",
+            "dataschema": info.dataschema,
+            "worldid": self._worldid,
+            "cartridge": cartridge,
+            "tick": tick,
+            "seq": self._out_seq,
+            "actor": self.controller.controller_id,
+            "provenance": "simulated",
+            "visibility": info.visibility,
+            "data": dict(data),
+        }
+        if simtime:
+            envelope["simtime"] = simtime
+        self._out_seq += 1
+        await self._bus.publish(subject(event_type, self._worldid), envelope)
 
     async def _decide(
         self, perception: Envelope, data: Mapping[str, Any], decision: Mapping[str, Any]

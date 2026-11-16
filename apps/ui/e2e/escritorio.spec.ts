@@ -32,7 +32,7 @@ test("o gerente entra, escreve um pedido, fala com o dev e aceita a entrega", as
     await page.waitForTimeout(100);
     ys.push((await drawn("gerente"))?.y ?? Number.NaN);
   }
-  expect(ys.every((y, i) => i === 0 || y <= (ys[i - 1] ?? y) + 0.01)).toBe(true); // nunca volta
+  expect(ys.every((y, i) => i === 0 || y <= (ys[i - 1] ?? y) + 0.01), JSON.stringify(ys)).toBe(true); // nunca volta
   expect(15 - (ys.at(-1) ?? 15)).toBeGreaterThanOrEqual(3); // um segundo a 4 tiles por segundo
 
   await page.getByPlaceholder("Título").fill("Ferramenta de busca");

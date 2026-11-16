@@ -31,6 +31,50 @@
       "type": "integer",
       "minimum": 0,
       "description": "Quanto tempo simulado de trabalho o pedido levou."
+    },
+    "patch": {
+      "type": "object",
+      "title": "OfficeTicketPatch",
+      "additionalProperties": false,
+      "description": "O que o dev entregou da oficina (ADR-0080): o patch contra o commit de onde o espaço de trabalho saiu, guardado no depósito de arquivos do mundo, e o resumo dele. Sem o campo, o trabalho foi só simulado (o dev-script de antes).",
+      "required": [
+        "ref",
+        "base",
+        "files",
+        "added",
+        "removed"
+      ],
+      "properties": {
+        "ref": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9/._-]*$",
+          "maxLength": 200,
+          "description": "A chave do patch no depósito de arquivos do mundo."
+        },
+        "base": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$",
+          "description": "O commit de onde o espaço de trabalho saiu."
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "maxItems": 200,
+          "description": "Os arquivos mudados."
+        },
+        "added": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "removed": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
     }
   }
 }

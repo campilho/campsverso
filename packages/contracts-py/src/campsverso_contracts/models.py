@@ -2065,6 +2065,34 @@ class OfficeTicketCreatedV1(BaseModel):
     """
 
 
+class File(RootModel[str]):
+    root: Annotated[str, Field(max_length=300, min_length=1)]
+
+
+class OfficeTicketPatch(BaseModel):
+    """
+    O que o dev entregou da oficina (ADR-0080): o patch contra o commit de onde o espaço de trabalho saiu, guardado no depósito de arquivos do mundo, e o resumo dele. Sem o campo, o trabalho foi só simulado (o dev-script de antes).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    ref: Annotated[str, Field(max_length=200, pattern="^[a-z0-9][a-z0-9/._-]*$")]
+    """
+    A chave do patch no depósito de arquivos do mundo.
+    """
+    base: Annotated[str, Field(pattern="^[0-9a-f]{40}$")]
+    """
+    O commit de onde o espaço de trabalho saiu.
+    """
+    files: Annotated[list[File], Field(max_length=200)]
+    """
+    Os arquivos mudados.
+    """
+    added: Annotated[int, Field(ge=0)]
+    removed: Annotated[int, Field(ge=0)]
+
+
 class OfficeTicketDeliveredV1(BaseModel):
     """
     O dev entregou um pedido (ADR-0078): o pedido passa a "entregue" e espera o gerente.
@@ -2090,6 +2118,10 @@ class OfficeTicketDeliveredV1(BaseModel):
     worked_seconds: Annotated[int, Field(ge=0)]
     """
     Quanto tempo simulado de trabalho o pedido levou.
+    """
+    patch: Annotated[OfficeTicketPatch | None, Field(title="OfficeTicketPatch")] = None
+    """
+    O que o dev entregou da oficina (ADR-0080): o patch contra o commit de onde o espaço de trabalho saiu, guardado no depósito de arquivos do mundo, e o resumo dele. Sem o campo, o trabalho foi só simulado (o dev-script de antes).
     """
 
 
@@ -2667,6 +2699,51 @@ class RulesToggledV1(BaseModel):
     """
     Tick do kernel (1 minuto simulado na fazenda).
     """
+
+
+class WorkshopStepV1(BaseModel):
+    """
+    Um passo do dev na oficina (ADR-0080): a ferramenta, o caminho e uma linha do que aconteceu. É o computador do dev, e não o mundo: quem publica é o controlador, e o kernel nunca o vê. A tela mostra o último passo no monitor da mesa; o arquivo guarda todos.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    ticket_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O pedido do espaço de trabalho.
+    """
+    tool: Literal[
+        "ver_arquivos",
+        "ler",
+        "buscar",
+        "escrever",
+        "editar",
+        "rodar_testes",
+        "ver_mudancas",
+        "pronto",
+    ]
+    path: Annotated[str | None, Field(max_length=300, min_length=1)] = None
+    """
+    O caminho no espaço de trabalho, quando a ferramenta usa um.
+    """
+    summary: Annotated[str, Field(max_length=200, min_length=1)]
+    """
+    Uma linha do que aconteceu, como "rodando os testes: 12 passaram".
+    """
+    ok: bool
+    """
+    Falso quando a ferramenta recusou ou falhou.
+    """
+    duration_ms: Annotated[int, Field(ge=0)]
 
 
 class WorldClockCaughtUpV1(BaseModel):

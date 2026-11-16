@@ -1,0 +1,32 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c37-7e50-9d00-4e6802771b80",
+  "source": "/kernel/office-campsverso-01",
+  "type": "campsverso.office.ticket.delivered.v1",
+  "time": "2026-11-16T13:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/office/ticket.delivered.v1",
+  "worldid": "office-campsverso-01",
+  "cartridge": "office_campsverso",
+  "tick": 18600,
+  "simtime": "2026-11-16T10:00:00-03:00",
+  "seq": 5002,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "ticket_id": "pedido-003",
+    "number": 3,
+    "by": "camps",
+    "worked_seconds": 900,
+    "patch": {
+      "ref": "office-campsverso-01/pedido-001.patch",
+      "base": "b5a7cb8400000000000000000000000000000000",
+      "files": [
+        "tools/robos/testador.py",
+        "tools/robos/tests/test_testador.py"
+      ],
+      "added": 84,
+      "removed": 0
+    }
+  }
+}

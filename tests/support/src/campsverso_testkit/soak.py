@@ -113,6 +113,8 @@ class Processes:
             world,
             "--controller",
             load_world(self.world).script,  # o fazendeiro-script do mundo (bíblia 2, §11)
+            "--data-dir",  # a oficina e as entregas do dev, no escritório (ADR-0080)
+            data,
         )
         if load_world(self.world).helpers:  # os ajudantes da Morada do Sol (ADR-0072)
             self.spawn(

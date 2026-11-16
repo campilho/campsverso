@@ -24,6 +24,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from campsverso_adapters import (
+    DiskBlobStore,
     JsonTelemetry,
     MeteredModel,
     NatsBus,
@@ -38,6 +39,9 @@ from campsverso_adapters import (
     model_port,
     read_world_archive,
 )
+from campsverso_adapters.settings import EnvSettings, WorldSettings
+from campsverso_adapters.workshop_local import LocalWorkshop
+from campsverso_adapters.workshop_review import review
 from campsverso_controller_runner.replay import ReplayRunner, recorded_proposals
 from campsverso_controller_runner.runner import (
     ControllerRunner,
@@ -45,6 +49,7 @@ from campsverso_controller_runner.runner import (
     load_controller,
     load_mind,
 )
+from campsverso_controller_runner.workshop import WorkshopSession
 from campsverso_mind import LlmController, Memory, MemorySettings
 from campsverso_ports import EventBus, ModelPort
 
@@ -55,6 +60,9 @@ def _parse(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument("--world", type=Path, default=Path("config/worlds/farm-camps-01.yaml"))
     parser.add_argument("--avatar", default="camps")
     parser.add_argument("--nats-url", help="substitui nats.url do ambiente")
+    parser.add_argument(
+        "--data-dir", type=Path, help="substitui data_dir do ambiente para a oficina (ADR-0080)"
+    )
     which = parser.add_mutually_exclusive_group(required=True)
     which.add_argument("--controller", help="nome do controlador (entry point), ex.: farmer")
     which.add_argument("--replay", type=Path, help="pasta do arquivo de eventos da sessão")
@@ -220,9 +228,14 @@ async def run(args: argparse.Namespace) -> int:
         )
     else:
         controller = load_controller(args.controller, args.avatar)
-        runners = [
-            ControllerRunner(world.worldid, args.avatar, controller, bus, ids, clock, telemetry)
-        ]
+        session = _workshop(env, world, args.avatar, args.data_dir)
+        runner = ControllerRunner(
+            world.worldid, args.avatar, controller, bus, ids, clock, telemetry, workshop=session
+        )
+        if session is not None:
+            session.publish = runner.publish_observed
+            telemetry.info("controller.workshop", world=world.worldid)
+        runners = [runner]
     try:
         for each in runners:
             await each.start()
@@ -237,6 +250,29 @@ async def run(args: argparse.Namespace) -> int:
             await each.stop()
         await nats.close()
     return 0
+
+
+def _workshop(
+    env: EnvSettings, world: WorldSettings, avatar: str, data_dir: Path | None
+) -> WorkshopSession | None:
+    """A oficina do dev (ADR-0080), num mundo que a pede (`workshop: true`): o clone sai deste
+    repositório, e a revisão lê a lista de palavras proibidas, quando ela existe. Com `data_dir`
+    (o sandbox), os espaços e as entregas ficam nele."""
+    if not world.workshop or env.workshop is None:
+        return None
+    root = env.workshop.root if data_dir is None else data_dir / "oficina"
+    deliveries = env.workshop.deliveries if data_dir is None else data_dir / "entregas"
+    path = env.workshop.forbidden_words
+    words: list[str] = []
+    if path is not None and path.is_file():
+        words = [w.strip() for w in path.read_text(encoding="utf-8").splitlines() if w.strip()]
+    return WorkshopSession(
+        world.worldid,
+        avatar,
+        LocalWorkshop(Path.cwd(), root),
+        DiskBlobStore(deliveries),
+        lambda diff: review(diff, words),
+    )
 
 
 def main() -> None:
