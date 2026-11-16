@@ -134,7 +134,7 @@ Os quadros são de **64 × 64**. O personagem tem de 44 a 46 px de altura, com a
 
 ### As animações e o mapa da folha
 
-Todos os personagens usam **a mesma folha**: 8 colunas (512 px) e 23 linhas. O que um personagem não tem fica transparente, para o manifesto ser o mesmo para todos. As direções vêm nesta ordem: **para cima, para a esquerda, para baixo, para a direita**.
+Todos os personagens usam **a mesma folha**: 8 colunas (512 px) e 29 linhas. O que um personagem não tem fica transparente, para o manifesto ser o mesmo para todos. As direções vêm nesta ordem: **para cima, para a esquerda, para baixo, para a direita**.
 
 | Linhas | Animação | Quadros | O que é |
 |---|---|---|---|
@@ -145,10 +145,13 @@ Todos os personagens usam **a mesma folha**: 8 colunas (512 px) e 23 linhas. O q
 | 16 | digitando | 4 | sentado de costas, digitando (só para cima) |
 | 17–20 | beber | 3 | levar o copo ou a xícara à boca, em pé |
 | 21–22 | comer sentado | 4 | à mesa da copa, para a esquerda e para a direita |
+| 23–26 | carregar | 8 | andar com a marmita nas mãos, um tile por ciclo |
+| 27 | sofá, vendo TV | 2 | sentado no sofá, de costas para a câmera (só para cima) |
+| 28 | sofá, jogando | 4 | sentado no sofá, jogando videogame, com os cotovelos abertos (só para cima) |
 
 O gerente não tem sentado, digitando nem comer.
 
-A rotina do dev (ADR-0080) vai pedir animações novas: carregar a marmita andando, jogar videogame sentado no sofá (de costas) e cochilar no puff. Elas entram **só no fim da folha**, a partir da linha 23, para não mexer nas linhas que o manifesto já usa.
+As linhas 23 a 28 entraram depois (15/11, à noite), **só no fim da folha**, para não mexer nas linhas que o manifesto já usa. Uma animação nova entra sempre assim. O Camps e o gerente têm todas as animações; o vigia, andar e parado. Cochilar no puff fica para depois.
 
 ### A entrega
 
@@ -177,8 +180,17 @@ A rotina do dev (ADR-0080) vai pedir animações novas: carregar a marmita andan
 
 **Fase 1, segunda parte (15/11, à noite):** a sala na planta nova, com o banheiro, a copa, a sala de descompressão e quatro cubículos.
 
+**Fase 1, terceira parte (15/11, à noite):**
+- as animações da rotina: usar, beber, comer sentado, carregar a marmita, sentar no sofá para ver TV e para jogar; o gerente com todas elas;
+- o relógio com as 12 horas (o quadro é a hora % 12; o ponteiro dos minutos fica no 12);
+- o arquivo com duas gavetas abertas;
+- a TV com 3 quadros de jogo e 3 de telejornal;
+- a marmita;
+- a luz da noite (abaixo);
+- a prévia em cinco cenas: o pedido no quadro, o almoço, o fim da tarde, as luzes acesas e a ronda no escuro.
+
 **Fase 2 (só se a arte nova ganhar):**
-- as animações da rotina: usar, beber, comer sentado, carregar a marmita, jogar videogame e cochilar;
+- cochilar no puff;
 - a bancada dos robôs, a impressora, a mesa de reunião e o quadro branco;
 - o revisor e o squad, a partir do corpo-base.
 
@@ -203,7 +215,7 @@ Coordenadas em tiles, (coluna, linha):
 
 | Coisa | Tiles |
 |---|---|
-| Quadro dos pedidos | na parede, colunas 2 a 5; o gerente fica na linha 2, de frente para ele |
+| Quadro dos pedidos | na parede, colunas 2 a 4: três colunas (a fazer, fazendo, feito); o gerente e o dev ficam na linha 2, de frente para ele |
 | Janela | na parede, colunas 7 a 11 |
 | Relógio | na parede, coluna 12 |
 | Arquivos | (12, 2) e (13, 2) |
@@ -219,6 +231,26 @@ Coordenadas em tiles, (coluna, linha):
 | Plantas | (1, 2), (1, 7) e (18, 7) |
 | Porta | (9, 13); o vigia em (11, 14), no corredor, ao lado da porta |
 | Fora da sala por enquanto | o rack do servidor e o sofá de lado |
+
+### O quadro dos pedidos
+
+O quadro começa vazio e tem três colunas: a fazer, fazendo e feito. Cada pedido é uma ficha solta (folha `fichas`), que a tela pendura na coluna do estado:
+1. o gerente põe o pedido: a ficha aparece em "a fazer" no quadro 3 da animação usar, virada para cima;
+2. o dev pega o pedido: tira a ficha (usar) e a pendura em "fazendo", na coluna ao lado (usar de novo);
+3. o dev termina: leva a ficha para "feito" do mesmo jeito.
+
+A ficha mede 10 × 10. Na coluna k, ela fica em x = (2 + k) × 32 + (5 na primeira coluna, 2 nas outras) + 1, y = 19; a segunda ficha da coluna vai 12 px à direita, e a terceira, 12 px abaixo.
+
+### A luz
+
+A luz é da tela: o mundo não muda de cor. Há três fases:
+- **dia,** até as 18:00: o sol, sem troca de cor;
+- **luzes acesas,** das 18:00 às 21:00: a janela mostra a noite, e as luminárias acendem poças de luz em cima dos cubículos, do quadro, dos arquivos, do sofá, da copa e da entrada. Fora das poças, a cor cai um degrau (penumbra);
+- **escuro,** das 21:00 em diante: tudo apaga e as cores vão para o azul-marinho da noite. Só ficam acesas as telas ligadas, a cidade na janela e a lanterna do vigia, que acende um círculo em volta dele, como a da fazenda na v0.3.
+
+O corredor fica sempre aceso, com as faces que dão para ele: a parede de baixo e o banheiro.
+
+Na prévia, a luz troca cada cor da paleta por outra, com as bordas em xadrez: nada de transparência. As tabelas de troca (penumbra e escuro), as cores que brilham, os centros das luminárias e os raios da lanterna estão em `metadados.json`, na chave `luz`. A tela pode usar as tabelas assim ou imitar o efeito com a luz que já tem; a prévia mostra o alvo.
 
 ### Os passos
 

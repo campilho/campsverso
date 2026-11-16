@@ -35,10 +35,9 @@
   <p id="contagem"></p>
 </header>
 <main>
-  <h2>A sala montada (20 × 17)</h2>
+  <h2>A sala montada (20 × 17), em cenas</h2>
+  <div class="barra" id="cenas"></div>
   <div class="barra">
-    <button id="bt-dia" aria-pressed="true">dia</button>
-    <button id="bt-noite" aria-pressed="false">noite</button>
     <button id="bt-pausa" aria-pressed="false">pausar</button>
     <span>escala</span>
     <button class="bt-escala" data-e="1" aria-pressed="false">1×</button>
@@ -327,12 +326,13 @@ function janela(tipo, noite) {
 }
 
 // ---- relógio de parede
-function relogio() {
+function relogio(h = 10) {
   const s = new Spr(T, 64);
   s.disco(16, 20, 8, 'contorno').disco(16, 20, 7, 'cinzaEsc').disco(16, 20, 6, 'branco');
   s.pts([[16, 15], [21, 20], [16, 25], [11, 20]], 'cinzaEsc');
-  s.linha(16, 20, 16, 16, 'contorno').linha(16, 20, 19, 19, 'contorno').p(16, 20, 'verm');
-  s.pts([[13, 16], [12, 17]], 'cremeCl');
+  s.linha(16, 20, 16, 15, 'cinza');                                             // o ponteiro dos minutos, no 12
+  const a = (h % 12) * Math.PI / 6;                                            // o das horas
+  s.linha(16, 20, 16 + Math.round(Math.sin(a) * 3.6), 20 - Math.round(Math.cos(a) * 3.6), 'contorno').p(16, 20, 'verm');
   s.pts([[24, 22], [24, 23], [23, 25], [22, 26], [20, 28]], 'begeSomb');       // sombra na parede
   return s;
 }
@@ -546,7 +546,7 @@ function rack(f) {
 }
 
 // ---- arquivo de aço (32 × 64)
-function arquivo() {
+function arquivo(f = 0) {
   const s = new Spr(32, 64);
   s.r(6, 21, 20, 5, 'cinzaCl').hl(6, 25, 21, 'branco');
   s.r(6, 26, 20, 37, 'cinza').vl(6, 26, 62, 'cinzaCl').vl(24, 26, 62, 'cinzaEsc').vl(25, 26, 62, 'cinzaEsc');
@@ -557,6 +557,14 @@ function arquivo() {
     s.hl(13, 17, y + 5, 'cinzaCl').hl(13, 17, y + 6, 'grafite');
   }
   s.hl(6, 25, 62, 'cinzaEsc');
+  if (f) {                                       // a gaveta puxada: o interior com as pastas, e a frente mais perto da câmera
+    const y = 27 + (f - 1) * 9;
+    s.r(7, y, 18, 8, 'grafite').vl(7, y, y + 7, 'cinzaEsc').vl(24, y, y + 7, 'cinzaEsc');
+    ['cremeCl', 'amarelo', 'azulCl', 'cremeCl', 'verdeCl', 'cremeCl'].forEach((c, i) => s.r(9 + i * 2 + (i > 2 ? 1 : 0), y + 1 + (i % 2), 2, 6 - (i % 2), c));
+    s.r(6, y + 7, 20, 8, 'cinza').hl(6, 25, y + 7, 'cinzaCl').hl(6, 25, y + 14, 'cinzaEsc').vl(6, y + 7, y + 14, 'cinzaCl');
+    s.r(12, y + 8, 7, 2, 'cremeCl').hl(13, 17, y + 11, 'cinzaCl').hl(13, 17, y + 12, 'grafite');
+    s.hl(6, 25, y + 15, 'contorno');
+  }
   return s.contorno();
 }
 
@@ -778,20 +786,51 @@ function movelTv(f) {
     o.r(1, 6, 40, 28, 'grafite').hl(1, 40, 6, 'cinzaEsc').vl(1, 6, 33, 'cinzaEsc').r(5, 33, 4, 2, 'grafiteEsc').r(33, 33, 4, 2, 'grafiteEsc');
     const x0 = 4, y0 = 9, w = 26, h = 21;
     if (f === 0) o.r(x0, y0, w, h, 'grafiteEsc').pts([[x0 + 3, y0 + 4], [x0 + 4, y0 + 3], [x0 + 5, y0 + 2]], 'cinzaEsc');
-    else {
-      o.r(x0, y0, w, h, 'ceu').r(x0, y0 + 15, w, 6, 'verde').hl(x0, x0 + w - 1, y0 + 15, 'verdeCl');
-      o.r(x0 + 3, y0 + 3, 5, 2, 'branco').r(x0 + 15, y0 + 5, 6, 2, 'branco');
-      o.r(x0 + 14, y0 + 10, 6, 2, 'mad').hl(x0 + 14, x0 + 19, y0 + 10, 'madCl');
-      const px = f === 1 ? x0 + 6 : x0 + 10, py = f === 1 ? y0 + 12 : y0 + 7;
-      o.r(px, py, 2, 3, 'vermCl').p(px, py, 'peleCl');
-      o.p(x0 + 17, y0 + 7, f === 1 ? 'amarelo' : null).p(x0 + 22, y0 + 12, 'amarelo');
-    }
+    else if (f <= 3) telaJogo(o, x0, y0, w, h, f - 1);
+    else telaJornal(o, x0, y0, w, h, f - 4);
     for (const [x, y] of [[x0, y0], [x0 + w - 1, y0], [x0, y0 + h - 1], [x0 + w - 1, y0 + h - 1]]) o.p(x, y, 'grafite');
     o.disco(35, 13, 2, 'cinza').disco(35, 20, 2, 'cinza').p(35, 13, 'cinzaCl');
     for (const y of [25, 27, 29]) o.hl(33, 37, y, 'grafiteEsc');
   }), 27, 4);
   s.cola(item(8, 5, o => o.r(1, 1, 6, 3, 'grafite').p(2, 2, 'vermCl').p(5, 2, 'cinza')), 21, 36);   // o controle
   return s;
+}
+
+// ---- o que passa na TV: um jogo de plataforma (3 quadros) e um telejornal (3 quadros)
+function telaJogo(o, x0, y0, w, h, k) {
+  o.r(x0, y0, w, h, 'ceu').r(x0, y0 + 15, w, 6, 'verde').hl(x0, x0 + w - 1, y0 + 15, 'verdeCl');
+  for (let x = x0; x < x0 + w; x += 4) o.p(x + (k % 2), y0 + 17, 'verdeEsc');
+  const nx = (x0 + 3 - k * 2 + w) % w;                                            // a nuvem anda
+  o.r(x0 + ((nx + 0) % (w - 5)), y0 + 3, 5, 2, 'branco');
+  o.r(x0 + 14, y0 + 9, 7, 2, 'madCl').hl(x0 + 14, x0 + 20, y0 + 10, 'mad');           // a plataforma de tijolos
+  const herói = [[6, 12], [10, 6], [15, 7]][k];                                     // corre, pula, cai na plataforma
+  o.r(x0 + herói[0], y0 + herói[1], 2, 3, 'azulCl').p(x0 + herói[0], y0 + herói[1], 'peleCl');
+  if (k < 2) o.p(x0 + 17, y0 + 7, 'amarelo');                                        // a moeda, pega no último quadro
+  o.r(x0 + [21, 19, 20][k], y0 + 13, 2, 2, 'cabEsc');                                 // o bichinho que anda
+}
+function telaJornal(o, x0, y0, w, h, k) {
+  o.r(x0, y0, w, h, 'marCl').r(x0, y0 + 12, w, 9, 'mar');
+  o.r(x0 + 1, y0 + 1, 4, 3, 'verm').hl(x0 + 2, x0 + 3, y0 + 2, 'branco');             // a marca do canal
+  o.r(x0 + 16, y0 + 2, 8, 7, 'ceu');                                                  // a imagem ao lado do apresentador
+  [[1, 4], [4, 2], [6, 3]].forEach(([dx, hh], i) => o.r(x0 + 16 + dx + (k === 1 ? 1 : 0) % 2, y0 + 9 - hh - (i + k) % 2, 2, hh + (i + k) % 2, 'azul'));
+  o.r(x0 + 7, y0 + 4, 4, 4, 'pele').hl(x0 + 7, x0 + 10, y0 + 4, 'cab').p(x0 + 7, y0 + 5, 'cab');   // o apresentador
+  o.p(x0 + 9, y0 + 7, k === 1 ? 'vermEsc' : 'peleSomb');
+  o.r(x0 + 6, y0 + 8, 6, 6, 'grafite').p(x0 + 9, y0 + 8, 'branco').p(x0 + 9, y0 + 9, 'verm');
+  o.r(x0 + 3, y0 + 13, 14, 3, 'cinzaCl').hl(x0 + 3, x0 + 16, y0 + 13, 'branco');      // a bancada
+  o.r(x0, y0 + 17, w, 4, 'amarelo');                                                  // a faixa de notícias, que corre
+  for (let x = 0; x < w; x++) if (((x + k * 3) % 6) < 4) o.p(x0 + x, y0 + 18 + (x % 2), 'escuro');
+}
+
+// ---- a marmita (16 × 16): f 0 fechada, 1 aberta com a comida, 2 vazia
+function marmita(f) {
+  const s = new Spr(16, 16);
+  if (f === 0) s.r(3, 7, 10, 6, 'branco').r(3, 6, 10, 2, 'azulCl').hl(3, 12, 6, 'ceuCl').vl(12, 8, 12, 'cinzaCl');
+  else {
+    s.r(3, 8, 10, 5, 'branco').vl(12, 8, 12, 'cinzaCl').r(4, 8, 8, 3, f === 1 ? 'amarelo' : 'cinzaCl');
+    if (f === 1) s.pts([[5, 8], [8, 9], [10, 8]], 'vermCl').pts([[6, 9], [9, 8]], 'verde').pts([[7, 8], [11, 9]], 'mad');
+    s.hl(13, 14, 10, 'cinzaCl');
+  }
+  return s.contorno();
 }
 
 // ---- o puff (32 × 32): f = a cor
@@ -839,12 +878,12 @@ const PERSONAGENS = {
   camps: {
     nome: 'Camps', pele: PELE, cabelo: ['cabCl', 'cab', 'cabEsc'], penteado: 'curto', barba: true, oculos: true,
     tronco: ['vermCl', 'verm', 'vermEsc'], calca: ['azulCl', 'azul', 'azulEsc'], cinto: 'madMEsc', fivela: 'cinzaCl',
-    sapato: ['madEsc', 'madMEsc'], anims: ['andar', 'parado', 'sentado', 'digitando'],
+    sapato: ['madEsc', 'madMEsc'], anims: ['andar', 'parado', 'usar', 'sentado', 'digitando', 'beber', 'comer', 'carregar', 'sofa_tv', 'sofa_jogar'],
   },
   gerente: {
     nome: 'Gerente', pele: PELE, cabelo: ['branco', 'cinzaCl', 'cinza'], penteado: 'grisalho', bigode: true, paleto: true,
     gravata: ['vermCl', 'verm', 'vermEsc'], tronco: ['cinzaEsc', 'grafite', 'grafiteEsc'], calca: ['cinzaEsc', 'grafite', 'grafiteEsc'],
-    sapato: ['grafiteEsc', 'escuro'], anims: ['andar', 'parado'],
+    sapato: ['grafiteEsc', 'escuro'], anims: ['andar', 'parado', 'usar', 'sentado', 'digitando', 'beber', 'comer', 'carregar', 'sofa_tv', 'sofa_jogar'],
   },
   vigia: {
     nome: 'Vigia', pele: ['pele', 'peleSomb', 'cabCl'], cabelo: ['cab', 'cabEsc', 'escuro'], penteado: 'bone', farda: true, lanterna: true,
@@ -856,19 +895,42 @@ const PERSONAGENS = {
 const MAPA_PERSONAGEM = {
   andar: [0, 8, 4], parado: [4, 2, 4], usar: [8, 6, 4], sentado: [12, 1, 4],
   digitando: [16, 4, 1], beber: [17, 3, 4], comer: [21, 4, 2],
+  // acrescentadas no fim (15/11, noite), para não mexer nas linhas que o manifesto já usa
+  carregar: [23, 8, 4], sofa_tv: [27, 2, 1], sofa_jogar: [28, 4, 1],
 };
+const LINHAS_PERSONAGEM = 29;
 
 const BOB = [0, 1, 0, -1, 0, 1, 0, -1];
 const SOBE_A = [0, 0, 0, 0, 1, 2, 2, 1], SOBE_B = [1, 2, 2, 1, 0, 0, 0, 0];
 function pose(anim, f) {
-  if (anim === 'andar') {
+  if (anim === 'andar' || anim === 'carregar') {
     const c = Math.cos(2 * Math.PI * f / 8);
     return { u: BOB[f], sobeA: SOBE_A[f], sobeB: SOBE_B[f], maoA: Math.round(c), maoB: -Math.round(c), c,
-      liftA: Math.max(0, Math.round(-2 * Math.sin(2 * Math.PI * f / 8))), liftB: Math.max(0, Math.round(2 * Math.sin(2 * Math.PI * f / 8))) };
+      liftA: Math.max(0, Math.round(-2 * Math.sin(2 * Math.PI * f / 8))), liftB: Math.max(0, Math.round(2 * Math.sin(2 * Math.PI * f / 8))),
+      carrega: anim === 'carregar' };
   }
-  if (anim === 'parado') return { u: f, sobeA: 0, sobeB: 0, maoA: 0, maoB: 0, c: 0, liftA: 0, liftB: 0, pisca: f === 1 };
-  return { u: 2, sentado: true, sobeA: 0, sobeB: 0, maoA: 0, maoB: 0, c: 0, liftA: 0, liftB: 0 };
+  const parado = { u: 0, sobeA: 0, sobeB: 0, maoA: 0, maoB: 0, c: 0, liftA: 0, liftB: 0 };
+  if (anim === 'parado') return { ...parado, u: f, pisca: f === 1 };
+  if (anim === 'usar') return { ...parado, usar: f };
+  if (anim === 'beber') return { ...parado, beber: f };
+  if (anim === 'comer') return { ...parado, u: 2, sentado: true, comer: f };
+  return { ...parado, u: 2, sentado: true };
 }
+
+// Para onde vai a mão que age, em cada quadro: [x, y relativo a ty]; null = o braço em repouso.
+const USAR_ALVO = {
+  frente: [null, [39, 7], [37, 4], [36, 3], [38, 7], null],
+  costas: [null, [41, 5], [41, -1], [40, -5], [41, 1], null],
+  perfil: [null, [28, 7], [24, 4], [22, 3], [26, 6], null],
+};
+// A xícara: os dois primeiros quadros são relativos a ty; o último leva a xícara à boca (relativo a hy).
+const BEBER_ALVO = {
+  frente: (f, ty, hy) => [[37, ty + 6], [35, ty + 1], [33, hy + 15]][f],
+  costas: (f, ty, hy) => [[40, ty + 5], [41, ty - 1], [39, hy + 12]][f],
+  perfil: (f, ty, hy) => [[29, ty + 6], [26, ty + 1], [24, hy + 15]][f],
+};
+// Comer sentado, de lado: a mão vai do prato (na mesinha, à frente) à boca.
+const COMER_ALVO = (f, ty, hy) => [[16, 42], [21, 37], [25, hy + 14], [21, 39]][f];
 
 // ------------------------------------------------------------ peças do corpo
 function quadril(s, d, ty) {
@@ -1040,6 +1102,25 @@ function cabecaPerfil(s, d, hy, o) {             // olhando para a esquerda
   }
 }
 
+// ------------------------------------------------------------ o que vai nas mãos
+function copo(s, x, y) {            // a xícara, logo acima da mão em (x, y)
+  s.r(x - 1, y - 4, 3, 4, 'branco').p(x + 1, y - 3, 'cinzaCl').hl(x - 1, x + 1, y - 4, 'madEsc').p(x + 2, y - 3, 'branco');
+}
+function caixa(s, x, y) {           // a marmita fechada, 8 × 5, com o canto em (x, y)
+  s.r(x, y, 8, 5, 'branco').hl(x, x + 7, y, 'azulCl').hl(x, x + 7, y + 1, 'azul').vl(x + 7, y + 2, y + 4, 'cinzaCl').hl(x, x + 7, y + 4, 'cinzaCl');
+}
+// Um braço de 3 px do ombro (sx, sy) à mão (hx, hy); sem a mão quando ela fica escondida.
+function bracoAte(s, d, sx, sy, hx, hy, longe = false, mao = true) {
+  const [tc, tb, ts] = d.tronco, [pc, pb, ps] = d.pele;
+  const n = Math.max(Math.abs(hx - sx), Math.abs(hy - sy), 1);
+  const ponto = i => [Math.round(sx + (hx - sx) * i / n), Math.round(sy + (hy - sy) * i / n)];
+  for (let i = 0; i <= n; i++) { const [x, y] = ponto(i); s.r(x - 1, y - 1, 3, 3, longe ? ts : tb); }
+  if (!longe) for (let i = 0; i <= n; i++) { const [x, y] = ponto(i); if (s.g(x - 1, y - 1) === tb) s.p(x - 1, y - 1, tc); }
+  if (!mao) return;
+  if (d.paleto && n > 2) { const [x, y] = ponto(n - 2); s.p(x, y, 'branco'); }
+  s.r(hx - 1, hy - 1, 3, 3, longe ? ps : pb).p(hx + 1, hy + 1, ps).p(hx - 1, hy - 1, pc);
+}
+
 // ------------------------------------------------------------ vistas
 function frente(s, d, o) {
   const [lc, lb, ls] = d.calca, [sb, ss] = d.sapato, [tc, tb, ts] = d.tronco, [pc, pb, ps] = d.pele;
@@ -1057,8 +1138,12 @@ function frente(s, d, o) {
   }
   troncoBloco(s, d, ty);
   detalheTronco(s, d, ty, 'frente');
-  if (d.lanterna) lanterna(s, 39, ty + 14 + o.maoB);
-  if (o.sentado) {
+  const alvo = o.usar != null ? USAR_ALVO.frente[o.usar] : null;
+  if (d.lanterna && !alvo && o.beber == null && !o.carrega) lanterna(s, 39, ty + 14 + o.maoB);
+  if (o.carrega) {
+    caixa(s, 28, ty + 6);
+    bracoAte(s, d, 23, ty + 2, 27, ty + 8); bracoAte(s, d, 40, ty + 2, 36, ty + 8);
+  } else if (o.sentado) {
     for (const [x0, esq] of [[22, true], [39, false]]) {
       for (let y = ty + 1; y <= ty + 8; y++) s.p(x0, y, esq ? tc : tb).p(x0 + 1, y, tb).p(x0 + 2, y, ts);
       s.apaga(esq ? x0 : x0 + 2, ty + 1);
@@ -1067,9 +1152,11 @@ function frente(s, d, o) {
     }
   } else {
     bracoFrente(s, d, 22, ty, o.maoA, true);
-    bracoFrente(s, d, 39, ty, o.maoB, false);
+    if (alvo) bracoAte(s, d, 40, ty + 2, alvo[0], ty + alvo[1]);
+    else if (o.beber == null) bracoFrente(s, d, 39, ty, o.maoB, false);
   }
   cabecaFrente(s, d, hy, o);
+  if (o.beber != null) { const [hx, hy2] = BEBER_ALVO.frente(o.beber, ty, hy); bracoAte(s, d, 40, ty + 2, hx, hy2); copo(s, hx, hy2); }
 }
 
 function costas(s, d, o) {
@@ -1080,8 +1167,14 @@ function costas(s, d, o) {
   troncoBloco(s, d, ty);
   detalheTronco(s, d, ty, 'costas');
   if (d.lanterna) lanterna(s, 22, ty + 14 + o.maoA);
-  bracoFrente(s, d, 22, ty, o.maoA, true);
-  bracoFrente(s, d, 39, ty, o.maoB, false);
+  const alvo = o.usar != null ? USAR_ALVO.costas[o.usar] : null;
+  if (o.carrega) { bracoAte(s, d, 23, ty + 2, 21, ty + 8, false, false); bracoAte(s, d, 40, ty + 2, 42, ty + 8, false, false); }
+  else {
+    bracoFrente(s, d, 22, ty, o.maoA, true);
+    if (alvo) bracoAte(s, d, 40, ty + 2, alvo[0], ty + alvo[1]);
+    else if (o.beber != null) { const [hx, hy2] = BEBER_ALVO.costas(o.beber, ty, hy); copo(s, hx + 1, hy2); bracoAte(s, d, 40, ty + 2, hx, hy2); }
+    else bracoFrente(s, d, 39, ty, o.maoB, false);
+  }
   cabecaCostas(s, d, hy);
 }
 
@@ -1116,7 +1209,8 @@ function perfil(s, d, o) {
     s.r(28, ty + 13, 8, 3, lb).vl(28, ty + 13, ty + 15, lc);
     if (!d.paleto) { s.hl(28, 35, ty + 13, d.cinto || lb); if (d.fivela) s.p(28, ty + 13, d.fivela); }
   }
-  if (!o.sentado) braco(Math.round(31 - 3 * c), true);
+  const ocupado = o.carrega || o.usar != null || o.beber != null;
+  if (!o.sentado && !ocupado) braco(Math.round(31 - 3 * c), true);
   // tronco de lado
   s.r(27, ty, 10, 13, tb).apaga(27, ty).apaga(36, ty).vl(27, ty + 1, ty + 12, tc).vl(35, ty + 1, ty + 12, ts).vl(36, ty + 1, ty + 12, ts).hl(28, 36, ty + 12, ts);
   if (d.paleto) {
@@ -1127,8 +1221,32 @@ function perfil(s, d, o) {
     s.hl(28, 30, ty + 4, ts).r(28, ty + 2, 2, 2, 'amarelo');
   } else s.pts([[28, ty + 5], [28, ty + 8]], ts);
   if (!o.sentado) perna(Math.round(31 - 4 * c), o.liftA, true);
-  braco(o.sentado ? 28 : Math.round(31 + 3 * c), false);
+  const alvo = o.usar != null ? USAR_ALVO.perfil[o.usar] : null;
+  if (o.carrega) { caixa(s, 18, ty + 5); bracoAte(s, d, 32, ty + 2, 26, ty + 8); }
+  else if (alvo) bracoAte(s, d, 32, ty + 2, alvo[0], ty + alvo[1]);
+  else if (o.comer == null && o.beber == null) braco(o.sentado ? 28 : Math.round(31 + 3 * c), false);
   cabecaPerfil(s, d, hy, o);
+  if (o.comer != null) {
+    const [hx, hy2] = COMER_ALVO(o.comer, ty, hy);
+    bracoAte(s, d, 32, ty + 2, hx, hy2);
+    if (o.comer === 1 || o.comer === 2) s.p(hx - 2, hy2 - 1, 'cinzaCl').p(hx - 3, hy2 - 2, 'cinzaCl');   // o garfo
+  }
+  if (o.beber != null) { const [hx, hy2] = BEBER_ALVO.perfil(o.beber, ty, hy); bracoAte(s, d, 32, ty + 2, hx, hy2); copo(s, hx, hy2); }
+}
+
+// Sentado no sofá, de costas para a câmera, de frente para a TV. O encosto do sofá
+// (desenhado depois, na frente) cobre do peito para baixo.
+function costasSofa(s, d, modo, f) {
+  const [tc, tb, ts] = d.tronco;
+  const jogar = modo === 'jogar';
+  const dy = jogar ? [0, 1, 0, 1][f] : (f === 1 ? 1 : 0), dx = jogar ? [0, -1, 0, 1][f] : 0;
+  const hy = 8 + dy, ty = 23 + dy;
+  s.r(25, ty, 14, 18, tb).apaga(25, ty).apaga(38, ty).vl(25, ty + 1, ty + 17, tc).vl(37, ty + 1, ty + 17, ts).vl(38, ty + 1, ty + 17, ts);
+  if (jogar) {
+    const e = [0, 1, 0, -1][f];
+    bracoAte(s, d, 24, ty + 2, 19, ty + 3 + e, false, false); bracoAte(s, d, 39, ty + 2, 44, ty + 3 - e, false, false);   // os cotovelos abertos
+  } else { bracoAte(s, d, 24, ty + 2, 23, ty + 10, false, false); bracoAte(s, d, 39, ty + 2, 40, ty + 10, false, false); }
+  const cab = new Spr(64, 64); cabecaCostas(cab, d, hy); s.cola(cab, dx, 0);
 }
 
 // Sentado de costas, na mesa, com as mãos no teclado. O corpo vem encostado na mesa
@@ -1154,10 +1272,12 @@ function costasMesa(s, d, f) {
 function humano(id, anim, dir, f) {
   const d = PERSONAGENS[id];
   if (!d.anims.includes(anim)) return null;
-  if (anim === 'digitando' && dir !== 0) return null;
+  if (['digitando', 'sofa_tv', 'sofa_jogar'].includes(anim) && dir !== 0) return null;
+  if (anim === 'comer' && (dir === 0 || dir === 2)) return null;
   if (dir === 3) { const e = humano(id, anim, 1, f); return e && e.espelha(); }
   const s = new Spr(64, 64);
-  if (anim === 'digitando' || (anim === 'sentado' && dir === 0)) costasMesa(s, d, anim === 'digitando' ? f : 0);
+  if (anim === 'sofa_tv' || anim === 'sofa_jogar') costasSofa(s, d, anim === 'sofa_tv' ? 'tv' : 'jogar', f);
+  else if (anim === 'digitando' || (anim === 'sentado' && dir === 0)) costasMesa(s, d, anim === 'digitando' ? f : 0);
   else {
     const o = pose(anim, f);
     if (dir === 2) frente(s, d, o); else if (dir === 0) costas(s, d, o); else perfil(s, d, o);
@@ -1174,7 +1294,7 @@ const DIRECOES = ['cima', 'esquerda', 'baixo', 'direita'];
 
 function folhaPersonagem(id) {
   return {
-    nome: id, grupo: 'personagens', q: [64, 64], col: 8, lin: 23, pegada: [1, 1], ancora: [32, 64], camada: 'personagem',
+    nome: id, grupo: 'personagens', q: [64, 64], col: 8, lin: LINHAS_PERSONAGEM, pegada: [1, 1], ancora: [32, 64], camada: 'personagem',
     animacoes: Object.fromEntries(Object.entries(MAPA_PERSONAGEM).map(([a, [linha, quadros, dirs]]) =>
       [a, { linha, quadros, direcoes: dirs === 4 ? DIRECOES : dirs === 1 ? ['cima'] : ['esquerda', 'direita'], tem: PERSONAGENS[id].anims.includes(a) }])),
     desenha: (c, l) => {
@@ -1204,8 +1324,9 @@ const FOLHAS = [
     quadros: JANELAS, desenha: c => janela(JANELAS[c], false) },
   { nome: 'janela_noite', grupo: 'parede do fundo', q: [32, 64], col: 4, lin: 1, pegada: null, ancora: [16, 64], camada: 'parede',
     quadros: JANELAS, desenha: c => janela(JANELAS[c], true) },
-  { nome: 'relogio', grupo: 'parede do fundo', q: [32, 64], col: 1, lin: 1, pegada: null, ancora: [16, 64], camada: 'parede',
-    quadros: ['relógio'], desenha: () => relogio() },
+  { nome: 'relogio', grupo: 'parede do fundo', q: [32, 64], col: 12, lin: 1, pegada: null, ancora: [16, 64], camada: 'parede',
+    quadros: ['12h', '1h', '2h', '3h', '4h', '5h', '6h', '7h', '8h', '9h', '10h', '11h'], nota: 'o quadro é a hora % 12; o ponteiro dos minutos fica no 12',
+    desenha: c => relogio(c) },
   { nome: 'quadro_pedidos', grupo: 'parede do fundo', q: [32, 64], col: 3, lin: 1, pegada: null, ancora: [16, 64], camada: 'parede',
     quadros: MODULOS, nota: 'um módulo por coluna; a faixa clara é onde a tela escreve o nome', desenha: c => quadroPedidos(MODULOS[c]) },
   { nome: 'fichas', grupo: 'parede do fundo', q: [10, 10], col: 5, lin: 1, pegada: null, ancora: [5, 10], camada: 'parede',
@@ -1218,7 +1339,8 @@ const FOLHAS = [
     autotile: { mascara: { N: 1, L: 2, S: 4, O: 8 }, ordem: 'quadro = máscara (0–15), linha a linha' }, desenha: (c, l) => divisoria(l * 4 + c) },
   { nome: 'rack', grupo: 'móveis', q: [32, 64], col: 3, lin: 1, pegada: [1, 1], ancora: [16, 64], camada: 'normal',
     quadros: ['LEDs A', 'LEDs B', 'botão apertado'], nota: 'para o futuro: fora da sala por enquanto', desenha: c => rack(c) },
-  { nome: 'arquivo', grupo: 'móveis', q: [32, 64], col: 1, lin: 1, pegada: [1, 1], ancora: [16, 64], camada: 'normal', quadros: ['arquivo'], desenha: () => arquivo() },
+  { nome: 'arquivo', grupo: 'móveis', q: [32, 64], col: 3, lin: 1, pegada: [1, 1], ancora: [16, 64], camada: 'normal',
+    quadros: ['fechado', 'gaveta de cima aberta', 'segunda gaveta aberta'], desenha: c => arquivo(c) },
   { nome: 'planta', grupo: 'móveis', q: [32, 64], col: 1, lin: 1, pegada: [1, 1], ancora: [16, 64], camada: 'normal', quadros: ['planta'], desenha: () => planta() },
   { nome: 'lixeira', grupo: 'móveis', q: [32, 32], col: 1, lin: 1, pegada: [1, 1], ancora: [16, 32], camada: 'normal', quadros: ['lixeira'], desenha: () => lixeira() },
   { nome: 'banheiro', grupo: 'banheiro e copa', q: [128, 96], col: 3, lin: 1, pegada: [4, 3], ancora: [64, 96], camada: 'normal',
@@ -1232,16 +1354,18 @@ const FOLHAS = [
     quadros: ['parada', 'servindo'], desenha: c => maquinaCafe(c) },
   { nome: 'bebedouro', grupo: 'banheiro e copa', q: [32, 64], col: 2, lin: 1, pegada: [1, 1], ancora: [16, 64], camada: 'normal',
     quadros: ['bolhas A', 'bolhas B'], desenha: c => bebedouro(c) },
+  { nome: 'marmita', grupo: 'banheiro e copa', q: [16, 16], col: 3, lin: 1, pegada: null, ancora: [8, 16], camada: 'normal',
+    quadros: ['fechada', 'aberta, com a comida', 'vazia'], nota: 'vai sobre a mesinha enquanto o dev come; na mão, ela já vem no quadro de carregar', desenha: c => marmita(c) },
   { nome: 'mesa_copa', grupo: 'banheiro e copa', q: [32, 64], col: 1, lin: 1, pegada: [1, 1], ancora: [16, 64], camada: 'normal',
     quadros: ['mesinha'], desenha: () => mesaCopa() },
   { nome: 'cadeira_lado', grupo: 'banheiro e copa', q: [32, 64], col: 2, lin: 1, pegada: [1, 1], ancora: [16, 64], camada: 'normal',
     quadros: ['virada para a direita', 'virada para a esquerda'], desenha: c => cadeiraLado(c) },
-  { nome: 'sofa_costas', grupo: 'descompressão', q: [96, 64], col: 1, lin: 1, pegada: [3, 1], ancora: [48, 64], camada: 'normal',
-    quadros: ['de costas, para a TV'], desenha: () => sofaCostas() },
+  { nome: 'sofa_costas', grupo: 'descompressão', q: [96, 64], col: 1, lin: 1, pegada: [3, 1], ancora: [48, 64], camada: 'frente',
+    quadros: ['de costas, para a TV'], nota: 'vai na frente de quem está sentado nele (sofa_tv, sofa_jogar)', desenha: () => sofaCostas() },
   { nome: 'sofa_lado', grupo: 'descompressão', q: [32, 96], col: 1, lin: 1, pegada: [1, 2], ancora: [16, 96], camada: 'normal',
     quadros: ['virado para a esquerda'], nota: 'fora da sala por enquanto', desenha: () => sofaLado() },
-  { nome: 'movel_tv', grupo: 'descompressão', q: [96, 64], col: 3, lin: 1, pegada: [3, 1], ancora: [48, 64], camada: 'normal',
-    quadros: ['desligada', 'jogo 1', 'jogo 2'], nota: 'a TV de tubo no meio, o videogame, os cartuchos e as caixas de som', desenha: c => movelTv(c) },
+  { nome: 'movel_tv', grupo: 'descompressão', q: [96, 64], col: 7, lin: 1, pegada: [3, 1], ancora: [48, 64], camada: 'normal',
+    quadros: ['desligada', 'jogo 1', 'jogo 2', 'jogo 3', 'telejornal 1', 'telejornal 2', 'telejornal 3'], nota: 'a TV de tubo no meio, o videogame, os cartuchos e as caixas de som', desenha: c => movelTv(c) },
   { nome: 'puff', grupo: 'descompressão', q: [32, 32], col: 3, lin: 1, pegada: [1, 1], ancora: [16, 32], camada: 'normal',
     quadros: ['amarelo', 'vermelho', 'azul'], desenha: c => puff(c) },
   { nome: 'tapete', grupo: 'descompressão', q: [32, 32], col: 3, lin: 3, pegada: [1, 1], ancora: [16, 32], camada: 'chao',
@@ -1275,6 +1399,14 @@ window.metadados = () => {
   FOLHAS.forEach(montaFolha);
   return {
     versao: 'fase-1', tile: T, paleta: PALETA, coresUsadas: [...CORES_USADAS].sort(),
+    luz: {
+      fases: [{ nome: 'dia', ate: '18:00' }, { nome: 'luzes', de: '18:00', ate: '21:00' }, { nome: 'escuro', de: '21:00' }],
+      regra: 'a luz troca cada cor da paleta por outra (penumbra ou escuro), com bordas pontilhadas em xadrez; nada de transparência',
+      sempreAceso: 'o corredor, as faces que dão para ele (a parede de baixo e o banheiro) e a janela',
+      emissivas: [...EMISSIVAS], penumbra: PENUMBRA, escuro: ESCURO,
+      luminarias: { centrosEmTiles: LUMINARIAS, raioPx: LUZ.luminaria, bordaPx: LUZ.luminariaBorda, fora: 'penumbra' },
+      lanterna: { raiosPx: LUZ.lanterna, niveis: ['aceso', 'xadrez aceso/penumbra', 'penumbra', 'xadrez penumbra/escuro', 'escuro'] },
+    },
     folhas: Object.fromEntries(FOLHAS.map(f => [f.nome, {
       arquivo: f.nome + '.png', grupo: f.grupo, quadro: f.q, colunas: f.col, linhas: f.lin, pegada: f.pegada, ancora: f.ancora, camada: f.camada,
       ...(f.quadros ? { quadros: f.quadros } : {}), ...(f.camadas ? { camadasPorQuadro: f.camadas } : {}),
@@ -1285,14 +1417,14 @@ window.metadados = () => {
 };
 
 // =====================================================================
-// PRÉVIA: a sala montada (20 × 17) com as peças, em passos de 100 ms
-// A planta (15/11, à noite, segundo ajuste): quatro cubículos à esquerda, em
-// duas fileiras; a sala de descompressão em cima à direita; a copa embaixo à
-// direita; o banheiro colado à parede de baixo, com as portas no corredor.
-// Coordenadas em tiles: (coluna, linha).
+// PRÉVIA: a sala montada (20 × 17), em cenas, em passos de 100 ms
+// A planta segue a ADR-0082: quatro cubículos à esquerda, a sala de
+// descompressão em cima à direita, a copa embaixo à direita e o banheiro
+// colado à parede de baixo, com as portas no corredor. (coluna, linha).
 // =====================================================================
 const SALA = { L: 20, A: 17 };
 const PORTA = [9, 13];
+const PASSO = 8;    // px por tick: 4 tiles por segundo, como na tela; o andar avança 2 quadros por tick (8 por tile)
 
 // ---- os quatro cubículos, em duas fileiras: as células de divisória e a máscara de cada uma
 const DIV = new Set();
@@ -1302,12 +1434,168 @@ for (const l0 of [3, 7]) {
 }
 const temDiv = (c, l) => DIV.has(c + ',' + l);
 function mascara(c, l) { return (temDiv(c, l - 1) ? 1 : 0) | (temDiv(c + 1, l) ? 2 : 0) | (temDiv(c, l + 1) ? 4 : 0) | (temDiv(c - 1, l) ? 8 : 0); }
-
-// ---- o tapete da descompressão
 const TAPETE = { c0: 14, c1: 18, l0: 3, l1: 6 };
+const QUADRO_COLS = 3;      // o quadro dos pedidos: a fazer, fazendo, feito (colunas 2 a 4 da parede)
 
-// ---- fundo estático: chão, tapete, paredes e o que está pendurado nelas
-function fundo(noite) {
+// ---- a luz. Três fases: 'dia' (o sol), 'luzes' (18h às 21h, as luminárias acesas) e 'escuro'
+// (21h em diante, tudo apagado; o vigia anda com a lanterna). O corredor fica sempre aceso.
+// A luz troca uma cor da paleta por outra, com as bordas pontilhadas: nada de transparência.
+const PENUMBRA = {
+  contorno: 'contorno', escuro: 'contorno', grafiteEsc: 'escuro', grafite: 'grafiteEsc', cinzaEsc: 'grafite', cinza: 'cinzaEsc', cinzaCl: 'cinza', branco: 'cinzaCl',
+  begeEsc: 'madEsc', begeSomb: 'begeEsc', bege: 'begeSomb', creme: 'bege', cremeCl: 'creme',
+  madCl: 'mad', mad: 'madEsc', madEsc: 'madMEsc', madMEsc: 'cabEsc',
+  carpCl: 'carp', carp: 'carpEsc', carpEsc: 'mar', azulCl: 'azul', azul: 'azulEsc', azulEsc: 'mar',
+  marCl: 'mar', mar: 'marEsc', marEsc: 'contorno', ceu: 'azulCl', ceuCl: 'ceu',
+  verdeCl: 'verde', verde: 'verdeEsc', verdeEsc: 'grafiteEsc', telaFundo: 'telaFundo', telaTexto: 'telaTexto', telaBrilho: 'telaBrilho',
+  vermCl: 'verm', verm: 'vermEsc', vermEsc: 'cabEsc', peleCl: 'pele', pele: 'peleSomb', peleSomb: 'cabCl',
+  cabCl: 'cab', cab: 'cabEsc', cabEsc: 'escuro', amarelo: 'madCl', amareloCl: 'amarelo',
+};
+const ESCURO = {
+  contorno: 'contorno', escuro: 'contorno', grafiteEsc: 'contorno', grafite: 'escuro', cinzaEsc: 'marEsc', cinza: 'mar', cinzaCl: 'mar', branco: 'marCl',
+  begeEsc: 'marEsc', begeSomb: 'mar', bege: 'mar', creme: 'marCl', cremeCl: 'marCl',
+  madCl: 'mar', mad: 'marEsc', madEsc: 'escuro', madMEsc: 'contorno',
+  carpCl: 'mar', carp: 'marEsc', carpEsc: 'escuro', azulCl: 'marCl', azul: 'mar', azulEsc: 'marEsc',
+  marCl: 'mar', mar: 'marEsc', marEsc: 'contorno', ceu: 'marCl', ceuCl: 'marCl',
+  verdeCl: 'mar', verde: 'marEsc', verdeEsc: 'escuro', telaFundo: 'contorno', telaTexto: 'telaTexto', telaBrilho: 'telaBrilho',
+  vermCl: 'vermEsc', verm: 'escuro', vermEsc: 'contorno', peleCl: 'cabEsc', pele: 'cabEsc', peleSomb: 'escuro',
+  cabCl: 'escuro', cab: 'escuro', cabEsc: 'contorno', amarelo: 'madEsc', amareloCl: 'amareloCl',
+};
+const EMISSIVAS = new Set(['telaTexto', 'telaBrilho']);     // as telas acesas
+const LUMINARIAS = [[4.5, 4.4], [8.5, 4.4], [4.5, 8.4], [8.5, 8.4], [3.5, 2.6], [12.5, 3], [16.5, 4.5], [15.5, 10.6], [9.5, 11.6]];   // em tiles
+const LUZ = { luminaria: 72, luminariaBorda: 14, lanterna: [40, 54, 68, 82] };
+// Sempre aceso: o corredor, as faces que dão para ele (a parede de baixo e o banheiro) e a janela (a cidade lá fora).
+function sempreAceso(x, y) {
+  if (y >= 13 * T + 10) return true;
+  if (x >= T && x < 5 * T && y >= 11 * T + 37) return true;
+  return x >= 7 * T && x < 12 * T && y >= 8 && y <= 47;
+}
+const RGB_DE = Object.fromEntries(Object.entries(PALETA).map(([k, h]) => [k, [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16))]));
+const NOME_DE = new Map(Object.entries(PALETA).map(([k, h]) => [parseInt(h.slice(1), 16), k]));
+function ilumina(ctx, fase, lanterna) {
+  if (fase === 'dia') return;
+  const W = SALA.L * T, H = SALA.A * T, img = ctx.getImageData(0, 0, W, H), px = img.data;
+  const pools = LUMINARIAS.map(([c, l]) => [c * T, l * T]);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (sempreAceso(x, y)) continue;
+    const i = (y * W + x) * 4, nome = NOME_DE.get((px[i] << 16) | (px[i + 1] << 8) | px[i + 2]);
+    if (!nome || EMISSIVAS.has(nome)) continue;
+    const xadrez = (x + y) & 1;
+    let nivel;
+    if (fase === 'luzes') {
+      let d = 1e9; for (const [cx, cy] of pools) d = Math.min(d, Math.hypot(x - cx, (y - cy) * 1.15));
+      nivel = d < LUZ.luminaria ? 0 : d < LUZ.luminaria + LUZ.luminariaBorda ? xadrez : 1;
+    } else {
+      const d = lanterna ? Math.hypot(x - lanterna[0], (y - lanterna[1]) * 1.15) : 1e9, [r0, r1, r2, r3] = LUZ.lanterna;
+      nivel = d < r0 ? 0 : d < r1 ? xadrez : d < r2 ? 1 : d < r3 ? 1 + xadrez : 2;
+    }
+    if (!nivel) continue;
+    const [r, g, b] = RGB_DE[(nivel === 1 ? PENUMBRA : ESCURO)[nome]];
+    px[i] = r; px[i + 1] = g; px[i + 2] = b;
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+// ---- o roteiro de um ator: passos → trechos no tempo e eventos do mundo
+function roteiro(inicio, passos) {
+  const trechos = [], eventos = [];
+  let t = 0, pos = inicio, carregando = false;
+  const marca = (ev, tt) => { for (const [k, v] of Object.entries(ev)) eventos.push({ t: tt, k, v }); };
+  const fixo = (anim, d, t0, ritmo, q, p0) => tt => ({ x: p0[0] * T, y: p0[1] * T, anim, dir: d, f: Math.floor((tt - t0) / ritmo) % q });
+  for (const [tipo, ...a] of passos) {
+    if (tipo === 'ir') {
+      for (const alvo of a) {
+        const dx = alvo[0] - pos[0], dy = alvo[1] - pos[1], n = (Math.abs(dx) + Math.abs(dy)) * T / PASSO;
+        if (!n) continue;
+        const d = dx > 0 ? 3 : dx < 0 ? 1 : dy < 0 ? 0 : 2, de = pos, t0 = t, anim = carregando ? 'carregar' : 'andar';
+        trechos.push({ t0, t1: t0 + n, em: tt => { const k = tt - t0; return { x: (de[0] + dx * k / n) * T, y: (de[1] + dy * k / n) * T, anim, dir: d, f: (k * 2) % 8 }; } });
+        t += n; pos = alvo;
+      }
+    } else if (tipo === 'usar') {
+      const [d, ev] = a;
+      trechos.push({ t0: t, t1: t + 6, em: fixo('usar', d, t, 1, 6, pos) });
+      if (ev) marca(ev, t + 3);
+      t += 6;
+    } else if (tipo === 'anim') {
+      const [anim, d, n, ritmo = 1] = a;
+      trechos.push({ t0: t, t1: t + n, em: fixo(anim, d, t, ritmo, MAPA_PERSONAGEM[anim][1], pos) });
+      t += n;
+    } else if (tipo === 'parado') {
+      const [d, n] = a, t0 = t, p0 = pos;
+      trechos.push({ t0, t1: t0 + n, em: tt => ({ x: p0[0] * T, y: p0[1] * T, anim: 'parado', dir: d, f: ((tt - t0) % 30) < 2 ? 1 : 0 }) });
+      t += n;
+    } else if (tipo === 'evento') marca(a[0], t);
+    else if (tipo === 'carrega') carregando = a[0];
+    else if (tipo === 'some') { trechos.push({ t0: t, t1: t + a[0], em: () => null }); t += a[0]; }
+  }
+  return { trechos, eventos, fim: t };
+}
+function atorNoTick(r, t) {
+  for (const tr of r.trechos) if (t >= tr.t0 && t < tr.t1) return tr.em(t);
+  const ult = r.trechos[r.trechos.length - 1];
+  return ult ? ult.em(ult.t1 - 1) : null;
+}
+
+// ---- as cenas
+const ROTA_QUADRO = [[11, 6], [11, 2]];   // do corredor entre as fileiras até a frente do quadro
+const CENAS = {
+  pedido: {
+    nome: '10:00 · o pedido no quadro', hora: 10, luz: 'dia', tv: () => 0, inicio: { ficha: null },
+    atores: {
+      gerente: roteiro([9, 14], [['ir', [9, 10], [11, 10], [11, 2], [2, 2]], ['usar', 0, { ficha: 0 }], ['parado', 0, 6],
+        ['ir', [11, 2], [11, 10], [9, 10], [9, 14], [5, 14]], ['some', 180]]),
+      camps: roteiro([4, 5], [['anim', 'digitando', 0, 160], ['ir', [4, 6], ...ROTA_QUADRO, [2, 2]], ['usar', 0, { ficha: 'mao' }],
+        ['ir', [3, 2]], ['usar', 0, { ficha: 1 }], ['ir', [11, 2], [11, 3], [12, 3]], ['usar', 0, { arquivo: 1 }], ['parado', 0, 8],
+        ['usar', 0, { arquivo: 0 }], ['ir', [11, 3], [11, 6], [4, 6], [4, 5]], ['anim', 'digitando', 0, 24]]),
+    },
+  },
+  almoco: {
+    nome: '12:00 · o almoço', hora: 12, luz: 'dia', tv: () => 0, inicio: { ficha: 1, marmitaG: [13, 11, 1] },
+    atores: {
+      camps: roteiro([4, 5], [['anim', 'digitando', 0, 12], ['ir', [4, 6], [11, 6], [11, 10], [17, 10]], ['usar', 0, { geladeira: 1 }],
+        ['parado', 0, 4], ['evento', { geladeira: 0 }], ['carrega', true], ['ir', [16, 10]], ['carrega', false], ['usar', 0, { micro: 1 }],
+        ['parado', 0, 24], ['usar', 0, { micro: 0 }], ['carrega', true], ['ir', [16, 11]], ['carrega', false], ['evento', { marmita: [17, 11, 1] }],
+        ['anim', 'comer', 3, 48, 3], ['evento', { marmita: [17, 11, 2] }], ['anim', 'sentado', 3, 6], ['evento', { marmita: null }],
+        ['carrega', true], ['ir', [16, 10], [12, 10]], ['carrega', false], ['usar', 0, {}], ['ir', [11, 10], [11, 6], [4, 6], [4, 5]],
+        ['anim', 'digitando', 0, 16]]),
+      gerente: roteiro([12, 11], [['anim', 'comer', 3, 290, 4]]),
+    },
+  },
+  tarde: {
+    nome: '17:00 · o pedido entregue e o café', hora: 5, luz: 'dia', tv: t => 4 + Math.floor(t / 6) % 3, inicio: { ficha: 1 },
+    atores: {
+      gerente: roteiro([16, 5], [['anim', 'sofa_tv', 0, 290, 20]]),
+      camps: roteiro([4, 5], [['anim', 'digitando', 0, 12], ['ir', [4, 6], ...ROTA_QUADRO, [3, 2]], ['usar', 0, { ficha: 'mao' }],
+        ['ir', [4, 2]], ['usar', 0, { ficha: 2 }], ['ir', [11, 2], [11, 10], [13, 10]], ['usar', 0, { cafe: 1 }], ['parado', 0, 10],
+        ['evento', { cafe: 0 }], ['anim', 'beber', 2, 18, 3], ['ir', [11, 10], [11, 6], [4, 6], [4, 5]], ['anim', 'digitando', 0, 20]]),
+    },
+  },
+  noite: {
+    nome: '19:30 · as luzes acesas', hora: 7, luz: 'luzes', tv: t => 1 + Math.floor(t / 3) % 3, inicio: { ficha: 2 },
+    atores: {
+      camps: roteiro([15, 5], [['anim', 'sofa_jogar', 0, 48, 3]]),
+      gerente: roteiro([17, 5], [['anim', 'sofa_tv', 0, 48, 20]]),
+    },
+  },
+  ronda: {
+    nome: '22:00 · a ronda no escuro', hora: 10, luz: 'escuro', tv: () => 0, inicio: { ficha: 2 },
+    atores: {
+      vigia: roteiro([11, 14], [['parado', 2, 10], ['ir', [9, 14], [9, 10], [11, 10], [11, 6], [6, 6]], ['parado', 1, 12],
+        ['ir', [11, 6], [11, 10], [15, 10]], ['parado', 2, 10], ['ir', [9, 10], [9, 14], [11, 14]], ['parado', 2, 16]]),
+    },
+  },
+};
+for (const c of Object.values(CENAS)) {
+  c.duracao = Math.max(...Object.values(c.atores).map(r => r.fim));
+  c.eventos = Object.values(c.atores).flatMap(r => r.eventos).sort((a, b) => a.t - b.t);
+}
+function estadoNoTick(cena, t) {
+  const e = { ficha: null, geladeira: 0, micro: 0, cafe: 0, arquivo: 0, marmita: null, marmitaG: null, ...cena.inicio };
+  for (const ev of cena.eventos) if (ev.t <= t) e[ev.k] = ev.v;
+  return e;
+}
+
+// ---- fundo estático de cada cena: chão, tapete, paredes, o quadro vazio, a janela e o relógio na hora
+function fundo(cena) {
   const cv = document.createElement('canvas'); cv.width = SALA.L * T; cv.height = SALA.A * T;
   const ctx = cv.getContext('2d');
   const tile = (nome, c, l, col, lin = 0) => ctx.drawImage(quadro(nome, c, lin).canvas(), col * T, l * T);
@@ -1316,130 +1604,108 @@ function fundo(noite) {
     else if (l === 13) {
       if (c === 0) tile('parede_lado', 4, l, c); else if (c === 19) tile('parede_lado', 5, l, c);
       else if (c === PORTA[0]) tile('parede_baixo', 2, l, c); else tile('parede_baixo', 0, l, c);
-    } else if (c === 0 || c === 19) {
-      tile('parede_lado', l === 0 ? (c ? 3 : 2) : (c ? 1 : 0), l, c);
-    } else if (l <= 1) tile('parede_fundo', l, l, c);
+    } else if (c === 0 || c === 19) tile('parede_lado', l === 0 ? (c ? 3 : 2) : (c ? 1 : 0), l, c);
+    else if (l <= 1) tile('parede_fundo', l, l, c);
     else if (l === 2) tile('carpete', 4, l, c);
     else { const h = hash(c, l, 99); tile('carpete', h < 0.06 ? 3 : Math.floor(h * 3), l, c); }
   }
-  for (let l = TAPETE.l0; l <= TAPETE.l1; l++) for (let c = TAPETE.c0; c <= TAPETE.c1; c++) {
-    const tc = c === TAPETE.c0 ? 0 : c === TAPETE.c1 ? 2 : 1, tl = l === TAPETE.l0 ? 0 : l === TAPETE.l1 ? 2 : 1;
-    ctx.drawImage(quadro('tapete', tc, tl).canvas(), c * T, l * T);
-  }
-  // na parede do fundo: o quadro dos pedidos à esquerda, a janela, o relógio
+  for (let l = TAPETE.l0; l <= TAPETE.l1; l++) for (let c = TAPETE.c0; c <= TAPETE.c1; c++)
+    ctx.drawImage(quadro('tapete', c === TAPETE.c0 ? 0 : c === TAPETE.c1 ? 2 : 1, l === TAPETE.l0 ? 0 : l === TAPETE.l1 ? 2 : 1).canvas(), c * T, l * T);
   const na = (nome, c, col) => ctx.drawImage(quadro(nome, c).canvas(), col * T, 0);
-  ['comeco', 'meio', 'meio', 'fim'].forEach((t, i) => na('quadro_pedidos', MODULOS.indexOf(t), 2 + i));
+  ['comeco', 'meio', 'fim'].forEach((t, i) => na('quadro_pedidos', MODULOS.indexOf(t), 2 + i));
+  const noite = cena.luz !== 'dia';
   ['comeco', 'meioA', 'meioB', 'meioA', 'fim'].forEach((t, i) => na(noite ? 'janela_noite' : 'janela_dia', JANELAS.indexOf(t), 7 + i));
-  na('relogio', 0, 12);
-  // as fichas, como a tela as penduraria: [coluna, posição, cor]
-  const fichas = [[0, 0, 0], [0, 1, 3], [0, 2, 1], [1, 0, 2], [2, 0, 3], [2, 1, 0], [3, 0, 2], [3, 1, 1], [3, 2, 4], [3, 3, 2]];
-  for (const [k, p, cor] of fichas) {
-    const c0 = k === 0 ? 5 : 2;
-    ctx.drawImage(quadro('fichas', cor).canvas(), (2 + k) * T + c0 + 1 + (p % 2) * 12, 19 + Math.floor(p / 2) * 12);
-  }
+  na('relogio', cena.hora % 12, 12);
   return cv;
 }
 
-// ---- o caminho do gerente: [coluna, linha] ou ['pausa', ticks, direção, onde]
-// entra pela porta, vai ao quadro, passa na máquina de café e volta
-const CAMINHO = [[9, 12], [9, 10], [11, 10], [11, 2], [4, 2], ['pausa', 14, 0, 'quadro'], [11, 2], [11, 10], [13, 10],
-  ['pausa', 16, 0, 'cafe'], [9, 10], [9, 12], ['pausa', 14, 2, 'porta']];
-const PASSO = 4;    // px por tick: 8 ticks por tile (andar per_tile)
-function etapasGerente() {
-  const etapas = [];
-  let pos = CAMINHO[0];
-  for (const e of CAMINHO.slice(1)) {
-    if (e[0] === 'pausa') { etapas.push({ tipo: 'pausa', n: e[1], dir: e[2], onde: e[3], pos }); continue; }
-    const dx = e[0] - pos[0], dy = e[1] - pos[1], n = (Math.abs(dx) + Math.abs(dy)) * T / PASSO;
-    const dir = dx > 0 ? 3 : dx < 0 ? 1 : dy < 0 ? 0 : 2;
-    etapas.push({ tipo: 'andar', n, dir, de: pos, para: e }); pos = e;
-  }
-  return etapas;
-}
-const ETAPAS = etapasGerente();
-const CICLO_GERENTE = ETAPAS.reduce((a, e) => a + e.n, 0);
-function gerenteNoTick(t) {
-  let k = ((t % CICLO_GERENTE) + CICLO_GERENTE) % CICLO_GERENTE;
-  for (const e of ETAPAS) {
-    if (k >= e.n) { k -= e.n; continue; }
-    if (e.tipo === 'pausa') return { x: e.pos[0] * T, y: e.pos[1] * T, anim: 'parado', dir: e.dir, f: (k % 30) < 2 ? 1 : 0, onde: e.onde };
-    const fr = k / e.n;
-    return { x: (e.de[0] + (e.para[0] - e.de[0]) * fr) * T, y: (e.de[1] + (e.para[1] - e.de[1]) * fr) * T, anim: 'andar', dir: e.dir, f: k % 8 };
-  }
-}
-
-const LIN_ANIM = (anim, dir) => MAPA_PERSONAGEM[anim][0] + (MAPA_PERSONAGEM[anim][2] === 1 ? 0 : dir);
+const LIN_ANIM = (anim, dir) => {
+  const [l, , dirs] = MAPA_PERSONAGEM[anim];
+  return dirs === 4 ? l + dir : dirs === 1 ? l : l + (dir === 3 ? 1 : 0);
+};
+const SENTADO_MESA = ['digitando', 'sentado'];
 
 // ---- os objetos da sala num tick: { x, y (canto do quadro), base (borda de baixo da pegada), ordem, spr }
-function objetos(t) {
-  const o = [];
-  const poe = (spr, col, lin, larg = 1, ordem = 1) => o.push({ spr, x: col * T + larg * T / 2 - spr.w / 2, y: (lin + 1) * T - spr.h, base: (lin + 1) * T, ordem });
-  const g = gerenteNoTick(t);
+function objetos(cena, t) {
+  const o = [], e = estadoNoTick(cena, t), dia = cena.luz === 'dia';
+  const poe = (spr, col, lin, larg = 1, ordem = 1) => spr && o.push({ spr, x: col * T + larg * T / 2 - spr.w / 2, y: (lin + 1) * T - spr.h, base: (lin + 1) * T, ordem });
+  const atores = Object.fromEntries(Object.entries(cena.atores).map(([id, r]) => [id, atorNoTick(r, t)]));
+  const sentadoNa = (c, l) => Object.values(atores).some(a => a && SENTADO_MESA.includes(a.anim) && a.x === c * T && a.y === l * T);
+  // o quadro dos pedidos: a ficha na coluna em que está
+  if (typeof e.ficha === 'number') o.push({ spr: quadro('fichas', 1), x: (2 + e.ficha) * T + (e.ficha === 0 ? 5 : 2) + 1, y: 19, base: -1, ordem: 0 });
   // os cubículos
   for (const k of DIV) { const [c, l] = k.split(',').map(Number); poe(quadro('divisoria', mascara(c, l) % 4, mascara(c, l) >> 2), c, l); }
-  poe(quadro('mesa_dev', 1 + Math.floor(t / 5) % 3), 3, 4, 3);
-  poe(quadro('cadeira', 0), 4, 5, 1, 0);
-  poe(quadro('camps', t % 4, LIN_ANIM('digitando', 0)), 4, 5, 1, 1);
-  poe(quadro('cadeira', 1), 4, 5, 1, 2);
+  const digitando = atores.camps && atores.camps.anim === 'digitando';
+  poe(quadro('mesa_dev', !dia ? 0 : digitando ? 1 + Math.floor(t / 5) % 3 : 1), 3, 4, 3);
+  for (const [c, l] of [[7, 4], [3, 8], [7, 8]]) poe(quadro('mesa_dev', 0), c, l, 3);
+  for (const [c, l] of [[4, 5], [8, 5], [4, 9], [8, 9]]) {
+    if (sentadoNa(c, l)) { poe(quadro('cadeira', 0), c, l, 1, 0); poe(quadro('cadeira', 1), c, l, 1, 2); }
+    else poe(quadro('cadeira', 2), c, l);
+  }
   poe(quadro('lixeira'), 5, 5);
-  poe(quadro('mesa_dev', 0), 7, 4, 3);
-  poe(quadro('cadeira', 2), 8, 5);
-  poe(quadro('mesa_dev', 0), 3, 8, 3); poe(quadro('cadeira', 2), 4, 9);
-  poe(quadro('mesa_dev', 0), 7, 8, 3); poe(quadro('cadeira', 2), 8, 9);
-  poe(quadro('arquivo'), 12, 2); poe(quadro('arquivo'), 13, 2);
-  // a sala de descompressão
-  poe(quadro('movel_tv', 1 + Math.floor(t / 4) % 2), 15, 2, 3);
-  poe(quadro('sofa_costas'), 15, 5, 3);
+  poe(quadro('arquivo', e.arquivo), 12, 2); poe(quadro('arquivo', 0), 13, 2);
+  // a sala de descompressão: o sofá vai na frente de quem senta nele
+  poe(quadro('movel_tv', cena.tv(t)), 15, 2, 3);
+  poe(quadro('sofa_costas'), 15, 5, 3, 2);
   poe(quadro('puff', 0), 14, 3); poe(quadro('puff', 2), 18, 3); poe(quadro('puff', 1), 18, 5);
-  // o banheiro, colado à parede de baixo: as portas dão para o corredor
+  // o banheiro e a copa
   poe(quadro('banheiro', 0), 1, 13, 4);
-  // a copa: a linha da cozinha, as mesinhas e as cadeiras
   poe(quadro('lixeira'), 12, 9);
-  poe(quadro('maquina_cafe', g.onde === 'cafe' ? 1 : 0), 13, 9);
-  poe(quadro('balcao_copa', (t % 60) < 20 ? 1 : 0), 14, 9, 3);
-  poe(quadro('geladeira', 0), 17, 9);
+  poe(quadro('maquina_cafe', e.cafe), 13, 9);
+  poe(quadro('balcao_copa', e.micro), 14, 9, 3);
+  poe(quadro('geladeira', e.geladeira), 17, 9);
   poe(quadro('bebedouro', Math.floor(t / 7) % 2), 18, 9);
   for (const c of [13, 17]) poe(quadro('mesa_copa'), c, 11);
-  for (const [c, f] of [[12, 0], [14, 1], [16, 0], [18, 1]]) poe(quadro('cadeira_lado', f), c, 11);
-  // as plantas
+  for (const m of [e.marmita, e.marmitaG]) if (m) o.push({ spr: quadro('marmita', m[2]), x: m[0] * T + 8, y: (m[1] + 1) * T - 64 + 30, base: (m[1] + 1) * T, ordem: 1 });
+  for (const [c, f] of [[12, 0], [14, 1], [16, 0], [18, 1]]) poe(quadro('cadeira_lado', f), c, 11, 1, 0);
   poe(quadro('planta'), 1, 2); poe(quadro('planta'), 1, 7); poe(quadro('planta'), 18, 7);
-  // o vigia na porta, do lado do corredor
-  poe(quadro('vigia', (t % 37) < 2 ? 1 : 0, LIN_ANIM('parado', 2)), PORTA[0] + 2, 14);
-  // o gerente
-  const sg = quadro('gerente', g.f, LIN_ANIM(g.anim, g.dir));
-  o.push({ spr: sg, x: g.x + T / 2 - 32, y: g.y + T - 64, base: g.y + T, ordem: 1 });
-  return o.sort((a, b) => a.base - b.base || a.ordem - b.ordem);
+  // o vigia no posto (quando não está no roteiro) e os atores
+  if (!atores.vigia) poe(quadro('vigia', (t % 37) < 2 ? 1 : 0, LIN_ANIM('parado', 2)), PORTA[0] + 2, 14);
+  for (const [id, a] of Object.entries(atores)) {
+    if (!a) continue;
+    const spr = quadro(id, a.f, LIN_ANIM(a.anim, a.dir));
+    o.push({ spr, x: a.x + T / 2 - 32, y: a.y + T - 64, base: a.y + T, ordem: 1 });
+  }
+  return { lista: o.sort((a, b) => a.base - b.base || a.ordem - b.ordem), atores };
 }
 
 const FUNDOS = {};
-function desenhaPrevia(ctx, t, noite) {
-  const k = noite ? 'noite' : 'dia';
-  if (!FUNDOS[k]) FUNDOS[k] = fundo(noite);
-  ctx.drawImage(FUNDOS[k], 0, 0);
-  for (const ob of objetos(t)) ctx.drawImage(ob.spr.canvas(), Math.round(ob.x), Math.round(ob.y));
+function desenhaPrevia(ctx, t, idCena = 'pedido') {
+  const cena = CENAS[idCena];
+  if (!FUNDOS[idCena]) FUNDOS[idCena] = fundo(cena);
+  ctx.drawImage(FUNDOS[idCena], 0, 0);
+  const { lista, atores } = objetos(cena, t);
+  for (const ob of lista) ctx.drawImage(ob.spr.canvas(), Math.round(ob.x), Math.round(ob.y));
+  const v = atores.vigia;
+  ilumina(ctx, cena.luz, v ? [v.x + T / 2, v.y + T / 2 - 8] : null);
 }
+window.cenas = () => Object.entries(CENAS).map(([id, c]) => ({ id, nome: c.nome, duracao: c.duracao, luz: c.luz }));
 window.quadroPrevia = (i, op = {}) => {
   const cv = document.createElement('canvas'); cv.width = SALA.L * T; cv.height = SALA.A * T;
-  desenhaPrevia(cv.getContext('2d'), i, !!op.noite);
+  desenhaPrevia(cv.getContext('2d'), i, op.cena || (op.noite ? 'noite' : 'pedido'));
   return cv.toDataURL('image/png');
 };
-window.cicloPrevia = () => CICLO_GERENTE;
+window.cicloPrevia = (id = 'pedido') => CENAS[id].duracao;
 
 
 // ------------------------------------------------------------ a página
 (function pagina() {
   const sala = document.getElementById('sala'), ctx = sala.getContext('2d');
-  let noite = false, pausa = false, escala = 2, t = 0, ultimo = 0;
+  let cena = 'pedido', pausa = false, escala = 2, t = 0, ultimo = 0;
   const aplicaEscala = () => { sala.style.width = sala.width * escala + 'px'; sala.style.height = sala.height * escala + 'px'; };
   aplicaEscala();
   const marca = (sel, el) => document.querySelectorAll(sel).forEach(b => b.setAttribute('aria-pressed', b === el ? 'true' : 'false'));
-  document.getElementById('bt-dia').onclick = e => { noite = false; marca('#bt-dia, #bt-noite', e.currentTarget); };
-  document.getElementById('bt-noite').onclick = e => { noite = true; marca('#bt-dia, #bt-noite', e.currentTarget); };
+  const barraCenas = document.getElementById('cenas');
+  for (const c of window.cenas()) {
+    const b = document.createElement('button'); b.className = 'bt-cena'; b.textContent = c.nome; b.setAttribute('aria-pressed', String(c.id === cena));
+    b.onclick = () => { cena = c.id; t = 0; marca('.bt-cena', b); };
+    barraCenas.append(b);
+  }
   document.getElementById('bt-pausa').onclick = e => { pausa = !pausa; e.currentTarget.setAttribute('aria-pressed', String(pausa)); e.currentTarget.textContent = pausa ? 'continuar' : 'pausar'; };
   document.querySelectorAll('.bt-escala').forEach(b => b.onclick = () => { escala = +b.dataset.e; marca('.bt-escala', b); aplicaEscala(); });
   function laco(ms) {
     if (!pausa && ms - ultimo >= 100) { t++; ultimo = ms; }
-    desenhaPrevia(ctx, t, noite);
+    desenhaPrevia(ctx, t % CENAS[cena].duracao, cena);
     requestAnimationFrame(laco);
   }
   requestAnimationFrame(laco);

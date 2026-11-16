@@ -95,6 +95,181 @@
     "vermCl",
     "vermEsc"
   ],
+  "luz": {
+    "fases": [
+      {
+        "nome": "dia",
+        "ate": "18:00"
+      },
+      {
+        "nome": "luzes",
+        "de": "18:00",
+        "ate": "21:00"
+      },
+      {
+        "nome": "escuro",
+        "de": "21:00"
+      }
+    ],
+    "regra": "a luz troca cada cor da paleta por outra (penumbra ou escuro), com bordas pontilhadas em xadrez; nada de transparência",
+    "sempreAceso": "o corredor, as faces que dão para ele (a parede de baixo e o banheiro) e a janela",
+    "emissivas": [
+      "telaTexto",
+      "telaBrilho"
+    ],
+    "penumbra": {
+      "contorno": "contorno",
+      "escuro": "contorno",
+      "grafiteEsc": "escuro",
+      "grafite": "grafiteEsc",
+      "cinzaEsc": "grafite",
+      "cinza": "cinzaEsc",
+      "cinzaCl": "cinza",
+      "branco": "cinzaCl",
+      "begeEsc": "madEsc",
+      "begeSomb": "begeEsc",
+      "bege": "begeSomb",
+      "creme": "bege",
+      "cremeCl": "creme",
+      "madCl": "mad",
+      "mad": "madEsc",
+      "madEsc": "madMEsc",
+      "madMEsc": "cabEsc",
+      "carpCl": "carp",
+      "carp": "carpEsc",
+      "carpEsc": "mar",
+      "azulCl": "azul",
+      "azul": "azulEsc",
+      "azulEsc": "mar",
+      "marCl": "mar",
+      "mar": "marEsc",
+      "marEsc": "contorno",
+      "ceu": "azulCl",
+      "ceuCl": "ceu",
+      "verdeCl": "verde",
+      "verde": "verdeEsc",
+      "verdeEsc": "grafiteEsc",
+      "telaFundo": "telaFundo",
+      "telaTexto": "telaTexto",
+      "telaBrilho": "telaBrilho",
+      "vermCl": "verm",
+      "verm": "vermEsc",
+      "vermEsc": "cabEsc",
+      "peleCl": "pele",
+      "pele": "peleSomb",
+      "peleSomb": "cabCl",
+      "cabCl": "cab",
+      "cab": "cabEsc",
+      "cabEsc": "escuro",
+      "amarelo": "madCl",
+      "amareloCl": "amarelo"
+    },
+    "escuro": {
+      "contorno": "contorno",
+      "escuro": "contorno",
+      "grafiteEsc": "contorno",
+      "grafite": "escuro",
+      "cinzaEsc": "marEsc",
+      "cinza": "mar",
+      "cinzaCl": "mar",
+      "branco": "marCl",
+      "begeEsc": "marEsc",
+      "begeSomb": "mar",
+      "bege": "mar",
+      "creme": "marCl",
+      "cremeCl": "marCl",
+      "madCl": "mar",
+      "mad": "marEsc",
+      "madEsc": "escuro",
+      "madMEsc": "contorno",
+      "carpCl": "mar",
+      "carp": "marEsc",
+      "carpEsc": "escuro",
+      "azulCl": "marCl",
+      "azul": "mar",
+      "azulEsc": "marEsc",
+      "marCl": "mar",
+      "mar": "marEsc",
+      "marEsc": "contorno",
+      "ceu": "marCl",
+      "ceuCl": "marCl",
+      "verdeCl": "mar",
+      "verde": "marEsc",
+      "verdeEsc": "escuro",
+      "telaFundo": "contorno",
+      "telaTexto": "telaTexto",
+      "telaBrilho": "telaBrilho",
+      "vermCl": "vermEsc",
+      "verm": "escuro",
+      "vermEsc": "contorno",
+      "peleCl": "cabEsc",
+      "pele": "cabEsc",
+      "peleSomb": "escuro",
+      "cabCl": "escuro",
+      "cab": "escuro",
+      "cabEsc": "contorno",
+      "amarelo": "madEsc",
+      "amareloCl": "amareloCl"
+    },
+    "luminarias": {
+      "centrosEmTiles": [
+        [
+          4.5,
+          4.4
+        ],
+        [
+          8.5,
+          4.4
+        ],
+        [
+          4.5,
+          8.4
+        ],
+        [
+          8.5,
+          8.4
+        ],
+        [
+          3.5,
+          2.6
+        ],
+        [
+          12.5,
+          3
+        ],
+        [
+          16.5,
+          4.5
+        ],
+        [
+          15.5,
+          10.6
+        ],
+        [
+          9.5,
+          11.6
+        ]
+      ],
+      "raioPx": 72,
+      "bordaPx": 14,
+      "fora": "penumbra"
+    },
+    "lanterna": {
+      "raiosPx": [
+        40,
+        54,
+        68,
+        82
+      ],
+      "niveis": [
+        "aceso",
+        "xadrez aceso/penumbra",
+        "penumbra",
+        "xadrez penumbra/escuro",
+        "escuro"
+      ]
+    }
+  },
   "folhas": {
     "carpete": {
       "arquivo": "carpete.png",
@@ -269,7 +444,7 @@
         32,
         64
       ],
-      "colunas": 1,
+      "colunas": 12,
       "linhas": 1,
       "pegada": null,
       "ancora": [
@@ -278,8 +453,20 @@
       ],
       "camada": "parede",
       "quadros": [
-        "relógio"
-      ]
+        "12h",
+        "1h",
+        "2h",
+        "3h",
+        "4h",
+        "5h",
+        "6h",
+        "7h",
+        "8h",
+        "9h",
+        "10h",
+        "11h"
+      ],
+      "nota": "o quadro é a hora % 12; o ponteiro dos minutos fica no 12"
     },
     "quadro_pedidos": {
       "arquivo": "quadro_pedidos.png",
@@ -441,7 +628,7 @@
         32,
         64
       ],
-      "colunas": 1,
+      "colunas": 3,
       "linhas": 1,
       "pegada": [
         1,
@@ -453,7 +640,9 @@
       ],
       "camada": "normal",
       "quadros": [
-        "arquivo"
+        "fechado",
+        "gaveta de cima aberta",
+        "segunda gaveta aberta"
       ]
     },
     "planta": {
@@ -628,6 +817,28 @@
         "bolhas B"
       ]
     },
+    "marmita": {
+      "arquivo": "marmita.png",
+      "grupo": "banheiro e copa",
+      "quadro": [
+        16,
+        16
+      ],
+      "colunas": 3,
+      "linhas": 1,
+      "pegada": null,
+      "ancora": [
+        8,
+        16
+      ],
+      "camada": "normal",
+      "quadros": [
+        "fechada",
+        "aberta, com a comida",
+        "vazia"
+      ],
+      "nota": "vai sobre a mesinha enquanto o dev come; na mão, ela já vem no quadro de carregar"
+    },
     "mesa_copa": {
       "arquivo": "mesa_copa.png",
       "grupo": "banheiro e copa",
@@ -690,10 +901,11 @@
         48,
         64
       ],
-      "camada": "normal",
+      "camada": "frente",
       "quadros": [
         "de costas, para a TV"
-      ]
+      ],
+      "nota": "vai na frente de quem está sentado nele (sofa_tv, sofa_jogar)"
     },
     "sofa_lado": {
       "arquivo": "sofa_lado.png",
@@ -725,7 +937,7 @@
         96,
         64
       ],
-      "colunas": 3,
+      "colunas": 7,
       "linhas": 1,
       "pegada": [
         3,
@@ -739,7 +951,11 @@
       "quadros": [
         "desligada",
         "jogo 1",
-        "jogo 2"
+        "jogo 2",
+        "jogo 3",
+        "telejornal 1",
+        "telejornal 2",
+        "telejornal 3"
       ],
       "nota": "a TV de tubo no meio, o videogame, os cartuchos e as caixas de som"
     },
@@ -795,7 +1011,7 @@
         64
       ],
       "colunas": 8,
-      "linhas": 23,
+      "linhas": 29,
       "pegada": [
         1,
         1
@@ -837,7 +1053,7 @@
             "baixo",
             "direita"
           ],
-          "tem": false
+          "tem": true
         },
         "sentado": {
           "linha": 12,
@@ -867,7 +1083,7 @@
             "baixo",
             "direita"
           ],
-          "tem": false
+          "tem": true
         },
         "comer": {
           "linha": 21,
@@ -876,7 +1092,34 @@
             "esquerda",
             "direita"
           ],
-          "tem": false
+          "tem": true
+        },
+        "carregar": {
+          "linha": 23,
+          "quadros": 8,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "sofa_tv": {
+          "linha": 27,
+          "quadros": 2,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": true
+        },
+        "sofa_jogar": {
+          "linha": 28,
+          "quadros": 4,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": true
         }
       },
       "andar": "per_tile: 8 quadros por tile"
@@ -889,7 +1132,7 @@
         64
       ],
       "colunas": 8,
-      "linhas": 23,
+      "linhas": 29,
       "pegada": [
         1,
         1
@@ -931,7 +1174,7 @@
             "baixo",
             "direita"
           ],
-          "tem": false
+          "tem": true
         },
         "sentado": {
           "linha": 12,
@@ -942,7 +1185,7 @@
             "baixo",
             "direita"
           ],
-          "tem": false
+          "tem": true
         },
         "digitando": {
           "linha": 16,
@@ -950,7 +1193,7 @@
           "direcoes": [
             "cima"
           ],
-          "tem": false
+          "tem": true
         },
         "beber": {
           "linha": 17,
@@ -961,7 +1204,7 @@
             "baixo",
             "direita"
           ],
-          "tem": false
+          "tem": true
         },
         "comer": {
           "linha": 21,
@@ -970,7 +1213,34 @@
             "esquerda",
             "direita"
           ],
-          "tem": false
+          "tem": true
+        },
+        "carregar": {
+          "linha": 23,
+          "quadros": 8,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "sofa_tv": {
+          "linha": 27,
+          "quadros": 2,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": true
+        },
+        "sofa_jogar": {
+          "linha": 28,
+          "quadros": 4,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": true
         }
       },
       "andar": "per_tile: 8 quadros por tile"
@@ -983,7 +1253,7 @@
         64
       ],
       "colunas": 8,
-      "linhas": 23,
+      "linhas": 29,
       "pegada": [
         1,
         1
@@ -1063,6 +1333,33 @@
           "direcoes": [
             "esquerda",
             "direita"
+          ],
+          "tem": false
+        },
+        "carregar": {
+          "linha": 23,
+          "quadros": 8,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": false
+        },
+        "sofa_tv": {
+          "linha": 27,
+          "quadros": 2,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": false
+        },
+        "sofa_jogar": {
+          "linha": 28,
+          "quadros": 4,
+          "direcoes": [
+            "cima"
           ],
           "tem": false
         }
