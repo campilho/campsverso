@@ -40,4 +40,4 @@ minds:  # a mente com rotina do dev (ADR-0080): `make sandbox MENTE=camps_escrit
     effort: medium
     max_tokens: 8192
     cassette: {path: data/llm/office-campsverso-demo.jsonl, mode: record}
-    memory: {enabled: false}  # a revisão da manhã vem depois
+    memory: {enabled: true}  # a memória do escritório e a revisão da manhã (o plano do M24, §2.3)

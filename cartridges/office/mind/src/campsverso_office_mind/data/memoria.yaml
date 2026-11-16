@@ -1,0 +1,116 @@
+# O perfil da memória do escritório (o plano do M24, §2.2 e §2.3; adendo da ADR-0080): o que a
+# memória genérica (libs/mind) guarda do dia de trabalho, com que peso e em que palavras, e a
+# revisão da manhã. Os campos estão em libs/mind/src/campsverso_mind/profile.py.
+
+tick_seconds: 0.25 # o tick do escritório (sim/data/office.yaml, clock.tick_seconds); um teste confere
+places: false # a sala não tem raio de visão: tudo está à vista, e não há o que lembrar de onde fica
+reflected_when: na revisão
+empty: "Você ainda não tem lembranças do escritório: é o seu primeiro dia."
+beliefs_header: "O que você aprendeu (confiança de 0 a 1):"
+
+# O que acontece na sala e não vira lembrança: o progresso do trabalho e o pedido como coisa no
+# mundo (os eventos do pedido contam melhor), o relógio e as trocas de controlador.
+skipped:
+  - campsverso.world.entity.state_changed.
+  - campsverso.world.entity.spawned.
+  - campsverso.world.entity.despawned.
+  - campsverso.world.clock.
+  - campsverso.avatar.possessed.
+  - campsverso.avatar.released.
+
+# A rotina (ADR-0080): andar, sentar, trabalhar no relógio, as pausas e o almoço. O que importa
+# delas já está nos eventos do pedido e na linha da sessão na oficina.
+quiet_actions:
+  [move, wait, work, say, take_ticket, deliver, drink, coffee, restroom, fridge, microwave, lunch, trash, tv, videogame]
+
+importance:
+  events:
+    campsverso.office.ticket.created.v1: 5
+    campsverso.office.ticket.taken.v1: 3
+    campsverso.office.ticket.delivered.v1: 6
+    campsverso.office.ticket.accepted.v1: 8
+    campsverso.office.ticket.returned.v1: 9 # o comentário do gerente é o que mais ensina
+    campsverso.avatar.spoke.v1: 5
+    "campsverso.avatar.spoke.v1:self": 3
+    campsverso.avatar.entered.v1: 2
+    campsverso.avatar.left.v1: 2
+  actions: {}
+
+lines:
+  campsverso.office.ticket.created.v1: "{when} {author} escreveu no quadro o pedido {number}: {title}"
+  campsverso.office.ticket.taken.v1: "{when} {by} pegou o pedido {number}"
+  "campsverso.office.ticket.taken.v1:self": "{when} peguei o pedido {number}"
+  campsverso.office.ticket.delivered.v1: "{when} {by} entregou o pedido {number}"
+  "campsverso.office.ticket.delivered.v1:self": "{when} entreguei o pedido {number}"
+  campsverso.office.ticket.accepted.v1: "{when} {by} aceitou o pedido {number}"
+  campsverso.office.ticket.returned.v1: "{when} {by} devolveu o pedido {number}: {comment}"
+  campsverso.avatar.spoke.v1: "{when} {avatar_id} disse: {text}"
+  "campsverso.avatar.spoke.v1:self": "{when} eu disse: {text}"
+  campsverso.avatar.entered.v1: "{when} {avatar_id} entrou no escritório"
+  "campsverso.avatar.entered.v1:self": "{when} cheguei ao escritório"
+  campsverso.avatar.left.v1: "{when} {avatar_id} saiu do escritório"
+  "campsverso.avatar.left.v1:self": "{when} saí do escritório"
+
+# A anotação durante um pedido: a mente a guarda; a oficina nem a vê.
+note_tool:
+  name: anotar
+  description: >-
+    Guarda uma anotação para os próximos dias: um detalhe do repositório, uma preferência do
+    gerente, algo a evitar. Não muda nada no repositório.
+  input_schema:
+    type: object
+    properties:
+      texto: { type: string, description: "A anotação, em uma ou duas frases, em português." }
+    required: [texto]
+
+# A revisão da manhã (§2.3): ao chegar, os dias de trabalho ainda não revistos, até três.
+review:
+  days: 3
+  closing: "Feche a revisão com a ferramenta revisar."
+  instructions: |
+    ## A revisão da manhã
+
+    Você acabou de chegar ao escritório. Antes de começar, reveja os dias de trabalho que ainda não revisou: você recebe o que aconteceu em cada um (uma linha por acontecimento, na ordem), o que você anotou e o que já tinha aprendido. Responda com a ferramenta `revisar`, e só com ela: o resumo, o plano de hoje e a lista inteira do que você aprendeu, revisada.
+
+    Uma lição é algo que vale nos próximos pedidos:
+    - sobre o repositório: onde fica o quê, como os testes rodam, o que a revisão da oficina recusa;
+    - sobre o gerente: o que ele pede, o que ele devolve e por quê;
+    - sobre o seu jeito de trabalhar: o que deu certo e o que custou caro.
+
+    Confirme o que se repetiu, enfraqueça o que não se repetiu, abandone o que os dias desmentiram e crie lições novas só com evidência: cite os pedidos e as horas. Seja econômico: até 12 lições, cada uma com até três evidências curtas, e o resumo em 3 a 5 linhas.
+  tool:
+    name: revisar
+    description: "Feche a revisão: o que aconteceu, o que você aprendeu e o que pretende hoje."
+    strict: true
+    input_schema:
+      type: object
+      properties:
+        summary:
+          type: string
+          description: "Os dias revistos em 3 a 5 linhas, em português, em primeira pessoa."
+        plan:
+          type: string
+          description: 'O que você pretende hoje, em 1 a 3 linhas; ou "".'
+        beliefs:
+          type: array
+          description: >-
+            A lista inteira de lições, revisada: as que continuam (confirmed), as que mudaram de
+            confiança (confirmed ou weakened), as que você abandona (retracted) e as novas (new).
+            Uma lição é o que você aprendeu sobre o repositório, o gerente ou o seu trabalho,
+            tirado do que aconteceu.
+          items:
+            type: object
+            properties:
+              id: { type: string, description: 'O id da lição existente (bel-0001), ou "" se nova.' }
+              statement: { type: string, description: "A lição, em uma frase." }
+              confidence: { type: number, description: "Quanto você acredita nela, de 0 a 1." }
+              evidence:
+                type: array
+                items: { type: string }
+                description: "O que aconteceu que a sustenta: os pedidos, as horas e os fatos."
+              status: { type: string, enum: [new, confirmed, weakened, retracted] }
+              reason: { type: string, description: 'Por que, em uma frase; ou "".' }
+            required: [id, statement, confidence, evidence, status, reason]
+            additionalProperties: false
+      required: [summary, plan, beliefs]
+      additionalProperties: false

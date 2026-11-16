@@ -51,7 +51,7 @@ from campsverso_controller_runner.runner import (
     load_mind,
 )
 from campsverso_controller_runner.workshop import WorkshopSession
-from campsverso_mind import LlmController, Memory, MemorySettings
+from campsverso_mind import LlmController, Memory, MemoryProfile, MemorySettings
 from campsverso_ports import EventBus, ModelPort
 
 
@@ -179,6 +179,7 @@ async def run(args: argparse.Namespace) -> int:
         port.assert_priced(settings.model)
         if settings.reflection_model is not None:
             port.assert_priced(settings.reflection_model)
+        mind = load_mind(args.mind)
         memory: Memory | None = None
         if settings.memory_enabled:  # o caderno (ADR-0060): um arquivo por avatar, fora do snapshot
             memory_path = settings.memory_path or (
@@ -191,10 +192,11 @@ async def run(args: argparse.Namespace) -> int:
                     reflection_model=settings.reflection_model,
                     reflection_effort=settings.reflection_effort,
                     reflection_max_tokens=settings.reflection_max_tokens,
+                    # O perfil do mundo (o plano do M24, §2.2): sem ele, o da fazenda.
+                    profile=mind.memory or MemoryProfile(),
                 ),
             )
             telemetry.info("mind.memory", path=str(memory_path))
-        mind = load_mind(args.mind)
         workshop = _workshop(env, world, args.avatar, args.data_dir) if mind.workshop else None
         if workshop is not None:
             # A mente com rotina do escritório (ADR-0080): a rotina é o script do mundo, e o
@@ -212,6 +214,7 @@ async def run(args: argparse.Namespace) -> int:
                 chat_instructions=mind.conversation,
                 effort=settings.effort,
                 telemetry=telemetry,
+                memory=memory,
             )
         else:
             brain = LlmController(

@@ -8,14 +8,17 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 
-from campsverso_adapters import MemoryBlobStore
+from campsverso_adapters import MemoryBlobStore, SqliteMemory
 from campsverso_adapters.workshop_local import LocalWorkshop
 from campsverso_adapters.workshop_review import review
 from campsverso_controller_runner.office_mind import OfficeMind
+from campsverso_controller_runner.runner import load_mind
 from campsverso_controller_runner.workshop import WorkshopSession
-from campsverso_mind import Mind
+from campsverso_mind import Memory, MemorySettings, Mind
 from campsverso_ports import (
+    Episode,
     ModelCallError,
     ModelCapabilities,
     ModelRequest,
@@ -97,7 +100,7 @@ def _use(name: str, **given: Any) -> dict[str, Any]:
 
 
 def _snapshot(
-    *, heard: list[dict[str, Any]] | None = None, estado: str = "fazendo"
+    *, heard: list[dict[str, Any]] | None = None, estado: str = "fazendo", day: int = 1
 ) -> dict[str, Any]:
     ticket = {
         "entity_id": "pedido-001",
@@ -111,7 +114,7 @@ def _snapshot(
         },
     }
     view: dict[str, Any] = {
-        "clock": {"tick": 5, "sim_time": "2026-11-16T10:00:00-03:00", "day": 1},
+        "clock": {"tick": 5, "sim_time": "2026-11-16T10:00:00-03:00", "day": day},
         "self": {"entity_id": "camps", "position": {"x": 4, "y": 5}},
         "weather": {},
         "entities": [ticket],
@@ -139,7 +142,7 @@ def repo(tmp_path: Path) -> Path:
 
 
 def _mind(
-    port: Scripted, repo: Path, tmp_path: Path
+    port: Scripted, repo: Path, tmp_path: Path, memory: Memory | None = None
 ) -> tuple[OfficeMind, list[Mapping[str, Any]], list[str]]:
     proposed: list[Mapping[str, Any]] = []
     steps: list[str] = []
@@ -169,6 +172,7 @@ def _mind(
         session_tools=TOOLS,
         session_instructions="Trabalhe.",
         chat_instructions="Responda curto.",
+        memory=memory,
     )
     mind.propose = propose
     return mind, proposed, steps
@@ -264,3 +268,123 @@ async def test_o_teto_estourado_desliga_a_mente_e_o_dev_avisa_uma_vez(
     assert mind.sessions == 0
     mind.on_budget({"type": "campsverso.live.budget.v1", "limits": limits, "exceeded": []})
     assert not mind.off
+
+
+# ---------------------------------------------------------------- a memória (o plano do M24, §2.3)
+
+ROOT = Path(__file__).resolve().parents[3]
+LESSON = {
+    "id": "",
+    "statement": "O gerente devolve o pedido que não cobre o caso vazio.",
+    "confidence": 0.7,
+    "evidence": ["o pedido 1, devolvido às 17:00"],
+    "status": "new",
+    "reason": "",
+}
+
+
+def _memory() -> Memory:
+    """A memória do dev com o perfil do escritório, e o dia 1 com um pedido devolvido."""
+    profile = load_mind("camps_escritorio").memory
+    assert profile is not None
+    memory = Memory(SqliteMemory(":memory:"), "camps", MemorySettings(profile=profile))
+    memory.port.record(
+        Episode(100, 1, "17:00 gerente devolveu o pedido 1: falta o caso vazio", 9, "returned")
+    )
+    return memory
+
+
+def test_o_perfil_do_escritorio_tem_o_tick_e_as_ferramentas_do_escritorio() -> None:
+    profile = load_mind("camps_escritorio").memory
+    assert profile is not None
+    office = ROOT / "cartridges/office/sim/src/campsverso_office_sim/data/office.yaml"
+    sim = yaml.safe_load(office.read_text(encoding="utf-8"))
+    assert profile.tick_seconds == sim["clock"]["tick_seconds"]
+    assert not profile.places
+    assert profile.note_tool is not None
+    assert profile.note_tool["name"] == "anotar"
+    assert profile.review_tool is not None
+    assert profile.review_tool["name"] == "revisar"
+    # A rotina inteira fica quieta: cada ação do escritório que ela faz está na lista.
+    assert {"work", "coffee", "lunch", "videogame"} <= profile.quiet_actions
+    assert set(profile.quiet_actions) <= set(sim["actions"]) | {"move", "wait", "say"}
+
+
+async def test_ao_chegar_o_dev_reve_a_vespera_e_a_sessao_comeca_com_a_memoria(
+    repo: Path, tmp_path: Path
+) -> None:
+    memory = _memory()
+    port = Scripted(
+        [
+            _use(
+                "revisar",
+                summary="O gerente devolveu o pedido 1.",
+                plan="Cobrir o caso vazio.",
+                beliefs=[LESSON],
+            )
+        ],
+        [_use("anotar", texto="O gerente sempre pede o caso vazio.")],
+        [_use("escrever", path="tools/testador.py", content="OK = 1\n")],
+        [_use("pronto", resumo="Escrevi o testador.")],
+    )
+    mind, proposed, steps = _mind(port, repo, tmp_path, memory)
+    await mind.decide(_snapshot(day=2))
+    assert mind._task is not None  # pyright: ignore[reportPrivateUsage]
+    await mind._task  # pyright: ignore[reportPrivateUsage]
+    assert mind.reviews == 1
+    review_request, opening = port.requests[0], port.requests[1]
+    assert review_request.purpose == "reflection"
+    assert [t["name"] for t in review_request.tools] == ["revisar"]
+    assert "Dia 1. O que aconteceu, na ordem:" in review_request.messages[0]["content"][0]["text"]
+    # A sessão espera a revisão e abre com a memória antes do pedido; anotar é dela.
+    text = opening.messages[0]["content"][0]["text"]
+    assert text.startswith("## O que você lembra\nDia 1, na revisão: O gerente devolveu")
+    assert "Plano: Cobrir o caso vazio." in text
+    assert "O gerente devolve o pedido que não cobre o caso vazio." in text
+    assert text.index("## O que você lembra") < text.index("Pedido 1: Testador")
+    assert "anotar" in [t["name"] for t in opening.tools]
+    assert steps == ["escrever", "pronto"]  # a anotação não passa pela oficina
+    assert proposed[0]["action"] == "deliver"
+    (note,) = memory.port.notes(2)
+    assert note.text == "O gerente sempre pede o caso vazio."
+    (line,) = memory.port.episodes(2)
+    assert line.text.startswith("10:00 trabalhei no pedido 1 na oficina, em ")
+    assert line.text.endswith("passos; terminei: Escrevi o testador.")
+    kinds = [e["type"] for e in mind.drain_events()]
+    assert kinds == [
+        "campsverso.memory.reflected.v1",
+        "campsverso.memory.belief.formed.v1",
+        "campsverso.memory.noted.v1",
+    ]
+    # No mesmo dia, nada a rever de novo.
+    await mind.decide(_snapshot(day=2, estado="aceito"))
+    assert mind.reviews == 1
+
+
+async def test_a_revisao_que_falha_nao_segura_o_trabalho(repo: Path, tmp_path: Path) -> None:
+    memory = _memory()
+    port = Scripted(ModelCallError("server", "caiu"), [_use("pronto", resumo="Feito.")])
+    mind, proposed, _ = _mind(port, repo, tmp_path, memory)
+    await mind.decide(_snapshot(day=2))
+    assert mind._task is not None  # pyright: ignore[reportPrivateUsage]
+    await mind._task  # pyright: ignore[reportPrivateUsage]
+    assert mind.reviews == 0
+    assert proposed[0]["action"] == "deliver"
+    opening = port.requests[1].messages[0]["content"][0]["text"]
+    assert "Dia 1, na revisão" not in opening  # sem revisão, a memória ainda vem, sem o resumo
+    assert "17:00 gerente devolveu" not in opening  # os momentos são só os de hoje
+    assert len(port.requests) == 2  # e não tenta de novo no mesmo dia
+
+
+async def test_a_conversa_leva_a_memoria(repo: Path, tmp_path: Path) -> None:
+    memory = _memory()
+    port = Scripted([{"type": "text", "text": "Já vi o caso vazio."}])
+    mind, _, _ = _mind(port, repo, tmp_path, memory)
+    heard = [{"tick": 4, "avatar_id": "gerente", "text": "E o caso vazio?", "listener_id": "camps"}]
+    mind._review_day = 1  # pyright: ignore[reportPrivateUsage]  # sem revisão neste teste
+    reply = await mind.decide(_snapshot(heard=heard, estado="a_fazer"))
+    assert reply is not None
+    assert reply["action"] == "say"
+    asked = port.requests[0].messages[0]["content"][0]["text"]
+    assert asked.startswith("## O que você lembra")
+    assert asked.index("## O que você lembra") < asked.index("E o caso vazio?")

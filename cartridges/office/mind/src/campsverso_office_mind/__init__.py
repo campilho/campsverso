@@ -1,7 +1,8 @@
 """A mente do gênero office (ADR-0080): só dados. As notas do escritório dizem o que um dev
 recém-chegado saberia (o quadro, o expediente, a oficina e as regras dela); as ferramentas da
-oficina estão no formato da Messages API; e há as instruções da sessão de trabalho e da conversa.
-O cenário põe o cartão por cima."""
+oficina estão no formato da Messages API; há as instruções da sessão de trabalho e da conversa; e
+o perfil da memória, com a revisão da manhã (o plano do M24, §2.2 e §2.3). O cenário põe o cartão
+por cima."""
 
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -9,13 +10,14 @@ from typing import Any, cast
 
 import yaml
 
-from campsverso_mind import Mind
+from campsverso_mind import MemoryProfile, Mind, load_profile
 
 DATA = Path(__file__).parent / "data"
 NOTES = DATA / "escritorio.md"
 WORKSHOP = DATA / "oficina.yaml"
 SESSION = DATA / "sessao.md"
 CHAT = DATA / "conversa.md"
+MEMORY = DATA / "memoria.yaml"
 
 
 def workshop_tools() -> list[dict[str, Any]]:
@@ -32,6 +34,11 @@ def chat_instructions() -> str:
     return CHAT.read_text(encoding="utf-8")
 
 
+def memory_profile() -> MemoryProfile:
+    """O que a memória guarda do dia de trabalho, e a revisão da manhã."""
+    return load_profile(MEMORY)
+
+
 def mind() -> Mind:
     """A mente do gênero, sem cartão e sem ferramentas do mundo: a rotina anda pela sala, e a
     mente pensa na oficina e na conversa."""
@@ -43,16 +50,19 @@ def mind() -> Mind:
         workshop=tuple(workshop_tools()),
         session=session_instructions(),
         conversation=chat_instructions(),
+        memory=memory_profile(),
     )
 
 
 __all__ = [
     "CHAT",
     "DATA",
+    "MEMORY",
     "NOTES",
     "SESSION",
     "WORKSHOP",
     "chat_instructions",
+    "memory_profile",
     "mind",
     "session_instructions",
     "workshop_tools",

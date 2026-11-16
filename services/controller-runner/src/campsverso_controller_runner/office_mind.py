@@ -13,6 +13,12 @@ graça. Para o kernel é um controlador só, `llm`.
 
 Se o modelo falha na conversa, a rotina responde. Uma sessão que não chega ao `pronto` vira uma
 fala com o motivo, e o pedido fica em "fazendo": o dev não recomeça sozinho.
+
+**A memória** (o plano do M24, §2.2 e §2.3), quando ligada: cada entrega vira episódios, pelo
+perfil do escritório; cada sessão na oficina vira uma linha; a ferramenta `anotar` guarda o que o
+modelo quer lembrar. Ao chegar, o dev revê os dias de trabalho ainda não revistos, numa chamada em
+segundo plano, e a sessão de um pedido espera a revisão acabar. A memória vem antes do pedido, na
+sessão, e na conversa.
 """
 
 import asyncio
@@ -23,7 +29,7 @@ from typing import Any, cast
 
 from campsverso_controller_runner.runner import Controller
 from campsverso_controller_runner.workshop import WorkshopSession
-from campsverso_mind import Mind, SessionResult, StepOutcome, WorkSession
+from campsverso_mind import Clock, Memory, Mind, SessionResult, StepOutcome, WorkSession
 from campsverso_ports import Effort, ModelCallError, ModelPort, ModelRequest, Telemetry, Workspace
 from campsverso_world_view import apply_delta
 
@@ -37,6 +43,7 @@ OFF_LINE = "Fiquei sem bateria: não consigo mais programar hoje."
 WORK_BLOCK_SECONDS = 60
 THINK_SECONDS = 60
 SAY_MAX = 280
+REVIEW_WAIT_SECONDS = 120.0  # quanto a sessão de um pedido espera a revisão da manhã acabar
 
 
 def _me(view: Mapping[str, Any]) -> str:
@@ -94,6 +101,7 @@ class OfficeMind:
         effort: Effort | None = "medium",
         max_steps: int = 60,
         telemetry: Telemetry | None = None,
+        memory: Memory | None = None,
     ) -> None:
         self._script = script
         self._port = port
@@ -101,10 +109,15 @@ class OfficeMind:
         self._controller_id = controller_id
         self._avatar = avatar_id
         self._model = model
-        self._tools = [dict(t) for t in session_tools]
-        identity = f"{mind.card.strip()}\n\n{mind.notes.strip()}"
-        self._session_system = f"{identity}\n\n{session_instructions.strip()}"
-        self._chat_system = f"{identity}\n\n{chat_instructions.strip()}"
+        self._memory = memory
+        note_tool = None if memory is None else memory.settings.profile.note_tool
+        self._note = None if note_tool is None else str(note_tool["name"])
+        self._tools = [dict(t) for t in session_tools] + (
+            [] if note_tool is None else [dict(note_tool)]
+        )
+        self._identity = f"{mind.card.strip()}\n\n{mind.notes.strip()}"
+        self._session_system = f"{self._identity}\n\n{session_instructions.strip()}"
+        self._chat_system = f"{self._identity}\n\n{chat_instructions.strip()}"
         self._effort: Effort | None = effort
         self._max_steps = max_steps
         self._telemetry = telemetry
@@ -124,6 +137,10 @@ class OfficeMind:
         self._said_off = False
         self._exceeded: set[str] = set()
         self._guard_at: float | None = None
+        # A revisão da manhã: no máximo uma tentativa por dia do mundo, em segundo plano.
+        self._review: asyncio.Task[None] | None = None
+        self._review_day: int | None = None
+        self.reviews = 0
 
     @property
     def controller_id(self) -> str:
@@ -148,6 +165,8 @@ class OfficeMind:
 
     def observe(self, delivery: Mapping[str, Any]) -> None:
         self._track(delivery)
+        if self._memory is not None:
+            self._memory.observe(delivery)
 
     # ------------------------------------------------------------- o orçamento
 
@@ -180,6 +199,8 @@ class OfficeMind:
             return {"action": "wait", "params": {"seconds": 5}, "intent": "rotina: esperar a foto"}
         decision = cast(Mapping[str, Any], delivery.get("decision") or {})
         view = {**view, "decision": decision}
+        if self._memory is not None:
+            self._memory.observe(delivery)
         self._update_off()
         if self.off:
             if not self._said_off:
@@ -188,6 +209,7 @@ class OfficeMind:
             proposal = dict(self._script.decide(view))
             proposal.pop("workshop", None)
             return proposal
+        self._maybe_review()
         mine = _me(view)
         heard = [
             h
@@ -234,16 +256,27 @@ class OfficeMind:
         ticket_id = str(ticket["entity_id"])
         number = cast(Mapping[str, Any], ticket.get("attributes") or {}).get("numero", "?")
         summary = ""
+        tests = ""
+        steps = 0
+        await self._await_review()
         try:
             space = await self._workshop.begin(ticket_id)
 
             async def execute(tool: str, args: Mapping[str, Any]) -> StepOutcome:
-                nonlocal summary
+                nonlocal summary, tests
+                if tool == self._note and self._memory is not None:
+                    clock = self._memory.clock or Clock(0, 1, "")
+                    written = self._memory.write_note(clock, args.get("texto"))
+                    if not written:
+                        return StepOutcome("nada anotado: o texto veio vazio", False)
+                    return StepOutcome("anotado: você vai rever isso de manhã", True)
                 if tool == "pronto":
                     summary = str(args.get("resumo") or "")
                     await self._workshop.step(space, tool, args)
                     return StepOutcome("pronto: a entrega vai para a revisão", True, True)
                 result = await self._workshop.step(space, tool, args)
+                if tool == "rodar_testes":
+                    tests = (result.text.splitlines() or [""])[0][:160]
                 return StepOutcome(result.text, result.ok)
 
             session = WorkSession(
@@ -256,15 +289,46 @@ class OfficeMind:
                 max_steps=self._max_steps,
                 effort=self._effort,
             )
-            result = await session.run(brief(ticket), execute, lambda: self._stop)
+            result = await session.run(self._opening(ticket), execute, lambda: self._stop)
+            steps = result.steps
             outcome = await self._outcome(space, result, number, summary)
         except Exception as error:  # a oficina caiu: o dev diz, e o pedido fica em fazendo
             self._warn("mind.session_failed", ticket=ticket_id, error=repr(error))
             outcome = _say(f"Não consegui trabalhar no pedido {number}: a oficina falhou.")
+        self._remember_session(ticket_id, number, outcome, steps, tests)
         if outcome.get("action") != "deliver":
             self.failed.add(ticket_id)
         if self.propose is not None:
             await self.propose(outcome)
+
+    def _opening(self, ticket: Mapping[str, Any]) -> str:
+        """O que abre a sessão: a memória, se ligada, e o pedido."""
+        if self._memory is None or self._memory.clock is None:
+            return brief(ticket)
+        return f"{self._memory.block(self._memory.clock)}\n\n{brief(ticket)}"
+
+    def _remember_session(
+        self, ticket_id: str, number: object, outcome: Mapping[str, Any], steps: int, tests: str
+    ) -> None:
+        """A sessão numa linha da memória: o que saiu dela, quantos passos e os últimos testes."""
+        memory = self._memory
+        if memory is None or memory.clock is None:
+            return
+        params = cast(Mapping[str, Any], outcome.get("params") or {})
+        delivered = outcome.get("action") == "deliver"
+        what = (
+            f"terminei: {str(outcome.get('intent', '')).split(': ', 1)[-1]}"
+            if delivered
+            else f"não entreguei: {params.get('text', '')}"
+        )
+        detail = f"; testes: {tests}" if tests else ""
+        memory.record(
+            memory.clock,
+            f"trabalhei no pedido {number} na oficina, em {steps} passos; {what}{detail}",
+            7 if delivered else 8,
+            "workshop",
+            (ticket_id,),
+        )
 
     async def _outcome(
         self, space: Workspace, result: SessionResult, number: object, summary: str
@@ -280,11 +344,49 @@ class OfficeMind:
         return await self._workshop.finish(space, deliver, stamp)
 
     async def stop(self) -> None:
-        """Para a sessão entre um passo e outro, e espera ela acabar."""
+        """Para a sessão entre um passo e outro, e espera ela acabar; a revisão também."""
         self._stop = True
-        if self._task is not None:
+        for task in (self._task, self._review):
+            if task is not None:
+                with contextlib.suppress(Exception):
+                    await asyncio.wait_for(task, 30)
+
+    # ------------------------------------------------------------- a revisão da manhã
+
+    def _maybe_review(self) -> None:
+        """Na primeira decisão de cada dia do mundo (o dev só decide dentro da sala), a revisão dos
+        dias de trabalho ainda não revistos, até três, em segundo plano."""
+        memory = self._memory
+        clock = None if memory is None else memory.clock
+        if memory is None or clock is None or self._review_day == clock.day:
+            return
+        self._review_day = clock.day
+        days = memory.pending_days(clock)
+        if days:
+            self._review = asyncio.create_task(self._run_review(clock, days))
+
+    async def _run_review(self, clock: Clock, days: Sequence[int]) -> None:
+        memory = self._memory
+        assert memory is not None
+        memory.attempted(days[-1])
+        request = memory.review_request(self._identity, clock, days, self._model)
+        try:
+            response = await self._port.complete(request)
+        except ModelCallError as error:
+            self._warn("mind.review_failed", kind=error.kind, days=list(days))
+            return
+        if memory.apply_reflection(request, response, clock, days[-1], days) is None:
+            self._warn("mind.review_no_tool", days=list(days))
+            return
+        self.reviews += 1
+        if self._telemetry is not None:
+            self._telemetry.info("mind.reviewed", days=list(days))
+
+    async def _await_review(self) -> None:
+        """A sessão de um pedido começa depois da revisão, para ter o plano do dia."""
+        if self._review is not None and not self._review.done():
             with contextlib.suppress(Exception):
-                await asyncio.wait_for(self._task, 30)
+                await asyncio.wait_for(asyncio.shield(self._review), REVIEW_WAIT_SECONDS)
 
     # ------------------------------------------------------------- a conversa
 
@@ -303,6 +405,8 @@ class OfficeMind:
         said = "\n".join(f"{h['avatar_id']}: {h['text']}" for h in heard)
         clock = cast(Mapping[str, Any], view.get("clock") or {})
         user = f"Agora: {str(clock.get('sim_time', ''))[11:16]}. {status}\n\nOuviu:\n{said}"
+        if self._memory is not None and self._memory.clock is not None:
+            user = f"{self._memory.block(self._memory.clock)}\n\n{user}"
         request = ModelRequest(
             model=self._model,
             messages=[{"role": "user", "content": [{"type": "text", "text": user}]}],
@@ -336,7 +440,7 @@ class OfficeMind:
         return None
 
     def drain_events(self) -> list[dict[str, Any]]:
-        return []
+        return [] if self._memory is None else self._memory.drain_events()
 
     def _warn(self, event: str, **fields: Any) -> None:
         if self._telemetry is not None:
