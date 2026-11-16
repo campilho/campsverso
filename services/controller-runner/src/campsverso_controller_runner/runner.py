@@ -21,7 +21,15 @@ from typing import Any, Protocol, cast, runtime_checkable
 from campsverso_contracts import CONTRACT_TYPES, subject
 from campsverso_controller_runner.workshop import WorkshopSession
 from campsverso_mind import Mind
-from campsverso_ports import Consumer, Envelope, EventBus, IdGenerator, Telemetry, WallClock
+from campsverso_ports import (
+    Consumer,
+    Envelope,
+    EventBus,
+    IdGenerator,
+    Subscription,
+    Telemetry,
+    WallClock,
+)
 
 DECISION = "campsverso.avatar.decision_requested.v1"
 DELIVERED = "campsverso.perception.delivered.v1"
@@ -203,6 +211,7 @@ class ControllerRunner:
         self.released = 0
         self.failure: BaseException | None = None
         self._cartridge_now: str | None = None
+        self._budget: Subscription | None = None
 
     @property
     def avatar_id(self) -> str:
@@ -221,13 +230,24 @@ class ControllerRunner:
         self._consumer = await self._bus.consume(
             f"campsverso.{w}.agent.{a}.{kind}", durable, self._on_batch
         )
+        if hasattr(self.controller, "on_budget"):
+            # O sinal de vida da guarda (ADR-0080): o teto estourado desliga a mente do escritório.
+            self._budget = await self._bus.subscribe(f"campsverso.{w}.live.budget", self._on_budget)
         if self._possess:
             ref = {"type": self.controller.controller_type, "id": self.controller.controller_id}
             await self._control(POSSESS, {"avatar_id": a, "controller": ref})
             self.possessing = True
             self._telemetry.info("controller.possessed", avatar=a, controller=ref["id"])
 
+    async def _on_budget(self, _: str, message: Envelope) -> None:
+        cast(Any, self.controller).on_budget(message)
+
     async def stop(self) -> None:
+        if self._budget is not None:
+            await self._budget.unsubscribe()
+        halt = getattr(self.controller, "stop", None)
+        if halt is not None:  # a sessão da oficina da mente com rotina (ADR-0080)
+            await halt()
         if self.possessing:
             await self.release("stopped")
         if self._consumer is not None:
@@ -278,6 +298,7 @@ class ControllerRunner:
         if perception.get("tick") is not None:
             self.sim_time.tick = int(perception["tick"])
             self.sim_time.simtime = str(perception.get("simtime") or "")
+        self._cartridge_now = str(perception.get("cartridge") or self._cartridge_now or "")
         proposal = await self._decide(perception, data, decision)
         if proposal is None:
             return
@@ -315,6 +336,29 @@ class ControllerRunner:
         if self._mind is not None:
             await self._mind.after_proposal()
             await self._publish_memory(str(perception["cartridge"]))
+
+    async def propose_now(self, proposal: Mapping[str, Any]) -> None:
+        """Uma proposta fora de um pedido de decisão (ADR-0080): a sessão da oficina acabou, e a
+        entrega sai na hora. O kernel aceita, como aceita a tela do jogador."""
+        tick, simtime = self.sim_time()
+        envelope = command_envelope(
+            self._worldid,
+            self._cartridge_now or self._cartridge or "",
+            self.controller.controller_type,
+            self.controller.controller_id,
+            self._ids.new_id(),
+            self._out_seq,
+            _iso(self._clock.now()),
+            {"avatar_id": self._avatar, **proposal},
+        )
+        self._out_seq += 1
+        envelope["tick"] = tick
+        if simtime:
+            envelope["simtime"] = simtime
+        await self._bus.publish(f"campsverso.{self._worldid}.cmd.action.propose.v1", envelope)
+        self._last = dict(proposal)
+        self._last_proposal_at = self._clock.now()
+        self.answered += 1
 
     async def publish_observed(self, event_type: str, data: Mapping[str, Any]) -> None:
         """Um fato do controlador para o operador e o arquivo: um passo na oficina (ADR-0080)."""

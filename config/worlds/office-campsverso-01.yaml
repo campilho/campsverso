@@ -32,3 +32,13 @@ budget:
 # (data/oficina/<mundo>/<pedido>/) e guarda o patch em data/entregas/. `make aplicar PEDIDO=N` o
 # põe num ramo.
 workshop: true
+
+minds:  # a mente com rotina do dev (ADR-0080): `make sandbox MENTE=camps_escritorio`
+  camps:
+    id: llm/camps
+    mind: camps_escritorio  # entry point do grupo campsverso.minds (cartridges/office_campsverso/mind)
+    model: claude-sonnet-5-5  # a sessão na oficina; a prova de conformidade escolhe o da criação
+    effort: medium
+    max_tokens: 8192
+    cassette: {path: data/llm/office-campsverso-01.jsonl, mode: record}
+    memory: {enabled: false}  # a revisão da manhã vem depois

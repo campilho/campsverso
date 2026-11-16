@@ -121,7 +121,14 @@ def run(
                 str(out / "data"),
             )
             processes.spawn(
-                "mind", "campsverso_controller_runner.main", "--world", str(world), "--mind", mind
+                "mind",
+                "campsverso_controller_runner.main",
+                "--world",
+                str(world),
+                "--mind",
+                mind,
+                "--data-dir",  # a oficina e as entregas da mente do escritório (ADR-0080)
+                str(out / "data"),
             )
             print(
                 f"  mente: {mind} assume o Camps ao conectar (fita em {out / 'llm.jsonl'})",

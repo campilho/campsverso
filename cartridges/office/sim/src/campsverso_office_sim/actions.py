@@ -371,6 +371,8 @@ class Deliver(OfficeAction):
         mine = doing(ctx.view, ctx.avatar_id)
         if mine is None:
             return Rejection("no_ticket", "não há pedido em andamento")
+        if _patch(ctx.params.get("patch")) is not None:
+            return None  # quem entrega um patch da oficina não precisa do tempo simulado (ADR-0080)
         if int(cast(int, mine.attributes.get("trabalho", 0))) < total_seconds(ctx.view, mine):
             return Rejection("not_done", "o trabalho deste pedido ainda não acabou")
         return None

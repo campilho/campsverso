@@ -11,7 +11,7 @@ import time
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import Any, cast
 
-from campsverso_ports import BlobStore, ToolResult, WorkshopPort, Workspace
+from campsverso_ports import TOOLS, BlobStore, ToolResult, WorkshopPort, Workspace
 
 type Review = Callable[[str], list[str]]
 type Publish = Callable[[str, Mapping[str, Any]], Awaitable[None]]
@@ -74,35 +74,33 @@ class WorkshopSession:
         self.publish = publish  # quem publica os passos: o runner, que é montado depois
         self.delivered = 0
 
-    async def run(
-        self, proposal: Mapping[str, Any], session: Mapping[str, Any], stamp: str
+    async def begin(self, ticket: str) -> Workspace:
+        """Abre o espaço do pedido (ou retoma o que já existe)."""
+        return await self._workshop.open(self._worldid, ticket)
+
+    async def step(self, space: Workspace, tool: str, args: Mapping[str, Any]) -> ToolResult:
+        """Um passo: a ferramenta pela porta e o `workshop.step.v1` dele."""
+        started = time.monotonic()
+        result = await call(space, tool, args)
+        data: dict[str, Any] = {
+            "avatar_id": self._avatar,
+            "ticket_id": space.ticket_id,
+            "tool": tool if tool in TOOLS else "pronto",
+            "summary": (result.summary or tool)[:200],
+            "ok": result.ok,
+            "duration_ms": int((time.monotonic() - started) * 1000),
+        }
+        if result.path:
+            data["path"] = result.path[:300]
+        if self.publish is not None and tool in TOOLS:
+            await self.publish(STEP, data)
+        return result
+
+    async def finish(
+        self, space: Workspace, proposal: Mapping[str, Any], stamp: str
     ) -> dict[str, Any]:
-        """Roda a sessão; `stamp` distingue as entregas de um mesmo pedido (uma devolução)."""
-        ticket = str(session["ticket_id"])
-        steps = cast(Sequence[Mapping[str, Any]], session.get("steps") or ())
-        space = await self._workshop.open(self._worldid, ticket)
-        ready = False
-        for step in steps[:MAX_STEPS]:
-            tool = str(step["tool"])
-            started = time.monotonic()
-            result = await call(space, tool, cast(Mapping[str, Any], step.get("args") or {}))
-            data: dict[str, Any] = {
-                "avatar_id": self._avatar,
-                "ticket_id": ticket,
-                "tool": tool,
-                "summary": (result.summary or tool)[:200],
-                "ok": result.ok,
-                "duration_ms": int((time.monotonic() - started) * 1000),
-            }
-            if result.path:
-                data["path"] = result.path[:300]
-            if self.publish is not None:
-                await self.publish(STEP, data)
-            if tool == "pronto":
-                ready = True
-                break
-        if not ready:
-            return dict(proposal)  # a sessão acabou sem pronto: a entrega vai sem patch
+        """O patch do espaço, revisado: a proposta de entrega com o resumo, ou a fala com o motivo
+        da recusa."""
         patch = await space.patch()
         reasons = self._review(patch.text)
         if reasons:
@@ -113,6 +111,7 @@ class WorkshopSession:
                 "intent": "a revisão da oficina recusou a entrega",
             }
         self.delivered += 1
+        ticket = space.ticket_id
         ref = f"{self._worldid}/{ticket}/{stamp.lower()}.patch"
         summary = patch.summary
         self._deliveries.put(ref, patch.text.encode("utf-8"))
@@ -133,3 +132,20 @@ class WorkshopSession:
             "removed": summary.removed,
         }
         return {**proposal, "params": params}
+
+    async def run(
+        self, proposal: Mapping[str, Any], session: Mapping[str, Any], stamp: str
+    ) -> dict[str, Any]:
+        """Roda a sessão fixa de um script; `stamp` distingue as entregas de um mesmo pedido."""
+        space = await self.begin(str(session["ticket_id"]))
+        steps = cast(Sequence[Mapping[str, Any]], session.get("steps") or ())
+        ready = False
+        for step in steps[:MAX_STEPS]:
+            tool = str(step["tool"])
+            await self.step(space, tool, cast(Mapping[str, Any], step.get("args") or {}))
+            if tool == "pronto":
+                ready = True
+                break
+        if not ready:
+            return dict(proposal)  # a sessão acabou sem pronto: a entrega vai sem patch
+        return await self.finish(space, proposal, stamp)

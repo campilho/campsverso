@@ -42,6 +42,7 @@ from campsverso_adapters import (
 from campsverso_adapters.settings import EnvSettings, WorldSettings
 from campsverso_adapters.workshop_local import LocalWorkshop
 from campsverso_adapters.workshop_review import review
+from campsverso_controller_runner.office_mind import OfficeMind
 from campsverso_controller_runner.replay import ReplayRunner, recorded_proposals
 from campsverso_controller_runner.runner import (
     ControllerRunner,
@@ -193,31 +194,53 @@ async def run(args: argparse.Namespace) -> int:
                 ),
             )
             telemetry.info("mind.memory", path=str(memory_path))
-        controller = LlmController(
-            load_mind(args.mind),
-            port,
-            controller_id=settings.id,
-            avatar_id=args.avatar,
-            model=settings.model,
-            effort=settings.effort,
-            max_tokens=settings.max_tokens,
-            telemetry=telemetry,
-            memory=memory,
-        )
-        runners = [
-            ControllerRunner(
-                world.worldid,
-                args.avatar,
-                controller,
-                bus,
-                ids,
-                clock,
-                telemetry,
-                cartridge=world.cartridge,
-                possess=True,
-                sim_time=sim_time,
+        mind = load_mind(args.mind)
+        workshop = _workshop(env, world, args.avatar, args.data_dir) if mind.workshop else None
+        if workshop is not None:
+            # A mente com rotina do escritório (ADR-0080): a rotina é o script do mundo, e o
+            # modelo trabalha na oficina e conversa.
+            brain: LlmController | OfficeMind = OfficeMind(
+                load_controller(world.script, args.avatar),
+                mind,
+                port,
+                workshop,
+                controller_id=settings.id,
+                avatar_id=args.avatar,
+                model=settings.model,
+                session_tools=mind.workshop,
+                session_instructions=mind.session,
+                chat_instructions=mind.conversation,
+                effort=settings.effort,
+                telemetry=telemetry,
             )
-        ]
+        else:
+            brain = LlmController(
+                mind,
+                port,
+                controller_id=settings.id,
+                avatar_id=args.avatar,
+                model=settings.model,
+                effort=settings.effort,
+                max_tokens=settings.max_tokens,
+                telemetry=telemetry,
+                memory=memory,
+            )
+        runner = ControllerRunner(
+            world.worldid,
+            args.avatar,
+            brain,
+            bus,
+            ids,
+            clock,
+            telemetry,
+            cartridge=world.cartridge,
+            possess=True,
+            sim_time=sim_time,
+        )
+        if isinstance(brain, OfficeMind) and workshop is not None:
+            brain.propose = runner.propose_now
+            workshop.publish = runner.publish_observed
+        runners = [runner]
         telemetry.info(
             "mind.loaded",
             mind=args.mind,

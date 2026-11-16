@@ -73,14 +73,10 @@ async def test_a_sessao_entrega_o_patch_com_o_resumo(repo: Path, tmp_path: Path)
     session, blobs, steps = _session(repo, tmp_path, [])
     deliver: dict[str, Any] = {"action": "deliver", "params": {}, "intent": "entregar o pedido"}
     proposal = await session.run(deliver, SESSION, "01ABC")
-    assert [s["tool"] for s in steps] == [
-        "ler",
-        "escrever",
-        "ferramenta-que-nao-existe",
-        "ver_mudancas",
-        "pronto",
-    ]  # o passo depois do pronto não roda
-    assert [s["ok"] for s in steps] == [True, True, False, True, True]
+    # A ferramenta desconhecida roda como recusa e não vira passo (o contrato só conhece as oito);
+    # o passo depois do pronto não roda.
+    assert [s["tool"] for s in steps] == ["ler", "escrever", "ver_mudancas", "pronto"]
+    assert all(s["ok"] for s in steps)
     assert steps[1]["summary"] == "escrevendo docs/oficina/pedido-001.md"
     assert steps[1]["path"] == "docs/oficina/pedido-001.md"
     patch = proposal["params"]["patch"]
