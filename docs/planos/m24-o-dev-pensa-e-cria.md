@@ -112,6 +112,8 @@ As pausas são ilustrativas: não pesam no trabalho do dev (ressalva do usuário
   - a tabela de importância dos episódios.
 - **As fitas da fazenda continuam valendo.** Os textos da fazenda ficam iguais, byte a byte, e um teste confere que o pedido ao modelo não mudou.
 
+> **Como ficou** (16/nov; o adendo da ADR-0080): com a mente com rotina, a janela e as ferramentas do catálogo não chegam ao modelo no escritório. O §2.2 se resumiu à memória: um perfil por cartucho (`memoria.yaml`) com o tick, os pesos, as linhas, o ruído e a revisão.
+
 ### 2.3 A revisão do dia
 
 - **A reflexão vira a revisão da manhã:** quando o dev chega, ele revê os dias de trabalho que ainda não revisou. É como a reunião rápida do começo do dia.

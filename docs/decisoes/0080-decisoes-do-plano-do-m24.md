@@ -104,3 +104,31 @@ A parte 3 começou pelo que deixa o dev pensar de verdade no escritório. Três 
 
 **Ficam para depois:** a mente sem os textos da fazenda e a revisão da manhã (a memória do escritório), a prova de conformidade dos cinco modelos e as fitas do escritório, que chamam a API e pedem o ok do usuário.
 
+## Adendo (16/nov): a memória do escritório
+
+**A mente sem a fazenda (§2.2) ficou menor.** Com a mente com rotina, o modelo não escolhe os passos do dev: a janela de decisões e as ferramentas do catálogo nunca chegam a ele no escritório. O que precisava sair da fazenda era só a memória (ADR-0060).
+
+**O perfil da memória** (`MemoryProfile`, em `libs/mind`) é o que a memória tira do pacote de mente do cartucho (`memoria.yaml`), e não mais da fazenda:
+- a duração do tick, para dar a hora de cada acontecimento: o relógio da memória contava um minuto por tick, e o do escritório é de 250 ms;
+- o peso e a linha legível de cada evento, inclusive a do próprio avatar ("peguei o pedido 3", "eu disse: …");
+- o que é ruído: as ações da rotina (andar, trabalhar no relógio, as pausas, o almoço) e os eventos que o pedido já conta melhor (o progresso do trabalho, o pedido como coisa no mundo);
+- se guarda os lugares vistos: numa sala sem raio, não;
+- os textos e a ferramenta da revisão, e a ferramenta de anotar.
+
+O perfil padrão é a fazenda, byte a byte: os testes da memória e as fitas do CI passam sem mudança.
+
+**A revisão da manhã (§2.3):**
+- **Quando:** na primeira decisão de cada dia do mundo. O dev só decide dentro da sala, então é a chegada.
+- **O que revê:** os dias com episódios desde a última revisão, até três. A segunda revê a sexta, e o fim de semana, sem episódios, não conta.
+- **Uma chamada só,** com a ferramenta `revisar`: o resumo, o plano do dia e as lições, que são as crenças da porta de memória, sobre o repositório, o gerente e o jeito de trabalhar. A revisão fica guardada no dia mais novo, e o evento `memory.reflected.v1` ganha o campo opcional `days`.
+- **Em segundo plano:** a rotina segue andando, e a sessão de um pedido espera a revisão acabar, por até 2 minutos, para ter o plano.
+- **Se falhar,** o dia segue sem ela, e ela volta no dia seguinte, com os dias que faltam.
+- **Na fazenda nada muda:** ela continua refletindo ao dormir.
+
+**O que o dev guarda e onde a memória aparece:**
+- cada entrega vira episódios, pelo perfil, e cada sessão na oficina vira uma linha (os passos, o que saiu, os últimos testes);
+- a ferramenta `anotar` na sessão é de graça: a mente guarda a nota, e a oficina nem a vê;
+- a memória abre a sessão, antes do pedido, e vai junto na conversa.
+
+**Ligada** no mundo de demonstração e no escritório vivo, num arquivo por avatar fora do snapshot, como na fazenda.
+
