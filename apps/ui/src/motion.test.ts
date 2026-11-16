@@ -322,3 +322,33 @@ describe("a seta a 1× com o tick de 250 ms (ADR-0081)", () => {
     expect(drawn.at(-1)).toEqual({ x: 5, y: 0 });
   });
 });
+
+describe("o relógio da tela a 72× com o tick de 250 ms (ADR-0081)", () => {
+  it("anda liso entre os pulsos de um segundo, sem correr, parar e saltar", () => {
+    // 288 ticks por segundo real; o pulso do kernel chega a cada segundo, sem outros eventos.
+    const base = {
+      sim_time: "2026-11-16T10:00:00-03:00",
+      session: { cartridge_version: "0.4.0", tick_ms: 250, map: { id: "office", width: 20, height: 17 } },
+      clock: { mode: "continuous", scale: 72, paused: false },
+    };
+    const at = (tick: number): ObserverState => ({ ...base, tick, pulse: { tick: tick + 1, alive: true } }) as unknown as ObserverState;
+    const clock = new DisplayClock();
+    clock.reset(at(10_000), 0);
+    let previous = clock.at(at(10_000), 0, true);
+    let biggest = 0;
+    let smallest = Number.POSITIVE_INFINITY;
+    for (let ms = 16; ms <= 10_000; ms += 16) {
+      const state = at(10_000 + Math.floor(ms / 1000) * 288); // o pulso de cada segundo
+      clock.observe(state, ms);
+      const shown = clock.at(state, ms, true);
+      if (ms > 2000) {
+        biggest = Math.max(biggest, shown - previous);
+        smallest = Math.min(smallest, shown - previous);
+      }
+      previous = shown;
+    }
+    // Um quadro de 16 ms a 72× anda uns 4,6 ticks; antes, a tela parava (0) e saltava (dezenas).
+    expect(smallest).toBeGreaterThan(2);
+    expect(biggest).toBeLessThan(10);
+  });
+});

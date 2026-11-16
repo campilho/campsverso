@@ -20,6 +20,12 @@ import type { ObserverState } from "@campsverso/contracts";
 export const MAX_AHEAD = 120;
 /** Ticks de atraso a partir dos quais a tela pula em vez de acelerar. */
 export const CATCH_UP = 5;
+/** Os mesmos limites em tempo real (ADR-0081): com o tick de 250 ms, 120 ticks a 72× são meio
+ * segundo, menos que o intervalo do pulso do kernel. A tela corria até o limite, parava esperando o
+ * pulso e saltava, um ciclo por segundo (o relógio que "corre e dá uma paradinha", achado do
+ * usuário). Vale o maior dos dois: em ticks para a fazenda, em tempo real para o escritório. */
+export const MAX_AHEAD_MS = 2500;
+export const CATCH_UP_MS = 1000;
 /** Em quanto tempo real a tela desfaz a maior parte de uma diferença (constante de tempo). */
 const SMOOTH_MS = 1000;
 
@@ -94,10 +100,11 @@ export class DisplayClock {
     this.frameAt = nowMs;
     const r = live ? rate(state) : 0;
     if (r > 0) {
-      const target = this.anchorTick + Math.min(MAX_AHEAD, Math.max(0, nowMs - this.anchorAt) * r);
+      const ahead = Math.max(MAX_AHEAD, MAX_AHEAD_MS * r);
+      const target = this.anchorTick + Math.min(ahead, Math.max(0, nowMs - this.anchorAt) * r);
       const step = elapsed * r; // o que a tela andaria neste quadro no ritmo da escala
       const behind = target - (this.shown + step); // em ticks; negativo: a tela está adiantada
-      if (behind > CATCH_UP) {
+      if (behind > Math.max(CATCH_UP, CATCH_UP_MS * r)) {
         this.shown = target;
       } else {
         // Corrige uma fração da diferença que depende só do tempo, não da taxa de quadros: estável
@@ -105,7 +112,7 @@ export class DisplayClock {
         // Adiantada, a tela no máximo para; nunca volta.
         const share = 1 - Math.exp(-elapsed / SMOOTH_MS);
         const shown = this.shown + step + Math.max(-step, behind * share);
-        this.shown = Math.min(shown, this.anchorTick + MAX_AHEAD);
+        this.shown = Math.min(shown, this.anchorTick + ahead);
       }
     }
     this.shown = Math.max(this.shown, ranTick(state));
