@@ -5,10 +5,10 @@
   "name": "office-terreno",
   "image": "terreno.png",
   "imagewidth": 256,
-  "imageheight": 192,
+  "imageheight": 320,
   "tilewidth": 32,
   "tileheight": 32,
-  "tilecount": 43,
+  "tilecount": 73,
   "columns": 8,
   "margin": 0,
   "spacing": 0,
@@ -179,11 +179,131 @@
     },
     {
       "id": 41,
-      "type": "relogio-t"
+      "type": "janela-noite-comeco-t"
     },
     {
       "id": 42,
-      "type": "relogio-b"
+      "type": "janela-noite-comeco-b"
+    },
+    {
+      "id": 43,
+      "type": "janela-noite-meioA-t"
+    },
+    {
+      "id": 44,
+      "type": "janela-noite-meioA-b"
+    },
+    {
+      "id": 45,
+      "type": "janela-noite-meioB-t"
+    },
+    {
+      "id": 46,
+      "type": "janela-noite-meioB-b"
+    },
+    {
+      "id": 47,
+      "type": "janela-noite-fim-t"
+    },
+    {
+      "id": 48,
+      "type": "janela-noite-fim-b"
+    },
+    {
+      "id": 49,
+      "type": "relogio-0-t"
+    },
+    {
+      "id": 50,
+      "type": "relogio-0-b"
+    },
+    {
+      "id": 51,
+      "type": "relogio-1-t"
+    },
+    {
+      "id": 52,
+      "type": "relogio-1-b"
+    },
+    {
+      "id": 53,
+      "type": "relogio-2-t"
+    },
+    {
+      "id": 54,
+      "type": "relogio-2-b"
+    },
+    {
+      "id": 55,
+      "type": "relogio-3-t"
+    },
+    {
+      "id": 56,
+      "type": "relogio-3-b"
+    },
+    {
+      "id": 57,
+      "type": "relogio-4-t"
+    },
+    {
+      "id": 58,
+      "type": "relogio-4-b"
+    },
+    {
+      "id": 59,
+      "type": "relogio-5-t"
+    },
+    {
+      "id": 60,
+      "type": "relogio-5-b"
+    },
+    {
+      "id": 61,
+      "type": "relogio-6-t"
+    },
+    {
+      "id": 62,
+      "type": "relogio-6-b"
+    },
+    {
+      "id": 63,
+      "type": "relogio-7-t"
+    },
+    {
+      "id": 64,
+      "type": "relogio-7-b"
+    },
+    {
+      "id": 65,
+      "type": "relogio-8-t"
+    },
+    {
+      "id": 66,
+      "type": "relogio-8-b"
+    },
+    {
+      "id": 67,
+      "type": "relogio-9-t"
+    },
+    {
+      "id": 68,
+      "type": "relogio-9-b"
+    },
+    {
+      "id": 69,
+      "type": "relogio-10-t"
+    },
+    {
+      "id": 70,
+      "type": "relogio-10-b"
+    },
+    {
+      "id": 71,
+      "type": "relogio-11-t"
+    },
+    {
+      "id": 72,
+      "type": "relogio-11-b"
     }
   ]
 }

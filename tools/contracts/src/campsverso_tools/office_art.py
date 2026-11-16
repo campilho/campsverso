@@ -10,7 +10,9 @@ saem, para os cartuchos:
   porta, o tapete 3 x 3 e, em duas metades, o que fica pendurado na parede do fundo: o quadro dos
   pedidos em módulos, a janela com a cidade e o relógio);
 - as folhas dos móveis, copiadas byte a byte para `cartridges/office/art/`, e uma folha vazia para
-  o que o mapa visual ou outra peça já desenha (o quadro na parede, o micro-ondas no balcão);
+  o que o mapa visual ou outra peça já desenha (o quadro na parede, o micro-ondas no balcão); a
+  mesinha da copa sai com dois quadros, o segundo com a marmita aberta em cima, para quem come;
+- a folha das fichas do quadro dos pedidos, que a tela pendura pelo estado de cada pedido;
 - as folhas dos três personagens, copiadas para `cartridges/office_campsverso/art/`.
 
 O mapa visual sai depois, por `make mapa-visual`. Com `--check`, só confere se está tudo em dia.
@@ -22,7 +24,7 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from campsverso_tools.png import Img, blank, crop, encode_png, paste, read_png
+from campsverso_tools.png import Img, blank, crop, encode_png, paste, paste_over, read_png
 
 REPO = Path(__file__).resolve().parents[4]
 SOURCE = REPO / "docs/design/escritorio-arte/folhas"
@@ -44,13 +46,14 @@ FURNITURE = (
     "balcao_copa",
     "maquina_cafe",
     "bebedouro",
-    "mesa_copa",
     "sofa_costas",
     "movel_tv",
     "puff",
     "banheiro",
 )
 CHARACTERS = ("camps", "gerente", "vigia")
+# Soltas: as fichas do quadro, que a tela pendura pelo estado (10 x 10).
+LOOSE = ("fichas",)
 # O que fica na parede do fundo, em módulos de 32 x 64: o nome do tile e o quadro da folha.
 WALL_PIECES = (
     ("quadro-comeco", "quadro_pedidos", 0),
@@ -60,8 +63,17 @@ WALL_PIECES = (
     ("janela-meioA", "janela_dia", 1),
     ("janela-meioB", "janela_dia", 2),
     ("janela-fim", "janela_dia", 3),
-    ("relogio", "relogio", 0),
+    # A janela de noite (a luz, das 18:00 em diante) e o relógio em cada hora: a tela troca os
+    # tiles pelo relógio do mundo.
+    ("janela-noite-comeco", "janela_noite", 0),
+    ("janela-noite-meioA", "janela_noite", 1),
+    ("janela-noite-meioB", "janela_noite", 2),
+    ("janela-noite-fim", "janela_noite", 3),
+    *((f"relogio-{hour}", "relogio", hour) for hour in range(12)),
 )
+# A marmita aberta na mesinha da copa, no quadro de 32 x 64 dela (a prévia: 8 px da esquerda, 30
+# do alto).
+LUNCHBOX_AT = (8, 30)
 VOID = (27, 23, 38, 255)  # o contorno da paleta, fora da sala
 
 
@@ -125,6 +137,17 @@ def tileset() -> tuple[bytes, dict[str, object]]:
     return encode_png(image), tsj
 
 
+def copa_table() -> Img:
+    """A mesinha da copa em dois quadros: vazia e com a marmita aberta, enquanto alguém come."""
+    table = read_png(SOURCE / "mesa_copa.png")
+    box = crop(read_png(SOURCE / "marmita.png"), 16, 0, 16, 16)  # o quadro 1: aberta, com a comida
+    sheet = blank(2 * T, 2 * T)
+    paste(sheet, table, 0, 0)
+    paste(sheet, table, T, 0)
+    paste_over(sheet, box, T + LUNCHBOX_AT[0], LUNCHBOX_AT[1])
+    return sheet
+
+
 def outputs() -> dict[Path, bytes]:
     """Cada arquivo que esta ferramenta escreve nos cartuchos, com o conteúdo."""
     png, tsj = tileset()
@@ -133,8 +156,9 @@ def outputs() -> dict[Path, bytes]:
         GENRE / "terreno.tsj": (json.dumps(tsj, indent=2, ensure_ascii=False) + "\n").encode(),
         GENRE / "vazio.png": encode_png(blank(T, T)),
     }
-    for name in FURNITURE:
+    for name in (*FURNITURE, *LOOSE):
         files[GENRE / f"{name}.png"] = (SOURCE / f"{name}.png").read_bytes()
+    files[GENRE / "mesa_copa.png"] = encode_png(copa_table())
     for name in CHARACTERS:
         files[SCENARIO / f"{name}.png"] = (SOURCE / f"{name}.png").read_bytes()
     return files

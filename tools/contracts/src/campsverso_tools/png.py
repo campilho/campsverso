@@ -93,3 +93,11 @@ def paste(target: Img, piece: Img, x: int, y: int) -> None:
     """Cola `piece` em `target` com o canto de cima à esquerda em (x, y), sem misturar cores."""
     for dy, row in enumerate(piece):
         target[y + dy][x : x + len(row)] = row
+
+
+def paste_over(target: Img, piece: Img, x: int, y: int) -> None:
+    """Cola `piece` por cima de `target`, pulando os pixels transparentes (a marmita na mesinha)."""
+    for dy, row in enumerate(piece):
+        for dx, pixel in enumerate(row):
+            if pixel[3] != 0:
+                target[y + dy][x + dx] = pixel
