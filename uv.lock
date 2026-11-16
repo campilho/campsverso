@@ -25,7 +25,9 @@ members = [
     "campsverso-gateway",
     "campsverso-kernel",
     "campsverso-mind",
+    "campsverso-office-campsverso-mind",
     "campsverso-office-campsverso-sim",
+    "campsverso-office-mind",
     "campsverso-office-script",
     "campsverso-office-sim",
     "campsverso-perception",
@@ -150,7 +152,9 @@ dependencies = [
     { name = "campsverso-gateway" },
     { name = "campsverso-kernel" },
     { name = "campsverso-mind" },
+    { name = "campsverso-office-campsverso-mind" },
     { name = "campsverso-office-campsverso-sim" },
+    { name = "campsverso-office-mind" },
     { name = "campsverso-office-script" },
     { name = "campsverso-office-sim" },
     { name = "campsverso-perception" },
@@ -195,7 +199,9 @@ requires-dist = [
     { name = "campsverso-gateway", editable = "services/gateway" },
     { name = "campsverso-kernel", editable = "services/kernel" },
     { name = "campsverso-mind", editable = "libs/mind" },
+    { name = "campsverso-office-campsverso-mind", editable = "cartridges/office_campsverso/mind" },
     { name = "campsverso-office-campsverso-sim", editable = "cartridges/office_campsverso/sim" },
+    { name = "campsverso-office-mind", editable = "cartridges/office/mind" },
     { name = "campsverso-office-script", editable = "cartridges/office/script" },
     { name = "campsverso-office-sim", editable = "cartridges/office/sim" },
     { name = "campsverso-perception", editable = "services/perception" },
@@ -551,6 +557,21 @@ requires-dist = [
 ]
 
 [[package]]
+name = "campsverso-office-campsverso-mind"
+version = "0.1.0.dev0"
+source = { editable = "cartridges/office_campsverso/mind" }
+dependencies = [
+    { name = "campsverso-mind" },
+    { name = "campsverso-office-mind" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "campsverso-mind", editable = "libs/mind" },
+    { name = "campsverso-office-mind", editable = "cartridges/office/mind" },
+]
+
+[[package]]
 name = "campsverso-office-campsverso-sim"
 version = "0.1.0.dev0"
 source = { editable = "cartridges/office_campsverso/sim" }
@@ -568,6 +589,17 @@ requires-dist = [
     { name = "campsverso-office-sim", editable = "cartridges/office/sim" },
     { name = "pyyaml", specifier = ">=6" },
 ]
+
+[[package]]
+name = "campsverso-office-mind"
+version = "0.1.0.dev0"
+source = { editable = "cartridges/office/mind" }
+dependencies = [
+    { name = "campsverso-mind" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "campsverso-mind", editable = "libs/mind" }]
 
 [[package]]
 name = "campsverso-office-script"

@@ -1,0 +1,65 @@
+# As ferramentas da oficina (ADR-0080; o plano do M24, §3.2), no formato da Messages API. São
+# ferramentas do computador do dev, e não ações do mundo: quem as executa é o controlador, pela porta
+# da oficina. Os limites ficam no adaptador (libs/adapters/.../workshop_local.py).
+tools:
+  - name: ver_arquivos
+    description: Lista os arquivos de um caminho do repositório, até 200 nomes.
+    input_schema:
+      type: object
+      properties:
+        path: { type: string, description: "O caminho a partir da raiz, como tools/ ou .; o padrão é a raiz." }
+      required: []
+  - name: ler
+    description: Lê um arquivo, com o número de cada linha, até 300 linhas por vez.
+    input_schema:
+      type: object
+      properties:
+        path: { type: string, description: "O arquivo, a partir da raiz." }
+        start: { type: integer, description: "A primeira linha; o padrão é 1." }
+        end: { type: integer, description: "A última linha; o padrão é o fim (até 300 linhas)." }
+      required: [path]
+  - name: buscar
+    description: Procura uma expressão regular nos arquivos de um caminho, até 50 resultados.
+    input_schema:
+      type: object
+      properties:
+        pattern: { type: string, description: "A expressão regular, como def soma." }
+        path: { type: string, description: "Onde procurar; o padrão é a raiz." }
+      required: [pattern]
+  - name: escrever
+    description: Cria um arquivo ou troca um arquivo inteiro, até 2.000 linhas. Cria as pastas que faltam.
+    input_schema:
+      type: object
+      properties:
+        path: { type: string, description: "O arquivo, a partir da raiz." }
+        content: { type: string, description: "O conteúdo inteiro do arquivo." }
+      required: [path, content]
+  - name: editar
+    description: Troca um trecho exato de um arquivo por outro. O trecho precisa aparecer uma vez só.
+    input_schema:
+      type: object
+      properties:
+        path: { type: string, description: "O arquivo, a partir da raiz." }
+        old: { type: string, description: "O trecho exato que sai, com as quebras de linha." }
+        new: { type: string, description: "O trecho que entra." }
+      required: [path, old, new]
+  - name: rodar_testes
+    description: Roda o pytest de um caminho e devolve quantos passaram e quantos falharam, com as primeiras falhas. Sem rede, até 2 minutos.
+    input_schema:
+      type: object
+      properties:
+        path: { type: string, description: "O caminho dos testes, como tools/robos/tests." }
+      required: [path]
+  - name: ver_mudancas
+    description: Mostra o diff do que você mudou desde o começo do pedido, até 400 linhas.
+    input_schema:
+      type: object
+      properties: {}
+      required: []
+  - name: pronto
+    description: Encerra o trabalho do pedido e entrega as suas mudanças. Chame só quando o pedido estiver feito e os testes passarem.
+    input_schema:
+      type: object
+      properties:
+        resumo: { type: string, description: "Em uma ou duas frases, em português, o que você fez, para o gerente." }
+      required: [resumo]

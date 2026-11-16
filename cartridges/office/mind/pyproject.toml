@@ -1,0 +1,13 @@
+[project]
+name = "campsverso-office-mind"
+version = "0.1.0.dev0"
+description = "O que a mente sabe do gênero office: as notas do escritório, as ferramentas da oficina e as instruções da sessão de trabalho, como dados (ADR-0080)."
+requires-python = ">=3.14"
+license = "MIT"
+dependencies = [
+  "campsverso-mind",
+]
+
+[build-system]
+requires = ["uv_build>=0.13,<0.14"]
+build-backend = "uv_build"

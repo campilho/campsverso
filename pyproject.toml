@@ -31,6 +31,8 @@ dependencies = [
   "campsverso-office-campsverso-sim",
   "campsverso-farm-mind",
   "campsverso-farm-camps-mind",
+  "campsverso-office-mind",
+  "campsverso-office-campsverso-mind",
   "campsverso-tools",
   "campsverso-testkit",
 ]
@@ -65,6 +67,8 @@ members = [
   "cartridges/farm_boavista/mind",
   "cartridges/farm_morada_do_sol/sim",
   "cartridges/farm_morada_do_sol/mind",
+  "cartridges/office/mind",
+  "cartridges/office_campsverso/mind",
   "cartridges/office/sim",
   "cartridges/office/script",
   "cartridges/office_campsverso/sim",
@@ -99,6 +103,8 @@ campsverso-office-script = { workspace = true }
 campsverso-office-campsverso-sim = { workspace = true }
 campsverso-farm-mind = { workspace = true }
 campsverso-farm-camps-mind = { workspace = true }
+campsverso-office-mind = { workspace = true }
+campsverso-office-campsverso-mind = { workspace = true }
 campsverso-tools = { workspace = true }
 campsverso-testkit = { workspace = true }
 
@@ -181,6 +187,8 @@ root_packages = [
   "campsverso_farm_camps_mind",
   "campsverso_farm_boavista_mind",
   "campsverso_farm_morada_do_sol_mind",
+  "campsverso_office_mind",
+  "campsverso_office_campsverso_mind",
   "campsverso_tools",
   "campsverso_testkit",
 ]
@@ -223,6 +231,8 @@ source_modules = [
   "campsverso_farm_camps_mind",
   "campsverso_farm_boavista_mind",
   "campsverso_farm_morada_do_sol_mind",
+  "campsverso_office_mind",
+  "campsverso_office_campsverso_mind",
 ]
 forbidden_modules = [
   "campsverso_cartridge_api",
