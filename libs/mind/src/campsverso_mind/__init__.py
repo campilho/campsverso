@@ -11,6 +11,7 @@ from campsverso_mind.exam import Exam, Grade, Question, exam_request, grade, loa
 from campsverso_mind.memory import REFLECT_TOOL, Clock, Memory, MemorySettings, clock_of
 from campsverso_mind.mind import Mind, ParamDef, ToolDef, load_columns, load_seasons, load_tools
 from campsverso_mind.playbook import PLAYBOOK_VERSION, playbook
+from campsverso_mind.profile import MemoryProfile, load_profile
 from campsverso_mind.seasons import Seasons
 from campsverso_mind.session import SessionResult, StepOutcome, WorkSession
 from campsverso_mind.tools import INTENT, NOTE, proposal_from, tool_specs
@@ -31,6 +32,7 @@ __all__ = [
     "Grade",
     "LlmController",
     "Memory",
+    "MemoryProfile",
     "MemorySettings",
     "Mind",
     "ParamDef",
@@ -46,6 +48,7 @@ __all__ = [
     "grade",
     "load_columns",
     "load_exam",
+    "load_profile",
     "load_seasons",
     "load_tools",
     "playbook",

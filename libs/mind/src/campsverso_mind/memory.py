@@ -9,13 +9,14 @@ import copy
 import json
 import re
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from typing import Any, cast
 
 from campsverso_mind.compare import COMPARE, COMPARE_INSTRUCTIONS, COMPARE_TOOL, Columns, Comparison
 from campsverso_mind.mind import Mind
 from campsverso_mind.notebook import FieldNotebook
+from campsverso_mind.profile import MemoryProfile
 from campsverso_mind.seasons import Seasons
 from campsverso_ports import (
     Belief,
@@ -43,6 +44,7 @@ REFLECT = "reflect"
 # repetido depois (`</summary> <parameter name="plan">`; ADR-0070): o texto acaba antes dela.
 TOOL_MARKUP = re.compile(r"</|<(?:parameter|invoke|function_calls)\b")
 MAX_ATTEMPTS = 2  # reflexões tentadas por dia: a da noite e, se falhar, uma de manhã
+REVIEW_LOOKBACK = 30  # quantos dias a revisão procura para trás, sem revisão nenhuma antes
 
 # A importância por tabela (decisão 4): sem chamada ao modelo, e a mesma em qualquer execução.
 IMPORTANCE_BY_TYPE: Mapping[str, int] = {
@@ -115,6 +117,8 @@ class MemorySettings:
     # experimento aberto até o veredito. Liga com o procedimento e no braço de dados.
     full_notebook: bool = False
     night_plantings: int = 100  # linhas da tabela na reflexão, as mais recentes
+    # O perfil do mundo (o plano do M24, §2.2): o padrão é a fazenda.
+    profile: MemoryProfile = field(default_factory=MemoryProfile)
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,6 +127,7 @@ class Clock:
     day: int
     sim_time: str
     season: str | None = None  # num mundo com ano (ADR-0067)
+    tick_seconds: float = 60.0  # o tick do mundo: um minuto na fazenda, 250 ms no escritório
 
     def at(self, tick: int) -> str:
         """A hora de um tick passado, a partir da hora desta entrega (HH:MM)."""
@@ -130,10 +135,10 @@ class Clock:
             now = datetime.fromisoformat(self.sim_time)
         except ValueError:
             return f"t{tick}"
-        return (now - timedelta(minutes=self.tick - tick)).strftime("%H:%M")
+        return (now - timedelta(seconds=(self.tick - tick) * self.tick_seconds)).strftime("%H:%M")
 
 
-def clock_of(delivery: Mapping[str, Any]) -> Clock:
+def clock_of(delivery: Mapping[str, Any], tick_seconds: float = 60.0) -> Clock:
     raw = cast(
         Mapping[str, Any], delivery.get("clock") or delivery.get("view", {}).get("clock") or {}
     )
@@ -143,6 +148,7 @@ def clock_of(delivery: Mapping[str, Any]) -> Clock:
         int(raw.get("day", 1)),
         str(raw.get("sim_time", "")),
         None if season is None else str(season),
+        tick_seconds,
     )
 
 
@@ -195,15 +201,46 @@ def _tags(data: Mapping[str, Any]) -> tuple[str, ...]:
     return tuple(found)
 
 
-def _line(clock: Clock, event: Mapping[str, Any]) -> tuple[str, int]:
-    """Uma linha legível e a importância de um evento percebido."""
+class _Fields(dict[str, Any]):
+    """Os campos de um evento para a linha do perfil: o que falta fica vazio."""
+
+    def __missing__(self, key: str) -> str:
+        return ""
+
+
+def _line(
+    clock: Clock,
+    event: Mapping[str, Any],
+    profile: MemoryProfile | None = None,
+    me: str | None = None,
+) -> tuple[str, int] | None:
+    """Uma linha legível e a importância de um evento percebido; None para o que o perfil cala.
+    Sem perfil, a fazenda (ADR-0060)."""
+    profile = profile or MemoryProfile()
+    by_type = (
+        IMPORTANCE_BY_TYPE if profile.importance_by_type is None else profile.importance_by_type
+    )
+    by_action = (
+        IMPORTANCE_BY_ACTION
+        if profile.importance_by_action is None
+        else profile.importance_by_action
+    )
     kind = str(event.get("type", ""))
     data = cast(Mapping[str, Any], event.get("data") or {})
     when = clock.at(int(event.get("tick", clock.tick)))
     action = str(data.get("action", ""))
     params = _compact(data.get("params") or {})
+    if action in profile.quiet_actions and kind.startswith("campsverso.action."):
+        return None  # a rotina: a conclusão, a recusa e a falha
+    author = data.get("avatar_id", data.get("by"))
+    mine = me is not None and author == me and f"{kind}:self" in profile.lines
+    key = f"{kind}:self" if mine else kind
+    template = profile.lines.get(key)
+    if template is not None:
+        importance = by_type.get(key, by_type.get(kind, DEFAULT_IMPORTANCE))
+        return " ".join(template.format_map(_Fields({**data, "when": when})).split()), importance
     if kind == "campsverso.action.completed.v1":
-        return f"{when} fiz {action} {params}", IMPORTANCE_BY_ACTION.get(action, 3)
+        return f"{when} fiz {action} {params}", by_action.get(action, 3)
     if kind == "campsverso.action.rejected.v1":
         detail = f" ({data['detail']})" if data.get("detail") else ""
         return f"{when} recusado {action} {params}: {data.get('reason')}{detail}", 6
@@ -223,9 +260,7 @@ def _line(clock: Clock, event: Mapping[str, Any]) -> tuple[str, int]:
         verb = "dormi" if "started" in kind else "acordei"
         return f"{when} {verb} ({data.get('cause')})", 2
     rest = {k: v for k, v in data.items() if k not in ("avatar_id", "action_id")}
-    return f"{when} {_short(kind)} {_compact(rest)}", IMPORTANCE_BY_TYPE.get(
-        kind, DEFAULT_IMPORTANCE
-    )
+    return f"{when} {_short(kind)} {_compact(rest)}", by_type.get(kind, DEFAULT_IMPORTANCE)
 
 
 REFLECT_TOOL: dict[str, Any] = {
@@ -518,9 +553,11 @@ class Memory:
     def observe(self, delivery: Mapping[str, Any]) -> Clock:
         """O que aconteceu desde a última entrega vira episódios; a foto não (é estado). As coisas
         vistas viram lugares lembrados (ADR-0067)."""
-        clock = clock_of(delivery)
+        profile = self.settings.profile
+        clock = clock_of(delivery, profile.tick_seconds)
         self.clock = clock
-        self._places(clock, delivery)
+        if profile.places:
+            self._places(clock, delivery)
         if self.settings.field_notebook:
             places = {p.entity_id: p for p in self.port.places()}
             self.notebook.observe(clock.day, delivery, places, self.in_view, clock.season)
@@ -540,9 +577,12 @@ class Memory:
             )
         for event in cast(Sequence[Mapping[str, Any]], delivery.get("events") or ()):
             kind = str(event.get("type", ""))
-            if kind.startswith(SKIPPED_PREFIXES):
+            if kind.startswith(SKIPPED_PREFIXES + profile.skipped):
                 continue
-            text, importance = _line(clock, event)
+            found = _line(clock, event, profile, self.avatar_id)
+            if found is None:
+                continue
+            text, importance = found
             data = cast(Mapping[str, Any], event.get("data") or {})
             self.port.record(
                 Episode(
@@ -567,13 +607,23 @@ class Memory:
                 clock.tick,
                 clock.day,
                 text,
-                IMPORTANCE_BY_ACTION.get(action, 2),
+                (
+                    IMPORTANCE_BY_ACTION
+                    if self.settings.profile.importance_by_action is None
+                    else self.settings.profile.importance_by_action
+                ).get(action, 2),
                 "proposal",
                 _tags(proposal),
                 clock.sim_time,
             )
         )
         self.last_proposal = f"{action} {_compact(proposal.get('params') or {})}: {intent}"
+        self.write_note(clock, note)
+        if action == "sleep":
+            self.reflect_due = clock
+
+    def write_note(self, clock: Clock, note: object) -> str:
+        """Uma anotação do próprio agente, numa linha; devolve o que ficou ("" se nada)."""
         written = " ".join(str(note).split()) if isinstance(note, str) else ""
         if written:
             written = written[:NOTE_MAX]
@@ -584,8 +634,17 @@ class Memory:
                     "data": {"avatar_id": self.avatar_id, "day": clock.day, "text": written},
                 }
             )
-        if action == "sleep":
-            self.reflect_due = clock
+        return written
+
+    def record(
+        self, clock: Clock, text: str, importance: int, kind: str, tags: Sequence[str] = ()
+    ) -> None:
+        """Um episódio que a própria mente conta (a sessão na oficina, a resposta a quem falou),
+        com a hora na frente, como os outros."""
+        line = f"{clock.at(clock.tick)} {' '.join(text.split())}"
+        self.port.record(
+            Episode(clock.tick, clock.day, line, importance, kind, tuple(tags), clock.sim_time)
+        )
 
     def drain_events(self) -> list[dict[str, Any]]:
         events, self._events = self._events, []
@@ -599,12 +658,12 @@ class Memory:
         lines: list[str] = ["## O que você lembra"]
         last = self.port.last_reflection()
         if last is not None:
-            lines.append(f"Dia {last.day}, ao dormir: {last.summary}")
+            lines.append(f"Dia {last.day}, {s.profile.reflected_when}: {last.summary}")
             if last.plan:
                 lines.append(f"Plano: {last.plan}")
         beliefs = self.port.beliefs()[: s.block_beliefs]
         if beliefs:
-            lines.append("Crenças (confiança de 0 a 1):")
+            lines.append(s.profile.beliefs_header)
             lines.extend(f"- {b.belief_id} ({b.confidence:.2f}): {b.statement}" for b in beliefs)
         notes = self.port.notes(clock.day)[-s.block_notes :]
         if notes:
@@ -631,7 +690,7 @@ class Memory:
         if self.last_proposal:
             lines.append(f"Última ação: {self.last_proposal}")
         if len(lines) == 1:
-            lines.append("O caderno ainda está vazio: é o seu primeiro dia.")
+            lines.append(s.profile.empty)
         return "\n".join(lines)
 
     # ------------------------------------------------------------- refletir
@@ -661,6 +720,64 @@ class Memory:
         """Conta uma tentativa de refletir o dia; devolve quantas já foram."""
         self.attempts[day] = self.attempts.get(day, 0) + 1
         return self.attempts[day]
+
+    def pending_days(self, clock: Clock, lookback: int = REVIEW_LOOKBACK) -> list[int]:
+        """Os dias ainda não revistos, do mais antigo ao mais novo, até `review_days` (o plano do
+        M24, §2.3): desde a última revisão, e não só a véspera, para a segunda rever a sexta. Um
+        dia sem episódios (o fim de semana, o feriado) não conta. A revisão que falhou
+        `MAX_ATTEMPTS` vezes não volta nesta execução."""
+        last = self.port.last_reflection()
+        floor = max(0, clock.day - 1 - lookback, 0 if last is None else last.day)
+        days = [
+            day
+            for day in range(clock.day - 1, floor, -1)
+            if self.port.episodes(day, limit=1) and not self.port.has_reflection(day)
+        ][: self.settings.profile.review_days]
+        if not days or self.attempts.get(days[0], 0) >= MAX_ATTEMPTS:
+            return []
+        return sorted(days)
+
+    def review_request(
+        self, system: str, clock: Clock, days: Sequence[int], model: str
+    ) -> ModelRequest:
+        """A revisão de vários dias de uma vez (o plano do M24, §2.3): o que aconteceu e o que o
+        agente anotou em cada um, e o que ele já sabia; a ferramenta e as instruções do perfil."""
+        s = self.settings
+        profile = s.profile
+        parts: list[str] = []
+        for day in days:
+            episodes = self.port.episodes(day, limit=s.reflection_episodes)
+            notes = self.port.notes(day)
+            parts.append(f"Dia {day}. O que aconteceu, na ordem:")
+            parts.extend(f"- {e.text}" for e in episodes) if episodes else parts.append(
+                "- (nada registrado)"
+            )
+            if notes:
+                parts.append(f"O que você anotou no dia {day}:")
+                parts.extend(f"- {clock.at(n.tick)} {n.text}" for n in notes)
+        beliefs = self.port.beliefs()
+        parts.append(profile.beliefs_header)
+        parts.extend(
+            f"- {b.belief_id} ({b.confidence:.2f}): {b.statement}" for b in beliefs
+        ) if beliefs else parts.append("- (nada ainda)")
+        parts.append(profile.review_closing)
+        instructions = profile.review_instructions or REFLECTION_INSTRUCTIONS
+        return ModelRequest(
+            model=s.reflection_model or model,
+            messages=[{"role": "user", "content": [{"type": "text", "text": "\n".join(parts)}]}],
+            system=[
+                {
+                    "type": "text",
+                    "text": f"{system}\n\n{instructions}",
+                    "cache_control": {"type": "ephemeral"},
+                }
+            ],
+            tools=[dict(profile.review_tool or REFLECT_TOOL)],
+            max_tokens=s.reflection_max_tokens,
+            effort=s.reflection_effort,
+            purpose="reflection",
+            avatar_id=self.avatar_id,
+        )
 
     def reflect_request(self, system: str, clock: Clock, day: int, model: str) -> ModelRequest:
         s = self.settings
@@ -857,10 +974,17 @@ class Memory:
             data["experiment"] = {"hypothesis": hypothesis, "test": test, "prediction": prediction}
 
     def apply_reflection(
-        self, request: ModelRequest, response: ModelResponse, clock: Clock, day: int
+        self,
+        request: ModelRequest,
+        response: ModelResponse,
+        clock: Clock,
+        day: int,
+        days: Sequence[int] | None = None,
     ) -> Reflection | None:
-        """A resposta da reflexão vira crenças guardadas e eventos; `None` sem a ferramenta."""
-        chosen = next((t for t in response.tool_uses() if t.get("name") == REFLECT), None)
+        """A resposta da reflexão vira crenças guardadas e eventos; `None` sem a ferramenta. Na
+        revisão de vários dias, `day` é o mais novo e `days` vai no evento."""
+        name = str((self.settings.profile.review_tool or REFLECT_TOOL)["name"])
+        chosen = next((t for t in response.tool_uses() if t.get("name") == name), None)
         if chosen is None:
             return None
         given = cast(Mapping[str, Any], chosen.get("input") or {})
@@ -916,6 +1040,8 @@ class Memory:
         }
         if plan:
             data["plan"] = plan
+        if days:
+            data["days"] = sorted(days)
         if self.settings.experiments:
             self._experiment(given, day, data)
         self._events.insert(

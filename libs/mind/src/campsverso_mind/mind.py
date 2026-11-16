@@ -9,6 +9,7 @@ from typing import Any, Literal, cast
 import yaml
 
 from campsverso_mind.compare import Columns
+from campsverso_mind.profile import MemoryProfile
 from campsverso_mind.seasons import Seasons
 
 type ParamType = Literal["string", "integer"]
@@ -59,6 +60,8 @@ class Mind:
     workshop: tuple[Mapping[str, Any], ...] = ()
     session: str = ""
     conversation: str = ""
+    # O perfil da memória do mundo (o plano do M24, §2.2): None é a fazenda.
+    memory: MemoryProfile | None = None
 
     def extend(self, *, card: str | None = None, notes: str | None = None) -> Mind:
         """Uma camada por cima (ADR-0031): o cenário troca o cartão, ou as notas, do gênero."""
