@@ -171,11 +171,15 @@ def test_os_manifestos_do_escritorio_apontam_para_quadros_que_existem() -> None:
     for kind, art in manifests["office"]["kinds"].items():
         if "sheet" in art:
             columns, rows = sheets[art["sheet"]]
-            frames = [art["frame"], *(v["look"].get("frame", 0) for v in art.get("variants", []))]
-            frames += [
-                *art.get("in_use", {}).get("frames", []),
-                *art.get("loop", {}).get("frames", []),
+            frames: list[Any] = [
+                art["frame"],
+                *(v["look"].get("frame", 0) for v in art.get("variants", [])),
             ]
+            in_use: Any = art.get("in_use", [])  # a TV tem uma lista: o jogo e o telejornal
+            uses: list[Any] = [in_use] if "actions" in in_use else in_use
+            for use in uses:
+                frames += use["frames"]
+            frames += art.get("loop", {}).get("frames", [])
             frames += [art["front"]] if "front" in art else []
             assert max(frames) < columns * rows, kind
     for name, prop in manifests["office"]["tile_props"].items():
@@ -191,8 +195,28 @@ def test_os_manifestos_do_escritorio_apontam_para_quadros_que_existem() -> None:
     for name, avatar in cast.items():
         columns, rows = sheets[avatar["sheet"]]
         for animation in avatar["animations"].values():
-            last_row = animation["row"] + (0 if animation.get("single") else 3)
-            assert last_row < rows, name
+            directions = 1 if animation.get("single") else len(animation.get("facings", "1234"))
+            assert animation["row"] + directions - 1 < rows, name
             assert max(animation["frames"]) < columns, name
         targets = [avatar["idle"], avatar["asleep"], avatar["seated"], *avatar["actions"].values()]
+        targets += avatar.get("seated_actions", {}).values()
+        targets += [a for carried in avatar.get("carry", {}).values() for a in carried.values()]
         assert all(target in avatar["animations"] for target in targets), name
+        # Quem senta no sofá para ver TV ou jogar senta numa coisa que existe no mapa.
+        placed = {o["type"] for o in objects["objects"]}
+        assert set(avatar.get("sit_on", {}).values()) <= placed, name
+    # A luz da noite, a janela e o relógio, e as fichas do quadro (ADR-0082).
+    names = {t["type"] for t in _json(visual_map.OFFICE_TILESET)["tiles"]}
+    timed = manifests["office"]["time_tiles"]
+    for day, night in timed["night"].items():
+        assert {f"{day}-t", f"{day}-b", f"{night}-t", f"{night}-b"} <= names, day
+    assert {f"{timed['clock']}-{hour}-{half}" for hour in range(12) for half in "tb"} <= names
+    lights = scenario["lights"]
+    assert lights["lantern"]["avatar"] in cast
+    width, height = int(logic["width"]), int(logic["height"])
+    assert all(0 <= x < width and 0 <= y < height for x, y in lights["lamps"])
+    cards = scenario["cards"]
+    columns, rows = sheets[cards["sheet"]]
+    frames = [cards["frame"], *cards["state_frames"].values(), *cards["size_frames"].values()]
+    assert max(frames) < columns * rows
+    assert set(cards["columns"]) == {"a_fazer", "fazendo", "entregue", "aceito"}

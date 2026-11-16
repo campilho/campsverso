@@ -20,7 +20,8 @@
     "sofa_costas": { "image": "sofa_costas.png", "frame_width": 96, "frame_height": 64 },
     "movel_tv": { "image": "movel_tv.png", "frame_width": 96, "frame_height": 64 },
     "puff": { "image": "puff.png", "frame_width": 32, "frame_height": 32 },
-    "banheiro": { "image": "banheiro.png", "frame_width": 128, "frame_height": 96 }
+    "banheiro": { "image": "banheiro.png", "frame_width": 128, "frame_height": 96 },
+    "fichas": { "image": "fichas.png", "frame_width": 10, "frame_height": 10 }
   },
   "tiles": {
     "wall": { "color": "#cdbb8f" },
@@ -67,11 +68,18 @@
     },
     "fridge": { "sheet": "geladeira", "frame": 0, "in_use": { "actions": ["fridge"], "frames": [1] } },
     "trash": { "sheet": "lixeira", "frame": 0 },
-    "copa_table": { "sheet": "mesa_copa", "frame": 0 },
+    "copa_table": { "sheet": "mesa_copa", "frame": 0, "in_use": { "actions": ["lunch"], "frames": [1] } },
     "file_cabinet": { "sheet": "arquivo", "frame": 0 },
     "plant": { "sheet": "planta", "frame": 0 },
-    "tv": { "sheet": "movel_tv", "frame": 0, "loop": { "frames": [1, 2], "fps": 2 } },
-    "sofa": { "sheet": "sofa_costas", "frame": 0 },
+    "tv": {
+      "sheet": "movel_tv",
+      "frame": 0,
+      "in_use": [
+        { "actions": ["videogame"], "frames": [1, 2, 3], "fps": 3, "anywhere": true },
+        { "actions": ["tv"], "frames": [4, 5, 6], "fps": 1, "anywhere": true }
+      ]
+    },
+    "sofa": { "sheet": "sofa_costas", "frame": 0, "front": 0 },
     "puff": {
       "sheet": "puff",
       "frame": 0,
@@ -89,8 +97,13 @@
       "in_use": { "actions": ["restroom"], "frames": [1] }
     }
   },
-  "phases": {
-    "noite": { "shade": 0.3 },
-    "madrugada": { "shade": 0.42 }
+  "time_tiles": {
+    "night": {
+      "janela-comeco": "janela-noite-comeco",
+      "janela-meioA": "janela-noite-meioA",
+      "janela-meioB": "janela-noite-meioB",
+      "janela-fim": "janela-noite-fim"
+    },
+    "clock": "relogio"
   }
 }

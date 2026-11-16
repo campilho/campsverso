@@ -7,27 +7,35 @@
 import type { ObserverState } from "@campsverso/contracts";
 import Phaser from "phaser";
 
+import { lightLevels } from "../art/light.ts";
 import {
   EMPTY,
   animationFor,
   autotileMask,
+  cardPlacements,
+  carryAnimation,
   colorNumber,
   facingOf,
   frameOf,
   inUseFrame,
+  lightMode,
   lookOf,
   loopFrame,
+  minuteOfDay,
   seasonSheet,
   seasonTint,
   seatAt,
   seatedAnimation,
   shadeOf,
+  sitSpot,
   tileLook,
+  timedTile,
   visualMapFor,
   weatherEffect,
   type ArtManifest,
   type AvatarArt,
   type Facing,
+  type LightMode,
   type Resolved,
 } from "../art/manifest.ts";
 import { el } from "../dom.ts";
@@ -35,6 +43,7 @@ import { FogMemory, FogStore, lightHeld, serverCenter, visionRadius, type Sight 
 import { MotionClock, type Point } from "../motion.ts";
 import { Balloons } from "../speech.ts";
 import { progressOf } from "../progress.ts";
+import { clockText } from "../simclock.ts";
 import { tileAt, type TileGrid } from "../tiled.ts";
 import { tileUnder, type WorldRenderer } from "./renderer.ts";
 
@@ -203,8 +212,6 @@ class AvatarView {
     seat?: Facing,
   ): void {
     const { state, tick } = frame;
-    const cx = at.x * TILE + TILE / 2;
-    const depth = depthAt(at.y) + 0.5;
     const action = state.actions[id];
     const asleep = state.asleep[id] === true;
     if (action !== undefined && art?.hidden?.includes(action.action) === true) {
@@ -221,18 +228,36 @@ class AvatarView {
     // O desenho que anda, anda com a animação de andar: a 72× a ação do kernel acaba antes de o
     // desenho chegar, e o avatar deslizava parado até o destino (achado do usuário no escritório).
     const doing = !asleep && time - this.movedAt < WALK_HOLD_MS ? "move" : action?.action;
+    // Ver TV e jogar (ADR-0082): de pé no tapete, logo acima ou abaixo do sofá, o avatar aparece
+    // sentado nele, na coluna dele, de costas para a tela e com o encosto por cima.
+    const sofa = doing === "move" || asleep ? undefined : sitSpot(art, action?.action, state.entities, at);
+    const spot = sofa ?? at;
+    const cx = spot.x * TILE + TILE / 2;
+    const depth = depthAt(spot.y) + 0.5;
     const target = action?.params.target;
     const thing = typeof target === "string" ? state.entities[target]?.position : undefined;
     // Parado num assento, senta olhando para o lado dele, qualquer que seja a ação (ADR-0078).
     const seated = seat !== undefined && !asleep && doing !== "move" ? seatedAnimation(art, action?.action) : undefined;
     this.facing =
-      seated !== undefined && seat !== undefined
-        ? seat
-        : doing === "move" || thing === undefined
-          ? facingOf(moved.x, moved.y, this.facing)
-          : facingOf(thing.x - at.x, thing.y - at.y, this.facing);
+      sofa !== undefined
+        ? "up"
+        : seated !== undefined && seat !== undefined
+          ? seat
+          : doing === "move" || thing === undefined
+            ? facingOf(moved.x, moved.y, this.facing)
+            : facingOf(thing.x - at.x, thing.y - at.y, this.facing);
 
-    const name = seated ?? animationFor(art, doing, asleep);
+    // Com a marmita na mão (o atributo `carregando`), anda e espera carregando; as ações têm as suas.
+    const attributes = state.entities[id]?.attributes;
+    const carried =
+      sofa !== undefined || seated !== undefined || asleep
+        ? undefined
+        : doing === "move"
+          ? carryAnimation(art, attributes, true)
+          : doing === undefined
+            ? carryAnimation(art, attributes, false)
+            : undefined;
+    const name = seated ?? carried ?? animationFor(art, doing, asleep);
     const animation = name === undefined ? undefined : art?.animations?.[name];
     const sheet = art !== undefined && scene.textures.exists(art.sheet) ? art.sheet : undefined;
     if (name !== this.animation) {
@@ -241,9 +266,9 @@ class AvatarView {
     }
     const inBed = asleep && bed !== undefined && sheet !== undefined ? art?.in_bed : undefined;
     const drawn = sheet !== undefined && (animation !== undefined || inBed !== undefined);
-    this.body.setVisible(!drawn).setPosition(cx, at.y * TILE + TILE / 2).setDepth(depth);
+    this.body.setVisible(!drawn).setPosition(cx, spot.y * TILE + TILE / 2).setDepth(depth);
     this.body.setFillStyle(colorNumber(look.color ?? "#f5f5f5"));
-    this.initial.setVisible(!drawn).setPosition(cx, at.y * TILE + TILE / 2 + 1).setDepth(depth + 0.01);
+    this.initial.setVisible(!drawn).setPosition(cx, spot.y * TILE + TILE / 2 + 1).setDepth(depth + 0.01);
     this.sprite.setVisible(drawn);
     if (inBed !== undefined && bed !== undefined && sheet !== undefined) {
       // Na cama: só a cabeça no travesseiro; a coberta é a da própria cama.
@@ -260,7 +285,7 @@ class AvatarView {
         .setCrop()
         .setOrigin(0.5, 1)
         .setScale(1)
-        .setPosition(cx, (at.y + 1) * TILE + (art?.feet ?? FEET))
+        .setPosition(cx, (spot.y + 1) * TILE + (art?.feet ?? FEET))
         .setDepth(depth);
     }
     if (inBed === undefined && sheet !== undefined && animation !== undefined) {
@@ -276,7 +301,7 @@ class AvatarView {
     const progress = progressOf(state, id, tick);
     const above = inBed !== undefined && bed !== undefined ? { cx: bed.cx, top: bed.top - 2 } : undefined;
     const tx = above?.cx ?? cx;
-    const top = above?.top ?? (drawn ? (at.y + 1) * TILE - (art?.label_above ?? 50) : at.y * TILE - 4);
+    const top = above?.top ?? (drawn ? (spot.y + 1) * TILE - (art?.label_above ?? 50) : spot.y * TILE - 4);
     this.tag.setVisible(progress !== undefined).setText(progress?.label ?? "");
     // Perto da borda, o rótulo fica inteiro dentro do que a câmera mostra (achado do usuário no
     // mapa d: "Cavar um canteiro aqui" saía do mapa); a barra continua sobre o avatar.
@@ -349,6 +374,18 @@ class WorldScene extends Phaser.Scene {
   private readonly seen = new Map<string, Point>(); // onde cada avatar aparece agora, em tiles
   /** O que fazem os que estão sentados, pelo tile à frente do assento: a mesa em uso. */
   private readonly using = new Map<string, string[]>();
+  /** O que fazem todos os avatares agora: a TV mostra o jogo de quem joga no sofá (ADR-0082). */
+  private doing: string[] = [];
+  /** A luz da noite (ADR-0082): uma imagem do tamanho do mapa, por cima das coisas e dos avatares,
+   * refeita só quando o modo da hora ou a lanterna mudam. */
+  private night: Phaser.GameObjects.Image | undefined;
+  private nightTexture: Phaser.Textures.CanvasTexture | undefined;
+  private nightKey = "";
+  /** Os tiles da decoração que mudam com a hora (a janela, o relógio), como estão no mapa visual. */
+  private decor: { layer: Phaser.Tilemaps.TilemapLayer; gids: Map<string, number>; tiles: { x: number; y: number; name: string }[] } | undefined;
+  private decorKey = "";
+  /** As fichas penduradas no quadro dos pedidos, pelo estado de cada pedido (ADR-0082). */
+  private cards: Phaser.GameObjects.Image[] = [];
   /** O caminho que o desenho de cada avatar faz nesta tela (ADR-0078). */
   readonly motion = new MotionClock();
   /** O que cada avatar disse por último, enquanto o balão dura (ADR-0078). */
@@ -420,6 +457,12 @@ class WorldScene extends Phaser.Scene {
     }
     this.drawAvatars(frame, time);
     this.drawThings(this.fogged(state), time);
+    // A hora do mundo acende as luminárias, apaga a sala, troca a janela e anda o relógio (ADR-0082).
+    const minute = minuteOfDay(clockText(state, frame.tick));
+    const mode = lightMode(this.art.lights, minute);
+    this.drawNight(mode);
+    this.drawDecor(mode, minute);
+    this.drawCards(state);
     this.aim();
     this.tint(state.season);
     // Com zoom, o que não rola encolhe em volta do centro: o retângulo cresce na mesma conta.
@@ -452,6 +495,124 @@ class WorldScene extends Phaser.Scene {
     for (let ring = 0; ring < LIGHT_RINGS; ring++) {
       this.light.fillStyle(color, step).fillCircle(cx, cy, outer * (1 - ring / LIGHT_RINGS));
     }
+  }
+
+  /** A luz da noite do escritório (ADR-0082): os níveis de `lightLevels` pintados com a cor da
+   * sombra numa imagem do tamanho do mapa. De dia, nada; refeita só quando muda. */
+  private drawNight(mode: LightMode): void {
+    const lights = this.art.lights;
+    const grid = this.grid;
+    if (lights === undefined || grid === undefined || mode === "day") {
+      this.night?.setVisible(false);
+      this.nightKey = "day";
+      return;
+    }
+    const width = grid.width * TILE;
+    const height = grid.height * TILE;
+    const holder = lights.lantern?.avatar;
+    const at = holder === undefined || !this.avatars.has(holder) ? undefined : this.seen.get(holder);
+    const lantern =
+      mode === "dark" && at !== undefined
+        ? { x: Math.round(at.x * TILE + TILE / 2), y: Math.round(at.y * TILE + TILE / 2 - (lights.lantern?.lift ?? 8)) }
+        : undefined;
+    const key = `${mode}|${String(lantern?.x)}|${String(lantern?.y)}|${String(width)}x${String(height)}`;
+    if (key === this.nightKey && this.night !== undefined) {
+      return;
+    }
+    const levels = lightLevels(lights, mode, width, height, lantern);
+    if (levels === undefined) {
+      return;
+    }
+    if (this.nightTexture === undefined || this.nightTexture.width !== width || this.nightTexture.height !== height) {
+      this.night?.destroy();
+      this.nightTexture?.destroy();
+      const texture = this.textures.createCanvas(`night-light-${String(width)}x${String(height)}`, width, height);
+      if (texture === null) {
+        return;
+      }
+      this.nightTexture = texture;
+      this.night = this.add.image(0, 0, texture.key).setOrigin(0, 0).setDepth(50);
+    }
+    const context = this.nightTexture.getContext();
+    const image = context.createImageData(width, height);
+    const pixels = new Uint32Array(image.data.buffer); // RGBA na ordem da memória: A no byte de cima
+    const color = colorNumber(lights.color);
+    const rgb = ((color & 0xff) << 16) | (color & 0xff00) | ((color >> 16) & 0xff);
+    const paint = [0, lights.penumbra, lights.dark].map((alpha) => ((Math.round(alpha * 255) << 24) | rgb) >>> 0);
+    for (let i = 0; i < levels.length; i++) {
+      pixels[i] = paint[levels[i] ?? 0] ?? 0;
+    }
+    context.putImageData(image, 0, 0);
+    this.nightTexture.refresh();
+    this.night?.setVisible(true);
+    this.nightKey = key;
+  }
+
+  /** A janela de noite e o relógio na hora do mundo (ADR-0082), trocando os tiles da camada de
+   * decoração do mapa visual; só quando a hora ou a noite mudam. */
+  private drawDecor(mode: LightMode, minute: number | undefined): void {
+    const decor = this.decor;
+    const tiles = this.art.time_tiles;
+    const night = mode !== "day";
+    const key = `${String(night)}|${String(minute === undefined ? undefined : Math.floor(minute / 60))}`;
+    if (decor === undefined || tiles === undefined || key === this.decorKey) {
+      return;
+    }
+    for (const tile of decor.tiles) {
+      const gid = decor.gids.get(timedTile(tiles, tile.name, night, minute));
+      if (gid !== undefined) {
+        decor.layer.putTileAt(gid, tile.x, tile.y);
+      }
+    }
+    this.decorKey = key;
+  }
+
+  /** Os tiles da camada `decor` que mudam com a hora, lidos do mapa visual recém-montado: o nome de
+   * cada tile vem do tipo dele no tileset (o mapa do Tiled que o cache guarda). */
+  private findDecor(map: Phaser.Tilemaps.Tilemap, key: string): void {
+    this.decor = undefined;
+    this.decorKey = "";
+    const tiles = this.art.time_tiles;
+    const layer = map.getLayer("decor")?.tilemapLayer;
+    const raw = (this.cache.tilemap.get(key) as { data?: unknown } | undefined)?.data as
+      | { tilesets?: { firstgid: number; tiles?: { id: number; type?: string }[] }[] }
+      | undefined;
+    if (tiles === undefined || !(layer instanceof Phaser.Tilemaps.TilemapLayer) || raw === undefined) {
+      return;
+    }
+    const gids = new Map<string, number>();
+    const names = new Map<number, string>();
+    for (const tileset of raw.tilesets ?? []) {
+      for (const tile of tileset.tiles ?? []) {
+        if (tile.type !== undefined) {
+          gids.set(tile.type, tileset.firstgid + tile.id);
+          names.set(tileset.firstgid + tile.id, tile.type);
+        }
+      }
+    }
+    const timed: { x: number; y: number; name: string }[] = [];
+    layer.forEachTile((tile) => {
+      const name = names.get(tile.index);
+      // Muda com a hora: de noite (a janela) ou de uma hora para a outra (o relógio).
+      if (name !== undefined && [timedTile(tiles, name, true, 0), timedTile(tiles, name, true, 60)].some((other) => other !== name)) {
+        timed.push({ x: tile.x, y: tile.y, name });
+      }
+    });
+    this.decor = timed.length === 0 ? undefined : { layer, gids, tiles: timed };
+  }
+
+  /** As fichas no quadro dos pedidos (ADR-0082): uma por pedido, na coluna do estado dele. */
+  private drawCards(state: ObserverState): void {
+    const cards = this.art.cards;
+    const placed = cards === undefined || !this.textures.exists(cards.sheet) ? [] : cardPlacements(cards, state.entities);
+    while (this.cards.length > placed.length) {
+      this.cards.pop()?.destroy();
+    }
+    placed.forEach((card, i) => {
+      const image = this.cards[i] ?? this.add.image(0, 0, cards?.sheet ?? "__DEFAULT").setOrigin(0, 0).setDepth(1);
+      this.cards[i] = image;
+      image.setTexture(cards?.sheet ?? "__DEFAULT", card.frame).setPosition(card.x, card.y);
+    });
   }
 
   /** As peças sobre os tiles de um tipo (ADR-0082): a divisória dos cubículos, com a profundidade
@@ -488,6 +649,7 @@ class WorldScene extends Phaser.Scene {
     if (this.visual !== undefined && this.visualUrl !== url) {
       this.visual.destroy(); // outro mapa: as camadas do anterior saem
       this.visual = undefined;
+      this.decor = undefined;
       this.ground = undefined;
     }
     if (this.visual === undefined && url !== undefined && this.cache.tilemap.exists(mapKey(url))) {
@@ -504,6 +666,7 @@ class WorldScene extends Phaser.Scene {
         });
         this.visual = map;
         this.visualUrl = url;
+        this.findDecor(map, mapKey(url));
         this.tinted = undefined; // a camada nova ainda não tem o tom da estação
         this.season = undefined;
       } else {
@@ -643,7 +806,7 @@ class WorldScene extends Phaser.Scene {
         users.push(...(this.using.get(`${String(x + dx)},${String(y)}`) ?? []));
       }
       const seconds = time / 1000;
-      const busy = inUseFrame(kind?.in_use, users, seconds) ?? loopFrame(kind?.loop, seconds);
+      const busy = inUseFrame(kind?.in_use, users, seconds, this.doing) ?? loopFrame(kind?.loop, seconds);
       view.show(this, lookOf(this.art, entity.kind, entity.attributes), x, y, busy);
     }
     for (const [id, view] of this.things) {
@@ -658,6 +821,7 @@ class WorldScene extends Phaser.Scene {
     const { state, tick } = frame;
     const seen = new Set<string>();
     this.using.clear();
+    this.doing = [];
     for (const [id, entity] of Object.entries(state.entities)) {
       if (entity?.kind !== "avatar") {
         continue;
@@ -680,6 +844,7 @@ class WorldScene extends Phaser.Scene {
       const seat = seatAt(this.art, state.entities, at);
       const doing = state.actions[id]?.action;
       if (doing !== undefined) {
+        this.doing.push(doing);
         // Quem faz uma ação usa o que está ao lado dele: a mesa diante da cadeira, a máquina de
         // café, o micro-ondas no balcão, a porta do banheiro (ADR-0082).
         const [ax, ay] = [Math.round(at.x), Math.round(at.y)];

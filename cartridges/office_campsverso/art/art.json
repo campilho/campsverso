@@ -7,6 +7,37 @@
     "gerente": { "image": "gerente.png", "frame_width": 64, "frame_height": 64 },
     "vigia": { "image": "vigia.png", "frame_width": 64, "frame_height": 64 }
   },
+  "lights": {
+    "schedule": [
+      { "from": "06:00", "mode": "day" },
+      { "from": "18:00", "mode": "lamps" },
+      { "from": "21:00", "mode": "dark" }
+    ],
+    "color": "#0b0f24",
+    "penumbra": 0.42,
+    "dark": 0.74,
+    "lamps": [[4.5, 4.4], [8.5, 4.4], [4.5, 8.4], [8.5, 8.4], [3.5, 2.6], [12.5, 3], [16.5, 4.5], [15.5, 10.6], [9.5, 11.6]],
+    "lamp_radius": 72,
+    "lamp_border": 14,
+    "lit": [
+      { "x": 0, "y": 426, "w": 640, "h": 118 },
+      { "x": 32, "y": 389, "w": 128, "h": 37 },
+      { "x": 224, "y": 8, "w": 160, "h": 40 }
+    ],
+    "lantern": { "avatar": "vigia", "radii": [40, 54, 68, 82], "lift": 8 }
+  },
+  "cards": {
+    "sheet": "fichas",
+    "x": 64,
+    "y": 19,
+    "column_width": 32,
+    "first_inset": 6,
+    "inset": 3,
+    "columns": { "a_fazer": 0, "fazendo": 1, "entregue": 2, "aceito": 2 },
+    "state_frames": { "aceito": 4 },
+    "size_frames": { "P": 2, "M": 1, "G": 0 },
+    "frame": 3
+  },
   "avatars": {
     "camps": {
       "sheet": "camps",
@@ -15,14 +46,34 @@
       "animations": {
         "walk": { "row": 0, "frames": [0, 1, 2, 3, 4, 5, 6, 7], "per_tile": 8 },
         "idle": { "row": 4, "frames": [0, 0, 0, 0, 0, 1], "fps": 3 },
+        "use": { "row": 8, "frames": [0, 1, 2, 3, 4, 5], "fps": 6 },
         "sit": { "row": 12, "frames": [0], "fps": 1 },
-        "type": { "row": 16, "frames": [0, 1, 2, 3], "fps": 6, "single": true }
+        "type": { "row": 16, "frames": [0, 1, 2, 3], "fps": 6, "single": true },
+        "drink": { "row": 17, "frames": [0, 1, 2, 2, 2, 1], "fps": 3 },
+        "eat": { "row": 21, "frames": [0, 1, 2, 3], "fps": 3, "facings": ["left", "right"] },
+        "carry": { "row": 23, "frames": [0, 1, 2, 3, 4, 5, 6, 7], "per_tile": 8 },
+        "carry_idle": { "row": 23, "frames": [0], "fps": 1 },
+        "sofa_tv": { "row": 27, "frames": [0, 0, 0, 0, 1], "fps": 2, "single": true },
+        "sofa_game": { "row": 28, "frames": [0, 1, 2, 3], "fps": 4, "single": true }
       },
-      "actions": { "move": "walk", "*": "idle" },
+      "actions": {
+        "move": "walk",
+        "drink": "drink",
+        "coffee": "drink",
+        "fridge": "use",
+        "microwave": "use",
+        "trash": "use",
+        "lunch": "eat",
+        "tv": "sofa_tv",
+        "videogame": "sofa_game",
+        "*": "idle"
+      },
       "idle": "idle",
       "asleep": "idle",
       "seated": "sit",
-      "seated_actions": { "work": "type" },
+      "seated_actions": { "work": "type", "lunch": "eat" },
+      "sit_on": { "tv": "sofa", "videogame": "sofa" },
+      "carry": { "marmita": { "walk": "carry", "idle": "carry_idle" } },
       "hidden": ["restroom"],
       "portrait": { "frame": 48, "x": 16, "y": 14, "size": 32 }
     },
@@ -33,12 +84,34 @@
       "animations": {
         "walk": { "row": 0, "frames": [0, 1, 2, 3, 4, 5, 6, 7], "per_tile": 8 },
         "idle": { "row": 4, "frames": [0, 0, 0, 0, 0, 1], "fps": 3 },
-        "sit": { "row": 4, "frames": [0], "fps": 1 }
+        "use": { "row": 8, "frames": [0, 1, 2, 3, 4, 5], "fps": 6 },
+        "sit": { "row": 12, "frames": [0], "fps": 1 },
+        "type": { "row": 16, "frames": [0, 1, 2, 3], "fps": 6, "single": true },
+        "drink": { "row": 17, "frames": [0, 1, 2, 2, 2, 1], "fps": 3 },
+        "eat": { "row": 21, "frames": [0, 1, 2, 3], "fps": 3, "facings": ["left", "right"] },
+        "carry": { "row": 23, "frames": [0, 1, 2, 3, 4, 5, 6, 7], "per_tile": 8 },
+        "carry_idle": { "row": 23, "frames": [0], "fps": 1 },
+        "sofa_tv": { "row": 27, "frames": [0, 0, 0, 0, 1], "fps": 2, "single": true },
+        "sofa_game": { "row": 28, "frames": [0, 1, 2, 3], "fps": 4, "single": true }
       },
-      "actions": { "move": "walk", "*": "idle" },
+      "actions": {
+        "move": "walk",
+        "drink": "drink",
+        "coffee": "drink",
+        "fridge": "use",
+        "microwave": "use",
+        "trash": "use",
+        "lunch": "eat",
+        "tv": "sofa_tv",
+        "videogame": "sofa_game",
+        "*": "idle"
+      },
       "idle": "idle",
       "asleep": "idle",
       "seated": "sit",
+      "seated_actions": { "work": "type", "lunch": "eat" },
+      "sit_on": { "tv": "sofa", "videogame": "sofa" },
+      "carry": { "marmita": { "walk": "carry", "idle": "carry_idle" } },
       "hidden": ["restroom"],
       "portrait": { "frame": 48, "x": 16, "y": 14, "size": 32 }
     },
