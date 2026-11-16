@@ -327,3 +327,29 @@ def test_a_entrega_com_o_patch_da_oficina() -> None:
     (delivered,) = _only(facts, "office.ticket.delivered")
     assert delivered["patch"] == patch
     assert core.world.entity_map["pedido-001"].attributes["patch"] == patch["ref"]
+
+
+def test_o_sofa_a_marmita_e_o_menu_de_pausas() -> None:
+    """ADR-0082: a TV e o videogame no sofá, do tapete logo acima ou abaixo dele; a marmita na mão
+    entre a geladeira e o lixo; e o menu das pausas para quem está no escritório."""
+    core = KernelCore(
+        build_world("office_campsverso"), WorldConfig("office-teste", 1, MONDAY), (), "test"
+    )
+    core.start()
+    (session,) = _only(core.drain(), "world.session.started.v2")
+    menu = {a["action"]: a["on"] for a in session["affordances"]}
+    assert menu["videogame"] == ["sofa", "tv"]
+    assert set(menu) >= {"drink", "coffee", "fridge", "microwave", "lunch", "trash", "restroom"}
+    _until(core, "09:00")
+    _act(core, "camps", "move", {"target": {"x": 12, "y": 6}}, DEV)
+    far = _act(core, "camps", "videogame", {}, DEV)
+    assert _only(far, "action.rejected")[0]["reason"] == "not_adjacent"
+    _act(core, "camps", "move", {"target": {"x": 16, "y": 6}}, DEV)
+    (played,) = _only(_act(core, "camps", "videogame", {}, DEV), "action.accepted")
+    assert played["duration_ticks"] == 15 * 60 * TICKS_PER_SECOND
+    _act(core, "camps", "move", {"near": "geladeira"}, DEV)
+    _act(core, "camps", "fridge", {}, DEV)
+    assert core.world.entity_map["camps"].attributes["carregando"] == "marmita"
+    _act(core, "camps", "move", {"near": "lixeira"}, DEV)
+    _act(core, "camps", "trash", {}, DEV)
+    assert core.world.entity_map["camps"].attributes.get("carregando") is None

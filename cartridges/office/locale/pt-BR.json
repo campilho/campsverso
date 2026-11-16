@@ -42,6 +42,8 @@
     "fridge": "Pegando o almoço",
     "microwave": "Esquentando o almoço",
     "lunch": "Almoçando",
-    "trash": "Jogando fora"
+    "trash": "Jogando fora",
+    "tv": "Vendo TV",
+    "videogame": "Jogando videogame"
   }
 }

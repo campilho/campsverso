@@ -30,6 +30,7 @@ from campsverso_office_sim.config import (
     MANAGER,
     MICROWAVE,
     RESTROOM_DOOR,
+    SOFA,
     TICKET,
     TRASH,
     WATER_COOLER,
@@ -500,7 +501,31 @@ class Break(OfficeAction):
         return None
 
     def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
-        pass
+        # A marmita (ADR-0082): pega na geladeira, carrega até o micro-ondas e a mesinha, e sai no
+        # lixo. Só um atributo visível do avatar, para a tela desenhá-lo carregando.
+        if self.name == "fridge":
+            ops.set_attributes(ctx.avatar_id, visible={"carregando": "marmita"})
+        elif self.name == "trash":
+            ops.set_attributes(ctx.avatar_id, visible={"carregando": None})
+
+
+@dataclass(frozen=True)
+class SofaBreak(Break):
+    """No sofá da sala de descompressão (ADR-0082): ver TV ou jogar videogame. O avatar fica no
+    tapete, logo acima ou logo abaixo do sofá, e a tela o desenha sentado nele, virado para a TV."""
+
+    def check(self, ctx: ActionContext) -> Rejection | None:
+        here = ctx.view.entity(ctx.avatar_id).position
+        sofas = [s for s in ctx.view.entities(self.kind) if s.position is not None]
+        if not sofas:
+            return Rejection("invalid_params", f"não há {self.kind} no escritório")
+        if here is None or not any(
+            abs(here.y - s.position.y) == 1 and abs(here.x - s.position.x) <= 1
+            for s in sofas
+            if s.position is not None
+        ):
+            return Rejection("not_adjacent", "sente no sofá: no tapete, logo acima ou abaixo dele")
+        return None
 
 
 @dataclass(frozen=True)
@@ -527,6 +552,8 @@ BREAKS: tuple[OfficeAction, ...] = (
     Break("microwave", MICROWAVE),
     Lunch("lunch", COPA_TABLE),
     Break("trash", TRASH),
+    SofaBreak("tv", SOFA),
+    SofaBreak("videogame", SOFA),
 )
 
 ALL_ACTIONS: tuple[OfficeAction, ...] = (

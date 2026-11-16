@@ -38,8 +38,8 @@ COOLER, COFFEE, COPA_TABLE, COPA_CHAIR, RESTROOM = (
     "copa_chair",
     "restroom_door",
 )
-FRIDGE, MICROWAVE, TRASH = "fridge", "microwave", "trash"
-BREAK_PLACES = {"drink": COOLER, "coffee": COFFEE, "restroom": RESTROOM}
+FRIDGE, MICROWAVE, TRASH, SOFA = "fridge", "microwave", "trash", "sofa"
+BREAK_PLACES = {"drink": COOLER, "coffee": COFFEE, "restroom": RESTROOM, "videogame": SOFA}
 # O almoço em etapas (ADR-0082): a geladeira, o micro-ondas, a mesinha e o lixo da copa.
 LUNCH_STEPS = (
     ("fridge", FRIDGE, "pegar o almoço na geladeira"),
@@ -165,6 +165,12 @@ class Routine:
             (rng.randint(start, end), "restroom")
             for _ in range(int(self.config["restroom_per_day"]))
         ]
+        # O videogame no sofá (ADR-0082), à tarde, depois do almoço.
+        after = minutes(str(self.config["lunch"][1]))
+        pauses += [
+            (rng.randint(after, end), "videogame")
+            for _ in range(int(self.config.get("videogame_per_day", 0)))
+        ]
         return sorted(pauses)
 
     def lunch(self, view: View) -> Proposal | None:
@@ -204,7 +210,12 @@ class Routine:
             if thing is None:
                 done.add(index)
                 continue
-            if not adjacent(position(view), thing.get("position")):
+            if action == "videogame":  # no tapete, logo abaixo do sofá
+                spot = cast(Mapping[str, int], thing.get("position") or {})
+                below = (int(spot.get("x", 0)), int(spot.get("y", 0)) + 1)
+                if not at(position(view), *below):
+                    return go_to(*below, f"rotina: ir {LABELS[action]}")
+            elif not adjacent(position(view), thing.get("position")):
                 return go_near(str(thing["entity_id"]), f"rotina: ir {LABELS[action]}")
             done.add(index)
             return {"action": action, "params": {}, "intent": f"rotina: {LABELS[action]}"}
@@ -222,7 +233,12 @@ class Routine:
         return wait(wait_seconds, "rotina: esperar um pedido no quadro")
 
 
-LABELS = {"drink": "beber água", "coffee": "tomar um café", "restroom": "ao banheiro"}
+LABELS = {
+    "drink": "beber água",
+    "coffee": "tomar um café",
+    "restroom": "ao banheiro",
+    "videogame": "jogar videogame",
+}
 
 
 def chair_by(

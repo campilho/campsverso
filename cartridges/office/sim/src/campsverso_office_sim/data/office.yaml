@@ -62,6 +62,8 @@ actions:
   microwave: { seconds: 90, interrupt: cancel } # esquentar
   lunch: { interrupt: cancel } # comer, até uns minutos antes do fim da hora do almoço
   trash: { seconds: 5, interrupt: cancel } # jogar fora
+  tv: { seconds: 600, interrupt: cancel } # ver TV no sofá (ADR-0082)
+  videogame: { seconds: 900, interrupt: cancel } # jogar videogame no sofá
   return_ticket: { seconds: 10, interrupt: cancel }
 
 # A linha do tempo (ADR-0068): como cada fato se conta.
@@ -121,6 +123,25 @@ labels:
   - event: campsverso.action.accepted.v1
     where: { action: trash }
     text: "jogou o resto no lixo"
+  - event: campsverso.action.accepted.v1
+    where: { action: tv }
+    text: "sentou no sofá para ver TV"
+  - event: campsverso.action.accepted.v1
+    where: { action: videogame }
+    text: "sentou no sofá para jogar videogame"
+
+# O menu de quem está no escritório (ADR-0051): as pausas, de qualquer um, ao lado da coisa. A tela
+# anda até lá antes. O almoço na mesinha só vale na hora dele; o kernel recusa fora dela.
+affordances:
+  - { action: drink, label: Beber água, kinds: [water_cooler], target: false }
+  - { action: coffee, label: Tomar um café, kinds: [coffee_machine], target: false }
+  - { action: fridge, label: Pegar o almoço, kinds: [fridge], target: false }
+  - { action: microwave, label: Esquentar o almoço, kinds: [microwave], target: false }
+  - { action: lunch, label: Almoçar, kinds: [copa_table], target: false, note: "das 12:00 às 13:00" }
+  - { action: trash, label: Jogar fora, kinds: [trash], target: false }
+  - { action: restroom, label: Ir ao banheiro, kinds: [restroom_door, restroom], target: false }
+  - { action: tv, label: Ver TV, kinds: [sofa, tv], target: false }
+  - { action: videogame, label: Jogar videogame, kinds: [sofa, tv], target: false }
 
 # As métricas do dia (ADR-0054), contadas pela projeção comum.
 metrics:

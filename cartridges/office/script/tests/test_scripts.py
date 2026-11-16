@@ -93,6 +93,7 @@ COPA: list[dict[str, Any]] = [
     _thing("mesa-copa-1", "copa_table", 13, 11),
     _thing("cadeira-copa-1", "copa_chair", 12, 11),
     _thing("porta-banheiro", "restroom_door", 2, 13),
+    _thing("sofa", "sofa", 16, 5),
 ]
 
 
@@ -216,7 +217,7 @@ def test_as_pausas_do_dia_saem_de_um_sorteio_que_se_repete() -> None:
     plan = routine.plan("camps", 3)
     assert plan == routine.plan("camps", 3)  # o mesmo dia, as mesmas pausas
     assert plan != routine.plan("camps", 4)
-    assert sorted({action for _, action in plan}) == ["coffee", "drink", "restroom"]
+    assert sorted({action for _, action in plan}) == ["coffee", "drink", "restroom", "videogame"]
     assert all(9 * 60 + 20 <= minute <= 17 * 60 + 40 for minute, _ in plan)
 
 
@@ -259,3 +260,20 @@ def test_na_hora_do_almoco_o_dev_vai_para_a_copa_mesmo_com_pedido() -> None:
     assert step((12, 10), "12:55")["action"] == "trash"
     back = step((12, 10), "12:56")
     assert back["params"] == {"target": {"x": 4, "y": 5}}  # de volta ao pedido
+
+
+def test_a_rotina_joga_videogame_no_sofa_a_tarde() -> None:
+    """ADR-0082: uma partida por dia, depois do almoço, do tapete logo abaixo do sofá."""
+    dev = _dev()
+    assert dev.routine is not None
+    games = [m for m, action in dev.routine.plan("camps", 1) if action == "videogame"]
+    assert len(games) == 1
+    assert 13 * 60 <= games[0] <= 17 * 60 + 40
+    dev.routine.done[1] = {
+        i for i, (_, a) in enumerate(dev.routine.plan("camps", 1)) if a != "videogame"
+    }
+    hhmm = f"{games[0] // 60:02d}:{games[0] % 60:02d}"
+    walk = dev.decide(_view(at=(4, 5), hhmm=hhmm, copa=True))
+    assert walk["params"] == {"target": {"x": 16, "y": 6}}
+    play = dev.decide(_view(at=(16, 6), hhmm=hhmm, copa=True))
+    assert play["action"] == "videogame"

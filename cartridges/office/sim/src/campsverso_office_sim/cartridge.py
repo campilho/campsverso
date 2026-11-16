@@ -3,9 +3,10 @@
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from campsverso_cartridge_api import (
+    AffordanceDef,
     CartridgeManifest,
     ClockDef,
     EventLabelDef,
@@ -54,6 +55,20 @@ def labels(data: Mapping[str, Any]) -> tuple[EventLabelDef, ...]:
             event=str(entry["event"]), text=str(entry["text"]), where=dict(entry.get("where", {}))
         )
         for entry in data.get("labels", [])
+    )
+
+
+def affordances(data: Mapping[str, Any]) -> tuple[AffordanceDef, ...]:
+    """O menu de quem está no escritório (ADR-0051, ADR-0082): as pausas, pelo `office.yaml`."""
+    return tuple(
+        AffordanceDef(
+            action=str(entry["action"]),
+            label=str(entry["label"]),
+            on=tuple(str(k) for k in entry["kinds"]),  # `on` no contrato; `kinds` no YAML
+            target=bool(entry.get("target", True)),
+            note=None if entry.get("note") is None else str(entry["note"]),
+        )
+        for entry in cast(list[Mapping[str, Any]], data.get("affordances", []))
     )
 
 
@@ -106,6 +121,8 @@ class OfficeCartridge:
             world.add_label(label)
         for metric in metrics(data):
             world.add_metric(metric)
+        for affordance in affordances(data):
+            world.add_affordance(affordance)
 
     def rules_file(self) -> Path | None:
         return None  # o escritório não tem regra oculta no M23: a medida é o pedido (ADR-0077)

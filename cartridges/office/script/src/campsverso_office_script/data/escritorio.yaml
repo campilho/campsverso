@@ -17,6 +17,7 @@ dev:
     coffee: ["10:00", "15:30"]
     water_every_minutes: 100
     restroom_per_day: 2
+    videogame_per_day: 1 # no sofá, à tarde (ADR-0082)
     spread_minutes: 20
   lines:
     morning: "Bom dia!"
