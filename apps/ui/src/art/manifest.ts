@@ -65,6 +65,9 @@ export interface InUse {
   readonly actions: readonly string[];
   readonly frames: readonly number[];
   readonly fps?: number;
+  /** Em uso por quem faz a ação em qualquer lugar do mundo, e não só de frente para ela: a TV, que
+   * mostra o telejornal ou o jogo de quem está no sofá (ADR-0082). */
+  readonly anywhere?: boolean;
 }
 
 export interface Variant {
@@ -77,8 +80,9 @@ export interface KindArt extends Look {
   readonly variants?: readonly Variant[];
   /** Todas as que batem se somam por cima (badges, rótulos). */
   readonly overlays?: readonly Variant[];
-  /** Os quadros de quando está em uso (`InUse`). */
-  readonly in_use?: InUse;
+  /** Os quadros de quando está em uso (`InUse`); uma lista quando cada ação mostra outros (a TV: o
+   * telejornal ou o jogo). Vale a primeira em uso. */
+  readonly in_use?: InUse | readonly InUse[];
   /** Os quadros que se repetem sempre (`Loop`). */
   readonly loop?: Loop;
   /** Quantos tiles a coisa ocupa para a direita, a partir do tile dela: quem está ao lado de
@@ -97,6 +101,9 @@ export interface Animation {
   readonly per_tile?: number;
   /** Uma só direção (o `hurt` do LPC, deitado). */
   readonly single?: boolean;
+  /** As direções que a folha tem, na ordem das linhas a partir de `row`, quando não são as quatro:
+   * comer sentado só de lado (`["left", "right"]`). As outras direções usam a primeira. */
+  readonly facings?: readonly Facing[];
 }
 
 export interface AvatarArt {
@@ -118,6 +125,13 @@ export interface AvatarArt {
   readonly label_above?: number;
   /** As ações em que o avatar não aparece: atrás da porta do banheiro (ADR-0080). */
   readonly hidden?: readonly string[];
+  /** As ações feitas sentado numa coisa ao lado, pelo tipo dela: ver TV e jogar no sofá. O avatar
+   * fica no tile logo acima ou logo abaixo da coisa, e a tela o desenha nela, na coluna dele,
+   * olhando para cima (ADR-0082). */
+  readonly sit_on?: Readonly<Record<string, string>>;
+  /** O que o avatar carrega, pelo valor do atributo `carregando`: as animações de andar e de ficar
+   * parado com a coisa na mão (a marmita, entre a geladeira e o lixo). */
+  readonly carry?: Readonly<Record<string, { readonly walk: string; readonly idle: string }>>;
   /** Um recorte de um quadro da folha, para o HUD. */
   readonly portrait?: { readonly frame: number; readonly x: number; readonly y: number; readonly size: number };
   /** Dormindo numa cama: só a cabeça (um recorte de um quadro) no travesseiro, `dy` abaixo do topo da cama. */
@@ -158,6 +172,62 @@ export interface ArtManifest {
   readonly items?: Readonly<Record<string, Look>>;
   /** Os créditos da arte desta camada (CSV), mostrados na tela. */
   readonly credits?: string;
+  /** A luz do escritório pela hora do relógio do mundo (`Lights`, ADR-0082). */
+  readonly lights?: Lights;
+  /** Os tiles do mapa visual que mudam com a hora: a janela de noite e o relógio (`TimeTiles`). */
+  readonly time_tiles?: TimeTiles;
+  /** As fichas do quadro dos pedidos, penduradas pelo estado de cada pedido (`Cards`). */
+  readonly cards?: Cards;
+}
+
+export type LightMode = "day" | "lamps" | "dark";
+
+/** A luz da noite: com as luminárias acesas, poças de luz e penumbra fora delas; depois, o escuro,
+ * com a lanterna do vigia. O corredor e a janela ficam sempre acesos. As poças têm a borda em
+ * xadrez, como a prévia; a sombra é uma cor por cima, imitando a troca da paleta. */
+export interface Lights {
+  /** O que vale a partir de cada hora ("HH:MM"): `day`, `lamps` ou `dark`. */
+  readonly schedule: readonly { readonly from: string; readonly mode: LightMode }[];
+  readonly color: string;
+  /** Quanto escurecer fora das poças (0 a 1), com as luminárias e no escuro. */
+  readonly penumbra: number;
+  readonly dark: number;
+  /** Os centros das luminárias, em tiles (o meio do tile é .5). */
+  readonly lamps?: readonly (readonly [number, number])[];
+  /** O raio das poças e a largura da borda em xadrez, em pixels. */
+  readonly lamp_radius?: number;
+  readonly lamp_border?: number;
+  /** Os retângulos sempre acesos, em pixels do mapa: o corredor, a face da parede de baixo e do
+   * banheiro que dá para ele, a janela. */
+  readonly lit?: readonly { readonly x: number; readonly y: number; readonly w: number; readonly h: number }[];
+  /** A lanterna: quem a leva no escuro e os raios dos anéis em pixels (aceso, xadrez, penumbra,
+   * xadrez), a partir de `lift` pixels acima do meio do tile (a mão). */
+  readonly lantern?: { readonly avatar: string; readonly radii: readonly number[]; readonly lift?: number };
+}
+
+/** Os tiles da camada de decoração que mudam com a hora, pelo nome do tile no tileset sem o `-t` ou
+ * o `-b` da metade: fora do dia, cada nome de `night` vira o dele (a janela com a cidade acesa); o
+ * relógio (`clock-H`) mostra a hora do mundo, com H de 0 a 11. */
+export interface TimeTiles {
+  readonly night?: Readonly<Record<string, string>>;
+  readonly clock?: string;
+}
+
+/** As fichas do quadro: a folha, o canto da primeira coluna (em pixels), a largura de cada coluna,
+ * a coluna de cada estado do pedido e o quadro de cada ficha, pelo estado (`state_frames`, que
+ * vale primeiro) ou pelo tamanho. Cabem quatro fichas por coluna. */
+export interface Cards {
+  readonly sheet: string;
+  readonly x: number;
+  readonly y: number;
+  readonly column_width: number;
+  /** Quantos pixels a ficha entra na coluna: na primeira, que tem a moldura, mais. */
+  readonly first_inset: number;
+  readonly inset: number;
+  readonly columns: Readonly<Record<string, number>>;
+  readonly state_frames?: Readonly<Record<string, number>>;
+  readonly size_frames?: Readonly<Record<string, number>>;
+  readonly frame?: number;
 }
 
 export const EMPTY: ArtManifest = { version: 1 };
@@ -305,14 +375,143 @@ export function facedTile(at: { readonly x: number; readonly y: number }, facing
   return { x: at.x + dx, y: at.y + dy };
 }
 
-/** O quadro de uma coisa em uso, quando alguém sentado de frente para ela faz uma das ações dela;
- * fora disso, nenhum (fica o quadro de sempre). */
-export function inUseFrame(inUse: InUse | undefined, actions: readonly string[], seconds: number): number | undefined {
-  if (inUse === undefined || inUse.frames.length === 0 || !actions.some((action) => inUse.actions.includes(action))) {
+/** O quadro de uma coisa em uso, quando alguém de frente para ela (`actions`) ou, com `anywhere`,
+ * em qualquer lugar (`everywhere`) faz uma das ações dela; fora disso, nenhum (fica o quadro de
+ * sempre). Numa lista, vale a primeira em uso. */
+export function inUseFrame(
+  inUse: InUse | readonly InUse[] | undefined,
+  actions: readonly string[],
+  seconds: number,
+  everywhere: readonly string[] = [],
+): number | undefined {
+  const entries: readonly InUse[] = inUse === undefined ? [] : "actions" in inUse ? [inUse] : inUse;
+  for (const entry of entries) {
+    const doing = entry.anywhere === true ? everywhere : actions;
+    if (entry.frames.length > 0 && doing.some((action) => entry.actions.includes(action))) {
+      const index = Math.floor(Math.max(0, seconds) * (entry.fps ?? 4)) % entry.frames.length;
+      return entry.frames[index];
+    }
+  }
+  return undefined;
+}
+
+/** Onde desenhar quem faz uma ação sentado numa coisa (`sit_on`): no tile da coisa, na coluna do
+ * avatar, quando ele está logo acima ou logo abaixo dela e a até um tile de lado (o sofá de três
+ * lugares fica no do meio); senão, nada. */
+export function sitSpot(
+  art: AvatarArt | undefined,
+  action: string | undefined,
+  things: Readonly<Record<string, Placed | undefined>>,
+  at: { readonly x: number; readonly y: number },
+): { x: number; y: number } | undefined {
+  const kind = action === undefined ? undefined : art?.sit_on?.[action];
+  if (kind === undefined) {
     return undefined;
   }
-  const index = Math.floor(Math.max(0, seconds) * (inUse.fps ?? 4)) % inUse.frames.length;
-  return inUse.frames[index];
+  const x = Math.round(at.x);
+  const y = Math.round(at.y);
+  for (const thing of Object.values(things)) {
+    const spot = thing?.position;
+    if (thing?.kind === kind && spot !== undefined && Math.abs(spot.y - y) === 1 && Math.abs(spot.x - x) <= 1) {
+      return { x, y: spot.y };
+    }
+  }
+  return undefined;
+}
+
+/** A animação de quem carrega alguma coisa (`carry`, pelo atributo `carregando`), andando ou parado;
+ * sem carga, nenhuma. */
+export function carryAnimation(
+  art: AvatarArt | undefined,
+  attributes: Readonly<Record<string, unknown>> | undefined,
+  moving: boolean,
+): string | undefined {
+  const load = attributes?.["carregando"];
+  const carried = typeof load === "string" ? art?.carry?.[load] : undefined;
+  return carried === undefined ? undefined : moving ? carried.walk : carried.idle;
+}
+
+function minutesOf(hhmm: string): number {
+  return Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
+}
+
+/** A hora do relógio da tela (`18:30` ou `18:30:05`, a hora local do mundo) em minutos do dia; sem
+ * hora (`--:--`), nada. */
+export function minuteOfDay(clock: string | undefined): number | undefined {
+  const match = clock === undefined ? null : /^(\d{2}):(\d{2})/.exec(clock);
+  return match === null ? undefined : Number(match[1]) * 60 + Number(match[2]);
+}
+
+/** A luz de agora: a última entrada da agenda cuja hora já passou; antes da primeira, a última da
+ * véspera (a madrugada continua escura). Sem agenda ou sem hora, dia. */
+export function lightMode(lights: Lights | undefined, minute: number | undefined): LightMode {
+  if (lights === undefined || minute === undefined || lights.schedule.length === 0) {
+    return "day";
+  }
+  const sorted = [...lights.schedule].sort((a, b) => minutesOf(a.from) - minutesOf(b.from));
+  let mode = sorted[sorted.length - 1]?.mode ?? "day";
+  for (const entry of sorted) {
+    if (minutesOf(entry.from) <= minute) {
+      mode = entry.mode;
+    }
+  }
+  return mode;
+}
+
+/** O tile que a camada de decoração mostra no lugar de `name` agora: o relógio na hora do mundo
+ * (`relogio-3-t` às 15:20) e, fora do dia, a janela de noite; o próprio nome nos outros. */
+export function timedTile(tiles: TimeTiles | undefined, name: string, night: boolean, minute: number | undefined): string {
+  const match = /^(.*)-([tb])$/.exec(name);
+  const base = match?.[1];
+  const half = match?.[2];
+  if (tiles === undefined || base === undefined || half === undefined) {
+    return name;
+  }
+  const clock = tiles.clock;
+  if (clock !== undefined && minute !== undefined && base.startsWith(`${clock}-`) && /^\d+$/.test(base.slice(clock.length + 1))) {
+    return `${clock}-${String(Math.floor(minute / 60) % 12)}-${half}`;
+  }
+  const dark = night ? tiles.night?.[base] : undefined;
+  return dark === undefined ? name : `${dark}-${half}`;
+}
+
+/** Onde pendurar cada ficha no quadro (o canto de cima à esquerda, em pixels) e com que quadro: na
+ * coluna do estado do pedido, na ordem do número, até quatro por coluna, as mais novas (a segunda
+ * 12 px à direita da primeira, a terceira 12 px abaixo). Pedido de estado sem coluna não aparece. */
+export function cardPlacements(
+  cards: Cards | undefined,
+  things: Readonly<Record<string, Placed | undefined>>,
+): { x: number; y: number; frame: number }[] {
+  if (cards === undefined) {
+    return [];
+  }
+  const byColumn = new Map<number, { number: number; frame: number }[]>();
+  for (const thing of Object.values(things)) {
+    if (thing?.kind !== "ticket") {
+      continue;
+    }
+    const attributes = thing.attributes ?? {};
+    const column = cards.columns[String(attributes["estado"])];
+    if (column === undefined) {
+      continue;
+    }
+    const frame =
+      cards.state_frames?.[String(attributes["estado"])] ?? cards.size_frames?.[String(attributes["tamanho"])] ?? cards.frame ?? 0;
+    const list = byColumn.get(column) ?? [];
+    list.push({ number: Number(attributes["numero"] ?? 0), frame });
+    byColumn.set(column, list);
+  }
+  const placed: { x: number; y: number; frame: number }[] = [];
+  for (const [column, list] of [...byColumn.entries()].sort((a, b) => a[0] - b[0])) {
+    const left = cards.x + column * cards.column_width + (column === 0 ? cards.first_inset : cards.inset);
+    list
+      .sort((a, b) => a.number - b.number)
+      .slice(-4)
+      .forEach((card, i) => {
+        placed.push({ x: left + (i % 2) * 12, y: cards.y + Math.floor(i / 2) * 12, frame: card.frame });
+      });
+  }
+  return placed;
 }
 
 /** O quadro de uma coisa que se mexe sempre (`Loop`); sem laço, nenhum. */
@@ -407,7 +606,9 @@ export function facingOf(dx: number, dy: number, previous: Facing): Facing {
 
 /** O quadro da folha num passo da animação (`step` cresce com o tempo ou com o caminho andado). */
 export function frameOf(animation: Animation, columns: number, facing: Facing, step: number): number {
-  const row = animation.row + (animation.single === true ? 0 : ROW_OF[facing]);
+  const facings = animation.facings;
+  const offset = facings === undefined ? ROW_OF[facing] : Math.max(0, facings.indexOf(facing));
+  const row = animation.row + (animation.single === true ? 0 : offset);
   const cycle = animation.frames;
   const index = ((Math.floor(step) % cycle.length) + cycle.length) % cycle.length;
   return row * columns + (cycle[index] ?? 0);

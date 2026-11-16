@@ -4,19 +4,25 @@ import { loadArt } from "./load.ts";
 import {
   animationFor,
   autotileMask,
+  cardPlacements,
+  carryAnimation,
   colorNumber,
   facedTile,
   facingOf,
   frameOf,
   inUseFrame,
+  lightMode,
   lookOf,
   loopFrame,
   mergeManifests,
+  minuteOfDay,
   rooted,
   seatAt,
   seatedAnimation,
   shadeOf,
+  sitSpot,
   tileLook,
+  timedTile,
   visualMapFor,
   weatherEffect,
   type ArtManifest,
@@ -258,5 +264,122 @@ describe("a arte nova do escritório (ADR-0082)", () => {
     expect(autotileMask(typeAt, 1, 0)).toBe(2 | 8); // reta leste-oeste
     expect(autotileMask(typeAt, 2, 0)).toBe(4 | 8); // canto: sul e oeste
     expect(autotileMask(typeAt, 0, 2)).toBe(1); // a ponta de baixo
+  });
+});
+
+describe("as animações e a noite do escritório (ADR-0082)", () => {
+  const camps = {
+    sheet: "camps",
+    animations: { eat: { row: 21, frames: [0, 1, 2, 3], facings: ["left", "right"] as const } },
+    sit_on: { tv: "sofa", videogame: "sofa" },
+    carry: { marmita: { walk: "carry", idle: "carry_idle" } },
+  };
+
+  it("comer sentado só tem os lados: a linha sai da lista de direções da animação", () => {
+    const eat = camps.animations.eat;
+    expect(frameOf(eat, 8, "left", 1)).toBe(21 * 8 + 1);
+    expect(frameOf(eat, 8, "right", 2)).toBe(22 * 8 + 2);
+    expect(frameOf(eat, 8, "up", 0)).toBe(21 * 8); // sem a direção, a primeira
+  });
+
+  it("no tapete, logo acima ou abaixo do sofá, quem vê TV ou joga senta nele, na coluna dele", () => {
+    const things = { sofa: { kind: "sofa", position: { x: 16, y: 5 } }, tv: { kind: "tv", position: { x: 16, y: 2 } } };
+    for (const x of [15, 16, 17]) {
+      expect(sitSpot(camps, "tv", things, { x, y: 4 })).toEqual({ x, y: 5 });
+      expect(sitSpot(camps, "videogame", things, { x, y: 6 })).toEqual({ x, y: 5 });
+    }
+    expect(sitSpot(camps, "tv", things, { x: 14, y: 4 })).toBeUndefined(); // fora do sofá
+    expect(sitSpot(camps, "tv", things, { x: 16, y: 3 })).toBeUndefined(); // longe demais
+    expect(sitSpot(camps, "drink", things, { x: 16, y: 4 })).toBeUndefined(); // outra ação
+    expect(sitSpot(undefined, "tv", things, { x: 16, y: 4 })).toBeUndefined();
+  });
+
+  it("a TV mostra o jogo ou o telejornal de quem está no sofá, em qualquer lugar da sala", () => {
+    const tv = [
+      { actions: ["videogame"], frames: [1, 2, 3], fps: 3, anywhere: true },
+      { actions: ["tv"], frames: [4, 5, 6], fps: 1, anywhere: true },
+    ];
+    expect(inUseFrame(tv, [], 0, ["videogame"])).toBe(1);
+    expect(inUseFrame(tv, [], 1.2, ["tv"])).toBe(5);
+    expect(inUseFrame(tv, ["tv"], 0, [])).toBeUndefined(); // só vale quem faz, não quem está ao lado
+    expect(inUseFrame(tv, [], 0, ["work"])).toBeUndefined(); // desligada
+  });
+
+  it("com a marmita na mão, anda e espera carregando; sem ela, nada muda", () => {
+    expect(carryAnimation(camps, { carregando: "marmita" }, true)).toBe("carry");
+    expect(carryAnimation(camps, { carregando: "marmita" }, false)).toBe("carry_idle");
+    expect(carryAnimation(camps, { carregando: null }, true)).toBeUndefined();
+    expect(carryAnimation(camps, {}, true)).toBeUndefined();
+    expect(carryAnimation(camps, { carregando: "caixa" }, true)).toBeUndefined();
+  });
+
+  it("a luz segue a hora do mundo: dia, as luminárias das 18:00 às 21:00, e o escuro até amanhecer", () => {
+    const lights = {
+      schedule: [
+        { from: "18:00", mode: "lamps" as const },
+        { from: "06:00", mode: "day" as const },
+        { from: "21:00", mode: "dark" as const },
+      ],
+      color: "#0b0f24",
+      penumbra: 0.4,
+      dark: 0.7,
+    };
+    expect(minuteOfDay("18:30")).toBe(18 * 60 + 30);
+    expect(minuteOfDay("09:05:12")).toBe(9 * 60 + 5);
+    expect(minuteOfDay("--:--")).toBeUndefined();
+    expect(lightMode(lights, minuteOfDay("12:10"))).toBe("day");
+    expect(lightMode(lights, minuteOfDay("18:00"))).toBe("lamps");
+    expect(lightMode(lights, minuteOfDay("20:59"))).toBe("lamps");
+    expect(lightMode(lights, minuteOfDay("21:00"))).toBe("dark");
+    expect(lightMode(lights, minuteOfDay("03:00"))).toBe("dark"); // a madrugada é a noite da véspera
+    expect(lightMode(undefined, 23 * 60)).toBe("day"); // a fazenda não tem
+    expect(lightMode(lights, undefined)).toBe("day");
+  });
+
+  it("a janela vira a de noite e o relógio anda com a hora, nas duas metades do tile", () => {
+    const tiles = { night: { "janela-meioA": "janela-noite-meioA" }, clock: "relogio" };
+    expect(timedTile(tiles, "janela-meioA-t", true, 0)).toBe("janela-noite-meioA-t");
+    expect(timedTile(tiles, "janela-meioA-b", false, 0)).toBe("janela-meioA-b");
+    expect(timedTile(tiles, "relogio-10-t", false, 15 * 60 + 20)).toBe("relogio-3-t");
+    expect(timedTile(tiles, "relogio-10-b", true, 0)).toBe("relogio-0-b");
+    expect(timedTile(tiles, "relogio-10-b", true, undefined)).toBe("relogio-10-b");
+    expect(timedTile(tiles, "quadro-meio-t", true, 0)).toBe("quadro-meio-t");
+    expect(timedTile(undefined, "janela-meioA-t", true, 0)).toBe("janela-meioA-t");
+  });
+
+  it("as fichas do quadro vão na coluna do estado, na ordem do número, até quatro por coluna", () => {
+    const cards = {
+      sheet: "fichas",
+      x: 64,
+      y: 19,
+      column_width: 32,
+      first_inset: 6,
+      inset: 3,
+      columns: { a_fazer: 0, fazendo: 1, entregue: 2, aceito: 2 },
+      state_frames: { aceito: 4 },
+      size_frames: { P: 2, M: 1, G: 0 },
+    };
+    const ticket = (numero: number, estado: string, tamanho = "P") => ({ kind: "ticket", attributes: { numero, estado, tamanho } });
+    const things = {
+      t2: ticket(2, "a_fazer", "G"),
+      t1: ticket(1, "a_fazer"),
+      t3: ticket(3, "fazendo", "M"),
+      t4: ticket(4, "aceito"),
+      t5: ticket(5, "entregue"),
+      mesa: { kind: "desk", position: { x: 4, y: 4 }, attributes: {} },
+      t9: ticket(9, "cancelado"),
+    };
+    expect(cardPlacements(cards, things)).toEqual([
+      { x: 70, y: 19, frame: 2 }, // o 1, a fazer, P
+      { x: 82, y: 19, frame: 0 }, // o 2, a fazer, G
+      { x: 99, y: 19, frame: 1 }, // o 3, fazendo, M
+      { x: 131, y: 19, frame: 4 }, // o 4, aceito
+      { x: 143, y: 19, frame: 2 }, // o 5, entregue, P
+    ]);
+    const many = Object.fromEntries([1, 2, 3, 4, 5, 6].map((n) => [`t${String(n)}`, ticket(n, "a_fazer")]));
+    const shown = cardPlacements(cards, many);
+    expect(shown).toHaveLength(4); // as quatro mais novas
+    expect(shown[2]).toEqual({ x: 70, y: 31, frame: 2 }); // a terceira, embaixo da primeira
+    expect(cardPlacements(undefined, things)).toEqual([]);
   });
 });
