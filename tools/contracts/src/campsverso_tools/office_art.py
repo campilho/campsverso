@@ -50,6 +50,11 @@ FURNITURE = (
     "movel_tv",
     "puff",
     "banheiro",
+    # A oficina dos robôs (o plano do M24, §4): a bancada e os três robôs de mesa.
+    "bancada",
+    "robo_testador",
+    "robo_revisor",
+    "robo_publicador",
 )
 CHARACTERS = ("camps", "gerente", "vigia")
 # Soltas: as fichas do quadro, que a tela pendura pelo estado (10 x 10).

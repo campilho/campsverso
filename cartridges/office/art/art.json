@@ -12,7 +12,10 @@
     "arquivo": { "image": "arquivo.png", "frame_width": 32, "frame_height": 64 },
     "planta": { "image": "planta.png", "frame_width": 32, "frame_height": 64 },
     "lixeira": { "image": "lixeira.png", "frame_width": 32, "frame_height": 32 },
-    "robo_provisorio": { "image": "robo_provisorio.png", "frame_width": 32, "frame_height": 32 },
+    "bancada": { "image": "bancada.png", "frame_width": 96, "frame_height": 64 },
+    "robo_testador": { "image": "robo_testador.png", "frame_width": 32, "frame_height": 32 },
+    "robo_revisor": { "image": "robo_revisor.png", "frame_width": 32, "frame_height": 32 },
+    "robo_publicador": { "image": "robo_publicador.png", "frame_width": 32, "frame_height": 32 },
     "geladeira": { "image": "geladeira.png", "frame_width": 32, "frame_height": 64 },
     "balcao_copa": { "image": "balcao_copa.png", "frame_width": 96, "frame_height": 64 },
     "maquina_cafe": { "image": "maquina_cafe.png", "frame_width": 32, "frame_height": 64 },
@@ -69,8 +72,17 @@
     },
     "fridge": { "sheet": "geladeira", "frame": 0, "in_use": { "actions": ["fridge"], "frames": [1] } },
     "trash": { "sheet": "lixeira", "frame": 0 },
-    "bench": { "sheet": "mesa_dev", "frame": 0 },
-    "robot": { "sheet": "robo_provisorio", "frame": 0, "dy": -20 },
+    "bench": { "sheet": "bancada", "frame": 0 },
+    "robot": {
+      "sheet": "robo_testador",
+      "frame": 0,
+      "dy": -22,
+      "loop": { "frames": [0, 1], "fps": 1 },
+      "variants": [
+        { "when": { "nome": "revisor" }, "look": { "sheet": "robo_revisor" } },
+        { "when": { "nome": "publicador" }, "look": { "sheet": "robo_publicador" } }
+      ]
+    },
     "copa_table": { "sheet": "mesa_copa", "frame": 0, "in_use": { "actions": ["lunch"], "frames": [1] } },
     "file_cabinet": { "sheet": "arquivo", "frame": 0 },
     "plant": { "sheet": "planta", "frame": 0 },
