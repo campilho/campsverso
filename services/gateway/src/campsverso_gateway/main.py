@@ -120,8 +120,18 @@ async def run(args: argparse.Namespace) -> int:
     )
     settings = env.gateway
     port = args.port or settings.port
+    # As entregas da oficina (ADR-0080), para o "ver o patch" do gerente: as do sandbox ficam na
+    # pasta dele, como a oficina do controlador.
+    deliveries = None
+    if world.workshop and env.workshop is not None:
+        deliveries = env.workshop.deliveries if args.data_dir is None else data_dir / "entregas"
     realtime = FastApiRealtime(
-        settings.host, port, settings.maps, settings.ui_dir, settings.art_for(world.cartridge)
+        settings.host,
+        port,
+        settings.maps,
+        settings.ui_dir,
+        settings.art_for(world.cartridge),
+        deliveries=deliveries,
     )
     stop = asyncio.Event()
     for signum in (signal.SIGINT, signal.SIGTERM):

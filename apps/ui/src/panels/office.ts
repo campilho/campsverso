@@ -10,6 +10,7 @@
 import type { ObserverState } from "@campsverso/contracts";
 
 import { button, el } from "../dom.ts";
+import { DeliveryDialog } from "./delivery.ts";
 
 export interface TicketView {
   readonly id: string;
@@ -21,6 +22,8 @@ export interface TicketView {
   readonly state: string;
   readonly owner: string | undefined;
   readonly comment: string | undefined;
+  /** A chave do patch que o dev entregou da oficina (ADR-0080); sem ela, o trabalho foi simulado. */
+  readonly patch: string | undefined;
 }
 
 export const COLUMNS: readonly (readonly [string, string])[] = [
@@ -61,6 +64,7 @@ export function ticketsOf(state: ObserverState): TicketView[] {
       state: text(a.estado),
       owner: typeof a.dono === "string" ? a.dono : undefined,
       comment: typeof a.comentario === "string" ? a.comentario : undefined,
+      patch: typeof a.patch === "string" && a.patch !== "" ? a.patch : undefined,
     });
   }
   return found.sort((a, b) => a.number - b.number);
@@ -88,10 +92,12 @@ export class OfficePanel {
   private shown = "";
   private readonly root: HTMLElement;
   private readonly actions: OfficeActions;
+  private readonly delivery: DeliveryDialog;
 
   constructor(root: HTMLElement, actions: OfficeActions) {
     this.root = root;
     this.actions = actions;
+    this.delivery = new DeliveryDialog(document.body);
     const say = el("input", { className: "speech" });
     say.maxLength = SPEECH_MAX;
     say.placeholder = "Fale com o dev e aperte Enter";
@@ -192,6 +198,11 @@ export class OfficePanel {
       ...(owner === "" ? [] : [el("p", { className: "hint" }, `com ${owner}`)]),
       ...(ticket.comment === undefined ? [] : [el("p", { className: "comment" }, `Devolvido: ${ticket.comment}`)]),
     );
+    const ref = ticket.patch;
+    if (ref !== undefined && (ticket.state === "entregue" || ticket.state === "aceito")) {
+      const heading = `Pedido #${String(ticket.number)}: ${ticket.title}`;
+      details.append(el("div", { className: "row" }, button("Ver o patch", () => { void this.delivery.open(heading, ref); })));
+    }
     if (manager && ticket.state === "entregue") {
       const comment = el("input");
       comment.placeholder = "O que falta (para devolver)";

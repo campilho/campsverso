@@ -39,11 +39,17 @@ async def server(tmp_path: Path) -> AsyncIterator[str]:
     scenario.mkdir(parents=True)
     (scenario / "art.json").write_text('{"version": 1}', encoding="utf-8")
     (tmp_path / "segredo.txt").write_text("fora da arte", encoding="utf-8")
+    delivered = tmp_path / "entregas" / "office-x" / "pedido-001"
+    delivered.mkdir(parents=True)
+    (delivered / "abc-1.patch").write_text("diff --git a/x b/x\n+olá\n", encoding="utf-8")
+    (delivered / "abc-1.json").write_text('{"files": ["x"]}', encoding="utf-8")
+    (delivered / "abc-1.txt").write_text("outro tipo", encoding="utf-8")
     realtime = FastApiRealtime(
         "127.0.0.1",
         _free_port(),
         maps={"farm_camps": tmj},
         art=(("farm", genre), ("farm_camps", scenario), ("sem_pasta", tmp_path / "nada")),
+        deliveries=tmp_path / "entregas",
     )
     task = asyncio.create_task(realtime.serve(_echo))
     async with asyncio.timeout(10):
@@ -149,3 +155,30 @@ async def test_os_nomes_por_lingua_ao_lado_da_arte(server: str) -> None:
     assert (await asyncio.to_thread(get, "/content/locale/farm_camps/pt-BR.json"))[0] == 404
     assert (await asyncio.to_thread(get, "/content/locale/farm/..%2F..%2Fsegredo.txt"))[0] == 404
     assert (await asyncio.to_thread(get, "/content/locale/outra/pt-BR.json"))[0] == 404
+
+
+async def test_o_patch_entregue_so_para_ler(server: str) -> None:
+    """ADR-0080: o gerente vê o patch e o resumo antes de aceitar; nada além disso sai daqui."""
+
+    def get(path: str) -> tuple[int, str, str]:
+        try:
+            with urllib.request.urlopen(f"http://{server}{path}", timeout=5) as response:
+                kind = str(response.headers.get("content-type"))
+                return response.status, response.read().decode(), kind
+        except urllib.error.HTTPError as error:
+            return error.code, "", ""
+
+    status, body, kind = await asyncio.to_thread(
+        get, "/content/entregas/office-x/pedido-001/abc-1.patch"
+    )
+    assert (status, body) == (200, "diff --git a/x b/x\n+olá\n")
+    assert kind.startswith("text/plain")
+    assert (await asyncio.to_thread(get, "/content/entregas/office-x/pedido-001/abc-1.json"))[
+        :2
+    ] == (200, '{"files": ["x"]}')
+    for refused in (
+        "/content/entregas/office-x/pedido-001/abc-1.txt",  # outro tipo
+        "/content/entregas/office-x/pedido-001/nada.patch",
+        "/content/entregas/..%2Fsegredo.txt",
+    ):
+        assert (await asyncio.to_thread(get, refused))[0] == 404

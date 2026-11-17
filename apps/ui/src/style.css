@@ -871,6 +871,76 @@ dialog.credits .urls {
   word-break: break-all;
 }
 
+/* ---------------------------------------------------------------- M24: o ver o patch (ADR-0080) */
+
+dialog.delivery {
+  width: min(900px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: inherit;
+  background: var(--panel);
+}
+
+dialog.delivery::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+dialog.delivery header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 0 8px;
+}
+
+dialog.delivery h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.delivery-counts {
+  margin: 0 0 4px;
+  color: var(--muted);
+}
+
+.delivery-files {
+  margin: 0 0 8px;
+  padding-left: 18px;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+
+pre.diff {
+  margin: 0;
+  padding: 8px;
+  overflow: auto;
+  max-height: calc(100vh - 260px);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  background: var(--bg);
+}
+
+.diff-file {
+  color: var(--muted);
+  font-weight: bold;
+}
+
+.diff-hunk {
+  color: var(--agent);
+}
+
+.diff-add {
+  color: #7bd88f;
+}
+
+.diff-del {
+  color: #f08080;
+}
+
 /* ---------------------------------------------------------------- M7: métricas do dia (ADR-0054) */
 
 .metrics table {

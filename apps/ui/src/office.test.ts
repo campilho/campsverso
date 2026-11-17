@@ -3,6 +3,7 @@
 import type { ObserverState } from "@campsverso/contracts";
 import { describe, expect, it } from "vitest";
 
+import { deliveryUrl, diffLines, summaryOf, summaryRef } from "./panels/delivery.ts";
 import { isOffice, ticketsOf } from "./panels/office.ts";
 import { BALLOON_CHARS, Balloons, balloonMs, balloonText } from "./speech.ts";
 import { clockText, realTime } from "./simclock.ts";
@@ -59,7 +60,7 @@ describe("o quadro dos pedidos", () => {
       "pedido-001": {
         kind: "ticket",
         container_id: "quadro",
-        attributes: { numero: 1, titulo: "Busca", estado: "fazendo", tamanho: "P", dono: "camps", comentario: "Falta o teste." },
+        attributes: { numero: 1, titulo: "Busca", estado: "entregue", tamanho: "P", dono: "camps", comentario: "Falta o teste.", patch: "office-x/pedido-001/abc-1.patch" },
       },
     },
   });
@@ -69,8 +70,23 @@ describe("o quadro dos pedidos", () => {
     expect(isOffice(state())).toBe(false);
     const tickets = ticketsOf(office);
     expect(tickets.map((t) => t.number)).toEqual([1, 2]);
-    expect(tickets[0]).toMatchObject({ title: "Busca", state: "fazendo", owner: "camps", comment: "Falta o teste." });
+    expect(tickets[0]).toMatchObject({ title: "Busca", state: "entregue", owner: "camps", comment: "Falta o teste.", patch: "office-x/pedido-001/abc-1.patch" });
     expect(tickets[1]?.owner).toBeUndefined();
+    expect(tickets[1]?.patch).toBeUndefined();
+  });
+});
+
+describe("o ver o patch (ADR-0080)", () => {
+  it("lê cada linha do diff com o tipo dela", () => {
+    const patch = "diff --git a/x.py b/x.py\n--- a/x.py\n+++ b/x.py\n@@ -1,2 +1,2 @@\n def f():\n-    return 1\n+    return 2\n";
+    expect(diffLines(patch).map((l) => l.kind)).toEqual(["file", "file", "file", "hunk", "context", "del", "add"]);
+  });
+
+  it("acha o resumo ao lado do patch e aceita só a forma esperada", () => {
+    expect(summaryRef("office-x/pedido-001/abc-1.patch")).toBe("office-x/pedido-001/abc-1.json");
+    expect(deliveryUrl("office-x/pedido-001/abc 1.patch")).toBe("/content/entregas/office-x/pedido-001/abc%201.patch");
+    expect(summaryOf({ files: ["a.py", 3], added: 4, removed: 1, base: "abc" })).toEqual({ files: ["a.py"], added: 4, removed: 1, base: "abc" });
+    expect(summaryOf(null)).toBeUndefined();
   });
 });
 

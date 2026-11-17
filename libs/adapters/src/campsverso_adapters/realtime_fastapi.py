@@ -6,6 +6,8 @@
   do gênero ao cenário (ADR-0053). A tela junta os manifestos na ordem do índice.
 - `/content/locale/<camada>/<língua>.json`: os nomes que quem joga lê, por língua (ADR-0075), na
   pasta `locale/` ao lado da `art/` de cada camada; a tela os junta na ordem do índice da arte.
+- `/content/entregas/<mundo>/<pedido>/<carimbo>.patch` e `.json`: o patch que o dev entregou da
+  oficina e o resumo dele (ADR-0080), para o gerente ver antes de aceitar. Só leitura, e só esses.
 - `/`: a UI compilada, quando há uma pasta para ela (fora do modo de desenvolvimento).
 
 Só escuta no endereço dado (127.0.0.1 na v0.1): não há login. Escutar só na própria máquina não
@@ -32,6 +34,8 @@ VIEWS: tuple[View, ...] = ("player", "operator")
 POLICY_VIOLATION = 1008  # código WebSocket para pedido fora das regras
 LOOPBACK = frozenset({"localhost", "127.0.0.1", "::1"})  # os nomes desta máquina
 LANGUAGE_FILE = re.compile(r"[a-z]{2}(-[A-Z]{2})?\.json")  # pt-BR.json, en.json
+# O que o depósito de entregas mostra (ADR-0080): o patch, em texto, e o resumo dele.
+DELIVERY_TYPES = {".patch": "text/plain; charset=utf-8", ".json": "application/json"}
 
 
 # Os mapas e a arte mudam com o repositório (as margens da água do ADR-0070 ficaram pretas numa
@@ -102,8 +106,10 @@ class FastApiRealtime:
         ui_dir: Path | None = None,
         art: Sequence[tuple[str, Path]] = (),
         runs: Callable[[], list[dict[str, Any]]] | None = None,
+        deliveries: Path | None = None,
     ) -> None:
         self.host, self.port = host, port
+        self._deliveries = None if deliveries is None else deliveries.resolve()
         self._runs = runs  # o modo de assistir lista as corridas em /arena/runs (ADR-0068)
         self._maps = dict(maps or {})
         self._ui_dir = ui_dir
@@ -166,6 +172,20 @@ class FastApiRealtime:
             ):
                 raise HTTPException(status_code=404, detail=f"língua {layer}/{name} desconhecida")
             return FileResponse(target, media_type="application/json", headers=REVALIDATE)
+
+        @app.get("/content/entregas/{path:path}")
+        async def delivery_file(path: str) -> FileResponse:  # pyright: ignore[reportUnusedFunction]
+            root = self._deliveries
+            target = None if root is None else (root / path).resolve()
+            if (
+                target is None
+                or root is None
+                or target.suffix not in DELIVERY_TYPES
+                or not target.is_relative_to(root)
+                or not target.is_file()
+            ):
+                raise HTTPException(status_code=404, detail=f"entrega {path} desconhecida")
+            return FileResponse(target, media_type=DELIVERY_TYPES[target.suffix])
 
         @app.get("/health")
         async def health() -> dict[str, bool]:  # pyright: ignore[reportUnusedFunction]
