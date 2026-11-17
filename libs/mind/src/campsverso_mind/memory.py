@@ -230,9 +230,12 @@ def _line(
     when = clock.at(int(event.get("tick", clock.tick)))
     action = str(data.get("action", ""))
     params = _compact(data.get("params") or {})
-    if action in profile.quiet_actions and kind.startswith("campsverso.action."):
-        return None  # a rotina: a conclusão, a recusa e a falha
     author = data.get("avatar_id", data.get("by"))
+    if kind.startswith("campsverso.action."):
+        if action in profile.quiet_actions:
+            return None  # a rotina: a conclusão, a recusa e a falha
+        if not profile.others_actions and me is not None and author not in (None, me):
+            return None  # a ação de outro avatar: o evento do pedido conta melhor
     mine = me is not None and author == me and f"{kind}:self" in profile.lines
     key = f"{kind}:self" if mine else kind
     template = profile.lines.get(key)

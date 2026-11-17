@@ -18,6 +18,10 @@ skipped:
   - campsverso.avatar.possessed.
   - campsverso.avatar.released.
 
+# As ações do gerente (escrever, aceitar, devolver) chegam como `action.*` dele: os eventos do
+# pedido contam melhor, e a memória da fazenda as contaria como "fiz".
+others_actions: false
+
 # A rotina (ADR-0080): andar, sentar, trabalhar no relógio, as pausas e o almoço. O que importa
 # delas já está nos eventos do pedido e na linha da sessão na oficina.
 quiet_actions:

@@ -2,6 +2,7 @@
 a revisão de vários dias. O padrão é a fazenda, que `test_memory.py` e as fitas cobrem."""
 
 from collections.abc import Mapping
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -128,6 +129,29 @@ def test_o_perfil_conta_o_dia_de_trabalho_nas_palavras_do_escritorio() -> None:
         ("09:00 fiz deliver {}", 3),  # fora da rotina: conta, com o peso de sempre
     }
     assert memory.port.places() == []  # a sala não tem raio: nada a lembrar de onde fica
+
+
+def test_as_acoes_dos_outros_ficam_de_fora_quando_o_perfil_pede() -> None:
+    accepted: dict[str, Any] = {
+        "type": "campsverso.action.completed.v1",
+        "tick": NINE,
+        "data": {"avatar_id": "gerente", "action": "accept_ticket", "params": {}},
+    }
+    mine: dict[str, Any] = {
+        "type": "campsverso.action.completed.v1",
+        "tick": NINE,
+        "data": {"avatar_id": "camps", "action": "accept_ticket", "params": {}},
+    }
+    quiet = Memory(
+        SqliteMemory(":memory:"),
+        "camps",
+        MemorySettings(profile=replace(OFFICE, others_actions=False)),
+    )
+    quiet.observe(delivery(1, NINE, "09:00", accepted, mine))
+    assert [e.text for e in quiet.port.episodes(1)] == ["09:00 fiz accept_ticket {}"]
+    farm = office()  # o padrão conta todas, como a fazenda sempre contou
+    farm.observe(delivery(1, NINE, "09:00", accepted))
+    assert [e.text for e in farm.port.episodes(1)] == ["09:00 fiz accept_ticket {}"]
 
 
 def test_a_anotacao_e_o_episodio_que_a_mente_conta() -> None:

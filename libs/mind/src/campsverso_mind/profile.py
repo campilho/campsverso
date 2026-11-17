@@ -32,6 +32,9 @@ class MemoryProfile:
     quiet_actions: frozenset[str] = frozenset()  # as ações da rotina: nem a conclusão nem a recusa
     # Os prefixos de tipos de evento que não viram episódio, além dos de sempre.
     skipped: tuple[str, ...] = ()
+    # As ações dos outros avatares (`action.*` de outro `avatar_id`): a fazenda as conta como
+    # "fiz", como sempre; o escritório não, porque o pedido conta o que o gerente fez.
+    others_actions: bool = True
     places: bool = True  # os lugares vistos (ADR-0067): numa sala sem raio, tudo está à vista
     reflected_when: str = "ao dormir"  # "Dia 3, ao dormir: <resumo>", no bloco de abertura
     empty: str = "O caderno ainda está vazio: é o seu primeiro dia."
@@ -46,8 +49,8 @@ class MemoryProfile:
 
 def load_profile(path: Path) -> MemoryProfile:
     """O perfil de um `memoria.yaml`: `tick_seconds`, `importance` (`events` e `actions`),
-    `lines`, `quiet_actions`, `skipped`, `places`, `reflected_when`, `empty`, `beliefs_header`,
-    `review` (`instructions`, `tool`, `closing`, `days`) e `note_tool`."""
+    `lines`, `quiet_actions`, `skipped`, `others_actions`, `places`, `reflected_when`, `empty`,
+    `beliefs_header`, `review` (`instructions`, `tool`, `closing`, `days`) e `note_tool`."""
     doc = cast(Mapping[str, Any], yaml.safe_load(path.read_text(encoding="utf-8")))
     importance = cast(Mapping[str, Any], doc.get("importance") or {})
     review = cast(Mapping[str, Any], doc.get("review") or {})
@@ -66,6 +69,7 @@ def load_profile(path: Path) -> MemoryProfile:
             str(a) for a in cast(Sequence[Any], doc.get("quiet_actions") or ())
         ),
         skipped=tuple(str(x) for x in cast(Sequence[Any], doc.get("skipped") or ())),
+        others_actions=bool(doc.get("others_actions", defaults.others_actions)),
         places=bool(doc.get("places", defaults.places)),
         reflected_when=str(doc.get("reflected_when", defaults.reflected_when)),
         empty=str(doc.get("empty", defaults.empty)).strip(),

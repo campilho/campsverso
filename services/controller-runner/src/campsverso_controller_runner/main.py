@@ -62,7 +62,9 @@ def _parse(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument("--avatar", default="camps")
     parser.add_argument("--nats-url", help="substitui nats.url do ambiente")
     parser.add_argument(
-        "--data-dir", type=Path, help="substitui data_dir do ambiente para a oficina (ADR-0080)"
+        "--data-dir",
+        type=Path,
+        help="substitui data_dir do ambiente para a oficina e a memória (ADR-0080): o sandbox",
     )
     which = parser.add_mutually_exclusive_group(required=True)
     which.add_argument("--controller", help="nome do controlador (entry point), ex.: farmer")
@@ -183,7 +185,7 @@ async def run(args: argparse.Namespace) -> int:
         memory: Memory | None = None
         if settings.memory_enabled:  # o caderno (ADR-0060): um arquivo por avatar, fora do snapshot
             memory_path = settings.memory_path or (
-                env.data_dir / world.worldid / "memory" / f"{args.avatar}.sqlite"
+                (args.data_dir or env.data_dir) / world.worldid / "memory" / f"{args.avatar}.sqlite"
             )
             memory = Memory(
                 SqliteMemory(memory_path),
