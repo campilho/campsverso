@@ -132,3 +132,8 @@ O perfil padrão é a fazenda, byte a byte: os testes da memória e as fitas do 
 
 **Ligada** no mundo de demonstração e no escritório vivo, num arquivo por avatar fora do snapshot, como na fazenda.
 
+**A sessão paga (16/nov, com o ok do usuário)** achou três defeitos, consertados em seguida:
+- **A foto da percepção apagava o meio-tempo.** A cada 20 deltas, a percepção manda a foto inteira, e a foto não levava o que aconteceu desde a entrega anterior: a devolução do pedido nunca chegou à memória do dev. Agora o mundo pode pedir que a foto leve os eventos (`perception.snapshot_events`; o campo opcional `events` no `perception.delivered.v1`). O escritório pede. A fazenda segue sem eles, porque com eles os pedidos ao modelo mudariam e as fitas não valeriam mais.
+- **As ações do gerente viravam "fiz".** Num mundo com mais de um avatar à vista, o `action.completed` de outro avatar chegava à memória como se fosse do dev ("fiz accept_ticket"). O perfil diz agora se as ações dos outros contam (`others_actions`); no escritório, não, porque o pedido conta o que o gerente fez.
+- **A memória de um sandbox ia para o `data/` do repositório,** e não para a pasta do sandbox. Ela passa a seguir o `--data-dir`, como a oficina. Isso também vale para a fazenda: um sandbox antigo retomado depois deste conserto começa sem a memória que tinha.
+
