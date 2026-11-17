@@ -131,6 +131,8 @@ As pausas são ilustrativas: não pesam no trabalho do dev (ressalva do usuário
 - **A criação** (§4) fica com o melhor da prova entre o Sonnet e o Opus.
 - **As fitas do escritório** (`make fita CARTUCHO=office_campsverso`) gravam um dia com o repositório de exemplo, e o CI só as reproduz.
 
+> **Como ficou** (16/nov; o adendo da ADR-0080): os cinco passaram na prova (`make conformidade`), o Fable no 5.2, por US$ 0,36. A criação fica com o Sonnet: acertou como o Opus, em menos passos e pela metade do custo.
+
 ### 2.5 A mente com rotina
 
 É uma versão híbrida do nosso harness: o modelo pensa quando há trabalho, e a rotina conduz o resto (ressalva do usuário, ADR-0080).

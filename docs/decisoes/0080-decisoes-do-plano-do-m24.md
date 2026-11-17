@@ -137,3 +137,18 @@ O perfil padrão é a fazenda, byte a byte: os testes da memória e as fitas do 
 - **As ações do gerente viravam "fiz".** Num mundo com mais de um avatar à vista, o `action.completed` de outro avatar chegava à memória como se fosse do dev ("fiz accept_ticket"). O perfil diz agora se as ações dos outros contam (`others_actions`); no escritório, não, porque o pedido conta o que o gerente fez.
 - **A memória de um sandbox ia para o `data/` do repositório,** e não para a pasta do sandbox. Ela passa a seguir o `--data-dir`, como a oficina. Isso também vale para a fazenda: um sandbox antigo retomado depois deste conserto começa sem a memória que tinha.
 
+## Adendo (16/nov, à noite): a prova de conformidade
+
+A ferramenta `make conformidade` (`campsverso_testkit.conformidade`) faz, com cada modelo, dois pedidos curtos num repositório de exemplo: escrever um arquivo com o teste e consertar um defeito que faz um teste falhar, sem mudar o teste.
+- **O caminho é o do escritório:** a sessão da oficina, as instruções e o cartão do dev, as ferramentas da oficina e a de anotar, e a memória vazia na abertura.
+- **A correção é por fora:** os testes de novo, um teste escondido e a revisão da oficina.
+- **Os limites são os da decisão 11 da ADR-0077:** nenhuma recusa, até 5% de respostas sem ação e até dois erros de formato.
+
+**Os cinco passaram, por US$ 0,36 no total,** sem nenhuma resposta sem ação, recusa, erro de formato ou chamada falha. O relatório está em `docs/arena/conformidade-2026-11-16.md`.
+
+**O Fable é o 5.2,** o atual, a US$ 8 e 40 por milhão de tokens, no lugar do 5.1 da arena do M21.
+
+**A criação (decisão 14) fica com o Sonnet 5.5.** Ele e o Opus acertaram tudo; o Sonnet fez em 14 respostas contra 17, em 15 s contra 23 s, e por US$ 0,028 contra 0,066. A prova não ordena qualidade: se a criação mostrar que falta fôlego, o Opus é a troca.
+
+**Ficam para depois as fitas do escritório no CI:** os resultados da oficina trazem o tempo dos testes ("1 passou (1,2 s)"), e o pedido seguinte ao modelo muda a cada execução. Uma fita que o CI reproduza pede esse tempo fora do texto que volta ao modelo.
+
