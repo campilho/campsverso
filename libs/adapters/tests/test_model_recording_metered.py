@@ -181,12 +181,15 @@ def test_tabela_de_precos_do_ambiente() -> None:
         "claude-opus-5-5",
         "claude-opus-4-8",  # o conselheiro (ADR-0074)
         "claude-fable-5-1",
+        "claude-fable-5-2",  # o Fable atual, na prova de conformidade do escritório (ADR-0080)
         "openai/gpt-6-astra",  # as outras famílias, pela OpenRouter (ADR-0074)
         "google/gemini-4-argon",
         "anthropic/claude-haiku-5.5",  # o Haiku pela OpenRouter, para medir o cano (ADR-0076)
     }
     # A tabela conferida em 28/out (ADR-0074): o cache lido do Sonnet 5.5 é 0,10, não 0,20.
     assert env.models["claude-sonnet-5-5"] == ModelPrices(2.00, 10.00, 0.10, 2.50)
+    # O Fable 5.2 (tabela de 3/nov): mais barato que o 5.1; o cache gravado é 1,25 vez a entrada.
+    assert env.models["claude-fable-5-2"] == ModelPrices(8.00, 40.00, 0.20, 10.00)
     # Cada modelo da OpenRouter tem o provedor fixo; os Claude da API da Anthropic não têm rota.
     assert env.routes == {
         "openai/gpt-6-astra": "openai",
