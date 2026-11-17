@@ -62,6 +62,9 @@ class Mind:
     conversation: str = ""
     # O perfil da memória do mundo (o plano do M24, §2.2): None é a fazenda.
     memory: MemoryProfile | None = None
+    # A ferramenta da bancada (o plano do M24, §4), no formato da Messages API: a mente a oferece só
+    # quando há robô na bancada, com os nomes deles.
+    robot_tool: Mapping[str, Any] | None = None
 
     def extend(self, *, card: str | None = None, notes: str | None = None) -> Mind:
         """Uma camada por cima (ADR-0031): o cenário troca o cartão, ou as notas, do gênero."""

@@ -9,6 +9,7 @@ Toda ferramenta recusa um caminho que sai do espaço, inclusive por link simból
 texto limitado em tamanho, com um resumo de uma linha para a tela (o `workshop.step.v1`).
 """
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -78,6 +79,11 @@ class Workspace(Protocol):
 
     async def run_tests(self, path: str = ".") -> ToolResult:
         """O `pytest` de um caminho, isolado: sem rede, escrita só no espaço, sem segredos."""
+        ...
+
+    async def run_robot(self, module: str, args: Sequence[str] = ()) -> ToolResult:
+        """Um robô da bancada (o plano do M24, §4): `python -m <module> <args>` no espaço, com o
+        mesmo isolamento dos testes e o mesmo limite de tempo; a saída, até 60 linhas."""
         ...
 
     async def diff(self) -> ToolResult: ...

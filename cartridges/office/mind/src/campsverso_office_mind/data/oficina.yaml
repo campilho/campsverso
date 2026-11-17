@@ -63,3 +63,21 @@ tools:
       properties:
         resumo: { type: string, description: "Em uma ou duas frases, em português, o que você fez, para o gerente." }
       required: [resumo]
+
+# A ferramenta da bancada (o plano do M24, §4): só aparece quando há robô na bancada. A mente põe em
+# `nome` os robôs que estão lá e acrescenta à descrição o que cada um faz. Quem a executa é o
+# controlador, pela porta da oficina: `python -m <módulo do robô> <argumentos>`, no espaço, sem rede.
+robot_tool:
+  name: chamar_robo
+  description: >-
+    Chama um robô da bancada no seu espaço de trabalho, com os argumentos, e devolve o que ele
+    disse, até 60 linhas. Os robôs são ferramentas do escritório, não pessoas.
+  input_schema:
+    type: object
+    properties:
+      nome: { type: string, description: "O robô." }
+      argumentos:
+        type: array
+        items: { type: string }
+        description: "Os argumentos, um por item, como na linha de comando; [] se nenhum."
+    required: [nome, argumentos]

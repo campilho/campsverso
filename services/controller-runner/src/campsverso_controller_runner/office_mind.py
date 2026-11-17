@@ -23,8 +23,10 @@ sessão, e na conversa.
 
 import asyncio
 import contextlib
+import json
 import time
 from collections.abc import Awaitable, Callable, Mapping, Sequence
+from dataclasses import dataclass
 from typing import Any, cast
 
 from campsverso_controller_runner.runner import Controller
@@ -66,6 +68,47 @@ def doing_ticket(view: Mapping[str, Any]) -> Mapping[str, Any] | None:
         ):
             return entity
     return None
+
+
+@dataclass(frozen=True, slots=True)
+class Robot:
+    """Um robô na bancada (o plano do M24, §4), como a foto o mostra."""
+
+    entity_id: str
+    name: str
+    module: str
+    description: str
+
+
+def robots_in(view: Mapping[str, Any]) -> list[Robot]:
+    """Os robôs da bancada, na ordem dos apoios."""
+    found: list[Robot] = []
+    for entity in _entities(view):
+        attrs = cast(Mapping[str, Any], entity.get("attributes") or {})
+        if entity.get("kind") == "robot" and attrs.get("nome") and attrs.get("modulo"):
+            found.append(
+                Robot(
+                    str(entity["entity_id"]),
+                    str(attrs["nome"]),
+                    str(attrs["modulo"]),
+                    str(attrs.get("descricao") or ""),
+                )
+            )
+    return sorted(found, key=lambda r: r.entity_id)
+
+
+def robot_tool(template: Mapping[str, Any], robots: Sequence[Robot]) -> dict[str, Any]:
+    """A ferramenta da bancada com os robôs que estão nela: os nomes em `nome` e o que cada um faz
+    na descrição."""
+    tool = cast(dict[str, Any], json.loads(json.dumps(template)))
+    present = "; ".join(f"{r.name}: {r.description}" if r.description else r.name for r in robots)
+    tool["description"] = f"{str(tool['description']).strip()} Na bancada agora: {present}."
+    props = cast(dict[str, Any], tool["input_schema"]["properties"])
+    props["nome"] = {
+        **cast(Mapping[str, Any], props.get("nome") or {}),
+        "enum": [r.name for r in robots],
+    }
+    return tool
 
 
 def brief(ticket: Mapping[str, Any]) -> str:
@@ -110,6 +153,7 @@ class OfficeMind:
         self._avatar = avatar_id
         self._model = model
         self._memory = memory
+        self._robot_tool = mind.robot_tool
         note_tool = None if memory is None else memory.settings.profile.note_tool
         self._note = None if note_tool is None else str(note_tool["name"])
         self._tools = [dict(t) for t in session_tools] + (
@@ -259,11 +303,18 @@ class OfficeMind:
         tests = ""
         steps = 0
         await self._await_review()
+        robots = robots_in(self._view or {})
+        bench = (
+            None if self._robot_tool is None or not robots else robot_tool(self._robot_tool, robots)
+        )
+        tools = self._tools + ([] if bench is None else [bench])
         try:
             space = await self._workshop.begin(ticket_id)
 
             async def execute(tool: str, args: Mapping[str, Any]) -> StepOutcome:
                 nonlocal summary, tests
+                if bench is not None and tool == bench["name"]:
+                    return await self._call_robot(space, robots, args)
                 if tool == self._note and self._memory is not None:
                     clock = self._memory.clock or Clock(0, 1, "")
                     written = self._memory.write_note(clock, args.get("texto"))
@@ -283,7 +334,7 @@ class OfficeMind:
                 self._port,
                 model=self._model,
                 system=self._session_system,
-                tools=self._tools,
+                tools=tools,
                 avatar_id=self._avatar,
                 ticket_id=ticket_id,
                 max_steps=self._max_steps,
@@ -300,6 +351,24 @@ class OfficeMind:
             self.failed.add(ticket_id)
         if self.propose is not None:
             await self.propose(outcome)
+
+    async def _call_robot(
+        self, space: Workspace, robots: Sequence[Robot], args: Mapping[str, Any]
+    ) -> StepOutcome:
+        """Um robô da bancada no espaço do pedido (o plano do M24, §4)."""
+        name = str(args.get("nome", ""))
+        found = next((r for r in robots if r.name == name), None)
+        if found is None:
+            names = ", ".join(r.name for r in robots)
+            return StepOutcome(f"não há robô {name!r} na bancada; estão nela: {names}", False)
+        given = args.get("argumentos")
+        argv = (
+            [str(a) for a in cast(Sequence[Any], given)]
+            if isinstance(given, list)
+            else ([] if given is None else [str(given)])
+        )
+        result = await self._workshop.robot(space, found.entity_id, found.module, argv)
+        return StepOutcome(result.text, result.ok)
 
     def _opening(self, ticket: Mapping[str, Any]) -> str:
         """O que abre a sessão: a memória, se ligada, e o pedido."""

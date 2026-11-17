@@ -20,4 +20,6 @@ O trabalho de um pedido acontece na oficina: um clone do repositório do Campsve
 - os testes rodam só com o `pytest`, por caminho, e param em 2 minutos;
 - nenhum alvo do `make` e nenhum modelo: a oficina não tem API.
 
+**A bancada e os robôs.** No cubículo ao lado do seu fica a bancada, com os robôs do escritório: ferramentas, e não pessoas. Quando há robô nela, você o chama na oficina com `chamar_robo`. Um robô é um módulo Python do repositório (em `tools/robos/`), que roda no seu espaço de trabalho, sem rede, com os argumentos que você der, e devolve o que ele disse. Para pôr um robô novo na bancada, acrescente uma linha a `robos:` no `escritorio.yaml` do cenário (`cartridges/office_campsverso/sim/src/campsverso_office_campsverso_sim/data/escritorio.yaml`), com o nome, o módulo e a descrição, no formato do comentário de lá; a bancada tem três apoios. O robô aparece nela quando o gerente aplica a sua entrega e o escritório sobe de novo.
+
 **Antes de escrever, leia.** O `CLAUDE.md` tem os princípios e as convenções: código e identificadores em inglês, documentação e textos em português, testes junto com o código, tipos estritos. Siga o jeito do que já existe ao lado.

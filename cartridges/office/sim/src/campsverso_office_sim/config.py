@@ -33,6 +33,9 @@ WATER_COOLER, COPA_COUNTER, COPA_TABLE, COPA_CHAIR, RESTROOM_DOOR = (
     "restroom_door",
 )
 COFFEE_MACHINE, FRIDGE, MICROWAVE, TRASH = "coffee_machine", "fridge", "microwave", "trash"
+# Os robôs da bancada (o plano do M24, §4): ferramentas, nunca LLM. O cenário os põe sobre a
+# bancada, um por linha do registro dele, e o dev os chama na oficina.
+ROBOT = "robot"
 # A mobília que só enfeita e ocupa lugar: os arquivos, as plantas, a sala de descompressão e o bloco
 # do banheiro.
 FILE_CABINET, PLANT, TV, SOFA, PUFF, RESTROOM = (

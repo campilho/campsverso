@@ -27,6 +27,15 @@ office:
       "2027-11-20": Dia Nacional de Zumbi e da Consciência Negra
       "2027-12-25": Natal
 
+# Os robôs da bancada (o plano do M24, §4): ferramentas, nunca LLM. Cada linha põe um robô num
+# apoio da bancada (no cubículo ao lado do dev), na ordem, até três. O dev o chama na oficina com
+# `chamar_robo`: o módulo Python roda no espaço de trabalho dele, sem rede e sem escrever fora dele,
+# com os argumentos que o dev der (`python -m <modulo> <argumentos>`). Uma linha:
+#   - nome: testador                      # minúsculas, sem espaço; o id do robô é robo-<nome>
+#     modulo: tools.robos.testador        # um módulo do repositório
+#     descricao: Roda os testes que cobrem os caminhos dados e devolve um resumo curto.
+robos: []
+
 # O elenco (ADR-0077): o dev é sempre um LLM ou um script; o humano entra como o gerente.
 cast:
   - id: camps

@@ -100,7 +100,11 @@ def _use(name: str, **given: Any) -> dict[str, Any]:
 
 
 def _snapshot(
-    *, heard: list[dict[str, Any]] | None = None, estado: str = "fazendo", day: int = 1
+    *,
+    heard: list[dict[str, Any]] | None = None,
+    estado: str = "fazendo",
+    day: int = 1,
+    extra: Sequence[dict[str, Any]] = (),
 ) -> dict[str, Any]:
     ticket = {
         "entity_id": "pedido-001",
@@ -117,7 +121,7 @@ def _snapshot(
         "clock": {"tick": 5, "sim_time": "2026-11-16T10:00:00-03:00", "day": day},
         "self": {"entity_id": "camps", "position": {"x": 4, "y": 5}},
         "weather": {},
-        "entities": [ticket],
+        "entities": [ticket, *extra],
         "containers": [],
     }
     if heard:
@@ -142,7 +146,11 @@ def repo(tmp_path: Path) -> Path:
 
 
 def _mind(
-    port: Scripted, repo: Path, tmp_path: Path, memory: Memory | None = None
+    port: Scripted,
+    repo: Path,
+    tmp_path: Path,
+    memory: Memory | None = None,
+    robot_tool: Mapping[str, Any] | None = None,
 ) -> tuple[OfficeMind, list[Mapping[str, Any]], list[str]]:
     proposed: list[Mapping[str, Any]] = []
     steps: list[str] = []
@@ -150,8 +158,8 @@ def _mind(
     async def propose(proposal: Mapping[str, Any]) -> None:
         proposed.append(proposal)
 
-    async def publish(_: str, data: Mapping[str, Any]) -> None:
-        steps.append(str(data["tool"]))
+    async def publish(kind: str, data: Mapping[str, Any]) -> None:
+        steps.append(str(data["tool"]) if "tool" in data else f"{kind}:{data['robot_id']}")
 
     shop = WorkshopSession(
         "office-teste",
@@ -163,7 +171,13 @@ def _mind(
     )
     mind = OfficeMind(
         Routine(),
-        Mind("office", card="Você é o Camps.", notes="O escritório.", tools=()),
+        Mind(
+            "office",
+            card="Você é o Camps.",
+            notes="O escritório.",
+            tools=(),
+            robot_tool=robot_tool,
+        ),
         port,
         shop,
         controller_id="llm/camps",
@@ -388,3 +402,54 @@ async def test_a_conversa_leva_a_memoria(repo: Path, tmp_path: Path) -> None:
     asked = port.requests[0].messages[0]["content"][0]["text"]
     assert asked.startswith("## O que você lembra")
     assert asked.index("## O que você lembra") < asked.index("E o caso vazio?")
+
+
+# ---------------------------------------------------------------- a bancada (o plano do M24, §4)
+
+ROBOT = {
+    "entity_id": "robo-eco",
+    "kind": "robot",
+    "position": {"x": 7, "y": 4},
+    "attributes": {"nome": "eco", "modulo": "tools.eco", "descricao": "Repete os argumentos."},
+}
+
+
+async def test_o_dev_chama_o_robo_da_bancada_na_oficina(repo: Path, tmp_path: Path) -> None:
+    (repo / "tools").mkdir()
+    (repo / "tools" / "__init__.py").write_text("")
+    (repo / "tools" / "eco.py").write_text("import sys\n\nprint('eco:', *sys.argv[1:])\n")
+    subprocess.run([*GIT, "-C", str(repo), "add", "-A"], check=True)
+    subprocess.run([*GIT, "-C", str(repo), "commit", "-q", "-m", "eco"], check=True)
+    template = load_mind("camps_escritorio").robot_tool
+    assert template is not None
+    port = Scripted(
+        [_use("chamar_robo", nome="eco", argumentos=["tools", "tests"])],
+        [_use("chamar_robo", nome="sumido", argumentos=[])],
+        [_use("pronto", resumo="Chamei o eco.")],
+    )
+    mind, proposed, steps = _mind(port, repo, tmp_path, robot_tool=template)
+    await mind.decide(_snapshot(extra=[ROBOT]))
+    assert mind._task is not None  # pyright: ignore[reportPrivateUsage]
+    await mind._task  # pyright: ignore[reportPrivateUsage]
+    offered = {t["name"]: t for t in port.requests[0].tools}
+    bench = offered["chamar_robo"]
+    assert bench["input_schema"]["properties"]["nome"]["enum"] == ["eco"]
+    assert "eco: Repete os argumentos." in bench["description"]
+    first = port.requests[1].messages[-1]["content"][0]
+    assert first["type"] == "tool_result"
+    assert "eco: tools tests" in first["content"]
+    second = port.requests[2].messages[-1]["content"][0]
+    assert second["is_error"] is True
+    assert "não há robô 'sumido' na bancada" in second["content"]
+    assert "campsverso.workshop.robot_called.v1:robo-eco" in steps
+    assert proposed[0]["action"] == "deliver"
+
+
+async def test_sem_robo_na_bancada_nao_ha_chamar_robo(repo: Path, tmp_path: Path) -> None:
+    template = load_mind("camps_escritorio").robot_tool
+    port = Scripted([_use("pronto", resumo="Nada.")])
+    mind, _, _ = _mind(port, repo, tmp_path, robot_tool=template)
+    await mind.decide(_snapshot())
+    assert mind._task is not None  # pyright: ignore[reportPrivateUsage]
+    await mind._task  # pyright: ignore[reportPrivateUsage]
+    assert "chamar_robo" not in {t["name"] for t in port.requests[0].tools}

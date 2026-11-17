@@ -33,6 +33,10 @@ TEST_SECONDS = 120.0
 SKIPPED_DIRS = {".git", ".venv", "__pycache__", "node_modules", ".oficina", ".pytest_cache"}
 # O que fica do espaço fora do diff: a casa e o temporário dos testes.
 LOCAL = ".oficina"
+# Os robôs da bancada (o plano do M24, §4): um módulo Python, com poucos argumentos curtos.
+ROBOT_MODULE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*")
+MAX_ROBOT_ARGS = 20
+MAX_ROBOT_ARG = 300
 _SUMMARY = re.compile(r"(\d+) (passed|failed|error|errors|skipped|xfailed|xpassed)")
 _PLURAL = {"passed": "passaram", "failed": "falharam", "error": "erro", "errors": "erros"}
 
@@ -265,6 +269,42 @@ class LocalWorkspace:
         summary = "rodando os testes: " + (", ".join(parts) or f"saída {code}")
         text = f"{summary} ({took:.1f} s)\n{tail}".rstrip()
         return ToolResult(code == 0, text, summary, path)
+
+    async def run_robot(self, module: str, args: Sequence[str] = ()) -> ToolResult:
+        """Um robô da bancada: `python -m <module> <args>`, no espaço, sem rede e sem escrever
+        fora dele, até o limite de tempo dos testes. A saída volta inteira até 60 linhas; mais
+        que isso, as últimas, onde fica o resumo."""
+        line = f"chamando o robô {module}"
+        if not ROBOT_MODULE.fullmatch(module):
+            return ToolResult(False, f"{module!r} não é um módulo Python", f"{line}: recusado")
+        given = [str(a) for a in args]
+        if len(given) > MAX_ROBOT_ARGS or any(len(a) > MAX_ROBOT_ARG or "\0" in a for a in given):
+            text = f"até {MAX_ROBOT_ARGS} argumentos, de até {MAX_ROBOT_ARG} caracteres"
+            return ToolResult(False, text, f"{line}: recusado")
+        home, temp = self._root / LOCAL / "home", self._root / LOCAL / "tmp"
+        home.mkdir(parents=True, exist_ok=True)
+        temp.mkdir(parents=True, exist_ok=True)
+        env = {
+            "PATH": "/usr/bin:/bin",
+            "HOME": str(home),
+            "TMPDIR": str(temp),
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "TZ": "UTC",
+        }
+        command = [str(self._python), "-m", module, *given]
+        if self._sandbox:
+            command = ["/usr/bin/sandbox-exec", "-p", _sandbox_profile(self._root, temp), *command]
+        started = time.monotonic()
+        code, out = await _run(command, self._root, env, self._test_seconds)
+        took = time.monotonic() - started
+        if code == -1:
+            text = f"o robô passou de {int(self._test_seconds)} s e foi parado"
+            return ToolResult(False, text, f"{line}: tempo esgotado")
+        lines = out.splitlines()
+        shown = lines if len(lines) <= MAX_TEST_LINES else lines[-MAX_TEST_LINES:]
+        summary = f"{line}: saída {code}"
+        text = f"{summary} ({took:.1f} s)\n" + "\n".join(shown)
+        return ToolResult(code == 0, text.rstrip(), summary)
 
     async def _git(self, *args: str) -> str:
         code, out = await _run(["git", "-C", str(self._root), *args], self._root)

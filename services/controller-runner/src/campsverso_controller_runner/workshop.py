@@ -17,6 +17,7 @@ type Review = Callable[[str], list[str]]
 type Publish = Callable[[str, Mapping[str, Any]], Awaitable[None]]
 
 STEP = "campsverso.workshop.step.v1"
+ROBOT_CALLED = "campsverso.workshop.robot_called.v1"
 MAX_STEPS = 200  # o limite de passos de uma sessão (o plano do M24, §3.4)
 
 
@@ -94,6 +95,26 @@ class WorkshopSession:
             data["path"] = result.path[:300]
         if self.publish is not None and tool in TOOLS:
             await self.publish(STEP, data)
+        return result
+
+    async def robot(
+        self, space: Workspace, robot_id: str, module: str, args: Sequence[str]
+    ) -> ToolResult:
+        """Um robô da bancada no espaço (o plano do M24, §4) e o `workshop.robot_called.v1` dele."""
+        started = time.monotonic()
+        given = [str(a) for a in args]
+        result = await space.run_robot(module, given)
+        data: dict[str, Any] = {
+            "avatar_id": self._avatar,
+            "ticket_id": space.ticket_id,
+            "robot_id": robot_id,
+            "args": [a[:300] for a in given[:20]],
+            "summary": (result.summary or module)[:200],
+            "ok": result.ok,
+            "duration_ms": int((time.monotonic() - started) * 1000),
+        }
+        if self.publish is not None:
+            await self.publish(ROBOT_CALLED, data)
         return result
 
     async def finish(

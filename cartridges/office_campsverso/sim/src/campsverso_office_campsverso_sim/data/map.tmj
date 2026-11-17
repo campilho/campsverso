@@ -430,8 +430,8 @@
     },
     {
      "id": 3,
-     "name": "mesa-2",
-     "type": "desk",
+     "name": "bancada",
+     "type": "bench",
      "x": 256,
      "y": 128,
      "width": 32,
@@ -442,7 +442,7 @@
       {
        "name": "display_name",
        "type": "string",
-       "value": "Mesa vazia"
+       "value": "Bancada dos robôs"
       },
       {
        "name": "blocking",
@@ -502,24 +502,6 @@
      "name": "cadeira",
      "type": "chair",
      "x": 128,
-     "y": 160,
-     "width": 32,
-     "height": 32,
-     "rotation": 0,
-     "visible": true,
-     "properties": [
-      {
-       "name": "display_name",
-       "type": "string",
-       "value": "Cadeira"
-      }
-     ]
-    },
-    {
-     "id": 7,
-     "name": "cadeira-2",
-     "type": "chair",
-     "x": 256,
      "y": 160,
      "width": 32,
      "height": 32,

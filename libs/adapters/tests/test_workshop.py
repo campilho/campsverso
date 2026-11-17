@@ -126,6 +126,57 @@ async def test_os_testes_nao_tem_rede_nem_escrevem_fora(repo: Path, tmp_path: Pa
     assert not outside.exists()
 
 
+async def test_o_robo_da_bancada_roda_um_modulo_com_argumentos(repo: Path, tmp_path: Path) -> None:
+    """O plano do M24, §4: `python -m <módulo> <argumentos>` no espaço, e a saída de volta."""
+    space = await _workshop(repo, tmp_path).open("office-teste", "pedido-010")
+    await space.write("tools/__init__.py", "")
+    await space.write(
+        "tools/eco.py",
+        "import sys\n\nprint('robô:', ' '.join(sys.argv[1:]))\n"
+        "sys.exit(1 if 'falhe' in sys.argv else 0)\n",
+    )
+    ok = await space.run_robot("tools.eco", ["tools/soma.py", "tests"])
+    assert ok.ok
+    assert ok.summary == "chamando o robô tools.eco: saída 0"
+    assert "robô: tools/soma.py tests" in ok.text
+    failed = await space.run_robot("tools.eco", ["falhe"])
+    assert (failed.ok, failed.summary) == (False, "chamando o robô tools.eco: saída 1")
+    assert not (await space.run_robot("tools.nada")).ok  # o módulo não existe
+    refused = await space.run_robot("tools.eco; rm -rf /")
+    assert (refused.ok, refused.summary) == (False, "chamando o robô tools.eco; rm -rf /: recusado")
+    assert not (await space.run_robot("tools.eco", ["x" * 400])).ok
+
+
+@pytest.mark.skipif(sys.platform != "darwin", reason="o sandbox-exec é do macOS")
+async def test_o_robo_nao_tem_rede_nem_escreve_fora(repo: Path, tmp_path: Path) -> None:
+    server = socket.socket()
+    server.bind(("127.0.0.1", 0))
+    server.listen(1)
+    port = server.getsockname()[1]
+    outside = tmp_path / "fora-robo.txt"
+    space = await _workshop(repo, tmp_path, sandbox=True).open("office-teste", "pedido-011")
+    await space.write("tools/__init__.py", "")
+    await space.write(
+        "tools/fuga.py",
+        "import socket\nfrom pathlib import Path\n\n"
+        "try:\n"
+        f"    socket.create_connection(('127.0.0.1', {port}), timeout=2)\n"
+        "    print('rede: sim')\n"
+        "except OSError:\n"
+        "    print('rede: não')\n"
+        "try:\n"
+        f"    Path({str(outside)!r}).write_text('x')\n"
+        "    print('fora: sim')\n"
+        "except OSError:\n"
+        "    print('fora: não')\n",
+    )
+    result = await space.run_robot("tools.fuga")
+    server.close()
+    assert "rede: não" in result.text, result.text
+    assert "fora: não" in result.text, result.text
+    assert not outside.exists()
+
+
 def test_a_revisao_recusa_a_constituicao_os_testes_e_as_palavras() -> None:
     def diff(path: str, *added: str, removed: tuple[str, ...] = (), mode: str = "") -> str:
         head = f"diff --git a/{path} b/{path}\n{mode}--- a/{path}\n+++ b/{path}\n@@ -1 +1 @@\n"

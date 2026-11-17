@@ -7,9 +7,11 @@ from typing import Any
 
 import pytest
 
+from campsverso_cartridge_api import Position
 from campsverso_kernel.core import KernelCore, WorldConfig
 from campsverso_kernel.facts import Fact
 from campsverso_kernel.loader import build_world
+from campsverso_office_campsverso_sim.cartridge import robots
 
 SAO_PAULO = timezone(timedelta(hours=-3))
 MONDAY = datetime(2026, 11, 16, tzinfo=SAO_PAULO)
@@ -353,3 +355,40 @@ def test_o_sofa_a_marmita_e_o_menu_de_pausas() -> None:
     _act(core, "camps", "move", {"near": "lixeira"}, DEV)
     _act(core, "camps", "trash", {}, DEV)
     assert core.world.entity_map["camps"].attributes.get("carregando") is None
+
+
+# ------------------------------------------------------------------ a bancada (o plano do M24, §4)
+
+
+def test_a_bancada_fica_no_cubiculo_ao_lado_do_dev_e_comeca_vazia() -> None:
+    core = _core()
+    bench = core.world.entity_map["bancada"]
+    assert (bench.kind, core.world.position_of("bancada")) == ("bench", Position(8, 4))
+    assert "cadeira-2" not in core.world.entity_map  # a cadeira do cubículo saiu
+    assert not [e for e in core.world.entity_map.values() if e.kind == "robot"]
+
+
+def test_os_robos_do_registro_vao_para_os_apoios_da_bancada() -> None:
+    entries = [
+        {"nome": "testador", "modulo": "tools.robos.testador", "descricao": "Roda os testes."},
+        {"nome": "revisor", "modulo": "tools.robos.revisor", "descricao": "Lê o patch."},
+    ]
+    spawned = robots(entries, Position(8, 4))
+    assert [(r.entity_id, r.position) for r in spawned] == [
+        ("robo-testador", Position(7, 4)),
+        ("robo-revisor", Position(8, 4)),
+    ]
+    assert spawned[0].attributes == {
+        "nome": "testador",
+        "modulo": "tools.robos.testador",
+        "descricao": "Roda os testes.",
+    }
+    assert not spawned[0].blocking
+    for bad in (
+        [{"nome": "Testador", "modulo": "tools.x"}],  # maiúscula
+        [{"nome": "t", "modulo": "tools.x; rm -rf /"}],  # não é um módulo
+        [{"nome": "t", "modulo": "a"}, {"nome": "t", "modulo": "b"}],  # repetido
+        [{"nome": f"r{i}", "modulo": "a"} for i in range(4)],  # a bancada tem três apoios
+    ):
+        with pytest.raises(ValueError, match="robos"):
+            robots(bad, Position(8, 4))

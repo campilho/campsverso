@@ -1,6 +1,7 @@
 """Cartucho office_campsverso, o escritório do Campsverso: estende o gênero office (ADR-0078)."""
 
 import json
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -19,6 +20,51 @@ from campsverso_cartridge_api import (
 )
 
 DATA = Path(__file__).parent / "data"
+ROBOT_NAME = re.compile(r"[a-z][a-z0-9_]{0,23}")
+ROBOT_MODULE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*")
+BENCH_SLOTS = 3  # os apoios da bancada: um por tile da pegada dela
+
+
+def bench_of(tmj: Mapping[str, Any]) -> Position:
+    """O tile da bancada no mapa: o meio dela, que bloqueia."""
+    tile = int(tmj["tilewidth"])
+    for layer in cast(list[Mapping[str, Any]], tmj["layers"]):
+        for item in cast(list[Mapping[str, Any]], layer.get("objects") or ()):
+            if item.get("type") == "bench":
+                return Position(int(item["x"]) // tile, int(item["y"]) // tile)
+    raise ValueError("o mapa do escritório não tem bancada")
+
+
+def robots(raw: object, bench: Position) -> list[SpawnDef]:
+    """Os robôs do registro, sobre a bancada: um por apoio, na ordem (o plano do M24, §4)."""
+    entries = cast(list[Mapping[str, Any]], raw or [])
+    if len(entries) > BENCH_SLOTS:
+        raise ValueError(
+            f"robos: a bancada tem {BENCH_SLOTS} apoios, e o registro tem {len(entries)}"
+        )
+    found: list[SpawnDef] = []
+    names: set[str] = set()
+    for slot, entry in enumerate(entries):
+        name, module = str(entry.get("nome", "")), str(entry.get("modulo", ""))
+        if not ROBOT_NAME.fullmatch(name) or name in names:
+            raise ValueError(f"robos: nome inválido ou repetido: {name!r}")
+        if not ROBOT_MODULE.fullmatch(module):
+            raise ValueError(f"robos: {name}: o módulo {module!r} não é um módulo Python")
+        names.add(name)
+        found.append(
+            SpawnDef(
+                f"robo-{name}",
+                "robot",
+                position=Position(bench.x - 1 + slot, bench.y),
+                display_name=name.capitalize(),
+                attributes={
+                    "nome": name,
+                    "modulo": module,
+                    "descricao": " ".join(str(entry.get("descricao", "")).split())[:300],
+                },
+            )
+        )
+    return found
 
 
 @dataclass(frozen=True)
@@ -28,10 +74,13 @@ class OfficeCampsversoCartridge:
     )
 
     def contribute(self, world: WorldBuilder) -> None:
-        world.set_map(json.loads((DATA / "map.tmj").read_text(encoding="utf-8")))
+        tmj = cast(dict[str, Any], json.loads((DATA / "map.tmj").read_text(encoding="utf-8")))
+        world.set_map(tmj)
         state = cast(
             dict[str, Any], yaml.safe_load((DATA / "escritorio.yaml").read_text(encoding="utf-8"))
         )
+        for robot in robots(state.get("robos"), bench_of(tmj)):
+            world.spawn(robot)
         office = cast(Mapping[str, Any], state["office"])
         world.merge_data("office", office)
         door = Position(int(office["door"]["x"]), int(office["door"]["y"]))

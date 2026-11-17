@@ -45,6 +45,7 @@ def _kinds() -> tuple[KindDef, ...]:
         KindDef(config.TV, blocking=True),
         KindDef(config.SOFA, blocking=True),
         KindDef(config.PUFF, blocking=True, attributes={"cor": None}),
+        KindDef(config.ROBOT, attributes={"nome": None, "modulo": None, "descricao": None}),
     )
 
 

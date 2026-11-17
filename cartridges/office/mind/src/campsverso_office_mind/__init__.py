@@ -26,6 +26,13 @@ def workshop_tools() -> list[dict[str, Any]]:
     return [dict(t) for t in cast(Sequence[Mapping[str, Any]], doc["tools"])]
 
 
+def robot_tool() -> dict[str, Any] | None:
+    """A ferramenta da bancada, que a mente oferece quando há robô (o plano do M24, §4)."""
+    doc = cast(Mapping[str, Any], yaml.safe_load(WORKSHOP.read_text(encoding="utf-8")))
+    raw = cast(Mapping[str, Any] | None, doc.get("robot_tool"))
+    return None if raw is None else dict(raw)
+
+
 def session_instructions() -> str:
     return SESSION.read_text(encoding="utf-8")
 
@@ -51,6 +58,7 @@ def mind() -> Mind:
         session=session_instructions(),
         conversation=chat_instructions(),
         memory=memory_profile(),
+        robot_tool=robot_tool(),
     )
 
 
@@ -64,6 +72,7 @@ __all__ = [
     "chat_instructions",
     "memory_profile",
     "mind",
+    "robot_tool",
     "session_instructions",
     "workshop_tools",
 ]
