@@ -1,0 +1,216 @@
+{
+  "specversion": "1.0",
+  "id": "019a8f3c-2b10-7d21-9a00-5e0b2c4d6e80",
+  "source": "/perception/farm-camps-01",
+  "type": "campsverso.perception.delivered.v1",
+  "time": "2026-10-11T22:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/perception/delivered.v1",
+  "worldid": "farm-camps-01",
+  "cartridge": "farm_camps",
+  "tick": 64,
+  "simtime": "2026-03-02T07:04:00-03:00",
+  "seq": 33,
+  "provenance": "simulated",
+  "visibility": "agent",
+  "data": {
+    "avatar_id": "camps",
+    "kind": "snapshot",
+    "as_of_tick": 500,
+    "decision": {
+      "reason": "action_completed",
+      "controller": {
+        "type": "script",
+        "id": "script/farmer-v1"
+      }
+    },
+    "view": {
+      "clock": {
+        "tick": 500,
+        "sim_time": "2026-03-02T14:20:00-03:00",
+        "day": 1,
+        "phase": "meio_dia"
+      },
+      "weather": {
+        "condition": "sun",
+        "day": 1
+      },
+      "self": {
+        "entity_id": "camps",
+        "position": {
+          "x": 12,
+          "y": 9
+        },
+        "needs": {
+          "fome": 62,
+          "energia": 40
+        },
+        "asleep": false
+      },
+      "containers": [
+        {
+          "container_id": "camps",
+          "items": [
+            {
+              "item": "moeda",
+              "qty": 100
+            },
+            {
+              "item": "rabanete",
+              "qty": 3,
+              "expires_in_days": 2
+            }
+          ]
+        },
+        {
+          "container_id": "chest",
+          "items": [
+            {
+              "item": "rabanete",
+              "qty": 5
+            }
+          ]
+        }
+      ],
+      "entities": [
+        {
+          "entity_id": "plot-e-01",
+          "kind": "plot",
+          "position": {
+            "x": 24,
+            "y": 9
+          },
+          "attributes": {
+            "crop": "rabanete",
+            "stage": "madura",
+            "watered_today": false
+          }
+        },
+        {
+          "entity_id": "kiosk",
+          "kind": "kiosk",
+          "position": {
+            "x": 16,
+            "y": 15
+          },
+          "attributes": {
+            "open": true
+          }
+        },
+        {
+          "entity_id": "watering-can",
+          "kind": "watering_can",
+          "container_id": "camps",
+          "attributes": {
+            "charges": 4,
+            "capacity": 10
+          }
+        }
+      ],
+      "map": {
+        "origin": {
+          "x": 0,
+          "y": 0
+        },
+        "rows": [
+          "TTTTTTTTTTTTTTTTTTTTTTTTTTTTRRRR",
+          "TGGGGGGGGGGGGGGGGGGGGGGGGGGGRRRR",
+          "TGWWWWWGGGGGGGGGGGGGGGGGGGGGRRRR",
+          "TGWFFFWGGGGGGGGGGGGGGGGGGGGGRRRR",
+          "TGWFFFWGGGGGGGGGGGGGGGGGGGGGRRRR",
+          "TGWWDWWGGGGGGGGGGGGGGGGGGGGGRRRR",
+          "TGGGPGGGGGGGGGGGGGGGGGGGGGGGRRRR",
+          "TGGGPGGGGGGGGGGGGGGGGGGGGGGGRRRR",
+          "TGGGPGGGGGGGGGGGGGGGGGGGGGGGRRRR",
+          "TGGGPGGGSSSSGGGGGGGGGGGGSSSSRRRR",
+          "TGGGPGGGSSSSGGGGGGGGGGGGSSSSRRRR",
+          "TGGGPGGGGGGGGGGGGGGGGGGGGGGGRRRR",
+          "TGGGPGGGGGGGGGGGGGGGGGGGGGGGRRRR",
+          "TGGGPPPPPPPPPPPPPPPPPPPPPPPPRRRR",
+          "TGGGGGGGGGGGGGGPGGGGGGGGGGGGRRRR",
+          "TGGGGGGGGGGGGGGPGGGGGGGGGGGGRRRR",
+          "TGGGGGGGGGGGGGGPGGGGGGGGGGGGRRRR",
+          "TTTTTTTTTTTTTTTEETTTTTTTTTTTRRRR"
+        ],
+        "legend": {
+          "D": {
+            "kind": "door",
+            "properties": {
+              "passable": true,
+              "water": false
+            }
+          },
+          "E": {
+            "kind": "entrance",
+            "properties": {
+              "passable": true,
+              "water": false
+            }
+          },
+          "F": {
+            "kind": "floor",
+            "properties": {
+              "passable": true,
+              "water": false
+            }
+          },
+          "G": {
+            "kind": "grass",
+            "properties": {
+              "passable": true,
+              "water": false
+            }
+          },
+          "P": {
+            "kind": "path",
+            "properties": {
+              "passable": true,
+              "water": false
+            }
+          },
+          "R": {
+            "kind": "river",
+            "properties": {
+              "passable": false,
+              "water": true
+            }
+          },
+          "S": {
+            "kind": "soil",
+            "properties": {
+              "passable": true,
+              "water": false
+            }
+          },
+          "T": {
+            "kind": "tree",
+            "properties": {
+              "passable": false,
+              "water": false
+            }
+          },
+          "W": {
+            "kind": "wall",
+            "properties": {
+              "passable": false,
+              "water": false
+            }
+          }
+        }
+      }
+    },
+    "events": [
+      {
+        "tick": 498,
+        "type": "campsverso.avatar.spoke.v1",
+        "data": {
+          "avatar_id": "gerente",
+          "action_id": "act-000041",
+          "text": "Faltou o teste da entrada vazia.",
+          "listener_id": "camps"
+        }
+      }
+    ]
+  },
+  "subject": "avatar/camps"
+}

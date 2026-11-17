@@ -37,10 +37,13 @@ DECISION = "campsverso.avatar.decision_requested.v1"
 class PerceptionPolicy:
     """Quem recebe foto ou delta (ADR-0056). Script e replay recebem sempre a foto: a linha de
     base e o replay das sessões antigas não mudam. Quem pede deltas recebe a foto na primeira
-    decisão, ao assumir a posse e a cada `snapshot_every` deltas."""
+    decisão, ao assumir a posse e a cada `snapshot_every` deltas. Com `snapshot_events` (um
+    mundo que pede, o escritório; ADR-0080), a foto leva também o que aconteceu desde a entrega
+    anterior, como o delta: a memória não perde o meio-tempo."""
 
     deltas_for: frozenset[str] = frozenset({"llm"})
     snapshot_every: int = 20
+    snapshot_events: bool = False
 
 
 class PerceptionService:
@@ -142,6 +145,8 @@ class PerceptionService:
                 "as_of_tick": projection.tick,
                 "view": projection.view(avatar_id),
             }
+            if policy.snapshot_events:
+                payload["events"] = list(projection.pending.get(avatar_id, []))
         else:
             payload = projection.delta(avatar_id)
         # O pedido que a entrega responde: o controlador age só com este evento (ADR-0048).

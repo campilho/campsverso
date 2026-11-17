@@ -2534,6 +2534,10 @@ class PerceptionDeliveredV1(BaseModel):
     """
     Tick do kernel (1 minuto simulado na fazenda).
     """
+    events: Annotated[list[SeenEvent] | None, Field(max_length=1000)] = None
+    """
+    O que aconteceu desde a entrega anterior, como no delta, quando o mundo pede (`perception.snapshot_events`, o escritório; ADR-0080): a foto que chega no lugar de um delta não apaga o que a memória precisa guardar. Sem o campo, o que aconteceu no meio-tempo fica de fora, como sempre na fazenda.
+    """
     decision: Annotated[PerceptionDecision | None, Field(title="PerceptionDecision")] = None
     """
     O pedido de decisão que esta foto responde: o motivo e quem deve responder. Basta este evento para o controlador agir (ADR-0048).

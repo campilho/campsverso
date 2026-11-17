@@ -196,6 +196,29 @@ async def test_llm_recebe_foto_depois_deltas_e_foto_de_novo_a_cada_n() -> None:
     assert sent == list(range(6))
 
 
+async def test_a_foto_leva_o_meio_tempo_quando_o_mundo_pede() -> None:
+    """ADR-0080: a memória do dev do escritório perdia o que houve entre o último delta e a foto
+    (a devolução de um pedido, na sessão paga de 16/nov). Sem o pedido do mundo, nada muda."""
+    for asked in (False, True):
+        lab = Lab(PerceptionPolicy(frozenset({"llm"}), snapshot_every=1, snapshot_events=asked))
+        await lab.start()
+        await lab.decide(1, "session_started", "llm/um")
+        await lab.decide(2, "action_completed", "llm/um")  # um delta: a próxima é a foto
+        await lab.world(
+            3, "world.entity.state_changed.v1", entity_id="plot-a", changes={"stage": "broto"}
+        )
+        photo = await lab.decide(4, "action_completed", "llm/um")
+        assert photo["type"] == DELIVERED
+        if asked:
+            assert [e["type"] for e in photo["data"]["events"]] == [
+                "campsverso.world.entity.state_changed.v1"
+            ]
+        else:
+            assert "events" not in photo["data"]  # a fazenda, byte a byte
+        after = await lab.decide(5, "action_completed", "llm/um")
+        assert after["data"]["events"] == []  # a foto zerou a fila: nada repete
+
+
 async def test_script_recebe_sempre_a_foto() -> None:
     lab = Lab()
     await lab.start()

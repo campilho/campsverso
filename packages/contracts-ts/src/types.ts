@@ -1661,6 +1661,12 @@ export interface PerceptionDeliveredV1 {
   avatar_id: EntityId;
   kind: "snapshot";
   as_of_tick: Tick;
+  /**
+   * O que aconteceu desde a entrega anterior, como no delta, quando o mundo pede (`perception.snapshot_events`, o escritório; ADR-0080): a foto que chega no lugar de um delta não apaga o que a memória precisa guardar. Sem o campo, o que aconteceu no meio-tempo fica de fora, como sempre na fazenda.
+   *
+   * @maxItems 1000
+   */
+  events?: SeenEvent[];
   decision?: PerceptionDecision;
   view: PerceptionView;
 }

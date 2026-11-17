@@ -62,7 +62,11 @@ async def run(args: argparse.Namespace) -> int:
         SystemWallClock(),
         Uuid7Ids(),
         telemetry,
-        PerceptionPolicy(frozenset(env.perception.deltas_for), env.perception.snapshot_every),
+        PerceptionPolicy(
+            frozenset(env.perception.deltas_for),
+            env.perception.snapshot_every,
+            snapshot_events=world.snapshot_events,
+        ),
     )
     stop = asyncio.Event()
     for signum in (signal.SIGINT, signal.SIGTERM):

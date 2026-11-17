@@ -162,6 +162,9 @@ class WorldSettings:
     # A cadeira do jogador (ADR-0078): o avatar que a tela do jogador assume. No escritório, o
     # gerente: nenhum humano assume o dev.
     player: str = "camps"
+    # A foto com o que aconteceu no meio-tempo (`perception.snapshot_events`, ADR-0080): a memória
+    # do dev do escritório não perde o que houve entre o último delta e a foto.
+    snapshot_events: bool = False
 
 
 def _read(path: Path) -> Mapping[str, Any]:
@@ -300,9 +303,11 @@ def load_world(path: Path, root: Path | None = None) -> WorldSettings:
         raise ValueError(f"clock.anchor inválido: {anchor!r} (use wall)")
     if anchor == "wall" and mode != "continuous":
         raise ValueError("clock.anchor: wall pede o modo contínuo (o mundo em tempo real)")
+    perception = cast(Mapping[str, Any], doc.get("perception") or {})
     return WorldSettings(
         anchor=anchor,
         workshop=bool(doc.get("workshop", False)),
+        snapshot_events=bool(perception.get("snapshot_events", False)),
         player=str(doc.get("player") or "camps"),
         helpers=tuple(str(a) for a in cast(list[Any], helpers.get("avatars") or [])),
         helper_script=str(helpers.get("script") or "ajudante"),
