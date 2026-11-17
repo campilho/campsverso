@@ -189,6 +189,21 @@ As linhas 23 a 28 entraram depois (15/11, à noite), **só no fim da folha**, pa
 - a luz da noite (abaixo);
 - a prévia em cinco cenas: o pedido no quadro, o almoço, o fim da tarde, as luzes acesas e a ronda no escuro.
 
+**Fase 1, quarta parte (16/11): a oficina dos robôs.**
+- **A bancada** (`bancada.png`, 96 × 64, pegada 3 × 1): de madeira, com tampo de borracha e borda de aço, mais baixa e mais funda que a mesa do dev. Tem um painel perfurado na divisória do fundo (chave de fenda, alicate, rolo de fio, chave inglesa e gavetinhas de peças), um multímetro e um osciloscópio de tubo. São 2 quadros: vazia, com o osciloscópio desligado, e com o osciloscópio ligado, mostrando a onda. Os `apoios` em `metadados.json` dizem onde a âncora de cada robô pousa no tampo: `[[16, 42], [48, 42], [80, 42]]`.
+- **O robô de mesa**, de um corpo-base de brinquedo de lata (32 × 32, âncora (16, 32), 24 px de altura, de frente). Tem uma telinha no peito, a cabeça com visor e olhos acesos e uma antena com uma luz na ponta. Cada robô é uma configuração da cor, da cabeça e do acessório:
+  - o testador: verde-claro, cabeça quadrada, lupa;
+  - o revisor: azul, cabeça redonda, prancheta;
+  - o publicador: vermelho, cabeça quadrada, carimbo.
+
+  Cada um tem a sua folha (`robo_*.png`), com 4 linhas:
+  - 0, parado: 2 quadros, a luz pisca e a telinha fica apagada;
+  - 1, trabalhando: 4 quadros, a antena gira, o braço mexe e as linhas correm na telinha;
+  - 2, passou: 2 quadros, a telinha verde com o sinal de certo;
+  - 3, falhou: 2 quadros, a telinha vermelha com o X.
+- **A mesa do dev** ganha 3 quadros no fim (4 a 6), com o último passo do dev na oficina: lendo um arquivo, os testes verdes e os testes vermelhos.
+- **Duas cores novas,** emissivas como as telas: `ledVerm` (#ff4646) e `ledCiano` (#6ff4ff). A paleta passa a ter 47 cores. Nas tabelas da luz, as duas ficam iguais a si mesmas.
+
 **Fase 2 (só se a arte nova ganhar):**
 - cochilar no puff;
 - a bancada dos robôs, a impressora, a mesa de reunião e o quadro branco;
@@ -221,7 +236,7 @@ Coordenadas em tiles, (coluna, linha):
 | Arquivos | (12, 2) e (13, 2) |
 | Divisórias, fileira de cima | a linha 3, das colunas 2 a 10; e as colunas 2, 6 e 10, nas linhas 4 e 5 |
 | Divisórias, fileira de baixo | a linha 7, das colunas 2 a 10; e as colunas 2, 6 e 10, nas linhas 8 e 9 |
-| Mesas, fileira de cima | (3 a 5, 4), a do Camps, com a cadeira em (4, 5) e a lixeira em (5, 5); (7 a 9, 4), com a cadeira em (8, 5) |
+| Mesas, fileira de cima | (3 a 5, 4), a do Camps, com a cadeira em (4, 5) e a lixeira em (5, 5); em (7 a 9, 4), a bancada dos robôs, sem cadeira (16/11) |
 | Mesas, fileira de baixo | (3 a 5, 8), com a cadeira em (4, 9); (7 a 9, 8), com a cadeira em (8, 9) |
 | Corredores entre as mesas | a linha 6 (entre as fileiras), a linha 10 (abaixo delas) e a coluna 11 (do lado) |
 | Sala de descompressão | o tapete de (14, 3) a (18, 6); o móvel da TV em (15 a 17, 2), centrado no sofá; o sofá de costas em (15 a 17, 5); os puffs em (14, 3), (18, 3) e (18, 5) |

@@ -46,7 +46,9 @@
     "cab": "#66401f",
     "cabEsc": "#452914",
     "amarelo": "#f2c94c",
-    "amareloCl": "#fbe7a0"
+    "amareloCl": "#fbe7a0",
+    "ledVerm": "#ff4646",
+    "ledCiano": "#6ff4ff"
   },
   "coresUsadas": [
     "amarelo",
@@ -75,6 +77,8 @@
     "escuro",
     "grafite",
     "grafiteEsc",
+    "ledCiano",
+    "ledVerm",
     "mad",
     "madCl",
     "madEsc",
@@ -115,7 +119,9 @@
     "sempreAceso": "o corredor, as faces que dão para ele (a parede de baixo e o banheiro) e a janela",
     "emissivas": [
       "telaTexto",
-      "telaBrilho"
+      "telaBrilho",
+      "ledVerm",
+      "ledCiano"
     ],
     "penumbra": {
       "contorno": "contorno",
@@ -162,7 +168,9 @@
       "cab": "cabEsc",
       "cabEsc": "escuro",
       "amarelo": "madCl",
-      "amareloCl": "amarelo"
+      "amareloCl": "amarelo",
+      "ledVerm": "ledVerm",
+      "ledCiano": "ledCiano"
     },
     "escuro": {
       "contorno": "contorno",
@@ -209,7 +217,9 @@
       "cab": "escuro",
       "cabEsc": "contorno",
       "amarelo": "madEsc",
-      "amareloCl": "amareloCl"
+      "amareloCl": "amareloCl",
+      "ledVerm": "ledVerm",
+      "ledCiano": "ledCiano"
     },
     "luminarias": {
       "centrosEmTiles": [
@@ -521,7 +531,7 @@
         96,
         64
       ],
-      "colunas": 4,
+      "colunas": 7,
       "linhas": 1,
       "pegada": [
         3,
@@ -536,8 +546,12 @@
         "apagada",
         "tela 1",
         "tela 2",
-        "tela 3"
-      ]
+        "tela 3",
+        "lendo",
+        "testes verdes",
+        "testes vermelhos"
+      ],
+      "nota": "os quadros 4 a 6 são o último passo do dev na oficina"
     },
     "cadeira": {
       "arquivo": "cadeira.png",
@@ -1002,6 +1016,233 @@
       ],
       "camada": "chao",
       "nota": "3 × 3: cantos, bordas e miolo, que se repete"
+    },
+    "bancada": {
+      "arquivo": "bancada.png",
+      "grupo": "oficina",
+      "quadro": [
+        96,
+        64
+      ],
+      "colunas": 2,
+      "linhas": 1,
+      "pegada": [
+        3,
+        1
+      ],
+      "ancora": [
+        48,
+        64
+      ],
+      "camada": "normal",
+      "quadros": [
+        "vazia",
+        "osciloscópio ligado"
+      ],
+      "apoios": [
+        [
+          16,
+          42
+        ],
+        [
+          48,
+          42
+        ],
+        [
+          80,
+          42
+        ]
+      ],
+      "nota": "os apoios são onde a âncora de cada robô pousa no tampo, um por tile da pegada, na ordem do registro"
+    },
+    "robo_testador": {
+      "arquivo": "robo_testador.png",
+      "grupo": "oficina",
+      "quadro": [
+        32,
+        32
+      ],
+      "colunas": 4,
+      "linhas": 4,
+      "pegada": null,
+      "ancora": [
+        16,
+        32
+      ],
+      "camada": "normal",
+      "quadros": [
+        "parado",
+        "trabalhando",
+        "passou",
+        "falhou"
+      ],
+      "animacoes": {
+        "parado": {
+          "linha": 0,
+          "quadros": 2,
+          "direcoes": [
+            "baixo"
+          ]
+        },
+        "trabalhando": {
+          "linha": 1,
+          "quadros": 4,
+          "direcoes": [
+            "baixo"
+          ]
+        },
+        "passou": {
+          "linha": 2,
+          "quadros": 2,
+          "direcoes": [
+            "baixo"
+          ]
+        },
+        "falhou": {
+          "linha": 3,
+          "quadros": 2,
+          "direcoes": [
+            "baixo"
+          ]
+        }
+      },
+      "configuracao": {
+        "cor": "verde-claro",
+        "rampa": [
+          "branco",
+          "verdeCl",
+          "verde",
+          "verdeEsc"
+        ],
+        "cabeca": "quadrada",
+        "acessorio": "lupa"
+      }
+    },
+    "robo_revisor": {
+      "arquivo": "robo_revisor.png",
+      "grupo": "oficina",
+      "quadro": [
+        32,
+        32
+      ],
+      "colunas": 4,
+      "linhas": 4,
+      "pegada": null,
+      "ancora": [
+        16,
+        32
+      ],
+      "camada": "normal",
+      "quadros": [
+        "parado",
+        "trabalhando",
+        "passou",
+        "falhou"
+      ],
+      "animacoes": {
+        "parado": {
+          "linha": 0,
+          "quadros": 2,
+          "direcoes": [
+            "baixo"
+          ]
+        },
+        "trabalhando": {
+          "linha": 1,
+          "quadros": 4,
+          "direcoes": [
+            "baixo"
+          ]
+        },
+        "passou": {
+          "linha": 2,
+          "quadros": 2,
+          "direcoes": [
+            "baixo"
+          ]
+        },
+        "falhou": {
+          "linha": 3,
+          "quadros": 2,
+          "direcoes": [
+            "baixo"
+          ]
+        }
+      },
+      "configuracao": {
+        "cor": "azul",
+        "rampa": [
+          "azulCl",
+          "azul",
+          "azulEsc",
+          "marEsc"
+        ],
+        "cabeca": "redonda",
+        "acessorio": "prancheta"
+      }
+    },
+    "robo_publicador": {
+      "arquivo": "robo_publicador.png",
+      "grupo": "oficina",
+      "quadro": [
+        32,
+        32
+      ],
+      "colunas": 4,
+      "linhas": 4,
+      "pegada": null,
+      "ancora": [
+        16,
+        32
+      ],
+      "camada": "normal",
+      "quadros": [
+        "parado",
+        "trabalhando",
+        "passou",
+        "falhou"
+      ],
+      "animacoes": {
+        "parado": {
+          "linha": 0,
+          "quadros": 2,
+          "direcoes": [
+            "baixo"
+          ]
+        },
+        "trabalhando": {
+          "linha": 1,
+          "quadros": 4,
+          "direcoes": [
+            "baixo"
+          ]
+        },
+        "passou": {
+          "linha": 2,
+          "quadros": 2,
+          "direcoes": [
+            "baixo"
+          ]
+        },
+        "falhou": {
+          "linha": 3,
+          "quadros": 2,
+          "direcoes": [
+            "baixo"
+          ]
+        }
+      },
+      "configuracao": {
+        "cor": "vermelho",
+        "rampa": [
+          "vermCl",
+          "verm",
+          "vermEsc",
+          "cabEsc"
+        ],
+        "cabeca": "quadrada",
+        "acessorio": "carimbo"
+      }
     },
     "camps": {
       "arquivo": "camps.png",
