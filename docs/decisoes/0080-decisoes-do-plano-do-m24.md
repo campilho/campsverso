@@ -152,3 +152,13 @@ A ferramenta `make conformidade` (`campsverso_testkit.conformidade`) faz, com ca
 
 **Ficam para depois as fitas do escritório no CI:** os resultados da oficina trazem o tempo dos testes ("1 passou (1,2 s)"), e o pedido seguinte ao modelo muda a cada execução. Uma fita que o CI reproduza pede esse tempo fora do texto que volta ao modelo.
 
+## Adendo (16/nov, à noite): a bancada, o registro de robôs e o ver o patch
+
+A parte 4 começou pelo que a criação precisa antes do pedido do testador.
+- **O ver o patch:** o pedido entregue tem o botão "Ver o patch", com os arquivos, as linhas a mais e a menos e o diff. O gateway serve o depósito de entregas só para leitura, e só `.patch` e `.json` (`/content/entregas/<chave>`).
+- **A bancada:** volta à sala no cubículo ao lado do dev, no lugar da mesa vazia de (8, 4), e a cadeira desse cubículo sai. Até a arte do Claude Design chegar (o pedido em `docs/design/briefing-arte-bancada.md`), ela usa a mesa com a tela apagada, e o robô é um desenho provisório.
+- **O registro de robôs:** a lista `robos:` no `escritorio.yaml` do cenário, que começa vazia. Cada linha (o nome, o módulo Python e a descrição) põe um robô num dos três apoios da bancada, como uma entidade `robot` com o módulo nos atributos. O cartucho recusa um nome fora do formato, um nome repetido, um módulo que não é módulo Python e mais de três robôs.
+- **A ferramenta `chamar_robo`:** a mente a oferece só quando há robô na bancada, com os nomes deles no enum e o que cada um faz na descrição. O robô roda pela porta da oficina (`run_robot`): `python -m <módulo> <argumentos>` no espaço do pedido, sob o mesmo `sandbox-exec` dos testes, sem rede e sem escrever fora dele, até o mesmo limite de tempo. A saída volta até 60 linhas.
+- **O evento novo, `workshop.robot_called.v1`,** e não um valor novo no enum de ferramentas do `workshop.step.v1`, o que seria incompatível. A animação do robô (trabalhando, passou, falhou) espera a arte, e com ela o campo no estado da tela.
+- **As notas do escritório** contam ao dev onde fica a bancada e como pôr um robô novo nela.
+
