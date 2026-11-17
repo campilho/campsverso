@@ -28,6 +28,9 @@ models:  # dólares por milhão de tokens, tabela conferida em 28/out/2026 (ADR-
   claude-opus-4-8: {input_per_mtok: 5.00, output_per_mtok: 25.00, cache_read_per_mtok: 0.50, cache_write_per_mtok: 6.25}
   # O Fable 5.1 (ADR-0074, decisão 18), pela API da Anthropic.
   claude-fable-5-1: {input_per_mtok: 10.00, output_per_mtok: 50.00, cache_read_per_mtok: 0.25, cache_write_per_mtok: 12.50}
+  # O Fable 5.2, o atual (a prova de conformidade do M24, ADR-0080), pela tabela de 3/nov/2026: mais
+  # barato que o 5.1; o cache gravado é 1,25 × a entrada.
+  claude-fable-5-2: {input_per_mtok: 8.00, output_per_mtok: 40.00, cache_read_per_mtok: 0.20, cache_write_per_mtok: 10.00}
   # As outras famílias, pela OpenRouter (ADR-0074, decisões 10 e 11): `openrouter` é o provedor fixo,
   # sem fallback. O custo de cada chamada vem da resposta; a tabela é a guarda e a estimativa.
   # Lista de 29/out/2026, em https://openrouter.ai/api/v1/models/<id>/endpoints.

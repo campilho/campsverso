@@ -23,7 +23,7 @@ NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR BUDGET MIND
 .DEFAULT_GOAL := help
 .PHONY: help setup contracts check lint fmt types test arch contracts-check compat escritorio aplicar \
         up stop run ui ui-build sandbox jogar soak replay metrics ui-e2e mapa-visual mapa-variantes arte-escritorio sessoes tools secrets fita corrida \
-        arena arena-report arena-humano assistir juiz
+        arena arena-report arena-humano assistir juiz conformidade
 
 help: ## lista os alvos
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-16s %s\n", $$1, $$2}'
@@ -111,6 +111,9 @@ sandbox: tools ui-build ## mundo descartável com tudo ligado, em data/sandbox/<
 
 jogar: tools ui-build ## o sandbox de quem joga: começa pausado e a tela do jogador assume o Camps ao abrir; make jogar MUNDO=farm-morada-do-sol-04; RETOMAR=data/sandbox/<pasta> continua de onde parou (pause antes do Ctrl+C)
 	$(PY) python -m campsverso_testkit.sandbox --world config/worlds/$(MUNDO).yaml --out $(or $(RETOMAR),data/sandbox/$$(date +%Y%m%d-%H%M%S)) $(if $(RETOMAR),--retomar,) --jogar
+
+conformidade: ## a prova de conformidade do escritório (ADR-0077, decisão 11): dois pedidos curtos num repositório de exemplo, para cada modelo; chama a API. MODELOS=claude-sonnet-5-5,claude-opus-5-5 escolhe
+	uv run --locked --env-file .env python -m campsverso_testkit.conformidade $(if $(MODELOS),--modelos $(MODELOS),)
 
 DIAS ?= 1
 
