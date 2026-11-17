@@ -2716,6 +2716,51 @@ class RulesToggledV1(BaseModel):
     """
 
 
+class Arg(RootModel[str]):
+    root: Annotated[str, Field(max_length=300)]
+
+
+class WorkshopRobotCalledV1(BaseModel):
+    """
+    O dev chamou um robô da bancada na oficina (o plano do M24, §4; ADR-0080): o robô, uma linha do que ele disse, se deu certo e a duração. Um robô é uma ferramenta, nunca um LLM: um módulo Python do repositório, que roda no espaço de trabalho do dev, sem rede. Como o passo da oficina, quem publica é o controlador, e o kernel nunca o vê; a tela anima o robô na bancada pelo resultado.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Quem chamou o robô.
+    """
+    ticket_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O pedido do espaço de trabalho.
+    """
+    robot_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O robô na bancada (robo-<nome>).
+    """
+    args: Annotated[list[Arg] | None, Field(max_length=20)] = None
+    """
+    Os argumentos que o dev deu ao robô.
+    """
+    summary: Annotated[str, Field(max_length=200, min_length=1)]
+    """
+    Uma linha do que aconteceu, como "chamando o robô tools.robos.testador: saída 0".
+    """
+    ok: bool
+    """
+    Falso quando o robô saiu com erro, foi recusado ou passou do tempo.
+    """
+    duration_ms: Annotated[int, Field(ge=0)]
+
+
 class WorkshopStepV1(BaseModel):
     """
     Um passo do dev na oficina (ADR-0080): a ferramenta, o caminho e uma linha do que aconteceu. É o computador do dev, e não o mundo: quem publica é o controlador, e o kernel nunca o vê. A tela mostra o último passo no monitor da mesa; o arquivo guarda todos.

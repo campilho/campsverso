@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/workshop/robot_called.v1",
+  "title": "WorkshopRobotCalledV1",
+  "description": "O dev chamou um robô da bancada na oficina (o plano do M24, §4; ADR-0080): o robô, uma linha do que ele disse, se deu certo e a duração. Um robô é uma ferramenta, nunca um LLM: um módulo Python do repositório, que roda no espaço de trabalho do dev, sem rede. Como o passo da oficina, quem publica é o controlador, e o kernel nunca o vê; a tela anima o robô na bancada pelo resultado.",
+  "x-type": "campsverso.workshop.robot_called.v1",
+  "x-visibility": "observer",
+  "x-producer": "controller",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "avatar_id",
+    "ticket_id",
+    "robot_id",
+    "summary",
+    "ok",
+    "duration_ms"
+  ],
+  "properties": {
+    "avatar_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "Quem chamou o robô."
+    },
+    "ticket_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "O pedido do espaço de trabalho."
+    },
+    "robot_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "O robô na bancada (robo-<nome>)."
+    },
+    "args": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {"type": "string", "maxLength": 300},
+      "description": "Os argumentos que o dev deu ao robô."
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Uma linha do que aconteceu, como \"chamando o robô tools.robos.testador: saída 0\"."
+    },
+    "ok": {
+      "type": "boolean",
+      "description": "Falso quando o robô saiu com erro, foi recusado ou passou do tempo."
+    },
+    "duration_ms": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

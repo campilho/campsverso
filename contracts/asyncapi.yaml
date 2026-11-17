@@ -701,6 +701,17 @@ channels:
     messages:
       RulesToggledV1:
         $ref: '#/components/messages/RulesToggledV1'
+  WorkshopRobotCalledV1:
+    address: campsverso.{worldid}.observer.workshop.robot_called.v1
+    title: campsverso.workshop.robot_called.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorkshopRobotCalledV1:
+        $ref: '#/components/messages/WorkshopRobotCalledV1'
   WorkshopStepV1:
     address: campsverso.{worldid}.observer.workshop.step.v1
     title: campsverso.workshop.step.v1
@@ -1458,6 +1469,13 @@ operations:
     messages:
     - $ref: '#/channels/RulesToggledV1/messages/RulesToggledV1'
     x-producer: kernel
+  sendWorkshopRobotCalledV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorkshopRobotCalledV1'
+    messages:
+    - $ref: '#/channels/WorkshopRobotCalledV1/messages/WorkshopRobotCalledV1'
+    x-producer: controller
   sendWorkshopStepV1:
     action: send
     channel:
@@ -4480,6 +4498,51 @@ components:
           maxLength: 64
         effective_at_tick:
           $ref: '#/components/schemas/Tick'
+    WorkshopRobotCalledV1:
+      title: WorkshopRobotCalledV1
+      description: 'O dev chamou um robô da bancada na oficina (o plano do M24, §4; ADR-0080): o robô,
+        uma linha do que ele disse, se deu certo e a duração. Um robô é uma ferramenta, nunca um LLM:
+        um módulo Python do repositório, que roda no espaço de trabalho do dev, sem rede. Como o passo
+        da oficina, quem publica é o controlador, e o kernel nunca o vê; a tela anima o robô na bancada
+        pelo resultado.'
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - ticket_id
+      - robot_id
+      - summary
+      - ok
+      - duration_ms
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: Quem chamou o robô.
+        ticket_id:
+          $ref: '#/components/schemas/EntityId'
+          description: O pedido do espaço de trabalho.
+        robot_id:
+          $ref: '#/components/schemas/EntityId'
+          description: O robô na bancada (robo-<nome>).
+        args:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            maxLength: 300
+          description: Os argumentos que o dev deu ao robô.
+        summary:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: 'Uma linha do que aconteceu, como "chamando o robô tools.robos.testador: saída
+            0".'
+        ok:
+          type: boolean
+          description: Falso quando o robô saiu com erro, foi recusado ou passou do tempo.
+        duration_ms:
+          type: integer
+          minimum: 0
     WorkshopStepV1:
       title: WorkshopStepV1
       description: 'Um passo do dev na oficina (ADR-0080): a ferramenta, o caminho e uma linha do que
@@ -6584,6 +6647,18 @@ components:
         $ref: '#/components/schemas/RulesToggledV1'
       x-visibility: internal
       x-producer: kernel
+    WorkshopRobotCalledV1:
+      name: campsverso.workshop.robot_called.v1
+      title: WorkshopRobotCalledV1
+      summary: 'O dev chamou um robô da bancada na oficina (o plano do M24, §4; ADR-0080): o robô, uma
+        linha do que ele disse, se deu certo e a duração. Um robô é uma ferramenta, nunca um LLM: um módulo
+        Python do repositório, que roda no espaço de trabalho do dev, sem rede. Como o passo da oficina,
+        quem publica é o controlador, e o kernel nunca o vê; a tela anima o robô na bancada pelo resultado.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorkshopRobotCalledV1'
+      x-visibility: observer
+      x-producer: controller
     WorkshopStepV1:
       name: campsverso.workshop.step.v1
       title: WorkshopStepV1

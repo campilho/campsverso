@@ -516,6 +516,14 @@ CONTRACT_TYPES: Final[dict[str, ContractType]] = {
             models.RulesToggledV1,
         ),
         ContractType(
+            "campsverso.workshop.robot_called.v1",
+            "event",
+            "observer",
+            "controller",
+            "contracts://events/workshop/robot_called.v1",
+            models.WorkshopRobotCalledV1,
+        ),
+        ContractType(
             "campsverso.workshop.step.v1",
             "event",
             "observer",
