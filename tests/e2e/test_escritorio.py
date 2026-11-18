@@ -3,6 +3,8 @@ gerente-script trocam envelopes pelo barramento, como trocariam pelo NATS."""
 
 from typing import Any
 
+from campsverso_kernel.loader import build_world
+from campsverso_testkit.escritorio import office_report
 from campsverso_testkit.pipeline import Pipeline
 
 
@@ -27,6 +29,14 @@ async def test_um_dia_de_pedidos_do_quadro_a_entrega() -> None:
     assert pipeline.of_type("action.rejected.v1") == []
     spoken = [d["text"] for d in pipeline.of_type("avatar.spoke.v1")]
     assert "Entreguei o pedido 1: Ferramenta de busca no código (dia 1)." in spoken
+    # Os invariantes do soak (o plano do M24, §8) já no primeiro dia: os pedidos entregues, as
+    # pausas e o almoço do dev, e ninguém na copa fora do expediente.
+    schedule = build_world("office_campsverso").data["office"]["schedule"]
+    report = office_report(pipeline.kernel_events(), schedule)
+    assert report.problems == []
+    assert report.workdays == ["2026-11-16"]
+    assert report.pauses["2026-11-16"] >= 1
+    assert report.lunches["2026-11-16"] == 1
 
 
 async def test_o_vigia_so_esta_quando_o_dev_nao_esta() -> None:

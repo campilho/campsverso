@@ -1,10 +1,11 @@
 /** O escritório no navegador (ADR-0078): o humano entra como o gerente, escreve um pedido no
- * quadro, fala com o dev e aceita o que ele entregou. */
+ * quadro, fala com o dev (que para e responde), vê o patch da entrega (ADR-0080), a aceita e toma
+ * um café na copa. */
 import { expect, test } from "@playwright/test";
 
-import { SHOTS } from "./tela.ts";
+import { SHOTS, tile } from "./tela.ts";
 
-test("o gerente entra, escreve um pedido, fala com o dev e aceita a entrega", async ({ page }) => {
+test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a entrega", async ({ page }) => {
   await page.goto("/?assumir=1");
   const hud = page.locator(".hud");
   await expect(hud).toContainText("human/camps-browser", { timeout: 45_000 }); // o gerente é do humano
@@ -49,14 +50,30 @@ test("o gerente entra, escreve um pedido, fala com o dev e aceita a entrega", as
     });
   await expect.poll(camps, { timeout: 20_000 }).toEqual({ x: 4, y: 5 }); // o cubículo de cima (ADR-0082)
 
+  // A fala que interrompe (ADR-0080): o dev para o bloco de trabalho e responde ao gerente.
+  const said = (): Promise<string[]> =>
+    page.evaluate(() => (window as unknown as { campsverso: { said(id: string): string[] } }).campsverso.said("camps"));
+  const heardBefore = (await said()).length;
   const speech = page.getByPlaceholder("Fale com o dev e aperte Enter");
-  await speech.fill("Bom dia, Camps! Como vai a busca?");
+  await speech.fill("Camps, como vai a busca?");
   await speech.press("Enter");
   await expect(speech).toHaveValue("");
+  await expect.poll(async () => (await said()).slice(heardBefore), { timeout: 20_000 }).toContain("Anotado.");
 
   // A 72×, os 15 minutos de trabalho do dev-script passam em uns 13 segundos.
   await expect(office.locator(".entregue")).toContainText("#1", { timeout: 60_000 });
   await page.screenshot({ path: `${SHOTS}/escritorio.png` });
+
+  // O "ver o patch" (ADR-0080): sem modelo, a sessão fixa do dev-script na oficina registra o
+  // pedido num arquivo, e o patch vai ao depósito de entregas do sandbox.
+  await office.getByRole("button", { name: "Ver o patch" }).click();
+  const patch = page.locator("dialog.delivery");
+  await expect(patch).toContainText("docs/oficina/pedido-001.md", { timeout: 10_000 });
+  await expect(patch.locator(".delivery-counts")).toContainText("1 arquivo(s)");
+  await expect(patch.locator(".diff-add").filter({ hasText: "# Pedido 1: Ferramenta de busca" })).toBeVisible();
+  await page.screenshot({ path: `${SHOTS}/escritorio-patch.png` });
+  await patch.getByRole("button", { name: "fechar" }).click();
+  await expect(patch).toBeHidden();
   await office.getByRole("button", { name: "Aceitar" }).click();
   await expect(office.locator(".aceito")).toContainText("#1", { timeout: 30_000 });
 
@@ -97,4 +114,12 @@ test("o gerente entra, escreve um pedido, fala com o dev e aceita a entrega", as
   await expect.poll(async () => (await drawn("gerente"))?.x ?? 0, { intervals: [25], timeout: 3_000 }).toBeLessThan(end - 0.05);
   expect(Date.now() - clicked).toBeLessThan(800); // o clique anda logo (em geral, em 100 ms)
   await expect.poll(() => drawn("gerente"), { timeout: 5_000 }).toEqual(goal);
+
+  // A pausa do gerente (ADR-0082): o menu da máquina de café, na copa, e o café no HUD dele.
+  const machine = await tile(page, 13, 9);
+  await page.mouse.click(machine.x, machine.y, { button: "right" });
+  const menu = page.locator(".action-menu");
+  await menu.getByRole("button", { name: "Tomar um café" }).click();
+  await expect(hud).toContainText("fazendo: coffee", { timeout: 30_000 });
+  await page.screenshot({ path: `${SHOTS}/escritorio-cafe.png` });
 });

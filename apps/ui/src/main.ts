@@ -112,11 +112,14 @@ const icons = new ItemIcons(() => {
   lastClock = ""; // a folha dos ícones chegou: o HUD se redesenha no próximo quadro
 });
 // Para os testes no navegador (Playwright): onde fica, na tela, o centro de um tile; o que o
-// jogador enxerga nele; o ícone de um item; onde a tela desenhou um avatar no último quadro.
+// jogador enxerga nele; o ícone de um item; onde a tela desenhou um avatar no último quadro; o que
+// cada avatar falou (a fala que interrompe, ADR-0080).
+const saidBy = new Map<string, string[]>();
 Object.assign(window, {
   campsverso: {
     tileCenter: (x: number, y: number) => map.clientOf?.(x, y),
     drawn: (id: string) => map.motion.drawn(id),
+    said: (id: string) => saidBy.get(id) ?? [],
     sight: (x: number, y: number) => map.sight?.(x, y),
     itemIcon: (item: string) => icons.url(item),
   },
@@ -275,6 +278,7 @@ store.onEvents((events) => {
     const data = event.data as Record<string, unknown> | undefined;
     if (event.type === SPOKE && typeof data?.avatar_id === "string" && typeof data.text === "string") {
       map.speak?.(data.avatar_id, data.text); // o balão (ADR-0078); a linha do tempo guarda o texto inteiro
+      saidBy.set(data.avatar_id, [...(saidBy.get(data.avatar_id) ?? []), data.text].slice(-20));
     }
     if (event.type === MOVED && data !== undefined) {
       observeMove(data);

@@ -4,7 +4,8 @@ arquivador, sem intervenção, por N dias simulados (ADR-0047, decisão 3).
     uv run python -m campsverso_testkit.soak --days 30 [--out data/soak/agora]
 
 Ao fim, mostra o tempo real, a memória máxima de cada processo e as métricas da bíblia §13, lidas
-do arquivo JSONL da própria execução. Nada vai para o mundo oficial: tudo fica na pasta `--out`.
+do arquivo JSONL da própria execução; num mundo do escritório, os invariantes dele (o plano do M24,
+§8; `campsverso_testkit.escritorio`). Nada vai para o mundo oficial: tudo fica na pasta `--out`.
 """
 
 import argparse
@@ -26,6 +27,7 @@ import yaml
 from campsverso_adapters import NatsBus, load_env, load_world
 from campsverso_kernel.loader import build_world, discover
 from campsverso_ports import Envelope
+from campsverso_testkit.escritorio import office_report
 from campsverso_testkit.nats_server import REPO, NatsServer, nats_server
 from campsverso_tools.metrics import compute, read_archive
 
@@ -215,7 +217,21 @@ async def run(
         result.max_rss_mb = processes.max_rss
     folder = out / "archive" / str(yaml.safe_load(source.read_text(encoding="utf-8"))["worldid"])
     if folder.exists():
-        result.metrics = compute(read_archive(folder)).totals()
+        office = build_world(cartridge).data.get("office")
+        if office is None:
+            result.metrics = compute(read_archive(folder)).totals()
+        else:  # o escritório: os invariantes do plano do M24, §8, no lugar das métricas da fazenda
+            report = office_report(read_archive(folder), office["schedule"])
+            result.metrics = {
+                "dias_de_expediente": report.workdays,
+                "pedidos": report.created,
+                "entregues": report.delivered,
+                "pausas": report.pauses,
+                "almocos": report.lunches,
+                "problemas": report.problems,
+            }
+            if result.ok and not report.ok:
+                result.ok, result.reason = False, f"invariantes do escritório: {report.problems[0]}"
     return result
 
 
