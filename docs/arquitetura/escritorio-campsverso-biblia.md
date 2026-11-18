@@ -22,7 +22,7 @@ O escritório vivo é o mundo `office-campsverso-01` (`make escritorio`). O `off
 
 ## 3. A sala
 
-Uma sala de 20 × 14 tiles com as paredes, e o corredor embaixo, na planta da arte nova (ADR-0082; a prévia em `docs/design/escritorio-arte/escritorio-arte.html`).
+Uma sala de 20 × 14 tiles com as paredes, e o corredor embaixo, em duas linhas (o mapa tem 20 × 16), na planta da arte nova (ADR-0082; a prévia em `docs/design/escritorio-arte/escritorio-arte.html`).
 
 | Coisa | Tile | Tipo |
 |---|---|---|

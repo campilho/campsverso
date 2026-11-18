@@ -33,3 +33,20 @@ A arte LPC do M23 ficou com uma cara estranha para o usuário. O teste de arte d
 - **As animações vieram depois, sem mudar o mundo:** comer sentado, carregar a marmita, jogar videogame no sofá, a luz da noite e a lanterna do vigia.
 - **Os testes que conheciam a sala antiga** (a cadeira do dev em (5,7), o balcão da copa, o posto do vigia) passaram para a planta nova.
 - **Um soak de um dia** na planta nova: o almoço nas quatro etapas, duas idas ao banheiro pelo corredor, os 4 pedidos do dia entregues e nenhuma recusa.
+
+## Adendo (18/nov): os ajustes finos da tela
+
+Os prints de 18/nov para o celular mostraram o que o usuário chamou de "meio feio": o rótulo da ação sobre a cabeça, na fonte do sistema, largo e encavalado quando duas pessoas fazem a mesma coisa lado a lado; o corredor claro e de muito contraste, que puxa o olho para fora da sala; e as plantas, todas iguais. O usuário aprovou o rumo.
+
+- **O balão com ícone, a fonte e as plantas são arte:** o pedido ao Claude Design está em `docs/design/briefing-arte-baloes.md`. Ele inclui:
+  - o balão de ação de 24 × 24 com um ícone de 16 × 16 por ação, para o escritório e as fazendas, e o progresso num fio na base;
+  - a etiqueta escura e o balão de fala em nove fatias;
+  - uma fonte pixel própria com os acentos do português;
+  - o piso do corredor mais escuro e calmo;
+  - duas plantas novas.
+- **O que é código veio antes da arte:**
+  - **Sem rótulo sobre a cabeça para o óbvio:** andar, esperar e falar (a fala já tem o balão). O retrato do HUD continua dizendo.
+  - **Os rótulos que se tocam** (`declutter`, uma função pura das caixas): dois iguais viram um só, entre os dois, e diferentes se empilham. Serve ao texto de hoje e ao balão com ícone.
+  - **O corredor com duas linhas, e não três.** A de baixo não tinha uso: a entrada é (9, 15) e o posto do vigia, (11, 14).
+  - **À noite, o corredor fica na penumbra** (`lights.dim`), e as faces da parede de baixo e do banheiro que dão para ele também. Antes ficava sempre aceso. A janela continua acesa, e a lanterna acende por cima da penumbra.
+- **O relógio já seguia a hora do mundo** desde 15/nov (`time_tiles.clock`): o ponteiro das horas anda e o dos minutos fica no 12, como o usuário queria.
