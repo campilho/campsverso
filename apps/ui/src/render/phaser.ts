@@ -45,6 +45,7 @@ import { Balloons } from "../speech.ts";
 import { progressOf } from "../progress.ts";
 import { clockText } from "../simclock.ts";
 import { tileAt, type TileGrid } from "../tiled.ts";
+import { workshopFrame, workshopState } from "../workshop.ts";
 import { tileUnder, type WorldRenderer } from "./renderer.ts";
 
 const TILE = 32;
@@ -375,6 +376,9 @@ class WorldScene extends Phaser.Scene {
   private readonly seen = new Map<string, Point>(); // onde cada avatar aparece agora, em tiles
   /** O que fazem os que estão sentados, pelo tile à frente do assento: a mesa em uso. */
   private readonly using = new Map<string, string[]>();
+  /** Quem está ao lado de cada tile, fazendo alguma ação: o dono da mesa, para o monitor dela
+   * mostrar o último passo dele na oficina (ADR-0080). */
+  private readonly users = new Map<string, string[]>();
   /** O que fazem todos os avatares agora: a TV mostra o jogo de quem joga no sofá (ADR-0082). */
   private doing: string[] = [];
   /** A luz da noite (ADR-0082): uma imagem do tamanho do mapa, por cima das coisas e dos avatares,
@@ -457,7 +461,7 @@ class WorldScene extends Phaser.Scene {
       this.terrainDirty = true;
     }
     this.drawAvatars(frame, time);
-    this.drawThings(this.fogged(state), time);
+    this.drawThings(this.fogged(state), time, frame);
     // A hora do mundo acende as luminárias, apaga a sala, troca a janela e anda o relógio (ADR-0082).
     const minute = minuteOfDay(clockText(state, frame.tick));
     const mode = lightMode(this.art.lights, minute);
@@ -794,7 +798,7 @@ class WorldScene extends Phaser.Scene {
     this.fogDrawn = false;
   }
 
-  private drawThings(entities: ObserverState["entities"], time: number): void {
+  private drawThings(entities: ObserverState["entities"], time: number, frame: Frame): void {
     const seen = new Set<string>();
     for (const [id, entity] of Object.entries(entities)) {
       if (entity?.position === undefined || entity.kind === "avatar") {
@@ -810,11 +814,17 @@ class WorldScene extends Phaser.Scene {
       const kind = this.art.kinds?.[entity.kind];
       // Quem está ao lado de qualquer tile da coisa a usa (o bloco do banheiro tem 4 de largura).
       const users: string[] = [];
+      const who: string[] = [];
       for (let dx = 0; dx < (kind?.width ?? 1); dx++) {
         users.push(...(this.using.get(`${String(x + dx)},${String(y)}`) ?? []));
+        who.push(...(this.users.get(`${String(x + dx)},${String(y)}`) ?? []));
       }
       const seconds = time / 1000;
-      const busy = inUseFrame(kind?.in_use, users, seconds, this.doing) ?? loopFrame(kind?.loop, seconds);
+      const shop = workshopState(kind?.workshop, id, entity.attributes, frame.state, frame.tick, who);
+      const busy =
+        workshopFrame(kind?.workshop, shop, seconds) ??
+        inUseFrame(kind?.in_use, users, seconds, this.doing) ??
+        loopFrame(kind?.loop, seconds);
       view.show(this, lookOf(this.art, entity.kind, entity.attributes), x, y, busy);
     }
     for (const [id, view] of this.things) {
@@ -829,6 +839,7 @@ class WorldScene extends Phaser.Scene {
     const { state, tick } = frame;
     const seen = new Set<string>();
     this.using.clear();
+    this.users.clear();
     this.doing = [];
     for (const [id, entity] of Object.entries(state.entities)) {
       if (entity?.kind !== "avatar") {
@@ -860,6 +871,7 @@ class WorldScene extends Phaser.Scene {
           for (let dx = -1; dx <= 1; dx++) {
             const key = `${String(ax + dx)},${String(ay + dy)}`;
             this.using.set(key, [...(this.using.get(key) ?? []), doing]);
+            this.users.set(key, [...(this.users.get(key) ?? []), id]);
           }
         }
       }

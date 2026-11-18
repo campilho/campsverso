@@ -1,0 +1,25 @@
+{
+  "specversion": "1.0",
+  "id": "019a8f3c-2a90-7d21-9a00-5e0b2c4d6e8f",
+  "source": "/controller-runner/llm/haiku",
+  "type": "campsverso.workshop.robot_started.v1",
+  "time": "2026-10-18T03:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/workshop/robot_started.v1",
+  "worldid": "office-campsverso-01",
+  "cartridge": "office_campsverso",
+  "tick": 16229,
+  "simtime": "2026-11-16T09:01:00-03:00",
+  "seq": 40,
+  "provenance": "simulated",
+  "visibility": "observer",
+  "actor": "system/controller-runner",
+  "data": {
+    "avatar_id": "camps",
+    "ticket_id": "pedido-004",
+    "robot_id": "robo-testador",
+    "args": [
+      "tools/robos"
+    ]
+  }
+}

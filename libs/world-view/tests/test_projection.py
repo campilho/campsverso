@@ -583,6 +583,36 @@ def test_o_caderno_do_avatar_vem_dos_eventos_de_memoria() -> None:
     assert again.memory == p.memory
 
 
+def test_a_oficina_acende_o_monitor_e_anima_o_robo() -> None:
+    """ADR-0080: o último passo de cada dev e a última chamada de cada robô, do stream observer."""
+    p = started()
+    step = {"avatar_id": "camps", "ticket_id": "pedido-001", "summary": "s", "duration_ms": 5}
+    p.apply("observer", ev(10, 100, "workshop.step.v1", tool="ler", ok=True, **step))
+    p.apply("observer", ev(11, 104, "workshop.step.v1", tool="rodar_testes", ok=False, **step))
+    robot = {"avatar_id": "camps", "ticket_id": "pedido-001", "robot_id": "robo-testador"}
+    p.apply("observer", ev(12, 110, "workshop.robot_started.v1", args=["tests"], **robot))
+    assert p.workshop == {
+        "steps": {
+            "camps": {"ticket_id": "pedido-001", "tool": "rodar_testes", "ok": False, "tick": 104}
+        },
+        "robots": {"robo-testador": {"state": "working", "avatar_id": "camps", "tick": 110}},
+    }
+    called = {"summary": "saída 0", "duration_ms": 900, **robot}
+    p.apply("observer", ev(13, 114, "workshop.robot_called.v1", ok=True, **called))
+    assert p.workshop["robots"]["robo-testador"] == {
+        "state": "passed",
+        "avatar_id": "camps",
+        "tick": 114,
+    }
+    copy = Projection(json.loads(json.dumps(p.export())))
+    assert copy.workshop == p.workshop
+    # O robô que começou e não terminou (o processo caiu): o passo seguinte do dev o devolve.
+    p.apply("observer", ev(14, 120, "workshop.robot_started.v1", **robot))
+    p.apply("observer", ev(15, 130, "workshop.step.v1", tool="editar", ok=True, **step))
+    assert "robo-testador" not in p.workshop["robots"]
+    assert p.workshop["steps"]["camps"]["tool"] == "editar"
+
+
 def test_lotes_com_validade_seguem_os_itens() -> None:
     """ADR-0062: os eventos de item que trazem `expires_day` formam lotes; a validade na foto é
     a do lote mais antigo, contada do dia corrente; sem `expires_day`, nada de lote."""

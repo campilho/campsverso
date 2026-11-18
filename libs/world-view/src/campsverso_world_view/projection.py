@@ -14,12 +14,14 @@ NOTES_KEPT = 20  # anotações do caderno que a tela guarda (ADR-0060)
 BELIEFS_KEPT = 50
 UNKNOWN_PHASE = "desconhecida"
 METRIC_DAYS = 8  # hoje e os 7 anteriores (ADR-0054)
-# Do stream observer, o que entra na projeção: o caderno (ADR-0060) e o custo das chamadas de
-# modelo com os avisos do orçamento (ADR-0074). O resto só vai para a linha do tempo.
+# Do stream observer, o que entra na projeção: o caderno (ADR-0060), o custo das chamadas de
+# modelo com os avisos do orçamento (ADR-0074) e a oficina do dev (ADR-0080). O resto só vai para a
+# linha do tempo.
 OBSERVER_PROJECTED = (
     "campsverso.memory.",
     "campsverso.llm.call.completed.",
     "campsverso.ops.budget.",
+    "campsverso.workshop.",
 )
 
 
@@ -135,6 +137,11 @@ class Projection:
         # O custo das mentes e o último aviso do orçamento (ADR-0074), dos eventos llm.call.* e
         # ops.budget.* (observer): também só o gateway o preenche.
         self.costs: dict[str, Any] = dict(raw.get("costs", {}))
+        # A oficina (ADR-0080), dos eventos workshop.* (observer): o último passo de cada dev, que
+        # acende o monitor da mesa, e a última chamada de cada robô, que o anima na bancada.
+        self.workshop: dict[str, dict[str, dict[str, Any]]] = {
+            k: {kk: dict(vv) for kk, vv in v.items()} for k, v in raw.get("workshop", {}).items()
+        }
         self._event_tick = self.tick  # o tick do evento sendo aplicado
 
     def export(self) -> dict[str, Any]:
@@ -161,6 +168,7 @@ class Projection:
             "clock": self.clock,
             "memory": self.memory,
             "costs": self.costs,
+            "workshop": self.workshop,
             "controllers": self.controllers,
             "decisions": self.decisions,
             "metrics": self.metrics,
@@ -632,6 +640,37 @@ class Projection:
 
     def _on_ops_budget_exceeded(self, data: Mapping[str, Any]) -> None:
         self._budget(data, exceeded=True)
+
+    # ------------------------------------------------------------- a oficina (ADR-0080)
+
+    def _on_workshop_step(self, data: Mapping[str, Any]) -> None:
+        """O último passo do dev: a ferramenta e se deu certo. Um passo depois de um robô que
+        começou e não terminou (o processo caiu no meio) o devolve ao parado."""
+        avatar_id = str(data["avatar_id"])
+        self.workshop.setdefault("steps", {})[avatar_id] = {
+            "ticket_id": str(data["ticket_id"]),
+            "tool": str(data["tool"]),
+            "ok": bool(data["ok"]),
+            "tick": self._event_tick,
+        }
+        robots = self.workshop.get("robots", {})
+        for robot_id in sorted(robots):
+            robot = robots[robot_id]
+            if robot["state"] == "working" and robot.get("avatar_id") == avatar_id:
+                del robots[robot_id]
+
+    def _robot(self, data: Mapping[str, Any], state: str) -> None:
+        self.workshop.setdefault("robots", {})[str(data["robot_id"])] = {
+            "state": state,
+            "avatar_id": str(data["avatar_id"]),
+            "tick": self._event_tick,
+        }
+
+    def _on_workshop_robot_started(self, data: Mapping[str, Any]) -> None:
+        self._robot(data, "working")
+
+    def _on_workshop_robot_called(self, data: Mapping[str, Any]) -> None:
+        self._robot(data, "passed" if data["ok"] else "failed")
 
     # ------------------------------------------------------------- o caderno (ADR-0060)
 

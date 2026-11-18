@@ -121,3 +121,22 @@ def test_a_vista_do_jogador_anda_com_o_pulso() -> None:
     assert "plot-01" in walking["entities"]  # no tick 11, o Camps está no tile 10
     stale = player_state(p, "camps", {"tick": 0, "sim_time": "t0", "alive": True})
     assert "plot-01" not in stale["entities"]  # um pulso atrasado não volta a vista para trás
+
+
+def test_a_oficina_vai_para_as_duas_visoes() -> None:
+    """ADR-0080: o monitor da mesa e os robôs da bancada estão na sala, à vista do gerente."""
+    p = Projection()
+    assert "workshop" not in observer_state(p)  # a fazenda não tem oficina
+    p.apply(
+        "observer",
+        {
+            "type": "campsverso.workshop.robot_started.v1",
+            "seq": 1,
+            "tick": 10,
+            "simtime": "t10",
+            "data": {"avatar_id": "camps", "ticket_id": "pedido-001", "robot_id": "robo-testador"},
+        },
+    )
+    robots = {"robo-testador": {"state": "working", "avatar_id": "camps", "tick": 10}}
+    assert observer_state(p)["workshop"] == {"robots": robots}
+    assert player_state(p, "gerente")["workshop"] == {"robots": robots}

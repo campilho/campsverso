@@ -70,6 +70,17 @@ export interface InUse {
   readonly anywhere?: boolean;
 }
 
+/** Os quadros pela oficina do dev (ADR-0080), com os estados que `workshop.ts` dá:
+ * - `owner`: o último passo do dono da coisa (o atributo `dono`) enquanto ele a usa, a mesa do
+ *   dev: `lendo`, `escrevendo`, `verde` e `vermelho`;
+ * - `self`: a última chamada da própria coisa, o robô: `trabalhando`, `passou` e `falhou`;
+ * - `any`: algum robô trabalhando, a bancada: `trabalhando`.
+ * Sem estado, vale o que a coisa mostraria sem a oficina (`in_use`, `loop` ou o quadro). */
+export interface WorkshopArt {
+  readonly of: "owner" | "self" | "any";
+  readonly frames: Readonly<Record<string, Loop>>;
+}
+
 export interface Variant {
   readonly when: Readonly<Record<string, Scalar>>;
   readonly look: Look;
@@ -85,6 +96,8 @@ export interface KindArt extends Look {
   readonly in_use?: InUse | readonly InUse[];
   /** Os quadros que se repetem sempre (`Loop`). */
   readonly loop?: Loop;
+  /** Os quadros pela oficina do dev (`WorkshopArt`), à frente de `in_use` e de `loop`. */
+  readonly workshop?: WorkshopArt;
   /** Quantos tiles a coisa ocupa para a direita, a partir do tile dela: quem está ao lado de
    * qualquer um deles a usa (o bloco do banheiro, de 4 tiles). */
   readonly width?: number;

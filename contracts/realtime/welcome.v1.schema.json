@@ -685,6 +685,84 @@
             }
           }
         },
+        "workshop": {
+          "type": "object",
+          "title": "ObserverWorkshop",
+          "description": "A oficina do dev (ADR-0080), projetada dos eventos workshop.*: o último passo de cada dev, que acende o monitor da mesa (lendo, testes verdes ou vermelhos), e a última chamada de cada robô, que o anima na bancada.",
+          "additionalProperties": false,
+          "properties": {
+            "steps": {
+              "type": "object",
+              "description": "Por avatar: o último passo dele na oficina.",
+              "propertyNames": {
+                "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+              },
+              "additionalProperties": {
+                "type": "object",
+                "title": "ObserverWorkshopStep",
+                "additionalProperties": false,
+                "required": [
+                  "ticket_id",
+                  "tool",
+                  "ok",
+                  "tick"
+                ],
+                "properties": {
+                  "ticket_id": {
+                    "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+                  },
+                  "tool": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "description": "A ferramenta do passo (as do workshop.step.v1)."
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "tick": {
+                    "$ref": "contracts://common/defs.v1#/$defs/tick",
+                    "description": "O tick em que o passo chegou."
+                  }
+                }
+              }
+            },
+            "robots": {
+              "type": "object",
+              "description": "Por robô da bancada: a última chamada dele.",
+              "propertyNames": {
+                "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+              },
+              "additionalProperties": {
+                "type": "object",
+                "title": "ObserverWorkshopRobot",
+                "additionalProperties": false,
+                "required": [
+                  "state",
+                  "avatar_id",
+                  "tick"
+                ],
+                "properties": {
+                  "state": {
+                    "enum": [
+                      "working",
+                      "passed",
+                      "failed"
+                    ],
+                    "description": "Rodando (entre o robot_started e o robot_called), ou o resultado."
+                  },
+                  "avatar_id": {
+                    "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+                    "description": "Quem o chamou."
+                  },
+                  "tick": {
+                    "$ref": "contracts://common/defs.v1#/$defs/tick"
+                  }
+                }
+              }
+            }
+          }
+        },
         "decisions": {
           "type": "object",
           "propertyNames": {

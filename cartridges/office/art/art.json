@@ -44,7 +44,16 @@
     "desk": {
       "sheet": "mesa_dev",
       "frame": 0,
-      "in_use": { "actions": ["work"], "frames": [1, 2, 3], "fps": 3 }
+      "in_use": { "actions": ["work"], "frames": [1, 2, 3], "fps": 3 },
+      "workshop": {
+        "of": "owner",
+        "frames": {
+          "lendo": { "frames": [4] },
+          "escrevendo": { "frames": [1, 2, 3], "fps": 3 },
+          "verde": { "frames": [5] },
+          "vermelho": { "frames": [6] }
+        }
+      }
     },
     "chair": { "sheet": "cadeira", "frame": 0, "front": 1, "seat": "up" },
     "copa_chair": {
@@ -72,12 +81,24 @@
     },
     "fridge": { "sheet": "geladeira", "frame": 0, "in_use": { "actions": ["fridge"], "frames": [1] } },
     "trash": { "sheet": "lixeira", "frame": 0 },
-    "bench": { "sheet": "bancada", "frame": 0 },
+    "bench": {
+      "sheet": "bancada",
+      "frame": 0,
+      "workshop": { "of": "any", "frames": { "trabalhando": { "frames": [1] } } }
+    },
     "robot": {
       "sheet": "robo_testador",
       "frame": 0,
       "dy": -22,
       "loop": { "frames": [0, 1], "fps": 1 },
+      "workshop": {
+        "of": "self",
+        "frames": {
+          "trabalhando": { "frames": [4, 5, 6, 7], "fps": 4 },
+          "passou": { "frames": [8, 9], "fps": 2 },
+          "falhou": { "frames": [12, 13], "fps": 2 }
+        }
+      },
       "variants": [
         { "when": { "nome": "revisor" }, "look": { "sheet": "robo_revisor" } },
         { "when": { "nome": "publicador" }, "look": { "sheet": "robo_publicador" } }

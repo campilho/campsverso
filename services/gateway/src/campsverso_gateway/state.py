@@ -54,6 +54,8 @@ def observer_state(
             "metrics": p.metrics,
             "memory": p.memory,
             "costs": costs,  # só o operador (ADR-0074); a visão do jogador o tira
+            # O monitor da mesa e os robôs da bancada (ADR-0080): o gerente os vê na sala.
+            "workshop": p.workshop or None,
         }
     )
 

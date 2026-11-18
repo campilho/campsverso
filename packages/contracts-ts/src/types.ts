@@ -2036,6 +2036,197 @@ export interface WorkshopRobotCalledV1 {
   duration_ms: number;
 }
 /**
+ * O dev começou a chamar um robô da bancada na oficina (ADR-0080): o robô e os argumentos, antes de ele rodar. O `workshop.robot_called.v1` vem quando ele termina, com o resultado. A tela anima o robô trabalhando entre os dois. Quem publica é o controlador, e o kernel nunca o vê.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "WorkshopRobotStartedV1".
+ */
+export interface WorkshopRobotStartedV1 {
+  avatar_id: EntityId;
+  ticket_id: EntityId;
+  robot_id: EntityId;
+  /**
+   * Os argumentos que o dev deu ao robô.
+   *
+   * @maxItems 20
+   */
+  args?:
+    | []
+    | [string]
+    | [string, string]
+    | [string, string, string]
+    | [string, string, string, string]
+    | [string, string, string, string, string]
+    | [string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+      ];
+}
+/**
  * Um passo do dev na oficina (ADR-0080): a ferramenta, o caminho e uma linha do que aconteceu. É o computador do dev, e não o mundo: quem publica é o controlador, e o kernel nunca o vê. A tela mostra o último passo no monitor da mesa; o arquivo guarda todos.
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
@@ -2715,6 +2906,7 @@ export interface ObserverState {
     [k: string]: ObserverMemory | undefined;
   };
   costs?: ObserverCosts;
+  workshop?: ObserverWorkshop;
   decisions: {
     [k: string]: ObserverDecision | undefined;
   };
@@ -2928,6 +3120,40 @@ export interface ObserverGuardLimits {
    * O teto do mundo inteiro.
    */
   usd_total: number;
+}
+/**
+ * A oficina do dev (ADR-0080), projetada dos eventos workshop.*: o último passo de cada dev, que acende o monitor da mesa (lendo, testes verdes ou vermelhos), e a última chamada de cada robô, que o anima na bancada.
+ */
+export interface ObserverWorkshop {
+  /**
+   * Por avatar: o último passo dele na oficina.
+   */
+  steps?: {
+    [k: string]: ObserverWorkshopStep | undefined;
+  };
+  /**
+   * Por robô da bancada: a última chamada dele.
+   */
+  robots?: {
+    [k: string]: ObserverWorkshopRobot | undefined;
+  };
+}
+export interface ObserverWorkshopStep {
+  ticket_id: EntityId;
+  /**
+   * A ferramenta do passo (as do workshop.step.v1).
+   */
+  tool: string;
+  ok: boolean;
+  tick: Tick;
+}
+export interface ObserverWorkshopRobot {
+  /**
+   * Rodando (entre o robot_started e o robot_called), ou o resultado.
+   */
+  state: "working" | "passed" | "failed";
+  avatar_id: EntityId;
+  tick: Tick;
 }
 /**
  * Último pedido de decisão do avatar.

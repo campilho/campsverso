@@ -2761,6 +2761,38 @@ class WorkshopRobotCalledV1(BaseModel):
     duration_ms: Annotated[int, Field(ge=0)]
 
 
+class WorkshopRobotStartedV1(BaseModel):
+    """
+    O dev começou a chamar um robô da bancada na oficina (ADR-0080): o robô e os argumentos, antes de ele rodar. O `workshop.robot_called.v1` vem quando ele termina, com o resultado. A tela anima o robô trabalhando entre os dois. Quem publica é o controlador, e o kernel nunca o vê.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Quem chamou o robô.
+    """
+    ticket_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O pedido do espaço de trabalho.
+    """
+    robot_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O robô na bancada (robo-<nome>).
+    """
+    args: Annotated[list[Arg] | None, Field(max_length=20)] = None
+    """
+    Os argumentos que o dev deu ao robô.
+    """
+
+
 class WorkshopStepV1(BaseModel):
     """
     Um passo do dev na oficina (ADR-0080): a ferramenta, o caminho e uma linha do que aconteceu. É o computador do dev, e não o mundo: quem publica é o controlador, e o kernel nunca o vê. A tela mostra o último passo no monitor da mesa; o arquivo guarda todos.
@@ -4095,6 +4127,65 @@ class ObserverCosts(BaseModel):
     """
 
 
+class ObserverWorkshopStep(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    ticket_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    tool: Annotated[str, Field(max_length=64, min_length=1)]
+    """
+    A ferramenta do passo (as do workshop.step.v1).
+    """
+    ok: bool
+    tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    O tick em que o passo chegou.
+    """
+
+
+class ObserverWorkshopRobot(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    state: Literal["working", "passed", "failed"]
+    """
+    Rodando (entre o robot_started e o robot_called), ou o resultado.
+    """
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Quem o chamou.
+    """
+    tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+
+
+class ObserverWorkshop(BaseModel):
+    """
+    A oficina do dev (ADR-0080), projetada dos eventos workshop.*: o último passo de cada dev, que acende o monitor da mesa (lendo, testes verdes ou vermelhos), e a última chamada de cada robô, que o anima na bancada.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    steps: dict[str, ObserverWorkshopStep] | None = None
+    """
+    Por avatar: o último passo dele na oficina.
+    """
+    robots: dict[str, ObserverWorkshopRobot] | None = None
+    """
+    Por robô da bancada: a última chamada dele.
+    """
+
+
 class ObserverDecision(BaseModel):
     """
     Último pedido de decisão do avatar.
@@ -4190,6 +4281,10 @@ class ObserverState(BaseModel):
     costs: Annotated[ObserverCosts | None, Field(title="ObserverCosts")] = None
     """
     O que as chamadas de modelo custaram (ADR-0074), projetado dos eventos llm.call.completed cobrados e dos avisos ops.budget.*: por controlador, o gasto do último dia com chamadas e o total; e o último aviso do orçamento. Só a visão do operador o vê; e o sinal de vida da guarda (ADR-0080).
+    """
+    workshop: Annotated[ObserverWorkshop | None, Field(title="ObserverWorkshop")] = None
+    """
+    A oficina do dev (ADR-0080), projetada dos eventos workshop.*: o último passo de cada dev, que acende o monitor da mesa (lendo, testes verdes ou vermelhos), e a última chamada de cada robô, que o anima na bancada.
     """
     decisions: dict[str, ObserverDecision]
     metrics: dict[str, dict[str, float | dict[str, float]]] | None = None

@@ -712,6 +712,17 @@ channels:
     messages:
       WorkshopRobotCalledV1:
         $ref: '#/components/messages/WorkshopRobotCalledV1'
+  WorkshopRobotStartedV1:
+    address: campsverso.{worldid}.observer.workshop.robot_started.v1
+    title: campsverso.workshop.robot_started.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorkshopRobotStartedV1:
+        $ref: '#/components/messages/WorkshopRobotStartedV1'
   WorkshopStepV1:
     address: campsverso.{worldid}.observer.workshop.step.v1
     title: campsverso.workshop.step.v1
@@ -1475,6 +1486,13 @@ operations:
       $ref: '#/channels/WorkshopRobotCalledV1'
     messages:
     - $ref: '#/channels/WorkshopRobotCalledV1/messages/WorkshopRobotCalledV1'
+    x-producer: controller
+  sendWorkshopRobotStartedV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorkshopRobotStartedV1'
+    messages:
+    - $ref: '#/channels/WorkshopRobotStartedV1/messages/WorkshopRobotStartedV1'
     x-producer: controller
   sendWorkshopStepV1:
     action: send
@@ -4543,6 +4561,34 @@ components:
         duration_ms:
           type: integer
           minimum: 0
+    WorkshopRobotStartedV1:
+      title: WorkshopRobotStartedV1
+      description: 'O dev começou a chamar um robô da bancada na oficina (ADR-0080): o robô e os argumentos,
+        antes de ele rodar. O `workshop.robot_called.v1` vem quando ele termina, com o resultado. A tela
+        anima o robô trabalhando entre os dois. Quem publica é o controlador, e o kernel nunca o vê.'
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - ticket_id
+      - robot_id
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+          description: Quem chamou o robô.
+        ticket_id:
+          $ref: '#/components/schemas/EntityId'
+          description: O pedido do espaço de trabalho.
+        robot_id:
+          $ref: '#/components/schemas/EntityId'
+          description: O robô na bancada (robo-<nome>).
+        args:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            maxLength: 300
+          description: Os argumentos que o dev deu ao robô.
     WorkshopStepV1:
       title: WorkshopStepV1
       description: 'Um passo do dev na oficina (ADR-0080): a ferramenta, o caminho e uma linha do que
@@ -6026,6 +6072,62 @@ components:
                         minLength: 1
                         maxLength: 64
                       maxItems: 64
+            workshop:
+              type: object
+              title: ObserverWorkshop
+              description: 'A oficina do dev (ADR-0080), projetada dos eventos workshop.*: o último passo
+                de cada dev, que acende o monitor da mesa (lendo, testes verdes ou vermelhos), e a última
+                chamada de cada robô, que o anima na bancada.'
+              additionalProperties: false
+              properties:
+                steps:
+                  type: object
+                  description: 'Por avatar: o último passo dele na oficina.'
+                  additionalProperties:
+                    type: object
+                    title: ObserverWorkshopStep
+                    additionalProperties: false
+                    required:
+                    - ticket_id
+                    - tool
+                    - ok
+                    - tick
+                    properties:
+                      ticket_id:
+                        $ref: '#/components/schemas/EntityId'
+                      tool:
+                        type: string
+                        minLength: 1
+                        maxLength: 64
+                        description: A ferramenta do passo (as do workshop.step.v1).
+                      ok:
+                        type: boolean
+                      tick:
+                        $ref: '#/components/schemas/Tick'
+                        description: O tick em que o passo chegou.
+                robots:
+                  type: object
+                  description: 'Por robô da bancada: a última chamada dele.'
+                  additionalProperties:
+                    type: object
+                    title: ObserverWorkshopRobot
+                    additionalProperties: false
+                    required:
+                    - state
+                    - avatar_id
+                    - tick
+                    properties:
+                      state:
+                        enum:
+                        - working
+                        - passed
+                        - failed
+                        description: Rodando (entre o robot_started e o robot_called), ou o resultado.
+                      avatar_id:
+                        $ref: '#/components/schemas/EntityId'
+                        description: Quem o chamou.
+                      tick:
+                        $ref: '#/components/schemas/Tick'
             decisions:
               type: object
               additionalProperties:
@@ -6657,6 +6759,17 @@ components:
       contentType: application/json
       payload:
         $ref: '#/components/schemas/WorkshopRobotCalledV1'
+      x-visibility: observer
+      x-producer: controller
+    WorkshopRobotStartedV1:
+      name: campsverso.workshop.robot_started.v1
+      title: WorkshopRobotStartedV1
+      summary: 'O dev começou a chamar um robô da bancada na oficina (ADR-0080): o robô e os argumentos,
+        antes de ele rodar. O `workshop.robot_called.v1` vem quando ele termina, com o resultado. A tela
+        anima o robô trabalhando entre os dois. Quem publica é o controlador, e o kernel nunca o vê.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorkshopRobotStartedV1'
       x-visibility: observer
       x-producer: controller
     WorkshopStepV1:

@@ -441,7 +441,8 @@ async def test_o_dev_chama_o_robo_da_bancada_na_oficina(repo: Path, tmp_path: Pa
     second = port.requests[2].messages[-1]["content"][0]
     assert second["is_error"] is True
     assert "não há robô 'sumido' na bancada" in second["content"]
-    assert "campsverso.workshop.robot_called.v1:robo-eco" in steps
+    called = steps.index("campsverso.workshop.robot_called.v1:robo-eco")
+    assert steps[called - 1] == "campsverso.workshop.robot_started.v1:robo-eco"  # antes de rodar
     assert proposed[0]["action"] == "deliver"
 
 
