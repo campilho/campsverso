@@ -162,3 +162,22 @@ A parte 4 começou pelo que a criação precisa antes do pedido do testador.
 - **O evento novo, `workshop.robot_called.v1`,** e não um valor novo no enum de ferramentas do `workshop.step.v1`, o que seria incompatível. A arte já tem as animações de trabalhando, passou e falhou, e a mesa do dev os quadros de ler e dos testes; ligá-las pede um campo no estado da tela, que fica para o fechamento do M24.
 - **As notas do escritório** contam ao dev onde fica a bancada e como pôr um robô novo nela.
 
+
+## Adendo (18/nov): o monitor e o robô seguem a oficina, e os invariantes do soak
+
+O que ficou para o fechamento, sem API:
+- **O robô trabalha enquanto roda:** o `robot_called.v1` só sai quando o robô termina, e a tela não tinha como mostrá-lo trabalhando durante a chamada, que pode levar até 60 s. Entra o tipo novo `workshop.robot_started.v1` (o robô e os argumentos), publicado antes de ele rodar.
+- **A oficina no estado da tela:** a projeção do gateway lê os eventos `workshop.*` do stream observer, como o caderno e o custo, e o estado (`state.workshop`, opcional) leva:
+  - o último passo de cada dev: a ferramenta, se deu certo e o tick;
+  - a última chamada de cada robô: rodando, passou ou falhou.
+
+  Vai para as duas visões, porque o gerente vê a sala. Um passo depois de um robô que começou e não terminou (o processo caiu no meio) o devolve ao parado.
+- **O desenho, por dados:** cada tipo de coisa diz no `art.json` de quem é o estado (`workshop.of`) e o quadro de cada estado.
+  - **A mesa do dev (`owner`)** mostra o último passo do dono dela (o atributo `dono`) enquanto ele está sentado nela: lendo, escrevendo, os testes verdes ou vermelhos. O `pronto` devolve o monitor ao de sempre. Um passo vale por até 2 horas do mundo, porque a 72× uma chamada lenta ao modelo passa de meia hora.
+  - **O robô (`self`)** trabalha entre o começo e o fim da chamada e mostra o resultado por 15 minutos do mundo.
+  - **A bancada (`any`)** liga o osciloscópio enquanto algum robô trabalha.
+- **Os invariantes do escritório** (`campsverso_testkit.escritorio`), conferidos nos fatos do kernel pelo `make soak` num mundo do escritório, que os mostra no lugar das métricas da fazenda, e pelo teste de um dia:
+  - todo pedido de dia de expediente entregue;
+  - em cada dia de expediente, ao menos uma pausa do dev (água, café ou banheiro) e o almoço;
+  - nenhuma ação da copa fora do expediente.
+- **O "ver o patch" no navegador:** o teste do escritório abre o patch da entrega do dev-script (a sessão fixa dele na oficina registra o pedido num arquivo), entre a entrega e o aceite.
