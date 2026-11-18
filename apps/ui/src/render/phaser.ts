@@ -38,11 +38,12 @@ import {
   type LightMode,
   type Resolved,
 } from "../art/manifest.ts";
+import { declutter, type Label, type Placement } from "../declutter.ts";
 import { el } from "../dom.ts";
 import { FogMemory, FogStore, lightHeld, serverCenter, visionRadius, type Sight } from "../fog.ts";
 import { MotionClock, type Point } from "../motion.ts";
 import { Balloons } from "../speech.ts";
-import { progressOf } from "../progress.ts";
+import { overHead } from "../progress.ts";
 import { clockText } from "../simclock.ts";
 import { tileAt, type TileGrid } from "../tiled.ts";
 import { workshopFrame, workshopState } from "../workshop.ts";
@@ -173,6 +174,7 @@ class AvatarView {
   private animation: string | undefined;
   private since = 0;
   private movedAt = Number.NEGATIVE_INFINITY;
+  private viewTop = 0;
 
   constructor(scene: Phaser.Scene, id: string) {
     this.body = scene.add.circle(0, 0, TILE * 0.34, 0xf5f5f5).setStrokeStyle(2, 0x1b1b1b);
@@ -299,7 +301,7 @@ class AvatarView {
       this.sprite.setTexture(sheet, frameOf(animation, columnsOf(scene, sheet), this.facing, step));
     }
 
-    const progress = progressOf(state, id, tick);
+    const progress = overHead(state, id, tick);
     const above = inBed !== undefined && bed !== undefined ? { cx: bed.cx, top: bed.top - 2 } : undefined;
     const tx = above?.cx ?? cx;
     const top = above?.top ?? (drawn ? (spot.y + 1) * TILE - (art?.label_above ?? 50) : spot.y * TILE - 4);
@@ -307,6 +309,7 @@ class AvatarView {
     // Perto da borda, o rótulo fica inteiro dentro do que a câmera mostra (achado do usuário no
     // mapa d: "Cavar um canteiro aqui" saía do mapa); a barra continua sobre o avatar.
     const view = scene.cameras.main.worldView;
+    this.viewTop = view.y;
     const half = this.tag.width / 2 + 2;
     this.tag.setPosition(view.width > 0 ? Phaser.Math.Clamp(tx, view.x + half, view.right - half) : tx, top - 3);
     this.bar.clear();
@@ -325,6 +328,21 @@ class AvatarView {
       const half = this.balloon.width / 2 + 2;
       const x = view.width > 0 ? Phaser.Math.Clamp(tx, view.x + half, view.right - half) : tx;
       this.balloon.setPosition(x, Math.max(view.y + this.balloon.height + 2, above));
+    }
+  }
+
+  /** A caixa do rótulo da ação, quando há, para o `declutter`. */
+  label(id: string): Label | undefined {
+    const tag = this.tag;
+    return tag.visible ? { id, text: tag.text, x: tag.x, y: tag.y, width: tag.width, height: tag.height } : undefined;
+  }
+
+  /** Põe o rótulo onde o `declutter` mandou; quando ele sobe, a fala sobe junto. */
+  place(at: Placement): void {
+    const rise = at.y - this.tag.y;
+    this.tag.setPosition(at.x, at.y).setVisible(at.visible);
+    if (this.balloon.visible && rise < 0) {
+      this.balloon.setY(Math.max(this.viewTop + this.balloon.height + 2, this.balloon.y + rise));
     }
   }
 
@@ -882,6 +900,11 @@ class WorldScene extends Phaser.Scene {
         view.destroy();
         this.avatars.delete(id);
       }
+    }
+    // Dois rótulos que se tocam, no sofá ou na mesa da copa, viram um só ou se empilham (18/nov).
+    const labels = [...this.avatars].flatMap(([id, view]) => view.label(id) ?? []);
+    for (const [id, placement] of declutter(labels)) {
+      this.avatars.get(id)?.place(placement);
     }
   }
 

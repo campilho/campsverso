@@ -2,7 +2,7 @@ import type { ObserverState } from "@campsverso/contracts";
 import { describe, expect, it } from "vitest";
 
 import { setLocale } from "./locale.ts";
-import { busyText, progressOf } from "./progress.ts";
+import { busyText, overHead, progressOf } from "./progress.ts";
 
 function state(overrides: Partial<ObserverState> = {}): ObserverState {
   return {
@@ -47,6 +47,18 @@ describe("barra de progresso e ocupado (ADR-0052)", () => {
     expect(progressOf(state({ actions: old }), "camps", 101)).toEqual({ label: "water" });
     const walking = { camps: { action_id: "act-2", action: "move", params: {}, applied_tick: 100, end_tick: 104 } };
     expect(progressOf(state({ actions: walking }), "camps", 101)).toEqual({ label: "Andando", fraction: 0.25 });
+  });
+
+  it("sobre a cabeça, nada de andar, esperar nem falar; o retrato continua dizendo (18/nov)", () => {
+    for (const action of ["move", "wait", "say"]) {
+      const s = state({ actions: { camps: { action_id: "act-3", action, params: {}, applied_tick: 100, end_tick: 104 } } });
+      expect(overHead(s, "camps", 101)).toBeUndefined();
+      expect(progressOf(s, "camps", 101)).toBeDefined();
+    }
+    const planting = { camps: { action_id: "act-4", action: "plant", params: {}, applied_tick: 100, end_tick: 104 } };
+    expect(overHead(state({ actions: planting }), "camps", 102)).toEqual({ label: "Plantar", fraction: 0.5 });
+    const asleep = state({ asleep: { camps: true }, actions: { camps: { action_id: "act-5", action: "wait", params: {}, end_tick: 104 } } });
+    expect(overHead(asleep, "camps", 101)?.label).toBe("Zz");
   });
 
   it("o arquivo da língua diz o que se faz, antes do rótulo do menu (ADR-0082)", () => {

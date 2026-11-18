@@ -58,14 +58,35 @@ export function lightLevels(
       );
     }
   }
+  for (const rect of lights.dim ?? []) {
+    eachPixel(rect, width, height, (i) => {
+      if ((levels[i] ?? DARK) > PENUMBRA) {
+        levels[i] = PENUMBRA;
+      }
+    });
+  }
   for (const rect of lights.lit ?? []) {
-    const x0 = Math.max(0, Math.floor(rect.x));
-    const x1 = Math.min(width, Math.ceil(rect.x + rect.w));
-    for (let y = Math.max(0, Math.floor(rect.y)); y < Math.min(height, Math.ceil(rect.y + rect.h)); y++) {
-      levels.fill(LIT, y * width + x0, y * width + Math.max(x0, x1));
-    }
+    eachPixel(rect, width, height, (i) => {
+      levels[i] = LIT;
+    });
   }
   return levels;
+}
+
+/** Cada pixel de um retângulo, dentro do mapa, pelo índice na linha a linha. */
+function eachPixel(
+  rect: { readonly x: number; readonly y: number; readonly w: number; readonly h: number },
+  width: number,
+  height: number,
+  visit: (index: number) => void,
+): void {
+  const x0 = Math.max(0, Math.floor(rect.x));
+  const x1 = Math.min(width, Math.ceil(rect.x + rect.w));
+  for (let y = Math.max(0, Math.floor(rect.y)); y < Math.min(height, Math.ceil(rect.y + rect.h)); y++) {
+    for (let x = x0; x < x1; x++) {
+      visit(y * width + x);
+    }
+  }
 }
 
 /** Acende em volta de (cx, cy), até `reach` pixels (o resto do mapa nem é olhado): `level` dá o

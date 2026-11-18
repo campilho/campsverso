@@ -196,8 +196,8 @@ export interface ArtManifest {
 export type LightMode = "day" | "lamps" | "dark";
 
 /** A luz da noite: com as luminárias acesas, poças de luz e penumbra fora delas; depois, o escuro,
- * com a lanterna do vigia. O corredor e a janela ficam sempre acesos. As poças têm a borda em
- * xadrez, como a prévia; a sombra é uma cor por cima, imitando a troca da paleta. */
+ * com a lanterna do vigia. A janela fica sempre acesa, e o corredor, na penumbra. As poças têm a
+ * borda em xadrez, como a prévia; a sombra é uma cor por cima, imitando a troca da paleta. */
 export interface Lights {
   /** O que vale a partir de cada hora ("HH:MM"): `day`, `lamps` ou `dark`. */
   readonly schedule: readonly { readonly from: string; readonly mode: LightMode }[];
@@ -210,9 +210,12 @@ export interface Lights {
   /** O raio das poças e a largura da borda em xadrez, em pixels. */
   readonly lamp_radius?: number;
   readonly lamp_border?: number;
-  /** Os retângulos sempre acesos, em pixels do mapa: o corredor, a face da parede de baixo e do
-   * banheiro que dá para ele, a janela. */
+  /** Os retângulos sempre acesos, em pixels do mapa: a janela. */
   readonly lit?: readonly { readonly x: number; readonly y: number; readonly w: number; readonly h: number }[];
+  /** Os retângulos que nunca passam da penumbra, nem no escuro: o corredor, com a luz fraca do
+   * prédio, e as faces da parede de baixo e do banheiro que dão para ele (18/nov: o corredor
+   * sempre aceso puxava o olho para fora da sala). A lanterna acende por cima. */
+  readonly dim?: readonly { readonly x: number; readonly y: number; readonly w: number; readonly h: number }[];
   /** A lanterna: quem a leva no escuro e os raios dos anéis em pixels (aceso, xadrez, penumbra,
    * xadrez), a partir de `lift` pixels acima do meio do tile (a mão). */
   readonly lantern?: { readonly avatar: string; readonly radii: readonly number[]; readonly lift?: number };

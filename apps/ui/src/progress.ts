@@ -49,6 +49,19 @@ export function progressOf(state: ObserverState, avatarId: string, tick: number)
   return action.applied_tick === undefined ? { label } : { label, fraction: fraction(action.applied_tick, action.end_tick, tick) };
 }
 
+/** As ações que a tela não anuncia sobre a cabeça (18/nov): andar, que o desenho já mostra; esperar,
+ * que não tem o que mostrar; e falar, que tem o balão da fala. O retrato do HUD continua dizendo. */
+const QUIET: ReadonlySet<string> = new Set(["move", "wait", "say"]);
+
+/** O que vai sobre a cabeça do avatar: o progresso da ação, menos o das ações óbvias. O sono aparece. */
+export function overHead(state: ObserverState, avatarId: string, tick: number): Progress | undefined {
+  const action = state.actions[avatarId];
+  if (state.asleep[avatarId] !== true && action !== undefined && QUIET.has(action.action)) {
+    return undefined;
+  }
+  return progressOf(state, avatarId, tick);
+}
+
 /** O texto da recusa `busy`: o que ocupa o avatar e quanto falta. */
 export function busyText(state: ObserverState, avatarId: string, tick: number): string {
   const name = state.entities[avatarId]?.display_name ?? avatarId;

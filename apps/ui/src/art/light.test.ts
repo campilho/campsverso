@@ -52,4 +52,12 @@ describe("a luz da noite do escritório (ADR-0082)", () => {
     const nobody = lightLevels(LIGHTS, "dark", W, H);
     expect(at(nobody, 100, 60)).toBe(DARK); // sem o vigia, a sala toda escura
   });
+
+  it("o corredor fica na penumbra, nem aceso nem escuro, e a lanterna acende por cima (18/nov)", () => {
+    const dim = { ...LIGHTS, lit: [], dim: [{ x: 0, y: 140, w: 200, h: 20 }] };
+    expect(at(lightLevels(dim, "dark", W, H), 5, 150)).toBe(PENUMBRA);
+    expect(at(lightLevels(dim, "lamps", W, H), 5, 150)).toBe(PENUMBRA);
+    expect(at(lightLevels(dim, "dark", W, H), 5, 130)).toBe(DARK); // fora dele, o escuro
+    expect(at(lightLevels(dim, "dark", W, H, { x: 100, y: 150 }), 100, 150)).toBe(LIT); // a ronda passa
+  });
 });
