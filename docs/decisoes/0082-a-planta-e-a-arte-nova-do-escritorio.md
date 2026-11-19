@@ -50,3 +50,29 @@ Os prints de 18/nov para o celular mostraram o que o usuário chamou de "meio fe
   - **O corredor com duas linhas, e não três.** A de baixo não tinha uso: a entrada é (9, 15) e o posto do vigia, (11, 14).
   - **À noite, o corredor fica na penumbra** (`lights.dim`), e as faces da parede de baixo e do banheiro que dão para ele também. Antes ficava sempre aceso. A janela continua acesa, e a lanterna acende por cima da penumbra.
 - **O relógio já seguia a hora do mundo** desde 15/nov (`time_tiles.clock`): o ponteiro das horas anda e o dos minutos fica no 12, como o usuário queria.
+
+## Adendo (19/nov): os balões na tela e os consertos do quadro
+
+A arte do pedido de 18/nov chegou na mesma noite, com tudo o que o briefing pedia e um detalhe a mais: quando o dev está sentado à mesa, de costas, o balão vai para o lado da cabeça (`naMesa`), para não cobrir o monitor.
+
+**Como a arte entra.** O `make arte-escritorio`:
+- copia as folhas dos balões e dos ícones;
+- grava a fonte com cada glifo colado à esquerda da célula, como a tela o recorta. No metadados é assim, mas o "." da folha veio na coluna 1 e sumia;
+- gera o `baloes.json` a partir do `metadados.json`: as peças, as molduras em nove fatias, o fio do progresso, a fonte com a largura de cada glifo e as cores da paleta em hex.
+
+O `art.json` do gênero inclui esse arquivo (`include`, novo no manifesto, juntado antes do `art.json`) e diz à mão o ícone de cada ação (`bubbles.icons.actions`). O teste que confere a arte em dia com as folhas passa a cobrir o `baloes.json` também.
+
+**Na tela** (`HeadView`, em `apps/ui/src/render/bubbles.ts`):
+- o balão com o ícone da ação e o progresso no fio da base;
+- sentado à mesa, de costas, o balão vai para o lado; sentado de lado, na copa, desce 10 px, com a cabeça;
+- a ação sem ícone vai na etiqueta escura, e o mouse em cima de alguém mostra a etiqueta com o nome e o que ele faz;
+- a fala vai em nove fatias, com a ponta, em até 3 linhas de 150 px e reticências no que não cabe.
+
+Cada caixa é montada num canvas 2D, com a fonte tingida pela cor da moldura, e sai igual no WebGL e no Canvas. As fazendas, que não têm `bubbles`, seguem com o texto de antes.
+
+**As plantas e o corredor.** Cada planta ganha a espécie no mapa (`especie`: a espada-de-são-jorge em (1, 7) e a costela-de-adão em (18, 7)), e o manifesto escolhe o quadro. O corredor em granilite entrou no push da noite de 18/nov.
+
+**Os consertos do quadro**, achados do usuário no pedido do testador:
+- o pedido a caminho (na fila ou em andamento) não entra de novo, e o quadro mostra "O gerente está indo ao quadro." no lugar dos botões;
+- aceitar um pedido já aceito diz "já foi aceito";
+- o clique num tile que não deixa passar vai até a coisa vizinha (o sofá, o quadro) ou até o lado do tile.

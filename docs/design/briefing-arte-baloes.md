@@ -152,7 +152,7 @@ No `metadados.json`, `quadros: ["planta", "espada-de-são-jorge", "costela-de-ad
 - dois rótulos iguais lado a lado viram um só, entre os dois, e rótulos diferentes que se tocam se empilham;
 - o corredor tem duas linhas em vez de três e fica na penumbra à noite, e as faces que dão para ele também.
 
-**Quando a arte chegar:**
+**A arte chegou na noite de 18/nov e entrou na tela em 19/nov** (o adendo de 19/nov da ADR-0082). O plano era este:
 - o manifesto do escritório (`art.json`) ganha os balões, ação → ícone; a tela desenha o balão sobre a cabeça, com o fio do progresso;
 - a ação sem ícone vai na etiqueta, e o nome completo aparece ao passar o mouse;
 - a fonte vira uma fonte de bitmap do Phaser, gerada do `metadados.json` pelo `make arte-escritorio`; a fala e as etiquetas passam a usá-la;
