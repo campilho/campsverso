@@ -360,12 +360,16 @@ def test_o_sofa_a_marmita_e_o_menu_de_pausas() -> None:
 # ------------------------------------------------------------------ a bancada (o plano do M24, §4)
 
 
-def test_a_bancada_fica_no_cubiculo_ao_lado_do_dev_e_comeca_vazia() -> None:
+def test_a_bancada_fica_no_cubiculo_ao_lado_do_dev_com_o_testador() -> None:
     core = _core()
     bench = core.world.entity_map["bancada"]
     assert (bench.kind, core.world.position_of("bancada")) == ("bench", Position(8, 4))
     assert "cadeira-2" not in core.world.entity_map  # a cadeira do cubículo saiu
-    assert not [e for e in core.world.entity_map.values() if e.kind == "robot"]
+    # O primeiro robô, a criação do dev no pedido 1 (18/nov), no primeiro apoio.
+    on_bench = [e for e in core.world.entity_map.values() if e.kind == "robot"]
+    assert [(e.entity_id, core.world.position_of(e.entity_id)) for e in on_bench] == [
+        ("robo-testador", Position(7, 4))
+    ]
 
 
 def test_os_robos_do_registro_vao_para_os_apoios_da_bancada() -> None:
