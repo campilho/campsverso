@@ -18,7 +18,7 @@ import re
 import shutil
 import sys
 import time
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 from campsverso_ports import Patch, PatchSummary, ToolResult, WorkshopError
@@ -51,6 +51,26 @@ def _sandbox_profile(workspace: Path, temp: Path) -> str:
         f'(allow file-write* (subpath "{workspace}") (subpath "{temp}")'
         ' (literal "/dev/null") (literal "/dev/tty") (subpath "/dev/fd"))\n'
     )
+
+
+# Onde o uv da máquina guarda o cache e os Pythons. O setup-uv do CI põe os dois fora do HOME e
+# avisa por estas variáveis; sem elas, o `uv sync --offline` do espaço não achava nada, o
+# controlador caía e o teste do escritório no navegador falhava só no CI (19/nov). Uma lista
+# fechada: variáveis como UV_PROJECT_ENVIRONMENT mandariam o espaço instalar no ambiente da máquina.
+UV_PLACES = (
+    "UV_CACHE_DIR",
+    "UV_PYTHON_INSTALL_DIR",
+    "UV_PYTHON_CACHE_DIR",
+    "XDG_CACHE_HOME",
+    "XDG_DATA_HOME",
+)
+
+
+def sync_env(environ: Mapping[str, str]) -> dict[str, str]:
+    """O ambiente do `uv sync` do espaço: o PATH, o HOME e onde o uv guarda o cache e os Pythons."""
+    env = {"PATH": environ.get("PATH", "/usr/bin:/bin"), "HOME": str(Path.home())}
+    env.update({name: environ[name] for name in UV_PLACES if name in environ})
+    return env
 
 
 def _one_line(text: str, limit: int = 120) -> str:
@@ -386,9 +406,11 @@ class LocalWorkshop:
             with exclude.open("a", encoding="utf-8") as file:
                 file.write(f"\n{LOCAL}/\n.venv/\n")
             if self._python_env:
-                env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": str(Path.home())}
                 code, out = await _run(
-                    ["uv", "sync", "--offline", "--frozen", "--quiet"], where, env, 600
+                    ["uv", "sync", "--offline", "--frozen", "--quiet"],
+                    where,
+                    sync_env(os.environ),
+                    600,
                 )
                 if code != 0:
                     raise WorkshopError(f"o ambiente Python não subiu: {out.strip()[-500:]}")

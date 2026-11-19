@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from campsverso_adapters.workshop_local import LocalWorkshop
+from campsverso_adapters.workshop_local import LocalWorkshop, sync_env
 from campsverso_adapters.workshop_review import review
 
 GIT = [
@@ -208,3 +208,20 @@ async def test_a_raiz_relativa_vira_absoluta(
     space = await shop.open("office-teste", "pedido-009")
     assert space.root == (tmp_path / "dados/oficina/office-teste/pedido-009").resolve()
     assert (space.root / "README.md").exists()
+
+
+def test_o_uv_do_espaco_acha_o_cache_e_os_pythons_da_maquina() -> None:
+    """O setup-uv do CI põe o cache e os Pythons fora do HOME (19/nov): o `uv sync` do espaço os
+    recebe, e só eles, não o resto do ambiente da máquina."""
+    environ = {
+        "PATH": "/opt/bin:/usr/bin",
+        "UV_CACHE_DIR": "/runner/temp/setup-uv-cache",
+        "UV_PYTHON_INSTALL_DIR": "/runner/temp/uv-python-dir",
+        "UV_PROJECT_ENVIRONMENT": "/o/ambiente/da/maquina",
+        "ANTHROPIC_API_KEY": "nunca",
+    }
+    env = sync_env(environ)
+    assert env["PATH"] == "/opt/bin:/usr/bin"
+    assert env["UV_CACHE_DIR"] == "/runner/temp/setup-uv-cache"
+    assert env["UV_PYTHON_INSTALL_DIR"] == "/runner/temp/uv-python-dir"
+    assert set(env) == {"PATH", "HOME", "UV_CACHE_DIR", "UV_PYTHON_INSTALL_DIR"}

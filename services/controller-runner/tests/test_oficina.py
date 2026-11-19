@@ -107,3 +107,17 @@ async def test_sem_pronto_a_entrega_vai_sem_patch(repo: Path, tmp_path: Path) ->
     deliver: dict[str, Any] = {"action": "deliver", "params": {}, "intent": "entregar o pedido"}
     assert await session.run(deliver, unfinished, "01ABE") == deliver
     assert len(steps) == 2
+
+
+async def test_a_oficina_que_cai_vira_uma_fala_e_nao_derruba_o_controlador(tmp_path: Path) -> None:
+    """O clone falha (aqui, o repositório não existe; no CI de 19/nov, o ambiente Python): o dev diz
+    que a oficina falhou, e a proposta segue para o kernel em vez de derrubar o controlador."""
+    session, blobs, steps = _session(tmp_path / "nao-existe", tmp_path, [])
+    deliver: dict[str, Any] = {"action": "deliver", "params": {}, "intent": "entregar o pedido"}
+    proposal = await session.run(deliver, SESSION, "01ABF")
+    assert proposal["action"] == "say"
+    assert proposal["params"]["text"] == "Não consegui trabalhar no pedido: a oficina falhou."
+    assert proposal["intent"].startswith("a oficina falhou: o clone falhou")
+    assert steps == []
+    assert session.delivered == 0
+    assert blobs.blobs == {}

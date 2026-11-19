@@ -11,7 +11,14 @@ import time
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import Any, cast
 
-from campsverso_ports import TOOLS, BlobStore, ToolResult, WorkshopPort, Workspace
+from campsverso_ports import (
+    TOOLS,
+    BlobStore,
+    ToolResult,
+    WorkshopError,
+    WorkshopPort,
+    Workspace,
+)
 
 type Review = Callable[[str], list[str]]
 type Publish = Callable[[str, Mapping[str, Any]], Awaitable[None]]
@@ -171,15 +178,25 @@ class WorkshopSession:
         self, proposal: Mapping[str, Any], session: Mapping[str, Any], stamp: str
     ) -> dict[str, Any]:
         """Roda a sessão fixa de um script; `stamp` distingue as entregas de um mesmo pedido."""
-        space = await self.begin(str(session["ticket_id"]))
-        steps = cast(Sequence[Mapping[str, Any]], session.get("steps") or ())
-        ready = False
-        for step in steps[:MAX_STEPS]:
-            tool = str(step["tool"])
-            await self.step(space, tool, cast(Mapping[str, Any], step.get("args") or {}))
-            if tool == "pronto":
-                ready = True
-                break
-        if not ready:
-            return dict(proposal)  # a sessão acabou sem pronto: a entrega vai sem patch
-        return await self.finish(space, proposal, stamp)
+        try:
+            space = await self.begin(str(session["ticket_id"]))
+            steps = cast(Sequence[Mapping[str, Any]], session.get("steps") or ())
+            ready = False
+            for step in steps[:MAX_STEPS]:
+                tool = str(step["tool"])
+                await self.step(space, tool, cast(Mapping[str, Any], step.get("args") or {}))
+                if tool == "pronto":
+                    ready = True
+                    break
+            if not ready:
+                return dict(proposal)  # a sessão acabou sem pronto: a entrega vai sem patch
+            return await self.finish(space, proposal, stamp)
+        except (WorkshopError, OSError) as error:
+            # A oficina caiu (o clone, o ambiente Python): o dev diz, como na sessão da mente, e o
+            # mundo segue. Antes, o erro derrubava o controlador e, com ele, o sandbox (19/nov).
+            why = " ".join(str(error).split())
+            return {
+                "action": "say",
+                "params": {"text": "Não consegui trabalhar no pedido: a oficina falhou."},
+                "intent": f"a oficina falhou: {why}"[:500],
+            }
