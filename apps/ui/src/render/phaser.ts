@@ -39,6 +39,7 @@ import {
   type Resolved,
 } from "../art/manifest.ts";
 import { declutter, type Label, type Placement } from "../declutter.ts";
+import { BubbleKit, HeadView } from "./bubbles.ts";
 import { el } from "../dom.ts";
 import { FogMemory, FogStore, lightHeld, serverCenter, visionRadius, type Sight } from "../fog.ts";
 import { MotionClock, type Point } from "../motion.ts";
@@ -57,6 +58,8 @@ const SEEN_ALPHA = 0.5;
 const HAZE = [0.5, 0.22]; // o véu do anel de fora da vista e o do seguinte, em fração da névoa
 const LIGHT_RINGS = 20; // anéis da luz à noite, do mais largo ao mais estreito (sem degraus à vista)
 const FONT = "ui-monospace, monospace";
+/** Quantos pixels o balão desce para quem está sentado de lado, com a cabeça mais baixa. */
+const SEATED_DROP = 10;
 const FOG_SAVE_MS = 1000; // a lembrança da névoa vai ao navegador no máximo uma vez por segundo
 // Um mapa visual por endereço: as variantes do mapa (ADR-0070) têm cada uma o seu.
 const mapKey = (url: string): string => `visual-map:${url}`;
@@ -160,21 +163,18 @@ class ThingView {
   }
 }
 
-/** Um avatar: o sprite animado (ou um círculo, sem arte), o rótulo da ação e a barra de progresso. */
+/** Um avatar: o sprite animado (ou um círculo, sem arte) e o que vai sobre a cabeça (`HeadView`). */
 class AvatarView {
   private readonly body: Phaser.GameObjects.Arc;
   private readonly initial: Phaser.GameObjects.Text;
   private readonly sprite: Phaser.GameObjects.Sprite;
-  private readonly tag: Phaser.GameObjects.Text;
-  private readonly bar: Phaser.GameObjects.Graphics;
-  private readonly balloon: Phaser.GameObjects.Text;
+  private readonly head: HeadView;
   private facing: Facing = "down";
   private last: Point | undefined;
   private walked = 0;
   private animation: string | undefined;
   private since = 0;
   private movedAt = Number.NEGATIVE_INFINITY;
-  private viewTop = 0;
 
   constructor(scene: Phaser.Scene, id: string) {
     this.body = scene.add.circle(0, 0, TILE * 0.34, 0xf5f5f5).setStrokeStyle(2, 0x1b1b1b);
@@ -182,24 +182,8 @@ class AvatarView {
       .text(0, 0, id.slice(0, 1).toUpperCase(), { fontFamily: FONT, fontSize: "12px", color: "#1b1b1b", fontStyle: "bold" })
       .setOrigin(0.5);
     this.sprite = scene.add.sprite(0, 0, "__DEFAULT").setOrigin(0.5, 1).setVisible(false);
-    this.tag = scene.add
-      .text(0, 0, "", { fontFamily: FONT, fontSize: "11px", color: "#ffe08a", fontStyle: "bold", backgroundColor: "rgba(20,20,20,0.8)", padding: { x: 4, y: 1 } })
-      .setOrigin(0.5, 1)
-      .setDepth(60);
-    this.bar = scene.add.graphics().setDepth(60);
-    // O balão de fala (ADR-0078): o que o avatar disse, sobre a cabeça, por um tempo.
-    this.balloon = scene.add
-      .text(0, 0, "", {
-        fontFamily: FONT,
-        fontSize: "12px",
-        color: "#1b1b1b",
-        backgroundColor: "#fffdf5",
-        padding: { x: 6, y: 4 },
-        wordWrap: { width: 190 },
-      })
-      .setOrigin(0.5, 1)
-      .setDepth(62)
-      .setVisible(false);
+    // O rótulo da ação, a barra e o balão de fala (ADR-0052, ADR-0078), ou os balões do escritório.
+    this.head = new HeadView(scene);
   }
 
   show(
@@ -213,6 +197,8 @@ class AvatarView {
     bed?: Bed,
     said?: string,
     seat?: Facing,
+    kit?: BubbleKit,
+    pointer?: Point,
   ): void {
     const { state, tick } = frame;
     const action = state.actions[id];
@@ -303,61 +289,50 @@ class AvatarView {
 
     const progress = overHead(state, id, tick);
     const above = inBed !== undefined && bed !== undefined ? { cx: bed.cx, top: bed.top - 2 } : undefined;
-    const tx = above?.cx ?? cx;
-    const top = above?.top ?? (drawn ? (spot.y + 1) * TILE - (art?.label_above ?? 50) : spot.y * TILE - 4);
-    this.tag.setVisible(progress !== undefined).setText(progress?.label ?? "");
-    // Perto da borda, o rótulo fica inteiro dentro do que a câmera mostra (achado do usuário no
-    // mapa d: "Cavar um canteiro aqui" saía do mapa); a barra continua sobre o avatar.
-    const view = scene.cameras.main.worldView;
-    this.viewTop = view.y;
-    const half = this.tag.width / 2 + 2;
-    this.tag.setPosition(view.width > 0 ? Phaser.Math.Clamp(tx, view.x + half, view.right - half) : tx, top - 3);
-    this.bar.clear();
-    if (progress?.fraction !== undefined) {
-      const width = TILE - 4;
-      this.bar.fillStyle(0x141414, 0.8).fillRect(tx - width / 2 - 1, top - 1, width + 2, 6);
-      this.bar.fillStyle(0x7bd88f, 1).fillRect(tx - width / 2, top, width * progress.fraction, 4);
-    }
-    this.balloon.setVisible(said !== undefined);
-    if (said !== undefined) {
-      if (this.balloon.text !== said) {
-        this.balloon.setText(said);
-      }
-      // Acima do rótulo da ação, quando há; dentro do que a câmera mostra, como o rótulo.
-      const above = progress === undefined ? top - 2 : top - 22;
-      const half = this.balloon.width / 2 + 2;
-      const x = view.width > 0 ? Phaser.Math.Clamp(tx, view.x + half, view.right - half) : tx;
-      this.balloon.setPosition(x, Math.max(view.y + this.balloon.height + 2, above));
-    }
+    // O mouse em cima de quem está na sala: a etiqueta com o nome e o que ele faz (18/nov).
+    const shape = drawn ? this.sprite : this.body;
+    const hovered = pointer !== undefined && kit !== undefined && shape.getBounds().contains(pointer.x, pointer.y);
+    const who = state.entities[id]?.display_name ?? id;
+    // Sentado de lado (a cadeira da copa), a cabeça fica mais baixa: o balão desce junto.
+    const sideways = seated !== undefined && sofa === undefined && this.facing !== "up";
+    // Perto da borda, o que vai sobre a cabeça fica inteiro dentro do que a câmera mostra (achado do
+    // usuário no mapa d: "Cavar um canteiro aqui" saía do mapa).
+    this.head.draw({
+      kit,
+      view: scene.cameras.main.worldView,
+      x: above?.cx ?? cx,
+      top: (above?.top ?? (drawn ? (spot.y + 1) * TILE - (art?.label_above ?? 50) : spot.y * TILE - 4)) + (kit !== undefined && sideways ? SEATED_DROP : 0),
+      progress,
+      action: asleep ? "sleep" : action?.action,
+      atDesk: seated !== undefined && sofa === undefined && this.facing === "up",
+      said,
+      hover: hovered ? (progress === undefined ? who : `${who} – ${progress.label}`) : undefined,
+    });
   }
 
-  /** A caixa do rótulo da ação, quando há, para o `declutter`. */
+  /** A caixa do que vai sobre a cabeça, quando há, para o `declutter`. */
   label(id: string): Label | undefined {
-    const tag = this.tag;
-    return tag.visible ? { id, text: tag.text, x: tag.x, y: tag.y, width: tag.width, height: tag.height } : undefined;
+    return this.head.label(id);
   }
 
-  /** Põe o rótulo onde o `declutter` mandou; quando ele sobe, a fala sobe junto. */
+  /** Põe o que vai sobre a cabeça onde o `declutter` mandou; quando sobe, a fala sobe junto. */
   place(at: Placement): void {
-    const rise = at.y - this.tag.y;
-    this.tag.setPosition(at.x, at.y).setVisible(at.visible);
-    if (this.balloon.visible && rise < 0) {
-      this.balloon.setY(Math.max(this.viewTop + this.balloon.height + 2, this.balloon.y + rise));
-    }
+    this.head.place(at);
   }
 
   /** Some da tela sem sair do mundo; o próximo `show` o desenha de novo. */
   private hide(): void {
-    for (const object of [this.body, this.initial, this.sprite, this.tag, this.balloon]) {
+    for (const object of [this.body, this.initial, this.sprite]) {
       object.setVisible(false);
     }
-    this.bar.clear();
+    this.head.hide();
   }
 
   destroy(): void {
-    for (const object of [this.body, this.initial, this.sprite, this.tag, this.bar, this.balloon]) {
+    for (const object of [this.body, this.initial, this.sprite]) {
       object.destroy();
     }
+    this.head.destroy();
   }
 }
 
@@ -399,6 +374,8 @@ class WorldScene extends Phaser.Scene {
   private readonly users = new Map<string, string[]>();
   /** O que fazem todos os avatares agora: a TV mostra o jogo de quem joga no sofá (ADR-0082). */
   private doing: string[] = [];
+  /** Os balões do escritório, quando a arte os traz e as folhas já chegaram. */
+  private kit: BubbleKit | undefined;
   /** A luz da noite (ADR-0082): uma imagem do tamanho do mapa, por cima das coisas e dos avatares,
    * refeita só quando o modo da hora ou a lanterna mudam. */
   private night: Phaser.GameObjects.Image | undefined;
@@ -853,8 +830,23 @@ class WorldScene extends Phaser.Scene {
     }
   }
 
+  /** Os balões da arte, prontos para desenhar, ou nada (as fazendas, ou as folhas a caminho). */
+  private bubbleKit(): BubbleKit | undefined {
+    const art = this.art.bubbles;
+    if (art === undefined) {
+      return undefined;
+    }
+    if (this.kit?.art !== art) {
+      this.kit = new BubbleKit(this, art);
+    }
+    return this.kit.ready() ? this.kit : undefined;
+  }
+
   private drawAvatars(frame: Frame, time: number): void {
     const { state, tick } = frame;
+    const kit = this.bubbleKit();
+    const mouse = this.input.activePointer;
+    const pointer = this.input.isOver ? this.cameras.main.getWorldPoint(mouse.x, mouse.y) : undefined;
     const seen = new Set<string>();
     this.using.clear();
     this.users.clear();
@@ -893,7 +885,7 @@ class WorldScene extends Phaser.Scene {
           }
         }
       }
-      view.show(this, lookOf(this.art, "avatar", entity.attributes), art, frame, id, at, time, this.bedOf(state, id), said, seat);
+      view.show(this, lookOf(this.art, "avatar", entity.attributes), art, frame, id, at, time, this.bedOf(state, id), said, seat, kit, pointer);
     }
     for (const [id, view] of this.avatars) {
       if (!seen.has(id)) {

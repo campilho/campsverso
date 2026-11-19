@@ -773,6 +773,11 @@
        "name": "blocking",
        "type": "bool",
        "value": true
+      },
+      {
+       "name": "especie",
+       "type": "string",
+       "value": "espada-de-sao-jorge"
       }
      ]
     },
@@ -796,6 +801,11 @@
        "name": "blocking",
        "type": "bool",
        "value": true
+      },
+      {
+       "name": "especie",
+       "type": "string",
+       "value": "costela-de-adao"
       }
      ]
     },

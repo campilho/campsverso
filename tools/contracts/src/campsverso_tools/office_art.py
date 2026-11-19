@@ -13,7 +13,10 @@ saem, para os cartuchos:
   o que o mapa visual ou outra peça já desenha (o quadro na parede, o micro-ondas no balcão); a
   mesinha da copa sai com dois quadros, o segundo com a marmita aberta em cima, para quem come;
 - a folha das fichas do quadro dos pedidos, que a tela pendura pelo estado de cada pedido;
-- as folhas dos três personagens, copiadas para `cartridges/office_campsverso/art/`.
+- as folhas dos três personagens, copiadas para `cartridges/office_campsverso/art/`;
+- as folhas dos balões, dos ícones e da fonte (o pedido de arte de 18/nov), copiadas, e a geometria
+  delas em `baloes.json`, que o `art.json` do gênero inclui: as peças, as molduras em nove fatias, o
+  fio do progresso, a fonte com a largura de cada glifo e as cores da paleta em hex.
 
 O mapa visual sai depois, por `make mapa-visual`. Com `--check`, só confere se está tudo em dia.
 """
@@ -59,6 +62,9 @@ FURNITURE = (
 CHARACTERS = ("camps", "gerente", "vigia")
 # Soltas: as fichas do quadro, que a tela pendura pelo estado (10 x 10).
 LOOSE = ("fichas",)
+# O que fica sobre a cabeça (o pedido de arte de 18/nov): os balões e os ícones, copiados; a fonte
+# sai de `font_sheet`, com cada glifo colado à esquerda da célula.
+INTERFACE = ("baloes", "icones")
 # O que fica na parede do fundo, em módulos de 32 x 64: o nome do tile e o quadro da folha.
 WALL_PIECES = (
     ("quadro-comeco", "quadro_pedidos", 0),
@@ -153,6 +159,98 @@ def copa_table() -> Img:
     return sheet
 
 
+def bubbles() -> dict[str, object]:
+    """A geometria dos balões, dos ícones e da fonte, do `metadados.json` do Claude Design, no
+    formato do manifesto de arte (`bubbles`), com as cores da paleta em hex."""
+    meta = json.loads((SOURCE / "metadados.json").read_text(encoding="utf-8"))
+    palette: dict[str, str] = meta["paleta"]
+    sheets = meta["folhas"]
+    balloons, icons, glyphs = sheets["baloes"], sheets["icones"], sheets["fonte"]
+    pieces = balloons["pecas"]
+    font = glyphs["fonte"]
+
+    def frame(name: str, piece: str) -> dict[str, object]:
+        style = balloons["molduras"][name]
+        return {
+            "rect": pieces[piece],
+            "slice": balloons["fatia"],
+            "color": palette[style["cor"]],
+            "margin": style["margem"],
+            "line": style["entrelinha"],
+            "lines": style["linhasMax"],
+        }
+
+    tail = balloons["ponta"]
+    progress = balloons["progresso"]
+    return {
+        "about": (
+            "Gerado por make arte-escritorio a partir de docs/design/escritorio-arte/folhas/"
+            "metadados.json: não edite à mão. O art.json do gênero o inclui e diz o ícone de "
+            "cada ação."
+        ),
+        "sheets": {
+            "baloes": {"image": "baloes.png", "frame_width": 8, "frame_height": 8},
+            "icones": {
+                "image": "icones.png",
+                "frame_width": icons["quadro"][0],
+                "frame_height": icons["quadro"][1],
+            },
+            "fonte": {
+                "image": "fonte.png",
+                "frame_width": font["celula"][0],
+                "frame_height": font["celula"][1],
+            },
+        },
+        "bubbles": {
+            "sheet": "baloes",
+            "action": {
+                "rect": pieces["acao"],
+                "anchor": balloons["ancora"],
+                "slot": balloons["miolo"],
+                "progress": {
+                    "x": progress["x"],
+                    "y": progress["y"],
+                    "width": progress["largura"],
+                    "height": progress["altura"],
+                    "track": palette[progress["trilho"]],
+                    "fill": palette[progress["cheio"]],
+                },
+                "at_desk": balloons["naMesa"],
+            },
+            "icons": {"sheet": "icones", "columns": icons["colunas"], "frames": icons["icones"]},
+            "label": frame("etiqueta", "etiqueta"),
+            "speech": {
+                **frame("fala", "fala"),
+                "tail": {"rect": pieces[tail["peca"]], "rise": tail["sobe"], "tip": tail["bico"]},
+            },
+            "font": {
+                "sheet": "fonte",
+                "cell": font["celula"],
+                "columns": glyphs["colunas"],
+                "spacing": font["espaco"],
+                "glyphs": font["glifos"],
+                "widths": font["larguras"],
+            },
+        },
+    }
+
+
+def font_sheet() -> Img:
+    """A folha da fonte com cada glifo começando na coluna 0 da célula, como a tela o recorta (o
+    metadados diz assim, mas o "." da folha de 18/nov veio na coluna 1 e sumia)."""
+    meta = json.loads((SOURCE / "metadados.json").read_text(encoding="utf-8"))
+    width, height = meta["folhas"]["fonte"]["fonte"]["celula"]
+    sheet = read_png(SOURCE / "fonte.png")
+    out = blank(len(sheet[0]), len(sheet))
+    for top in range(0, len(sheet), height):
+        for left in range(0, len(sheet[0]), width):
+            cell = crop(sheet, left, top, width, height)
+            used = [x for row in cell for x, px in enumerate(row) if px[3] > 0]
+            shift = min(used, default=0)
+            paste(out, crop(cell, shift, 0, width - shift, height), left, top)
+    return out
+
+
 def outputs() -> dict[Path, bytes]:
     """Cada arquivo que esta ferramenta escreve nos cartuchos, com o conteúdo."""
     png, tsj = tileset()
@@ -161,8 +259,11 @@ def outputs() -> dict[Path, bytes]:
         GENRE / "terreno.tsj": (json.dumps(tsj, indent=2, ensure_ascii=False) + "\n").encode(),
         GENRE / "vazio.png": encode_png(blank(T, T)),
     }
-    for name in (*FURNITURE, *LOOSE):
+    for name in (*FURNITURE, *LOOSE, *INTERFACE):
         files[GENRE / f"{name}.png"] = (SOURCE / f"{name}.png").read_bytes()
+    files[GENRE / "fonte.png"] = encode_png(font_sheet())
+    text = json.dumps(bubbles(), indent=2, ensure_ascii=False) + "\n"
+    files[GENRE / "baloes.json"] = text.encode()
     files[GENRE / "mesa_copa.png"] = encode_png(copa_table())
     for name in CHARACTERS:
         files[SCENARIO / f"{name}.png"] = (SOURCE / f"{name}.png").read_bytes()

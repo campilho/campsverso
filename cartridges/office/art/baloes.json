@@ -1,0 +1,323 @@
+{
+  "about": "Gerado por make arte-escritorio a partir de docs/design/escritorio-arte/folhas/metadados.json: não edite à mão. O art.json do gênero o inclui e diz o ícone de cada ação.",
+  "sheets": {
+    "baloes": {
+      "image": "baloes.png",
+      "frame_width": 8,
+      "frame_height": 8
+    },
+    "icones": {
+      "image": "icones.png",
+      "frame_width": 16,
+      "frame_height": 16
+    },
+    "fonte": {
+      "image": "fonte.png",
+      "frame_width": 8,
+      "frame_height": 12
+    }
+  },
+  "bubbles": {
+    "sheet": "baloes",
+    "action": {
+      "rect": [
+        0,
+        0,
+        24,
+        24
+      ],
+      "anchor": [
+        12,
+        24
+      ],
+      "slot": [
+        4,
+        1
+      ],
+      "progress": {
+        "x": 4,
+        "y": 17,
+        "width": 16,
+        "height": 2,
+        "track": "#c9ced4",
+        "fill": "#4c9a3f"
+      },
+      "at_desk": [
+        -28,
+        8
+      ]
+    },
+    "icons": {
+      "sheet": "icones",
+      "columns": 8,
+      "frames": {
+        "trabalhar": [
+          0,
+          0
+        ],
+        "pedido": [
+          1,
+          0
+        ],
+        "entregar": [
+          2,
+          0
+        ],
+        "devolver": [
+          3,
+          0
+        ],
+        "agua": [
+          4,
+          0
+        ],
+        "cafe": [
+          5,
+          0
+        ],
+        "banheiro": [
+          6,
+          0
+        ],
+        "marmita": [
+          7,
+          0
+        ],
+        "esquentar": [
+          0,
+          1
+        ],
+        "comer": [
+          1,
+          1
+        ],
+        "lixo": [
+          2,
+          1
+        ],
+        "tv": [
+          3,
+          1
+        ],
+        "videogame": [
+          4,
+          1
+        ],
+        "dormir": [
+          5,
+          1
+        ],
+        "plantar": [
+          6,
+          1
+        ],
+        "regar": [
+          7,
+          1
+        ],
+        "colher": [
+          0,
+          2
+        ],
+        "cavar": [
+          1,
+          2
+        ],
+        "bau": [
+          2,
+          2
+        ],
+        "dinheiro": [
+          3,
+          2
+        ],
+        "cozinhar": [
+          4,
+          2
+        ],
+        "adubar": [
+          5,
+          2
+        ],
+        "encomenda": [
+          6,
+          2
+        ],
+        "fincar": [
+          7,
+          2
+        ],
+        "mandar": [
+          0,
+          3
+        ]
+      }
+    },
+    "label": {
+      "rect": [
+        48,
+        0,
+        24,
+        24
+      ],
+      "slice": 8,
+      "color": "#f4ead0",
+      "margin": [
+        4,
+        2
+      ],
+      "line": 11,
+      "lines": 1
+    },
+    "speech": {
+      "rect": [
+        24,
+        0,
+        24,
+        24
+      ],
+      "slice": 8,
+      "color": "#1b1726",
+      "margin": [
+        5,
+        2
+      ],
+      "line": 11,
+      "lines": 3,
+      "tail": {
+        "rect": [
+          72,
+          0,
+          8,
+          8
+        ],
+        "rise": 1,
+        "tip": [
+          4,
+          4
+        ]
+      }
+    },
+    "font": {
+      "sheet": "fonte",
+      "cell": [
+        8,
+        12
+      ],
+      "columns": 16,
+      "spacing": 1,
+      "glyphs": " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,;:!?'\"()-–/%+=×…@#&áàâãéêíóôõúüçÁÀÂÃÉÊÍÓÔÕÚÇ",
+      "widths": [
+        3,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        3,
+        5,
+        5,
+        5,
+        7,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        7,
+        5,
+        5,
+        5,
+        5,
+        5,
+        4,
+        5,
+        5,
+        4,
+        5,
+        5,
+        1,
+        3,
+        4,
+        2,
+        7,
+        5,
+        5,
+        5,
+        5,
+        4,
+        4,
+        4,
+        5,
+        5,
+        7,
+        5,
+        5,
+        5,
+        5,
+        3,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        1,
+        2,
+        2,
+        1,
+        1,
+        5,
+        1,
+        3,
+        3,
+        3,
+        3,
+        5,
+        4,
+        5,
+        5,
+        4,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        2,
+        5,
+        5,
+        5,
+        5,
+        5,
+        4,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        3,
+        5,
+        5,
+        5,
+        5,
+        5
+      ]
+    }
+  }
+}

@@ -5,7 +5,7 @@ cadeira.png,desenho próprio do Campsverso (docs/design/escritorio-arte),Fernand
 cadeira_lado.png,desenho próprio do Campsverso (docs/design/escritorio-arte),Fernando Campilho e Claude,MIT,https://github.com/campilho/campsverso,a cadeira da copa vista de lado
 divisoria.png,desenho próprio do Campsverso (docs/design/escritorio-arte),Fernando Campilho e Claude,MIT,https://github.com/campilho/campsverso,"a divisória dos cubículos, um autotile de 16 peças pela máscara dos vizinhos"
 arquivo.png,desenho próprio do Campsverso (docs/design/escritorio-arte),Fernando Campilho e Claude,MIT,https://github.com/campilho/campsverso,"o arquivo de aço, fechado e com uma gaveta aberta"
-planta.png,desenho próprio do Campsverso (docs/design/escritorio-arte),Fernando Campilho e Claude,MIT,https://github.com/campilho/campsverso,a planta em vaso
+planta.png,desenho próprio do Campsverso (docs/design/escritorio-arte),Fernando Campilho e Claude,MIT,https://github.com/campilho/campsverso,"as três plantas em vaso: a de sempre, a espada-de-são-jorge no vaso de cerâmica e a costela-de-adão no cesto de palha"
 lixeira.png,desenho próprio do Campsverso (docs/design/escritorio-arte),Fernando Campilho e Claude,MIT,https://github.com/campilho/campsverso,a lixeira
 geladeira.png,desenho próprio do Campsverso (docs/design/escritorio-arte),Fernando Campilho e Claude,MIT,https://github.com/campilho/campsverso,"a geladeira, fechada e aberta"
 balcao_copa.png,desenho próprio do Campsverso (docs/design/escritorio-arte),Fernando Campilho e Claude,MIT,https://github.com/campilho/campsverso,"a pia com o armário e o micro-ondas, desligado e ligado"
@@ -22,3 +22,6 @@ bancada.png,desenho próprio do Campsverso (docs/design/escritorio-arte),Fernand
 robo_testador.png,desenho próprio do Campsverso (docs/design/escritorio-arte),Fernando Campilho e Claude,MIT,https://github.com/campilho/campsverso,"o testador, robô de mesa verde-claro com a lupa: parado, trabalhando, passou e falhou"
 robo_revisor.png,desenho próprio do Campsverso (docs/design/escritorio-arte),Fernando Campilho e Claude,MIT,https://github.com/campilho/campsverso,"o revisor, robô de mesa azul com a prancheta, para o futuro"
 robo_publicador.png,desenho próprio do Campsverso (docs/design/escritorio-arte),Fernando Campilho e Claude,MIT,https://github.com/campilho/campsverso,"o publicador, robô de mesa vermelho com o carimbo, para o futuro"
+baloes.png,desenho próprio do Campsverso (docs/design/escritorio-arte),Fernando Campilho e Claude,MIT,https://github.com/campilho/campsverso,"o balão de ação com o miolo do ícone, a etiqueta escura e o balão de fala em nove fatias, e a ponta da fala"
+icones.png,desenho próprio do Campsverso (docs/design/escritorio-arte),Fernando Campilho e Claude,MIT,https://github.com/campilho/campsverso,"os 25 ícones das ações, 14 do escritório e 11 da fazenda, de 16 × 16"
+fonte.png,desenho próprio do Campsverso (docs/design/escritorio-arte),Fernando Campilho e Claude,MIT,https://github.com/campilho/campsverso,"a fonte pixel de 8 × 12, com os acentos do português"

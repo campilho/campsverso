@@ -171,6 +171,22 @@ describe("manifesto de arte (ADR-0053)", () => {
     expect(empty).toEqual({ manifest: { version: 1 }, credits: [], layers: [] });
   });
 
+  it("uma camada inclui outro JSON dela (o baloes.json gerado), e o art.json vale por cima", async () => {
+    const files: Record<string, unknown> = {
+      "/content/art/index.json": { layers: ["office"] },
+      "/content/art/office/art.json": { version: 1, include: ["baloes.json"], bubbles: { icons: { actions: { work: "trabalhar" } } } },
+      "/content/art/office/baloes.json": {
+        sheets: { icones: { image: "icones.png", frame_width: 16, frame_height: 16 } },
+        bubbles: { sheet: "baloes", icons: { sheet: "icones", columns: 8, frames: { trabalhar: [0, 0] } } },
+      },
+    };
+    const get = (url: string): Promise<Response> =>
+      Promise.resolve(url in files ? new Response(JSON.stringify(files[url])) : new Response("", { status: 404 }));
+    const { manifest: art } = await loadArt(get);
+    expect(art.sheets?.icones?.image).toBe("/content/art/office/icones.png");
+    expect(art.bubbles?.icons).toEqual({ sheet: "icones", columns: 8, frames: { trabalhar: [0, 0] }, actions: { work: "trabalhar" } });
+  });
+
 });
 
 describe("a arte da fase 1 do escritório", () => {

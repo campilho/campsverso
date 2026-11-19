@@ -2,6 +2,31 @@
   "version": 1,
   "tile_size": 32,
   "credits": "CREDITS.csv",
+  "include": ["baloes.json"],
+  "bubbles": {
+    "about": "O ícone de cada ação, sobre a cabeça (o pedido de arte de 18/nov); a geometria, a fonte e as cores vêm do baloes.json, gerado. A ação sem ícone vai na etiqueta.",
+    "icons": {
+      "actions": {
+        "work": "trabalhar",
+        "write_ticket": "pedido",
+        "take_ticket": "pedido",
+        "deliver": "entregar",
+        "accept_ticket": "entregar",
+        "return_ticket": "devolver",
+        "drink": "agua",
+        "coffee": "cafe",
+        "restroom": "banheiro",
+        "fridge": "marmita",
+        "microwave": "esquentar",
+        "lunch": "comer",
+        "trash": "lixo",
+        "tv": "tv",
+        "videogame": "videogame",
+        "sleep": "dormir"
+      }
+    },
+    "speech": { "max_width": 150 }
+  },
   "sheets": {
     "office-terreno": { "image": "terreno.png", "frame_width": 32, "frame_height": 32 },
     "vazio": { "image": "vazio.png", "frame_width": 32, "frame_height": 32 },
@@ -106,7 +131,14 @@
     },
     "copa_table": { "sheet": "mesa_copa", "frame": 0, "in_use": { "actions": ["lunch"], "frames": [1] } },
     "file_cabinet": { "sheet": "arquivo", "frame": 0 },
-    "plant": { "sheet": "planta", "frame": 0 },
+    "plant": {
+      "sheet": "planta",
+      "frame": 0,
+      "variants": [
+        { "when": { "especie": "espada-de-sao-jorge" }, "look": { "frame": 1 } },
+        { "when": { "especie": "costela-de-adao" }, "look": { "frame": 2 } }
+      ]
+    },
     "tv": {
       "sheet": "movel_tv",
       "frame": 0,

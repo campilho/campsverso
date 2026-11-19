@@ -25,7 +25,15 @@ export async function loadArt(get: Fetch = (url) => fetch(url)): Promise<LoadedA
     const root = `/content/art/${encodeURIComponent(layer)}`;
     const manifest = (await json(get, `${root}/art.json`)) as ArtManifest | undefined;
     if (manifest?.version === 1) {
-      const placed = rooted(manifest, root);
+      // Os arquivos incluídos (o `baloes.json` gerado) vêm antes: o `art.json` vale por cima.
+      const parts: ArtManifest[] = [];
+      for (const path of manifest.include ?? []) {
+        const part = (await json(get, `${root}/${path}`)) as Omit<ArtManifest, "version"> | undefined;
+        if (part !== undefined) {
+          parts.push({ ...part, version: 1 });
+        }
+      }
+      const placed = rooted(mergeManifests([...parts, manifest]), root);
       layers.push(placed);
       if (placed.credits !== undefined) {
         credits.push({ layer, url: placed.credits });

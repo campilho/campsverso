@@ -191,6 +191,80 @@ export interface ArtManifest {
   readonly time_tiles?: TimeTiles;
   /** As fichas do quadro dos pedidos, penduradas pelo estado de cada pedido (`Cards`). */
   readonly cards?: Cards;
+  /** Outros arquivos JSON da mesma camada, juntados antes deste (o `baloes.json` gerado pelo
+   * `make arte-escritorio`); o que este diz vale por cima. */
+  readonly include?: readonly string[];
+  /** O que vai sobre a cabeça, na arte do escritório (`Bubbles`; o pedido de arte de 18/nov). */
+  readonly bubbles?: Bubbles;
+}
+
+/** Uma fonte pixel numa folha: cada glifo numa célula, alinhado à esquerda, com a sua largura. */
+export interface BitmapFont {
+  readonly sheet: string;
+  /** A célula de cada glifo, em pixels: [largura, altura]. */
+  readonly cell: readonly [number, number];
+  readonly columns: number;
+  /** O respiro entre as letras, em pixels. */
+  readonly spacing: number;
+  /** Os caracteres na ordem da folha, e a largura de cada um. */
+  readonly glyphs: string;
+  readonly widths: readonly number[];
+}
+
+/** Uma moldura em nove fatias, esticada no tamanho do texto: a etiqueta ou o balão de fala. */
+export interface TextFrame {
+  /** A peça na folha dos balões: [x, y, largura, altura]. */
+  readonly rect: readonly [number, number, number, number];
+  /** O lado de cada uma das nove fatias. */
+  readonly slice: number;
+  /** A cor do texto (a fonte é tingida). */
+  readonly color: string;
+  /** Da borda ao texto: [x, y]. */
+  readonly margin: readonly [number, number];
+  /** A distância entre as linhas e o máximo delas. */
+  readonly line: number;
+  readonly lines: number;
+  /** A largura máxima do texto, em pixels: mais que isso quebra a linha. */
+  readonly max_width?: number;
+  /** A ponta embaixo, no meio: a peça, quantos pixels ela sobe sobre a moldura e o bico (a âncora). */
+  readonly tail?: {
+    readonly rect: readonly [number, number, number, number];
+    readonly rise: number;
+    readonly tip: readonly [number, number];
+  };
+}
+
+/** O balão com o ícone da ação, o progresso num fio na base, a etiqueta, a fala e a fonte. */
+export interface Bubbles {
+  readonly sheet: string;
+  readonly action: {
+    readonly rect: readonly [number, number, number, number];
+    /** O bico da ponta, no quadro do balão: o ponto que fica sobre a cabeça. */
+    readonly anchor: readonly [number, number];
+    /** Onde o ícone pousa, no quadro do balão. */
+    readonly slot: readonly [number, number];
+    readonly progress: {
+      readonly x: number;
+      readonly y: number;
+      readonly width: number;
+      readonly height: number;
+      readonly track: string;
+      readonly fill: string;
+    };
+    /** Sentado à mesa, de costas: o balão vai para o lado da cabeça, para não cobrir o monitor. */
+    readonly at_desk?: readonly [number, number];
+  };
+  readonly icons: {
+    readonly sheet: string;
+    readonly columns: number;
+    /** Cada ícone pelo nome: [coluna, linha]. */
+    readonly frames: Readonly<Record<string, readonly [number, number]>>;
+    /** O ícone de cada ação (o sono é `sleep`); a ação sem ícone vai na etiqueta. */
+    readonly actions?: Readonly<Record<string, string>>;
+  };
+  readonly label?: TextFrame;
+  readonly speech?: TextFrame;
+  readonly font?: BitmapFont;
 }
 
 export type LightMode = "day" | "lamps" | "dark";
