@@ -27,7 +27,7 @@ import { OperatorPanel } from "./panels/operator.ts";
 import { Portrait } from "./panels/portrait.ts";
 import { contentsOf, holdTarget, inControl, menuFor, proposal, refusalText, thingAt, tileMenu, walkTo, type MenuEntry, type Tile } from "./play.ts";
 import { busyText, progressOf } from "./progress.ts";
-import { ActionQueue, idle, type Step } from "./queue.ts";
+import { ActionQueue, idle, pendingTargets, type Step } from "./queue.ts";
 import { MapCanvas } from "./render/canvas.ts";
 import { PhaserRenderer } from "./render/phaser.ts";
 import type { WorldRenderer } from "./render/renderer.ts";
@@ -143,7 +143,20 @@ function devOf(state: ObserverState): string | undefined {
   return Object.entries(state.entities).find(([, e]) => e?.kind === "avatar" && e.attributes.papel === "dev" && e.position !== undefined)?.[0];
 }
 
+/** O que o gerente faz num pedido do quadro e que leva até ele (aceitar, devolver). */
+const TICKET_STEPS = ["accept_ticket", "return_ticket"];
+
+/** Os pedidos a que o gerente já está indo, para o quadro não oferecer o botão de novo (18/nov). */
+function ticketsUnderway(state: ObserverState): Set<string> {
+  return pendingTargets(queue.list, state, avatarId(), TICKET_STEPS);
+}
+
 function officeStep(label: string, action: string, params: Record<string, unknown>): void {
+  const state = store.state;
+  const target = params.target;
+  if (typeof target === "string" && state !== undefined && ticketsUnderway(state).has(target)) {
+    return; // o segundo clique, enquanto ele anda até o quadro
+  }
   queue.push({ label, proposal: { avatar_id: avatarId(), action, params }, near: "quadro" });
   dirty = true;
 }
@@ -781,7 +794,7 @@ function frame(now: number): void {
     if (panelDue) {
       officeAside.hidden = !isOffice(state);
       if (!officeAside.hidden) {
-        office.render(state, run === null && inControl(state, avatarId()));
+        office.render(state, run === null && inControl(state, avatarId()), ticketsUnderway(state));
       }
       panel?.render(state, avatarId(), store.welcome?.commands ?? [], store.timeline, store.lastReply);
       dirty = false;

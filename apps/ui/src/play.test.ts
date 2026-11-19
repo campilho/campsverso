@@ -336,6 +336,13 @@ describe("segurar a seta (achado do usuário no mapa d)", () => {
     expect(passable(state(), 99, 99)).toBe(true); // sem mapa, quem decide é o kernel
   });
 
+  it("num tile que não deixa passar, o clique vai até a coisa vizinha ou até o lado dele (18/nov)", () => {
+    expect(walkTo(map, "camps", 2, 0).params).toEqual({ near: { x: 2, y: 0 } });
+    const boat = { ...map, entities: { ...map.entities, barco: { kind: "boat", position: { x: 3, y: 0 }, attributes: {} } } };
+    expect(walkTo(boat, "camps", 2, 0).params).toEqual({ near: "barco" });
+    expect(walkTo(boat, "camps", 0, 0).params).toEqual({ target: { x: 0, y: 0 } }); // a grama, como antes
+  });
+
   it("a caminhada para antes da água", () => {
     expect(holdTarget(map, { x: 0, y: 0 }, [1, 0], 5)).toEqual({ x: 1, y: 0 });
     expect(holdTarget(map, { x: 3, y: 0 }, [1, 0], 5)).toEqual({ x: 5, y: 0 });

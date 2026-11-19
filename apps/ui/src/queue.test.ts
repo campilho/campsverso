@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { weatherText } from "./panels/hud.ts";
 import { approach, menuFor, proposal, tileMenu } from "./play.ts";
-import { ActionQueue } from "./queue.ts";
+import { ActionQueue, pendingTargets } from "./queue.ts";
 
 const AFFORDANCES: Affordance[] = [
   { action: "water", label: "Regar", on: ["plot"], target: true },
@@ -152,5 +152,14 @@ describe("a fila de ações (ADR-0068)", () => {
     expect(queue.settle(fact("campsverso.action.rejected.v1", "ana"), "camps")).toBeUndefined();
     expect(queue.settle(fact("campsverso.action.rejected.v1"), "camps")).toBe("A fila foi esvaziada.");
     expect(queue.list).toEqual([]);
+  });
+
+  it("o pedido já a caminho, na fila ou em andamento, não entra de novo (18/nov)", () => {
+    const accept = { label: "Aceitar pedido-001", proposal: { avatar_id: "camps", action: "accept_ticket", params: { target: "pedido-001" } }, near: "quadro" };
+    const actions = ["accept_ticket", "return_ticket"];
+    expect(pendingTargets([accept, water], state(), "camps", actions)).toEqual(new Set(["pedido-001"]));
+    const accepting = state({ actions: { camps: { action_id: "a-2", action: "accept_ticket", params: { target: "pedido-002" }, end_tick: 20 } } });
+    expect(pendingTargets([], accepting, "camps", actions)).toEqual(new Set(["pedido-002"]));
+    expect(pendingTargets([water], state(), "camps", actions)).toEqual(new Set());
   });
 });

@@ -170,8 +170,12 @@ def _delivered(ctx: ActionContext) -> EntityView | Rejection:
     found = ticket(ctx.view, ctx.params.get("target"))
     if isinstance(found, Rejection):
         return found
-    if found.attributes.get("estado") != DELIVERED:
-        return Rejection("wrong_state", f"o pedido {found.attributes['numero']} não foi entregue")
+    state = found.attributes.get("estado")
+    if state != DELIVERED:
+        number = found.attributes["numero"]
+        # Dois cliques em aceitar saíam juntos da fila; o segundo dizia "não foi entregue" (18/nov).
+        why = "já foi aceito" if state == ACCEPTED else "ainda não foi entregue"
+        return Rejection("wrong_state", f"o pedido {number} {why}")
     return found
 
 

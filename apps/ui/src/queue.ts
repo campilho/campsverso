@@ -88,6 +88,28 @@ export class ActionQueue {
   }
 }
 
+/** Os alvos (como os pedidos do quadro) de uma destas ações que já estão a caminho: na fila ou em
+ * andamento. Um segundo clique no mesmo botão não entra, e o quadro mostra que o gerente está indo
+ * (18/nov: dois cliques em aceitar saíam juntos, e o segundo era recusado). */
+export function pendingTargets(
+  steps: readonly Step[],
+  state: ObserverState,
+  avatarId: string,
+  actions: readonly string[],
+): Set<string> {
+  const doing = state.actions[avatarId];
+  const proposals = [
+    ...steps.map((step) => step.proposal),
+    ...(doing === undefined ? [] : [{ action: doing.action, params: doing.params as Record<string, unknown> }]),
+  ];
+  return new Set(
+    proposals
+      .filter((p) => actions.includes(p.action))
+      .map((p) => p.params.target)
+      .filter((target): target is string => typeof target === "string"),
+  );
+}
+
 /** O passo até o assento, se o avatar não estiver nele. */
 function sitDown(state: ObserverState, avatarId: string, seat: Tile | undefined): Proposal | undefined {
   const me = state.entities[avatarId]?.position;

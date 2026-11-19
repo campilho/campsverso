@@ -373,13 +373,27 @@ export function thingAt(state: ObserverState, x: number, y: number): string | un
     .sort()[0];
 }
 
-/** Clique esquerdo: andar até o tile, ou até perto da coisa que está nele. */
+/** A coisa a um tile de distância (a mais perto; no empate, pelo id). */
+function thingNear(state: ObserverState, x: number, y: number): string | undefined {
+  return Object.entries(state.entities)
+    .flatMap(([id, e]) => {
+      const at = e?.kind === "avatar" ? undefined : e?.position;
+      const reach = at === undefined ? Infinity : Math.max(Math.abs(at.x - x), Math.abs(at.y - y));
+      return at !== undefined && reach <= 1 ? [{ id, steps: Math.abs(at.x - x) + Math.abs(at.y - y) }] : [];
+    })
+    .sort((a, b) => a.steps - b.steps || (a.id < b.id ? -1 : 1))[0]?.id;
+}
+
+/** Clique esquerdo: andar até o tile, ou até perto da coisa que está nele. Num tile que não deixa
+ * passar e sem coisa nele (a ponta do sofá, o quadro na parede, uma divisória), vai até perto da
+ * coisa vizinha, quando há, ou até o lado do próprio tile (18/nov: esses cliques eram recusados). */
 export function walkTo(state: ObserverState, avatarId: string, x: number, y: number): Proposal {
-  const thing = thingAt(state, x, y);
+  const open = passable(state, x, y);
+  const thing = thingAt(state, x, y) ?? (open ? undefined : thingNear(state, x, y));
   return {
     avatar_id: avatarId,
     action: "move",
-    params: thing === undefined ? { target: { x, y } } : { near: thing },
+    params: thing !== undefined ? { near: thing } : open ? { target: { x, y } } : { near: { x, y } },
   };
 }
 

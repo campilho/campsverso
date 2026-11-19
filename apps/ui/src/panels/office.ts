@@ -162,14 +162,15 @@ export class OfficePanel {
     this.root.replaceChildren(el("div", { className: "card" }, el("h2", {}, "Quadro dos pedidos"), this.board), talk, form, leave, this.hint);
   }
 
-  render(state: ObserverState, manager: boolean): void {
+  /** `underway`: os pedidos a que o gerente já está indo (aceitar ou devolver, na fila ou fazendo). */
+  render(state: ObserverState, manager: boolean, underway: ReadonlySet<string> = new Set()): void {
     for (const part of this.managerOnly) {
       part.hidden = !manager;
     }
     this.hint.hidden = manager;
     this.hint.textContent = "Entre no escritório como o gerente para escrever pedidos e falar com o dev.";
     const tickets = ticketsOf(state);
-    const key = JSON.stringify([manager, tickets]);
+    const key = JSON.stringify([manager, tickets, [...underway].sort()]);
     if (key === this.shown) {
       return;
     }
@@ -181,13 +182,13 @@ export class OfficePanel {
           "div",
           { className: `column ${id}` },
           el("h3", {}, `${label} · ${String(mine.length)}`),
-          ...mine.map((ticket) => this.card(ticket, manager, state)),
+          ...mine.map((ticket) => this.card(ticket, manager, state, underway.has(ticket.id))),
         );
       }),
     );
   }
 
-  private card(ticket: TicketView, manager: boolean, state: ObserverState): HTMLElement {
+  private card(ticket: TicketView, manager: boolean, state: ObserverState, underway: boolean): HTMLElement {
     const owner = ticket.owner === undefined ? "" : (state.entities[ticket.owner]?.display_name ?? ticket.owner);
     const details = el(
       "details",
@@ -203,7 +204,10 @@ export class OfficePanel {
       const heading = `Pedido #${String(ticket.number)}: ${ticket.title}`;
       details.append(el("div", { className: "row" }, button("Ver o patch", () => { void this.delivery.open(heading, ref); })));
     }
-    if (manager && ticket.state === "entregue") {
+    if (manager && ticket.state === "entregue" && underway) {
+      details.open = true;
+      details.append(el("p", { className: "hint underway" }, "O gerente está indo ao quadro."));
+    } else if (manager && ticket.state === "entregue") {
       const comment = el("input");
       comment.placeholder = "O que falta (para devolver)";
       comment.maxLength = SPEECH_MAX;

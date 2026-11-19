@@ -285,7 +285,30 @@ def test_o_gerente_aceita_ou_devolve_com_o_comentario() -> None:
         0,
     )
     again = _act(core, "gerente", "accept_ticket", {"target": "pedido-001"}, HUMAN["id"])
-    assert _only(again, "action.rejected")[0]["reason"] == "wrong_state"
+    rejected = _only(again, "action.rejected")[0]
+    assert (rejected["reason"], rejected["detail"]) == (
+        "wrong_state",
+        "o pedido 1 ainda não foi entregue",
+    )
+
+
+def test_aceitar_de_novo_diz_que_ja_foi_aceito() -> None:
+    """Dois cliques em aceitar saíam juntos da fila da tela, e o segundo dizia "não foi entregue"
+    (achado do usuário em 18/nov)."""
+    core = _core()
+    _until(core, "09:00")
+    _manager_in(core)
+    _write(core, size="P")
+    _act(core, "camps", "move", {"near": "quadro"}, DEV)
+    _act(core, "camps", "take_ticket", {}, DEV)
+    _act(core, "camps", "move", {"target": {"x": 4, "y": 5}}, DEV)
+    _act(core, "camps", "work", {}, DEV)
+    _act(core, "camps", "deliver", {}, DEV)
+    accepted = _act(core, "gerente", "accept_ticket", {"target": "pedido-001"}, HUMAN["id"])
+    assert _only(accepted, "office.ticket.accepted")
+    again = _act(core, "gerente", "accept_ticket", {"target": "pedido-001"}, HUMAN["id"])
+    rejected = _only(again, "action.rejected")[0]
+    assert (rejected["reason"], rejected["detail"]) == ("wrong_state", "o pedido 1 já foi aceito")
 
 
 def test_um_mundo_que_comeca_fora_de_uma_troca_de_fase_ja_sabe_a_fase() -> None:
