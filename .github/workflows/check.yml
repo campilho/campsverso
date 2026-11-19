@@ -1,4 +1,6 @@
 # Roda o mesmo `make check` da máquina local num Linux limpo, a cada push e pull request (ADR-0035).
+# Dois jobs em paralelo desde 19/nov: o `make check` passou de 20 minutos no CI e o teste da tela, que
+# vinha depois dele no mesmo job, era cortado pelo limite de tempo.
 name: check
 
 on:
@@ -17,7 +19,7 @@ jobs:
   check:
     name: make check
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     defaults:
       run:
         # Explícito: só assim o GitHub liga o pipefail, e um make que falha dentro de "| tee" falha o
@@ -43,13 +45,32 @@ jobs:
         env:
           # push: compara com o topo anterior da branch; pull request: com a branch de destino.
           COMPAT_BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
-        # O log completo só aparece para quem está logado no GitHub. Se falhar, o fim da saída vira
-        # uma anotação de erro, visível na página do commit e pela API pública.
+        # O log completo só aparece para quem está logado no GitHub. Se falhar, os testes que falharam
+        # e o fim da saída viram uma anotação de erro, visível na página do commit e pela API pública.
         run: |
           make check 2>&1 | tee make-check.log || {
-            tail -n 80 make-check.log | python3 -c 'import sys; t = sys.stdin.read().replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"); print("::error title=make check falhou::" + t)'
+            { grep -E "^(FAILED|ERROR) " make-check.log | cut -c1-300; tail -n 60 make-check.log; } | python3 -c 'import sys; t = sys.stdin.read().replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"); print("::error title=make check falhou::" + t)'
             exit 1
           }
+
+  ui-e2e:
+    name: make ui-e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          enable-cache: true
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - name: Dependências
+        run: make setup
 
       # Fumaça da tela num navegador de verdade (ADR-0053): o Chromium do Playwright e as bibliotecas
       # que ele pede no Linux. Na máquina local, o teste usa o Chrome já instalado.
