@@ -9,7 +9,8 @@ planeja como o script 3, com a crença presa no começo.
 
 from collections.abc import Mapping
 
-from campsverso_farm_script import controller3, fixed
+from campsverso_farm_script import Farmer3Script
+from campsverso_farm_script.farmer3 import Notebook
 from campsverso_farm_script.knowledge import Effect
 from campsverso_testkit.pipeline import Pipeline
 from campsverso_tools.metrics import Report, compute
@@ -17,6 +18,7 @@ from campsverso_tools.metrics import Report, compute
 SEED = 20261022  # a do mundo farm-morada-do-sol-01
 YEAR = 28
 _BLIND: list[Report] = []  # o ano do script 2: o mesmo nos três mapas (ele nunca sai do poço)
+_BOOKS: list[Notebook] = []  # o caderno do último ano de um script 3, o do mundo que rodou
 
 
 async def _year(script: str, variant: str | None, *, rules: bool = True) -> Report:
@@ -30,6 +32,10 @@ async def _year(script: str, variant: str | None, *, rules: bool = True) -> Repo
     )
     await pipeline.start()
     await pipeline.run_days(YEAR)
+    # O caderno do script deste mundo: o do módulo é outro, porque cada mundo recebe uma cópia do
+    # script (19/nov), e lê-lo provaria nada.
+    if isinstance(pipeline.script, Farmer3Script):
+        _BOOKS[:] = [pipeline.script.book]
     return compute(pipeline.envelopes)
 
 
@@ -40,7 +46,7 @@ async def _blind() -> Report:
 
 
 def _effects() -> Mapping[str, Effect]:
-    return {e.name: e for e in controller3.book.beliefs.effects()}
+    return {e.name: e for e in _BOOKS[-1].beliefs.effects()}
 
 
 def _hungry(report: Report) -> int:
@@ -83,7 +89,7 @@ async def test_o_oraculo_atravessa_o_ano_das_lagoas_sem_quase_passar_fome() -> N
 async def test_o_script_3_fixo_planeja_sem_aprender_nem_testar() -> None:
     blind = await _blind()
     report = await _year("farmer3-fixo", None)
-    book = fixed.book
+    book = _BOOKS[-1]
     assert sum(book.beliefs.counts) == 0  # nenhum plantio medido
     assert not book.beliefs.loss_rates()  # nenhuma perda anotada
     assert not book.tests  # nenhum canteiro de teste

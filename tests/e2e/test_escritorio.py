@@ -1,7 +1,10 @@
 """O escritório de ponta a ponta, em memória (M23, ADR-0078): o dev-script, o vigia e o
 gerente-script trocam envelopes pelo barramento, como trocariam pelo NATS."""
 
+import asyncio
 from typing import Any
+
+import pytest
 
 from campsverso_kernel.loader import build_world
 from campsverso_testkit.escritorio import office_report
@@ -15,12 +18,19 @@ async def _day() -> Pipeline:
     return pipeline
 
 
+@pytest.fixture(scope="module")
+def day() -> Pipeline:
+    """Um dia do escritório, rodado uma vez para os testes do módulo: cada dia leva quase um minuto,
+    e quatro deles passavam de sete minutos no CI (19/nov). Os testes só leem os fatos."""
+    return asyncio.run(_day())
+
+
 def _count(pipeline: Pipeline, event: str) -> int:
     return len(pipeline.of_type(event.removeprefix("campsverso.")))
 
 
-async def test_um_dia_de_pedidos_do_quadro_a_entrega() -> None:
-    pipeline = await _day()
+def test_um_dia_de_pedidos_do_quadro_a_entrega(day: Pipeline) -> None:
+    pipeline = day
     # O roteiro do gerente: três pedidos; o terceiro volta uma vez e é refeito.
     assert _count(pipeline, "campsverso.office.ticket.created.v1") == 3
     assert _count(pipeline, "campsverso.office.ticket.returned.v1") == 1
@@ -39,10 +49,9 @@ async def test_um_dia_de_pedidos_do_quadro_a_entrega() -> None:
     assert report.lunches["2026-11-16"] == 1
 
 
-async def test_o_vigia_so_esta_quando_o_dev_nao_esta() -> None:
-    pipeline = await _day()
+def test_o_vigia_so_esta_quando_o_dev_nao_esta(day: Pipeline) -> None:
     inside: set[str] = set()
-    for envelope in pipeline.kernel_events():
+    for envelope in day.kernel_events():
         data: dict[str, Any] = envelope["data"]
         if envelope["type"] == "campsverso.avatar.entered.v1":
             inside.add(str(data["avatar_id"]))
@@ -51,8 +60,8 @@ async def test_o_vigia_so_esta_quando_o_dev_nao_esta() -> None:
         assert not {"camps", "vigia"} <= inside, f"os dois no escritório no tick {envelope['tick']}"
 
 
-async def test_o_mesmo_dia_duas_vezes_da_os_mesmos_fatos() -> None:
-    first, second = await _day(), await _day()
+async def test_o_mesmo_dia_duas_vezes_da_os_mesmos_fatos(day: Pipeline) -> None:
+    first, second = day, await _day()
 
     def facts(pipeline: Pipeline) -> list[tuple[int, str, Any]]:
         return [(e["tick"], e["type"], e["data"]) for e in pipeline.kernel_events()]

@@ -2,7 +2,7 @@
 controladores carregados como instância ou fábrica."""
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -154,3 +154,12 @@ def test_o_controlador_vem_pronto_ou_de_uma_fabrica_por_avatar() -> None:
     )  # uma instância por ajudante (ADR-0072)
     with pytest.raises(LookupError, match="fábrica"):
         load_controller("ajudante")
+
+
+def test_cada_mundo_recebe_o_seu_script_sem_a_lembranca_do_anterior() -> None:
+    """Dois mundos no mesmo processo (19/nov): o bom-dia dado no primeiro não vale no segundo."""
+    first, second = load_controller("dev"), load_controller("dev")
+    assert first is not second
+    cast(Any, first).greeted = 1
+    assert cast(Any, second).greeted == 0
+    assert cast(Any, load_controller("dev")).greeted == 0

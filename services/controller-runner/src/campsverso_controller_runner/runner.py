@@ -13,6 +13,7 @@ o avatar ao controlador padrão do cartucho. Uma entrega publicada antes de a ú
 quando a ação acaba, e os eventos dela são a única cópia do que aconteceu no meio-tempo.
 """
 
+import copy
 from collections.abc import Mapping, Sequence
 from datetime import datetime
 from importlib.metadata import entry_points
@@ -106,13 +107,16 @@ def load_controller(name: str, avatar_id: str | None = None) -> Controller:
     """Controladores instalados, registrados no grupo `campsverso.controllers` (ADR-0011).
 
     O entry point é um controlador pronto ou uma fábrica que recebe o avatar e dá uma instância
-    só dele (ADR-0072): os ajudantes, que são vários num processo, cada um com a sua lembrança."""
+    só dele (ADR-0072): os ajudantes, que são vários num processo, cada um com a sua lembrança.
+    O pronto sai copiado: ele é um objeto do módulo, e dois mundos no mesmo processo (os testes, a
+    arena) dividiam a lembrança do script. O dev do escritório não cumprimentava o gerente no
+    segundo mundo, porque já tinha dado bom-dia no primeiro (19/nov)."""
     found = {ep.name: ep for ep in entry_points(group=ENTRY_POINT_GROUP)}
     if name not in found:
         raise LookupError(f"controlador {name!r} não encontrado ({sorted(found)})")
     loaded = found[name].load()
     if hasattr(loaded, "decide"):
-        return cast(Controller, loaded)
+        return cast(Controller, copy.deepcopy(loaded))
     if avatar_id is None:
         raise LookupError(f"o controlador {name!r} é uma fábrica: falta o avatar")
     return cast(Controller, loaded(avatar_id))
