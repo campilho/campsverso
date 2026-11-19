@@ -35,7 +35,8 @@
   <p id="contagem"></p>
 </header>
 <main>
-  <h2>A sala montada (20 × 17), em cenas</h2>
+  <h2>A sala montada (20 × 16), em cenas</h2>
+  <p>Passe o mouse sobre uma pessoa: a etiqueta mostra o nome da ação.</p>
   <div class="barra" id="cenas"></div>
   <div class="barra">
     <button id="bt-pausa" aria-pressed="false">pausar</button>
@@ -44,7 +45,11 @@
     <button class="bt-escala" data-e="2" aria-pressed="true">2×</button>
     <button class="bt-escala" data-e="3" aria-pressed="false">3×</button>
   </div>
-  <div class="moldura"><canvas id="sala" width="640" height="544"></canvas></div>
+  <div class="moldura"><canvas id="sala" width="640" height="512"></canvas></div>
+
+  <h2>Os balões e a fonte</h2>
+  <p>A fonte desenhada em branco, tingida pela cor de cada moldura. A tela dobra tudo.</p>
+  <div class="moldura" style="background:#4b5875"><canvas id="amostra"></canvas></div>
 
   <h2>A paleta</h2>
   <div class="paleta" id="paleta"></div>
@@ -191,16 +196,18 @@ function carpeteSombra() {
   return s;
 }
 
-// ---- piso xadrez do corredor (quadrados de 16)
+// ---- o piso do corredor (18/11): um granilite escuro e calmo, mais escuro
+// que o carpete da sala, em dois tons próximos, com o rejunte discreto a cada placa.
+// À noite fica na penumbra, como as faces que dão para ele.
 function corredor() {
-  const s = new Spr(T, T);
+  const s = new Spr(T, T).r(0, 0, T, T, 'grafiteEsc');
   for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
-    const escuro = ((x >> 4) + (y >> 4)) % 2 === 1;
-    s.p(x, y, escuro ? 'cinza' : 'cinzaCl');
-    if (escuro && ((x & 15) === 15 || (y & 15) === 15)) s.p(x, y, 'cinzaEsc');
-    if (!escuro && ((x & 15) === 0 || (y & 15) === 0)) s.p(x, y, 'branco');
-    else if (hash(x, y, 4) < 0.03) s.p(x, y, escuro ? 'cinzaEsc' : 'cinza');
+    const h = hash(x, y, 77);
+    if (h < 0.075) s.p(x, y, 'grafite');
+    else if (h < 0.083) { s.p(x, y, 'grafite'); s.p(x + 1, y, 'grafite'); }
+    else if (h > 0.994) s.p(x, y, 'cinzaEsc');
   }
+  s.hl(0, 31, 0, 'escuro').vl(0, 0, 31, 'escuro');
   return s;
 }
 
@@ -267,8 +274,9 @@ function portaFechada() {
 }
 function portaAberta() {
   const s = new Spr(T, T);
-  s.r(4, 0, 24, 11, 'carp').r(4, 11, 24, 21, 'cremeCl');
-  for (let x = 4; x < 28; x++) for (let y = 11; y < 30; y++) if (((x >> 4) + ((y + 5) >> 4)) % 2) s.p(x, y, 'cinza');
+  s.r(4, 0, 24, 11, 'carp');
+  const piso = corredor();                                                   // o granilite do corredor, lá fora
+  for (let x = 4; x < 28; x++) for (let y = 11; y < 32; y++) s.p(x, y, piso.g(x, (y + 16) % T));
   s.hl(4, 27, 10, 'madEsc').hl(4, 27, 11, 'madCl');                         // soleira
   s.r(23, 0, 4, 22, 'mad').vl(23, 0, 21, 'madCl').vl(26, 0, 21, 'madEsc').p(24, 9, 'amarelo');   // a folha aberta, rente ao batente
   batentes(s); return s;
@@ -615,6 +623,81 @@ function planta() {
   s.hl(11, 20, 62, 'madEsc');
   return s.contorno();
 }
+
+// ---- espada-de-são-jorge (32 × 64): as folhas em pé, em faixas, com a margem
+// amarela, num vaso de cerâmica azul vidrada (18/11)
+function plantaEspada() {
+  const s = new Spr(32, 64), B = 47;
+  // [base x, ponta y, desvio da ponta, largura, da frente]: as de trás primeiro
+  const folhas = [[11, 14, -3, 5, 0], [20, 10, 3, 5, 0], [16, 4, 0, 6, 1], [9, 24, -5, 5, 1], [23, 21, 5, 5, 1]];
+  folhas.forEach(([bx, ty, dx, w, frente], i) => {
+    for (let y = ty; y <= B; y++) {
+      const k = (B - y) / (B - ty), cx = bx + dx * k, d = y - ty, ww = d < 2 ? 1 : d < 4 ? 2 : d < 6 ? w - 2 : w;
+      const x0 = Math.round(cx - ww / 2);
+      for (let j = 0; j < ww; j++) {
+        const borda = ww >= 4 && (j === 0 || j === ww - 1);
+        const faixa = ((y + i * 2 + (j % 2)) % 5) === 0;                 // as faixas, um pouco onduladas
+        s.p(x0 + j, y, borda ? (frente ? 'amarelo' : 'verde') : faixa ? 'verde' : (frente && j === 1 ? 'verde' : 'verdeEsc'));
+      }
+    }
+  });
+  // o vaso: a boca, o corpo vidrado e o pé
+  s.r(8, 46, 16, 3, 'azulCl').hl(9, 22, 46, 'ceuCl').hl(8, 23, 48, 'azul').hl(10, 21, 47, 'cabEsc');
+  for (let y = 49; y <= 61; y++) {
+    const i = y < 53 ? 0 : y < 58 ? 1 : 2;
+    s.hl(9 + i, 22 - i, y, 'azul').p(10 + i, y, 'azulCl').p(11 + i, y, 'azulCl').p(21 - i, y, 'azulEsc').p(22 - i, y, 'azulEsc');
+  }
+  s.hl(12, 19, 55, 'azulEsc').hl(12, 19, 56, 'azulCl');            // o friso
+  s.hl(11, 20, 62, 'azulEsc');
+  return s.contorno();
+}
+
+// ---- costela-de-adão (32 × 64): folhas largas e recortadas, num cesto de palha (18/11)
+function folhaCostela(rx, ry, ang, tons) {
+  const [cl, base, esc] = tons, n = 2 * Math.max(rx, ry) + 3, s = new Spr(n, n), c = (n - 1) / 2;
+  const a = ang * Math.PI / 180, co = Math.cos(a), si = Math.sin(a);
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const dx = x - c, dy = y - c, u = dx * co + dy * si, v = -dx * si + dy * co;      // u ao longo da nervura
+    const e = (u * u) / (rx * rx) + (v * v) / (ry * ry);
+    if (e > 1) continue;
+    if (u < -rx * 0.55 && Math.abs(v) < 1) continue;                                   // o recorte do coração, no talo
+    s.p(x, y, Math.abs(v) < 0.6 ? cl : v < 0 ? base : esc);
+  }
+  // os recortes da margem: dois de cada lado, até perto da nervura
+  for (const t of [-0.15, 0.4]) for (const lado of [-1, 1]) {
+    for (let r = ry * 0.45; r <= ry + 1; r += 0.5) {
+      const u = t * rx + r * 0.25, v = lado * r, x = c + u * co - v * si, y = c + u * si + v * co;
+      s.apaga(Math.round(x), Math.round(y));
+    }
+  }
+  return s.contorno();
+}
+function plantaCostela() {
+  const s = new Spr(32, 64), V = ['verdeCl', 'verde', 'verdeEsc'], E = ['verde', 'verdeEsc', 'verdeEsc'];
+  // os talos, do cesto até cada folha
+  for (const [x1, y1] of [[7, 37], [25, 36], [10, 25], [22, 24], [16, 16]]) s.linha(16, 47, x1, y1, 'verdeEsc');
+  const poe = (f, cx, cy) => s.cola(f, Math.round(cx - (f.w - 1) / 2), Math.round(cy - (f.h - 1) / 2));
+  poe(folhaCostela(7, 5, -105, E), 16, 17);
+  poe(folhaCostela(7, 6, -140, V), 10, 25);
+  poe(folhaCostela(7, 6, -40, V), 22, 24);
+  poe(folhaCostela(7, 5, 195, V), 7, 37);
+  poe(folhaCostela(7, 5, -15, V), 25, 36);
+  // o cesto de palha: a borda trançada e a trama
+  for (let y = 48; y <= 62; y++) {
+    const i = y < 52 ? 0 : y < 57 ? 1 : 2, x0 = 6 + i, x1 = 25 - i;
+    for (let x = x0; x <= x1; x++) {
+      const trama = ((x >> 1) + (y >> 1)) % 2 === 0;
+      s.p(x, y, trama ? 'amarelo' : 'madCl');
+      if ((y - 48) % 4 === 3) s.p(x, y, 'mad');
+    }
+    s.p(x0, y, 'mad').p(x1, y, 'madEsc');
+  }
+  s.r(5, 46, 22, 2, 'madCl');
+  for (let x = 5; x <= 26; x++) if ((x + 1) % 3 === 0) s.p(x, 46, 'amareloCl'); else if (x % 3 === 0) s.p(x, 47, 'mad');
+  s.hl(9, 22, 62, 'madEsc');
+  return s.contorno();
+}
+const PLANTAS = ['planta', 'espada-de-são-jorge', 'costela-de-adão'];
 
 // ---- lixeira de tela (32 × 32)
 function lixeira() {
@@ -1024,6 +1107,607 @@ function robo(id, anim, f) {
   s.r(14 + ax, hy - 5, 2, 2, luz);
   return s.contorno();
 }
+
+// =====================================================================
+// BALÕES, ÍCONES E FONTE (18/11): o que a tela escreve e mostra sobre
+// a cabeça de quem faz alguma coisa. Fica acima da luz: é informação,
+// não cenário.
+// =====================================================================
+
+// ------------------------------------------------------------ a fonte
+// Cada glifo numa célula de 8 × 12. As linhas 0 e 1 são os acentos das
+// maiúsculas; as maiúsculas vão da linha 3 à 9 (7 px); as minúsculas têm
+// 5 px de altura (linhas 5 a 9), com os acentos nas linhas 2 e 3; as
+// descendentes ocupam as linhas 10 e 11. A base fica a 10 px do topo.
+// Cada glifo começa na coluna 0 da célula; a tela põe 1 px entre as letras.
+// Abaixo, cada glifo é desenhado da linha 3 em diante, uma linha por '/'.
+const FONTE_CELULA = [8, 12], FONTE_BASE = 10, FONTE_TOPO = 3, FONTE_ESPACO = 1;
+const GLIFOS_BASE = {
+  ' ': '.../.../...',
+  A: '.###./#...#/#...#/#####/#...#/#...#/#...#',
+  B: '####./#...#/#...#/####./#...#/#...#/####.',
+  C: '.###./#...#/#..../#..../#..../#...#/.###.',
+  D: '####./#...#/#...#/#...#/#...#/#...#/####.',
+  E: '#####/#..../#..../####./#..../#..../#####',
+  F: '#####/#..../#..../####./#..../#..../#....',
+  G: '.###./#...#/#..../#.###/#...#/#...#/.####',
+  H: '#...#/#...#/#...#/#####/#...#/#...#/#...#',
+  I: '###/.#./.#./.#./.#./.#./###',
+  J: '..###/...#./...#./...#./...#./#..#./.##..',
+  K: '#...#/#..#./#.#../##.../#.#../#..#./#...#',
+  L: '#..../#..../#..../#..../#..../#..../#####',
+  M: '#.....#/##...##/#.#.#.#/#..#..#/#.....#/#.....#/#.....#',
+  N: '#...#/##..#/#.#.#/#..##/#...#/#...#/#...#',
+  O: '.###./#...#/#...#/#...#/#...#/#...#/.###.',
+  P: '####./#...#/#...#/####./#..../#..../#....',
+  Q: '.###./#...#/#...#/#...#/#...#/#..#./.##.#',
+  R: '####./#...#/#...#/####./#.#../#..#./#...#',
+  S: '.###./#...#/#..../.###./....#/#...#/.###.',
+  T: '#####/..#../..#../..#../..#../..#../..#..',
+  U: '#...#/#...#/#...#/#...#/#...#/#...#/.###.',
+  V: '#...#/#...#/#...#/#...#/.#.#./.#.#./..#..',
+  W: '#.....#/#.....#/#.....#/#..#..#/#.#.#.#/##...##/#.....#',
+  X: '#...#/#...#/.#.#./..#../.#.#./#...#/#...#',
+  Y: '#...#/#...#/.#.#./..#../..#../..#../..#..',
+  Z: '#####/....#/...#./..#../.#.../#..../#####',
+  a: '...../...../.###./....#/.####/#...#/.####',
+  b: '#..../#..../####./#...#/#...#/#...#/####.',
+  c: '..../..../.###/#.../#.../#.../.###',
+  d: '....#/....#/.####/#...#/#...#/#...#/.####',
+  e: '...../...../.###./#...#/#####/#..../.###.',
+  f: '..##/.#../####/.#../.#../.#../.#..',
+  g: '...../...../.####/#...#/#...#/#...#/.####/....#/.###.',
+  h: '#..../#..../####./#...#/#...#/#...#/#...#',
+  i: '#/./#/#/#/#/#',
+  j: '..#/.../..#/..#/..#/..#/..#/..#/##.',
+  k: '#.../#.../#..#/#.#./##../#.#./#..#',
+  l: '#./#./#./#./#./#./.#',
+  m: '......./......./###.##./#..#..#/#..#..#/#..#..#/#..#..#',
+  n: '...../...../####./#...#/#...#/#...#/#...#',
+  o: '...../...../.###./#...#/#...#/#...#/.###.',
+  p: '...../...../####./#...#/#...#/#...#/####./#..../#....',
+  q: '...../...../.####/#...#/#...#/#...#/.####/....#/....#',
+  r: '..../..../#.##/##../#.../#.../#...',
+  s: '..../..../.###/#.../.##./...#/###.',
+  t: '.#../.#../###./.#../.#../.#../..##',
+  u: '...../...../#...#/#...#/#...#/#...#/.####',
+  v: '...../...../#...#/#...#/#...#/.#.#./..#..',
+  w: '......./......./#..#..#/#..#..#/#..#..#/#..#..#/.##.##.',
+  x: '...../...../#...#/.#.#./..#../.#.#./#...#',
+  y: '...../...../#...#/#...#/#...#/#...#/.####/....#/.###.',
+  z: '...../...../#####/...#./..#../.#.../#####',
+  0: '.###./#...#/#..##/#.#.#/##..#/#...#/.###.',
+  1: '.#./##./.#./.#./.#./.#./###',
+  2: '.###./#...#/....#/...#./..#../.#.../#####',
+  3: '.###./#...#/....#/..##./....#/#...#/.###.',
+  4: '...#./..##./.#.#./#..#./#####/...#./...#.',
+  5: '#####/#..../####./....#/....#/#...#/.###.',
+  6: '..##./.#.../#..../####./#...#/#...#/.###.',
+  7: '#####/....#/...#./..#../..#../..#../..#..',
+  8: '.###./#...#/#...#/.###./#...#/#...#/.###.',
+  9: '.###./#...#/#...#/.####/....#/...#./.##..',
+  '.': './././././.#',
+  ',': '../../../../../.#/.#/#.',
+  ';': '../../.#/../../.#/.#/#.',
+  ':': './././#/./././#',
+  '!': '#/#/#/#/#/./#',
+  '?': '.###./#...#/....#/...#./..#../...../..#..',
+  "'": '#/#',
+  '"': '#.#/#.#',
+  '(': '..#/.#./#../#../#../.#./..#',
+  ')': '#../.#./..#/..#/..#/.#./#..',
+  '-': '.../.../.../###',
+  '–': '...../...../...../#####',
+  '/': '...#/...#/..#./..#./.#../#.../#...',
+  '%': '##..#/##.#./...#./..#../.#.../.#.##/#..##',
+  '+': '...../..#../..#../#####/..#../..#..',
+  '=': '..../..../####/..../####',
+  '×': '...../#...#/.#.#./..#../.#.#./#...#',
+  '…': '...../...../...../...../...../...../#.#.#',
+  '@': '.###./#...#/#.###/#.#.#/#.###/#..../.####',
+  '#': '.#.#./.#.#./#####/.#.#./#####/.#.#./.#.#.',
+  '&': '.##../#..#./#.#../.#.../#.#.#/#..#./.##.#',
+};
+// Os acentos: o desenho, a coluna preferida (centro) e se tira o pingo do i.
+const ACENTOS = {
+  agudo: '.#/#.', grave: '#./.#', circunflexo: '.#./#.#', til: '.#.#/#.#.', trema: '#.#', cedilha: '.#/##',
+};
+const COM_ACENTO = {
+  'á': ['a', 'agudo'], 'à': ['a', 'grave'], 'â': ['a', 'circunflexo'], 'ã': ['a', 'til'],
+  'é': ['e', 'agudo'], 'ê': ['e', 'circunflexo'], 'í': ['i', 'agudo'], 'ó': ['o', 'agudo'],
+  'ô': ['o', 'circunflexo'], 'õ': ['o', 'til'], 'ú': ['u', 'agudo'], 'ü': ['u', 'trema'], 'ç': ['c', 'cedilha'],
+  'Á': ['A', 'agudo'], 'À': ['A', 'grave'], 'Â': ['A', 'circunflexo'], 'Ã': ['A', 'til'],
+  'É': ['E', 'agudo'], 'Ê': ['E', 'circunflexo'], 'Í': ['I', 'agudo'], 'Ó': ['O', 'agudo'],
+  'Ô': ['O', 'circunflexo'], 'Õ': ['O', 'til'], 'Ú': ['U', 'agudo'], 'Ç': ['C', 'cedilha'],
+};
+const FONTE_GLIFOS = ' ' + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' + 'abcdefghijklmnopqrstuvwxyz' + '0123456789' +
+  '.,;:!?\'"()-–/%+=×…@#&' + 'áàâãéêíóôõúüç' + 'ÁÀÂÃÉÊÍÓÔÕÚÇ';
+
+// Um glifo como lista de pixels [x, y] na célula, e a largura.
+const GLIFO_CACHE = new Map();
+function glifo(ch) {
+  if (GLIFO_CACHE.has(ch)) return GLIFO_CACHE.get(ch);
+  let g;
+  if (COM_ACENTO[ch]) {
+    const [b, nomeAc] = COM_ACENTO[ch], base = glifo(b), ac = ACENTOS[nomeAc].split('/');
+    const aw = ac[0].length, w = Math.max(base.w, aw), bx = Math.floor((w - base.w) / 2);
+    const maiuscula = b === b.toUpperCase();
+    let px = base.px.map(([x, y]) => [x + bx, y]);
+    if (b === 'i') px = px.filter(([, y]) => y !== FONTE_TOPO);              // o acento no lugar do pingo
+    const ax = nomeAc === 'grave' ? Math.floor((w - aw) / 2) : Math.ceil((w - aw) / 2);
+    const ay = nomeAc === 'cedilha' ? FONTE_BASE : nomeAc === 'trema' ? (maiuscula ? 1 : 3) : (maiuscula ? 0 : 2);
+    ac.forEach((linha, j) => [...linha].forEach((c, i) => { if (c === '#') px.push([ax + i, ay + j]); }));
+    g = { w, px };
+  } else {
+    const linhas = GLIFOS_BASE[ch].split('/'), px = [];
+    linhas.forEach((linha, j) => [...linha].forEach((c, i) => { if (c === '#') px.push([i, FONTE_TOPO + j]); }));
+    g = { w: linhas[0].length, px };
+  }
+  GLIFO_CACHE.set(ch, g); return g;
+}
+function celulaFonte(i) {
+  const ch = FONTE_GLIFOS[i];
+  if (ch === undefined) return null;
+  const s = new Spr(FONTE_CELULA[0], FONTE_CELULA[1]);
+  for (const [x, y] of glifo(ch).px) s.p(x, y, 'branco');
+  return s;
+}
+// Medir e escrever com a fonte, numa cor da paleta (a tela faz o mesmo, tingindo).
+function larguraTexto(txt) {
+  let w = 0; for (const ch of txt) w += glifo(GLIFOS_BASE[ch] || COM_ACENTO[ch] ? ch : '?').w + FONTE_ESPACO;
+  return Math.max(0, w - FONTE_ESPACO);
+}
+function escreve(s, txt, x, y, cor) {
+  for (const ch of txt) {
+    const g = glifo(GLIFOS_BASE[ch] || COM_ACENTO[ch] ? ch : '?');
+    for (const [gx, gy] of g.px) s.p(x + gx, y + gy, cor);
+    x += g.w + FONTE_ESPACO;
+  }
+  return x;
+}
+// Quebra em linhas de até `max` px, palavra por palavra.
+function quebra(txt, max) {
+  const linhas = []; let atual = '';
+  for (const p of txt.split(' ')) {
+    const tenta = atual ? atual + ' ' + p : p;
+    if (atual && larguraTexto(tenta) > max) { linhas.push(atual); atual = p; } else atual = tenta;
+  }
+  if (atual) linhas.push(atual);
+  return linhas;
+}
+
+// ------------------------------------------------------------ os balões
+// O balão de ação (24 × 24, âncora (12, 24)): o corpo claro com cantos
+// arredondados, a ponta de 3 px embaixo, no meio, e o fio do progresso na base.
+const BALAO = { miolo: [4, 1], progresso: { x: 4, y: 17, largura: 16, altura: 2, trilho: 'cinzaCl', cheio: 'verde' }, naMesa: [-28, 8] };
+function balaoAcao() {
+  const s = new Spr(24, 24);
+  s.r(1, 1, 22, 19, 'branco').hl(1, 22, 19, 'cremeCl');
+  for (const [x, y] of [[1, 1], [22, 1], [1, 19], [22, 19]]) s.apaga(x, y);
+  s.r(10, 20, 4, 1, 'cremeCl').r(11, 21, 2, 1, 'cremeCl');                  // a ponta
+  return s.contorno();
+}
+// As molduras em nove fatias de 8 × 8 (24 × 24): o contorno por fora, os
+// cantos arredondados e um friso por dentro. O miolo se repete.
+function moldura(fundo, friso, sombra) {
+  const s = new Spr(24, 24);
+  s.r(1, 1, 22, 22, fundo).hl(2, 21, 1, friso).hl(2, 21, 22, sombra).vl(1, 2, 21, friso).vl(22, 2, 21, sombra);
+  for (const [x, y] of [[1, 1], [22, 1], [1, 22], [22, 22]]) s.apaga(x, y);
+  return s.contorno();
+}
+const etiqueta = () => moldura('grafiteEsc', 'grafite', 'escuro');
+const fala = () => moldura('branco', 'branco', 'cremeCl');
+// A ponta da fala (8 × 8): a linha de cima cobre a de baixo do balão (sobe 1 px).
+function falaPonta() {
+  const s = new Spr(8, 8);
+  s.hl(0, 1, 0, 'contorno').hl(2, 5, 0, 'cremeCl').hl(6, 7, 0, 'contorno');
+  s.p(1, 1, 'contorno').hl(2, 5, 1, 'cremeCl').p(6, 1, 'contorno');
+  s.p(2, 2, 'contorno').hl(3, 4, 2, 'cremeCl').p(5, 2, 'contorno');
+  s.hl(3, 4, 3, 'contorno');
+  return s;
+}
+// As peças na folha baloes.png (80 × 24): [x, y, largura, altura].
+const PECAS = { acao: [0, 0, 24, 24], fala: [24, 0, 24, 24], etiqueta: [48, 0, 24, 24], fala_ponta: [72, 0, 8, 8] };
+const TEXTO_MOLDURA = {
+  fala: { cor: 'contorno', margem: [5, 2], entrelinha: 11, linhasMax: 3 },
+  etiqueta: { cor: 'cremeCl', margem: [4, 2], entrelinha: 11, linhasMax: 1 },
+};
+function folhaBaloes() {
+  const s = new Spr(80, 24);
+  s.cola(balaoAcao(), ...PECAS.acao.slice(0, 2)).cola(fala(), ...PECAS.fala.slice(0, 2));
+  s.cola(etiqueta(), ...PECAS.etiqueta.slice(0, 2)).cola(falaPonta(), ...PECAS.fala_ponta.slice(0, 2));
+  return s;
+}
+// Esticar uma moldura em nove fatias até w × h (como a tela faz).
+function noveFatias(peca, w, h) {
+  const fonte = peca === 'fala' ? fala() : etiqueta(), s = new Spr(w, h), F = 8;
+  const de = (i, n) => i < F ? i : i >= n - F ? 24 - (n - i) : F + ((i - F) % F);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const c = fonte.g(de(x, w), de(y, h)); if (c) s.p(x, y, c); }
+  return s;
+}
+
+// ------------------------------------------------------------ os ícones
+// 16 × 16, desenhados para o miolo do balão: o desenho fica entre as
+// linhas e colunas 1 e 14, e o contorno por fora. Sem texto, só o "Zz".
+// Cada peça é uma grade de letras; a legenda dá a cor da paleta.
+const LEGENDA = {
+  k: 'contorno', E: 'escuro', D: 'grafiteEsc', g: 'grafite', s: 'cinzaEsc', c: 'cinza', l: 'cinzaCl', w: 'branco',
+  B: 'begeEsc', q: 'begeSomb', b: 'bege', r: 'creme', R: 'cremeCl', M: 'madMEsc', m: 'madEsc', o: 'mad', O: 'madCl',
+  z: 'azulEsc', a: 'azul', A: 'azulCl', N: 'mar', u: 'ceu', U: 'ceuCl', v: 'verdeEsc', V: 'verde', x: 'verdeCl',
+  t: 'telaFundo', T: 'telaTexto', h: 'telaBrilho', p: 'vermEsc', P: 'verm', Q: 'vermCl', f: 'peleSomb', F: 'pele', i: 'peleCl',
+  y: 'amarelo', Y: 'amareloCl', d: 'cabEsc', H: 'cab', j: 'cabCl',
+};
+// A grade ganha 1 px de folga em volta, onde cabe o contorno.
+function grade(linhas, contorna = true) {
+  const s = new Spr(Math.max(...linhas.map(l => l.length)) + 2, linhas.length + 2);
+  linhas.forEach((l, y) => [...l].forEach((c, x) => {
+    if (c === '.' || c === ' ') return;
+    if (!LEGENDA[c]) throw new Error('letra sem cor na legenda: ' + c);
+    s.p(x + 1, y + 1, LEGENDA[c]);
+  }));
+  return contorna ? s.contorno() : s;
+}
+// Uma peça com o próprio contorno, posta no ícone em (x, y) — o x e o y do contorno.
+const ic = (...pecas) => { const s = new Spr(16, 16); for (const [g, x, y] of pecas) s.cola(g, x, y); return s; };
+// A ficha do quadro, como na parede (9 × 12 + contorno)
+const FICHA_IC = ['yyyyyyyyy', 'yyyyyyyyy', 'wwwwwwwww', 'wllllllww', 'wwwwwwwww', 'wlllllwww', 'wwwwwwwww', 'wllllwwww', 'wwwwwwwww', 'wwwwwwwww', 'wwwwwwwww', 'RRRRRRRRR'];
+const ICONES_DESENHO = {
+  // ---- o escritório
+  trabalhar: () => ic([grade([
+    'cccccccccccccc',
+    'cwwcwwcwwcwwcc',
+    'cccccccccccccc',
+    'ccwwcwwcwwcwwc',
+    'cccccccccccccc',
+    'cwwcwwwwwwcwwc',
+    'cccccccccccccc',
+    'ssssssssssssss',
+  ]), 0, 4]),
+  pedido: () => ic([grade(FICHA_IC), 1, 1], [grade([
+    '......QQ',
+    '.....llQ',
+    '....yOl.',
+    '...yO...',
+    '..yO....',
+    '.iF.....',
+    '.F......',
+    'E.......',
+  ]), 6, 5]),
+  entregar: () => ic([grade(FICHA_IC), 1, 1], [grade([
+    '......x',
+    '.....xV',
+    'x...xV.',
+    'Vx.xV..',
+    '.VxV...',
+    '..V....',
+  ]), 7, 8]),
+  devolver: () => ic([grade(FICHA_IC), 1, 1], [grade([
+    '..P......',
+    '.PP......',
+    'PPPPPPP..',
+    '.PP....P.',
+    '..P.....P',
+    '........P',
+    '.......P.',
+    '...PPPP..',
+  ]), 5, 6]),
+  agua: () => ic([grade([
+    'lUUUUUUUl',
+    'lUwUUUUUl',
+    'lAAAAAAAl',
+    'luwuuuuAl',
+    'luwuuuuAl',
+    '.luwuuAl.',
+    '.luuuuAl.',
+    '.luuuuAl.',
+    '.lllllll.',
+    '..lllll..',
+  ]), 3, 2]),
+  cafe: () => ic([grade([
+    '..c.c..',
+    '.c.c...',
+    '.c.c...',
+    '..c.c..',
+  ], false), 4, 1], [grade([
+    'QQQQQQQQ...',
+    'QmmmmmmQ...',
+    'QmoommmQQQ.',
+    'QQQQQQQQ.Q.',
+    'QQQQQQQP.Q.',
+    'QQQQQQQPQQ.',
+    'QQQQQQQP...',
+    '.PPPPPP....',
+  ]), 2, 5]),
+  banheiro: () => ic([grade([
+    '.wwwwwwwlll..',
+    'wwwwwwwlwwwl.',
+    'wwwwwwlwwlwwl',
+    'wwwwwwlwlDlwl',
+    'wwwwwwlwlDlwl',
+    'wwwwwwlwwlwwl',
+    'RRRRRRRlwwwl.',
+    'RRRRRRRRlll..',
+    '..wwwww......',
+    '..lllll......',
+    '..wwwww......',
+    '..wwww.......',
+  ]), 0, 1]),
+  marmita: () => ic([grade([
+    '.UUUUUUUUUU.',
+    'AAAAAAAAAAAA',
+    'aaaaaaaaaaaa',
+    'wawwwwwwwwaw',
+    'wawwwwwwwwal',
+    'wwwwwwwwwwwl',
+    'wwwwwwwwwwwl',
+    'llllllllllll',
+  ]), 1, 4]),
+  esquentar: () => ic([grade([
+    '.P...P...P.',
+    'P...P...P..',
+    '.P...P...P.',
+    '..P...P...P',
+    '.P...P...P.',
+  ], false), 1, 0], [grade([
+    '.UUUUUUUUUU.',
+    'AAAAAAAAAAAA',
+    'aaaaaaaaaaaa',
+    'wawwwwwwwwaw',
+    'wwwwwwwwwwwl',
+    'llllllllllll',
+  ]), 1, 7]),
+  comer: () => ic([grade([
+    'c.c.c',
+    'c.c.c',
+    'c.c.c',
+    'ccccc',
+    '.ccc.',
+    '..c..',
+    '..c..',
+    '..c..',
+    '..c..',
+    '..c..',
+    '..c..',
+    '..c..',
+  ]), 0, 1], [grade([
+    '...lll...',
+    '.llwwwll.',
+    'lwRRVxmwl',
+    'lwRRRmmwl',
+    'lwRRmmQwl',
+    '.llwwwll.',
+    '...lll...',
+  ]), 4, 4], [grade([
+    '.l',
+    'll',
+    'll',
+    'll',
+    'll',
+    'ls',
+    '.s',
+    '.s',
+    '.s',
+    '.s',
+    '.s',
+    '.s',
+  ]), 12, 1]),
+  lixo: () => ic([grade([
+    '....ss....',
+    '.llllllll.',
+    'ssssssssss',
+    '.clclclcl.',
+    '.clclclcl.',
+    '.clclclcl.',
+    '.clclclcl.',
+    '..lclclc..',
+    '..lclclc..',
+    '..lclclc..',
+    '..ssssss..',
+  ]), 2, 1]),
+  tv: () => ic([grade([
+    '..s.....s.',
+    '...s...s..',
+    '....s.s...',
+  ], false), 3, 1], [grade([
+    'gggggggggggg',
+    'guuuuuuuggcg',
+    'guUUuuuuggsg',
+    'guUuuuuuggcg',
+    'guuuuuuuggsg',
+    'guuuuuuuggcg',
+    'gggggggggggg',
+    'DDDDDDDDDDDD',
+    '.D........D.',
+  ]), 1, 4]),
+  videogame: () => ic([grade([
+    '.cccccccccccc.',
+    'cccEcccccccPcc',
+    'ccEEEcccccAcyc',
+    'cccEccDDcccVcc',
+    'cccccccccccccc',
+    'cccc......cccc',
+    '.ss........ss.',
+  ]), 0, 4]),
+  dormir: () => ic([grade([
+    '.....AAAAA',
+    '........A.',
+    '.......A..',
+    '......A...',
+    '.....AAAAA',
+  ]), 4, 1], [grade([
+    'AAAAAAA',
+    'AAAAAAA',
+    '....AA.',
+    '...AA..',
+    '..AA...',
+    '.AA....',
+    'AAAAAAA',
+    'AAAAAAA',
+  ]), 1, 6]),
+  // ---- a fazenda
+  plantar: () => ic([grade([
+    '.xx...xx.',
+    'xxVx.xVxx',
+    '.xxVVVxx.',
+    '...VV....',
+    '....V....',
+    '....V....',
+  ]), 3, 1], [grade([
+    '...oooooo...',
+    '.oooOooOooo.',
+    'oomoooooomoo',
+    'mmmmmmmmmmmm',
+  ]), 1, 9]),
+  regar: () => ic([grade([
+    '..a',
+    '...',
+    '.a.',
+    '..a',
+    '...',
+    'a..',
+  ], false), 11, 7], [grade([
+    '..ccccc......',
+    '.c.....c.....',
+    '.c.....c...vv',
+    'xxxxxxx...vVv',
+    'xVVVVVV..VVv.',
+    'xVVVVVVVVVv..',
+    'xVVVVVVVVv...',
+    'xVVVVVVVv....',
+    'vvvvvvvv.....',
+  ]), 0, 2]),
+  colher: () => ic([grade([
+    '.x...x.',
+    '.xV.Vx.',
+    '..xVx..',
+    '.QQQQQ.',
+    'QwQQQQP',
+    'QQQQQQP',
+  ]), 4, 1], [grade([
+    'OOOOOOOOOOOO',
+    'oOoOoOoOoOoO',
+    'OoOoOoOoOoOo',
+    'oOoOoOoOoOoO',
+    '.mommommomm.',
+    '..mmmmmmmm..',
+  ]), 1, 8]),
+  cavar: () => ic([grade([
+    '..........Oss.',
+    '.........Oolll',
+    '........Oo.lcc',
+    '.......Oo..lcc',
+    '......Oo...lcs',
+    '.....Oo....sss',
+    '....Oo........',
+    '...Oo.........',
+    '..Oo..........',
+    '.Oo...........',
+    'Oo............',
+    'o.............',
+  ]), 0, 1]),
+  bau: () => ic([grade([
+    '.OOOOOOOOOOOO.',
+    'OOOOOOOOOOOOOO',
+    'sooooooooooooc',
+    'mmmmmmmmmmmmmm',
+    'soooooyyooooos',
+    'cooooYyyooooos',
+    'soooooyyooooos',
+    'cooooooooooooc',
+    'mmmmmmmmmmmmmm',
+  ]), 0, 3]),
+  dinheiro: () => ic([grade([
+    '...yyyyy...',
+    '.yyYYyyyyy.',
+    'yyYOOOOOyyy',
+    'yYOyyyyyOyO',
+    'yYOyyyyyOyO',
+    'yyOyyyyyOyO',
+    'yyyOOOOOyyO',
+    '.yyyyyyyyO.',
+    '..OOOOOOO..',
+    '...OOOOO...',
+  ]), 2, 2]),
+  cozinhar: () => ic([grade([
+    '...ll....',
+    '.cccccccc.',
+    'lllllllllll',
+    'lgggggggggs',
+    'lgggggggggs',
+    '.ggggggggs.',
+    '..sssssss..',
+  ]), 1, 1], [grade([
+    '.Q..Q..Q.',
+    'QyQQyQQyQ',
+    'QYyQYyQYy',
+    '.QQ.QQ.Q.',
+  ]), 3, 9]),
+  adubar: () => ic([grade([
+    '...m..m...',
+    '....mm....',
+    '...bbbb...',
+    '..bbbbbb..',
+    '.bbbbbbbq.',
+    'bbbRRRRbqq',
+    'bbRRxVRRqq',
+    'bbRxVVRRqq',
+    'bbRRVRRbqq',
+    'bbbbbbbbqq',
+    '.bbbbbbqq.',
+  ]), 2, 1]),
+  encomenda: () => ic([grade([
+    '..OOOOqOOOOO',
+    '.OOOOOqOOOO.',
+    'OOOOOOqOOOOm',
+    'oooooqoooomm',
+    'oooooqooommm',
+    'owwwwqooomm.',
+    'owllwqooomm.',
+    'owwwwqoooom.',
+    'ooooooooooo.',
+  ]), 1, 3]),
+  fincar: () => ic([grade([
+    'OOOO',
+    'OoOO',
+    'OoOo',
+    'OoOo',
+    'OoOo',
+    'OoOo',
+    'OoOo',
+    'OoOo',
+    '.Oo.',
+  ]), 6, 1], [grade([
+    '....oooo....',
+    '.oooOooOooo.',
+    'oomoooooomoo',
+    'mmmmmmmmmmmm',
+  ]), 1, 9], [grade([
+    's........s',
+    '.s......s.',
+  ], false), 3, 3]),
+  mandar: () => ic([grade([
+    '....iiiiiiiii',
+    '..iFFFFFFFFFF',
+    'aaFFFffffffff',
+    'aaFFFFF......',
+    'aaFfFFF......',
+    'aaFFFFF......',
+    'aaFfFFf......',
+    '..FFFf.......',
+  ]), 1, 4]),
+};
+const ICONES = Object.keys(ICONES_DESENHO);
+const ICONES_COL = 8;
+// As ações que cada ícone mostra (as do escritório pelo id; as da fazenda pelo nome).
+const ICONES_ACOES = {
+  trabalhar: ['work'], pedido: ['write_ticket', 'take_ticket'], entregar: ['deliver', 'accept_ticket'], devolver: ['return_ticket'],
+  agua: ['drink'], cafe: ['coffee'], banheiro: ['restroom'], marmita: ['fridge'], esquentar: ['microwave'], comer: ['lunch', 'comer (fazenda)'],
+  lixo: ['trash'], tv: ['tv'], videogame: ['videogame'], dormir: ['dormir'],
+  plantar: ['plantar'], regar: ['regar'], colher: ['colher'], cavar: ['cavar', 'limpar o canteiro'], bau: ['guardar no baú', 'pegar do baú'],
+  dinheiro: ['vender', 'comprar'], cozinhar: ['cozinhar', 'o tacho'], adubar: ['adubar', 'compostar'], encomenda: ['aceitar a encomenda', 'entregar a encomenda'],
+  fincar: ['fincar'], mandar: ['as ordens ao ajudante', 'contratar', 'dispensar'],
+};
+function icone(nome) { return ICONES_DESENHO[nome](); }
 
 // =====================================================================
 // PERSONAGENS: um corpo-base parametrizável, em quadros de 64 × 64
@@ -1479,7 +2163,7 @@ const FOLHAS = [
   { nome: 'carpete', grupo: 'chão e paredes', q: [32, 32], col: 5, lin: 1, pegada: [1, 1], ancora: [16, 32], camada: 'chao',
     quadros: ['v0', 'v1', 'v2', 'v3', 'sombra (linha 2)'], desenha: c => c < 4 ? carpete(c) : carpeteSombra() },
   { nome: 'corredor', grupo: 'chão e paredes', q: [32, 32], col: 1, lin: 1, pegada: [1, 1], ancora: [16, 32], camada: 'chao',
-    quadros: ['xadrez'], desenha: () => corredor() },
+    quadros: ['granilite'], nota: 'granilite escuro, com o rejunte em cima e à esquerda de cada placa; à noite fica na penumbra', desenha: () => corredor() },
   { nome: 'parede_fundo', grupo: 'chão e paredes', q: [32, 32], col: 2, lin: 1, pegada: [1, 1], ancora: [16, 32], camada: 'chao',
     quadros: ['cima (linha 0)', 'baixo (linha 1)'], desenha: c => c ? paredeFundoBaixo() : paredeFundoCima() },
   { nome: 'parede_lado', grupo: 'chão e paredes', q: [32, 32], col: 6, lin: 1, pegada: [1, 1], ancora: [16, 32], camada: 'chao',
@@ -1509,7 +2193,8 @@ const FOLHAS = [
     quadros: ['LEDs A', 'LEDs B', 'botão apertado'], nota: 'para o futuro: fora da sala por enquanto', desenha: c => rack(c) },
   { nome: 'arquivo', grupo: 'móveis', q: [32, 64], col: 3, lin: 1, pegada: [1, 1], ancora: [16, 64], camada: 'normal',
     quadros: ['fechado', 'gaveta de cima aberta', 'segunda gaveta aberta'], desenha: c => arquivo(c) },
-  { nome: 'planta', grupo: 'móveis', q: [32, 64], col: 1, lin: 1, pegada: [1, 1], ancora: [16, 64], camada: 'normal', quadros: ['planta'], desenha: () => planta() },
+  { nome: 'planta', grupo: 'móveis', q: [32, 64], col: 3, lin: 1, pegada: [1, 1], ancora: [16, 64], camada: 'normal', quadros: PLANTAS,
+    nota: 'o quadro é a espécie: a de hoje, a espada-de-são-jorge no vaso de cerâmica e a costela-de-adão no cesto de palha', desenha: c => [planta, plantaEspada, plantaCostela][c]() },
   { nome: 'lixeira', grupo: 'móveis', q: [32, 32], col: 1, lin: 1, pegada: [1, 1], ancora: [16, 32], camada: 'normal', quadros: ['lixeira'], desenha: () => lixeira() },
   { nome: 'banheiro', grupo: 'banheiro e copa', q: [128, 96], col: 3, lin: 1, pegada: [4, 3], ancora: [64, 96], camada: 'normal',
     quadros: ['fechado', 'masculino aberta', 'feminino aberta'], portas: { masculino: [1, 2], feminino: [2, 2] },
@@ -1542,6 +2227,29 @@ const FOLHAS = [
     quadros: ['vazia', 'osciloscópio ligado'], apoios: BANCADA_APOIOS,
     nota: 'os apoios são onde a âncora de cada robô pousa no tampo, um por tile da pegada, na ordem do registro', desenha: c => bancada(c) },
   ...Object.keys(ROBOS).map(folhaRobo),
+  // os balões, os ícones e a fonte (18/11): por cima de tudo, acima da luz
+  { nome: 'baloes', grupo: 'balões e texto', q: [80, 24], col: 1, lin: 1, pegada: null, ancora: [12, 24], camada: 'interface',
+    quadros: Object.keys(PECAS), desenha: () => folhaBaloes(),
+    nota: 'pecas: [x, y, largura, altura] na folha. O balão de ação tem a âncora (12, 24), no bico da ponta; o ícone pousa no miolo; a tela desenha o fio do progresso. Sentado à mesa, de costas, o balão vai para o lado da cabeça (naMesa: dx, dy), para não cobrir o monitor. A fala e a etiqueta se esticam em nove fatias de 8 × 8; a ponta da fala vai embaixo, no meio, e a linha de cima dela cobre a de baixo do balão (sobe 1 px).',
+    extra: () => ({
+      pecas: PECAS, miolo: BALAO.miolo, progresso: BALAO.progresso, naMesa: BALAO.naMesa, fatia: 8,
+      texto: Object.fromEntries(Object.entries(TEXTO_MOLDURA).map(([k, v]) => [k, v.cor])),
+      molduras: TEXTO_MOLDURA, ponta: { peca: 'fala_ponta', sobe: 1, bico: [4, 4] },
+    }) },
+  { nome: 'icones', grupo: 'balões e texto', q: [16, 16], col: ICONES_COL, lin: Math.ceil(ICONES.length / ICONES_COL), pegada: null, ancora: [8, 16], camada: 'interface',
+    quadros: ICONES, desenha: (c, l) => ICONES[l * ICONES_COL + c] ? icone(ICONES[l * ICONES_COL + c]) : null,
+    nota: 'um ícone por quadro, para o miolo do balão de ação; as 14 primeiras são do escritório e as 11 seguintes, da fazenda',
+    extra: () => ({
+      icones: Object.fromEntries(ICONES.map((n, i) => [n, [i % ICONES_COL, Math.floor(i / ICONES_COL)]])),
+      acoes: ICONES_ACOES,
+    }) },
+  { nome: 'fonte', grupo: 'balões e texto', q: FONTE_CELULA, col: 16, lin: Math.ceil(FONTE_GLIFOS.length / 16), pegada: null, ancora: [0, 0], camada: 'interface',
+    desenha: (c, l) => celulaFonte(l * 16 + c),
+    nota: 'desenhada em branco (o branco da paleta): tinja em modo de preenchimento para sair a cor exata da moldura. Cada glifo começa na coluna 0 da célula; a tela põe 1 px entre as letras. Maiúsculas da linha 3 à 9, minúsculas da 5 à 9, acentos das maiúsculas nas linhas 0 e 1 e das minúsculas nas 2 e 3, descendentes nas 10 e 11.',
+    extra: () => ({
+      fonte: { celula: FONTE_CELULA, base: FONTE_BASE, espaco: FONTE_ESPACO, alturaMaiuscula: 7, alturaMinuscula: 5, descendente: 2, cor: 'branco',
+        glifos: FONTE_GLIFOS, larguras: [...FONTE_GLIFOS].map(ch => glifo(ch).w) },
+    }) },
   folhaPersonagem('camps'), folhaPersonagem('gerente'), folhaPersonagem('vigia'),
 ];
 
@@ -1574,7 +2282,10 @@ window.metadados = () => {
     luz: {
       fases: [{ nome: 'dia', ate: '18:00' }, { nome: 'luzes', de: '18:00', ate: '21:00' }, { nome: 'escuro', de: '21:00' }],
       regra: 'a luz troca cada cor da paleta por outra (penumbra ou escuro), com bordas pontilhadas em xadrez; nada de transparência',
-      sempreAceso: 'o corredor, as faces que dão para ele (a parede de baixo e o banheiro) e a janela',
+      sempreAceso: 'a janela (a cidade lá fora)',
+      penumbraNoMinimo: 'à noite, o corredor e as faces que dão para ele (a parede de baixo e o banheiro): a luz fraca do prédio; a lanterna acende por cima',
+      retangulos: { sala: [SALA.L, SALA.A], aceso: LUZ_RET.aceso, penumbra: LUZ_RET.penumbra },
+      acimaDaLuz: ['baloes', 'icones', 'fonte'],
       emissivas: [...EMISSIVAS], penumbra: PENUMBRA, escuro: ESCURO,
       luminarias: { centrosEmTiles: LUMINARIAS, raioPx: LUZ.luminaria, bordaPx: LUZ.luminariaBorda, fora: 'penumbra' },
       lanterna: { raiosPx: LUZ.lanterna, niveis: ['aceso', 'xadrez aceso/penumbra', 'penumbra', 'xadrez penumbra/escuro', 'escuro'] },
@@ -1583,18 +2294,19 @@ window.metadados = () => {
       arquivo: f.nome + '.png', grupo: f.grupo, quadro: f.q, colunas: f.col, linhas: f.lin, pegada: f.pegada, ancora: f.ancora, camada: f.camada,
       ...(f.quadros ? { quadros: f.quadros } : {}), ...(f.camadas ? { camadasPorQuadro: f.camadas } : {}),
       ...(f.animacoes ? { animacoes: f.animacoes } : {}), ...(f.grupo === 'personagens' ? { andar: 'per_tile: 8 quadros por tile' } : {}),
-      ...(f.autotile ? { autotile: f.autotile } : {}), ...(f.portas ? { portas: f.portas } : {}), ...(f.apoios ? { apoios: f.apoios } : {}), ...(f.configuracao ? { configuracao: f.configuracao } : {}), ...(f.nota ? { nota: f.nota } : {}),
+      ...(f.autotile ? { autotile: f.autotile } : {}), ...(f.portas ? { portas: f.portas } : {}), ...(f.apoios ? { apoios: f.apoios } : {}), ...(f.configuracao ? { configuracao: f.configuracao } : {}), ...(f.extra ? f.extra() : {}), ...(f.nota ? { nota: f.nota } : {}),
     }])),
   };
 };
 
 // =====================================================================
-// PRÉVIA: a sala montada (20 × 17), em cenas, em passos de 100 ms
+// PRÉVIA: a sala montada (20 × 16), em cenas, em passos de 100 ms
 // A planta segue a ADR-0082: quatro cubículos à esquerda, a sala de
 // descompressão em cima à direita, a copa embaixo à direita e o banheiro
 // colado à parede de baixo, com as portas no corredor. (coluna, linha).
+// O corredor tem duas linhas desde 18/11.
 // =====================================================================
-const SALA = { L: 20, A: 17 };
+const SALA = { L: 20, A: 16 };
 const PORTA = [9, 13];
 const PASSO = 8;    // px por tick: 4 tiles por segundo, como na tela; o andar avança 2 quadros por tick (8 por tile)
 
@@ -1610,11 +2322,12 @@ const TAPETE = { c0: 14, c1: 18, l0: 3, l1: 6 };
 const QUADRO_COLS = 3;      // o quadro dos pedidos: a fazer, fazendo, feito (colunas 2 a 4 da parede)
 
 // ---- a luz. Três fases: 'dia' (o sol), 'luzes' (18h às 21h, as luminárias acesas) e 'escuro'
-// (21h em diante, tudo apagado; o vigia anda com a lanterna). O corredor fica sempre aceso.
+// (21h em diante, tudo apagado; o vigia anda com a lanterna). À noite, o corredor fica na
+// penumbra, a luz fraca do prédio: nunca mais escuro que isso.
 // A luz troca uma cor da paleta por outra, com as bordas pontilhadas: nada de transparência.
 const PENUMBRA = {
   contorno: 'contorno', escuro: 'contorno', grafiteEsc: 'escuro', grafite: 'grafiteEsc', cinzaEsc: 'grafite', cinza: 'cinzaEsc', cinzaCl: 'cinza', branco: 'cinzaCl',
-  begeEsc: 'madEsc', begeSomb: 'begeEsc', bege: 'begeSomb', creme: 'bege', cremeCl: 'creme',
+  begeEsc: 'madEsc', begeSomb: 'begeEsc', bege: 'begeSomb', creme: 'begeSomb', cremeCl: 'bege',
   madCl: 'mad', mad: 'madEsc', madEsc: 'madMEsc', madMEsc: 'cabEsc',
   carpCl: 'carp', carp: 'carpEsc', carpEsc: 'mar', azulCl: 'azul', azul: 'azulEsc', azulEsc: 'mar',
   marCl: 'mar', mar: 'marEsc', marEsc: 'contorno', ceu: 'azulCl', ceuCl: 'ceu',
@@ -1637,12 +2350,13 @@ const ESCURO = {
 const EMISSIVAS = new Set(['telaTexto', 'telaBrilho', 'ledVerm', 'ledCiano']);     // as telas acesas e as luzes dos robôs
 const LUMINARIAS = [[4.5, 4.4], [8.5, 4.4], [4.5, 8.4], [8.5, 8.4], [3.5, 2.6], [12.5, 3], [16.5, 4.5], [15.5, 10.6], [9.5, 11.6]];   // em tiles
 const LUZ = { luminaria: 72, luminariaBorda: 14, lanterna: [40, 54, 68, 82] };
-// Sempre aceso: o corredor, as faces que dão para ele (a parede de baixo e o banheiro) e a janela (a cidade lá fora).
-function sempreAceso(x, y) {
-  if (y >= 13 * T + 10) return true;
-  if (x >= T && x < 5 * T && y >= 11 * T + 37) return true;
-  return x >= 7 * T && x < 12 * T && y >= 8 && y <= 47;
-}
+// Os retângulos da luz, em px da sala (20 × 16): a janela sempre acesa (a cidade lá fora) e, na
+// penumbra no mínimo, o corredor e as faces que dão para ele (a parede de baixo e o banheiro).
+const LUZ_RET = {
+  aceso: [{ x: 7 * T, y: 8, w: 5 * T, h: 40 }],
+  penumbra: [{ x: 0, y: 13 * T + 10, w: SALA.L * T, h: (SALA.A - 13) * T - 10 }, { x: T, y: 11 * T + 37, w: 4 * T, h: 37 }],
+};
+const dentro = (r, x, y) => r.some(q => x >= q.x && x < q.x + q.w && y >= q.y && y < q.y + q.h);
 const RGB_DE = Object.fromEntries(Object.entries(PALETA).map(([k, h]) => [k, [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16))]));
 const NOME_DE = new Map(Object.entries(PALETA).map(([k, h]) => [parseInt(h.slice(1), 16), k]));
 function ilumina(ctx, fase, lanterna) {
@@ -1650,7 +2364,7 @@ function ilumina(ctx, fase, lanterna) {
   const W = SALA.L * T, H = SALA.A * T, img = ctx.getImageData(0, 0, W, H), px = img.data;
   const pools = LUMINARIAS.map(([c, l]) => [c * T, l * T]);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    if (sempreAceso(x, y)) continue;
+    if (dentro(LUZ_RET.aceso, x, y)) continue;
     const i = (y * W + x) * 4, nome = NOME_DE.get((px[i] << 16) | (px[i + 1] << 8) | px[i + 2]);
     if (!nome || EMISSIVAS.has(nome)) continue;
     const xadrez = (x + y) & 1;
@@ -1662,6 +2376,7 @@ function ilumina(ctx, fase, lanterna) {
       const d = lanterna ? Math.hypot(x - lanterna[0], (y - lanterna[1]) * 1.15) : 1e9, [r0, r1, r2, r3] = LUZ.lanterna;
       nivel = d < r0 ? 0 : d < r1 ? xadrez : d < r2 ? 1 : d < r3 ? 1 + xadrez : 2;
     }
+    if (nivel > 1 && dentro(LUZ_RET.penumbra, x, y)) nivel = 1;
     if (!nivel) continue;
     const [r, g, b] = RGB_DE[(nivel === 1 ? PENUMBRA : ESCURO)[nome]];
     px[i] = r; px[i + 1] = g; px[i + 2] = b;
@@ -1671,8 +2386,9 @@ function ilumina(ctx, fase, lanterna) {
 
 // ---- o roteiro de um ator: passos → trechos no tempo e eventos do mundo
 function roteiro(inicio, passos) {
-  const trechos = [], eventos = [];
-  let t = 0, pos = inicio, carregando = false;
+  const trechos = [], eventos = [], baloes = [], falas = [];
+  let t = 0, pos = inicio, carregando = false, balao = null;
+  const fechaBalao = () => { if (balao) { balao.t1 = t; if (balao.t1 > balao.t0) baloes.push(balao); balao = null; } };
   const marca = (ev, tt) => { for (const [k, v] of Object.entries(ev)) eventos.push({ t: tt, k, v }); };
   const fixo = (anim, d, t0, ritmo, q, p0) => tt => ({ x: p0[0] * T, y: p0[1] * T, anim, dir: d, f: Math.floor((tt - t0) / ritmo) % q });
   for (const [tipo, ...a] of passos) {
@@ -1699,9 +2415,12 @@ function roteiro(inicio, passos) {
       t += n;
     } else if (tipo === 'evento') marca(a[0], t);
     else if (tipo === 'carrega') carregando = a[0];
+    else if (tipo === 'balao') { fechaBalao(); if (a[0]) balao = { t0: t, valor: a[0], de: (a[1] || {}).de ?? 0, ate: (a[1] || {}).ate ?? 1 }; }
+    else if (tipo === 'fala') falas.push({ t0: t, t1: t + a[1], texto: a[0] });
     else if (tipo === 'some') { trechos.push({ t0: t, t1: t + a[0], em: () => null }); t += a[0]; }
   }
-  return { trechos, eventos, fim: t };
+  fechaBalao();
+  return { trechos, eventos, baloes, falas, fim: t };
 }
 function atorNoTick(r, t) {
   for (const tr of r.trechos) if (t >= tr.t0 && t < tr.t1) return tr.em(t);
@@ -1715,40 +2434,50 @@ const CENAS = {
   pedido: {
     nome: '10:00 · o pedido no quadro', hora: 10, luz: 'dia', tv: () => 0, inicio: { ficha: null }, telaFora: 4,
     atores: {
-      gerente: roteiro([9, 14], [['ir', [9, 10], [11, 10], [11, 2], [2, 2]], ['usar', 0, { ficha: 0 }], ['parado', 0, 6],
-        ['ir', [11, 2], [11, 10], [9, 10], [9, 14], [5, 14]], ['some', 180]]),
-      camps: roteiro([4, 5], [['anim', 'digitando', 0, 160], ['ir', [4, 6], ...ROTA_QUADRO, [2, 2]], ['usar', 0, { ficha: 'mao' }],
-        ['ir', [3, 2]], ['usar', 0, { ficha: 1 }], ['ir', [11, 2], [11, 3], [12, 3]], ['usar', 0, { arquivo: 1 }], ['parado', 0, 8],
-        ['usar', 0, { arquivo: 0 }], ['ir', [11, 3], [11, 6], [4, 6], [4, 5]], ['anim', 'digitando', 0, 24]]),
+      gerente: roteiro([9, 14], [['ir', [9, 10], [11, 10], [11, 2], [2, 2]], ['balao', 'pedido'], ['usar', 0, { ficha: 0 }], ['balao', null],
+        ['parado', 0, 6], ['ir', [11, 2], [11, 10], [9, 10], [9, 14], [5, 14]], ['some', 180]]),
+      camps: roteiro([4, 5], [['balao', 'trabalhar', { de: 0.3, ate: 0.7 }], ['anim', 'digitando', 0, 160], ['balao', null],
+        ['ir', [4, 6], ...ROTA_QUADRO, [2, 2]], ['balao', 'pedido'], ['usar', 0, { ficha: 'mao' }], ['balao', null],
+        ['ir', [3, 2]], ['balao', 'pedido'], ['usar', 0, { ficha: 1 }], ['balao', null],
+        ['fala', 'Anotado. Começo depois do café.', 32], ['parado', 2, 32],
+        ['ir', [11, 2], [11, 3], [12, 3]], ['balao', { etiqueta: 'Arquivo' }], ['usar', 0, { arquivo: 1 }], ['parado', 0, 8],
+        ['usar', 0, { arquivo: 0 }], ['balao', null], ['ir', [11, 3], [11, 6], [4, 6], [4, 5]],
+        ['balao', 'trabalhar', { de: 0, ate: 0.15 }], ['anim', 'digitando', 0, 24]]),
     },
   },
   almoco: {
     nome: '12:00 · o almoço', hora: 12, luz: 'dia', tv: () => 0, inicio: { ficha: 1, marmitaG: [13, 11, 1] }, telaFora: 6,
     robo: [['trabalhando', 40], ['falhou', 16], ['trabalhando', 30], ['passou', 16]],
     atores: {
-      camps: roteiro([4, 5], [['anim', 'digitando', 0, 12], ['ir', [4, 6], [11, 6], [11, 10], [17, 10]], ['usar', 0, { geladeira: 1 }],
-        ['parado', 0, 4], ['evento', { geladeira: 0 }], ['carrega', true], ['ir', [16, 10]], ['carrega', false], ['usar', 0, { micro: 1 }],
-        ['parado', 0, 24], ['usar', 0, { micro: 0 }], ['carrega', true], ['ir', [16, 11]], ['carrega', false], ['evento', { marmita: [17, 11, 1] }],
-        ['anim', 'comer', 3, 48, 3], ['evento', { marmita: [17, 11, 2] }], ['anim', 'sentado', 3, 6], ['evento', { marmita: null }],
-        ['carrega', true], ['ir', [16, 10], [12, 10]], ['carrega', false], ['usar', 0, {}], ['ir', [11, 10], [11, 6], [4, 6], [4, 5]],
-        ['anim', 'digitando', 0, 16]]),
-      gerente: roteiro([12, 11], [['anim', 'comer', 3, 290, 4]]),
+      camps: roteiro([4, 5], [['balao', 'trabalhar', { de: 0.8, ate: 0.85 }], ['anim', 'digitando', 0, 12], ['balao', null],
+        ['ir', [4, 6], [11, 6], [11, 10], [17, 10]], ['balao', 'marmita'], ['usar', 0, { geladeira: 1 }],
+        ['parado', 0, 4], ['evento', { geladeira: 0 }], ['balao', null], ['carrega', true], ['ir', [16, 10]], ['carrega', false],
+        ['balao', 'esquentar'], ['usar', 0, { micro: 1 }], ['parado', 0, 24], ['usar', 0, { micro: 0 }], ['balao', null],
+        ['carrega', true], ['ir', [16, 11]], ['carrega', false], ['evento', { marmita: [17, 11, 1] }],
+        ['balao', 'comer'], ['anim', 'comer', 3, 48, 3], ['evento', { marmita: [17, 11, 2] }], ['anim', 'sentado', 3, 6], ['balao', null], ['evento', { marmita: null }],
+        ['carrega', true], ['ir', [16, 10], [12, 10]], ['carrega', false], ['balao', 'lixo'], ['usar', 0, {}], ['balao', null],
+        ['ir', [11, 10], [11, 6], [4, 6], [4, 5]], ['balao', 'trabalhar', { de: 0, ate: 0.1 }], ['anim', 'digitando', 0, 16]]),
+      gerente: roteiro([12, 11], [['balao', 'comer', { de: 0.2, ate: 0.9 }], ['anim', 'comer', 3, 290, 4]]),
     },
   },
   tarde: {
     nome: '17:00 · o pedido entregue e o café', hora: 5, luz: 'dia', tv: t => 4 + Math.floor(t / 6) % 3, inicio: { ficha: 1 }, telaFora: 5,
     atores: {
-      gerente: roteiro([16, 5], [['anim', 'sofa_tv', 0, 290, 20]]),
-      camps: roteiro([4, 5], [['anim', 'digitando', 0, 12], ['ir', [4, 6], ...ROTA_QUADRO, [3, 2]], ['usar', 0, { ficha: 'mao' }],
-        ['ir', [4, 2]], ['usar', 0, { ficha: 2 }], ['ir', [11, 2], [11, 10], [13, 10]], ['usar', 0, { cafe: 1 }], ['parado', 0, 10],
-        ['evento', { cafe: 0 }], ['anim', 'beber', 2, 18, 3], ['ir', [11, 10], [11, 6], [4, 6], [4, 5]], ['anim', 'digitando', 0, 20]]),
+      gerente: roteiro([16, 5], [['balao', 'tv', { de: 0.4, ate: 0.6 }], ['anim', 'sofa_tv', 0, 290, 20]]),
+      camps: roteiro([4, 5], [['balao', 'trabalhar', { de: 0.9, ate: 1 }], ['anim', 'digitando', 0, 12], ['balao', null],
+        ['ir', [4, 6], ...ROTA_QUADRO, [3, 2]], ['balao', 'entregar'], ['usar', 0, { ficha: 'mao' }],
+        ['ir', [4, 2]], ['usar', 0, { ficha: 2 }], ['balao', null], ['ir', [11, 2], [11, 10], [13, 10]],
+        ['balao', 'cafe'], ['usar', 0, { cafe: 1 }], ['parado', 0, 10], ['evento', { cafe: 0 }], ['anim', 'beber', 2, 18, 3], ['balao', null],
+        ['ir', [11, 10], [11, 6], [4, 6], [4, 5]], ['balao', 'trabalhar', { de: 0, ate: 0.1 }], ['anim', 'digitando', 0, 20]]),
     },
   },
   noite: {
     nome: '19:30 · as luzes acesas', hora: 7, luz: 'luzes', tv: t => 1 + Math.floor(t / 3) % 3, inicio: { ficha: 2 },
+    // o mouse sobre o dev: a etiqueta com o nome da ação, por cima do balão
+    hover: { ator: 'camps', de: 12, ate: 44 },
     atores: {
-      camps: roteiro([15, 5], [['anim', 'sofa_jogar', 0, 48, 3]]),
-      gerente: roteiro([17, 5], [['anim', 'sofa_tv', 0, 48, 20]]),
+      camps: roteiro([15, 5], [['balao', 'videogame', { de: 0.3, ate: 0.5 }], ['anim', 'sofa_jogar', 0, 56, 3]]),
+      gerente: roteiro([17, 5], [['balao', 'videogame', { de: 0.6, ate: 0.8 }], ['anim', 'sofa_jogar', 0, 56, 4]]),
     },
   },
   ronda: {
@@ -1849,7 +2578,8 @@ function objetos(cena, t) {
   for (const c of [13, 17]) poe(quadro('mesa_copa'), c, 11);
   for (const m of [e.marmita, e.marmitaG]) if (m) o.push({ spr: quadro('marmita', m[2]), x: m[0] * T + 8, y: (m[1] + 1) * T - 64 + 30, base: (m[1] + 1) * T, ordem: 1 });
   for (const [c, f] of [[12, 0], [14, 1], [16, 0], [18, 1]]) poe(quadro('cadeira_lado', f), c, 11, 1, 0);
-  poe(quadro('planta'), 1, 2); poe(quadro('planta'), 1, 7); poe(quadro('planta'), 18, 7);
+  // as três plantas, cada uma de uma espécie
+  poe(quadro('planta', 0), 1, 2); poe(quadro('planta', 1), 1, 7); poe(quadro('planta', 2), 18, 7);
   // o vigia no posto (quando não está no roteiro) e os atores
   if (!atores.vigia) poe(quadro('vigia', (t % 37) < 2 ? 1 : 0, LIN_ANIM('parado', 2)), PORTA[0] + 2, 14);
   for (const [id, a] of Object.entries(atores)) {
@@ -1869,10 +2599,82 @@ function desenhaPrevia(ctx, t, idCena = 'pedido') {
   for (const ob of lista) ctx.drawImage(ob.spr.canvas(), Math.round(ob.x), Math.round(ob.y));
   const v = atores.vigia;
   ilumina(ctx, cena.luz, v ? [v.x + T / 2, v.y + T / 2 - 8] : null);
+  sobreposicao(ctx, cena, t, atores);
+}
+
+// ---- por cima da luz: os balões de ação, as falas e a etiqueta do mouse
+const NOME_ACAO = {
+  trabalhar: 'Trabalhando', pedido: 'Pegando o pedido', entregar: 'Entregando o pedido', devolver: 'Devolvendo o pedido',
+  agua: 'Bebendo água', cafe: 'Tomando café', banheiro: 'No banheiro', marmita: 'Pegando a marmita', esquentar: 'Esquentando o almoço',
+  comer: 'Almoçando', lixo: 'Jogando fora', tv: 'Vendo TV', videogame: 'Jogando videogame', dormir: 'Dormindo',
+};
+const NOME_ANIM = { andar: 'Andando', carregar: 'Andando', parado: 'Esperando', digitando: 'Trabalhando', sofa_tv: 'Vendo TV', sofa_jogar: 'Jogando videogame', comer: 'Almoçando' };
+const TOPO = new WeakMap();
+function topoSpr(spr) {             // a primeira linha com pixel: o alto da cabeça
+  if (!TOPO.has(spr)) { let y = 0; while (y < spr.h && !spr.px.slice(y * spr.w, (y + 1) * spr.w).some(Boolean)) y++; TOPO.set(spr, y); }
+  return TOPO.get(spr);
+}
+const noTrecho = (lista, t) => lista.find(b => t >= b.t0 && t < b.t1);
+let MOUSE = null;                   // [x, y] na sala, quando a página passa o mouse
+function moldurado(peca, linhas) {
+  const m = TEXTO_MOLDURA[peca], w = Math.max(...linhas.map(larguraTexto)) + 2 * m.margem[0];
+  const h = Math.max(16, m.margem[1] * 2 + (linhas.length - 1) * m.entrelinha + FONTE_CELULA[1]);
+  const s = noveFatias(peca, Math.max(16, w), h);
+  linhas.forEach((l, i) => escreve(s, l, m.margem[0], m.margem[1] + i * m.entrelinha, m.cor));
+  return s;
+}
+const dentroX = (x, w) => Math.max(1, Math.min(SALA.L * T - w - 1, x));
+function sobreposicao(ctx, cena, t, atores) {
+  const etiquetas = [];
+  for (const [id, a] of Object.entries(atores)) {
+    if (!a) continue;
+    const r = cena.atores[id], spr = quadro(id, a.f, LIN_ANIM(a.anim, a.dir));
+    let cx = Math.round(a.x + T / 2), yb = Math.round(a.y + T - 64 + topoSpr(spr)) - 1;        // o bico, 1 px acima da cabeça
+    // sentado à mesa, de costas: o balão vai para o lado da cabeça, para não cobrir o monitor
+    const naMesa = SENTADO_MESA.includes(a.anim) && a.dir === 0;
+    const fl = noTrecho(r.falas, t), b = fl ? null : noTrecho(r.baloes, t);
+    let topo = yb;
+    if (fl) {                                                                                     // a fala: moldura, texto e ponta
+      const s = moldurado('fala', quebra(fl.texto, 104)), x0 = dentroX(cx - Math.floor(s.w / 2), s.w), y0 = yb - 4 - s.h + 1;
+      s.pinta(ctx, x0, y0); quadroPeca('fala_ponta').pinta(ctx, cx - 4, yb - 4); topo = y0;
+    } else if (b && typeof b.valor === 'string') {                                                // o balão com o ícone e o fio
+      const [dx, dy] = naMesa ? BALAO.naMesa : [0, 0], x0 = cx - 12 + dx, y0 = yb - 23 + dy, p = BALAO.progresso;
+      quadroPeca('acao').pinta(ctx, x0, y0);
+      icone(b.valor).pinta(ctx, x0 + BALAO.miolo[0], y0 + BALAO.miolo[1]);
+      const k = b.de + (b.ate - b.de) * Math.min(1, (t - b.t0) / Math.max(1, b.t1 - b.t0 - 1)), cheio = Math.round(p.largura * k);
+      ctx.fillStyle = PALETA[p.trilho]; ctx.fillRect(x0 + p.x, y0 + p.y, p.largura, p.altura);
+      if (cheio) { ctx.fillStyle = PALETA[p.cheio]; ctx.fillRect(x0 + p.x, y0 + p.y, cheio, p.altura); }
+      topo = y0;
+    } else if (b && b.valor.etiqueta) {                                                           // a ação sem ícone: a etiqueta
+      const s = moldurado('etiqueta', [b.valor.etiqueta]), x0 = dentroX(cx - Math.floor(s.w / 2), s.w);
+      s.pinta(ctx, x0, yb - s.h + 1); topo = yb - s.h + 1;
+    }
+    // a etiqueta do mouse: o nome da ação, por cima do balão
+    const h = cena.hover, sobre = MOUSE ? MOUSE[0] >= a.x && MOUSE[0] < a.x + T && MOUSE[1] >= a.y + T - 64 + topoSpr(spr) && MOUSE[1] < a.y + T
+      : h && h.ator === id && t >= h.de && t < h.ate;
+    if (sobre && !fl) {
+      const nome = b ? (typeof b.valor === 'string' ? NOME_ACAO[b.valor] : b.valor.etiqueta) : NOME_ANIM[a.anim] || a.anim;
+      if (!(b && b.valor.etiqueta)) etiquetas.push([nome, cx, topo - 1]);
+    }
+  }
+  for (const [nome, cx, yb] of etiquetas) {
+    const s = moldurado('etiqueta', [nome]);
+    s.pinta(ctx, dentroX(cx - Math.floor(s.w / 2), s.w), yb - s.h + 1);
+  }
+}
+const PECA_CACHE = {};
+function quadroPeca(nome) {
+  if (!PECA_CACHE[nome]) {
+    const [x, y, w, h] = PECAS[nome], f = folhaBaloes(), s = new Spr(w, h);
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) { const c = f.g(x + i, y + j); if (c) s.p(i, j, c); }
+    PECA_CACHE[nome] = s;
+  }
+  return PECA_CACHE[nome];
 }
 window.cenas = () => Object.entries(CENAS).map(([id, c]) => ({ id, nome: c.nome, duracao: c.duracao, luz: c.luz }));
 window.quadroPrevia = (i, op = {}) => {
   const cv = document.createElement('canvas'); cv.width = SALA.L * T; cv.height = SALA.A * T;
+  MOUSE = op.mouse || null;
   desenhaPrevia(cv.getContext('2d'), i, op.cena || (op.noite ? 'noite' : 'pedido'));
   return cv.toDataURL('image/png');
 };
@@ -1894,12 +2696,34 @@ window.cicloPrevia = (id = 'pedido') => CENAS[id].duracao;
   }
   document.getElementById('bt-pausa').onclick = e => { pausa = !pausa; e.currentTarget.setAttribute('aria-pressed', String(pausa)); e.currentTarget.textContent = pausa ? 'continuar' : 'pausar'; };
   document.querySelectorAll('.bt-escala').forEach(b => b.onclick = () => { escala = +b.dataset.e; marca('.bt-escala', b); aplicaEscala(); });
+  sala.addEventListener('mousemove', e => { const r = sala.getBoundingClientRect(); MOUSE = [(e.clientX - r.left) / escala, (e.clientY - r.top) / escala]; });
+  sala.addEventListener('mouseleave', () => { MOUSE = null; });
   function laco(ms) {
     if (!pausa && ms - ultimo >= 100) { t++; ultimo = ms; }
     desenhaPrevia(ctx, t % CENAS[cena].duracao, cena);
     requestAnimationFrame(laco);
   }
   requestAnimationFrame(laco);
+
+  // a amostra dos balões e da fonte, a 3×
+  (function amostra() {
+    const cv = document.getElementById('amostra'), W = 320, H = 120, z = 3;
+    cv.width = W; cv.height = H; cv.style.width = W * z + 'px'; cv.style.height = H * z + 'px';
+    const c = cv.getContext('2d');
+    const s = new Spr(W, H);
+    s.cola(moldurado('fala', quebra('Anotado. Começo depois do café.', 104)), 6, 6);
+    s.cola(quadroPeca('fala_ponta'), 6 + 30, 6 + 27 - 1);
+    s.cola(moldurado('etiqueta', ['Jogando videogame']), 130, 6);
+    s.cola(moldurado('etiqueta', ['Arquivo']), 130, 28);
+    s.cola(moldurado('fala', ['Ação, pão e café às 9h: 100% (ótimo)!']), 6, 52);
+    s.cola(moldurado('fala', ['ÁÀÂÃ ÉÊ Í ÓÔÕ Ú Ç – áàâã éê í óôõ úü ç', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz 0123456789']), 6, 72 - 2 + 6);
+    ['trabalhar', 'videogame', 'cafe', 'comer'].forEach((n, i) => {
+      const x0 = 250 + (i % 2) * 30, y0 = 6 + Math.floor(i / 2) * 30;
+      s.cola(quadroPeca('acao'), x0, y0).cola(icone(n), x0 + BALAO.miolo[0], y0 + BALAO.miolo[1]);
+      const p = BALAO.progresso; s.r(x0 + p.x, y0 + p.y, p.largura, p.altura, p.trilho).r(x0 + p.x, y0 + p.y, Math.round(p.largura * (0.25 + i * 0.25)), p.altura, p.cheio);
+    });
+    s.pinta(c);
+  })();
 
   // prancha, agrupada
   const prancha = document.getElementById('prancha');

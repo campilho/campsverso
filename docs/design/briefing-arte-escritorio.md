@@ -204,6 +204,8 @@ As linhas 23 a 28 entraram depois (15/11, à noite), **só no fim da folha**, pa
 - **A mesa do dev** ganha 3 quadros no fim (4 a 6), com o último passo do dev na oficina: lendo um arquivo, os testes verdes e os testes vermelhos.
 - **Duas cores novas,** emissivas como as telas: `ledVerm` (#ff4646) e `ledCiano` (#6ff4ff). A paleta passa a ter 47 cores. Nas tabelas da luz, as duas ficam iguais a si mesmas.
 
+**Fase 1, quinta parte (18/11): os balões, a fonte, o corredor e as plantas.** O pedido está em [briefing-arte-baloes.md](briefing-arte-baloes.md): o balão de ação com um ícone por ação (`baloes.png` e `icones.png`), a etiqueta e a fala em nove fatias, a fonte pixel (`fonte.png`), o corredor em granilite escuro e na penumbra à noite, e duas plantas novas na `planta.png`. A paleta continua com 47 cores.
+
 **Fase 2 (só se a arte nova ganhar):**
 - cochilar no puff;
 - a bancada dos robôs, a impressora, a mesa de reunião e o quadro branco;
@@ -224,7 +226,7 @@ O usuário pediu:
 
 A prévia segue esta planta. Ela **difere da bíblia §3 e do `map.tmj` de hoje** (ADR-0080, com a copa à direita no meio e a porta do banheiro na parede de baixo): quem cuida do mapa decide e registra.
 
-A sala continua com 20 × 17 tiles e a parede de baixo na linha 13: coube tudo sem descer a parede.
+A sala continua com 20 × 17 tiles e a parede de baixo na linha 13: coube tudo sem descer a parede. Desde 18/11, são 20 × 16: o corredor perdeu a linha de baixo.
 
 Coordenadas em tiles, (coluna, linha):
 
@@ -263,7 +265,7 @@ A luz é da tela: o mundo não muda de cor. Há três fases:
 - **luzes acesas,** das 18:00 às 21:00: a janela mostra a noite, e as luminárias acendem poças de luz em cima dos cubículos, do quadro, dos arquivos, do sofá, da copa e da entrada. Fora das poças, a cor cai um degrau (penumbra);
 - **escuro,** das 21:00 em diante: tudo apaga e as cores vão para o azul-marinho da noite. Só ficam acesas as telas ligadas, a cidade na janela e a lanterna do vigia, que acende um círculo em volta dele, como a da fazenda na v0.3.
 
-O corredor fica sempre aceso, com as faces que dão para ele: a parede de baixo e o banheiro.
+Até 18/11, o corredor ficava sempre aceso. Agora, à noite, ele fica na penumbra, a luz fraca do prédio, com as faces que dão para ele: a parede de baixo e o banheiro. Só a janela fica sempre acesa. Os balões, os ícones e a fonte ficam acima da luz.
 
 Na prévia, a luz troca cada cor da paleta por outra, com as bordas em xadrez: nada de transparência. As tabelas de troca (penumbra e escuro), as cores que brilham, os centros das luminárias e os raios da lanterna estão em `metadados.json`, na chave `luz`. A tela pode usar as tabelas assim ou imitar o efeito com a luz que já tem; a prévia mostra o alvo.
 

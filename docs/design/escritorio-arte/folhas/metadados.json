@@ -116,7 +116,41 @@
       }
     ],
     "regra": "a luz troca cada cor da paleta por outra (penumbra ou escuro), com bordas pontilhadas em xadrez; nada de transparência",
-    "sempreAceso": "o corredor, as faces que dão para ele (a parede de baixo e o banheiro) e a janela",
+    "sempreAceso": "a janela (a cidade lá fora)",
+    "penumbraNoMinimo": "à noite, o corredor e as faces que dão para ele (a parede de baixo e o banheiro): a luz fraca do prédio; a lanterna acende por cima",
+    "retangulos": {
+      "sala": [
+        20,
+        16
+      ],
+      "aceso": [
+        {
+          "x": 224,
+          "y": 8,
+          "w": 160,
+          "h": 40
+        }
+      ],
+      "penumbra": [
+        {
+          "x": 0,
+          "y": 426,
+          "w": 640,
+          "h": 86
+        },
+        {
+          "x": 32,
+          "y": 389,
+          "w": 128,
+          "h": 37
+        }
+      ]
+    },
+    "acimaDaLuz": [
+      "baloes",
+      "icones",
+      "fonte"
+    ],
     "emissivas": [
       "telaTexto",
       "telaBrilho",
@@ -135,8 +169,8 @@
       "begeEsc": "madEsc",
       "begeSomb": "begeEsc",
       "bege": "begeSomb",
-      "creme": "bege",
-      "cremeCl": "creme",
+      "creme": "begeSomb",
+      "cremeCl": "bege",
       "madCl": "mad",
       "mad": "madEsc",
       "madEsc": "madMEsc",
@@ -326,8 +360,9 @@
       ],
       "camada": "chao",
       "quadros": [
-        "xadrez"
-      ]
+        "granilite"
+      ],
+      "nota": "granilite escuro, com o rejunte em cima e à esquerda de cada placa; à noite fica na penumbra"
     },
     "parede_fundo": {
       "arquivo": "parede_fundo.png",
@@ -666,7 +701,7 @@
         32,
         64
       ],
-      "colunas": 1,
+      "colunas": 3,
       "linhas": 1,
       "pegada": [
         1,
@@ -678,8 +713,11 @@
       ],
       "camada": "normal",
       "quadros": [
-        "planta"
-      ]
+        "planta",
+        "espada-de-são-jorge",
+        "costela-de-adão"
+      ],
+      "nota": "o quadro é a espécie: a de hoje, a espada-de-são-jorge no vaso de cerâmica e a costela-de-adão no cesto de palha"
     },
     "lixeira": {
       "arquivo": "lixeira.png",
@@ -1243,6 +1281,479 @@
         "cabeca": "quadrada",
         "acessorio": "carimbo"
       }
+    },
+    "baloes": {
+      "arquivo": "baloes.png",
+      "grupo": "balões e texto",
+      "quadro": [
+        80,
+        24
+      ],
+      "colunas": 1,
+      "linhas": 1,
+      "pegada": null,
+      "ancora": [
+        12,
+        24
+      ],
+      "camada": "interface",
+      "quadros": [
+        "acao",
+        "fala",
+        "etiqueta",
+        "fala_ponta"
+      ],
+      "pecas": {
+        "acao": [
+          0,
+          0,
+          24,
+          24
+        ],
+        "fala": [
+          24,
+          0,
+          24,
+          24
+        ],
+        "etiqueta": [
+          48,
+          0,
+          24,
+          24
+        ],
+        "fala_ponta": [
+          72,
+          0,
+          8,
+          8
+        ]
+      },
+      "miolo": [
+        4,
+        1
+      ],
+      "progresso": {
+        "x": 4,
+        "y": 17,
+        "largura": 16,
+        "altura": 2,
+        "trilho": "cinzaCl",
+        "cheio": "verde"
+      },
+      "naMesa": [
+        -28,
+        8
+      ],
+      "fatia": 8,
+      "texto": {
+        "fala": "contorno",
+        "etiqueta": "cremeCl"
+      },
+      "molduras": {
+        "fala": {
+          "cor": "contorno",
+          "margem": [
+            5,
+            2
+          ],
+          "entrelinha": 11,
+          "linhasMax": 3
+        },
+        "etiqueta": {
+          "cor": "cremeCl",
+          "margem": [
+            4,
+            2
+          ],
+          "entrelinha": 11,
+          "linhasMax": 1
+        }
+      },
+      "ponta": {
+        "peca": "fala_ponta",
+        "sobe": 1,
+        "bico": [
+          4,
+          4
+        ]
+      },
+      "nota": "pecas: [x, y, largura, altura] na folha. O balão de ação tem a âncora (12, 24), no bico da ponta; o ícone pousa no miolo; a tela desenha o fio do progresso. Sentado à mesa, de costas, o balão vai para o lado da cabeça (naMesa: dx, dy), para não cobrir o monitor. A fala e a etiqueta se esticam em nove fatias de 8 × 8; a ponta da fala vai embaixo, no meio, e a linha de cima dela cobre a de baixo do balão (sobe 1 px)."
+    },
+    "icones": {
+      "arquivo": "icones.png",
+      "grupo": "balões e texto",
+      "quadro": [
+        16,
+        16
+      ],
+      "colunas": 8,
+      "linhas": 4,
+      "pegada": null,
+      "ancora": [
+        8,
+        16
+      ],
+      "camada": "interface",
+      "quadros": [
+        "trabalhar",
+        "pedido",
+        "entregar",
+        "devolver",
+        "agua",
+        "cafe",
+        "banheiro",
+        "marmita",
+        "esquentar",
+        "comer",
+        "lixo",
+        "tv",
+        "videogame",
+        "dormir",
+        "plantar",
+        "regar",
+        "colher",
+        "cavar",
+        "bau",
+        "dinheiro",
+        "cozinhar",
+        "adubar",
+        "encomenda",
+        "fincar",
+        "mandar"
+      ],
+      "icones": {
+        "trabalhar": [
+          0,
+          0
+        ],
+        "pedido": [
+          1,
+          0
+        ],
+        "entregar": [
+          2,
+          0
+        ],
+        "devolver": [
+          3,
+          0
+        ],
+        "agua": [
+          4,
+          0
+        ],
+        "cafe": [
+          5,
+          0
+        ],
+        "banheiro": [
+          6,
+          0
+        ],
+        "marmita": [
+          7,
+          0
+        ],
+        "esquentar": [
+          0,
+          1
+        ],
+        "comer": [
+          1,
+          1
+        ],
+        "lixo": [
+          2,
+          1
+        ],
+        "tv": [
+          3,
+          1
+        ],
+        "videogame": [
+          4,
+          1
+        ],
+        "dormir": [
+          5,
+          1
+        ],
+        "plantar": [
+          6,
+          1
+        ],
+        "regar": [
+          7,
+          1
+        ],
+        "colher": [
+          0,
+          2
+        ],
+        "cavar": [
+          1,
+          2
+        ],
+        "bau": [
+          2,
+          2
+        ],
+        "dinheiro": [
+          3,
+          2
+        ],
+        "cozinhar": [
+          4,
+          2
+        ],
+        "adubar": [
+          5,
+          2
+        ],
+        "encomenda": [
+          6,
+          2
+        ],
+        "fincar": [
+          7,
+          2
+        ],
+        "mandar": [
+          0,
+          3
+        ]
+      },
+      "acoes": {
+        "trabalhar": [
+          "work"
+        ],
+        "pedido": [
+          "write_ticket",
+          "take_ticket"
+        ],
+        "entregar": [
+          "deliver",
+          "accept_ticket"
+        ],
+        "devolver": [
+          "return_ticket"
+        ],
+        "agua": [
+          "drink"
+        ],
+        "cafe": [
+          "coffee"
+        ],
+        "banheiro": [
+          "restroom"
+        ],
+        "marmita": [
+          "fridge"
+        ],
+        "esquentar": [
+          "microwave"
+        ],
+        "comer": [
+          "lunch",
+          "comer (fazenda)"
+        ],
+        "lixo": [
+          "trash"
+        ],
+        "tv": [
+          "tv"
+        ],
+        "videogame": [
+          "videogame"
+        ],
+        "dormir": [
+          "dormir"
+        ],
+        "plantar": [
+          "plantar"
+        ],
+        "regar": [
+          "regar"
+        ],
+        "colher": [
+          "colher"
+        ],
+        "cavar": [
+          "cavar",
+          "limpar o canteiro"
+        ],
+        "bau": [
+          "guardar no baú",
+          "pegar do baú"
+        ],
+        "dinheiro": [
+          "vender",
+          "comprar"
+        ],
+        "cozinhar": [
+          "cozinhar",
+          "o tacho"
+        ],
+        "adubar": [
+          "adubar",
+          "compostar"
+        ],
+        "encomenda": [
+          "aceitar a encomenda",
+          "entregar a encomenda"
+        ],
+        "fincar": [
+          "fincar"
+        ],
+        "mandar": [
+          "as ordens ao ajudante",
+          "contratar",
+          "dispensar"
+        ]
+      },
+      "nota": "um ícone por quadro, para o miolo do balão de ação; as 14 primeiras são do escritório e as 11 seguintes, da fazenda"
+    },
+    "fonte": {
+      "arquivo": "fonte.png",
+      "grupo": "balões e texto",
+      "quadro": [
+        8,
+        12
+      ],
+      "colunas": 16,
+      "linhas": 7,
+      "pegada": null,
+      "ancora": [
+        0,
+        0
+      ],
+      "camada": "interface",
+      "fonte": {
+        "celula": [
+          8,
+          12
+        ],
+        "base": 10,
+        "espaco": 1,
+        "alturaMaiuscula": 7,
+        "alturaMinuscula": 5,
+        "descendente": 2,
+        "cor": "branco",
+        "glifos": " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,;:!?'\"()-–/%+=×…@#&áàâãéêíóôõúüçÁÀÂÃÉÊÍÓÔÕÚÇ",
+        "larguras": [
+          3,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          3,
+          5,
+          5,
+          5,
+          7,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          7,
+          5,
+          5,
+          5,
+          5,
+          5,
+          4,
+          5,
+          5,
+          4,
+          5,
+          5,
+          1,
+          3,
+          4,
+          2,
+          7,
+          5,
+          5,
+          5,
+          5,
+          4,
+          4,
+          4,
+          5,
+          5,
+          7,
+          5,
+          5,
+          5,
+          5,
+          3,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          1,
+          2,
+          2,
+          1,
+          1,
+          5,
+          1,
+          3,
+          3,
+          3,
+          3,
+          5,
+          4,
+          5,
+          5,
+          4,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          2,
+          5,
+          5,
+          5,
+          5,
+          5,
+          4,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          3,
+          5,
+          5,
+          5,
+          5,
+          5
+        ]
+      },
+      "nota": "desenhada em branco (o branco da paleta): tinja em modo de preenchimento para sair a cor exata da moldura. Cada glifo começa na coluna 0 da célula; a tela põe 1 px entre as letras. Maiúsculas da linha 3 à 9, minúsculas da 5 à 9, acentos das maiúsculas nas linhas 0 e 1 e das minúsculas nas 2 e 3, descendentes nas 10 e 11."
     },
     "camps": {
       "arquivo": "camps.png",
