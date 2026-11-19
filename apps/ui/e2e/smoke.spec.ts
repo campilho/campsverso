@@ -33,29 +33,42 @@ test("o operador vê o mapa desenhado, assume o Camps, anda e devolve", async ({
   await expect(page.getByRole("button", { name: "Assumir Camps" })).toBeVisible();
 });
 
-/** Na página: o maior deslocamento do Camps entre dois quadros desenhados, durante `ms`. */
-function sampleSteps(ms: number): Promise<{ biggest: number; moved: number }> {
+/** Na página, durante `ms`: o maior salto do Camps entre dois quadros desenhados, medido num quadro
+ * de 60 Hz. A 60 quadros por segundo é o salto do quadro; num quadro mais lento, o salto dividido
+ * pelos quadros de 60 Hz que cabem nele. No CI, sem GPU, o WebGL por software desenha uns 15 quadros
+ * por segundo, e o andar normal a 72× dava 2,4 tiles por quadro (19/nov). O pulo antigo, até o
+ * destino, era de muitos tiles num quadro só. */
+function sampleSteps(ms: number): Promise<{ biggest: number; moved: number; frames: number; slowest: number }> {
   type Hook = { drawn(id: string): { x: number; y: number } | undefined };
   const hook = (window as unknown as { campsverso: Hook }).campsverso;
+  const frame60 = 1000 / 60;
   return new Promise((resolve) => {
     let first: { x: number; y: number } | undefined;
     let last: { x: number; y: number } | undefined;
+    let lastAt = 0;
     let biggest = 0;
+    let frames = 0;
+    let slowest = 0;
     const start = performance.now();
-    const frame = (): void => {
+    const frame = (now: number): void => {
       const point = hook.drawn("camps");
       if (point !== undefined) {
         if (last !== undefined) {
-          biggest = Math.max(biggest, Math.hypot(point.x - last.x, point.y - last.y));
+          const dt = now - lastAt;
+          const jump = Math.hypot(point.x - last.x, point.y - last.y);
+          biggest = Math.max(biggest, jump / Math.max(1, dt / frame60));
+          slowest = Math.max(slowest, dt);
+          frames += 1;
         }
         first ??= point;
         last = point;
+        lastAt = now;
       }
       if (performance.now() - start < ms) {
         requestAnimationFrame(frame);
       } else {
         const moved = first === undefined || last === undefined ? 0 : Math.hypot(last.x - first.x, last.y - first.y);
-        resolve({ biggest, moved });
+        resolve({ biggest, moved, frames, slowest: Math.round(slowest) });
       }
     };
     requestAnimationFrame(frame);
@@ -82,7 +95,7 @@ test("o Camps anda sem pulo, a 72× e a 1× (ADR-0078)", async ({ page }) => {
   await page.mouse.click(far.x, far.y);
   const at72 = await fast;
   expect(at72.moved).toBeGreaterThan(3);
-  expect(at72.biggest).toBeLessThanOrEqual(1);
+  expect(at72.biggest, JSON.stringify(at72)).toBeLessThanOrEqual(1);
   await expect(hud).toContainText("parado", { timeout: 20_000 });
 
   // A 1×, meio tile por segundo: a caminhada leva o minuto do tick, sem correr e parar.
@@ -93,7 +106,7 @@ test("o Camps anda sem pulo, a 72× e a 1× (ADR-0078)", async ({ page }) => {
   const at1 = await page.evaluate(sampleSteps, 4_000);
   expect(at1.moved).toBeGreaterThan(0.5);
   expect(at1.moved).toBeLessThan(4);
-  expect(at1.biggest).toBeLessThanOrEqual(0.2);
+  expect(at1.biggest, JSON.stringify(at1)).toBeLessThanOrEqual(0.2);
 
   await page.getByRole("button", { name: "72×", exact: true }).click();
   await page.getByRole("button", { name: "Devolver ao script" }).click();
