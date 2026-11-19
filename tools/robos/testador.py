@@ -41,7 +41,20 @@ def summarize(output: str) -> str:
 def run(paths: Sequence[str]) -> str:
     """Roda o pytest nos caminhos e devolve o resumo."""
     proc = subprocess.run(
-        [sys.executable, "-m", "pytest", "-q", "--tb=line", "-p", "no:cacheprovider", *paths],
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            # O addopts do projeto já tem `-q`; um segundo `-q` some com a linha de resumo.
+            "-o",
+            "addopts=",
+            "--import-mode=importlib",
+            "-q",
+            "--tb=line",
+            "-p",
+            "no:cacheprovider",
+            *paths,
+        ],
         capture_output=True,
         text=True,
         check=False,

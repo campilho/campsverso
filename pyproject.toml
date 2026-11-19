@@ -154,7 +154,7 @@ exclude = ["**/__pycache__", "**/.venv", "**/node_modules"]
 addopts = ["--import-mode=importlib", "-q"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-testpaths = ["libs", "services", "cartridges", "tools/contracts", "tests"]
+testpaths = ["libs", "services", "cartridges", "tools/contracts", "tools/robos", "tests"]
 
 # ---------------------------------------------------------------- import-linter
 # Regras de arquitetura entre pacotes internos (princípios 1 e 8; ADR-0011, ADR-0025, ADR-0031).
