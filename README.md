@@ -77,7 +77,8 @@ Um escritório de programação com um único dev no começo, cujo trabalho é m
 |---|---|---|
 | M23: o escritório | o gênero `office` e o cenário `office_campsverso` em tempo real; o andar sem pulo e o passo de tela; o gerente que o humano assume, com a fala; o pedido no quadro; o dev-script e o vigia; a arte LPC | concluído em 15/nov/2026 ([plano](docs/planos/m23-o-escritorio.md), ADR-0078 e ADR-0079) |
 | M24: o dev pensa e cria | a mente com rotina no dev, a oficina isolada, a entrega num patch que o humano aplica, a copa e as pausas, o tick de 250 ms, a arte nova do escritório e o testador como o primeiro robô | concluído em 20/nov/2026 ([plano](docs/planos/m24-o-dev-pensa-e-cria.md), ADR-0080 a ADR-0082) |
-| M25 a M30 | o ciclo do PR, o Claude Code, o Codex e o Antigravity, o computador do dev, o telefone e o fechamento | a seguir ([plano macro](docs/planos/v0.4-macro.md)) |
+| M25: o ciclo fecha | o PR aberto pelo dev e mesclado só pelo humano, o revisor de outra família, o auto-update do escritório vivo e o briefing como a segunda criação | em curso ([plano](docs/planos/m25-o-ciclo-fecha.md), ADR-0083) |
+| M26 a M30 | o Claude Code, o Codex e o Antigravity, o computador do dev, o telefone e o fechamento | a seguir ([plano macro](docs/planos/v0.4-macro.md)) |
 
 ## Como funciona
 
