@@ -23,6 +23,8 @@ DATA = Path(__file__).parent / "data"
 ROBOT_NAME = re.compile(r"[a-z][a-z0-9_]{0,23}")
 ROBOT_MODULE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*")
 BENCH_SLOTS = 3  # os apoios da bancada: um por tile da pegada dela
+RESERVE_ARGS = 8  # os argumentos do script de reserva (`reserva`), no máximo
+RESERVE_ARG = re.compile(r"[^\s]{1,200}")  # um caminho, sem espaço: a lista vai num atributo só
 
 
 def bench_of(tmj: Mapping[str, Any]) -> Position:
@@ -33,6 +35,22 @@ def bench_of(tmj: Mapping[str, Any]) -> Position:
             if item.get("type") == "bench":
                 return Position(int(item["x"]) // tile, int(item["y"]) // tile)
     raise ValueError("o mapa do escritório não tem bancada")
+
+
+def reserve_args(name: str, raw: object) -> list[str]:
+    """Os argumentos com que o dev-script, o script de reserva, chama o robô antes de entregar
+    (`reserva`): uma lista de caminhos sem espaço. Os atributos de uma entidade são escalares, então
+    eles viajam juntos, separados por espaço."""
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        raise ValueError(f"robos: {name}: a reserva é uma lista de argumentos")
+    given = [str(a) for a in cast(list[object], raw)]
+    if len(given) > RESERVE_ARGS or not all(RESERVE_ARG.fullmatch(a) for a in given):
+        raise ValueError(
+            f"robos: {name}: a reserva tem até {RESERVE_ARGS} argumentos, sem espaço, de até 200"
+        )
+    return given
 
 
 def robots(raw: object, bench: Position) -> list[SpawnDef]:
@@ -51,17 +69,21 @@ def robots(raw: object, bench: Position) -> list[SpawnDef]:
         if not ROBOT_MODULE.fullmatch(module):
             raise ValueError(f"robos: {name}: o módulo {module!r} não é um módulo Python")
         names.add(name)
+        attributes: dict[str, Any] = {
+            "nome": name,
+            "modulo": module,
+            "descricao": " ".join(str(entry.get("descricao", "")).split())[:300],
+        }
+        reserve = reserve_args(name, entry.get("reserva"))
+        if reserve:
+            attributes["reserva"] = " ".join(reserve)
         found.append(
             SpawnDef(
                 f"robo-{name}",
                 "robot",
                 position=Position(bench.x - 1 + slot, bench.y),
                 display_name=name.capitalize(),
-                attributes={
-                    "nome": name,
-                    "modulo": module,
-                    "descricao": " ".join(str(entry.get("descricao", "")).split())[:300],
-                },
+                attributes=attributes,
             )
         )
     return found

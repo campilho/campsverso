@@ -34,10 +34,13 @@ office:
 #   - nome: testador                      # minúsculas, sem espaço; o id do robô é robo-<nome>
 #     modulo: tools.robos.testador        # um módulo do repositório
 #     descricao: Roda os testes que cobrem os caminhos dados e devolve um resumo curto.
+#     reserva: [tools/robos/tests]        # opcional: com estes argumentos, o dev-script (o script
+#                                         # de reserva, sem modelo) o chama antes de entregar
 robos:
   - nome: testador
     modulo: tools.robos.testador
     descricao: Roda os testes que cobrem os caminhos dados e devolve um resumo curto.
+    reserva: [tools/robos/tests]  # os testes da própria bancada: rápidos e em todo clone
 
 # O elenco (ADR-0077): o dev é sempre um LLM ou um script; o humano entra como o gerente.
 cast:

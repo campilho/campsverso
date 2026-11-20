@@ -27,6 +27,9 @@ export interface WorldRenderer {
   rememberFog?(key: string): void;
   /** O que o jogador enxerga num tile com a névoa ligada; para os testes no navegador. */
   sight?(x: number, y: number): Sight | undefined;
+  /** O estado da oficina que uma coisa mostrou no último quadro ("trabalhando", "passou"...), ou
+   * nada; para os testes no navegador (o robô na bancada, ADR-0080). */
+  workshopLook?(entityId: string): string | undefined;
   /** O centro de um tile em coordenadas da tela, pela câmera; para os testes no navegador. */
   clientOf?(x: number, y: number): { x: number; y: number } | undefined;
   /** O tile sob um ponto da tela (coordenadas do evento do mouse), ou nada fora do mapa. */

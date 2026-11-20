@@ -363,6 +363,8 @@ class WorldScene extends Phaser.Scene {
   private tinted: string | undefined;
   private season: string | undefined; // a estação já desenhada nas folhas do mapa visual
   private readonly things = new Map<string, ThingView>();
+  /** O estado da oficina que cada coisa mostrou no último quadro (para os testes no navegador). */
+  readonly looks = new Map<string, string>();
   /** As peças sobre os tiles (a divisória, ADR-0082), refeitas quando o terreno muda. */
   private props: Phaser.GameObjects.Image[] = [];
   private readonly avatars = new Map<string, AvatarView>();
@@ -816,6 +818,11 @@ class WorldScene extends Phaser.Scene {
       }
       const seconds = time / 1000;
       const shop = workshopState(kind?.workshop, id, entity.attributes, frame.state, frame.tick, who);
+      if (shop === undefined) {
+        this.looks.delete(id);
+      } else {
+        this.looks.set(id, shop);
+      }
       const busy =
         workshopFrame(kind?.workshop, shop, seconds) ??
         inUseFrame(kind?.in_use, users, seconds, this.doing) ??
@@ -826,6 +833,7 @@ class WorldScene extends Phaser.Scene {
       if (!seen.has(id)) {
         view.destroy();
         this.things.delete(id);
+        this.looks.delete(id);
       }
     }
   }
@@ -1178,6 +1186,10 @@ export class PhaserRenderer implements WorldRenderer {
 
   sight(x: number, y: number): Sight | undefined {
     return this.scene.sightAt(x, y);
+  }
+
+  workshopLook(entityId: string): string | undefined {
+    return this.scene.looks.get(entityId);
   }
 
   clientOf(x: number, y: number): { x: number; y: number } | undefined {

@@ -416,6 +416,18 @@ def test_os_robos_do_registro_vao_para_os_apoios_da_bancada() -> None:
         [{"nome": "t", "modulo": "tools.x; rm -rf /"}],  # não é um módulo
         [{"nome": "t", "modulo": "a"}, {"nome": "t", "modulo": "b"}],  # repetido
         [{"nome": f"r{i}", "modulo": "a"} for i in range(4)],  # a bancada tem três apoios
+        [{"nome": "t", "modulo": "a", "reserva": "tools/robos/tests"}],  # não é uma lista
+        [{"nome": "t", "modulo": "a", "reserva": ["com espaco ruim"]}],  # um caminho com espaço
+        [{"nome": "t", "modulo": "a", "reserva": [f"p{i}" for i in range(9)]}],  # até oito
     ):
         with pytest.raises(ValueError, match="robos"):
             robots(bad, Position(8, 4))
+
+
+def test_a_reserva_do_registro_vai_no_robo_para_o_dev_script() -> None:
+    """Os argumentos com que o script de reserva chama o robô: num atributo só, separados por
+    espaço (os atributos de uma entidade são escalares)."""
+    entry = {"nome": "testador", "modulo": "tools.robos.testador", "reserva": ["a/tests", "b"]}
+    assert robots([entry], Position(8, 4))[0].attributes["reserva"] == "a/tests b"
+    core = _core()
+    assert core.world.entity_map["robo-testador"].attributes["reserva"] == "tools/robos/tests"

@@ -113,7 +113,7 @@ const icons = new ItemIcons(() => {
 });
 // Para os testes no navegador (Playwright): onde fica, na tela, o centro de um tile; o que o
 // jogador enxerga nele; o ícone de um item; onde a tela desenhou um avatar no último quadro; o que
-// cada avatar falou (a fala que interrompe, ADR-0080).
+// cada avatar falou (a fala que interrompe, ADR-0080); o que a oficina de uma coisa mostra (o robô).
 const saidBy = new Map<string, string[]>();
 Object.assign(window, {
   campsverso: {
@@ -121,6 +121,7 @@ Object.assign(window, {
     drawn: (id: string) => map.motion.drawn(id),
     said: (id: string) => saidBy.get(id) ?? [],
     sight: (x: number, y: number) => map.sight?.(x, y),
+    look: (id: string) => map.workshopLook?.(id),
     itemIcon: (item: string) => icons.url(item),
   },
 });

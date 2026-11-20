@@ -27,6 +27,7 @@ STEP = "campsverso.workshop.step.v1"
 ROBOT_STARTED = "campsverso.workshop.robot_started.v1"
 ROBOT_CALLED = "campsverso.workshop.robot_called.v1"
 MAX_STEPS = 200  # o limite de passos de uma sessão (o plano do M24, §3.4)
+ROBOT_STEP = "chamar_robo"  # o passo de uma sessão fixa que chama um robô (o nome da ferramenta)
 
 
 async def call(space: Workspace, tool: str, args: Mapping[str, Any]) -> ToolResult:
@@ -184,7 +185,16 @@ class WorkshopSession:
             ready = False
             for step in steps[:MAX_STEPS]:
                 tool = str(step["tool"])
-                await self.step(space, tool, cast(Mapping[str, Any], step.get("args") or {}))
+                args = cast(Mapping[str, Any], step.get("args") or {})
+                if tool == ROBOT_STEP:
+                    # Um robô da bancada que o script já achou na vista: o id e o módulo vêm no
+                    # passo. O resultado não muda a entrega: o script não sabe ler o que ele disse.
+                    robot, module = str(args.get("robo") or ""), str(args.get("modulo") or "")
+                    given = cast(Sequence[Any], args.get("argumentos") or ())
+                    if robot and module:
+                        await self.robot(space, robot, module, [str(a) for a in given])
+                    continue
+                await self.step(space, tool, args)
                 if tool == "pronto":
                     ready = True
                     break

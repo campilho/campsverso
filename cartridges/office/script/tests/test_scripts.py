@@ -148,6 +148,40 @@ def test_o_dev_avisa_trabalha_em_blocos_e_entrega() -> None:
     assert session["steps"][1]["args"]["path"] == "docs/oficina/pedido-001.md"
 
 
+def test_antes_de_entregar_o_dev_chama_o_robo_que_tem_reserva() -> None:
+    """O testador na bancada, com os argumentos do registro (`reserva`): o dev-script o chama
+    depois de escrever. O robô sem reserva fica na bancada (só a mente sabe o que pedir a ele)."""
+    done = [_ticket(1, "fazendo", "camps", trabalho=900)]
+    tester = {
+        "entity_id": "robo-testador",
+        "kind": "robot",
+        "position": {"x": 7, "y": 4},
+        "attributes": {"nome": "testador", "modulo": "tools.robos.testador", "reserva": "a b"},
+    }
+    reviewer = {
+        "entity_id": "robo-revisor",
+        "kind": "robot",
+        "position": {"x": 8, "y": 4},
+        "attributes": {"nome": "revisor", "modulo": "tools.robos.revisor"},
+    }
+    view = _view(at=(4, 5), tickets=[*done, reviewer, tester])
+    dev = _dev()
+    dev.announced.add("pedido-001")
+    session = dev.decide(view)["workshop"]
+    assert [step["tool"] for step in session["steps"]] == [
+        "ler",
+        "escrever",
+        "chamar_robo",
+        "ver_mudancas",
+        "pronto",
+    ]
+    assert session["steps"][2]["args"] == {
+        "robo": "robo-testador",
+        "modulo": "tools.robos.testador",
+        "argumentos": ["a", "b"],
+    }
+
+
 def test_o_dev_avisa_que_vai_almocar_uma_vez_nos_minutos_antes() -> None:
     dev = _dev()
     doing = [_ticket(1, "fazendo", "camps")]

@@ -1,6 +1,6 @@
 /** O escritório no navegador (ADR-0078): o humano entra como o gerente, escreve um pedido no
  * quadro, fala com o dev (que para e responde), vê o patch da entrega (ADR-0080), a aceita e toma
- * um café na copa. */
+ * um café na copa; e o robô da bancada trabalha antes da entrega. */
 import { expect, test } from "@playwright/test";
 
 import { SHOTS, tile } from "./tela.ts";
@@ -60,7 +60,14 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   await expect(speech).toHaveValue("");
   await expect.poll(async () => (await said()).slice(heardBefore), { timeout: 20_000 }).toContain("Anotado.");
 
-  // A 72×, os 15 minutos de trabalho do dev-script passam em uns 13 segundos.
+  // O robô na bancada (o plano do M24, §4): antes de entregar, o dev-script chama o testador com os
+  // testes da própria bancada (a `reserva` do registro), e a tela o mostra trabalhando e depois o
+  // resultado. A 72×, os 15 minutos de trabalho do dev passam em uns 13 segundos.
+  const look = (id: string): Promise<string | undefined> =>
+    page.evaluate((who) => (window as unknown as { campsverso: { look(id: string): string | undefined } }).campsverso.look(who), id);
+  await expect.poll(() => look("robo-testador"), { intervals: [100], timeout: 60_000 }).toBe("trabalhando");
+  await expect.poll(() => look("robo-testador"), { timeout: 30_000 }).toBe("passou");
+  await page.screenshot({ path: `${SHOTS}/escritorio-bancada.png` });
   await expect(office.locator(".entregue")).toContainText("#1", { timeout: 60_000 });
   await page.screenshot({ path: `${SHOTS}/escritorio.png` });
 

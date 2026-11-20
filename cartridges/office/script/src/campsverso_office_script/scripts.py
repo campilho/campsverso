@@ -40,6 +40,8 @@ COOLER, COFFEE, COPA_TABLE, COPA_CHAIR, RESTROOM = (
 )
 FRIDGE, MICROWAVE, TRASH, SOFA = "fridge", "microwave", "trash", "sofa"
 BREAK_PLACES = {"drink": COOLER, "coffee": COFFEE, "restroom": RESTROOM, "videogame": SOFA}
+# O passo da sessão que chama um robô da bancada, com o nome da ferramenta da mente (ADR-0080).
+ROBOT_STEP = "chamar_robo"
 # O almoço em etapas (ADR-0082): a geladeira, o micro-ondas, a mesinha e o lixo da copa.
 LUNCH_STEPS = (
     ("fridge", FRIDGE, "pegar o almoço na geladeira"),
@@ -249,10 +251,33 @@ def chair_by(
     return next((c for c in entities(view, kind) if adjacent(c.get("position"), spot)), None)
 
 
-def workshop_session(ticket: Mapping[str, Any]) -> dict[str, Any]:
+def bench_calls(view: View) -> list[dict[str, Any]]:
+    """Os robôs da bancada que o script de reserva chama antes de entregar: os que o registro do
+    cenário deu argumentos para ele (`reserva`, os caminhos separados por espaço), na ordem dos
+    apoios. Sem modelo, ele não escolhe o que testar: o cenário escolhe."""
+    calls: list[dict[str, Any]] = []
+    for robot in sorted(entities(view, "robot"), key=lambda e: str(e["entity_id"])):
+        a = attrs(robot)
+        given = str(a.get("reserva") or "").split()
+        if given and a.get("modulo"):
+            calls.append(
+                {
+                    "tool": ROBOT_STEP,
+                    "args": {
+                        "robo": str(robot["entity_id"]),
+                        "modulo": str(a["modulo"]),
+                        "argumentos": given,
+                    },
+                }
+            )
+    return calls
+
+
+def workshop_session(ticket: Mapping[str, Any], view: View | None = None) -> dict[str, Any]:
     """A sessão do dev-script na oficina (ADR-0080), o script de reserva: sem modelo, ele registra o
-    pedido num arquivo e entrega. O controlador a roda pela porta da oficina antes de propor a
-    entrega, e a tira da proposta num mundo sem oficina."""
+    pedido num arquivo, chama os robôs da bancada que têm argumentos para ele e entrega. O
+    controlador a roda pela porta da oficina antes de propor a entrega, e a tira da proposta num
+    mundo sem oficina."""
     a = attrs(ticket)
     number = int(a["numero"])
     lines = [
@@ -276,6 +301,7 @@ def workshop_session(ticket: Mapping[str, Any]) -> dict[str, Any]:
                     "content": "\n".join(lines),
                 },
             },
+            *([] if view is None else bench_calls(view)),
             {"tool": "ver_mudancas", "args": {}},
             {"tool": "pronto", "args": {}},
         ],
@@ -377,7 +403,7 @@ class DevScript:
                     "action": "deliver",
                     "params": {},
                     "intent": "entregar o pedido",
-                    "workshop": workshop_session(doing),
+                    "workshop": workshop_session(doing, view),
                 }
             chunk = int(self.config["chunk_seconds"])
             return {

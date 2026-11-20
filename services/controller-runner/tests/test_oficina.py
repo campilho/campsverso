@@ -121,3 +121,58 @@ async def test_a_oficina_que_cai_vira_uma_fala_e_nao_derruba_o_controlador(tmp_p
     assert steps == []
     assert session.delivered == 0
     assert blobs.blobs == {}
+
+
+async def test_a_sessao_fixa_chama_o_robo_e_entrega_mesmo_se_ele_falhar(
+    repo: Path, tmp_path: Path
+) -> None:
+    """O dev-script chama o robô da bancada antes de entregar (o plano do M24, §4): o robô começa e
+    termina nos fatos da oficina, para a tela o animar; um robô que falha não segura a entrega."""
+    (repo / "tools").mkdir()
+    (repo / "tools" / "__init__.py").write_text("")
+    (repo / "tools" / "eco.py").write_text("import sys\n\nprint('eco:', *sys.argv[1:])\n")
+    subprocess.run([*GIT, "-C", str(repo), "add", "-A"], check=True)
+    subprocess.run([*GIT, "-C", str(repo), "commit", "-q", "-m", "eco"], check=True)
+    events: list[tuple[str, Mapping[str, Any]]] = []
+
+    async def publish(event_type: str, data: Mapping[str, Any]) -> None:
+        events.append((event_type, data))
+
+    shop = LocalWorkshop(repo, tmp_path / "oficina", python_env=False, python=Path(sys.executable))
+    session = WorkshopSession(
+        "office-teste", "camps", shop, MemoryBlobStore(), lambda diff: review(diff, []), publish
+    )
+
+    def robot(robot_id: str, module: str) -> dict[str, Any]:
+        args = {"robo": robot_id, "modulo": module, "argumentos": ["tools", "tests"]}
+        return {"tool": "chamar_robo", "args": args}
+
+    steps = SESSION["steps"]
+    fixed: dict[str, Any] = {
+        "ticket_id": "pedido-001",
+        "steps": [
+            steps[0],
+            steps[1],
+            robot("robo-eco", "tools.eco"),
+            robot("robo-sumido", "tools.sumido"),  # o módulo não existe: o robô falha
+            {"tool": "chamar_robo", "args": {"argumentos": []}},  # sem robô: não roda
+            steps[3],
+            steps[4],
+        ],
+    }
+    deliver: dict[str, Any] = {"action": "deliver", "params": {}, "intent": "entregar o pedido"}
+    proposal = await session.run(deliver, fixed, "01AC0")
+    assert proposal["action"] == "deliver"
+    assert proposal["params"]["patch"]["files"] == ["docs/oficina/pedido-001.md"]
+    robots = [(t.rsplit(".", 2)[-2], d["robot_id"]) for t, d in events if "robot_id" in d]
+    assert robots == [
+        ("robot_started", "robo-eco"),
+        ("robot_called", "robo-eco"),
+        ("robot_started", "robo-sumido"),
+        ("robot_called", "robo-sumido"),
+    ]
+    called = [d for t, d in events if t == "campsverso.workshop.robot_called.v1"]
+    assert [d["ok"] for d in called] == [True, False]
+    assert called[0]["args"] == ["tools", "tests"]
+    tools = [d["tool"] for t, d in events if t == STEP]
+    assert tools == ["ler", "escrever", "ver_mudancas", "pronto"]
