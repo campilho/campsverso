@@ -233,6 +233,8 @@ São ferramentas do computador, e não ações do mundo. A mente as chama durant
   - o código em `tools/robos/testador.py`, com o teste;
   - uma linha no registro de robôs do cenário (`robos:` no `escritorio.yaml`, com o nome, o comando e a descrição).
 - **A bancada:** ao subir, o cenário põe na bancada um robô por linha do registro. A mente ganha a ferramenta `chamar_robo`, que roda o comando do robô no espaço de trabalho, sob o mesmo isolamento, e devolve o que ele diz.
+
+> **Como ficou** (20/nov): o dev-script, o script de reserva, também chama o robô, para o caminho rodar sem modelo. A linha do registro ganhou um campo opcional, `reserva`: os argumentos com que o script o chama antes de entregar. O testador recebe os testes da própria bancada (`tools/robos/tests`), que existem em todo clone e rodam em uns 3 s. O resultado não muda a entrega, porque o script não sabe ler o que o robô disse. No navegador, o teste do escritório vê o testador trabalhando na bancada e depois o verde de "passou".
 - **O M25 usa o testador** antes de cada PR.
 - **Se o dev não conseguir,** nós fazemos, e a tentativa fica no arquivo como dado (decisão 12 da ADR-0077).
 
