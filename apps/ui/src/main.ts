@@ -359,7 +359,7 @@ function renderControl(state: ObserverState): void {
       const back = el("a", {}, "voltar à arena");
       back.href = "/?view=arena";
       const hint = `Assistindo à corrida ${run}: só leitura; o relógio do painel controla a reprodução.`;
-      control.replaceChildren(el("span", { className: "hint" }, hint), back);
+      control.replaceChildren(el("span", { className: "hint", title: hint }, hint), back);
     }
     return;
   }
@@ -382,7 +382,7 @@ function renderControl(state: ObserverState): void {
     mine
       ? button("Devolver ao script", () => { connection.send(RELEASE, { avatar_id: avatarId() }); }, store.status === "open")
       : button(`Assumir ${avatarName(state)}`, () => { assume(state); }, store.status === "open"),
-    el("span", { className: "hint" }, hint),
+    el("span", { className: "hint", title: hint }, hint),
     ...(mine ? [button("Comandos", () => { help.show(); })] : []),
     ...(clockable ? clockButtons(state) : []),
   );

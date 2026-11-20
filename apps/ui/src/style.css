@@ -289,8 +289,23 @@ canvas {
   margin-bottom: 8px;
 }
 
+/* A ajuda fica numa linha só, cortada com reticências (a frase inteira vai no title). Ela muda
+   quando o avatar para ou anda; quebrando em duas linhas, o mapa descia 25 px sob o cursor, e o
+   clique caía no tile de cima (20/nov). */
 .control .hint {
   color: var(--muted);
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Só a ajuda encolhe: os botões e os do relógio ficam inteiros, numa linha. */
+.control > button,
+.control .clock-buttons {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* Os botões do relógio ficam presos à direita: o texto ao lado muda de tamanho e não os empurra. */
