@@ -44,25 +44,27 @@ _UNAVAILABLE = (
 
 _BATCH = 100
 _WAIT_SECONDS = 1.0  # de quanto em quanto tempo o laço quieto confere se deve parar
-_DRAIN_SECONDS = 0.02  # o que mais espera, depois do primeiro, pelo resto da rajada
+_DRAIN_SECONDS = 0.02  # o prazo para recolher o que já está no stream
 
 
 async def _next_batch(sub: JetStreamContext.PullSubscription) -> list[Msg]:
-    """O próximo lote de um consumidor: o primeiro que chegar, sem esperar outros, e o que mais já
-    estiver no stream.
+    """O próximo lote de um consumidor: o que já estiver no stream, até 100, e, sem nada, o próximo
+    que chegar, sozinho.
 
     O fetch de 100 com prazo de 1 s segurava eventos até o fim do prazo (20/nov). Numa rajada (o
     `accepted` e o `moved` de um andar), o segundo ia para um pedido que o nats-py já tinha largado,
     e o fetch seguinte, ao recebê-lo, esperava completar o lote: o trajeto do gerente chegava à tela
-    até 1 s depois, junto com a chegada. O fetch de um volta assim que a mensagem chega, venha de
-    que pedido vier, e o de recolher espera no máximo `_DRAIN_SECONDS`.
+    até 1 s depois, junto com a chegada. Agora o fetch de 100 espera no máximo `_DRAIN_SECONDS`, e o
+    de um volta assim que a mensagem chega, venha do pedido que vier.
+
+    A ordem importa: recolher primeiro. Esperar o primeiro e depois recolher dava 20 ms a mais a
+    cada evento sozinho, e o soak do escritório, em que kernel, percepção e controlador se esperam
+    em fila, foi de uns 90 s a 500 s por dia.
     """
-    msgs = await sub.fetch(batch=1, timeout=_WAIT_SECONDS)
-    # Nada mais (o prazo curto) ou uma resposta velha de outro pedido: o primeiro segue sozinho, e
-    # o que faltar vem no próximo lote. Perder o primeiro aqui o deixaria sem confirmação por 30 s.
-    with contextlib.suppress(Exception):
-        msgs += await sub.fetch(batch=_BATCH - 1, timeout=_DRAIN_SECONDS)
-    return msgs
+    try:
+        return await sub.fetch(batch=_BATCH, timeout=_DRAIN_SECONDS)
+    except TimeoutError:  # nada no stream agora (inclui o do nats-py)
+        return await sub.fetch(batch=1, timeout=_WAIT_SECONDS)
 
 
 @dataclass(frozen=True, slots=True)
