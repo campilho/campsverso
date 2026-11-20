@@ -6,8 +6,11 @@ from campsverso_adapters.bus_memory import InMemoryBus, subject_matches
 from campsverso_adapters.bus_nats import NatsBus, StreamSpec
 from campsverso_adapters.bus_validating import ContractViolationError, ValidatingBus
 from campsverso_adapters.clocks import FakeWallClock, SystemWallClock
+from campsverso_adapters.codehost_github import GitHubApp, GitHubCodeHost
+from campsverso_adapters.codehost_memory import MemoryCodeHost
 from campsverso_adapters.contract_validation import ContractValidator, Problem
 from campsverso_adapters.flags_yaml import YamlFlags
+from campsverso_adapters.git_patch import files_after_patch
 from campsverso_adapters.ids import SequentialUuid7Ids, Uuid7Ids
 from campsverso_adapters.memory_sqlite import SqliteMemory
 from campsverso_adapters.model_anthropic import AnthropicModel
@@ -37,11 +40,14 @@ __all__ = [
     "EnvSettings",
     "FakeWallClock",
     "GatewaySettings",
+    "GitHubApp",
+    "GitHubCodeHost",
     "InMemoryBus",
     "JsonTelemetry",
     "JsonlArchive",
     "MemoryBlobStore",
     "MemoryClient",
+    "MemoryCodeHost",
     "MemoryRealtime",
     "MemoryTelemetry",
     "MeteredModel",
@@ -62,6 +68,7 @@ __all__ = [
     "WorldSettings",
     "YamlFlags",
     "cost_usd",
+    "files_after_patch",
     "key_variable",
     "load_env",
     "load_world",

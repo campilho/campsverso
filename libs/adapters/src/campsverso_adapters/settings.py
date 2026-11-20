@@ -121,6 +121,21 @@ class BudgetSettings:
 
 
 @dataclass(frozen=True, slots=True)
+class CodeHostSettings:
+    """O repositório de fora do escritório (ADR-0083): onde o publicador abre os PRs do dev.
+
+    `github` fala com o GitHub como o App do dev, com a chave num arquivo fora do git (`privado/`),
+    que só o `openssl` lê; `memory` é o GitHub falso, para o sandbox sem a chave."""
+
+    host: Literal["github", "memory"]
+    repo: str  # dono/nome
+    app_id: int | None = None
+    installation_id: int | None = None
+    key: Path | None = None  # a chave do App; relativa à raiz do repositório
+    poll_seconds: float = 60.0  # a volta do vigia
+
+
+@dataclass(frozen=True, slots=True)
 class MindSettings:
     """O controlador LLM de um avatar (ADR-0059), lido na partida do processo `mind`."""
 
@@ -165,6 +180,8 @@ class WorldSettings:
     # A foto com o que aconteceu no meio-tempo (`perception.snapshot_events`, ADR-0080): a memória
     # do dev do escritório não perde o que houve entre o último delta e a foto.
     snapshot_events: bool = False
+    # O repositório de fora (ADR-0083): a entrega vira um PR. None: as entregas ficam no depósito.
+    codehost: CodeHostSettings | None = None
 
 
 def _read(path: Path) -> Mapping[str, Any]:
@@ -328,10 +345,33 @@ def load_world(path: Path, root: Path | None = None) -> WorldSettings:
             ).items()
         },
         budget=None if budget is None else _budget(budget),
+        codehost=_codehost(doc.get("codehost"), root or Path.cwd()),
         minds={
             str(avatar): _mind(str(avatar), raw, root or Path.cwd())
             for avatar, raw in cast(Mapping[str, Mapping[str, Any]], doc.get("minds") or {}).items()
         },
+    )
+
+
+def _codehost(raw: Any, base: Path) -> CodeHostSettings | None:
+    if raw is None:
+        return None
+    doc = cast(Mapping[str, Any], raw)
+    host = doc.get("host", "github")
+    if host not in ("github", "memory"):
+        raise ValueError(f"codehost.host inválido: {host!r} (use github ou memory)")
+    repo = str(doc["repo"])
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo):
+        raise ValueError(f"codehost.repo inválido: {repo!r} (use dono/nome)")
+    if host == "github" and not all(doc.get(k) for k in ("app_id", "installation_id", "key")):
+        raise ValueError("codehost: o GitHub pede app_id, installation_id e key")
+    return CodeHostSettings(
+        host=host,
+        repo=repo,
+        app_id=None if doc.get("app_id") is None else int(doc["app_id"]),
+        installation_id=None if doc.get("installation_id") is None else int(doc["installation_id"]),
+        key=None if doc.get("key") is None else base / str(doc["key"]),
+        poll_seconds=float(doc.get("poll_seconds", 60)),
     )
 
 

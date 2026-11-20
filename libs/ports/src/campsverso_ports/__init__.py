@@ -13,6 +13,13 @@ from campsverso_ports.bus import (
     Subscription,
 )
 from campsverso_ports.clock import WallClock
+from campsverso_ports.codehost import (
+    CiState,
+    CodeHostError,
+    CodeHostPort,
+    PullRequest,
+    PullRequestState,
+)
 from campsverso_ports.flags import FlagPort, RuleConfig
 from campsverso_ports.ids import IdGenerator
 from campsverso_ports.memory import (
@@ -86,6 +93,9 @@ __all__ = [
     "BlobStore",
     "BusUnavailableError",
     "ChangeKind",
+    "CiState",
+    "CodeHostError",
+    "CodeHostPort",
     "Commit",
     "ConnectionClosedError",
     "ConnectionHandler",
@@ -119,6 +129,8 @@ __all__ = [
     "PermissionDeniedError",
     "Place",
     "Planting",
+    "PullRequest",
+    "PullRequestState",
     "RealtimeConnection",
     "RealtimeGateway",
     "Reflection",
