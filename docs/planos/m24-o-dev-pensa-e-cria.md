@@ -286,6 +286,8 @@ São ferramentas do computador, e não ações do mundo. A mente as chama durant
   - a constituição, os testes apagados e as palavras proibidas, com uma lista de teste;
   - o teto por pedido, o `budget.set` e o sinal de vida, com a rotina assumindo.
 - **Ponta a ponta, com as fitas:** um dia do escritório com o dev com LLM num repositório de exemplo (`tests/fixtures/oficina/`). O repositório de verdade mudaria as respostas das ferramentas, e a fita deixaria de bater.
+
+  > **Como ficou** (20/nov): a fita cobre a manhã do primeiro dia, até as 12:00: o bom-dia do gerente e dois pedidos, em `tests/e2e/test_fita_escritorio.py`, uns 25 s no CI. Gravada com o Sonnet 5.5, em 17 chamadas, por US$ 0,058. Para ela bater, o mundo espera a sessão nos testes (`background=False`), e a oficina devolve a saída sem tempos medidos e sem as pastas da máquina.
 - **O soak:** o escritório em 5 dias com o dev-script e a rotina, com os invariantes:
   - todo pedido de dia útil entregue;
   - as pausas acontecem;
