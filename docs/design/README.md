@@ -108,6 +108,13 @@ Em [escritorio-arte/](escritorio-arte/): a fatia que basta para decidir entre a 
   - **duas plantas** na `planta.png`: a espada-de-são-jorge no vaso de cerâmica e a costela-de-adão no cesto de palha.
 
   A paleta continua com 47 cores. As outras folhas não mudaram um pixel; a coluna 0 da planta e os quadros 0 e 1 da parede de baixo também não. Os balões, a fonte e os ícones ficam acima da luz. A prévia (20 × 16) mostra os balões em todas as cenas, a fala longa no pedido e a etiqueta "Jogando videogame" sobre os dois no sofá; passar o mouse sobre alguém mostra o nome da ação.
+- **O M25, o ciclo fecha (20/11):** o pedido em `briefing-arte-m25.md`.
+  - **o robô do briefing** (`robo_briefing.png`), amarelo, de cabeça redonda e com a pasta: folheia a pasta e uma folha entra nela; passou com a pasta fechada; falhou com as folhas espalhadas;
+  - **o publicador com o trabalho dele** (`robo_publicador.png`, linhas 1 a 3; a linha 0 não mudou): carimba o envelope, que sobe e some; passou com o envelope de selo verde acima da cabeça; falhou com o envelope de X caído na bancada;
+  - **a placa da versão** (`placa_versao.png`, 64 × 64, na parede ao lado do relógio, colunas 13 e 14): metal escovado, com a luz verde, âmbar, apagada e vermelha, e o retângulo do texto (`texto`) e o tile (`posicao`) no `metadados.json`;
+  - **os selos do PR** (`selos.png`, 6 × 6): um adesivo escuro no canto da ficha, com o ramo, a ponta verde ou vermelha, e o mesclado em azul; e os mesmos quatro, mais `atualizando`, no fim de `icones.png`.
+
+  Entra uma cor, `ledAmbar`, emissiva: a paleta vai a 48. Na prévia, uma cena nova, "16:00 · o PR e a versão nova": a placa troca de `b28dab7` para `7c6b8ac`, o dev entrega, o publicador carimba e a ficha ganha o selo; os três robôs ficam na bancada em todas as cenas, e as fichas com selo também à noite.
 - **Como abrir:** [escritorio-arte.html](escritorio-arte/escritorio-arte.html), no navegador, mostra a sala animada, a paleta e a prancha, com um "baixar PNG" por folha. As folhas já exportadas estão em [folhas/](escritorio-arte/folhas/), com o [metadados.json](escritorio-arte/folhas/metadados.json) para o manifesto, e a prévia em [previa/](escritorio-arte/previa/).
 - **Exportar de novo:** da raiz, `NODE_PATH=apps/ui/node_modules node docs/design/escritorio-arte/ferramentas/exportar-folhas.js docs/design/escritorio-arte/escritorio-arte.html <pasta>`, com o Playwright do `apps/ui`.
 - **Origem:** o Claude desenhou numa sessão do Cowork, em 15/11/2026, e não no Claude Design; o pedido serviu igual. O desenho é original: nada vem da LPC nem de outros pacotes.

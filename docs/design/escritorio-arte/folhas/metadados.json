@@ -48,7 +48,8 @@
     "amarelo": "#f2c94c",
     "amareloCl": "#fbe7a0",
     "ledVerm": "#ff4646",
-    "ledCiano": "#6ff4ff"
+    "ledCiano": "#6ff4ff",
+    "ledAmbar": "#ffab2e"
   },
   "coresUsadas": [
     "amarelo",
@@ -77,6 +78,7 @@
     "escuro",
     "grafite",
     "grafiteEsc",
+    "ledAmbar",
     "ledCiano",
     "ledVerm",
     "mad",
@@ -155,7 +157,8 @@
       "telaTexto",
       "telaBrilho",
       "ledVerm",
-      "ledCiano"
+      "ledCiano",
+      "ledAmbar"
     ],
     "penumbra": {
       "contorno": "contorno",
@@ -204,7 +207,8 @@
       "amarelo": "madCl",
       "amareloCl": "amarelo",
       "ledVerm": "ledVerm",
-      "ledCiano": "ledCiano"
+      "ledCiano": "ledCiano",
+      "ledAmbar": "ledAmbar"
     },
     "escuro": {
       "contorno": "contorno",
@@ -251,9 +255,10 @@
       "cab": "escuro",
       "cabEsc": "contorno",
       "amarelo": "madEsc",
-      "amareloCl": "amareloCl",
+      "amareloCl": "madEsc",
       "ledVerm": "ledVerm",
-      "ledCiano": "ledCiano"
+      "ledCiano": "ledCiano",
+      "ledAmbar": "ledAmbar"
     },
     "luminarias": {
       "centrosEmTiles": [
@@ -557,7 +562,90 @@
         "azulCl",
         "cinzaCl"
       ],
-      "nota": "a tela pendura as fichas conforme o estado real"
+      "selo": [
+        4,
+        4
+      ],
+      "nota": "a tela pendura as fichas conforme o estado real; o selo do PR pousa em selo: [x, y]"
+    },
+    "selos": {
+      "arquivo": "selos.png",
+      "grupo": "parede do fundo",
+      "quadro": [
+        6,
+        6
+      ],
+      "colunas": 4,
+      "linhas": 1,
+      "pegada": null,
+      "ancora": [
+        0,
+        0
+      ],
+      "camada": "parede",
+      "quadros": [
+        "pr",
+        "ci_verde",
+        "ci_vermelho",
+        "mesclado"
+      ],
+      "selos": {
+        "pr": [
+          0,
+          0
+        ],
+        "ci_verde": [
+          1,
+          0
+        ],
+        "ci_vermelho": [
+          2,
+          0
+        ],
+        "mesclado": [
+          3,
+          0
+        ]
+      },
+      "nota": "o selo do PR, um adesivo redondo no canto de baixo à direita da ficha: o canto de cima à esquerda dele pousa em fichas.selo"
+    },
+    "placa_versao": {
+      "arquivo": "placa_versao.png",
+      "grupo": "parede do fundo",
+      "quadro": [
+        64,
+        64
+      ],
+      "colunas": 4,
+      "linhas": 1,
+      "pegada": [
+        2,
+        1
+      ],
+      "ancora": [
+        32,
+        64
+      ],
+      "camada": "parede",
+      "quadros": [
+        "rodando",
+        "atualizando",
+        "atualizando2",
+        "voltou"
+      ],
+      "posicao": [
+        13,
+        1
+      ],
+      "texto": {
+        "x": 9,
+        "y": 15,
+        "largura": 41,
+        "altura": 23,
+        "cor": "escuro",
+        "entrelinha": 11
+      },
+      "nota": "na parede do fundo, ao lado do relógio: posicao é o tile da esquerda na linha 1 da parede (as colunas 13 e 14), e o quadro cobre as linhas 0 e 1. A luz é emissiva. A tela escreve o commit e a data em texto, em duas linhas, na fonte da sala; atualizando e atualizando2 se alternam."
     },
     "mesa_dev": {
       "arquivo": "mesa_dev.png",
@@ -1282,6 +1370,69 @@
         "acessorio": "carimbo"
       }
     },
+    "robo_briefing": {
+      "arquivo": "robo_briefing.png",
+      "grupo": "oficina",
+      "quadro": [
+        32,
+        32
+      ],
+      "colunas": 4,
+      "linhas": 4,
+      "pegada": null,
+      "ancora": [
+        16,
+        32
+      ],
+      "camada": "normal",
+      "quadros": [
+        "parado",
+        "trabalhando",
+        "passou",
+        "falhou"
+      ],
+      "animacoes": {
+        "parado": {
+          "linha": 0,
+          "quadros": 2,
+          "direcoes": [
+            "baixo"
+          ]
+        },
+        "trabalhando": {
+          "linha": 1,
+          "quadros": 4,
+          "direcoes": [
+            "baixo"
+          ]
+        },
+        "passou": {
+          "linha": 2,
+          "quadros": 2,
+          "direcoes": [
+            "baixo"
+          ]
+        },
+        "falhou": {
+          "linha": 3,
+          "quadros": 2,
+          "direcoes": [
+            "baixo"
+          ]
+        }
+      },
+      "configuracao": {
+        "cor": "amarelo",
+        "rampa": [
+          "amareloCl",
+          "amarelo",
+          "madCl",
+          "mad"
+        ],
+        "cabeca": "redonda",
+        "acessorio": "pasta"
+      }
+    },
     "baloes": {
       "arquivo": "baloes.png",
       "grupo": "balões e texto",
@@ -1420,7 +1571,12 @@
         "adubar",
         "encomenda",
         "fincar",
-        "mandar"
+        "mandar",
+        "pr",
+        "ci_verde",
+        "ci_vermelho",
+        "mesclado",
+        "atualizando"
       ],
       "icones": {
         "trabalhar": [
@@ -1522,6 +1678,26 @@
         "mandar": [
           0,
           3
+        ],
+        "pr": [
+          1,
+          3
+        ],
+        "ci_verde": [
+          2,
+          3
+        ],
+        "ci_vermelho": [
+          3,
+          3
+        ],
+        "mesclado": [
+          4,
+          3
+        ],
+        "atualizando": [
+          5,
+          3
         ]
       },
       "acoes": {
@@ -1610,6 +1786,21 @@
           "as ordens ao ajudante",
           "contratar",
           "dispensar"
+        ],
+        "pr": [
+          "o PR aberto"
+        ],
+        "ci_verde": [
+          "o PR com os testes verdes"
+        ],
+        "ci_vermelho": [
+          "o PR com os testes vermelhos"
+        ],
+        "mesclado": [
+          "o PR mesclado"
+        ],
+        "atualizando": [
+          "a troca de versão, no HUD"
         ]
       },
       "nota": "um ícone por quadro, para o miolo do balão de ação; as 14 primeiras são do escritório e as 11 seguintes, da fazenda"

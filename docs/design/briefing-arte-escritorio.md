@@ -206,6 +206,8 @@ As linhas 23 a 28 entraram depois (15/11, à noite), **só no fim da folha**, pa
 
 **Fase 1, quinta parte (18/11): os balões, a fonte, o corredor e as plantas.** O pedido está em [briefing-arte-baloes.md](briefing-arte-baloes.md): o balão de ação com um ícone por ação (`baloes.png` e `icones.png`), a etiqueta e a fala em nove fatias, a fonte pixel (`fonte.png`), o corredor em granilite escuro e na penumbra à noite, e duas plantas novas na `planta.png`. A paleta continua com 47 cores.
 
+**Fase 1, sexta parte (20/11): o M25, o ciclo fecha.** O pedido está em `briefing-arte-m25.md`: o robô do briefing (`robo_briefing.png`), o trabalho do publicador nas linhas 1 a 3 da folha dele, a placa da versão (`placa_versao.png`, com `posicao` e `texto`), os selos do PR nas fichas (`selos.png` e `fichas.selo`) e cinco ícones novos no fim de `icones.png`. Entra a cor `ledAmbar`, emissiva: a paleta vai a 48.
+
 **Fase 2 (só se a arte nova ganhar):**
 - cochilar no puff;
 - a bancada dos robôs, a impressora, a mesa de reunião e o quadro branco;

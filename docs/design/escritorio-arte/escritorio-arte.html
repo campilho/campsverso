@@ -98,6 +98,8 @@ const PALETA = {
   amarelo: '#f2c94c', amareloCl: '#fbe7a0',
   // as luzes dos robôs: emissivas, ficam acesas no escuro (16/11)
   ledVerm: '#ff4646', ledCiano: '#6ff4ff',
+  // a luz âmbar da placa da versão: emissiva como as outras (20/11)
+  ledAmbar: '#ffab2e',
 };
 const CORES_USADAS = new Set();
 
@@ -1035,7 +1037,8 @@ function bancada(f) {
 const ROBOS = {
   testador: { nomeCor: 'verde-claro', cor: ['branco', 'verdeCl', 'verde', 'verdeEsc'], cabeca: 'quadrada', acessorio: 'lupa' },
   revisor: { nomeCor: 'azul', cor: ['azulCl', 'azul', 'azulEsc', 'marEsc'], cabeca: 'redonda', acessorio: 'prancheta' },
-  publicador: { nomeCor: 'vermelho', cor: ['vermCl', 'verm', 'vermEsc', 'cabEsc'], cabeca: 'quadrada', acessorio: 'carimbo' },
+  publicador: { nomeCor: 'vermelho', cor: ['vermCl', 'verm', 'vermEsc', 'cabEsc'], cabeca: 'quadrada', acessorio: 'carimbo', oficio: oficioPublicador },
+  briefing: { nomeCor: 'amarelo', cor: ['amareloCl', 'amarelo', 'madCl', 'mad'], cabeca: 'redonda', acessorio: 'pasta', oficio: oficioBriefing },
 };
 const MAPA_ROBO = { parado: [0, 2], trabalhando: [1, 4], passou: [2, 2], falhou: [3, 2] };   // [linha, quadros]
 
@@ -1061,6 +1064,11 @@ function acessorio(s, tipo, x, y) {           // na mão direita (à direita da 
     s.disco(x + 3, y - 6, 3, 'amarelo').disco(x + 3, y - 6, 2, 'ceuCl').p(x + 2, y - 7, 'branco').p(x + 3, y - 7, 'branco');
   } else if (tipo === 'prancheta') {
     s.r(x, y - 7, 5, 8, 'madCl').r(x + 1, y - 6, 3, 6, 'branco').hl(x + 1, x + 3, y - 4, 'cinzaCl').hl(x + 1, x + 2, y - 2, 'cinzaCl').hl(x + 1, x + 3, y - 8, 'cinza');
+  } else if (tipo === 'pasta' || tipo === 'pasta fechada' || tipo === 'pasta vazia') {
+    if (tipo === 'pasta') s.r(x + 1, y - 9, 4, 2, 'branco').p(x + 2, y - 10, 'branco').p(x + 4, y - 9, 'cinzaCl').hl(x + 1, x + 3, y - 8, 'cremeCl');
+    s.r(x, y - 7, 6, 8, 'azul').vl(x, y - 7, y, 'azulCl').vl(x + 5, y - 7, y, 'azulEsc').hl(x, x + 5, y, 'azulEsc');
+    s.r(x + 2, y - 4, 2, 2, tipo === 'pasta fechada' ? 'amarelo' : 'azulCl');                // a etiqueta, ou o fecho
+    if (tipo === 'pasta fechada') s.hl(x, x + 5, y - 3, 'azulEsc');
   } else {
     s.p(x + 1, y - 6, 'madEsc').p(x + 2, y - 6, 'madEsc').vl(x + 1, y - 5, y - 3, 'mad').vl(x + 2, y - 5, y - 3, 'madCl');
     s.r(x - 1, y - 2, 6, 2, 'grafite').hl(x - 1, x + 4, y, 'verm');
@@ -1071,6 +1079,9 @@ function robo(id, anim, f) {
   const s = new Spr(32, 32);
   const dy = anim === 'falhou' && f === 1 ? 1 : 0;                 // murcha um pouco quando falha
   const by = 21 + dy, hy = 12 + dy;
+  // o ofício de cada robô: o que ele faz com o acessório (o padrão é girar a antena)
+  const of = (d.oficio && d.oficio(anim, f)) || {};
+  if (of.antes) of.antes(s, by, hy);
   // as pernas e os pés
   s.r(11, 28, 3, 2, 'cinza').r(18, 28, 3, 2, 'cinza').p(11, 28, 'cinzaCl').p(18, 28, 'cinzaCl');
   s.hl(10, 14, 30, 'grafite').hl(17, 21, 30, 'grafite');
@@ -1080,12 +1091,13 @@ function robo(id, anim, f) {
   telinha(s, 12, by + 1, anim, f);
   s.r(14, by - 1, 4, 1, 'grafite');                                  // o pescoço
   // os braços: o esquerdo solto; o direito segura o acessório
-  const ergue = anim === 'trabalhando' ? [0, -1, -2, -1][f] : anim === 'passou' && f === 1 ? -4 : 0;
+  const ergue = of.ergue !== undefined ? of.ergue : anim === 'trabalhando' ? [0, -1, -2, -1][f] : anim === 'passou' && f === 1 ? -4 : 0;
   s.r(6, by + 1, 3, 5, cs).vl(6, by + 1, by + 5, cb).r(6, by + 6 - dy, 3, 1, 'grafite');
   s.r(23, by + 1 + Math.min(0, ergue), 3, 5, cs).vl(25, by + 1 + Math.min(0, ergue), by + 5 + Math.min(0, ergue), ce);
   const mx = 24, my = by + 5 + ergue;
   s.r(23, my, 3, 2, 'grafite');
-  acessorio(s, d.acessorio, mx, my);
+  acessorio(s, of.acessorio || d.acessorio, mx, my);
+  if (of.mao) of.mao(s, mx, my);
   // a cabeça: quadrada ou redonda, com o visor e os olhos acesos
   if (d.cabeca === 'quadrada') {
     s.r(10, hy, 12, 8, cb).hl(11, 20, hy, cc === 'branco' ? cb : cc).vl(21, hy, hy + 7, cs).hl(10, 21, hy + 7, cs);
@@ -1100,12 +1112,64 @@ function robo(id, anim, f) {
   else if (anim === 'falhou') s.hl(12, 14, hy + 4, 'ledCiano').hl(17, 19, hy + 4, 'ledCiano');
   else s.r(12, hy + 3, 2, 2, 'ledCiano').r(18, hy + 3, 2, 2, 'ledCiano');
   // a antena, que gira quando trabalha, e a luz na ponta
-  const ax = anim === 'trabalhando' ? [-1, 0, 1, 0][f] : 0;
+  const ax = anim === 'trabalhando' && !of.antenaFixa ? [-1, 0, 1, 0][f] : 0;
   s.vl(15, hy - 2, hy - 1, 'cinza').p(15 + ax, hy - 3, 'cinza');
   const luz = anim === 'parado' ? (f ? 'cinzaEsc' : 'ledCiano') : anim === 'trabalhando' ? 'ledCiano'
     : anim === 'passou' ? (f ? 'telaTexto' : 'telaBrilho') : (f ? 'vermEsc' : 'ledVerm');
   s.r(14 + ax, hy - 5, 2, 2, luz);
+  if (of.depois) of.depois(s, by, hy);
   return s.contorno();
+}
+
+// ---- o envelope do publicador (7 × 5): o selo vermelho do carimbo, verde quando passou, o X quando falhou
+function envelope(s, x, y, marca, w = 7, h = 5) {
+  s.r(x, y, w, h, 'branco').hl(x, x + w - 1, y + h - 1, 'cremeCl');
+  for (let k = 0; k < Math.ceil(w / 2); k++) { s.p(x + k, y + k, 'cinzaCl'); s.p(x + w - 1 - k, y + k, 'cinzaCl'); }   // a aba
+  const cx = x + Math.floor(w / 2) - 1, cy = y + h - 3;
+  if (marca === 'carimbo') s.r(cx, cy, 2, 2, 'verm');
+  else if (marca === 'selo') s.r(cx, cy, 2, 2, 'verde').p(cx, cy, 'verdeCl');
+  else if (marca === 'x') s.pts([[cx - 1, cy - 1], [cx, cy], [cx + 1, cy + 1], [cx + 1, cy - 1], [cx - 1, cy + 1]], 'verm');
+}
+// O publicador carimba o envelope na bancada, e o envelope sobe e some; passou: o envelope
+// pequeno com o selo verde acima da cabeça; falhou: o envelope com o X, caído na bancada.
+function oficioPublicador(anim, f) {
+  if (anim === 'trabalhando') return {
+    ergue: [-4, -1, -3, -4][f], antenaFixa: true,
+    antes: s => { if (f < 2) envelope(s, 22, 26, f === 1 ? null : null); },
+    depois: s => {
+      if (f === 2) envelope(s, 23, 10, 'carimbo');
+      if (f === 3) { envelope(s, 23, -2, 'carimbo'); s.pts([[24, 5], [24, 6], [28, 4], [28, 5]], 'cinzaCl'); }
+    },
+  };
+  if (anim === 'passou') return { depois: s => envelope(s, 16, 1 + f, 'selo', 6, 4) };
+  if (anim === 'falhou') return {
+    depois: s => { envelope(s, 22, 27, 'x'); s.p(22, 27, null); s.p(28, 27, 'cinzaCl'); },
+  };
+  return null;
+}
+// O briefing folheia a pasta, e uma folha entra nela; passou: a pasta fechada; falhou: as folhas
+// espalhadas na bancada, a pasta vazia.
+function folhaSolta(s, x, y, linhas = true) {
+  s.r(x, y, 4, 3, 'branco').p(x + 3, y + 2, 'cremeCl');
+  if (linhas) s.hl(x + 1, x + 2, y + 1, 'cinzaCl');
+}
+function oficioBriefing(anim, f) {
+  if (anim === 'trabalhando') return {
+    ergue: [0, -1, 0, -1][f], antenaFixa: true,
+    mao: (s, x, y) => {
+      if (f === 0) folhaSolta(s, x + 1, y - 16);
+      if (f === 1) folhaSolta(s, x + 1, y - 13);
+      if (f === 2) s.r(x + 1, y - 11, 4, 3, 'branco').hl(x + 2, x + 3, y - 10, 'cinzaCl');
+      if (f === 3) s.r(x + 1, y - 10, 4, 1, 'cremeCl').p(x + 4, y - 11, 'branco');
+    },
+  };
+  if (anim === 'passou') return { acessorio: 'pasta fechada' };
+  if (anim === 'falhou') return {
+    acessorio: 'pasta vazia',
+    antes: s => { folhaSolta(s, 3, 27, false); folhaSolta(s, 25, 28); },
+    depois: s => { if (f === 0) folhaSolta(s, 27, 17); else folhaSolta(s, 1, 22, false); },
+  };
+  return null;
 }
 
 // =====================================================================
@@ -1349,6 +1413,22 @@ function grade(linhas, contorna = true) {
 }
 // Uma peça com o próprio contorno, posta no ícone em (x, y) — o x e o y do contorno.
 const ic = (...pecas) => { const s = new Spr(16, 16); for (const [g, x, y] of pecas) s.cola(g, x, y); return s; };
+// O ramo do PR: a bolinha de baixo à esquerda ligada à de cima à direita; a ponta tem a cor do estado.
+const PR_RAMO = ponta => [
+  '.........###..',
+  '........#####.',
+  '........#####.',
+  '........#####.',
+  '.........###..',
+  '........cc....',
+  '.......cc.....',
+  '.....ccc......',
+  '..###c........',
+  '.#####........',
+  '.#####........',
+  '.#####........',
+  '..###.........',
+].map((l, k) => l.replace(/#/g, k < 5 ? ponta : 'w'));
 // A ficha do quadro, como na parede (9 × 12 + contorno)
 const FICHA_IC = ['yyyyyyyyy', 'yyyyyyyyy', 'wwwwwwwww', 'wllllllww', 'wwwwwwwww', 'wlllllwww', 'wwwwwwwww', 'wllllwwww', 'wwwwwwwww', 'wwwwwwwww', 'wwwwwwwww', 'RRRRRRRRR'];
 const ICONES_DESENHO = {
@@ -1695,6 +1775,40 @@ const ICONES_DESENHO = {
     'aaFfFFf......',
     '..FFFf.......',
   ]), 1, 4]),
+  // ---- o PR e a troca de versão (20/11)
+  pr: () => ic([grade(PR_RAMO('w')), 0, 1]),
+  ci_verde: () => ic([grade(PR_RAMO('V')), 0, 1]),
+  ci_vermelho: () => ic([grade(PR_RAMO('P')), 0, 1]),
+  mesclado: () => ic([grade([
+  '.www.....www..',
+  '.www.....www..',
+  '..cc.....cc...',
+  '...cc...cc....',
+  '....cc.cc.....',
+  '.....ccc......',
+  '......cc......',
+  '......cc......',
+  '.....aaa......',
+  '....aAaaa.....',
+  '....aaaaa.....',
+  '....aaaaz.....',
+  '.....aaz......',
+  ]), 0, 1]),
+  atualizando: () => ic([grade([
+    '......aaaa....',
+    '....aaAAAAaa..',
+    '...aAa....aAaa',
+    '..aA.......aAa',
+    '..aa......aAAa',
+    '.............',
+    '..............',
+    '.............',
+    'aAAa......aa..',
+    'aAa.......Aa..',
+    'aaAa....aAa...',
+    '..aaAAAAaa....',
+    '....aaaa......',
+  ]), 0, 1]),
 };
 const ICONES = Object.keys(ICONES_DESENHO);
 const ICONES_COL = 8;
@@ -1706,8 +1820,61 @@ const ICONES_ACOES = {
   plantar: ['plantar'], regar: ['regar'], colher: ['colher'], cavar: ['cavar', 'limpar o canteiro'], bau: ['guardar no baú', 'pegar do baú'],
   dinheiro: ['vender', 'comprar'], cozinhar: ['cozinhar', 'o tacho'], adubar: ['adubar', 'compostar'], encomenda: ['aceitar a encomenda', 'entregar a encomenda'],
   fincar: ['fincar'], mandar: ['as ordens ao ajudante', 'contratar', 'dispensar'],
+  pr: ['o PR aberto'], ci_verde: ['o PR com os testes verdes'], ci_vermelho: ['o PR com os testes vermelhos'], mesclado: ['o PR mesclado'],
+  atualizando: ['a troca de versão, no HUD'],
 };
 function icone(nome) { return ICONES_DESENHO[nome](); }
+
+// =====================================================================
+// O M25 (20/11): a placa da versão na parede e os selos do PR nas fichas
+// =====================================================================
+
+// ---- a placa da versão (64 × 64, 2 tiles de parede): uma placa de metal escovado,
+// presa por quatro parafusos, com uma luz no canto. A tela escreve o commit e a data.
+const PLACA_ESTADOS = ['rodando', 'atualizando', 'atualizando2', 'voltou'];
+const PLACA = {
+  posicao: [13, 1],                                   // o tile da esquerda, na linha de baixo da parede
+  texto: { x: 9, y: 15, largura: 41, altura: 23, cor: 'escuro', entrelinha: 11 },
+  luz: [52, 16],
+};
+function placaVersao(estado) {
+  const s = new Spr(64, 64);
+  const x0 = 5, y0 = 11, x1 = 58, y1 = 44;
+  s.hl(x0 + 1, x1 + 1, y1 + 2, 'begeSomb').vl(x1 + 2, y0 + 2, y1 + 2, 'begeSomb');            // a sombra na parede
+  const p = new Spr(64, 64);
+  p.r(x0, y0, x1 - x0 + 1, y1 - y0 + 1, 'cinzaCl');
+  for (const [x, y, n] of [[x0 + 8, y0 + 5, 9], [x0 + 30, y1 - 4, 12], [x1 - 14, y0 + 21, 6]]) p.hl(x, x + n - 1, y, 'branco');   // o metal escovado
+  p.hl(x0, x1, y0, 'branco').vl(x0, y0, y1, 'branco').hl(x0, x1, y1, 'cinza').vl(x1, y0, y1, 'cinza');
+  p.hl(x0 + 2, x1 - 2, y0 + 2, 'cinza').hl(x0 + 2, x1 - 2, y1 - 2, 'branco');               // o friso gravado
+  p.vl(x0 + 2, y0 + 2, y1 - 2, 'cinza').vl(x1 - 2, y0 + 2, y1 - 2, 'branco');
+  for (const [x, y] of [[x0 + 4, y0 + 4], [x1 - 5, y1 - 5], [x0 + 4, y1 - 5]]) {            // os parafusos
+    p.r(x, y, 2, 2, 'cinza').p(x, y, 'cinzaEsc').p(x + 1, y + 1, 'branco');
+  }
+  // a luz: um aro escuro e o LED de 3 × 3
+  const [lx, ly] = PLACA.luz;
+  p.r(lx - 1, ly - 1, 5, 5, 'grafiteEsc').hl(lx - 1, lx + 3, ly + 3, 'grafite');
+  if (estado === 'rodando') p.r(lx, ly, 3, 3, 'telaTexto').p(lx + 1, ly + 1, 'telaBrilho').p(lx, ly, 'telaBrilho');
+  else if (estado === 'atualizando') p.r(lx, ly, 3, 3, 'ledAmbar');
+  else if (estado === 'voltou') p.r(lx, ly, 3, 3, 'ledVerm');
+  else p.r(lx, ly, 3, 3, 'grafite').p(lx, ly, 'cinzaEsc');
+  p.contorno();
+  return s.cola(p);
+}
+
+// ---- os selos do PR (6 × 6), que a tela pousa no canto de baixo à direita da ficha
+const SELOS = ['pr', 'ci_verde', 'ci_vermelho', 'mesclado'];
+const SELO_NA_FICHA = [4, 4];
+// Um selo redondo e escuro, como um adesivo no canto da ficha: o ramo em duas bolinhas, e a
+// ponta na cor do estado; o mesclado é azul, com as duas linhas juntas numa só.
+function selo(nome) {
+  const s = new Spr(6, 6), fundo = nome === 'mesclado' ? 'azul' : 'grafiteEsc';
+  s.r(0, 0, 6, 6, fundo);
+  for (const [x, y] of [[0, 0], [5, 0], [0, 5], [5, 5]]) s.apaga(x, y);
+  if (nome === 'mesclado') return s.pts([[1, 1], [4, 1], [2, 2], [3, 2], [2, 3], [3, 3], [2, 4], [3, 4]], 'branco');
+  const ponta = { pr: 'branco', ci_verde: 'verdeCl', ci_vermelho: 'vermCl' }[nome];
+  s.r(1, 3, 2, 2, 'branco').r(3, 1, 2, 2, ponta);
+  return s;
+}
 
 // =====================================================================
 // PERSONAGENS: um corpo-base parametrizável, em quadros de 64 × 64
@@ -2181,7 +2348,15 @@ const FOLHAS = [
   { nome: 'quadro_pedidos', grupo: 'parede do fundo', q: [32, 64], col: 3, lin: 1, pegada: null, ancora: [16, 64], camada: 'parede',
     quadros: MODULOS, nota: 'um módulo por coluna; a faixa clara é onde a tela escreve o nome', desenha: c => quadroPedidos(MODULOS[c]) },
   { nome: 'fichas', grupo: 'parede do fundo', q: [10, 10], col: 5, lin: 1, pegada: null, ancora: [5, 10], camada: 'parede',
-    quadros: FICHA_CORES, nota: 'a tela pendura as fichas conforme o estado real', desenha: c => ficha(c) },
+    quadros: FICHA_CORES, nota: 'a tela pendura as fichas conforme o estado real; o selo do PR pousa em selo: [x, y]', desenha: c => ficha(c),
+    extra: () => ({ selo: SELO_NA_FICHA }) },
+  { nome: 'selos', grupo: 'parede do fundo', q: [6, 6], col: SELOS.length, lin: 1, pegada: null, ancora: [0, 0], camada: 'parede',
+    quadros: SELOS, nota: 'o selo do PR, um adesivo redondo no canto de baixo à direita da ficha: o canto de cima à esquerda dele pousa em fichas.selo',
+    desenha: c => selo(SELOS[c]), extra: () => ({ selos: Object.fromEntries(SELOS.map((n, i) => [n, [i, 0]])) }) },
+  { nome: 'placa_versao', grupo: 'parede do fundo', q: [64, 64], col: PLACA_ESTADOS.length, lin: 1, pegada: [2, 1], ancora: [32, 64], camada: 'parede',
+    quadros: PLACA_ESTADOS, desenha: c => placaVersao(PLACA_ESTADOS[c]),
+    nota: 'na parede do fundo, ao lado do relógio: posicao é o tile da esquerda na linha 1 da parede (as colunas 13 e 14), e o quadro cobre as linhas 0 e 1. A luz é emissiva. A tela escreve o commit e a data em texto, em duas linhas, na fonte da sala; atualizando e atualizando2 se alternam.',
+    extra: () => ({ posicao: PLACA.posicao, texto: PLACA.texto }) },
   { nome: 'mesa_dev', grupo: 'móveis', q: [96, 64], col: 7, lin: 1, pegada: [3, 1], ancora: [48, 64], camada: 'normal',
     quadros: ['apagada', 'tela 1', 'tela 2', 'tela 3', 'lendo', 'testes verdes', 'testes vermelhos'],
     nota: 'os quadros 4 a 6 são o último passo do dev na oficina', desenha: c => mesaDev(c) },
@@ -2334,7 +2509,7 @@ const PENUMBRA = {
   verdeCl: 'verde', verde: 'verdeEsc', verdeEsc: 'grafiteEsc', telaFundo: 'telaFundo', telaTexto: 'telaTexto', telaBrilho: 'telaBrilho',
   vermCl: 'verm', verm: 'vermEsc', vermEsc: 'cabEsc', peleCl: 'pele', pele: 'peleSomb', peleSomb: 'cabCl',
   cabCl: 'cab', cab: 'cabEsc', cabEsc: 'escuro', amarelo: 'madCl', amareloCl: 'amarelo',
-  ledVerm: 'ledVerm', ledCiano: 'ledCiano',
+  ledVerm: 'ledVerm', ledCiano: 'ledCiano', ledAmbar: 'ledAmbar',
 };
 const ESCURO = {
   contorno: 'contorno', escuro: 'contorno', grafiteEsc: 'contorno', grafite: 'escuro', cinzaEsc: 'marEsc', cinza: 'mar', cinzaCl: 'mar', branco: 'marCl',
@@ -2344,10 +2519,10 @@ const ESCURO = {
   marCl: 'mar', mar: 'marEsc', marEsc: 'contorno', ceu: 'marCl', ceuCl: 'marCl',
   verdeCl: 'mar', verde: 'marEsc', verdeEsc: 'escuro', telaFundo: 'contorno', telaTexto: 'telaTexto', telaBrilho: 'telaBrilho',
   vermCl: 'vermEsc', verm: 'escuro', vermEsc: 'contorno', peleCl: 'cabEsc', pele: 'cabEsc', peleSomb: 'escuro',
-  cabCl: 'escuro', cab: 'escuro', cabEsc: 'contorno', amarelo: 'madEsc', amareloCl: 'amareloCl',
-  ledVerm: 'ledVerm', ledCiano: 'ledCiano',
+  cabCl: 'escuro', cab: 'escuro', cabEsc: 'contorno', amarelo: 'madEsc', amareloCl: 'madEsc',
+  ledVerm: 'ledVerm', ledCiano: 'ledCiano', ledAmbar: 'ledAmbar',
 };
-const EMISSIVAS = new Set(['telaTexto', 'telaBrilho', 'ledVerm', 'ledCiano']);     // as telas acesas e as luzes dos robôs
+const EMISSIVAS = new Set(['telaTexto', 'telaBrilho', 'ledVerm', 'ledCiano', 'ledAmbar']);     // as telas acesas e as luzes dos robôs e da placa
 const LUMINARIAS = [[4.5, 4.4], [8.5, 4.4], [4.5, 8.4], [8.5, 8.4], [3.5, 2.6], [12.5, 3], [16.5, 4.5], [15.5, 10.6], [9.5, 11.6]];   // em tiles
 const LUZ = { luminaria: 72, luminariaBorda: 14, lanterna: [40, 54, 68, 82] };
 // Os retângulos da luz, em px da sala (20 × 16): a janela sempre acesa (a cidade lá fora) e, na
@@ -2471,8 +2646,28 @@ const CENAS = {
         ['ir', [11, 10], [11, 6], [4, 6], [4, 5]], ['balao', 'trabalhar', { de: 0, ate: 0.1 }], ['anim', 'digitando', 0, 20]]),
     },
   },
+  versao: {
+    nome: '16:00 · o PR e a versão nova', hora: 4, luz: 'dia', tv: t => 4 + Math.floor(t / 6) % 3, inicio: { ficha: 1, selo: null }, telaFora: 5,
+    fichasPr: true,
+    // a placa: rodando a versão de ontem, atualizando (a luz âmbar pisca) e rodando a nova
+    placa: t => t < 24 ? ['rodando', 'b28dab7', '19/11'] : t < 104 ? [Math.floor(t / 5) % 2 ? 'atualizando2' : 'atualizando', 'b28dab7', '19/11'] : ['rodando', '7c6b8ac', '20/11'],
+    atores: {
+      gerente: roteiro([16, 5], [['balao', 'tv', { de: 0.5, ate: 0.7 }], ['anim', 'sofa_tv', 0, 300, 20]]),
+      camps: roteiro([4, 5], [['balao', 'trabalhar', { de: 0.85, ate: 1 }], ['anim', 'digitando', 0, 40], ['balao', null],
+        ['ir', [4, 6], ...ROTA_QUADRO, [3, 2]], ['balao', 'entregar'], ['usar', 0, { ficha: 'mao' }],
+        ['ir', [4, 2]], ['usar', 0, { ficha: 2 }], ['balao', null], ['parado', 2, 6],
+        ['ir', [11, 2], [11, 6], [4, 6], [4, 5]], ['balao', 'trabalhar', { de: 0, ate: 0.2 }], ['anim', 'digitando', 0, 60]]),
+    },
+    // quando o dev entrega, o publicador carimba e manda o PR; a ficha ganha o selo
+    ajusta: c => {
+      const t0 = c.eventos.find(e => e.k === 'ficha' && e.v === 2).t;
+      c.robos = { publicador: [['parado', t0 + 2], ['trabalhando', 36], ['passou', 20], ['parado', 2000]] };
+      c.eventos.push({ t: t0 + 38, k: 'selo', v: 'pr' });
+      c.eventos.sort((a, b) => a.t - b.t);
+    },
+  },
   noite: {
-    nome: '19:30 · as luzes acesas', hora: 7, luz: 'luzes', tv: t => 1 + Math.floor(t / 3) % 3, inicio: { ficha: 2 },
+    nome: '19:30 · as luzes acesas', hora: 7, luz: 'luzes', tv: t => 1 + Math.floor(t / 3) % 3, inicio: { ficha: 2, selo: 'pr' }, fichasPr: true,
     // o mouse sobre o dev: a etiqueta com o nome da ação, por cima do balão
     hover: { ator: 'camps', de: 12, ate: 44 },
     atores: {
@@ -2481,7 +2676,7 @@ const CENAS = {
     },
   },
   ronda: {
-    nome: '22:00 · a ronda no escuro', hora: 10, luz: 'escuro', tv: () => 0, inicio: { ficha: 2 },
+    nome: '22:00 · a ronda no escuro', hora: 10, luz: 'escuro', tv: () => 0, inicio: { ficha: 2, selo: 'pr' }, fichasPr: true,
     robo: [['trabalhando', 50], ['passou', 16], ['parado', 30]],
     atores: {
       vigia: roteiro([11, 14], [['parado', 2, 10], ['ir', [9, 14], [9, 10], [11, 10], [11, 6], [6, 6]], ['parado', 1, 12],
@@ -2492,20 +2687,28 @@ const CENAS = {
 for (const c of Object.values(CENAS)) {
   c.duracao = Math.max(...Object.values(c.atores).map(r => r.fim));
   c.eventos = Object.values(c.atores).flatMap(r => r.eventos).sort((a, b) => a.t - b.t);
+  if (c.ajusta) c.ajusta(c);
 }
 // O robô trabalha num ciclo: [animação, ticks] em volta.
 const ROBO_CICLO = [['trabalhando', 40], ['passou', 12], ['parado', 20]];
-function roboNoTick(cena, t) {
-  const ciclo = cena.robo || ROBO_CICLO, total = ciclo.reduce((a, [, n]) => a + n, 0);
+const ROBO_CICLOS = {
+  briefing: [['parado', 26], ['trabalhando', 36], ['passou', 14], ['parado', 10]],
+  publicador: [['parado', 50], ['trabalhando', 24], ['passou', 12]],
+};
+// Os três robôs da bancada: o testador, o briefing e o publicador, um em cada apoio.
+const BANCADA_ROBOS = ['testador', 'briefing', 'publicador'];
+function roboNoTick(cena, t, id = 'testador') {
+  const ciclo = (cena.robos && cena.robos[id]) || (id === 'testador' ? cena.robo || ROBO_CICLO : ROBO_CICLOS[id]);
+  const total = ciclo.reduce((a, [, n]) => a + n, 0);
   let k = t % total;
   for (const [anim, n] of ciclo) {
     if (k >= n) { k -= n; continue; }
-    const q = MAPA_ROBO[anim][1], ritmo = anim === 'trabalhando' ? 2 : anim === 'parado' ? 10 : 4;
+    const q = MAPA_ROBO[anim][1], ritmo = anim === 'trabalhando' ? (id === 'testador' ? 2 : 3) : anim === 'parado' ? 10 : 4;
     return { anim, f: Math.floor(k / ritmo) % q };
   }
 }
 function estadoNoTick(cena, t) {
-  const e = { ficha: null, geladeira: 0, micro: 0, cafe: 0, arquivo: 0, marmita: null, marmitaG: null, ...cena.inicio };
+  const e = { ficha: null, selo: null, geladeira: 0, micro: 0, cafe: 0, arquivo: 0, marmita: null, marmitaG: null, ...cena.inicio };
   for (const ev of cena.eventos) if (ev.t <= t) e[ev.k] = ev.v;
   return e;
 }
@@ -2548,16 +2751,26 @@ function objetos(cena, t) {
   const atores = Object.fromEntries(Object.entries(cena.atores).map(([id, r]) => [id, atorNoTick(r, t)]));
   const sentadoNa = (c, l) => Object.values(atores).some(a => a && SENTADO_MESA.includes(a.anim) && a.x === c * T && a.y === l * T);
   // o quadro dos pedidos: a ficha na coluna em que está
-  if (typeof e.ficha === 'number') o.push({ spr: quadro('fichas', 1), x: (2 + e.ficha) * T + (e.ficha === 0 ? 5 : 2) + 1, y: 19, base: -1, ordem: 0 });
+  const fichaEm = (cor, x, y, sl) => {
+    o.push({ spr: quadro('fichas', cor), x, y, base: -1, ordem: 0 });
+    if (sl) o.push({ spr: quadro('selos', SELOS.indexOf(sl)), x: x + SELO_NA_FICHA[0], y: y + SELO_NA_FICHA[1], base: -1, ordem: 0 });
+  };
+  if (typeof e.ficha === 'number') fichaEm(1, (2 + e.ficha) * T + (e.ficha === 0 ? 5 : 2) + 1, 19, e.ficha === 2 && e.selo);
+  if (cena.fichasPr) { fichaEm(0, 4 * T + 15, 19, 'ci_verde'); fichaEm(3, 4 * T + 3, 31, 'mesclado'); }
+  // a placa da versão, na parede ao lado do relógio, com o commit e a data
+  const [estado, commit, data] = cena.placa ? cena.placa(t) : ['rodando', '7c6b8ac', '20/11'];
+  o.push({ spr: placaComTexto(estado, [commit, data]), x: PLACA.posicao[0] * T, y: (PLACA.posicao[1] + 1) * T - 64, base: -1, ordem: 0 });
   // os cubículos
   for (const k of DIV) { const [c, l] = k.split(',').map(Number); poe(quadro('divisoria', mascara(c, l) % 4, mascara(c, l) >> 2), c, l); }
   const digitando = atores.camps && atores.camps.anim === 'digitando';
   poe(quadro('mesa_dev', !dia ? 0 : digitando ? 1 + Math.floor(t / 5) % 3 : (cena.telaFora || 1)), 3, 4, 3);
   for (const [c, l] of [[3, 8], [7, 8]]) poe(quadro('mesa_dev', 0), c, l, 3);
-  // a bancada dos robôs no cubículo ao lado do dev, com o testador no primeiro apoio
+  // a bancada dos robôs no cubículo ao lado do dev: o testador, o briefing e o publicador
   poe(quadro('bancada', 1), 7, 4, 3);
-  const rb = roboNoTick(cena, t), [ax, ay] = BANCADA_APOIOS[0];
-  o.push({ spr: quadro('robo_testador', rb.f, MAPA_ROBO[rb.anim][0]), x: 7 * T + ax - 16, y: 5 * T - 64 + ay - 32, base: 5 * T, ordem: 1 });
+  BANCADA_ROBOS.forEach((id, k) => {
+    const rb = roboNoTick(cena, t, id), [ax, ay] = BANCADA_APOIOS[k];
+    o.push({ spr: quadro('robo_' + id, rb.f, MAPA_ROBO[rb.anim][0]), x: 7 * T + ax - 16, y: 5 * T - 64 + ay - 32, base: 5 * T, ordem: 1 });
+  });
   for (const [c, l] of [[4, 5], [4, 9], [8, 9]]) {
     if (sentadoNa(c, l)) { poe(quadro('cadeira', 0), c, l, 1, 0); poe(quadro('cadeira', 1), c, l, 1, 2); }
     else poe(quadro('cadeira', 2), c, l);
@@ -2590,6 +2803,16 @@ function objetos(cena, t) {
   return { lista: o.sort((a, b) => a.base - b.base || a.ordem - b.ordem), atores };
 }
 
+const PLACAS = new Map();
+function placaComTexto(estado, linhas) {
+  const k = estado + '|' + linhas.join('|');
+  if (!PLACAS.has(k)) {
+    const s = quadro('placa_versao', PLACA_ESTADOS.indexOf(estado)).clone(), tx = PLACA.texto;
+    linhas.forEach((l, i) => escreve(s, l, tx.x, tx.y + i * tx.entrelinha, tx.cor));
+    PLACAS.set(k, s);
+  }
+  return PLACAS.get(k);
+}
 const FUNDOS = {};
 function desenhaPrevia(ctx, t, idCena = 'pedido') {
   const cena = CENAS[idCena];
