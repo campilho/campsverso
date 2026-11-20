@@ -42,6 +42,28 @@ _UNAVAILABLE = (
     nats.errors.StaleConnectionError,
 )
 
+_BATCH = 100
+_WAIT_SECONDS = 1.0  # de quanto em quanto tempo o laço quieto confere se deve parar
+_DRAIN_SECONDS = 0.02  # o que mais espera, depois do primeiro, pelo resto da rajada
+
+
+async def _next_batch(sub: JetStreamContext.PullSubscription) -> list[Msg]:
+    """O próximo lote de um consumidor: o primeiro que chegar, sem esperar outros, e o que mais já
+    estiver no stream.
+
+    O fetch de 100 com prazo de 1 s segurava eventos até o fim do prazo (20/nov). Numa rajada (o
+    `accepted` e o `moved` de um andar), o segundo ia para um pedido que o nats-py já tinha largado,
+    e o fetch seguinte, ao recebê-lo, esperava completar o lote: o trajeto do gerente chegava à tela
+    até 1 s depois, junto com a chegada. O fetch de um volta assim que a mensagem chega, venha de
+    que pedido vier, e o de recolher espera no máximo `_DRAIN_SECONDS`.
+    """
+    msgs = await sub.fetch(batch=1, timeout=_WAIT_SECONDS)
+    # Nada mais (o prazo curto) ou uma resposta velha de outro pedido: o primeiro segue sozinho, e
+    # o que faltar vem no próximo lote. Perder o primeiro aqui o deixaria sem confirmação por 30 s.
+    with contextlib.suppress(Exception):
+        msgs += await sub.fetch(batch=_BATCH - 1, timeout=_DRAIN_SECONDS)
+    return msgs
+
 
 @dataclass(frozen=True, slots=True)
 class StreamSpec:
@@ -301,7 +323,7 @@ class NatsBus:
             try:
                 while not consumer.stopped and not self._nc.is_closed:
                     try:
-                        msgs = await sub.fetch(batch=100, timeout=1)
+                        msgs = await _next_batch(sub)
                     except TimeoutError:  # inclui o do nats-py: nada novo no stream
                         continue
                     except Exception as error:  # conexão caindo ou voltando: tenta de novo

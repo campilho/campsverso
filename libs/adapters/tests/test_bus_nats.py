@@ -1,6 +1,8 @@
 """NatsBus contra um NATS de verdade, com o nats.conf do repositório (escopo A8; ADR-0017)."""
 
 import asyncio
+import random
+import time
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -191,3 +193,36 @@ async def test_consumidor_ocioso_continua_vivo(nats: NatsServer) -> None:
     await seen.until(1)
     await kernel.close()
     await archiver.close()
+
+
+async def test_rajada_chega_inteira_e_na_hora(nats: NatsServer) -> None:
+    """Dois fatos do mesmo tick (o `accepted` e o `moved` de um andar) chegam juntos e logo.
+
+    Com o fetch de 100 e prazo de 1 s, o segundo ia para um pedido que o nats-py já tinha largado,
+    e o fetch seguinte o pegava e ficava esperando completar o lote: o trajeto do gerente chegava à
+    tela até 1 s depois, junto com a chegada (o clique a 1x no escritório, 20/nov)."""
+    kernel = await _connect(nats, "kernel", manage=True)
+    gateway = await _connect(nats, "operator")
+    arrived: dict[int, float] = {}
+
+    async def note(batch: Sequence[tuple[str, Envelope]]) -> None:
+        for _, envelope in batch:
+            arrived[int(envelope["seq"])] = time.monotonic()
+
+    await gateway.consume("campsverso.*.world.>", "teste-rajada", note)
+    rng = random.Random(3)
+    sent: dict[int, float] = {}
+    for burst in range(12):
+        await asyncio.sleep(rng.uniform(0.3, 1.3))  # às vezes depois do prazo do fetch
+        for seq in (2 * burst, 2 * burst + 1):
+            sent[seq] = time.monotonic()
+            await kernel.publish("campsverso.w.world.teste.v1", _event(f"rajada-{seq}", seq))
+            await asyncio.sleep(0.001)
+    async with asyncio.timeout(5):
+        while len(arrived) < len(sent):
+            await asyncio.sleep(0.01)
+    delays = {seq: round(arrived[seq] - sent[seq], 3) for seq in sent}
+    late = {seq: delay for seq, delay in delays.items() if delay > 0.25}
+    assert late == {}  # o seq e o atraso, em segundos, de quem chegou tarde
+    await kernel.close()
+    await gateway.close()
