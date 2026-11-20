@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/office/ticket.pr_closed.v1",
+  "title": "OfficeTicketPrClosedV1",
+  "description": "O PR do dev foi fechado sem mesclar (ADR-0083): o pedido volta a \"a fazer\", e o kernel publica também o `office.ticket.returned.v1`.",
+  "x-type": "campsverso.office.ticket.pr_closed.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ticket_id",
+    "number",
+    "pull_request"
+  ],
+  "properties": {
+    "ticket_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "O pedido: a entidade no quadro."
+    },
+    "number": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "O número do pedido, na ordem em que foi escrito."
+    },
+    "pull_request": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "O número do PR no GitHub."
+    }
+  }
+}

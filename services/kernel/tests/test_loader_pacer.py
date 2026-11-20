@@ -3,7 +3,15 @@ from pathlib import Path
 
 import pytest
 
-from campsverso_cartridge_api import CartridgeManifest, ItemDef, MetricDef, WorldBuilder
+from campsverso_cartridge_api import (
+    CartridgeManifest,
+    CommandContext,
+    ItemDef,
+    MetricDef,
+    Rejection,
+    WorldBuilder,
+    WorldOps,
+)
 from campsverso_kernel import DefinitionError, RealTimePacer, build_world, resolve_chain
 from campsverso_kernel.testing import LabCartridge, lab_map
 
@@ -168,3 +176,42 @@ def test_o_nome_da_variante_cabe_no_id_do_mapa() -> None:
 
     with pytest.raises(DefinitionError, match="nome de variante do mapa inválido"):
         build_world("sitio", {"lab": LabCartridge(), "sitio": Bad()})
+
+
+@dataclass(frozen=True)
+class Report:
+    """Um comando de cartucho de teste (ADR-0084)."""
+
+    type: str
+
+    def apply(self, ctx: CommandContext, ops: WorldOps) -> Rejection | None:
+        return None
+
+
+@dataclass(frozen=True)
+class CommandLayer:
+    manifest: CartridgeManifest
+    command: str
+
+    def contribute(self, world: WorldBuilder) -> None:
+        world.add_command(Report(self.command))
+
+    def rules_file(self) -> Path | None:
+        return None
+
+
+def test_o_comando_do_cartucho_e_do_dominio_dele_e_esta_nos_contratos() -> None:
+    """ADR-0084: um cartucho só declara comandos do próprio domínio (ou de uma biblioteca que ele
+    usa), e só os que existem em contracts/ como comando."""
+    office = "campsverso.cmd.office.pull_request.report.v1"
+    for top, command, problem in (
+        ("outro", office, "domínio"),  # o comando do escritório num mundo sem o escritório
+        ("office", "campsverso.cmd.office.inexistente.v1", "contracts"),
+        ("office", "campsverso.office.ticket.pr_opened.v1", "domínio"),  # um evento, não comando
+    ):
+        layer = CommandLayer(CartridgeManifest(top, "1.0.0", ("lab",)), command)
+        with pytest.raises(DefinitionError, match=problem):
+            build_world(top, {"lab": LabCartridge(), top: layer})
+    layer = CommandLayer(CartridgeManifest("office", "1.0.0", ("lab",)), office)
+    definition = build_world("office", {"lab": LabCartridge(), "office": layer})
+    assert list(definition.commands) == [office]

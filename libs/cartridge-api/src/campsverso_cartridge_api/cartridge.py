@@ -18,7 +18,7 @@ from campsverso_cartridge_api.definitions import (
     ThresholdDef,
     YearDef,
 )
-from campsverso_cartridge_api.specs import ActionSpec, RuleImpl, SystemSpec
+from campsverso_cartridge_api.specs import ActionSpec, CommandSpec, RuleImpl, SystemSpec
 
 
 @dataclass(frozen=True, slots=True)
@@ -86,6 +86,10 @@ class WorldBuilder(Protocol):
     def add_action(self, spec: ActionSpec, *, override: bool = False) -> None: ...
 
     def add_system(self, spec: SystemSpec, *, override: bool = False) -> None: ...
+
+    def add_command(self, spec: CommandSpec) -> None:
+        """Um comando do cartucho, pelo tipo (ADR-0084): o kernel o encaminha a ele."""
+        ...
 
     def add_rule_impl(self, impl: RuleImpl, *, override: bool = False) -> None: ...
 

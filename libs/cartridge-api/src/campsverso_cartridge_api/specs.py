@@ -58,6 +58,28 @@ class ActionSpec(Protocol):
         ...
 
 
+@dataclass(frozen=True, slots=True)
+class CommandContext:
+    command_id: str
+    data: Mapping[str, Any]
+    view: WorldView
+
+
+class CommandSpec(Protocol):
+    """Um comando que o cartucho declara (ADR-0084): o que vem de fora do mundo e não é a ação de
+    um avatar, como a mudança num PR, que o vigia do GitHub relata. O kernel o encaminha pelo tipo,
+    na hora em que chega, como um comando de controle, e o diário o guarda para o replay. O tipo é
+    do domínio do cartucho (`campsverso.cmd.office....`) e está declarado em `contracts/`."""
+
+    @property
+    def type(self) -> str: ...
+
+    def apply(self, ctx: CommandContext, ops: WorldOps) -> Rejection | None:
+        """Confere e, se vale, muda o mundo pelas primitivas. Confere antes de mudar: uma recusa
+        vira `world.command.rejected` e não pode deixar nada pela metade."""
+        ...
+
+
 @runtime_checkable
 class Rechecked(Protocol):
     """Uma ação que, na conclusão, confere se outro avatar não a desfez no meio (ADR-0072): o

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/office/ticket.pr_updated.v1",
+  "title": "OfficeTicketPrUpdatedV1",
+  "description": "Um PR do dev mudou (ADR-0083): um commit novo no ramo (o dev refez o pedido devolvido) ou o resultado do CI.",
+  "x-type": "campsverso.office.ticket.pr_updated.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ticket_id",
+    "number",
+    "pull_request"
+  ],
+  "properties": {
+    "ticket_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "O pedido: a entidade no quadro."
+    },
+    "number": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "O número do pedido, na ordem em que foi escrito."
+    },
+    "pull_request": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "O número do PR no GitHub."
+    },
+    "head": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$",
+      "description": "O commit do topo do ramo."
+    },
+    "ci": {
+      "enum": [
+        "pending",
+        "success",
+        "failure"
+      ],
+      "description": "O CI do topo do ramo: rodando, verde ou vermelho."
+    }
+  }
+}

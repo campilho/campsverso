@@ -1,0 +1,25 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c50-7a01-8b14-1a2b3c4d5e01",
+  "source": "/codehost/office-campsverso-01",
+  "type": "campsverso.cmd.office.pull_request.report.v1",
+  "time": "2026-11-21T13:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://commands/office/pull_request.report.v1",
+  "worldid": "office-campsverso-01",
+  "cartridge": "office_campsverso",
+  "tick": 18000,
+  "simtime": "2026-11-21T10:00:00-03:00",
+  "seq": 1,
+  "provenance": "real",
+  "visibility": "observer",
+  "data": {
+    "ticket_id": "pedido-003",
+    "pull_request": 12,
+    "state": "opened",
+    "url": "https://github.com/campilho/campsverso/pull/12",
+    "branch": "dev/pedido-3",
+    "head": "7c6b8ac0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6"
+  },
+  "actor": "codehost/vigia"
+}

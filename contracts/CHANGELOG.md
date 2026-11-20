@@ -4,6 +4,14 @@ Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão 
 
 ## Em andamento: v0.4
 
+### M25
+
+- **O PR do dev** (ADR-0083, ADR-0084): o comando novo `campsverso.cmd.office.pull_request.report.v1` (o pedido, o número do PR, o estado `opened`, `updated`, `merged` ou `closed`, e o endereço, o ramo sob `dev/`, o commit do topo e o CI, opcionais), num produtor novo, `codehost`: o vigia do GitHub o manda ao kernel a cada mudança num PR, e o cartucho do escritório confere e publica os fatos. O comando é do domínio do cartucho (`office`), o primeiro comando declarado por um cartucho (ADR-0084). E quatro tipos novos do domínio `office`, de visibilidade `world`, produtor `kernel`:
+  - `campsverso.office.ticket.pr_opened.v1`: a entrega virou um PR, com o número, o endereço, o ramo e o topo;
+  - `campsverso.office.ticket.pr_updated.v1`: um commit novo no ramo ou o resultado do CI;
+  - `campsverso.office.ticket.pr_merged.v1`: o humano mesclou, o aceite; o kernel publica também o `office.ticket.accepted.v1`;
+  - `campsverso.office.ticket.pr_closed.v1`: fechado sem mesclar; o pedido volta a "a fazer", e o kernel publica também o `office.ticket.returned.v1`.
+
 ### M24
 
 - **A oficina** (ADR-0080): o tipo novo `campsverso.workshop.step.v1`, num domínio novo da plataforma, `workshop` (visibilidade `observer`, produtor `controller`): um passo do dev na oficina, com a ferramenta, o caminho, uma linha do que aconteceu, se deu certo e a duração. O `office.ticket.delivered.v1` ganha o campo opcional `patch`: a referência do patch no depósito de entregas, o commit de base, os arquivos e as linhas a mais e a menos.

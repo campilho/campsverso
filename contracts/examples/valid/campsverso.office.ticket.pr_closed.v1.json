@@ -1,0 +1,21 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c50-7a40-8b14-1a2b3c4d5e40",
+  "source": "/kernel/office-campsverso-01",
+  "type": "campsverso.office.ticket.pr_closed.v1",
+  "time": "2026-11-21T13:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/office/ticket.pr_closed.v1",
+  "worldid": "office-campsverso-01",
+  "cartridge": "office_campsverso",
+  "tick": 19500,
+  "simtime": "2026-11-21T10:00:00-03:00",
+  "seq": 5040,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "ticket_id": "pedido-004",
+    "number": 4,
+    "pull_request": 13
+  }
+}

@@ -13,6 +13,8 @@ from typing import Any, Literal, cast
 from campsverso_cartridge_api import (
     Accepted,
     ActionContext,
+    CommandContext,
+    CommandSpec,
     ControllerRef,
     DailyAt,
     OnSessionStart,
@@ -437,6 +439,10 @@ class KernelCore:
             else:
                 self._queue.append(command)
             return
+        spec = self.definition.commands.get(command_type)
+        if spec is not None:
+            self._apply_command(spec, command)
+            return
         handler = self._control.get(command_type)
         if handler is None:
             self.reject_command(command, "unknown_command")
@@ -448,6 +454,22 @@ class KernelCore:
         if reason is not None:
             code, _, detail = reason.partition(":")
             self.reject_command(command, code, detail or None)
+
+    def _apply_command(self, spec: CommandSpec, command: Mapping[str, Any]) -> None:
+        """Um comando do cartucho (ADR-0084), aplicado na hora, como o controle: os fatos levam o
+        comando como causa, e a recusa vira `world.command.rejected`."""
+        command_id = str(command.get("id") or "")
+        data = cast(Mapping[str, Any], command.get("data") or {})
+        correlation = command.get("correlationid")
+        world = self.world
+        with world.context(
+            cause=spec.type,
+            caused_by=command_id or None,
+            correlation=None if correlation is None else str(correlation),
+        ):
+            rejection = spec.apply(CommandContext(command_id, data, world), world)
+        if rejection is not None:
+            self.reject_command(command, rejection.reason, rejection.detail)
 
     def reject_command(
         self, command: Mapping[str, Any], reason: str, detail: str | None = None

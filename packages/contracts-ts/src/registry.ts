@@ -162,6 +162,12 @@ export const CONTRACT_TYPES = {
     producer: "operator",
     dataschema: "contracts://commands/clock/step.v1",
   },
+  "campsverso.cmd.office.pull_request.report.v1": {
+    kind: "command",
+    visibility: "observer",
+    producer: "codehost",
+    dataschema: "contracts://commands/office/pull_request.report.v1",
+  },
   "campsverso.cmd.ops.budget.set.v1": {
     kind: "command",
     visibility: "observer",
@@ -305,6 +311,30 @@ export const CONTRACT_TYPES = {
     visibility: "world",
     producer: "kernel",
     dataschema: "contracts://events/office/ticket.delivered.v1",
+  },
+  "campsverso.office.ticket.pr_closed.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/office/ticket.pr_closed.v1",
+  },
+  "campsverso.office.ticket.pr_merged.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/office/ticket.pr_merged.v1",
+  },
+  "campsverso.office.ticket.pr_opened.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/office/ticket.pr_opened.v1",
+  },
+  "campsverso.office.ticket.pr_updated.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/office/ticket.pr_updated.v1",
   },
   "campsverso.office.ticket.returned.v1": {
     kind: "event",
@@ -576,6 +606,7 @@ export interface PayloadByType {
   "campsverso.cmd.clock.set_mode.v1": T.CmdClockSetModeV1;
   "campsverso.cmd.clock.set_scale.v1": T.CmdClockSetScaleV1;
   "campsverso.cmd.clock.step.v1": T.CmdClockStepV1;
+  "campsverso.cmd.office.pull_request.report.v1": T.CmdOfficePullRequestReportV1;
   "campsverso.cmd.ops.budget.set.v1": T.CmdOpsBudgetSetV1;
   "campsverso.cmd.rules.toggle.v1": T.CmdRulesToggleV1;
   "campsverso.economy.labor.dismissed.v1": T.EconomyLaborDismissedV1;
@@ -600,6 +631,10 @@ export interface PayloadByType {
   "campsverso.office.ticket.accepted.v1": T.OfficeTicketAcceptedV1;
   "campsverso.office.ticket.created.v1": T.OfficeTicketCreatedV1;
   "campsverso.office.ticket.delivered.v1": T.OfficeTicketDeliveredV1;
+  "campsverso.office.ticket.pr_closed.v1": T.OfficeTicketPrClosedV1;
+  "campsverso.office.ticket.pr_merged.v1": T.OfficeTicketPrMergedV1;
+  "campsverso.office.ticket.pr_opened.v1": T.OfficeTicketPrOpenedV1;
+  "campsverso.office.ticket.pr_updated.v1": T.OfficeTicketPrUpdatedV1;
   "campsverso.office.ticket.returned.v1": T.OfficeTicketReturnedV1;
   "campsverso.office.ticket.taken.v1": T.OfficeTicketTakenV1;
   "campsverso.ops.budget.exceeded.v1": T.OpsBudgetExceededV1;

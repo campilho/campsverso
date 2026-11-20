@@ -746,6 +746,39 @@ export interface CmdClockStepV1 {
   ticks: number;
 }
 /**
+ * Uma mudança num PR do dev, vinda do GitHub (ADR-0083): o vigia do GitHub a manda ao kernel, que confere e publica o fato `office.ticket.pr_*`. O comando fica no diário, e o replay o refaz sem perguntar ao GitHub.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "CmdOfficePullRequestReportV1".
+ */
+export interface CmdOfficePullRequestReportV1 {
+  ticket_id: EntityId;
+  /**
+   * O número do PR no GitHub.
+   */
+  pull_request: number;
+  /**
+   * O que aconteceu: aberto, mudou (o topo ou o CI), mesclado, ou fechado sem mesclar.
+   */
+  state: "opened" | "updated" | "merged" | "closed";
+  /**
+   * O endereço do PR.
+   */
+  url?: string;
+  /**
+   * O ramo do dev, sempre sob `dev/`.
+   */
+  branch?: string;
+  /**
+   * O commit do topo do ramo.
+   */
+  head?: string;
+  /**
+   * O CI do topo do ramo: rodando, verde ou vermelho.
+   */
+  ci?: "pending" | "success" | "failure";
+}
+/**
  * Pede à guarda de orçamento novos tetos, com o mundo vivo (ADR-0080). Os tetos que não vêm ficam como estão. Quem consome é a guarda, e não o kernel; ela responde com ops.budget.limits_changed.
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
@@ -1525,6 +1558,94 @@ export interface OfficeTicketPatch {
   files: string[];
   added: number;
   removed: number;
+}
+/**
+ * O PR do dev foi fechado sem mesclar (ADR-0083): o pedido volta a "a fazer", e o kernel publica também o `office.ticket.returned.v1`.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "OfficeTicketPrClosedV1".
+ */
+export interface OfficeTicketPrClosedV1 {
+  ticket_id: EntityId;
+  /**
+   * O número do pedido, na ordem em que foi escrito.
+   */
+  number: number;
+  /**
+   * O número do PR no GitHub.
+   */
+  pull_request: number;
+}
+/**
+ * O humano mesclou o PR do dev (ADR-0083): o aceite. O pedido vai para "aceito", e o kernel publica também o `office.ticket.accepted.v1`.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "OfficeTicketPrMergedV1".
+ */
+export interface OfficeTicketPrMergedV1 {
+  ticket_id: EntityId;
+  /**
+   * O número do pedido, na ordem em que foi escrito.
+   */
+  number: number;
+  /**
+   * O número do PR no GitHub.
+   */
+  pull_request: number;
+}
+/**
+ * A entrega do dev virou um PR no GitHub (ADR-0083): o publicador o abriu, e o pedido espera o merge.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "OfficeTicketPrOpenedV1".
+ */
+export interface OfficeTicketPrOpenedV1 {
+  ticket_id: EntityId;
+  /**
+   * O número do pedido, na ordem em que foi escrito.
+   */
+  number: number;
+  /**
+   * O número do PR no GitHub.
+   */
+  pull_request: number;
+  /**
+   * O endereço do PR.
+   */
+  url: string;
+  /**
+   * O ramo do dev, sempre sob `dev/`.
+   */
+  branch: string;
+  /**
+   * O commit do topo do ramo.
+   */
+  head: string;
+}
+/**
+ * Um PR do dev mudou (ADR-0083): um commit novo no ramo (o dev refez o pedido devolvido) ou o resultado do CI.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "OfficeTicketPrUpdatedV1".
+ */
+export interface OfficeTicketPrUpdatedV1 {
+  ticket_id: EntityId;
+  /**
+   * O número do pedido, na ordem em que foi escrito.
+   */
+  number: number;
+  /**
+   * O número do PR no GitHub.
+   */
+  pull_request: number;
+  /**
+   * O commit do topo do ramo.
+   */
+  head?: string;
+  /**
+   * O CI do topo do ramo: rodando, verde ou vermelho.
+   */
+  ci?: "pending" | "success" | "failure";
 }
 /**
  * O gerente devolveu um pedido entregue (ADR-0078): o pedido volta para "a fazer", com o comentário.

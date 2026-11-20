@@ -12,6 +12,7 @@ from campsverso_cartridge_api import (
     AvatarDef,
     CartridgeManifest,
     ClockDef,
+    CommandSpec,
     EventLabelDef,
     ItemDef,
     KindDef,
@@ -31,6 +32,8 @@ from campsverso_kernel.space import GridMap
 
 # O espaço e o tempo (ADR-0038), e a fala (ADR-0078).
 KERNEL_ACTIONS = frozenset({"move", "wait", "say"})
+# O tipo de um comando do cartucho (ADR-0084): o domínio é o segundo pedaço.
+CARTRIDGE_COMMAND = re.compile(r"campsverso\.cmd\.([a-z][a-z0-9_]*)\.[a-z0-9_.]+\.v[0-9]+")
 # O nome de uma variante entra no id do mapa (`farm_morada_do_sol-b`), que o contrato limita.
 MAP_VARIANT = re.compile(r"[a-z0-9_]{1,16}")
 
@@ -68,6 +71,8 @@ class WorldDefinition:
     movement_cost: tuple[str, float] | None = None  # (necessidade, pontos por tile) (ADR-0062)
     year: YearDef | None = None  # o ano com estações (ADR-0067); None: sem data do ano
     event_domains: frozenset[str] = frozenset()  # as bibliotecas de mundo em uso (ADR-0069)
+    # Os comandos que os cartuchos declaram, pelo tipo (ADR-0084): o que vem de fora do mundo.
+    commands: Mapping[str, CommandSpec] = field(default_factory=dict[str, CommandSpec])
 
     @property
     def top(self) -> CartridgeManifest:
@@ -121,6 +126,7 @@ class DefinitionBuilder:
     metrics: dict[str, MetricDef] = field(default_factory=dict[str, MetricDef])
     labels: list[EventLabelDef] = field(default_factory=list[EventLabelDef])
     systems: dict[str, SystemSpec] = field(default_factory=dict[str, SystemSpec])
+    commands: dict[str, CommandSpec] = field(default_factory=dict[str, CommandSpec])
     rule_impls: dict[str, RuleImpl] = field(default_factory=dict[str, RuleImpl])
     tiled: Mapping[str, Any] | None = None
     map_variants: dict[str, Mapping[str, Any]] = field(default_factory=dict[str, Mapping[str, Any]])
@@ -201,6 +207,9 @@ class DefinitionBuilder:
 
     def add_system(self, spec: SystemSpec, *, override: bool = False) -> None:
         _register(self.systems, spec.name, spec, override=override, what="sistema")
+
+    def add_command(self, spec: CommandSpec) -> None:
+        _register(self.commands, spec.type, spec, override=False, what="comando")
 
     def add_rule_impl(self, impl: RuleImpl, *, override: bool = False) -> None:
         _register(
@@ -312,6 +321,7 @@ class DefinitionBuilder:
                 )
             )
         self._validate(grid)
+        self._check_commands(chain)
         return WorldDefinition(
             chain=tuple(chain),
             clock=self.clock,
@@ -330,6 +340,7 @@ class DefinitionBuilder:
             metrics=self._metrics(),
             labels=self._labels(),
             systems=dict(self.systems),
+            commands=dict(self.commands),
             rule_impls=dict(self.rule_impls),
             grid=grid,
             spawns=dict(sorted(self.spawns.items())),
@@ -342,6 +353,21 @@ class DefinitionBuilder:
             perception_lights=dict(self.perception_lights),
             movement_cost=self.movement_cost,
         )
+
+    def _check_commands(self, chain: Sequence[CartridgeManifest]) -> None:
+        """Um comando do cartucho é do domínio de um cartucho da cadeia, ou de uma biblioteca que
+        ele usa, e está declarado em `contracts/` como comando (ADR-0084)."""
+        domains = {m.id for m in chain} | self.event_domains
+        problems: list[str] = []
+        for command_type in sorted(self.commands):
+            match = CARTRIDGE_COMMAND.fullmatch(command_type)
+            info = CONTRACT_TYPES.get(command_type)
+            if match is None or match.group(1) not in domains:
+                problems.append(f"{command_type}: o domínio precisa ser um cartucho da cadeia")
+            elif info is None or info.kind != "command":
+                problems.append(f"{command_type}: não é um comando declarado em contracts/")
+        if problems:
+            raise DefinitionError("; ".join(problems))
 
     def _validate(self, grid: GridMap) -> None:
         if self.movement_cost is not None and self.movement_cost[0] not in self.needs:

@@ -11,8 +11,8 @@ describe("validador ajv dos contratos", () => {
 
   it("conhece os 78 eventos (os da v0.1 e da v0.2, os da Morada do Sol, os 4 das encomendas, a entrada e a saída do avatar, os 3 do contrato de trabalho, a fala, o relógio que alcança o real, os 5 do pedido do escritório, os 2 avisos do orçamento na v2, os tetos mudados e a sessão em milissegundos, o passo na oficina e o robô da bancada, que começa e termina) e 11 comandos", () => {
     const kinds = typeInfos(loadSchemas()).map((info) => info.kind);
-    expect(kinds.filter((kind) => kind === "event")).toHaveLength(78);
-    expect(kinds.filter((kind) => kind === "command")).toHaveLength(11);
+    expect(kinds.filter((kind) => kind === "event")).toHaveLength(82);
+    expect(kinds.filter((kind) => kind === "command")).toHaveLength(12);
   });
 
   it("recusa um evento da regra oculta publicado como world", () => {

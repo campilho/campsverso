@@ -301,6 +301,17 @@ channels:
     messages:
       CmdClockStepV1:
         $ref: '#/components/messages/CmdClockStepV1'
+  CmdOfficePullRequestReportV1:
+    address: campsverso.{worldid}.cmd.office.pull_request.report.v1
+    title: campsverso.cmd.office.pull_request.report.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      CmdOfficePullRequestReportV1:
+        $ref: '#/components/messages/CmdOfficePullRequestReportV1'
   CmdOpsBudgetSetV1:
     address: campsverso.{worldid}.cmd.ops.budget.set.v1
     title: campsverso.cmd.ops.budget.set.v1
@@ -565,6 +576,50 @@ channels:
     messages:
       OfficeTicketDeliveredV1:
         $ref: '#/components/messages/OfficeTicketDeliveredV1'
+  OfficeTicketPrClosedV1:
+    address: campsverso.{worldid}.world.office.ticket.pr_closed.v1
+    title: campsverso.office.ticket.pr_closed.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      OfficeTicketPrClosedV1:
+        $ref: '#/components/messages/OfficeTicketPrClosedV1'
+  OfficeTicketPrMergedV1:
+    address: campsverso.{worldid}.world.office.ticket.pr_merged.v1
+    title: campsverso.office.ticket.pr_merged.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      OfficeTicketPrMergedV1:
+        $ref: '#/components/messages/OfficeTicketPrMergedV1'
+  OfficeTicketPrOpenedV1:
+    address: campsverso.{worldid}.world.office.ticket.pr_opened.v1
+    title: campsverso.office.ticket.pr_opened.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      OfficeTicketPrOpenedV1:
+        $ref: '#/components/messages/OfficeTicketPrOpenedV1'
+  OfficeTicketPrUpdatedV1:
+    address: campsverso.{worldid}.world.office.ticket.pr_updated.v1
+    title: campsverso.office.ticket.pr_updated.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      OfficeTicketPrUpdatedV1:
+        $ref: '#/components/messages/OfficeTicketPrUpdatedV1'
   OfficeTicketReturnedV1:
     address: campsverso.{worldid}.world.office.ticket.returned.v1
     title: campsverso.office.ticket.returned.v1
@@ -1228,6 +1283,13 @@ operations:
     messages:
     - $ref: '#/channels/CmdClockStepV1/messages/CmdClockStepV1'
     x-producer: operator
+  sendCmdOfficePullRequestReportV1:
+    action: send
+    channel:
+      $ref: '#/channels/CmdOfficePullRequestReportV1'
+    messages:
+    - $ref: '#/channels/CmdOfficePullRequestReportV1/messages/CmdOfficePullRequestReportV1'
+    x-producer: codehost
   sendCmdOpsBudgetSetV1:
     action: send
     channel:
@@ -1395,6 +1457,34 @@ operations:
       $ref: '#/channels/OfficeTicketDeliveredV1'
     messages:
     - $ref: '#/channels/OfficeTicketDeliveredV1/messages/OfficeTicketDeliveredV1'
+    x-producer: kernel
+  sendOfficeTicketPrClosedV1:
+    action: send
+    channel:
+      $ref: '#/channels/OfficeTicketPrClosedV1'
+    messages:
+    - $ref: '#/channels/OfficeTicketPrClosedV1/messages/OfficeTicketPrClosedV1'
+    x-producer: kernel
+  sendOfficeTicketPrMergedV1:
+    action: send
+    channel:
+      $ref: '#/channels/OfficeTicketPrMergedV1'
+    messages:
+    - $ref: '#/channels/OfficeTicketPrMergedV1/messages/OfficeTicketPrMergedV1'
+    x-producer: kernel
+  sendOfficeTicketPrOpenedV1:
+    action: send
+    channel:
+      $ref: '#/channels/OfficeTicketPrOpenedV1'
+    messages:
+    - $ref: '#/channels/OfficeTicketPrOpenedV1/messages/OfficeTicketPrOpenedV1'
+    x-producer: kernel
+  sendOfficeTicketPrUpdatedV1:
+    action: send
+    channel:
+      $ref: '#/channels/OfficeTicketPrUpdatedV1'
+    messages:
+    - $ref: '#/channels/OfficeTicketPrUpdatedV1/messages/OfficeTicketPrUpdatedV1'
     x-producer: kernel
   sendOfficeTicketReturnedV1:
     action: send
@@ -2545,6 +2635,52 @@ components:
           type: integer
           minimum: 1
           maximum: 1440
+    CmdOfficePullRequestReportV1:
+      title: CmdOfficePullRequestReportV1
+      description: 'Uma mudança num PR do dev, vinda do GitHub (ADR-0083): o vigia do GitHub a manda ao
+        kernel, que confere e publica o fato `office.ticket.pr_*`. O comando fica no diário, e o replay
+        o refaz sem perguntar ao GitHub.'
+      type: object
+      additionalProperties: false
+      required:
+      - ticket_id
+      - pull_request
+      - state
+      properties:
+        ticket_id:
+          $ref: '#/components/schemas/EntityId'
+          description: 'O pedido: a entidade no quadro.'
+        pull_request:
+          type: integer
+          minimum: 1
+          description: O número do PR no GitHub.
+        state:
+          enum:
+          - opened
+          - updated
+          - merged
+          - closed
+          description: 'O que aconteceu: aberto, mudou (o topo ou o CI), mesclado, ou fechado sem mesclar.'
+        url:
+          type: string
+          pattern: ^https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/pull/[0-9]+$
+          maxLength: 200
+          description: O endereço do PR.
+        branch:
+          type: string
+          pattern: ^dev/[a-z0-9][a-z0-9._/-]*$
+          maxLength: 100
+          description: O ramo do dev, sempre sob `dev/`.
+        head:
+          type: string
+          pattern: ^[0-9a-f]{40}$
+          description: O commit do topo do ramo.
+        ci:
+          enum:
+          - pending
+          - success
+          - failure
+          description: 'O CI do topo do ramo: rodando, verde ou vermelho.'
     CmdOpsBudgetSetV1:
       title: CmdOpsBudgetSetV1
       description: Pede à guarda de orçamento novos tetos, com o mundo vivo (ADR-0080). Os tetos que não
@@ -3932,6 +4068,121 @@ components:
             removed:
               type: integer
               minimum: 0
+    OfficeTicketPrClosedV1:
+      title: OfficeTicketPrClosedV1
+      description: 'O PR do dev foi fechado sem mesclar (ADR-0083): o pedido volta a "a fazer", e o kernel
+        publica também o `office.ticket.returned.v1`.'
+      type: object
+      additionalProperties: false
+      required:
+      - ticket_id
+      - number
+      - pull_request
+      properties:
+        ticket_id:
+          $ref: '#/components/schemas/EntityId'
+          description: 'O pedido: a entidade no quadro.'
+        number:
+          type: integer
+          minimum: 1
+          description: O número do pedido, na ordem em que foi escrito.
+        pull_request:
+          type: integer
+          minimum: 1
+          description: O número do PR no GitHub.
+    OfficeTicketPrMergedV1:
+      title: OfficeTicketPrMergedV1
+      description: 'O humano mesclou o PR do dev (ADR-0083): o aceite. O pedido vai para "aceito", e o
+        kernel publica também o `office.ticket.accepted.v1`.'
+      type: object
+      additionalProperties: false
+      required:
+      - ticket_id
+      - number
+      - pull_request
+      properties:
+        ticket_id:
+          $ref: '#/components/schemas/EntityId'
+          description: 'O pedido: a entidade no quadro.'
+        number:
+          type: integer
+          minimum: 1
+          description: O número do pedido, na ordem em que foi escrito.
+        pull_request:
+          type: integer
+          minimum: 1
+          description: O número do PR no GitHub.
+    OfficeTicketPrOpenedV1:
+      title: OfficeTicketPrOpenedV1
+      description: 'A entrega do dev virou um PR no GitHub (ADR-0083): o publicador o abriu, e o pedido
+        espera o merge.'
+      type: object
+      additionalProperties: false
+      required:
+      - ticket_id
+      - number
+      - pull_request
+      - url
+      - branch
+      - head
+      properties:
+        ticket_id:
+          $ref: '#/components/schemas/EntityId'
+          description: 'O pedido: a entidade no quadro.'
+        number:
+          type: integer
+          minimum: 1
+          description: O número do pedido, na ordem em que foi escrito.
+        pull_request:
+          type: integer
+          minimum: 1
+          description: O número do PR no GitHub.
+        url:
+          type: string
+          pattern: ^https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/pull/[0-9]+$
+          maxLength: 200
+          description: O endereço do PR.
+        branch:
+          type: string
+          pattern: ^dev/[a-z0-9][a-z0-9._/-]*$
+          maxLength: 100
+          description: O ramo do dev, sempre sob `dev/`.
+        head:
+          type: string
+          pattern: ^[0-9a-f]{40}$
+          description: O commit do topo do ramo.
+    OfficeTicketPrUpdatedV1:
+      title: OfficeTicketPrUpdatedV1
+      description: 'Um PR do dev mudou (ADR-0083): um commit novo no ramo (o dev refez o pedido devolvido)
+        ou o resultado do CI.'
+      type: object
+      additionalProperties: false
+      required:
+      - ticket_id
+      - number
+      - pull_request
+      properties:
+        ticket_id:
+          $ref: '#/components/schemas/EntityId'
+          description: 'O pedido: a entidade no quadro.'
+        number:
+          type: integer
+          minimum: 1
+          description: O número do pedido, na ordem em que foi escrito.
+        pull_request:
+          type: integer
+          minimum: 1
+          description: O número do PR no GitHub.
+        head:
+          type: string
+          pattern: ^[0-9a-f]{40}$
+          description: O commit do topo do ramo.
+        ci:
+          enum:
+          - pending
+          - success
+          - failure
+          description: 'O CI do topo do ramo: rodando, verde ou vermelho.'
     OfficeTicketReturnedV1:
       title: OfficeTicketReturnedV1
       description: 'O gerente devolveu um pedido entregue (ADR-0078): o pedido volta para "a fazer", com
@@ -6397,6 +6648,17 @@ components:
         $ref: '#/components/schemas/CmdClockStepV1'
       x-visibility: observer
       x-producer: operator
+    CmdOfficePullRequestReportV1:
+      name: campsverso.cmd.office.pull_request.report.v1
+      title: CmdOfficePullRequestReportV1
+      summary: 'Uma mudança num PR do dev, vinda do GitHub (ADR-0083): o vigia do GitHub a manda ao kernel,
+        que confere e publica o fato `office.ticket.pr_*`. O comando fica no diário, e o replay o refaz
+        sem perguntar ao GitHub.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CmdOfficePullRequestReportV1'
+      x-visibility: observer
+      x-producer: codehost
     CmdOpsBudgetSetV1:
       name: campsverso.cmd.ops.budget.set.v1
       title: CmdOpsBudgetSetV1
@@ -6627,6 +6889,46 @@ components:
       contentType: application/json
       payload:
         $ref: '#/components/schemas/OfficeTicketDeliveredV1'
+      x-visibility: world
+      x-producer: kernel
+    OfficeTicketPrClosedV1:
+      name: campsverso.office.ticket.pr_closed.v1
+      title: OfficeTicketPrClosedV1
+      summary: 'O PR do dev foi fechado sem mesclar (ADR-0083): o pedido volta a "a fazer", e o kernel
+        publica também o `office.ticket.returned.v1`.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/OfficeTicketPrClosedV1'
+      x-visibility: world
+      x-producer: kernel
+    OfficeTicketPrMergedV1:
+      name: campsverso.office.ticket.pr_merged.v1
+      title: OfficeTicketPrMergedV1
+      summary: 'O humano mesclou o PR do dev (ADR-0083): o aceite. O pedido vai para "aceito", e o kernel
+        publica também o `office.ticket.accepted.v1`.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/OfficeTicketPrMergedV1'
+      x-visibility: world
+      x-producer: kernel
+    OfficeTicketPrOpenedV1:
+      name: campsverso.office.ticket.pr_opened.v1
+      title: OfficeTicketPrOpenedV1
+      summary: 'A entrega do dev virou um PR no GitHub (ADR-0083): o publicador o abriu, e o pedido espera
+        o merge.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/OfficeTicketPrOpenedV1'
+      x-visibility: world
+      x-producer: kernel
+    OfficeTicketPrUpdatedV1:
+      name: campsverso.office.ticket.pr_updated.v1
+      title: OfficeTicketPrUpdatedV1
+      summary: 'Um PR do dev mudou (ADR-0083): um commit novo no ramo (o dev refez o pedido devolvido)
+        ou o resultado do CI.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/OfficeTicketPrUpdatedV1'
       x-visibility: world
       x-producer: kernel
     OfficeTicketReturnedV1:

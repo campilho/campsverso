@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://commands/office/pull_request.report.v1",
+  "title": "CmdOfficePullRequestReportV1",
+  "description": "Uma mudança num PR do dev, vinda do GitHub (ADR-0083): o vigia do GitHub a manda ao kernel, que confere e publica o fato `office.ticket.pr_*`. O comando fica no diário, e o replay o refaz sem perguntar ao GitHub.",
+  "x-type": "campsverso.cmd.office.pull_request.report.v1",
+  "x-visibility": "observer",
+  "x-producer": "codehost",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ticket_id",
+    "pull_request",
+    "state"
+  ],
+  "properties": {
+    "ticket_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "O pedido: a entidade no quadro."
+    },
+    "pull_request": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "O número do PR no GitHub."
+    },
+    "state": {
+      "enum": [
+        "opened",
+        "updated",
+        "merged",
+        "closed"
+      ],
+      "description": "O que aconteceu: aberto, mudou (o topo ou o CI), mesclado, ou fechado sem mesclar."
+    },
+    "url": {
+      "type": "string",
+      "pattern": "^https://github\\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/pull/[0-9]+$",
+      "maxLength": 200,
+      "description": "O endereço do PR."
+    },
+    "branch": {
+      "type": "string",
+      "pattern": "^dev/[a-z0-9][a-z0-9._/-]*$",
+      "maxLength": 100,
+      "description": "O ramo do dev, sempre sob `dev/`."
+    },
+    "head": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$",
+      "description": "O commit do topo do ramo."
+    },
+    "ci": {
+      "enum": [
+        "pending",
+        "success",
+        "failure"
+      ],
+      "description": "O CI do topo do ramo: rodando, verde ou vermelho."
+    }
+  }
+}

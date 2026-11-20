@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/office/ticket.pr_opened.v1",
+  "title": "OfficeTicketPrOpenedV1",
+  "description": "A entrega do dev virou um PR no GitHub (ADR-0083): o publicador o abriu, e o pedido espera o merge.",
+  "x-type": "campsverso.office.ticket.pr_opened.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ticket_id",
+    "number",
+    "pull_request",
+    "url",
+    "branch",
+    "head"
+  ],
+  "properties": {
+    "ticket_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "O pedido: a entidade no quadro."
+    },
+    "number": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "O número do pedido, na ordem em que foi escrito."
+    },
+    "pull_request": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "O número do PR no GitHub."
+    },
+    "url": {
+      "type": "string",
+      "pattern": "^https://github\\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/pull/[0-9]+$",
+      "maxLength": 200,
+      "description": "O endereço do PR."
+    },
+    "branch": {
+      "type": "string",
+      "pattern": "^dev/[a-z0-9][a-z0-9._/-]*$",
+      "maxLength": 100,
+      "description": "O ramo do dev, sempre sob `dev/`."
+    },
+    "head": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$",
+      "description": "O commit do topo do ramo."
+    }
+  }
+}

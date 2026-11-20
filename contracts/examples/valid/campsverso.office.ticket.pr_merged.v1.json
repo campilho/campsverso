@@ -1,0 +1,21 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c50-7a30-8b14-1a2b3c4d5e30",
+  "source": "/kernel/office-campsverso-01",
+  "type": "campsverso.office.ticket.pr_merged.v1",
+  "time": "2026-11-21T13:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/office/ticket.pr_merged.v1",
+  "worldid": "office-campsverso-01",
+  "cartridge": "office_campsverso",
+  "tick": 19000,
+  "simtime": "2026-11-21T10:00:00-03:00",
+  "seq": 5030,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "ticket_id": "pedido-003",
+    "number": 3,
+    "pull_request": 12
+  }
+}

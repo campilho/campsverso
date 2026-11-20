@@ -25,8 +25,8 @@ def test_catalogo_tem_77_eventos_e_11_comandos(contracts: catalog.Contracts) -> 
     tick em milissegundos (ADR-0081), e o passo na oficina e o robô da bancada, que começa e
     termina (ADR-0080)."""
     kinds = [f.kind for f in contracts.by_type.values()]
-    assert kinds.count("event") == 78
-    assert kinds.count("command") == 11
+    assert kinds.count("event") == 82
+    assert kinds.count("command") == 12
 
 
 def test_exemplo_invalido_em_valid_quebra_o_check(contracts_copy: Path) -> None:

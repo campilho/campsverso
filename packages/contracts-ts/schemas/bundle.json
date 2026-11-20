@@ -1041,6 +1041,62 @@
         }
       }
     },
+    "CmdOfficePullRequestReportV1": {
+      "title": "CmdOfficePullRequestReportV1",
+      "description": "Uma mudança num PR do dev, vinda do GitHub (ADR-0083): o vigia do GitHub a manda ao kernel, que confere e publica o fato `office.ticket.pr_*`. O comando fica no diário, e o replay o refaz sem perguntar ao GitHub.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticket_id",
+        "pull_request",
+        "state"
+      ],
+      "properties": {
+        "ticket_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "O pedido: a entidade no quadro."
+        },
+        "pull_request": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "O número do PR no GitHub."
+        },
+        "state": {
+          "enum": [
+            "opened",
+            "updated",
+            "merged",
+            "closed"
+          ],
+          "description": "O que aconteceu: aberto, mudou (o topo ou o CI), mesclado, ou fechado sem mesclar."
+        },
+        "url": {
+          "type": "string",
+          "pattern": "^https://github\\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/pull/[0-9]+$",
+          "maxLength": 200,
+          "description": "O endereço do PR."
+        },
+        "branch": {
+          "type": "string",
+          "pattern": "^dev/[a-z0-9][a-z0-9._/-]*$",
+          "maxLength": 100,
+          "description": "O ramo do dev, sempre sob `dev/`."
+        },
+        "head": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$",
+          "description": "O commit do topo do ramo."
+        },
+        "ci": {
+          "enum": [
+            "pending",
+            "success",
+            "failure"
+          ],
+          "description": "O CI do topo do ramo: rodando, verde ou vermelho."
+        }
+      }
+    },
     "CmdOpsBudgetSetV1": {
       "title": "CmdOpsBudgetSetV1",
       "description": "Pede à guarda de orçamento novos tetos, com o mundo vivo (ADR-0080). Os tetos que não vêm ficam como estão. Quem consome é a guarda, e não o kernel; ela responde com ops.budget.limits_changed.",
@@ -2806,6 +2862,147 @@
               "minimum": 0
             }
           }
+        }
+      }
+    },
+    "OfficeTicketPrClosedV1": {
+      "title": "OfficeTicketPrClosedV1",
+      "description": "O PR do dev foi fechado sem mesclar (ADR-0083): o pedido volta a \"a fazer\", e o kernel publica também o `office.ticket.returned.v1`.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticket_id",
+        "number",
+        "pull_request"
+      ],
+      "properties": {
+        "ticket_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "O pedido: a entidade no quadro."
+        },
+        "number": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "O número do pedido, na ordem em que foi escrito."
+        },
+        "pull_request": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "O número do PR no GitHub."
+        }
+      }
+    },
+    "OfficeTicketPrMergedV1": {
+      "title": "OfficeTicketPrMergedV1",
+      "description": "O humano mesclou o PR do dev (ADR-0083): o aceite. O pedido vai para \"aceito\", e o kernel publica também o `office.ticket.accepted.v1`.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticket_id",
+        "number",
+        "pull_request"
+      ],
+      "properties": {
+        "ticket_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "O pedido: a entidade no quadro."
+        },
+        "number": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "O número do pedido, na ordem em que foi escrito."
+        },
+        "pull_request": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "O número do PR no GitHub."
+        }
+      }
+    },
+    "OfficeTicketPrOpenedV1": {
+      "title": "OfficeTicketPrOpenedV1",
+      "description": "A entrega do dev virou um PR no GitHub (ADR-0083): o publicador o abriu, e o pedido espera o merge.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticket_id",
+        "number",
+        "pull_request",
+        "url",
+        "branch",
+        "head"
+      ],
+      "properties": {
+        "ticket_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "O pedido: a entidade no quadro."
+        },
+        "number": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "O número do pedido, na ordem em que foi escrito."
+        },
+        "pull_request": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "O número do PR no GitHub."
+        },
+        "url": {
+          "type": "string",
+          "pattern": "^https://github\\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/pull/[0-9]+$",
+          "maxLength": 200,
+          "description": "O endereço do PR."
+        },
+        "branch": {
+          "type": "string",
+          "pattern": "^dev/[a-z0-9][a-z0-9._/-]*$",
+          "maxLength": 100,
+          "description": "O ramo do dev, sempre sob `dev/`."
+        },
+        "head": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$",
+          "description": "O commit do topo do ramo."
+        }
+      }
+    },
+    "OfficeTicketPrUpdatedV1": {
+      "title": "OfficeTicketPrUpdatedV1",
+      "description": "Um PR do dev mudou (ADR-0083): um commit novo no ramo (o dev refez o pedido devolvido) ou o resultado do CI.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticket_id",
+        "number",
+        "pull_request"
+      ],
+      "properties": {
+        "ticket_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "O pedido: a entidade no quadro."
+        },
+        "number": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "O número do pedido, na ordem em que foi escrito."
+        },
+        "pull_request": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "O número do PR no GitHub."
+        },
+        "head": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$",
+          "description": "O commit do topo do ramo."
+        },
+        "ci": {
+          "enum": [
+            "pending",
+            "success",
+            "failure"
+          ],
+          "description": "O CI do topo do ramo: rodando, verde ou vermelho."
         }
       }
     },

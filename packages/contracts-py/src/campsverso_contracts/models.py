@@ -697,6 +697,54 @@ class CmdClockStepV1(BaseModel):
     ticks: Annotated[int, Field(ge=1, le=1440)]
 
 
+class CmdOfficePullRequestReportV1(BaseModel):
+    """
+    Uma mudança num PR do dev, vinda do GitHub (ADR-0083): o vigia do GitHub a manda ao kernel, que confere e publica o fato `office.ticket.pr_*`. O comando fica no diário, e o replay o refaz sem perguntar ao GitHub.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    ticket_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O pedido: a entidade no quadro.
+    """
+    pull_request: Annotated[int, Field(ge=1)]
+    """
+    O número do PR no GitHub.
+    """
+    state: Literal["opened", "updated", "merged", "closed"]
+    """
+    O que aconteceu: aberto, mudou (o topo ou o CI), mesclado, ou fechado sem mesclar.
+    """
+    url: Annotated[
+        str | None,
+        Field(
+            max_length=200,
+            pattern="^https://github\\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/pull/[0-9]+$",
+        ),
+    ] = None
+    """
+    O endereço do PR.
+    """
+    branch: Annotated[str | None, Field(max_length=100, pattern="^dev/[a-z0-9][a-z0-9._/-]*$")] = (
+        None
+    )
+    """
+    O ramo do dev, sempre sob `dev/`.
+    """
+    head: Annotated[str | None, Field(pattern="^[0-9a-f]{40}$")] = None
+    """
+    O commit do topo do ramo.
+    """
+    ci: Literal["pending", "success", "failure"] | None = None
+    """
+    O CI do topo do ramo: rodando, verde ou vermelho.
+    """
+
+
 class CmdOpsBudgetSetV1(BaseModel):
     """
     Pede à guarda de orçamento novos tetos, com o mundo vivo (ADR-0080). Os tetos que não vêm ficam como estão. Quem consome é a guarda, e não o kernel; ela responde com ops.budget.limits_changed.
@@ -2133,6 +2181,128 @@ class OfficeTicketDeliveredV1(BaseModel):
     patch: Annotated[OfficeTicketPatch | None, Field(title="OfficeTicketPatch")] = None
     """
     O que o dev entregou da oficina (ADR-0080): o patch contra o commit de onde o espaço de trabalho saiu, guardado no depósito de arquivos do mundo, e o resumo dele. Sem o campo, o trabalho foi só simulado (o dev-script de antes).
+    """
+
+
+class OfficeTicketPrClosedV1(BaseModel):
+    """
+    O PR do dev foi fechado sem mesclar (ADR-0083): o pedido volta a "a fazer", e o kernel publica também o `office.ticket.returned.v1`.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    ticket_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O pedido: a entidade no quadro.
+    """
+    number: Annotated[int, Field(ge=1)]
+    """
+    O número do pedido, na ordem em que foi escrito.
+    """
+    pull_request: Annotated[int, Field(ge=1)]
+    """
+    O número do PR no GitHub.
+    """
+
+
+class OfficeTicketPrMergedV1(BaseModel):
+    """
+    O humano mesclou o PR do dev (ADR-0083): o aceite. O pedido vai para "aceito", e o kernel publica também o `office.ticket.accepted.v1`.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    ticket_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O pedido: a entidade no quadro.
+    """
+    number: Annotated[int, Field(ge=1)]
+    """
+    O número do pedido, na ordem em que foi escrito.
+    """
+    pull_request: Annotated[int, Field(ge=1)]
+    """
+    O número do PR no GitHub.
+    """
+
+
+class OfficeTicketPrOpenedV1(BaseModel):
+    """
+    A entrega do dev virou um PR no GitHub (ADR-0083): o publicador o abriu, e o pedido espera o merge.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    ticket_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O pedido: a entidade no quadro.
+    """
+    number: Annotated[int, Field(ge=1)]
+    """
+    O número do pedido, na ordem em que foi escrito.
+    """
+    pull_request: Annotated[int, Field(ge=1)]
+    """
+    O número do PR no GitHub.
+    """
+    url: Annotated[
+        str,
+        Field(
+            max_length=200,
+            pattern="^https://github\\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/pull/[0-9]+$",
+        ),
+    ]
+    """
+    O endereço do PR.
+    """
+    branch: Annotated[str, Field(max_length=100, pattern="^dev/[a-z0-9][a-z0-9._/-]*$")]
+    """
+    O ramo do dev, sempre sob `dev/`.
+    """
+    head: Annotated[str, Field(pattern="^[0-9a-f]{40}$")]
+    """
+    O commit do topo do ramo.
+    """
+
+
+class OfficeTicketPrUpdatedV1(BaseModel):
+    """
+    Um PR do dev mudou (ADR-0083): um commit novo no ramo (o dev refez o pedido devolvido) ou o resultado do CI.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    ticket_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O pedido: a entidade no quadro.
+    """
+    number: Annotated[int, Field(ge=1)]
+    """
+    O número do pedido, na ordem em que foi escrito.
+    """
+    pull_request: Annotated[int, Field(ge=1)]
+    """
+    O número do PR no GitHub.
+    """
+    head: Annotated[str | None, Field(pattern="^[0-9a-f]{40}$")] = None
+    """
+    O commit do topo do ramo.
+    """
+    ci: Literal["pending", "success", "failure"] | None = None
+    """
+    O CI do topo do ramo: rodando, verde ou vermelho.
     """
 
 
