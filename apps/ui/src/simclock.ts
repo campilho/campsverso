@@ -8,7 +8,9 @@
  * - **Nunca volta, e corrige devagar.** A tela anda no ritmo da escala e desfaz a diferença para a
  *   estimativa em cerca de um segundo: um pouco mais devagar quando está adiantada, um pouco mais
  *   depressa quando está atrasada. Muito atrasada (um passo com a pausa, por exemplo), ela pula.
- * - **Mudou o ritmo, a âncora vem para onde a tela está**, e a escala nova vale daí em diante.
+ * - **Mudou o ritmo, a âncora vem para onde a tela está**, e a escala nova vale daí em diante. A
+ *   exceção: se o fato da mudança mostra a tela à frente do kernel mais que o limite do salto, ela
+ *   volta para o tick dele, uma vez (o que é pouco a 72× pode ser segundos a 1×; 20/nov).
  * - **Sem conexão, com o kernel sem sinal, na pausa ou no modo máximo, não anda sozinha.** E nunca
  *   passa de `MAX_AHEAD` ticks além da última âncora.
  * - **O pulso do kernel (ADR-0051) também ancora,** no tick anterior ao dele, o último que o kernel
@@ -79,11 +81,21 @@ export class DisplayClock {
   }
 
   /** O estado mudou: um tick novo (de evento ou de pulso) ancora nele; um relógio novo ancora
-   * onde a tela está. */
+   * onde a tela está, ou no tick do kernel, se a tela passou dele mais que o limite do salto. */
   observe(state: ObserverState, nowMs: number): void {
     const current = settings(state);
     const known = ranTick(state);
     if (current !== this.settings) {
+      // A vantagem da tela sobre o kernel, em ticks, vale outro tempo na escala nova: 17 ticks a
+      // 72× são 60 ms; a 1×, no escritório, 4 s. A tela ficava parada no futuro, desenhava os
+      // trajetos já no fim, e o gerente voltava quando o kernel o interrompia (20/nov). Com o tick
+      // do fato da mudança, a tela sabe onde o kernel está: além do limite do salto (o mesmo que
+      // a faz pular para a frente), ela volta para ele, uma vez. Os avatares não voltam: o
+      // desenho de cada um nunca anda para trás (MotionClock) e só espera o kernel alcançá-lo.
+      const fresh = known !== this.stateTick;
+      if (fresh && this.shown - known > Math.max(CATCH_UP, CATCH_UP_MS * rate(state))) {
+        this.shown = known;
+      }
       this.anchorTick = Math.max(this.shown, known);
       this.anchorAt = nowMs;
       this.settings = current;

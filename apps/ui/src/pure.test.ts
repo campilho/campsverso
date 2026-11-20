@@ -167,6 +167,29 @@ describe("relógio da tela", () => {
     expect((slow.at(-1) ?? 0) - (fast.at(-1) ?? 0)).toBeCloseTo(1.2, 1);
   });
 
+  it("passar de 72× para 1× no escritório traz a tela de volta ao tick do kernel (20/nov)", () => {
+    // Tick de 250 ms: a 72×, 288 ticks por segundo. A tela estima o kernel a 72× e passa dele
+    // quando ele anda um pouco mais devagar; 26 ticks são 90 ms a 72× e 6,5 s a 1×.
+    const session = { cartridge_version: "0.1.0", tick_seconds: 1, tick_ms: 250, map: { id: "office", width: 3, height: 2 } };
+    const fast = state({ tick: 1000, session });
+    const clock = new DisplayClock();
+    clock.reset(fast, 0);
+    const before = frames(clock, fast, 0, 2000).at(-1) ?? 0; // 1000 + 576
+    const slow = state({ tick: 1550, session, clock: { mode: "continuous", scale: 1, paused: false } });
+    clock.observe(slow, 2000); // o fato da mudança traz o tick em que o kernel mudou de ritmo
+    const after = frames(clock, slow, 2000, 3000);
+    expect(before).toBeGreaterThan(1570);
+    expect(after[0]).toBeCloseTo(1550, 0);
+    expect(monotonic(after)).toBe(true);
+    expect(after.at(-1)).toBeCloseTo(1554, 0); // a 1×, quatro ticks por segundo
+    // Sem tick novo, a tela não sabe onde o kernel está: segue de onde estava (o teste de 720×).
+    const quiet = new DisplayClock();
+    quiet.reset(fast, 0);
+    frames(quiet, fast, 0, 2000);
+    quiet.observe({ ...fast, clock: { mode: "continuous", scale: 1, paused: false } }, 2000);
+    expect(quiet.at(fast, 2000, true)).toBeGreaterThan(1570);
+  });
+
   it("numa aba em segundo plano (um quadro por segundo) a 720× continua estável", () => {
     const clock = new DisplayClock();
     clock.reset(at720, 0);
