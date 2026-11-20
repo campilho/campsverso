@@ -106,6 +106,7 @@ Em [escritorio-arte/](escritorio-arte/): a fatia que basta para decidir entre a 
   - **uma fonte pixel** de 8 × 12 (`fonte.png`), com 109 glifos e os acentos do português, desenhada no branco da paleta;
   - **o corredor** num granilite escuro, na penumbra à noite com as faces que dão para ele (a porta aberta mostra o piso novo);
   - **duas plantas** na `planta.png`: a espada-de-são-jorge no vaso de cerâmica e a costela-de-adão no cesto de palha.
+- **O M25, o ciclo fecha (20/11, o pedido):** em [briefing-arte-m25.md](briefing-arte-m25.md): o robô do briefing (âmbar, cabeça redonda, uma pasta de documentos), o publicador carimbando e enviando o envelope, a placa da versão na parede (rodando, atualizando e voltou, com o texto escrito pela tela) e os selos de PR nas fichas do quadro, com os mesmos quatro em ícones de 16 × 16 e o ícone de atualizando.
 
   A paleta continua com 47 cores. As outras folhas não mudaram um pixel; a coluna 0 da planta e os quadros 0 e 1 da parede de baixo também não. Os balões, a fonte e os ícones ficam acima da luz. A prévia (20 × 16) mostra os balões em todas as cenas, a fala longa no pedido e a etiqueta "Jogando videogame" sobre os dois no sofá; passar o mouse sobre alguém mostra o nome da ação.
 - **O M25, o ciclo fecha (20/11):** o pedido em `briefing-arte-m25.md`.
