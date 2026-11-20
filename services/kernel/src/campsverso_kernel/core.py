@@ -66,6 +66,12 @@ SAY_MAX_SECONDS = 12.0
 SAY_CHARS_PER_SECOND = 20.0
 
 
+def command_cause(command_type: str) -> str:
+    """A causa curta de um comando do cartucho nos fatos genéricos (o `cause` é um token):
+    `campsverso.cmd.office.pull_request.report.v1` vira `pull_request_report`."""
+    return "_".join(command_type.split(".")[3:-1])
+
+
 @dataclass(frozen=True, slots=True)
 class WorldConfig:
     worldid: str
@@ -463,7 +469,7 @@ class KernelCore:
         correlation = command.get("correlationid")
         world = self.world
         with world.context(
-            cause=spec.type,
+            cause=command_cause(spec.type),
             caused_by=command_id or None,
             correlation=None if correlation is None else str(correlation),
         ):

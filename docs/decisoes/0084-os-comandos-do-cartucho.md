@@ -28,3 +28,7 @@ Um relato do GitHub não é a ação de um avatar, e o kernel não pode conhecer
 - **Outros efeitos externos usam o mesmo caminho:** o telefone do M29 e o resultado de uma ferramenta de fora.
 - **Um cartucho ganha um jeito novo de mudar o mundo fora das ações.** Ele continua só pelas primitivas, e cada comando tem contrato próprio.
 - **A versão do kernel muda,** e um mundo com incrementais da versão anterior precisa parar com elegância antes de subir nesta (como em toda mudança no kernel).
+
+## Adendo (20/nov)
+
+A causa nos fatos genéricos (`entity.state_changed.cause`) é um token. Por isso, ela é o nome curto do comando, tirado do tipo: `campsverso.cmd.office.pull_request.report.v1` vira `pull_request_report`. O id do comando segue em `caused_by`.
