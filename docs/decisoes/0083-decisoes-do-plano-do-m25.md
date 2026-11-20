@@ -47,3 +47,32 @@ O usuário aprovou as 16 decisões do plano em 20/nov, com notas. Ele trouxe tam
 - **Os contratos ganham** os fatos do PR, o comando do vigia, a troca de versão e o campo da placa.
 - **O CI ganha um passo** que só olha os ramos do dev.
 - **A troca de versão pode derrubar o mundo.** A fumaça numa cópia e a volta automática são a resposta.
+
+## Adendo: a parte 1, sem API (20/nov)
+
+O ciclo fecha em memória e o código fala com o GitHub de verdade; falta só o primeiro PR, que espera o ok do usuário. O que a implementação decidiu além do plano:
+
+1. **A porta do repositório de fora** (`CodeHostPort`, em `libs/ports`) tem quatro operações: publicar um ramo, abrir o PR, ler o estado de um PR e comentar. Abrir o PR de um ramo que já tem um PR aberto devolve esse mesmo PR: depois de uma queda, o publicador refaz a entrega sem abrir outro.
+2. **O GitHub, sem biblioteca nova e sem `git push`:**
+   - o JWT do App é assinado pelo `openssl`, que é o único a ler a chave em `privado/`;
+   - o token da instalação, de uma hora, é renovado cinco minutos antes de vencer;
+   - o commit vai pela API de dados do git: os arquivos viram blobs, os blobs uma árvore sobre a da base, e a árvore um commit sobre a base (ou sobre o topo do ramo, num pedido refeito);
+   - o GitHub falso, em memória, serve aos testes.
+3. **O publicador manda o texto inteiro de cada arquivo, e não o patch.**
+   - O patch se aplica sobre a base num clone compartilhado deste repositório, e o próprio git diz quais arquivos mudaram.
+   - Um arquivo renomeado vira um apagado e um criado.
+   - Um arquivo que não é texto em UTF-8, ou um link simbólico, não sai.
+4. **O serviço `services/codehost`** tem o usuário NATS `codehost`. Ele lê os pedidos do escritório em `world` e só publica o comando do vigia.
+   - O estado fica em `data/codehost/<mundo>/codehost.json`: os títulos dos pedidos, os PRs abertos que o mundo conhece e o último relato de cada um.
+   - O mesmo relato não sai duas vezes seguidas.
+   - Com o GitHub fora do ar, o vigia avisa e tenta de novo na volta seguinte, a cada 60 segundos.
+5. **Antes de sair, a entrega é conferida de novo,** e o título e a descrição do PR também, contra a lista de palavras proibidas, porque o PR é público.
+   - Com o GitHub, a lista é obrigatória.
+   - Sem a chave ou sem a lista, o processo avisa e só espera, e a entrega fica no depósito, como no M24. O `honcho` derrubaria o escritório inteiro se um processo saísse.
+6. **A causa de um comando do cartucho nos fatos genéricos é um nome curto** (`pull_request_report`), tirado do tipo, porque o `cause` de `entity.state_changed` é um token. Isso detalha a decisão 3 da ADR-0084.
+7. **O gerente-script dos testes não decide um pedido com PR aberto:** quem decide é quem mescla.
+8. **A constituição cresce** com o caminho até o GitHub: `services/codehost/`, os adaptadores `codehost_*` e a própria regra (`workshop_review.py`).
+   - O passo novo do CI roda só nos PRs de `dev/*` e usa a regra tirada do `main`, e não a do PR: o dev não muda a regra no mesmo PR que ela confere.
+   - A lista de palavras fica fora do git, e o publicador já a conferiu.
+   - As notas da mente (`escritorio.md`) ainda listam a constituição de antes. Elas mudam na parte 2, com a fita regravada: mudar o texto que o modelo lê muda o hash de cada pedido da fita.
+9. **O sandbox do escritório publica no GitHub só com `GITHUB=1`.** Ele copia o `codehost` do escritório vivo, e `CHAVE=` aponta a chave fora de `privado/`. Sem isso, o sandbox fica como no M24: com o GitHub falso, ninguém mescla, e nenhum pedido seria aceito.
