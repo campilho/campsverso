@@ -16,6 +16,13 @@ Com `--jogar` (`make jogar`), é o sandbox de quem joga: começa pausado, e a te
 pelo endereço que ele imprime (`&assumir=1`), assume o Camps sozinha; o script não age antes (achado
 do usuário no mapa d: o `make sandbox` sem `PAUSADO=1` deixou o script cavar um canteiro).
 
+Com `--github` (ADR-0083), o sandbox do escritório publica as entregas do dev no GitHub de
+verdade, com o `codehost` do escritório vivo: cada entrega abre um PR público. A chave do App vem
+de privado/, ou de `--chave`. Sem ele, o mundo do sandbox não tem `codehost`, e as entregas ficam
+na pasta, como no M24.
+
+    make sandbox MUNDO=office-campsverso-demo GITHUB=1 [CHAVE=<caminho da chave>]
+
 Com `--retomar`, a pasta `--out` já tem um mundo: o sandbox sobe sobre ela, sem regravar o arquivo
 do mundo, e o kernel continua do último snapshot e do diário de entradas (a recuperação da
 ADR-0044), com o relógio como estava. Quem pausa antes do Ctrl+C volta pausado: é como o humano
@@ -38,12 +45,21 @@ from campsverso_testkit.nats_server import nats_server
 from campsverso_testkit.soak import WORLD, Processes
 
 PORT = 8765
+LIVE_OFFICE = WORLD.parent / "office-campsverso-01.yaml"  # o `codehost` do escritório vivo
 
 
 def _world_file(
-    out: Path, mind: str | None = None, source: Path = WORLD, *, paused: bool = False
+    out: Path,
+    mind: str | None = None,
+    source: Path = WORLD,
+    *,
+    paused: bool = False,
+    github: bool = False,
 ) -> Path:
     world = yaml.safe_load(source.read_text(encoding="utf-8"))
+    if github:
+        live = yaml.safe_load(LIVE_OFFICE.read_text(encoding="utf-8"))
+        world["codehost"] = live["codehost"]
     clock = cast(dict[str, Any], world.get("clock") or {})
     if clock.get("anchor") == "wall":
         # O escritório anda em tempo real e, ao subir, salta até agora (ADR-0078): o relógio fica.
@@ -68,6 +84,7 @@ def world_of(
     *,
     paused: bool = False,
     resume: bool = False,
+    github: bool = False,
 ) -> Path:
     """O arquivo do mundo do sandbox: o de uma pasta que já tem mundo (`resume`), ou um novo."""
     if resume:
@@ -76,7 +93,7 @@ def world_of(
             raise FileNotFoundError(f"{out} não tem um mundo de sandbox para retomar")
         return world
     out.mkdir(parents=True, exist_ok=True)
-    return _world_file(out, mind, source, paused=paused)
+    return _world_file(out, mind, source, paused=paused, github=github)
 
 
 def run(
@@ -88,8 +105,11 @@ def run(
     paused: bool = False,
     resume: bool = False,
     play: bool = False,
+    github: bool = False,
+    key: Path | None = None,
 ) -> int:
-    world = world_of(out, mind, source, paused=paused or play, resume=resume)
+    world = world_of(out, mind, source, paused=paused or play, resume=resume, github=github)
+    publishes = yaml.safe_load(world.read_text(encoding="utf-8")).get("codehost") is not None
     stop = {"now": False}
 
     def interrupt(_signum: int, _frame: object) -> None:
@@ -134,6 +154,18 @@ def run(
                 f"  mente: {mind} assume o Camps ao conectar (fita em {out / 'llm.jsonl'})",
                 flush=True,
             )
+        if publishes:  # o publicador e o vigia do GitHub (ADR-0083)
+            chave = () if key is None else ("--key", str(key.resolve()))
+            processes.spawn(
+                "codehost",
+                "campsverso_codehost.main",
+                "--world",
+                str(world),
+                "--data-dir",
+                str(out / "data"),
+                *chave,
+            )
+            print("  GitHub: cada entrega do dev abre um PR (veja codehost.log)", flush=True)
         print(f"sandbox {'retomado ' if resume else ''}em {out}", flush=True)
         print(f"  operador: http://127.0.0.1:{port}/?view=operator", flush=True)
         player = f"http://127.0.0.1:{port}/?view=player{'&assumir=1' if play else ''}"
@@ -151,7 +183,7 @@ def run(
                 time.sleep(0.5)
         finally:
             processes.stop("kernel")  # parada elegante primeiro: o último snapshot vai ao arquivo
-            processes.stop(*[n for n in ("mind", "budget") if n in processes.running])
+            processes.stop(*[n for n in ("mind", "budget", "codehost") if n in processes.running])
             processes.stop(*[n for n in ("helpers",) if n in processes.running])
             processes.stop("gateway", "controller", "perception", "archiver")
     return code
@@ -170,6 +202,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--retomar", action="store_true", help="continua o mundo que já está em --out"
     )
+    parser.add_argument(
+        "--github", action="store_true", help="as entregas do dev viram PRs no GitHub (ADR-0083)"
+    )
+    parser.add_argument("--chave", type=Path, help="a chave do App, fora de privado/")
     args = parser.parse_args(argv)
     return run(
         args.out,
@@ -179,6 +215,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         paused=args.pausado,
         resume=args.retomar,
         play=args.jogar,
+        github=args.github,
+        key=args.chave,
     )
 
 

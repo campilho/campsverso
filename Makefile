@@ -18,7 +18,7 @@ NATS_DIR := .tools/nats-server-v$(NATS_VERSION)
 NATS_BIN := .tools/bin/nats-server
 NATS_PID := data/nats/nats-server.pid
 NATS_LOG := data/nats/nats-server.log
-NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR BUDGET MIND HELPERS
+NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR BUDGET MIND HELPERS CODEHOST
 
 .DEFAULT_GOAL := help
 .PHONY: help setup contracts check lint fmt types test arch contracts-check compat escritorio aplicar \
@@ -106,8 +106,8 @@ ui-build: ## compila a UI em apps/ui/dist, que o gateway serve
 ui: ## UI em modo desenvolvimento (Vite em http://127.0.0.1:5173), ligada ao gateway de make run ou sandbox
 	$(PNPM) --filter @campsverso/ui dev
 
-sandbox: tools ui-build ## mundo descartável com tudo ligado, em data/sandbox/<data-hora>; MENTE=camps põe o LLM no Camps (ADR-0059; na Boa Vista, MENTE=camps_boavista); PAUSADO=1 começa parado; RETOMAR=data/sandbox/<pasta> continua um sandbox de onde parou (pause antes do Ctrl+C para voltar pausado; ADR-0074); Ctrl+C para parar
-	$(if $(MENTE),uv run --locked --env-file .env,$(PY)) python -m campsverso_testkit.sandbox --world config/worlds/$(MUNDO).yaml --out $(or $(RETOMAR),data/sandbox/$$(date +%Y%m%d-%H%M%S)) $(if $(RETOMAR),--retomar,) $(if $(MENTE),--mind $(MENTE),) $(if $(PAUSADO),--pausado,)
+sandbox: tools ui-build ## mundo descartável com tudo ligado, em data/sandbox/<data-hora>; MENTE=camps põe o LLM no Camps (ADR-0059; na Boa Vista, MENTE=camps_boavista); PAUSADO=1 começa parado; GITHUB=1 faz as entregas do escritório virarem PRs (ADR-0083); RETOMAR=data/sandbox/<pasta> continua um sandbox de onde parou (pause antes do Ctrl+C para voltar pausado; ADR-0074); Ctrl+C para parar
+	$(if $(MENTE),uv run --locked --env-file .env,$(PY)) python -m campsverso_testkit.sandbox --world config/worlds/$(MUNDO).yaml --out $(or $(RETOMAR),data/sandbox/$$(date +%Y%m%d-%H%M%S)) $(if $(RETOMAR),--retomar,) $(if $(MENTE),--mind $(MENTE),) $(if $(PAUSADO),--pausado,) $(if $(GITHUB),--github,) $(if $(CHAVE),--chave $(CHAVE),)
 
 jogar: tools ui-build ## o sandbox de quem joga: começa pausado e a tela do jogador assume o Camps ao abrir; make jogar MUNDO=farm-morada-do-sol-04; RETOMAR=data/sandbox/<pasta> continua de onde parou (pause antes do Ctrl+C)
 	$(PY) python -m campsverso_testkit.sandbox --world config/worlds/$(MUNDO).yaml --out $(or $(RETOMAR),data/sandbox/$$(date +%Y%m%d-%H%M%S)) $(if $(RETOMAR),--retomar,) --jogar

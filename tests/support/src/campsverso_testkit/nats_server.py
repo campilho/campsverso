@@ -27,6 +27,7 @@ ROLES = (
     "budget",
     "mind",
     "helpers",
+    "codehost",
 )
 
 

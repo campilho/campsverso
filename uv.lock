@@ -10,6 +10,7 @@ members = [
     "campsverso-budget",
     "campsverso-cartridge-api",
     "campsverso-climate",
+    "campsverso-codehost",
     "campsverso-contracts",
     "campsverso-controller-runner",
     "campsverso-economy",
@@ -137,6 +138,7 @@ dependencies = [
     { name = "campsverso-budget" },
     { name = "campsverso-cartridge-api" },
     { name = "campsverso-climate" },
+    { name = "campsverso-codehost" },
     { name = "campsverso-contracts" },
     { name = "campsverso-controller-runner" },
     { name = "campsverso-economy" },
@@ -184,6 +186,7 @@ requires-dist = [
     { name = "campsverso-budget", editable = "services/budget" },
     { name = "campsverso-cartridge-api", editable = "libs/cartridge-api" },
     { name = "campsverso-climate", editable = "libs/climate" },
+    { name = "campsverso-codehost", editable = "services/codehost" },
     { name = "campsverso-contracts", editable = "packages/contracts-py" },
     { name = "campsverso-controller-runner", editable = "services/controller-runner" },
     { name = "campsverso-economy", editable = "libs/economy" },
@@ -308,6 +311,23 @@ requires-dist = [{ name = "campsverso-contracts", editable = "packages/contracts
 name = "campsverso-climate"
 version = "0.1.0.dev0"
 source = { editable = "libs/climate" }
+
+[[package]]
+name = "campsverso-codehost"
+version = "0.1.0.dev0"
+source = { editable = "services/codehost" }
+dependencies = [
+    { name = "campsverso-adapters" },
+    { name = "campsverso-contracts" },
+    { name = "campsverso-ports" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "campsverso-adapters", editable = "libs/adapters" },
+    { name = "campsverso-contracts", editable = "packages/contracts-py" },
+    { name = "campsverso-ports", editable = "libs/ports" },
+]
 
 [[package]]
 name = "campsverso-contracts"
@@ -671,6 +691,7 @@ dependencies = [
     { name = "campsverso-adapters" },
     { name = "campsverso-budget" },
     { name = "campsverso-cartridge-api" },
+    { name = "campsverso-codehost" },
     { name = "campsverso-contracts" },
     { name = "campsverso-controller-runner" },
     { name = "campsverso-kernel" },
@@ -686,6 +707,7 @@ requires-dist = [
     { name = "campsverso-adapters", editable = "libs/adapters" },
     { name = "campsverso-budget", editable = "services/budget" },
     { name = "campsverso-cartridge-api", editable = "libs/cartridge-api" },
+    { name = "campsverso-codehost", editable = "services/codehost" },
     { name = "campsverso-contracts", editable = "packages/contracts-py" },
     { name = "campsverso-controller-runner", editable = "services/controller-runner" },
     { name = "campsverso-kernel", editable = "services/kernel" },

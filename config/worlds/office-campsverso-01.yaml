@@ -33,6 +33,19 @@ budget:
 # põe num ramo.
 workshop: true
 
+# O repositório de fora (ADR-0083): a entrega do dev vira um PR no ramo dev/pedido-N, aberto pelo
+# publicador como o GitHub App do dev; o vigia relata o CI, a mesclagem (o aceite) e o fechamento
+# sem mesclar (a devolução). A chave do App fica em privado/, fora do git, e só o openssl a lê.
+# Sem a chave ou sem a lista de palavras proibidas, o processo só espera, e a entrega fica no
+# depósito, como no M24.
+codehost:
+  host: github
+  repo: campilho/campsverso
+  app_id: 5854989
+  installation_id: 184174558
+  key: privado/campsverso-dev.2026-11-20.private-key.pem
+  poll_seconds: 60
+
 # A foto da percepção leva o que aconteceu desde a entrega anterior (ADR-0080): a memória do dev
 # não perde, a cada 20 deltas, o que houve no meio-tempo (a devolução de um pedido).
 perception:

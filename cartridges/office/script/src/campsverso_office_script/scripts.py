@@ -30,6 +30,7 @@ type View = Mapping[str, Any]
 type Proposal = dict[str, Any]
 
 TODO, DOING, DELIVERED = "a_fazer", "fazendo", "entregue"
+PR_OPEN = "aberto"  # o PR do pedido, no GitHub (ADR-0083)
 # As coisas da copa e das pausas (os tipos do gênero office; ADR-0080, ADR-0082).
 COOLER, COFFEE, COPA_TABLE, COPA_CHAIR, RESTROOM = (
     "water_cooler",
@@ -517,7 +518,12 @@ class ManagerScript:
         # (o soak de 5 dias do M23 caiu num feriado, 20/11, e três pedidos ficaram para segunda).
         workday = self.dev_came == day_of(view)
         due = [t for t in script if workday and minutes(str(t["at"])) <= now]
-        delivered = [t for t in tickets(view) if attrs(t)["estado"] == DELIVERED]
+        # Com o PR aberto (ADR-0083), o pedido se decide no GitHub: quem mescla é o humano.
+        delivered = [
+            t
+            for t in tickets(view)
+            if attrs(t)["estado"] == DELIVERED and attrs(t).get("pr_estado") != PR_OPEN
+        ]
         if delivered or len(due) > written_today:
             if not near_board:
                 return go_near(str(board["entity_id"]), "ir ao quadro")

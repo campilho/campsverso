@@ -11,10 +11,13 @@ Com `controller="llm"` entra a mente (ADR-0059) sobre uma porta de modelo dada p
 porta falsa, ou a fita em `replay`), medida pelo `MeteredModel`, e opcionalmente a guarda de
 orçamento. No escritório, a mente com rotina (ADR-0080), com a oficina num repositório dado pelo
 teste (`workshop_repo`, o de exemplo da fita), e o mundo espera a sessão e a revisão da manhã.
+Com o dev-script, `workshop_repo` também liga a oficina, como o processo `controller` do sandbox; e
+`codehost=True` põe o publicador e o vigia sobre o GitHub falso (ADR-0083): a entrega vira um PR.
 O relógio fica no modo contínuo, porque o máximo é só de script e replay (princípio 7);
 em memória não faz diferença: o barramento entrega e espera a resposta antes do próximo tick.
 """
 
+import functools
 import sys
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -25,12 +28,14 @@ from campsverso_adapters import (
     FakeWallClock,
     InMemoryBus,
     MemoryBlobStore,
+    MemoryCodeHost,
     MemoryTelemetry,
     MeteredModel,
     SequentialUuid7Ids,
     SqliteMemory,
     SqliteWorldStore,
     ValidatingBus,
+    files_after_patch,
     load_env,
     load_world,
 )
@@ -39,6 +44,7 @@ from campsverso_adapters.workshop_review import review
 from campsverso_budget.ledger import BudgetLimits
 from campsverso_budget.service import BudgetService
 from campsverso_cartridge_api import ControllerRef
+from campsverso_codehost.service import CodeHostService
 from campsverso_controller_runner.office_mind import OfficeMind
 from campsverso_controller_runner.replay import Recorded, ReplayRunner
 from campsverso_controller_runner.runner import (
@@ -103,6 +109,7 @@ class Pipeline:
         full_notebook: bool = False,
         workshop_repo: Path | None = None,
         effort: Effort | None = "medium",
+        codehost: bool = False,
     ) -> None:
         """`memory=True` dá à mente um caderno SQLite em memória (ADR-0060); `False` é o M10;
         uma porta pronta (um arquivo) serve ao teste de reinício. `cartridge` escolhe o mundo
@@ -178,6 +185,7 @@ class Pipeline:
                 self.ids,
                 self.clock,
                 self.telemetry,
+                workshop=None if workshop_repo is None else self._workshop(worldid, workshop_repo),
             )
         elif controller == "replay":
             self.runner = ReplayRunner(
@@ -232,15 +240,7 @@ class Pipeline:
             if office:
                 if workshop_repo is None:
                     raise ValueError("o escritório precisa de um repositório: workshop_repo")
-                shop = LocalWorkshop(
-                    workshop_repo,
-                    workshop_repo.parent / "oficina",
-                    python_env=False,
-                    python=Path(sys.executable),
-                )
-                workshop = WorkshopSession(
-                    worldid, "camps", shop, self.deliveries, lambda diff: review(diff, [])
-                )
+                workshop = self._workshop(worldid, workshop_repo)
                 brain = self.office_mind = OfficeMind(
                     load_controller(script, "camps"),
                     package,
@@ -307,10 +307,40 @@ class Pipeline:
             self.guard = BudgetService(
                 worldid, budget, self.bus, MemoryBlobStore(), self.clock, self.ids, self.telemetry
             )
+        self.host: MemoryCodeHost | None = None
+        self.codehost: CodeHostService | None = None
+        if codehost:
+            if workshop_repo is None:
+                raise ValueError("o publicador precisa do repositório da oficina: workshop_repo")
+            self.host = MemoryCodeHost()
+            self.codehost = CodeHostService(
+                worldid,
+                self.bus,
+                self.host,
+                self.deliveries,
+                MemoryBlobStore(),
+                functools.partial(files_after_patch, workshop_repo),
+                lambda diff: review(diff, []),
+                [],
+                self.clock,
+                self.ids,
+                self.telemetry,
+            )
+
+    def _workshop(self, worldid: str, repo: Path) -> WorkshopSession:
+        """A oficina do dev num clone do repositório dado, com as entregas em `deliveries`."""
+        shop = LocalWorkshop(
+            repo, repo.parent / "oficina", python_env=False, python=Path(sys.executable)
+        )
+        return WorkshopSession(
+            worldid, "camps", shop, self.deliveries, lambda diff: review(diff, [])
+        )
 
     async def start(self) -> None:
         if self.guard is not None:
             await self.guard.start()
+        if self.codehost is not None:
+            await self.codehost.start()
         await self.perception.start()
         if self.runner is not None:
             await self.runner.start()

@@ -1,0 +1,15 @@
+[project]
+name = "campsverso-codehost"
+version = "0.1.0.dev0"
+description = "O publicador e o vigia do GitHub: a entrega do dev vira um PR, e o que acontece no PR volta ao escritório (ADR-0083)."
+requires-python = ">=3.14"
+license = "MIT"
+dependencies = [
+  "campsverso-contracts",
+  "campsverso-ports",
+  "campsverso-adapters",  # só o main.py (raiz de composição) importa
+]
+
+[build-system]
+requires = ["uv_build>=0.13,<0.14"]
+build-backend = "uv_build"
