@@ -16,6 +16,7 @@ from campsverso_cartridge_api import (
 )
 from campsverso_office_sim import config
 from campsverso_office_sim.actions import ALL_ACTIONS
+from campsverso_office_sim.commands import COMMANDS
 from campsverso_office_sim.systems import build_systems
 
 INTERRUPTS = ("never", "cancel", "partial")
@@ -118,6 +119,8 @@ class OfficeCartridge:
             world.add_action(action)
         for system in build_systems(data):
             world.add_system(system)
+        for command in COMMANDS:  # o que vem de fora: o PR do dev (ADR-0083, ADR-0084)
+            world.add_command(command)
         for label in labels(data):
             world.add_label(label)
         for metric in metrics(data):

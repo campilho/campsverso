@@ -430,7 +430,12 @@ class AcceptTicket(OfficeAction):
         if isinstance(board, Rejection):
             return board
         found = _delivered(ctx)
-        return found if isinstance(found, Rejection) else None
+        if isinstance(found, Rejection):
+            return found
+        if found.attributes.get("pr_estado") == "aberto":  # o aceite é mesclar (ADR-0083)
+            number, pr = found.attributes["numero"], found.attributes["pr"]
+            return Rejection("pr_open", f"o pedido {number} se aceita mesclando o PR #{pr}")
+        return None
 
     def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
         found = _delivered(ctx)
