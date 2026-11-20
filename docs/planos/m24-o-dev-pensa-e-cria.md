@@ -385,3 +385,55 @@ São ferramentas do computador, e não ações do mundo. A mente as chama durant
 16. **O sinal de vida da guarda:** sem ele, a mente desliga e a rotina assume. *Sim, no lugar de pausar o mundo, que a §6 do plano macro previa.*
 17. **As fitas do escritório com um repositório de exemplo.** *Recomendação: sim.*
 18. **A mente com rotina** (§2.5): o modelo só quando há trabalho, a rotina determinística no resto, sob o mesmo controlador `llm`. *Ressalva do usuário: sim.*
+
+## 13. Como ficou
+
+Feito de 15 a 20/nov, com as 18 decisões e as duas ressalvas do usuário (ADR-0080). As quatro partes ficaram como no plano. No meio entraram o tick de 250 ms (ADR-0081) e a planta e a arte nova do escritório (ADR-0082).
+
+- **A parte 1, o mundo** (`d54c474`, `4429d00`, `834bba4`, `2cad523`, `cfbd6ec`):
+  - a fala que interrompe;
+  - a copa, as pausas e o almoço, pela rotina do dev, sem custo;
+  - o teto por pedido, os tetos mudados com o mundo vivo (`budget.set`) e o sinal de vida da guarda. No escritório, estourar desliga a mente, e a rotina assume.
+- **O tick de 250 ms** (ADR-0081; `76dc2c9`, `b7d3fc7`, `b5a7cb8`): com o de 2 s, a 1× o clique esperava até 2 s e a seta solta voltava o gerente.
+- **A parte 2, a oficina** (`fe34783`, `ceed6ad`, `a030f36`):
+  - a porta, o clone isolado sob o `sandbox-exec` e as oito ferramentas;
+  - a revisão: a constituição, os testes apagados e as palavras proibidas;
+  - a entrega num patch e o `make aplicar` num ramo.
+- **A parte 3, a mente** (`050f1cd`, `3842878`, `404c737`, `7624b8f`, `67fe816`):
+  - a mente com rotina: o modelo só quando há trabalho;
+  - a memória do escritório e a revisão da manhã;
+  - a prova de conformidade: os cinco modelos passaram, por US$ 0,36;
+  - a primeira sessão com o modelo de verdade, a "Saudação" (US$ 0,028), e a de dois dias com uma devolução (US$ 0,12), em que o dev aplicou a lição no pedido seguinte.
+- **A parte 4, a criação** (`022c22c`, `15b250a`, `8feff96`, `81f8bbe`, `eeb839a`, `c489e13`):
+  - a bancada, o registro de robôs, o `chamar_robo` e o "ver o patch";
+  - o usuário pediu o testador no quadro, e o dev o fez (US$ 0,05). A revisão achou que, com tudo verde, ele dizia "nenhum teste rodou"; o dev o consertou no pedido seguinte (US$ 0,048), e o usuário aplicou;
+  - o dev chama o testador: a mente pela ferramenta, e o dev-script pela `reserva` do registro.
+- **A arte nova do escritório** (ADR-0082; `7be91c8`, `f828d07`, `46c3973`): a planta com quatro cubículos, a copa, a descompressão e o banheiro no corredor; a arte do Claude Design no lugar da LPC; os balões com ícone, a fonte pixel e as plantas.
+- **As conferências:**
+  - o `make check` com `TZ=UTC` deu verde, com 795 testes em Python, 148 da tela e 3 dos contratos;
+  - o `make ui-e2e` passou 8 de 8, com o escritório inteiro: o pedido, a fala que interrompe, a seta e o clique a 1×, o "ver o patch", o robô na bancada e o café;
+  - os soaks das fazendas deram as mesmas métricas do M23, e não só as moedas: a fazenda 1 (1.175), a Boa Vista (220) e a Morada do Sol nos mapas a e d (85);
+  - o soak do escritório passou em 5 dias:
+    - 12 pedidos e 12 entregas;
+    - 9 pausas e o almoço em cada dia útil;
+    - nenhum problema nos invariantes;
+    - de 91 a 118 s por dia útil e 165 s no feriado;
+  - o replay do dia 2 do escritório reproduziu os 21.775 fatos, com o mesmo hash;
+  - a fita da manhã do escritório (17 chamadas do Sonnet 5.5, US$ 0,058) se reproduz em uns 25 s, no CI.
+- **O que mudou em relação ao plano:**
+  - **o tick de 250 ms e a arte nova,** que o plano não previa;
+  - **as pausas por uma rotina determinística,** e não por necessidades: a ressalva do usuário;
+  - **o custo de API:** uns US$ 0,66, contra os US$ 20 a 55 previstos, pelo cache e pelas sessões curtas;
+  - **a fita cobre a manhã,** e não o dia inteiro: o bom-dia e dois pedidos bastam.
+- **O que se achou no caminho:**
+  - o CI ficou vermelho de 15 a 19/nov sem ninguém ver, por três motivos:
+    - o limite de tempo;
+    - a oficina sem as pastas do uv no CI;
+    - o script que lembrava de um mundo no outro;
+  - o teste do escritório no navegador oscilava por três defeitos:
+    - o consumidor do NATS segurava eventos até 1 s;
+    - o relógio da tela levava a vantagem da 72× para a 1×;
+    - a barra acima do mapa mudava de altura;
+  - o primeiro conserto do consumidor deixou o soak do escritório cinco vezes mais lento, e o soak do fechamento o achou;
+  - o dia mais lento do soak do escritório é o feriado, com o vigia o dia todo; o custo por decisão sobe um pouco de um dia para o outro, e isso foi para o `futuro.md`.
+- **O custo:** uns US$ 0,66 de API em seis passos pagos, cada um com o ok do usuário. O Claude Code levou 458 minutos ativos em 86 turnos. No fim, o uso do plano estava em 30% da janela de 5 horas e em 40% da semana.

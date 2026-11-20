@@ -181,3 +181,11 @@ O que ficou para o fechamento, sem API:
   - em cada dia de expediente, ao menos uma pausa do dev (água, café ou banheiro) e o almoço;
   - nenhuma ação da copa fora do expediente.
 - **O "ver o patch" no navegador:** o teste do escritório abre o patch da entrega do dev-script (a sessão fixa dele na oficina registra o pedido num arquivo), entre a entrega e o aceite.
+
+## Adendo (20/nov): o fechamento
+
+O que o fechamento decidiu, sem mudar nenhum contrato:
+- **O dev-script também chama o robô.** A linha do registro de robôs (`robos:` no `escritorio.yaml` do cenário) ganha um campo opcional, `reserva`: os argumentos com que o script de reserva chama o robô antes de entregar. O testador recebe os testes da própria bancada (`tools/robos/tests`). O gênero não conhece o testador: quem escolhe o que testar é o cenário. Os atributos de uma entidade são escalares, e por isso os argumentos viajam num texto, separados por espaço. O resultado do robô não muda a entrega da reserva.
+- **O mundo espera a sessão, fora do mundo vivo.** A mente com rotina ganha o modo `background=False`, para os testes e a fita: a sessão de um pedido e a revisão da manhã rodam dentro da decisão, e a entrega com o patch é a própria decisão. Ao vivo, tudo segue como na decisão 18 e no adendo de 15/nov: a sessão em segundo plano e a entrega na hora, que não espera o tempo simulado do pedido.
+- **A saída da oficina é a mesma em qualquer pasta e máquina.** Os testes e os robôs devolvem o texto sem os tempos medidos, com o espaço como `.` e o Python de fora dele como `<python>`, e o pytest roda com 240 colunas, para o resumo não cortar um caminho no meio. O tempo de cada passo segue no fato `workshop.step.v1`.
+- **A fita do escritório cobre a manhã** (a decisão 17): até as 12:00 do primeiro dia do mundo de teste, com o bom-dia do gerente e dois pedidos, num repositório de exemplo (`tests/fixtures/oficina`) montado a cada vez com um commit de data fixa. Gravada com o Sonnet 5.5 (17 chamadas, US$ 0,058). Se a mente, a oficina ou o mundo mudarem o que vai ao modelo, ela é gravada de novo.
