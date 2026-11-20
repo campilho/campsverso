@@ -121,7 +121,7 @@ DIAS ?= 1
 # guarda os espaços antes de um `#` no valor da variável (o CI de 20/out subiu `config/worlds/.yaml`).
 CARTUCHO ?= farm_camps
 
-fita: ## grava em processo a fita de teste do controlador LLM, chamando a API (ADR-0059): make fita DIAS=1 [CARTUCHO=farm_boavista]
+fita: ## grava em processo a fita de teste do controlador LLM, chamando a API (ADR-0059): make fita DIAS=1 [CARTUCHO=farm_boavista]; CARTUCHO=office_campsverso grava a manhã do escritório
 	uv run --locked --env-file .env python -m campsverso_testkit.fita --days $(DIAS) --cartridge $(CARTUCHO)
 
 corrida: ## N dias em processo com a mente sobre a API, com ou sem memória (ADR-0060): make corrida DIAS=7 [SEM_MEMORIA=1] [CARTUCHO=farm_morada_do_sol]

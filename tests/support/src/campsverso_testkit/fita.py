@@ -7,6 +7,11 @@ verdade em modo `record`, por N dias simulados: o mesmo mundo, a mesma seed e os
 testes, então a fita gravada reproduz o dia exatamente, em `replay`, sem rede. Ao fim, a fita
 magra (o hash do pedido e a resposta, sem o corpo do pedido) vai para `--out`, e o próprio comando
 a reproduz uma vez, para conferir. Custa uns centavos no Haiku 5.5; o CI nunca roda isto.
+
+**O escritório** (`--cartridge office_campsverso`; o plano do M24, §8): a manhã do primeiro dia do
+mundo de teste, até as 12:00, com a mente com rotina do dev e a oficina no repositório de exemplo
+(`tests/fixtures/oficina`): o bom-dia do gerente e os pedidos das 9:30 e das 10:30. O mundo espera
+cada sessão (`background=False`), e a gravação para se o gasto passar de `OFFICE_CAP_USD`.
 """
 
 import argparse
@@ -23,8 +28,15 @@ from typing import Any
 
 from campsverso_adapters import AnthropicModel, RecordingModel, SystemWallClock
 from campsverso_budget.ledger import BudgetLimits
-from campsverso_ports import ModelPort
+from campsverso_ports import (
+    ModelCallError,
+    ModelCapabilities,
+    ModelPort,
+    ModelRequest,
+    ModelResponse,
+)
 from campsverso_testkit.nats_server import REPO
+from campsverso_testkit.oficina import example_office_repo
 from campsverso_testkit.pipeline import Pipeline
 
 LIMITS = BudgetLimits(usd_per_sim_day=0.60, usd_total=10.0)
@@ -93,7 +105,91 @@ def summary(pipeline: Pipeline) -> dict[str, Any]:
     }
 
 
-SLUGS = {"farm_camps": "camps", "farm_boavista": "boavista", "farm_morada_do_sol": "morada"}
+OFFICE = "office_campsverso"
+OFFICE_MODEL = "claude-sonnet-5-5"  # o dos mundos do escritório, com o esforço médio deles
+OFFICE_HOURS = 12  # a manhã do primeiro dia: o bom-dia e os pedidos das 9:30 e das 10:30
+OFFICE_CAP_USD = 1.00  # a gravação para se passar disto (a conta prevista é bem menor)
+
+SLUGS = {
+    "farm_camps": "camps",
+    "farm_boavista": "boavista",
+    "farm_morada_do_sol": "morada",
+    OFFICE: "escritorio",
+}
+
+
+class Capped:
+    """Uma porta com teto de gasto: antes de cada chamada, soma o que já foi cobrado (os eventos do
+    medidor do próprio pipeline) e recusa passar do teto."""
+
+    def __init__(self, inner: ModelPort, cap_usd: float) -> None:
+        self._inner = inner
+        self._cap = cap_usd
+        self.pipeline: Pipeline | None = None
+
+    @property
+    def provider(self) -> str:
+        return self._inner.provider
+
+    def capabilities(self) -> ModelCapabilities:
+        return self._inner.capabilities()
+
+    async def count_tokens(self, request: ModelRequest) -> int:
+        return await self._inner.count_tokens(request)
+
+    def spent(self) -> float:
+        if self.pipeline is None:
+            return 0.0
+        calls = self.pipeline.of_type("llm.call.completed.v1")
+        return sum(float(c["cost_usd"]) for c in calls if c["charged"])
+
+    async def complete(self, request: ModelRequest) -> ModelResponse:
+        if self.spent() >= self._cap:
+            raise ModelCallError("bad_request", f"o teto da gravação: US$ {self._cap:.2f}")
+        return await self._inner.complete(request)
+
+
+def office_summary(pipeline: Pipeline) -> dict[str, Any]:
+    """O que o dev fez na manhã do escritório e quanto custou."""
+    completed = pipeline.of_type("llm.call.completed.v1")
+    charged = [c for c in completed if c["charged"]]
+    usage = Counter[str]()
+    for call in charged:
+        for key, value in call["usage"].items():
+            usage[str(key)] += int(value)
+    mind = pipeline.office_mind
+    assert mind is not None
+    return {
+        "calls": len(completed),
+        "failed": len(pipeline.of_type("llm.call.failed.v1")),
+        "charged": len(charged),
+        "replayed": len(completed) - len(charged),
+        "cost_usd": round(sum(float(c["cost_usd"]) for c in charged), 4),
+        "tokens": dict(usage),
+        "sessions": mind.sessions,
+        "replies": mind.replies,
+        "unfinished": sorted(mind.failed),
+        "delivered": [str(d["ticket_id"]) for d in pipeline.of_type("office.ticket.delivered.v1")],
+        "patches": len([k for k in pipeline.deliveries.blobs if k.endswith(".patch")]),
+        "steps": dict(
+            sorted(Counter(str(s["tool"]) for s in pipeline.of_type("workshop.step.v1")).items())
+        ),
+        "robots": len(pipeline.of_type("workshop.robot_called.v1")),
+    }
+
+
+async def run_office(port: ModelPort, model: str = OFFICE_MODEL) -> dict[str, Any]:
+    """A manhã do escritório, com a oficina numa cópia nova do repositório de exemplo."""
+    with tempfile.TemporaryDirectory(prefix="campsverso-escritorio-") as folder:
+        repo = example_office_repo(Path(folder))
+        pipeline = Pipeline(
+            controller="llm", port=port, cartridge=OFFICE, workshop_repo=repo, model=model
+        )
+        if isinstance(port, Capped):
+            port.pipeline = pipeline
+        await pipeline.start()
+        await pipeline.run_until(pipeline.day * OFFICE_HOURS // 24)
+        return office_summary(pipeline)
 
 
 async def run_days(days: int, port: ModelPort, cartridge: str = "farm_camps") -> dict[str, Any]:
@@ -109,13 +205,22 @@ async def record(days: int, out: Path, cartridge: str = "farm_camps") -> int:
         return 2
     scratch = Path(tempfile.mkdtemp(prefix="campsverso-fita-")) / "gravacao.jsonl"
     clock = SystemWallClock()
-    recorder = RecordingModel(AnthropicModel(clock=clock), scratch, "record", clock=clock)
-    print(f"gravando {days} dia(s) com a API... (uma chamada por decisão)", flush=True)
-    recorded = await run_days(days, recorder, cartridge)
+    office = cartridge == OFFICE
+    api: ModelPort = AnthropicModel(clock=clock)
+    if office:
+        api = Capped(api, OFFICE_CAP_USD)
+    recorder = RecordingModel(api, scratch, "record", clock=clock)
+    if office:
+        print(f"gravando a manhã do escritório com {OFFICE_MODEL}...", flush=True)
+        recorded = await run_office(recorder)
+    else:
+        print(f"gravando {days} dia(s) com a API... (uma chamada por decisão)", flush=True)
+        recorded = await run_days(days, recorder, cartridge)
     print(json.dumps({"gravacao": recorded}, ensure_ascii=False, indent=2), flush=True)
     entries = slim(scratch, out)
     print(f"fita magra: {out} ({entries} chamadas)", flush=True)
-    replayed = await run_days(days, RecordingModel(None, out, "replay"), cartridge)
+    tape = RecordingModel(None, out, "replay")
+    replayed = await (run_office(tape) if office else run_days(days, tape, cartridge))
     print(json.dumps({"reproducao": replayed}, ensure_ascii=False, indent=2), flush=True)
     if replayed["failed"] or replayed["calls"] != recorded["calls"] or replayed["charged"]:
         print("a reprodução não bateu com a gravação: a fita não serve de teste", file=sys.stderr)
@@ -134,7 +239,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--cartridge", choices=sorted(SLUGS), default="farm_camps", help="o mundo (ADR-0062)"
     )
     args = parser.parse_args(argv)
-    out = args.out or FIXTURES / f"{SLUGS[args.cartridge]}-dia-{args.days}.jsonl"
+    slug = SLUGS[args.cartridge]
+    office = args.cartridge == OFFICE
+    out = args.out or FIXTURES / (
+        f"{slug}-manha.jsonl" if office else f"{slug}-dia-{args.days}.jsonl"
+    )
     return asyncio.run(record(args.days, out, args.cartridge))
 
 

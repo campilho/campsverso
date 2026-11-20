@@ -9,11 +9,15 @@ script de cada um, pela lista do arquivo do mundo.
 
 Com `controller="llm"` entra a mente (ADR-0059) sobre uma porta de modelo dada pelo teste (uma
 porta falsa, ou a fita em `replay`), medida pelo `MeteredModel`, e opcionalmente a guarda de
-orçamento. O relógio fica no modo contínuo, porque o máximo é só de script e replay (princípio 7);
+orçamento. No escritório, a mente com rotina (ADR-0080), com a oficina num repositório dado pelo
+teste (`workshop_repo`, o de exemplo da fita), e o mundo espera a sessão e a revisão da manhã.
+O relógio fica no modo contínuo, porque o máximo é só de script e replay (princípio 7);
 em memória não faz diferença: o barramento entrega e espera a resposta antes do próximo tick.
 """
 
+import sys
 from collections.abc import Mapping, Sequence
+from pathlib import Path
 from typing import Any, Literal, cast
 
 from campsverso_adapters import (
@@ -30,9 +34,12 @@ from campsverso_adapters import (
     load_env,
     load_world,
 )
+from campsverso_adapters.workshop_local import LocalWorkshop
+from campsverso_adapters.workshop_review import review
 from campsverso_budget.ledger import BudgetLimits
 from campsverso_budget.service import BudgetService
 from campsverso_cartridge_api import ControllerRef
+from campsverso_controller_runner.office_mind import OfficeMind
 from campsverso_controller_runner.replay import Recorded, ReplayRunner
 from campsverso_controller_runner.runner import (
     Controller,
@@ -41,12 +48,13 @@ from campsverso_controller_runner.runner import (
     load_controller,
     load_mind,
 )
+from campsverso_controller_runner.workshop import WorkshopSession
 from campsverso_kernel.engine import Engine
 from campsverso_kernel.service import KernelService
 from campsverso_kernel.version import run_version
-from campsverso_mind import LlmController, Memory, MemorySettings
+from campsverso_mind import LlmController, Memory, MemoryProfile, MemorySettings
 from campsverso_perception.service import PerceptionService
-from campsverso_ports import Envelope, MemoryPort, ModelPort
+from campsverso_ports import Effort, Envelope, MemoryPort, ModelPort
 from campsverso_testkit.farm import WORLD, make_core
 from campsverso_testkit.nats_server import REPO
 
@@ -60,8 +68,9 @@ WORLDS: dict[str, tuple[str, str, str]] = {
     "farm_camps": (WORLD, "farmer", "camps"),
     "farm_boavista": ("farm-boavista-01", "farmer2", "camps_boavista"),
     "farm_morada_do_sol": ("farm-morada-do-sol-01", "farmer2", "camps_morada"),
-    # O escritório de teste (ADR-0078): o dev-script, o vigia e o gerente-script; a mente é do M24.
-    "office_campsverso": ("office-campsverso-teste", "dev", ""),
+    # O escritório de teste (ADR-0078): o dev-script, o vigia e o gerente-script; com o modelo, a
+    # mente com rotina do M24 (ADR-0080).
+    "office_campsverso": ("office-campsverso-teste", "dev", "camps_escritorio"),
 }
 
 type ControllerKind = Literal["script", "replay", "none", "llm"]
@@ -92,6 +101,8 @@ class Pipeline:
         compare: bool = False,
         advisor: str | None = None,
         full_notebook: bool = False,
+        workshop_repo: Path | None = None,
+        effort: Effort | None = "medium",
     ) -> None:
         """`memory=True` dá à mente um caderno SQLite em memória (ADR-0060); `False` é o M10;
         uma porta pronta (um arquivo) serve ao teste de reinício. `cartridge` escolhe o mundo
@@ -100,7 +111,9 @@ class Pipeline:
         (ADR-0070); `playbook` dá à mente o método e o ofício (ADR-0071); `script_config` troca
         chaves do arquivo do script 3 (a contratação forçada; ADR-0073); `compare` dá à
         reflexão a ferramenta de comparação, e `advisor`, o conselheiro (ADR-0074); `full_notebook`
-        dá à memória o caderno completo (ADR-0074, decisão 35)."""
+        dá à memória o caderno completo (ADR-0074, decisão 35). No escritório, `workshop_repo` é o
+        repositório da oficina do dev, e `effort` o esforço da sessão (o dos mundos do
+        escritório)."""
         worldid, default_script, default_mind = WORLDS[cartridge]
         script = script or default_script
         self.worldid, self.cartridge = worldid, cartridge
@@ -143,6 +156,8 @@ class Pipeline:
         )
         self.runner: ControllerRunner | ReplayRunner | None = None
         self.mind: LlmController | None = None
+        self.office_mind: OfficeMind | None = None
+        self.deliveries = MemoryBlobStore()  # os patches da oficina do escritório
         self.script: Controller | None = None  # o fazendeiro-script (a prova lê o modelo dele)
         self.guard: BudgetService | None = None
         if controller == "script":
@@ -196,9 +211,13 @@ class Pipeline:
                 store = SqliteMemory(":memory:") if memory else None
             else:
                 store = memory
+            package = load_mind(mind)
             if store is not None:
                 settings = MemorySettings(
-                    compare=compare, advisor=advisor, full_notebook=full_notebook
+                    compare=compare,
+                    advisor=advisor,
+                    full_notebook=full_notebook,
+                    profile=package.memory or MemoryProfile(),  # o do escritório, ou o da fazenda
                 )
                 notebook = Memory(store, "camps", settings)
             elif compare or advisor or full_notebook:
@@ -208,20 +227,51 @@ class Pipeline:
                 )
             if advisor is not None:
                 metered.assert_priced(advisor)
-            self.mind = LlmController(
-                load_mind(mind),
-                metered,
-                controller_id=LLM_ID,
-                avatar_id="camps",
-                model=model,
-                telemetry=self.telemetry,
-                memory=notebook,
-                with_playbook=playbook,
-            )
-            self.runner = ControllerRunner(
+            brain: LlmController | OfficeMind
+            workshop: WorkshopSession | None = None
+            if office:
+                if workshop_repo is None:
+                    raise ValueError("o escritório precisa de um repositório: workshop_repo")
+                shop = LocalWorkshop(
+                    workshop_repo,
+                    workshop_repo.parent / "oficina",
+                    python_env=False,
+                    python=Path(sys.executable),
+                )
+                workshop = WorkshopSession(
+                    worldid, "camps", shop, self.deliveries, lambda diff: review(diff, [])
+                )
+                brain = self.office_mind = OfficeMind(
+                    load_controller(script, "camps"),
+                    package,
+                    metered,
+                    workshop,
+                    controller_id=LLM_ID,
+                    avatar_id="camps",
+                    model=model,
+                    session_tools=package.workshop,
+                    session_instructions=package.session,
+                    chat_instructions=package.conversation,
+                    effort=effort,
+                    telemetry=self.telemetry,
+                    memory=notebook,
+                    background=False,  # o mundo espera a sessão: a fita reproduz o dia
+                )
+            else:
+                brain = self.mind = LlmController(
+                    package,
+                    metered,
+                    controller_id=LLM_ID,
+                    avatar_id="camps",
+                    model=model,
+                    telemetry=self.telemetry,
+                    memory=notebook,
+                    with_playbook=playbook,
+                )
+            runner = ControllerRunner(
                 worldid,
                 "camps",
-                self.mind,
+                brain,
                 self.bus,
                 self.ids,
                 self.clock,
@@ -229,6 +279,10 @@ class Pipeline:
                 cartridge=cartridge,
                 sim_time=sim_time,
             )
+            if self.office_mind is not None and workshop is not None:
+                self.office_mind.propose = runner.propose_now
+                workshop.publish = runner.publish_observed
+            self.runner = runner
         # Os controladores do arquivo do mundo (o gerente-script do escritório de teste).
         core.configure_controllers(
             {

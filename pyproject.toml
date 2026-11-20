@@ -147,7 +147,7 @@ pythonVersion = "3.14"
 venvPath = "."
 venv = ".venv"
 include = ["packages/contracts-py/src", "libs", "services", "cartridges", "tools/contracts", "tests"]
-exclude = ["**/__pycache__", "**/.venv", "**/node_modules"]
+exclude = ["**/__pycache__", "**/.venv", "**/node_modules", "tests/fixtures/oficina"]  # o repositório de exemplo do escritório
 
 # ---------------------------------------------------------------- pytest
 [tool.pytest.ini_options]
