@@ -7,7 +7,10 @@ graça. Para o kernel é um controlador só, `llm`.
   Ela recebe a foto inteira, refeita dos deltas da percepção (`apply_delta`).
 - **O trabalho de um pedido** é uma sessão do modelo na oficina (`WorkSession`), em segundo plano:
   quando a rotina propõe trabalhar, a sessão começa, e o dev fica na mesa trabalhando enquanto ela
-  corre. No `pronto`, o patch é revisado e a entrega sai na hora, sem esperar um pedido de decisão.
+  corre. No `pronto`, o patch é revisado e a entrega sai na hora, sem esperar um pedido de decisão:
+  com o patch, o kernel não espera o tempo simulado do pedido (ADR-0080).
+- **Fora do mundo vivo** (os testes e a fita, `background=False`): o mundo espera a sessão e a
+  revisão, que rodam dentro da decisão; assim a mesma fita reproduz o mesmo dia.
 - **Quem fala com o dev** recebe a resposta do modelo, numa chamada curta, com o que ele está
   fazendo.
 
@@ -145,8 +148,10 @@ class OfficeMind:
         max_steps: int = 60,
         telemetry: Telemetry | None = None,
         memory: Memory | None = None,
+        background: bool = True,
     ) -> None:
         self._script = script
+        self._background = background
         self._port = port
         self._workshop = workshop
         self._controller_id = controller_id
@@ -253,7 +258,7 @@ class OfficeMind:
             proposal = dict(self._script.decide(view))
             proposal.pop("workshop", None)
             return proposal
-        self._maybe_review()
+        await self._maybe_review()
         mine = _me(view)
         heard = [
             h
@@ -269,11 +274,18 @@ class OfficeMind:
         proposal = dict(self._script.decide(view))
         proposal.pop("workshop", None)  # a sessão fixa do script é só da reserva sem modelo
         ticket = doing_ticket(view)
-        if proposal.get("action") == "work" and ticket is not None:
-            ticket_id = str(ticket["entity_id"])
-            if ticket_id not in self.failed:
-                self._start(ticket)
-                return self._keep_working(view, delivery)
+        ticket_id = None if ticket is None else str(ticket["entity_id"])
+        if (
+            proposal.get("action") == "work"
+            and ticket is not None
+            and ticket_id is not None
+            and ticket_id not in self.failed
+        ):
+            self._begin(ticket_id)
+            if not self._background:
+                return await self._session(ticket)  # o mundo espera: a entrega é a decisão
+            self._task = asyncio.create_task(self._run_session(ticket))
+            return self._keep_working(view, delivery)
         return proposal
 
     def _keep_working(self, view: Mapping[str, Any], delivery: Mapping[str, Any]) -> dict[str, Any]:
@@ -291,12 +303,19 @@ class OfficeMind:
 
     # ------------------------------------------------------------- a sessão
 
-    def _start(self, ticket: Mapping[str, Any]) -> None:
-        self._working_on = str(ticket["entity_id"])
+    def _begin(self, ticket_id: str) -> None:
+        self._working_on = ticket_id
         self.sessions += 1
-        self._task = asyncio.create_task(self._session(ticket))
 
-    async def _session(self, ticket: Mapping[str, Any]) -> None:
+    async def _run_session(self, ticket: Mapping[str, Any]) -> None:
+        """A sessão em segundo plano: o que ela devolve sai na hora, pelo runner."""
+        outcome = await self._session(ticket)
+        if self.propose is not None:
+            await self.propose(outcome)
+
+    async def _session(self, ticket: Mapping[str, Any]) -> dict[str, Any]:
+        """A sessão de um pedido na oficina: devolve a entrega com o patch, ou a fala com o
+        motivo."""
         ticket_id = str(ticket["entity_id"])
         number = cast(Mapping[str, Any], ticket.get("attributes") or {}).get("numero", "?")
         summary = ""
@@ -349,8 +368,7 @@ class OfficeMind:
         self._remember_session(ticket_id, number, outcome, steps, tests)
         if outcome.get("action") != "deliver":
             self.failed.add(ticket_id)
-        if self.propose is not None:
-            await self.propose(outcome)
+        return dict(outcome)
 
     async def _call_robot(
         self, space: Workspace, robots: Sequence[Robot], args: Mapping[str, Any]
@@ -422,7 +440,7 @@ class OfficeMind:
 
     # ------------------------------------------------------------- a revisão da manhã
 
-    def _maybe_review(self) -> None:
+    async def _maybe_review(self) -> None:
         """Na primeira decisão de cada dia do mundo (o dev só decide dentro da sala), a revisão dos
         dias de trabalho ainda não revistos, até três, em segundo plano."""
         memory = self._memory
@@ -432,7 +450,10 @@ class OfficeMind:
         self._review_day = clock.day
         days = memory.pending_days(clock)
         if days:
-            self._review = asyncio.create_task(self._run_review(clock, days))
+            if self._background:
+                self._review = asyncio.create_task(self._run_review(clock, days))
+            else:
+                await self._run_review(clock, days)  # fora do mundo vivo, dentro da decisão
 
     async def _run_review(self, clock: Clock, days: Sequence[int]) -> None:
         memory = self._memory

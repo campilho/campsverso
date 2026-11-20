@@ -151,6 +151,7 @@ def _mind(
     tmp_path: Path,
     memory: Memory | None = None,
     robot_tool: Mapping[str, Any] | None = None,
+    background: bool = True,
 ) -> tuple[OfficeMind, list[Mapping[str, Any]], list[str]]:
     proposed: list[Mapping[str, Any]] = []
     steps: list[str] = []
@@ -187,6 +188,7 @@ def _mind(
         session_instructions="Trabalhe.",
         chat_instructions="Responda curto.",
         memory=memory,
+        background=background,
     )
     mind.propose = propose
     return mind, proposed, steps
@@ -221,6 +223,24 @@ async def test_o_modelo_trabalha_na_oficina_e_a_entrega_sai_sozinha(
     assert "Pedido 1: Testador" in port.requests[0].messages[0]["content"][0]["text"]
     assert {r.ticket_id for r in port.requests} == {"pedido-001"}
     assert port.requests[1].messages[-1]["content"][0]["type"] == "tool_result"
+
+
+async def test_fora_do_mundo_vivo_o_mundo_espera_a_sessao(repo: Path, tmp_path: Path) -> None:
+    """Os testes e a fita do escritório (`background=False`): a sessão roda dentro da decisão, e a
+    entrega com o patch é a própria decisão; a mesma fita reproduz o mesmo dia (20/nov)."""
+    port = Scripted(
+        [_use("escrever", path="tools/testador.py", content="OK = 1\n")],
+        [_use("pronto", resumo="Escrevi o testador.")],
+    )
+    mind, proposed, steps = _mind(port, repo, tmp_path, background=False)
+    deliver = await mind.decide(_snapshot())
+    assert deliver is not None
+    assert deliver["action"] == "deliver"
+    assert deliver["params"]["patch"]["files"] == ["tools/testador.py"]
+    assert steps == ["escrever", "pronto"]
+    assert not mind.working
+    assert proposed == []  # nada sai por fora da decisão
+    assert mind.sessions == 1
 
 
 async def test_quem_fala_com_o_dev_recebe_a_resposta_do_modelo(repo: Path, tmp_path: Path) -> None:
