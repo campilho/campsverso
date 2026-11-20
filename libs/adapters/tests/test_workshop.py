@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from campsverso_adapters.workshop_local import LocalWorkshop, sync_env
+from campsverso_adapters.workshop_local import LocalWorkshop, steady, sync_env
 from campsverso_adapters.workshop_review import review
 
 GIT = [
@@ -225,3 +225,31 @@ def test_o_uv_do_espaco_acha_o_cache_e_os_pythons_da_maquina() -> None:
     assert env["UV_CACHE_DIR"] == "/runner/temp/setup-uv-cache"
     assert env["UV_PYTHON_INSTALL_DIR"] == "/runner/temp/uv-python-dir"
     assert set(env) == {"PATH", "HOME", "UV_CACHE_DIR", "UV_PYTHON_INSTALL_DIR"}
+
+
+def test_a_saida_dos_testes_e_dos_robos_nao_leva_o_tempo_medido() -> None:
+    """O mesmo passo devolve o mesmo texto a cada vez (a fita do escritório, 20/nov): sem o tempo
+    que o pytest mede."""
+    assert steady("== 2 passed in 0.03s ==") == "== 2 passed =="
+    assert steady("1 failed, 3 passed in 61.20s (0:01:01)") == "1 failed, 3 passed"
+    assert steady("passaram: 5\nfalharam: 0") == "passaram: 5\nfalharam: 0"
+
+
+async def test_a_saida_nao_traz_as_pastas_desta_maquina(repo: Path, tmp_path: Path) -> None:
+    """Um traceback cita o espaço e o Python de fora dele: viram `.` e `<python>`, para a saída do
+    mesmo passo ser igual noutra pasta e noutra máquina (a fita do escritório, 20/nov)."""
+    space = await _workshop(repo, tmp_path).open("office-teste", "pedido-001")
+    await space.write(
+        "tests/test_caminhos.py",
+        "import json\nfrom pathlib import Path\n\n"
+        "def test_aqui():\n    raise AssertionError(str(Path.cwd()))\n\n"
+        "def test_json():\n    json.loads('{')\n",
+    )
+    result = await space.run_tests("tests")
+    assert not result.ok
+    folder = str(tmp_path.resolve())
+    for text in (result.text, (await space.run_robot("json.tool", ["nao-existe.json"])).text):
+        assert folder[:24] not in text  # nem cortado no fim da linha do resumo do pytest
+        assert sys.prefix not in text
+        assert sys.base_prefix not in text
+    assert "FAILED tests/test_caminhos.py::test_aqui - AssertionError: ." in result.text

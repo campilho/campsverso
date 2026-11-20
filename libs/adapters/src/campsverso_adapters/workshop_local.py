@@ -17,7 +17,6 @@ import os
 import re
 import shutil
 import sys
-import time
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
@@ -39,6 +38,15 @@ MAX_ROBOT_ARGS = 20
 MAX_ROBOT_ARG = 300
 _SUMMARY = re.compile(r"(\d+) (passed|failed|error|errors|skipped|xfailed|xpassed)")
 _PLURAL = {"passed": "passaram", "failed": "falharam", "error": "erro", "errors": "erros"}
+# O tempo que o pytest mede ("2 passed in 0.03s", ou "in 61.00s (0:01:01)"). Ele sai do que a
+# ferramenta devolve, como o da própria oficina: o texto do mesmo passo fica igual de uma vez para
+# outra, e a fita do escritório reproduz o dia (20/nov). O tempo vai no fato do passo.
+_TOOK = re.compile(r" in \d+(?:\.\d+)?s(?: \(\d+:\d\d:\d\d\))?")
+
+
+def steady(output: str) -> str:
+    """A saída sem os tempos medidos: igual a cada vez que o mesmo código roda."""
+    return _TOOK.sub("", output)
 
 
 def _sandbox_profile(workspace: Path, temp: Path) -> str:
@@ -120,6 +128,22 @@ class LocalWorkspace:
         self._python = python or self._root / ".venv" / "bin" / "python"
         self._sandbox = sandbox
         self._test_seconds = test_seconds
+        # Os caminhos desta máquina que a saída de um processo pode trazer (um traceback): o espaço
+        # vira `.`, e o Python de fora do espaço, `<python>`. A saída fica igual em outra máquina e
+        # em outra pasta (a fita do escritório), e o modelo não vê as pastas de quem roda.
+        prefixes = {self._python.parent.parent, Path(sys.prefix), Path(sys.base_prefix)}
+        self._hidden = [(f"{self._root}/", ""), (str(self._root), ".")] + [
+            (f"{path}/", "<python>/")
+            for prefix in sorted(prefixes, key=lambda p: -len(str(p)))
+            for path in dict.fromkeys((prefix.resolve(), prefix))
+        ]
+
+    def _plain(self, output: str) -> str:
+        """A saída de um processo sem os tempos medidos e sem as pastas desta máquina."""
+        text = steady(output)
+        for path, shown in self._hidden:
+            text = text.replace(path, shown)
+        return text
 
     @property
     def ticket_id(self) -> str:
@@ -259,6 +283,9 @@ class LocalWorkspace:
             "TMPDIR": str(temp),
             "PYTHONDONTWRITEBYTECODE": "1",
             "TZ": "UTC",
+            # Largo: o resumo do pytest corta a mensagem na largura, e um caminho cortado escapava
+            # da troca por `.` (`_plain`).
+            "COLUMNS": "240",
         }
         command = [
             str(self._python),
@@ -272,13 +299,11 @@ class LocalWorkspace:
         ]
         if self._sandbox:
             command = ["/usr/bin/sandbox-exec", "-p", _sandbox_profile(self._root, temp), *command]
-        started = time.monotonic()
         code, out = await _run(command, self._root, env, self._test_seconds)
-        took = time.monotonic() - started
         if code == -1:
             text = f"os testes passaram de {int(self._test_seconds)} s e foram parados"
             return ToolResult(False, text, "rodando os testes: tempo esgotado", path)
-        lines = out.splitlines()
+        lines = self._plain(out).splitlines()
         # A linha do resumo do pytest ("1 failed, 2 passed in 0.1s"), a última que aparece; o `-q`
         # do repositório e um outro somados a escondiam.
         last = next((line for line in reversed(lines) if _SUMMARY.search(line)), "")
@@ -287,7 +312,7 @@ class LocalWorkspace:
         tail = "\n".join((failures or lines)[:MAX_TEST_LINES])
         parts = [f"{n} {_PLURAL.get(kind, kind)}" for kind, n in counts.items()]
         summary = "rodando os testes: " + (", ".join(parts) or f"saída {code}")
-        text = f"{summary} ({took:.1f} s)\n{tail}".rstrip()
+        text = f"{summary}\n{tail}".rstrip()
         return ToolResult(code == 0, text, summary, path)
 
     async def run_robot(self, module: str, args: Sequence[str] = ()) -> ToolResult:
@@ -310,20 +335,21 @@ class LocalWorkspace:
             "TMPDIR": str(temp),
             "PYTHONDONTWRITEBYTECODE": "1",
             "TZ": "UTC",
+            # Largo: o resumo do pytest corta a mensagem na largura, e um caminho cortado escapava
+            # da troca por `.` (`_plain`).
+            "COLUMNS": "240",
         }
         command = [str(self._python), "-m", module, *given]
         if self._sandbox:
             command = ["/usr/bin/sandbox-exec", "-p", _sandbox_profile(self._root, temp), *command]
-        started = time.monotonic()
         code, out = await _run(command, self._root, env, self._test_seconds)
-        took = time.monotonic() - started
         if code == -1:
             text = f"o robô passou de {int(self._test_seconds)} s e foi parado"
             return ToolResult(False, text, f"{line}: tempo esgotado")
-        lines = out.splitlines()
+        lines = self._plain(out).splitlines()
         shown = lines if len(lines) <= MAX_TEST_LINES else lines[-MAX_TEST_LINES:]
         summary = f"{line}: saída {code}"
-        text = f"{summary} ({took:.1f} s)\n" + "\n".join(shown)
+        text = f"{summary}\n" + "\n".join(shown)
         return ToolResult(code == 0, text.rstrip(), summary)
 
     async def _git(self, *args: str) -> str:
