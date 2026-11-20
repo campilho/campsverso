@@ -4,7 +4,7 @@ import type { ObserverState } from "@campsverso/contracts";
 import { describe, expect, it } from "vitest";
 
 import { deliveryUrl, diffLines, summaryOf, summaryRef } from "./panels/delivery.ts";
-import { isOffice, ticketsOf } from "./panels/office.ts";
+import { isOffice, pullRequestLine, ticketsOf } from "./panels/office.ts";
 import { BALLOON_CHARS, Balloons, balloonMs, balloonText } from "./speech.ts";
 import { clockText, realTime } from "./simclock.ts";
 
@@ -73,6 +73,24 @@ describe("o quadro dos pedidos", () => {
     expect(tickets[0]).toMatchObject({ title: "Busca", state: "entregue", owner: "camps", comment: "Falta o teste.", patch: "office-x/pedido-001/abc-1.patch" });
     expect(tickets[1]?.owner).toBeUndefined();
     expect(tickets[1]?.patch).toBeUndefined();
+    expect(tickets[0]?.pr).toBeUndefined();
+  });
+
+  it("mostra o PR do pedido no GitHub, com o CI enquanto ele está aberto (ADR-0083)", () => {
+    const url = "https://github.com/campilho/campsverso/pull/7";
+    const withPr = state({
+      entities: {
+        "pedido-001": {
+          kind: "ticket",
+          attributes: { numero: 1, titulo: "Busca", estado: "entregue", pr: 7, pr_url: url, pr_estado: "aberto", pr_ci: "success" },
+        },
+      },
+    });
+    const pr = ticketsOf(withPr)[0]?.pr;
+    expect(pr).toEqual({ number: 7, url, state: "aberto", ci: "success" });
+    expect(pullRequestLine({ number: 7, url, state: "aberto", ci: "success" })).toBe("PR #7 · aberto · CI verde");
+    expect(pullRequestLine({ number: 7, url, state: "aberto", ci: "pending" })).toBe("PR #7 · aberto · CI rodando");
+    expect(pullRequestLine({ number: 7, url, state: "mesclado", ci: "success" })).toBe("PR #7 · mesclado");
   });
 });
 

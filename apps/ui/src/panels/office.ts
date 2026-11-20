@@ -24,6 +24,37 @@ export interface TicketView {
   readonly comment: string | undefined;
   /** A chave do patch que o dev entregou da oficina (ADR-0080); sem ela, o trabalho foi simulado. */
   readonly patch: string | undefined;
+  /** O PR do pedido no GitHub (ADR-0083), quando a entrega virou um. */
+  readonly pr: PullRequestView | undefined;
+}
+
+export interface PullRequestView {
+  readonly number: number;
+  readonly url: string;
+  /** aberto, mesclado ou fechado */
+  readonly state: string;
+  /** pending, success ou failure */
+  readonly ci: string;
+}
+
+const CI_TEXT: Readonly<Record<string, string>> = { pending: "CI rodando", success: "CI verde", failure: "CI vermelho" };
+// Só o endereço de um PR no GitHub vira link (o contrato já o confere; aqui, de novo).
+const PR_URL = /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/pull\/[0-9]+$/;
+
+function pullRequestOf(a: Readonly<Record<string, unknown>>): PullRequestView | undefined {
+  if (typeof a.pr !== "number") {
+    return undefined;
+  }
+  return { number: a.pr, url: text(a.pr_url), state: text(a.pr_estado), ci: text(a.pr_ci) };
+}
+
+/** A linha do PR no cartão: o número (um link para o GitHub), o estado e o CI. */
+export function pullRequestLine(pr: PullRequestView): string {
+  const parts = [`PR #${String(pr.number)}`, pr.state];
+  if (pr.state === "aberto" && pr.ci in CI_TEXT) {
+    parts.push(CI_TEXT[pr.ci] ?? "");
+  }
+  return parts.join(" · ");
 }
 
 export const COLUMNS: readonly (readonly [string, string])[] = [
@@ -46,6 +77,15 @@ function text(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
+/** Um link que abre noutra aba, sem dar à página de lá acesso a esta. */
+function link(label: string, url: string): HTMLAnchorElement {
+  const anchor = el("a", {}, label);
+  anchor.href = url;
+  anchor.target = "_blank";
+  anchor.rel = "noopener noreferrer";
+  return anchor;
+}
+
 /** Os pedidos do quadro, na ordem em que foram escritos. */
 export function ticketsOf(state: ObserverState): TicketView[] {
   const found: TicketView[] = [];
@@ -65,6 +105,7 @@ export function ticketsOf(state: ObserverState): TicketView[] {
       owner: typeof a.dono === "string" ? a.dono : undefined,
       comment: typeof a.comentario === "string" ? a.comentario : undefined,
       patch: typeof a.patch === "string" && a.patch !== "" ? a.patch : undefined,
+      pr: pullRequestOf(a),
     });
   }
   return found.sort((a, b) => a.number - b.number);
@@ -199,6 +240,12 @@ export class OfficePanel {
       ...(owner === "" ? [] : [el("p", { className: "hint" }, `com ${owner}`)]),
       ...(ticket.comment === undefined ? [] : [el("p", { className: "comment" }, `Devolvido: ${ticket.comment}`)]),
     );
+    const pr = ticket.pr;
+    if (pr !== undefined) {
+      const line = pullRequestLine(pr);
+      const label = PR_URL.test(pr.url) ? link(line, pr.url) : el("span", {}, line);
+      details.append(el("p", { className: `pull-request ${pr.state}` }, label));
+    }
     const ref = ticket.patch;
     if (ref !== undefined && (ticket.state === "entregue" || ticket.state === "aceito")) {
       const heading = `Pedido #${String(ticket.number)}: ${ticket.title}`;
@@ -217,7 +264,10 @@ export class OfficePanel {
         el(
           "div",
           { className: "row" },
-          button("Aceitar", () => { this.actions.accept(ticket.id); }),
+          // Com o PR aberto, aceitar é mesclar no GitHub (ADR-0083): o quadro não aceita.
+          pr?.state === "aberto"
+            ? el("span", { className: "hint" }, `Aceite mesclando o PR #${String(pr.number)}`)
+            : button("Aceitar", () => { this.actions.accept(ticket.id); }),
           comment,
           button("Devolver", () => {
             if (comment.value.trim() === "") {

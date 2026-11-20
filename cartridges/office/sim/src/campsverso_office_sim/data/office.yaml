@@ -78,6 +78,24 @@ labels:
     text: "aceitou o pedido {number}"
   - event: campsverso.office.ticket.returned.v1
     text: "devolveu o pedido {number}: {comment}"
+  # O PR do dev no GitHub (ADR-0083): o publicador abre, o vigia relata.
+  - event: campsverso.office.ticket.pr_opened.v1
+    text: "PR #{pull_request} aberto para o pedido {number}"
+  - event: campsverso.office.ticket.pr_updated.v1
+    text: "PR #{pull_request} com um commit novo"
+  - event: campsverso.office.ticket.pr_updated.v1
+    where: { ci: success }
+    text: "o CI do PR #{pull_request} passou"
+  - event: campsverso.office.ticket.pr_updated.v1
+    where: { ci: failure }
+    text: "o CI do PR #{pull_request} falhou"
+  - event: campsverso.office.ticket.pr_updated.v1
+    where: { ci: pending }
+    text: "o CI do PR #{pull_request} está rodando"
+  - event: campsverso.office.ticket.pr_merged.v1
+    text: "PR #{pull_request} mesclado: o pedido {number} foi aceito"
+  - event: campsverso.office.ticket.pr_closed.v1
+    text: "PR #{pull_request} fechado sem mesclar: o pedido {number} voltou"
   - event: campsverso.avatar.spoke.v1
     text: "disse: “{text}”"
   - event: campsverso.avatar.entered.v1

@@ -53,6 +53,31 @@ jobs:
             exit 1
           }
 
+  # Os PRs do dev (ADR-0083): o ramo dev/pedido-N, aberto pelo publicador do escritório. O diff do PR
+  # passa pela revisão da oficina na versão do main, e não na do PR: o dev não muda a regra no mesmo
+  # PR que ela confere. A lista de palavras proibidas fica fora do git; o publicador já a conferiu.
+  constituicao:
+    name: a constituição do PR do dev
+    if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'dev/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # o diff contra o main
+
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+
+      - name: A constituição, pela regra do main
+        env:
+          BASE: origin/${{ github.base_ref }}
+        run: |
+          git show "$BASE:libs/adapters/src/campsverso_adapters/workshop_review.py" > "$RUNNER_TEMP/regra.py"
+          git diff "$BASE...HEAD" | uv run --no-project python "$RUNNER_TEMP/regra.py"
+
   ui-e2e:
     name: make ui-e2e
     runs-on: ubuntu-latest

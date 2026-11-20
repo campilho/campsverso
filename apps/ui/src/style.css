@@ -603,6 +603,19 @@ aside.office .comment {
   color: var(--bad);
 }
 
+/* O PR do pedido no GitHub (ADR-0083): o selo de arte do M25 entra quando chegar. */
+aside.office .pull-request a {
+  color: inherit;
+}
+
+aside.office .pull-request.aberto {
+  color: #7bd88f;
+}
+
+aside.office .pull-request.fechado {
+  color: var(--muted);
+}
+
 aside.office .row {
   display: flex;
   gap: 6px;

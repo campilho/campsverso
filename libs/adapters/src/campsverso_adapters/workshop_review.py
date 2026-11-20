@@ -1,10 +1,14 @@
 """A revisão da entrega da oficina (o plano do M24, §3.6; ADR-0080, decisão 12): o que recusa um
-patch antes de ele chegar ao gerente, e de novo no `make aplicar`.
+patch antes de ele chegar ao gerente, de novo no `make aplicar` e no publicador do GitHub, e uma
+terceira vez no CI de cada PR do dev (ADR-0083).
 
-Função pura do texto do diff e da lista de palavras: sem git, sem disco.
+Função pura do texto do diff e da lista de palavras: sem git, sem disco, e só da biblioteca padrão.
+No CI, o arquivo roda sozinho, tirado do `main` e não do PR, para que o dev não mude a regra no
+mesmo PR que ela confere: `git diff origin/main...HEAD | python workshop_review.py`.
 """
 
 import re
+import sys
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
@@ -17,6 +21,10 @@ CONSTITUTION = (
     "services/budget/",
     "config/",
     "data/archive/",
+    # O caminho até o GitHub (ADR-0083): o publicador, o App e esta regra.
+    "services/codehost/",
+    "libs/adapters/src/campsverso_adapters/codehost_",
+    "libs/adapters/src/campsverso_adapters/workshop_review.py",
 )
 # As ADRs aceitas não mudam; uma ADR nova pode entrar.
 ADRS = "docs/decisoes/"
@@ -107,3 +115,16 @@ def review(diff: str, forbidden: Sequence[str] = ()) -> list[str]:
         if any(word in haystack for word in words):
             reasons.append(f"{f.path}: tem uma palavra da lista proibida")
     return list(dict.fromkeys(reasons))
+
+
+def main() -> int:
+    """O passo do CI nos PRs do dev: o diff na entrada, os motivos na saída, e 1 se houver algum."""
+    reasons = review(sys.stdin.read())
+    for reason in reasons:
+        print(f"::error title=constituição::{reason}")
+    print("a constituição está inteira" if not reasons else f"{len(reasons)} motivo(s)")
+    return 1 if reasons else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
