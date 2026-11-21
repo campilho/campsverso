@@ -211,6 +211,12 @@ def test_o_vigia_faz_a_ronda_no_comeco_da_hora_e_senta_no_resto() -> None:
     assert rounds["intent"] == "fazer a ronda"
     seated = guard.decide(_view(me="vigia", at=(11, 14), hhmm="22:30"))  # o posto, no corredor
     assert seated["action"] == "wait"
+    # No ponto da vez, ele fica olhando a sala; antes, voltava à cadeira e ia de novo ao ponto,
+    # indo e vindo da porta a cada segundo (o escritório vivo, 21/nov às 11:00).
+    looking = guard.decide(_view(me="vigia", at=(9, 12), hhmm="11:00"))
+    assert (looking["action"], looking["intent"]) == ("wait", "olhar a sala")
+    following = guard.decide(_view(me="vigia", at=(9, 12), hhmm="11:02"))
+    assert (following["action"], following["intent"]) == ("move", "fazer a ronda")
 
 
 def test_o_gerente_script_escreve_o_que_venceu_e_devolve_um_de_cada_tres() -> None:

@@ -455,7 +455,9 @@ def _xy(item: Mapping[str, Any]) -> tuple[int, int]:
 
 @dataclass
 class GuardScript:
-    """O vigia: a ronda nos primeiros minutos de cada hora, e a cadeira no resto."""
+    """O vigia: a ronda nos primeiros minutos de cada hora, e a cadeira no resto. Na ronda, ele
+    fica em cada ponto até a vez do próximo: antes, chegando ao ponto, voltava à cadeira e ia ao
+    ponto de novo, e em tempo real ficava indo e vindo da porta a cada segundo (21/nov)."""
 
     config: Mapping[str, Any]
 
@@ -474,6 +476,7 @@ class GuardScript:
             x, y = points[(now // 2) % len(points)]
             if not at(here, x, y):
                 return go_to(x, y, "fazer a ronda")
+            return wait(int(self.config.get("look_seconds", 30)), "olhar a sala")
         chair = cast(Sequence[int], self.config["chair"])
         if not at(here, int(chair[0]), int(chair[1])):
             return go_to(int(chair[0]), int(chair[1]), "voltar para a cadeira")

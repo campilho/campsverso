@@ -34,6 +34,7 @@ vigia:
   points: [[9, 12], [11, 2], [12, 6], [7, 10], [15, 10]]
   chair: [11, 14]
   wait_seconds: 120
+  look_seconds: 30 # parado em cada ponto da ronda, até a vez do próximo (a cada 2 minutos)
 
 gerente:
   id: script/gerente
