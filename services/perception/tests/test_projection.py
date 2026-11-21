@@ -103,6 +103,32 @@ def test_trajeto_pela_metade_e_posicao_no_tick() -> None:
     assert view["self"]["action"]["end_tick"] == 12
 
 
+def test_a_acao_na_foto_leva_so_o_que_o_contrato_declara() -> None:
+    """A intenção da ação em andamento fica na projeção (a tela a mostra), mas não vai à foto: o
+    vigia recebeu um pedido de decisão no meio de uma ronda, e a percepção caiu (21/nov)."""
+    p = world()
+    p.apply(
+        "world",
+        ev(
+            6,
+            10,
+            "action.accepted.v1",
+            action_id="act-1",
+            avatar_id="camps",
+            action="move",
+            params={},
+            applied_tick=10,
+            duration_ticks=2,
+            interrupt="cancel",
+            intent="fazer a ronda",
+        ),
+    )
+    assert p.actions["camps"]["intent"] == "fazer a ronda"
+    action = p.view("camps")["self"]["action"]
+    assert "intent" not in action
+    assert action["interrupt"] == "cancel"
+
+
 def test_itens_atributos_e_pedido_de_decisao() -> None:
     p = world()
     p.apply(

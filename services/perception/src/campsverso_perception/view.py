@@ -15,6 +15,10 @@ _NOT_PERCEIVED = ("campsverso.perception.", "campsverso.avatar.decision_requeste
 _SNAPSHOT_REASONS = frozenset({"session_started", "possessed"})
 
 
+# Os campos da ação em andamento na foto do próprio avatar (`seen_action` dos contratos).
+SEEN_ACTION = frozenset({"action_id", "action", "params", "end_tick", "applied_tick", "interrupt"})
+
+
 class PerceptionState(Projection):
     def __init__(self, state: Mapping[str, Any] | None = None) -> None:
         super().__init__(state)
@@ -114,7 +118,10 @@ class PerceptionState(Projection):
             "asleep": self.asleep.get(avatar_id, False),
         }
         if avatar_id in self.actions:
-            me["action"] = dict(self.actions[avatar_id])
+            # Só o que a foto declara (SeenAction): a projeção guarda também a intenção, para a
+            # tela, e a foto do vigia no meio de uma ronda saía fora do contrato (21/nov).
+            action = self.actions[avatar_id]
+            me["action"] = {k: v for k, v in action.items() if k in SEEN_ACTION}
         radius = self.radius(avatar_id)
         center = cast(Mapping[str, int] | None, me["position"])
         near = self.seer(avatar_id, tick)  # o que este avatar vê (ADR-0072)
