@@ -136,6 +136,9 @@ class CodeHostSettings:
     # O revisor de outra família (parte 3 do M25): os modelos em ordem, o plano A e a reserva;
     # cada um precisa de preço na tabela `models` do ambiente. Vazio: nenhuma revisão.
     reviewers: tuple[str, ...] = ()
+    # O começo dos ramos do dev: `dev/` no escritório vivo (`dev/pedido-N`); o sandbox usa um só
+    # dele (`dev/sandbox-<pasta>/`), para os pedidos de números iguais não caírem no mesmo ramo.
+    branch_prefix: str = "dev/"
 
 
 @dataclass(frozen=True, slots=True)
@@ -376,7 +379,14 @@ def _codehost(raw: Any, base: Path) -> CodeHostSettings | None:
         key=None if doc.get("key") is None else base / str(doc["key"]),
         poll_seconds=float(doc.get("poll_seconds", 60)),
         reviewers=tuple(str(m) for m in cast(list[Any], doc.get("reviewers") or [])),
+        branch_prefix=_branch_prefix(str(doc.get("branch_prefix", "dev/"))),
     )
+
+
+def _branch_prefix(prefix: str) -> str:
+    if not re.fullmatch(r"dev/([a-z0-9][a-z0-9._-]*/)?", prefix):
+        raise ValueError(f"codehost.branch_prefix inválido: {prefix!r} (use dev/ ou dev/<nome>/)")
+    return prefix
 
 
 def _budget(doc: Mapping[str, Any]) -> BudgetSettings:

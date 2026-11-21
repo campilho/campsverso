@@ -241,3 +241,27 @@ async def test_a_fila_volta_depois_de_uma_queda_e_sem_revisor_nada_entra() -> No
     await _deliver(bus2)
     assert plain.reviews == []
     assert await plain.review_pending() == 0
+
+
+async def test_o_prefixo_dos_ramos_vale_para_o_pr() -> None:
+    host = MemoryCodeHost()
+    bus, deliveries = InMemoryBus(), MemoryBlobStore()
+    deliveries.put(f"{WORLD}/pedido-001/x.patch", b"diff --git a/docs/a.md b/docs/a.md\n")
+    service = CodeHostService(
+        WORLD,
+        bus,
+        host,
+        deliveries,
+        MemoryBlobStore(),
+        _files,
+        lambda _diff: [],
+        [],
+        FakeWallClock(),
+        SequentialUuid7Ids(),
+        MemoryTelemetry(),
+        branch_prefix="dev/sandbox-20261121-103000/",
+    )
+    await service.start()
+    await _deliver(bus)
+    assert list(host.branches) == ["dev/sandbox-20261121-103000/pedido-1"]
+    assert _reports(bus)[-1]["branch"] == "dev/sandbox-20261121-103000/pedido-1"

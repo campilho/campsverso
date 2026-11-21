@@ -105,3 +105,21 @@ def test_o_que_fazer_no_teto(tmp_path: Path) -> None:
     world.write_text(base + "budget: {usd_per_sim_day: 1, usd_total: 5, on_exceeded: dormir}\n")
     with pytest.raises(ValueError, match="on_exceeded inválido"):
         load_world(world)
+
+
+def test_o_codehost_do_escritorio_vivo_e_o_prefixo_dos_ramos(tmp_path: Path) -> None:
+    """ADR-0083: o revisor em ordem (o plano A primeiro) e os ramos do dev sob `dev/`."""
+    live = load_world(REPO / "config" / "worlds" / "office-campsverso-01.yaml", root=REPO).codehost
+    assert live is not None
+    assert live.reviewers == ("openai/gpt-6.2-astra", "google/gemini-4-neon")
+    assert live.branch_prefix == "dev/"
+    base = "worldid: lab-01\ncartridge: lab\nseed: 1\nstart: 2026-11-16T00:00:00-03:00\n"
+    world = tmp_path / "mundo.yaml"
+    host = "codehost: {host: memory, repo: a/b, branch_prefix: %s}\n"
+    world.write_text(base + host % "dev/sandbox-1/", encoding="utf-8")
+    codehost = load_world(world).codehost
+    assert codehost is not None
+    assert codehost.branch_prefix == "dev/sandbox-1/"
+    world.write_text(base + host % "main/", encoding="utf-8")
+    with pytest.raises(ValueError, match="branch_prefix inválido"):
+        load_world(world)

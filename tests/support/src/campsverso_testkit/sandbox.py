@@ -32,6 +32,7 @@ joga um ano em várias noites (ADR-0074, decisão 16).
 """
 
 import argparse
+import re
 import signal
 import sys
 import time
@@ -59,7 +60,10 @@ def _world_file(
     world = yaml.safe_load(source.read_text(encoding="utf-8"))
     if github:
         live = yaml.safe_load(LIVE_OFFICE.read_text(encoding="utf-8"))
-        world["codehost"] = live["codehost"]
+        # Os ramos de um sandbox são só dele: o escritório vivo e outro sandbox também têm um
+        # pedido 1, e o ramo `dev/pedido-1` é do vivo (ADR-0083).
+        name = re.sub(r"[^a-z0-9._-]", "-", out.name.lower()).strip("-.") or "sandbox"
+        world["codehost"] = {**live["codehost"], "branch_prefix": f"dev/sandbox-{name}/"}
     clock = cast(dict[str, Any], world.get("clock") or {})
     if clock.get("anchor") == "wall":
         # O escritório anda em tempo real e, ao subir, salta até agora (ADR-0078): o relógio fica.

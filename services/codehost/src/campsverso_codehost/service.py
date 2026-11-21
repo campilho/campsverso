@@ -80,8 +80,8 @@ class Ticket:
     acceptance: str
 
 
-def branch_of(number: int) -> str:
-    return f"dev/pedido-{number}"
+def branch_of(number: int, prefix: str = "dev/") -> str:
+    return f"{prefix}pedido-{number}"
 
 
 class CodeHostService:
@@ -100,6 +100,7 @@ class CodeHostService:
         telemetry: Telemetry,
         *,
         reviewer: ReviewFn | None = None,
+        branch_prefix: str = "dev/",
     ) -> None:
         self._worldid = worldid
         self._bus = bus
@@ -113,6 +114,7 @@ class CodeHostService:
         self._ids = ids
         self._telemetry = telemetry
         self._reviewer = reviewer
+        self._branch_prefix = branch_prefix
         self._key = f"{worldid}/codehost.json"
         self.tickets: dict[str, Ticket] = {}
         self.open: dict[str, OpenPullRequest] = {}
@@ -216,7 +218,7 @@ class CodeHostService:
                 "codehost.refused", ticket_id=ticket_id, number=number, reasons=reasons
             )
             return
-        branch = branch_of(number)
+        branch = branch_of(number, self._branch_prefix)
         try:
             files = await self._files(str(patch["base"]), text)
             head = await self._host.publish_branch(

@@ -28,6 +28,16 @@ def test_o_sandbox_pausado_comeca_com_o_relogio_parado(tmp_path: Path) -> None:
     assert andando["clock"]["paused"] is False
 
 
+def test_o_sandbox_com_github_publica_em_ramos_so_dele(tmp_path: Path) -> None:
+    demo = Path(__file__).parents[2] / "config" / "worlds" / "office-campsverso-demo.yaml"
+    out = tmp_path / "20261121-103000"
+    out.mkdir()
+    write = sandbox._world_file  # pyright: ignore[reportPrivateUsage]
+    world = yaml.safe_load(write(out, source=demo, github=True).read_text("utf-8"))
+    assert world["codehost"]["repo"] == "campilho/campsverso"  # o do escritório vivo
+    assert world["codehost"]["branch_prefix"] == "dev/sandbox-20261121-103000/"
+
+
 def test_retomar_pede_uma_pasta_com_mundo(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError, match="não tem um mundo"):
         sandbox.world_of(tmp_path, resume=True)
