@@ -94,8 +94,8 @@ stop: ## derruba o NATS que o make up subiu
 run: up ui-build ## sobe os cinco processos com o honcho (Procfile); UI em http://127.0.0.1:8765/?view=operator
 	$(PY) honcho start -f Procfile
 
-escritorio: tools secrets ## o escritório vivo sob o supervisor (ADR-0083): numa pasta só dele (../campsverso-vivo; CASA= troca), preso no origin/main, que ele testa numa cópia e troca sozinho a cada mesclagem, e volta se falhar; entre como o gerente em http://127.0.0.1:8765/?assumir=1; o diário da troca em ../campsverso-vivo/versoes/supervisor.jsonl
-	uv run --locked --env-file .env python -m campsverso_supervisor.main $(if $(CASA),--home $(CASA),)
+escritorio: tools secrets ## o escritório vivo sob o supervisor (ADR-0083): numa pasta só dele (../campsverso-vivo; CASA= troca), preso no origin/main, que ele testa numa cópia e troca sozinho a cada mesclagem, e volta se falhar; entre como o gerente em http://127.0.0.1:8765/?assumir=1; o diário da troca em ../campsverso-vivo/versoes/supervisor.jsonl; MENTE=camps_escritorio põe o modelo no dev (sem ela, o dev-script)
+	uv run --locked --env-file .env python -m campsverso_supervisor.main $(if $(CASA),--home $(CASA),) $(if $(MENTE),--mind $(MENTE),)
 
 escritorio-aqui: up ui-build ## o escritório vivo a partir desta pasta, sem o supervisor (o de antes do M25), para ver uma mudança antes de publicá-la: a 1×, no relógio de São Paulo
 	MUNDO=office-campsverso-01 SCRIPT=dev $(PY) honcho start -f Procfile
