@@ -150,6 +150,26 @@
         "mandar": [
           0,
           3
+        ],
+        "pr": [
+          1,
+          3
+        ],
+        "ci_verde": [
+          2,
+          3
+        ],
+        "ci_vermelho": [
+          3,
+          3
+        ],
+        "mesclado": [
+          4,
+          3
+        ],
+        "atualizando": [
+          5,
+          3
         ]
       }
     },
