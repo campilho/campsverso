@@ -74,6 +74,8 @@ campsverso/
     gateway/                  # FastAPI + WebSocket; entrada do controlador humano
     archiver/                 # JetStream -> JSONL
     budget/                   # guarda de orçamento: soma o custo das chamadas de modelo e pausa o mundo no teto (ADR-0058)
+    codehost/                 # o publicador e o vigia do GitHub: a entrega do dev vira um PR, e o PR volta ao escritório (ADR-0083)
+    supervisor/               # o escritório vivo: testa a versão nova numa cópia, troca sozinho e volta se falhar (ADR-0083)
   cartridges/                 # em camadas: gênero → cenário (ADR-0031)
     farm/                     # gênero: mecânicas genéricas de fazenda
       sim/                    # itens, culturas, ações, sistemas, regras (carregado pelo kernel)
@@ -149,7 +151,7 @@ make up           # sobe o NATS em segundo plano
 make stop         # derruba o NATS
 make run          # sobe o NATS e o Procfile (honcho): kernel, percepção, script, ajudantes, arquivador, gateway e orçamento
 make sandbox      # mundo descartável com tudo ligado, em data/sandbox/<data-hora> (não toca no oficial); MENTE=camps põe o LLM no Camps (ADR-0059; na Boa Vista, MENTE=camps_boavista; na Morada do Sol, MENTE=camps_morada); PAUSADO=1 começa com o relógio parado
-make escritorio   # o escritório vivo (ADR-0078): a 1×, no relógio de São Paulo, salta até agora ao subir; entre como o gerente em http://127.0.0.1:8765/?assumir=1 (make sandbox MUNDO=office-campsverso-demo mostra o dev a 72× em qualquer dia; MENTE=camps_escritorio põe o modelo na oficina, ADR-0080)
+make escritorio   # o escritório vivo sob o supervisor (ADR-0083): numa pasta só dele (../campsverso-vivo), preso no origin/main; a cada mesclagem, testa a versão nova numa cópia, troca sozinho e volta se falhar; a 1×, no relógio de São Paulo; entre como o gerente em http://127.0.0.1:8765/?assumir=1 (make escritorio-aqui roda desta pasta, sem supervisor; make sandbox MUNDO=office-campsverso-demo mostra o dev a 72× em qualquer dia; MENTE=camps_escritorio põe o modelo na oficina, ADR-0080; GITHUB=1 abre PRs de verdade)
 make aplicar PEDIDO=N  # a entrega do dev da oficina num ramo dev/pedido-N, conferida de novo (ADR-0080); MUNDO= e DADOS=data/sandbox/<pasta>/data para um sandbox
 make jogar        # o sandbox de quem joga: começa pausado e a tela do jogador assume o Camps ao abrir (MUNDO=farm-morada-do-sol-04); RETOMAR=data/sandbox/<pasta> continua
 make ui-build     # compila a UI em apps/ui/dist; o gateway a serve em http://127.0.0.1:8765

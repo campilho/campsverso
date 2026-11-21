@@ -22,7 +22,7 @@ NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR BUDGET MIND
 
 .DEFAULT_GOAL := help
 .PHONY: help setup contracts check lint fmt types test arch contracts-check compat escritorio aplicar \
-        up stop run ui ui-build sandbox jogar soak replay metrics ui-e2e mapa-visual mapa-variantes arte-escritorio sessoes tools secrets fita corrida \
+        up stop run ui ui-build sandbox jogar escritorio-aqui soak replay metrics ui-e2e mapa-visual mapa-variantes arte-escritorio sessoes tools secrets fita corrida \
         arena arena-report arena-humano assistir juiz conformidade
 
 help: ## lista os alvos
@@ -94,7 +94,10 @@ stop: ## derruba o NATS que o make up subiu
 run: up ui-build ## sobe os cinco processos com o honcho (Procfile); UI em http://127.0.0.1:8765/?view=operator
 	$(PY) honcho start -f Procfile
 
-escritorio: up ui-build ## o escritório vivo (ADR-0078): a 1×, no relógio de São Paulo; entre como o gerente em http://127.0.0.1:8765/?assumir=1
+escritorio: tools secrets ## o escritório vivo sob o supervisor (ADR-0083): numa pasta só dele (../campsverso-vivo; CASA= troca), preso no origin/main, que ele testa numa cópia e troca sozinho a cada mesclagem, e volta se falhar; entre como o gerente em http://127.0.0.1:8765/?assumir=1; o diário da troca em ../campsverso-vivo/versoes/supervisor.jsonl
+	uv run --locked --env-file .env python -m campsverso_supervisor.main $(if $(CASA),--home $(CASA),)
+
+escritorio-aqui: up ui-build ## o escritório vivo a partir desta pasta, sem o supervisor (o de antes do M25), para ver uma mudança antes de publicá-la: a 1×, no relógio de São Paulo
 	MUNDO=office-campsverso-01 SCRIPT=dev $(PY) honcho start -f Procfile
 
 aplicar: ## a entrega do dev num ramo (ADR-0080): make aplicar PEDIDO=1 [MUNDO=office-campsverso-demo DADOS=data/sandbox/<pasta>/data]; confere de novo e cria dev/pedido-N, sem mexer no seu checkout
