@@ -29,6 +29,7 @@ class Releases:
     head: str = OLD
     placed: list[tuple[str, str]] = field(default_factory=list[tuple[str, str]])
     broken: set[str] = field(default_factory=set[str])  # commits que não preparam
+    ready: set[str] = field(default_factory=set[str])  # as worktrees com o .venv
     offline: bool = False
 
     async def fetch(self) -> str:
@@ -45,6 +46,10 @@ class Releases:
     async def prepare(self, slot: Path) -> None:
         if self.placed[-1][1] in self.broken:
             raise RuntimeError("uv sync falhou")
+        self.ready.add(slot.name)
+
+    def prepared(self, slot: Path) -> bool:
+        return slot.name in self.ready
 
 
 @dataclass
@@ -230,6 +235,7 @@ async def test_a_espera_tem_limite(rig: Rig) -> None:
 async def test_o_supervisor_que_cai_no_meio_da_troca_volta_ao_subir(rig: Rig) -> None:
     state = State(live="a", commit=OLD, swap=Swap("a", OLD, "b", NEW, "/versoes/1111111"))
     state.save(rig.home / "estado.json")
+    rig.releases.ready.add("a")  # a worktree de antes, intacta
     supervisor = rig.supervisor()
     await supervisor.boot()
     assert rig.vault.restored == ["1111111"]
@@ -268,6 +274,17 @@ async def test_o_laco_de_quedas_espera_mas_aceita_o_conserto(rig: Rig) -> None:
     rig.clock.now += 601  # e, passada a janela, reiniciar volta a valer
     rig.stacks.started[-1].behavior = "dies"
     assert await supervisor.turn() == "reiniciou"
+
+
+async def test_a_worktree_viva_sem_dependencias_e_preparada_de_novo_ao_subir(rig: Rig) -> None:
+    supervisor = rig.supervisor()
+    await supervisor.boot()
+    await supervisor.stop()
+    rig.releases.ready.clear()  # alguém apagou o .venv da worktree viva
+    again = rig.supervisor()
+    await again.boot()
+    assert rig.releases.placed[-1] == ("a", OLD)
+    assert rig.steps()[-2:] == ["preparou", "subiu"]
 
 
 async def test_sem_rede_nada_muda(rig: Rig) -> None:

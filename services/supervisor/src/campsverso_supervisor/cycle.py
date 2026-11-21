@@ -70,6 +70,10 @@ class Releases(Protocol):
         """As dependências e a tela da worktree, prontas para subir."""
         ...
 
+    def prepared(self, slot: Path) -> bool:
+        """A worktree já tem as dependências (o `.venv`)."""
+        ...
+
 
 class Running(Protocol):
     def dead(self) -> list[str]: ...
@@ -160,6 +164,11 @@ class Supervisor:
             self._save()
             self.journal.write("instalou", commit=commit, slot=self.state.live)
         assert self.state.commit is not None
+        live = self.slot(self.state.live)
+        if not self._releases.prepared(live):  # a worktree sumiu, ou perdeu o .venv
+            await self._releases.place(live, self.state.commit)
+            await self._releases.prepare(live)
+            self.journal.write("preparou", commit=self.state.commit, slot=self.state.live)
         self.build = await self._releases.build(self.state.commit, None)
         self.running = await self._stacks.start(
             self.slot(self.state.live), self.build, archiver=True

@@ -96,6 +96,9 @@ class GitReleases:
                 raise CommandError(f"{link} existe e não é o link para {target}")
             link.symlink_to(target)
 
+    def prepared(self, slot: Path) -> bool:
+        return (slot / ".venv" / "bin" / "python").exists()
+
     async def prepare(self, slot: Path) -> None:
         offline = ["--offline"] if self._offline else []
         await _run(["uv", "sync", "--locked", *offline], slot)
