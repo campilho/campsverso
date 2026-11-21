@@ -69,6 +69,8 @@ export class RetroFrame {
   private readonly people: HTMLElement;
   private readonly commands: HTMLElement;
   private readonly right: HTMLElement;
+  private readonly drawer: HTMLElement;
+  private readonly drawerBody = el("div", { className: "retro-drawer-body" });
   private readonly portraits = new Map<string, Portrait>();
   private art: ArtManifest | undefined;
   private mounted = false;
@@ -139,23 +141,44 @@ export class RetroFrame {
     );
 
     this.right = el("div", { className: "retro-right" });
-    this.main = el("main", { className: "retro-main" }, el("div", { className: "retro-left" }, monitor, bar), this.right);
+    // A gaveta do operador (§3.8): cobre a coluna da direita, como a Central de Notificações; o "×"
+    // é o mesmo que "Jogador".
+    const closeDrawer = button("×", "retro-drawer-close", () => { this.go("player"); });
+    closeDrawer.setAttribute("aria-label", "Fechar o painel do operador");
+    this.drawer = el("section", { className: "retro-drawer" }, closeDrawer, this.drawerBody);
+    this.drawer.setAttribute("aria-label", "Painel do operador");
+    this.drawer.setAttribute("aria-hidden", "true");
+    this.main = el(
+      "main",
+      { className: "retro-main" },
+      el("div", { className: "retro-left" }, monitor, bar),
+      el("div", { className: "retro-rightwrap" }, this.right, this.drawer),
+    );
   }
 
-  /** Põe as peças de sempre dentro da moldura: o mapa no monitor, o quadro na coluna da direita. */
-  mount(app: HTMLElement, world: HTMLElement, sides: readonly (HTMLElement | false)[]): void {
+  /** Põe as peças de sempre dentro da moldura: o mapa no monitor, o quadro e a conversa na coluna
+   * da direita e, na visão do operador, o painel dele na gaveta, que entra deslizando. */
+  mount(app: HTMLElement, world: HTMLElement, sides: readonly HTMLElement[], drawer: HTMLElement | undefined): void {
     if (this.mounted) {
       return;
     }
     this.mounted = true;
     document.body.classList.add("retro");
     this.screen.append(world);
-    for (const side of sides) {
-      if (side !== false) {
-        this.right.append(side);
-      }
-    }
+    this.right.append(...sides);
     app.replaceChildren(this.top, this.main);
+    if (drawer !== undefined) {
+      this.drawerBody.append(drawer);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => { this.openDrawer(true); }); // depois do primeiro desenho, para deslizar
+      });
+    }
+  }
+
+  private openDrawer(open: boolean): void {
+    this.drawer.classList.toggle("open", open);
+    this.drawer.setAttribute("aria-hidden", open ? "false" : "true");
+    this.right.inert = open; // o quadro e a conversa ficam atrás do vidro
   }
 
   get isMounted(): boolean {
@@ -289,6 +312,12 @@ export class RetroFrame {
     if (target === this.view) {
       return;
     }
-    location.search = `?view=${target}${this.debug ? "&render=debug" : ""}`;
+    const search = `?view=${target}${this.debug ? "&render=debug" : ""}`;
+    if (target === "player" && this.drawer.classList.contains("open") && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      this.openDrawer(false); // a gaveta sai deslizando, e a tela troca de visão depois
+      window.setTimeout(() => { location.search = search; }, 350);
+      return;
+    }
+    location.search = search;
   }
 }

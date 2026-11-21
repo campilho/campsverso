@@ -51,7 +51,7 @@ import { RetroTalk } from "./retro/conversation.ts";
 import { FaceCache } from "./retro/faces.ts";
 import { RetroFrame } from "./retro/frame.ts";
 import { SystemMessages } from "./retro/messages.ts";
-import { chipsOf, clockView, lightOf } from "./retro/model.ts";
+import { chipsOf, clockView, lightOf, versionLine } from "./retro/model.ts";
 import { systemOf } from "./retro/system.ts";
 import { linesOf, peopleOf } from "./retro/talk.ts";
 import { ghostsOf } from "./retro/tickets.ts";
@@ -316,15 +316,47 @@ const retro = new RetroFrame(view, debug, {
   },
 });
 
+// A gaveta do operador (§3.8): o painel de hoje, com a versão ao lado do caderno e as métricas
+// recolhidas. As seções continuam do OperatorPanel; a gaveta só as arruma.
+const versionCard = el("section", { className: "card op-version" });
+let shownVersion = "";
+
+function drawerOf(panelRoot: HTMLElement): HTMLElement {
+  panelRoot.insertBefore(versionCard, panelRoot.querySelector(".notebook"));
+  const metrics = panelRoot.querySelector(".metrics");
+  if (metrics !== null) {
+    const fold = el("details", { className: "card op-metrics" }, el("summary", {}, "Métricas do dia"));
+    metrics.replaceWith(fold);
+    fold.append(metrics);
+  }
+  return panelRoot;
+}
+
+function renderVersion(banner: ReturnType<typeof bannerOf>): void {
+  const line = versionLine(store.welcome?.build, banner);
+  const key = JSON.stringify(line);
+  if (key !== shownVersion) {
+    shownVersion = key;
+    versionCard.replaceChildren(
+      el("h3", {}, "Versão"),
+      el("p", { className: "op-commit" }, el("i", { className: "dot" }), line.commit),
+      el("p", { className: "hint" }, line.state),
+    );
+  }
+}
+
 function renderRetro(state: ObserverState): void {
   if (run !== null || !isOffice(state)) {
     return;
   }
-  retro.mount(appRoot, world, [board.element, talk.element, view === "operator" && aside]);
+  retro.mount(appRoot, world, [board.element, talk.element], view === "operator" ? drawerOf(aside) : undefined);
   const mine = inControl(state, avatarId());
   const shown = clockText(state, shownTick);
   const banner = bannerOf({ status: store.status, everOpen: store.everOpen, notice: store.notice, fresh: store.fresh, now: Date.now() });
   const clockable = playerClock();
+  if (view === "operator") {
+    renderVersion(banner);
+  }
   system.render(
     systemOf({
       banner,

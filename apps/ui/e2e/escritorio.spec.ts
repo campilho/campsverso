@@ -203,4 +203,17 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   await notify({ kind: "volta", text: "A versão aaaaaaa falhou ao subir, e o escritório voltou." });
   await expect(swap).toBeHidden();
   await expect(toast).toContainText("O escritório voltou");
+
+  // A gaveta do operador (§3.8): a troca de visão navega, a gaveta entra cobrindo a coluna da
+  // direita, e o "×" é o mesmo que "Jogador".
+  await page.getByRole("button", { name: "Operador" }).click();
+  await expect(page).toHaveURL(/view=operator/);
+  const drawer = page.locator(".retro-drawer.open");
+  await expect(drawer).toBeVisible({ timeout: 45_000 });
+  await expect(drawer).toContainText("Linha do tempo");
+  await expect(drawer).toContainText("sem supervisor");
+  await page.waitForTimeout(500); // o fim do deslizar, para o print
+  await page.screenshot({ path: `${SHOTS}/escritorio-operador.png` });
+  await drawer.getByRole("button", { name: "Fechar o painel do operador" }).click();
+  await expect(page).toHaveURL(/view=player/);
 });

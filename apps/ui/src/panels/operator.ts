@@ -27,8 +27,9 @@ export type Send = (command: string, data: Record<string, unknown>) => void;
 
 export class OperatorPanel {
   private filter: TimelineFilter = { visibilities: new Set(VISIBILITIES), text: "" };
-  private readonly controls = el("section", { className: "card" });
-  private readonly decision = el("section", { className: "card" });
+  // Os nomes `op-*` deixam a gaveta da tela retrô arrumar as seções (docs/design/briefing-tela.md, §3.8).
+  private readonly controls = el("section", { className: "card op-clock" });
+  private readonly decision = el("section", { className: "card op-decision" });
   private readonly notebook = el("section", { className: "card notebook" });
   private readonly costs = el("section", { className: "card costs" });
   private readonly costLines = el("div");
@@ -58,7 +59,7 @@ export class OperatorPanel {
       this.notebook,
       this.costs,
       this.metrics,
-      el("section", { className: "card grow" }, el("h3", {}, "Linha do tempo"), this.filters, this.list),
+      el("section", { className: "card grow op-timeline" }, el("h3", {}, "Linha do tempo"), this.filters, this.list),
     );
   }
 

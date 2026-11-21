@@ -26,6 +26,22 @@ export function lightOf(status: Status, alive: boolean, banner: Banner | undefin
   return { color: "verde", label: "online" };
 }
 
+/** A versão na gaveta do operador (§3.8): o commit que roda e o estado da troca. Sem supervisor
+ * (o sandbox, `make escritorio-aqui`), não há versão para mostrar. */
+export function versionLine(build: { readonly commit: string } | undefined, banner: Banner | undefined): { readonly commit: string; readonly state: string } {
+  if (build === undefined) {
+    return { commit: "esta pasta", state: "sem supervisor" };
+  }
+  const state: Readonly<Record<Banner["kind"], string>> = {
+    troca: "trocando de versão",
+    espera: "uma versão nova na fila",
+    volta: "voltou de uma troca",
+    queda: "sem conexão",
+    fresh: "acabou de subir",
+  };
+  return { commit: build.commit.slice(0, 7), state: banner === undefined ? "rodando" : state[banner.kind] };
+}
+
 /** O relógio da barra de baixo: a hora, o dia com a fase e o ritmo, só quando não for 1×. */
 export interface ClockView {
   readonly hour: string;

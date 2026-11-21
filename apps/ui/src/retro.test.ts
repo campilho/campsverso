@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { bannerOf, type Banner, type Notice } from "./banner.ts";
 import { summonsOf, type TicketView } from "./panels/office.ts";
 import type { Step } from "./queue.ts";
-import { chipsOf, clockView, lightOf, robotLine, summonShort } from "./retro/model.ts";
+import { chipsOf, clockView, lightOf, robotLine, summonShort, versionLine } from "./retro/model.ts";
 import { prsText, systemOf } from "./retro/system.ts";
 import {
   completeMention,
@@ -401,5 +401,16 @@ describe("as mensagens do sistema (§3.9)", () => {
     expect(prsText([])).toBe("");
     expect(prsText([7])).toBe("com o PR #7");
     expect(prsText([7, 8, 9])).toBe("com os PRs #7, #8 e #9");
+  });
+});
+
+describe("a gaveta do operador (§3.8)", () => {
+  it("diz a versão que roda e o estado da troca, e sem supervisor, nenhuma versão", () => {
+    const build = { commit: "89f4167899ef434436544f05a028f39a51dabc3e" };
+    expect(versionLine(build, undefined)).toEqual({ commit: "89f4167", state: "rodando" });
+    expect(versionLine(build, { text: "", tone: "info", kind: "espera" }).state).toBe("uma versão nova na fila");
+    expect(versionLine(build, { text: "", tone: "info", kind: "troca" }).state).toBe("trocando de versão");
+    expect(versionLine(build, { text: "", tone: "warn", kind: "volta" }).state).toBe("voltou de uma troca");
+    expect(versionLine(undefined, undefined)).toEqual({ commit: "esta pasta", state: "sem supervisor" });
   });
 });
