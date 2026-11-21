@@ -107,8 +107,10 @@ class FastApiRealtime:
         art: Sequence[tuple[str, Path]] = (),
         runs: Callable[[], list[dict[str, Any]]] | None = None,
         deliveries: Path | None = None,
+        status: Callable[[], Mapping[str, Any]] | None = None,
     ) -> None:
         self.host, self.port = host, port
+        self._status = status  # o que o /health diz além do ok (o supervisor, ADR-0083)
         self._deliveries = None if deliveries is None else deliveries.resolve()
         self._runs = runs  # o modo de assistir lista as corridas em /arena/runs (ADR-0068)
         self._maps = dict(maps or {})
@@ -188,8 +190,8 @@ class FastApiRealtime:
             return FileResponse(target, media_type=DELIVERY_TYPES[target.suffix])
 
         @app.get("/health")
-        async def health() -> dict[str, bool]:  # pyright: ignore[reportUnusedFunction]
-            return {"ok": True}
+        async def health() -> dict[str, Any]:  # pyright: ignore[reportUnusedFunction]
+            return {"ok": True, **(self._status() if self._status is not None else {})}
 
         if self._ui_dir is not None and self._ui_dir.is_dir():
             app.mount("/", StaticFiles(directory=self._ui_dir, html=True), name="ui")

@@ -86,6 +86,9 @@ PULSE = "campsverso.live.kernel.v1"
 GUARD_PULSE = "campsverso.live.budget.v1"
 COMMAND_REJECTED = "campsverso.world.command.rejected.v1"
 PULSES_TO_SILENCE = 3  # pulsos perdidos até o kernel ficar "sem sinal" (ADR-0051)
+# Uma sessão na oficina conta como em andamento até 5 minutos simulados depois do último passo que
+# não foi a entrega: a troca de versão espera o dev terminar (ADR-0083).
+BUSY_MINUTES = 5
 
 
 @dataclass(eq=False)
@@ -277,6 +280,27 @@ class GatewayService:
             if message.get(key) is not None:
                 state[key] = message[key]
         return state
+
+    def health(self) -> dict[str, Any]:
+        """O que o `/health` diz ao supervisor do escritório vivo (ADR-0083): o tick, o pulso do
+        kernel, se um dev está numa sessão na oficina e a versão."""
+        return {
+            "tick": self.projection.tick,
+            "pulse": self._pulse_state(),
+            "busy": self._busy(),
+            **({} if self._build is None else {"build": self._build}),
+        }
+
+    def _busy(self) -> bool:
+        shop = self.projection.workshop
+        if any(robot.get("state") == "working" for robot in shop.get("robots", {}).values()):
+            return True
+        tick_ms = int((self.projection.session or {}).get("tick_ms") or 60_000)
+        window = BUSY_MINUTES * 60_000 // tick_ms
+        return any(
+            step.get("tool") != "pronto" and self.projection.tick - int(step["tick"]) <= window
+            for step in shop.get("steps", {}).values()
+        )
 
     def _pulse_state(self) -> dict[str, Any] | None:
         if self._pulse is None:

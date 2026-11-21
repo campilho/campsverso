@@ -153,6 +153,27 @@ async def test_a_placa_vem_na_sessao_so_quando_o_supervisor_diz_a_versao(rig: Ri
         serving.cancel()
 
 
+async def test_a_saude_diz_o_tick_o_pulso_e_a_sessao_na_oficina(rig: Rig) -> None:
+    """ADR-0083: o /health do supervisor. Um passo na oficina que não foi a entrega, há pouco,
+    é uma sessão em andamento; a entrega, ou um passo antigo, não."""
+    await rig.pipeline.run_until(30)
+    rig.gateway.flush()
+    health = rig.gateway.health()
+    assert health["tick"] > 0
+    assert health["busy"] is False
+    assert "build" not in health
+    tick = rig.gateway.projection.tick
+    steps = rig.gateway.projection.workshop.setdefault("steps", {})
+    steps["camps"] = {"ticket_id": "pedido-001", "tool": "escrever", "ok": True, "tick": tick}
+    assert rig.gateway.health()["busy"] is True
+    steps["camps"] = {"ticket_id": "pedido-001", "tool": "pronto", "ok": True, "tick": tick}
+    assert rig.gateway.health()["busy"] is False
+    steps["camps"] = {"ticket_id": "pedido-001", "tool": "escrever", "ok": True, "tick": tick - 6}
+    assert rig.gateway.health()["busy"] is False  # 6 minutos de fazenda: a sessão acabou
+    rig.gateway.projection.workshop["robots"] = {"testador": {"state": "working", "tick": tick}}
+    assert rig.gateway.health()["busy"] is True
+
+
 async def test_welcome_traz_o_estado_e_o_mapa(rig: Rig) -> None:
     await rig.pipeline.run_until(30)
     rig.gateway.flush()

@@ -376,3 +376,17 @@ def test_a_versao_que_sobe_fica_no_estado_e_no_fato_e_o_reinicio_nao_repete() ->
 
 def test_um_mundo_sem_versao_grava_o_snapshot_de_sempre() -> None:
     assert "build" not in _core().export_state()
+
+
+def test_a_escala_de_um_mundo_retomado_vai_pelo_comando_de_sempre() -> None:
+    """ADR-0083: a fumaça do supervisor sobe a cópia do escritório na escala 72, com `--scale`."""
+    from campsverso_adapters import ContractValidator
+    from campsverso_kernel.main import scale_command
+
+    command = scale_command("lab-02", "lab_office", 72.0)
+    assert list(ContractValidator().validate(command)) == []
+    core = _core()
+    core.drain()
+    core.submit(command)
+    core.drain()
+    assert core.scale == 72.0

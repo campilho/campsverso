@@ -157,13 +157,40 @@ def version_command(
     }
 
 
+def scale_command(worldid: str, cartridge: str, scale: float) -> dict[str, Any]:
+    """A escala pedida na linha de comando para um mundo retomado: o comando do operador, que o
+    diário guarda como qualquer outro."""
+    info = CONTRACT_TYPES["campsverso.cmd.clock.set_scale.v1"]
+    return {
+        "specversion": "1.0",
+        "id": Uuid7Ids().new_id(),
+        "source": f"/kernel/{worldid}",
+        "type": info.name,
+        "time": SystemWallClock().now().isoformat(timespec="milliseconds").replace("+00:00", "Z"),
+        "datacontenttype": "application/json",
+        "dataschema": info.dataschema,
+        "worldid": worldid,
+        "cartridge": cartridge,
+        "seq": 0,
+        "actor": "kernel/escala",
+        "provenance": "simulated",
+        "visibility": info.visibility,
+        "data": {"scale": scale, "reason": "operator"},
+    }
+
+
 def _parse(argv: Sequence[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="campsverso_kernel.main")
     parser.add_argument("--env", type=Path, default=Path("config/env/local.yaml"))
     parser.add_argument("--world", type=Path, default=Path("config/worlds/farm-camps-01.yaml"))
     parser.add_argument("--data-dir", type=Path, help="substitui data_dir do ambiente")
     parser.add_argument("--nats-url", help="substitui nats.url do ambiente")
-    parser.add_argument("--scale", type=float, help="escala inicial de um mundo novo")
+    parser.add_argument(
+        "--scale",
+        type=float,
+        help="escala inicial de um mundo novo; num mundo retomado, muda a escala ao subir, pelo "
+        "comando de sempre (a fumaça do supervisor, ADR-0083)",
+    )
     parser.add_argument(
         "--replay-day", type=int, help="não sobe o kernel: reexecuta o dia N e compara (A5)"
     )
@@ -287,6 +314,9 @@ async def run(args: argparse.Namespace) -> int:
             if jump is not None:
                 service.submit(jump)
                 telemetry.info("kernel.caught_up", to_tick=core.tick)
+        if recovery is not None and args.scale and args.scale != core.scale:
+            service.submit(scale_command(world.worldid, prepared.definition.top.id, args.scale))
+            telemetry.info("kernel.scaled", scale=core.scale)
         recorded = version_command(
             world.worldid,
             prepared.definition.top.id,
