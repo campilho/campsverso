@@ -270,6 +270,7 @@ store.onChange(() => {
       if (art !== undefined) {
         portrait.setArt(art.manifest, avatarId());
       }
+      map.setBuild?.(store.welcome?.build); // a placa da versão na parede (ADR-0083)
     } else {
       clock.observe(state, performance.now());
     }

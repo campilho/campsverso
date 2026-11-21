@@ -30,6 +30,8 @@ export interface WorldRenderer {
   /** O estado da oficina que uma coisa mostrou no último quadro ("trabalhando", "passou"...), ou
    * nada; para os testes no navegador (o robô na bancada, ADR-0080). */
   workshopLook?(entityId: string): string | undefined;
+  /** A versão que o escritório vivo roda, para a placa da parede (ADR-0083); nada sem supervisor. */
+  setBuild?(build: { readonly commit: string; readonly date: string } | undefined): void;
   /** O centro de um tile em coordenadas da tela, pela câmera; para os testes no navegador. */
   clientOf?(x: number, y: number): { x: number; y: number } | undefined;
   /** O tile sob um ponto da tela (coordenadas do evento do mouse), ou nada fora do mapa. */

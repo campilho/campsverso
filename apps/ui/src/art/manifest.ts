@@ -191,6 +191,8 @@ export interface ArtManifest {
   readonly time_tiles?: TimeTiles;
   /** As fichas do quadro dos pedidos, penduradas pelo estado de cada pedido (`Cards`). */
   readonly cards?: Cards;
+  /** A placa da versão na parede (`Plaque`, ADR-0083). */
+  readonly plaque?: Plaque;
   /** Outros arquivos JSON da mesma camada, juntados antes deste (o `baloes.json` gerado pelo
    * `make arte-escritorio`); o que este diz vale por cima. */
   readonly include?: readonly string[];
@@ -318,6 +320,45 @@ export interface Cards {
   readonly state_frames?: Readonly<Record<string, number>>;
   readonly size_frames?: Readonly<Record<string, number>>;
   readonly frame?: number;
+  /** O selo do PR na ficha (ADR-0083). */
+  readonly badge?: CardBadge;
+}
+
+/** O selo do PR nas fichas: a folha, onde o canto de cima à esquerda dele pousa na ficha e o quadro
+ * de cada estado (`pr`, `ci_verde`, `ci_vermelho`, `mesclado`). */
+export interface CardBadge {
+  readonly sheet: string;
+  readonly at: readonly [number, number];
+  readonly frames: Readonly<Record<string, number>>;
+}
+
+/** A placa da versão na parede (ADR-0083): a folha e o quadro, o canto de cima à esquerda em pixels
+ * do mapa, e o retângulo onde a tela escreve o commit e o dia, em duas linhas, na fonte da sala. */
+export interface Plaque {
+  readonly sheet: string;
+  readonly x: number;
+  readonly y: number;
+  readonly frame?: number;
+  readonly text: { readonly x: number; readonly y: number; readonly width: number; readonly line: number; readonly color: string };
+}
+
+/** O selo do PR de um pedido: aberto (com o CI, quando há), mesclado; fechado sem mesclar, nenhum. */
+export function badgeOf(attributes: Readonly<Record<string, unknown>>): string | undefined {
+  const state = attributes["pr_estado"];
+  if (state === "mesclado") {
+    return "mesclado";
+  }
+  if (state !== "aberto") {
+    return undefined;
+  }
+  const ci = attributes["pr_ci"];
+  return ci === "success" ? "ci_verde" : ci === "failure" ? "ci_vermelho" : "pr";
+}
+
+/** As duas linhas da placa: o commit curto e o dia dele. */
+export function plaqueLines(build: { readonly commit: string; readonly date: string }): [string, string] {
+  const [, month = "", day = ""] = /^\d{4}-(\d{2})-(\d{2})/.exec(build.date) ?? [];
+  return [build.commit.slice(0, 7), day === "" ? "" : `${day}/${month}`];
 }
 
 export const EMPTY: ArtManifest = { version: 1 };
@@ -571,11 +612,11 @@ export function timedTile(tiles: TimeTiles | undefined, name: string, night: boo
 export function cardPlacements(
   cards: Cards | undefined,
   things: Readonly<Record<string, Placed | undefined>>,
-): { x: number; y: number; frame: number }[] {
+): { x: number; y: number; frame: number; badge?: number }[] {
   if (cards === undefined) {
     return [];
   }
-  const byColumn = new Map<number, { number: number; frame: number }[]>();
+  const byColumn = new Map<number, { number: number; frame: number; badge?: number }[]>();
   for (const thing of Object.values(things)) {
     if (thing?.kind !== "ticket") {
       continue;
@@ -588,17 +629,19 @@ export function cardPlacements(
     const frame =
       cards.state_frames?.[String(attributes["estado"])] ?? cards.size_frames?.[String(attributes["tamanho"])] ?? cards.frame ?? 0;
     const list = byColumn.get(column) ?? [];
-    list.push({ number: Number(attributes["numero"] ?? 0), frame });
+    const badgeName = badgeOf(attributes);
+    const badge = badgeName === undefined ? undefined : cards.badge?.frames[badgeName];
+    list.push({ number: Number(attributes["numero"] ?? 0), frame, ...(badge === undefined ? {} : { badge }) });
     byColumn.set(column, list);
   }
-  const placed: { x: number; y: number; frame: number }[] = [];
+  const placed: { x: number; y: number; frame: number; badge?: number }[] = [];
   for (const [column, list] of [...byColumn.entries()].sort((a, b) => a[0] - b[0])) {
     const left = cards.x + column * cards.column_width + (column === 0 ? cards.first_inset : cards.inset);
     list
       .sort((a, b) => a.number - b.number)
       .slice(-4)
       .forEach((card, i) => {
-        placed.push({ x: left + (i % 2) * 12, y: cards.y + Math.floor(i / 2) * 12, frame: card.frame });
+        placed.push({ x: left + (i % 2) * 12, y: cards.y + Math.floor(i / 2) * 12, frame: card.frame, ...(card.badge === undefined ? {} : { badge: card.badge }) });
       });
   }
   return placed;

@@ -4,6 +4,7 @@ import { loadArt } from "./load.ts";
 import {
   animationFor,
   autotileMask,
+  badgeOf,
   cardPlacements,
   carryAnimation,
   colorNumber,
@@ -13,6 +14,7 @@ import {
   inUseFrame,
   lightMode,
   lookOf,
+  plaqueLines,
   loopFrame,
   mergeManifests,
   minuteOfDay,
@@ -428,5 +430,37 @@ describe("as animações e a noite do escritório (ADR-0082)", () => {
     expect(shown).toHaveLength(4); // as quatro mais novas
     expect(shown[2]).toEqual({ x: 70, y: 31, frame: 2 }); // a terceira, embaixo da primeira
     expect(cardPlacements(undefined, things)).toEqual([]);
+  });
+
+  it("a ficha com PR ganha o selo do estado dele, e a fechada sem mesclar fica sem (ADR-0083)", () => {
+    const pr = (pr_estado: string, pr_ci?: string) => ({ pr: 1, pr_estado, ...(pr_ci === undefined ? {} : { pr_ci }) });
+    expect(badgeOf(pr("aberto"))).toBe("pr");
+    expect(badgeOf(pr("aberto", "pending"))).toBe("pr");
+    expect(badgeOf(pr("aberto", "success"))).toBe("ci_verde");
+    expect(badgeOf(pr("aberto", "failure"))).toBe("ci_vermelho");
+    expect(badgeOf(pr("mesclado", "success"))).toBe("mesclado");
+    expect(badgeOf(pr("fechado"))).toBeUndefined();
+    expect(badgeOf({})).toBeUndefined();
+    const cards = {
+      sheet: "fichas",
+      x: 64,
+      y: 19,
+      column_width: 32,
+      first_inset: 6,
+      inset: 3,
+      columns: { entregue: 2, aceito: 2 },
+      frame: 3,
+      badge: { sheet: "selos", at: [4, 4] as const, frames: { pr: 0, ci_verde: 1, ci_vermelho: 2, mesclado: 3 } },
+    };
+    const things = {
+      t1: { kind: "ticket", attributes: { numero: 1, estado: "aceito", ...pr("mesclado", "success") } },
+      t2: { kind: "ticket", attributes: { numero: 2, estado: "entregue", ...pr("aberto", "success") } },
+      t3: { kind: "ticket", attributes: { numero: 3, estado: "entregue" } },
+    };
+    expect(cardPlacements(cards, things).map((c) => c.badge)).toEqual([3, 1, undefined]);
+  });
+
+  it("a placa escreve o commit curto e o dia dele", () => {
+    expect(plaqueLines({ commit: "4b7ab259633452ca529e0e1d9e0244476a96d2ae", date: "2026-11-21T01:38:37-03:00" })).toEqual(["4b7ab25", "21/11"]);
   });
 });

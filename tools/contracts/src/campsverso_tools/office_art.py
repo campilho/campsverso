@@ -58,10 +58,12 @@ FURNITURE = (
     "robo_testador",
     "robo_revisor",
     "robo_publicador",
+    "robo_briefing",  # o robô do briefing (M25): a criação do dev, na bancada
 )
 CHARACTERS = ("camps", "gerente", "vigia")
-# Soltas: as fichas do quadro, que a tela pendura pelo estado (10 x 10).
-LOOSE = ("fichas",)
+# Soltas: as fichas do quadro, que a tela pendura pelo estado (10 x 10), os selos do PR nelas
+# (6 x 6) e a placa da versão na parede, com o commit escrito pela tela (64 x 64; o M25).
+LOOSE = ("fichas", "selos", "placa_versao")
 # O que fica sobre a cabeça (o pedido de arte de 18/nov): os balões e os ícones, copiados; a fonte
 # sai de `font_sheet`, com cada glifo colado à esquerda da célula.
 INTERFACE = ("baloes", "icones")

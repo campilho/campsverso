@@ -38,7 +38,15 @@
     "columns": { "a_fazer": 0, "fazendo": 1, "entregue": 2, "aceito": 2 },
     "state_frames": { "aceito": 4 },
     "size_frames": { "P": 2, "M": 1, "G": 0 },
-    "frame": 3
+    "frame": 3,
+    "badge": { "sheet": "selos", "at": [4, 4], "frames": { "pr": 0, "ci_verde": 1, "ci_vermelho": 2, "mesclado": 3 } }
+  },
+  "plaque": {
+    "sheet": "placa_versao",
+    "x": 416,
+    "y": 0,
+    "frame": 0,
+    "text": { "x": 9, "y": 15, "width": 41, "line": 11, "color": "#26222f" }
   },
   "avatars": {
     "camps": {

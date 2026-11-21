@@ -22,6 +22,7 @@ import {
   lookOf,
   loopFrame,
   minuteOfDay,
+  plaqueLines,
   seasonSheet,
   seasonTint,
   seatAt,
@@ -46,6 +47,7 @@ import { MotionClock, type Point } from "../motion.ts";
 import { Balloons } from "../speech.ts";
 import { overHead } from "../progress.ts";
 import { clockText } from "../simclock.ts";
+import { glyphIndex, glyphRect, textWidth } from "../art/textbox.ts";
 import { tileAt, type TileGrid } from "../tiled.ts";
 import { workshopFrame, workshopState } from "../workshop.ts";
 import { tileUnder, type WorldRenderer } from "./renderer.ts";
@@ -388,6 +390,13 @@ class WorldScene extends Phaser.Scene {
   private decorKey = "";
   /** As fichas penduradas no quadro dos pedidos, pelo estado de cada pedido (ADR-0082). */
   private cards: Phaser.GameObjects.Image[] = [];
+  /** Os selos do PR nas fichas (ADR-0083). */
+  private badges: Phaser.GameObjects.Image[] = [];
+  /** A placa da versão na parede (ADR-0083): a imagem, montada uma vez por versão. */
+  private plaque: Phaser.GameObjects.Image | undefined;
+  private plaqueKey = "";
+  /** A versão que o escritório vivo roda, quando o supervisor a diz. */
+  build: { readonly commit: string; readonly date: string } | undefined;
   /** O caminho que o desenho de cada avatar faz nesta tela (ADR-0078). */
   readonly motion = new MotionClock();
   /** O que cada avatar disse por último, enquanto o balão dura (ADR-0078). */
@@ -465,6 +474,7 @@ class WorldScene extends Phaser.Scene {
     this.drawNight(mode);
     this.drawDecor(mode, minute);
     this.drawCards(state);
+    this.drawPlaque();
     this.aim();
     this.tint(state.season);
     // Com zoom, o que não rola encolhe em volta do centro: o retângulo cresce na mesma conta.
@@ -615,6 +625,66 @@ class WorldScene extends Phaser.Scene {
       this.cards[i] = image;
       image.setTexture(cards?.sheet ?? "__DEFAULT", card.frame).setPosition(card.x, card.y);
     });
+    // O selo do PR, no canto da ficha (ADR-0083).
+    const badge = cards?.badge;
+    const marked = badge === undefined || !this.textures.exists(badge.sheet) ? [] : placed.filter((card) => card.badge !== undefined);
+    while (this.badges.length > marked.length) {
+      this.badges.pop()?.destroy();
+    }
+    marked.forEach((card, i) => {
+      const sheet = badge?.sheet ?? "__DEFAULT";
+      const image = this.badges[i] ?? this.add.image(0, 0, sheet).setOrigin(0, 0).setDepth(1.1);
+      this.badges[i] = image;
+      image.setTexture(sheet, card.badge).setPosition(card.x + (badge?.at[0] ?? 0), card.y + (badge?.at[1] ?? 0));
+    });
+  }
+
+  /** A placa da versão na parede (ADR-0083): o quadro da folha e, por cima, o commit curto e o dia
+   * na fonte da sala, montados numa textura uma vez por versão. Sem a versão, a placa some. */
+  private drawPlaque(): void {
+    const plaque = this.art.plaque;
+    const build = this.build;
+    const kit = this.bubbleKit();
+    const font = kit?.art.font;
+    if (plaque === undefined || build === undefined || kit === undefined || font === undefined || !this.textures.exists(plaque.sheet)) {
+      this.plaque?.setVisible(false);
+      return;
+    }
+    const key = `placa-${build.commit}`;
+    if (key !== this.plaqueKey) {
+      const frame = this.textures.getFrame(plaque.sheet, plaque.frame ?? 0);
+      const canvas = document.createElement("canvas");
+      canvas.width = frame.cutWidth;
+      canvas.height = frame.cutHeight;
+      const context = canvas.getContext("2d");
+      if (context === null) {
+        return;
+      }
+      context.imageSmoothingEnabled = false;
+      const source = frame.source.image as CanvasImageSource;
+      context.drawImage(source, frame.cutX, frame.cutY, frame.cutWidth, frame.cutHeight, 0, 0, frame.cutWidth, frame.cutHeight);
+      const glyphs = kit.glyphs(plaque.text.color);
+      plaqueLines(build).forEach((line, row) => {
+        let x = plaque.text.x + Math.max(0, Math.floor((plaque.text.width - textWidth(font, line)) / 2));
+        const y = plaque.text.y + row * plaque.text.line;
+        for (const char of line) {
+          const [gx, gy, gw, gh] = glyphRect(font, glyphIndex(font, char));
+          if (gw > 0) {
+            context.drawImage(glyphs, gx, gy, gw, gh, x, y, gw, gh);
+          }
+          x += gw + font.spacing;
+        }
+      });
+      if (this.plaqueKey !== "" && this.textures.exists(this.plaqueKey)) {
+        this.plaque?.setTexture("__DEFAULT");
+        this.textures.remove(this.plaqueKey);
+      }
+      this.textures.addCanvas(key, canvas)?.setFilter(Phaser.Textures.FilterMode.NEAREST);
+      this.plaqueKey = key;
+      this.plaque ??= this.add.image(0, 0, key).setOrigin(0, 0).setDepth(1);
+      this.plaque.setTexture(key);
+    }
+    this.plaque?.setPosition(plaque.x, plaque.y).setVisible(true);
   }
 
   /** As peças sobre os tiles de um tipo (ADR-0082): a divisória dos cubículos, com a profundidade
@@ -1190,6 +1260,10 @@ export class PhaserRenderer implements WorldRenderer {
 
   workshopLook(entityId: string): string | undefined {
     return this.scene.looks.get(entityId);
+  }
+
+  setBuild(build: { readonly commit: string; readonly date: string } | undefined): void {
+    this.scene.build = build;
   }
 
   clientOf(x: number, y: number): { x: number; y: number } | undefined {

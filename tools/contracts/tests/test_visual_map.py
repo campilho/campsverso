@@ -220,3 +220,14 @@ def test_os_manifestos_do_escritorio_apontam_para_quadros_que_existem() -> None:
     frames = [cards["frame"], *cards["state_frames"].values(), *cards["size_frames"].values()]
     assert max(frames) < columns * rows
     assert set(cards["columns"]) == {"a_fazer", "fazendo", "entregue", "aceito"}
+    # O selo do PR nas fichas e a placa da versão na parede (ADR-0083).
+    badge = cards["badge"]
+    columns, rows = sheets[badge["sheet"]]
+    assert set(badge["frames"]) == {"pr", "ci_verde", "ci_vermelho", "mesclado"}
+    assert max(badge["frames"].values()) < columns * rows
+    plaque = scenario["plaque"]
+    columns, rows = sheets[plaque["sheet"]]
+    assert plaque["frame"] < columns * rows
+    text = plaque["text"]
+    assert text["x"] + text["width"] <= 64
+    assert 0 <= plaque["x"] < width * 32 - 64

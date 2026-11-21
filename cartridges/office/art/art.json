@@ -41,6 +41,7 @@
     "robo_testador": { "image": "robo_testador.png", "frame_width": 32, "frame_height": 32 },
     "robo_revisor": { "image": "robo_revisor.png", "frame_width": 32, "frame_height": 32 },
     "robo_publicador": { "image": "robo_publicador.png", "frame_width": 32, "frame_height": 32 },
+    "robo_briefing": { "image": "robo_briefing.png", "frame_width": 32, "frame_height": 32 },
     "geladeira": { "image": "geladeira.png", "frame_width": 32, "frame_height": 64 },
     "balcao_copa": { "image": "balcao_copa.png", "frame_width": 96, "frame_height": 64 },
     "maquina_cafe": { "image": "maquina_cafe.png", "frame_width": 32, "frame_height": 64 },
@@ -50,7 +51,9 @@
     "movel_tv": { "image": "movel_tv.png", "frame_width": 96, "frame_height": 64 },
     "puff": { "image": "puff.png", "frame_width": 32, "frame_height": 32 },
     "banheiro": { "image": "banheiro.png", "frame_width": 128, "frame_height": 96 },
-    "fichas": { "image": "fichas.png", "frame_width": 10, "frame_height": 10 }
+    "fichas": { "image": "fichas.png", "frame_width": 10, "frame_height": 10 },
+    "selos": { "image": "selos.png", "frame_width": 6, "frame_height": 6 },
+    "placa_versao": { "image": "placa_versao.png", "frame_width": 64, "frame_height": 64 }
   },
   "tiles": {
     "wall": { "color": "#cdbb8f" },
@@ -126,7 +129,8 @@
       },
       "variants": [
         { "when": { "nome": "revisor" }, "look": { "sheet": "robo_revisor" } },
-        { "when": { "nome": "publicador" }, "look": { "sheet": "robo_publicador" } }
+        { "when": { "nome": "publicador" }, "look": { "sheet": "robo_publicador" } },
+        { "when": { "nome": "briefing" }, "look": { "sheet": "robo_briefing" } }
       ]
     },
     "copa_table": { "sheet": "mesa_copa", "frame": 0, "in_use": { "actions": ["lunch"], "frames": [1] } },

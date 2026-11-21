@@ -83,8 +83,8 @@ export class BubbleKit {
     }
   }
 
-  /** A folha da fonte tingida de uma cor, feita uma vez por cor. */
-  private glyphs(hex: string): HTMLCanvasElement {
+  /** A folha da fonte tingida de uma cor, feita uma vez por cor; a placa da versão também a usa. */
+  glyphs(hex: string): HTMLCanvasElement {
     let canvas = this.tinted.get(hex);
     if (canvas === undefined) {
       const source = this.scene.textures.get(this.art.font?.sheet ?? "").getSourceImage() as HTMLImageElement;
