@@ -69,14 +69,14 @@ _CHECK_LINE = re.compile(r"^(?P<where>\S+?\.py:\d+):\d+: (?P<code>\S+)")
 _FORMAT_LINE = re.compile(r"^(?:Would reformat: |--> )(?P<file>.+?\.py)(?::\d+:\d+)?$")
 
 
-def _ruff(*args: str) -> str:
+def _ruff(*args: str) -> tuple[int, str]:
     proc = subprocess.run(
         [sys.executable, "-m", "ruff", *args],
         capture_output=True,
         text=True,
         check=False,
     )
-    return proc.stdout + proc.stderr
+    return proc.returncode, proc.stdout + proc.stderr
 
 
 def ruff_summary(paths: Sequence[str]) -> str:
@@ -85,8 +85,10 @@ def ruff_summary(paths: Sequence[str]) -> str:
     if not targets:
         return "ruff: nenhum arquivo .py"
     config = ["--config", str(_REPO_ROOT / "pyproject.toml")]
-    check_out = _ruff("check", *config, "--output-format=concise", "--no-cache", *targets)
-    format_out = _ruff("format", *config, "--check", "--no-cache", *targets)
+    check_code, check_out = _ruff(
+        "check", *config, "--output-format=concise", "--no-cache", *targets
+    )
+    format_code, format_out = _ruff("format", *config, "--check", "--no-cache", *targets)
     problems: list[str] = []
     for raw in check_out.splitlines():
         match = _CHECK_LINE.match(raw.strip())
@@ -100,6 +102,8 @@ def ruff_summary(paths: Sequence[str]) -> str:
         return f"ruff: {len(problems)} problemas; primeiro: {problems[0]}"
     if "No module named" in check_out + format_out:
         return "ruff: não consegui rodar (módulo ruff ausente)"
+    if check_code != 0 or format_code != 0:
+        return f"ruff: falhou (código {check_code} no check, {format_code} no format)"
     return "ruff: passou"
 
 

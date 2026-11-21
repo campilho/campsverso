@@ -23,3 +23,9 @@ def test_ruff_passes_clean_file(tmp_path: Path) -> None:
     file = tmp_path / "ok.py"
     file.write_text("X = [1, 2]\n")
     assert ruff_summary([str(file)]) == "ruff: passou"
+
+
+def test_ruff_never_passes_on_nonzero_exit(tmp_path: Path) -> None:
+    file = tmp_path / "broken.py"
+    file.write_text("def f(:\n")
+    assert ruff_summary([str(file)]) != "ruff: passou"
