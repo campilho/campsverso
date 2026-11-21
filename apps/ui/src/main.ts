@@ -6,7 +6,16 @@
  * O mapa é desenhado pelo Phaser com a arte dos cartuchos; `?render=debug` volta ao canvas de
  * depuração, com ids e rótulos.
  */
+import "@fontsource/pixelify-sans/500.css";
+import "@fontsource/pixelify-sans/700.css";
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/600.css";
+import "@fontsource/inter/700.css";
+import "@fontsource/jetbrains-mono/400.css";
+import "@fontsource/jetbrains-mono/600.css";
+import "@fontsource/patrick-hand/400.css";
 import "./style.css";
+import "./retro/retro.css";
 
 import type { EnvelopeV1, ObserverState } from "@campsverso/contracts";
 
@@ -35,6 +44,9 @@ import type { WorldRenderer } from "./render/renderer.ts";
 import { DisplayClock, clockText, isLive, realTime, tickSeconds } from "./simclock.ts";
 import { describe, shortType } from "./timeline.ts";
 import { Store } from "./store.ts";
+import { AboutDialog } from "./retro/about.ts";
+import { RetroFrame } from "./retro/frame.ts";
+import { chipsOf, clockView, lightOf } from "./retro/model.ts";
 import { parseTiledMap, tileAt as terrainAt, type TileGrid } from "./tiled.ts";
 
 const NOTICE_MS = 6000;
@@ -105,6 +117,7 @@ const app = document.querySelector<HTMLElement>("#app");
 if (app === null) {
   throw new Error("#app não existe no index.html");
 }
+const appRoot: HTMLElement = app; // o estreitamento não chega dentro das funções
 app.className = view;
 const footStack = el("div", { className: "map-foot-stack" }, queueBox, notice);
 const foot = el("div", { className: "map-foot" }, footStack);
@@ -211,11 +224,70 @@ const office = new OfficePanel(officeAside, {
     connection.send(PROPOSE, { avatar_id: avatarId(), action: "say", params: { text, ...(dev === undefined ? {} : { to: dev }) } });
   },
   leave: () => {
-    queue.clear();
-    queue.push({ label: "Ir até a porta", proposal: { avatar_id: avatarId(), action: "move", params: { near: "porta" } } });
-    leaving = true;
+    leaveOffice();
   },
 });
+
+/** O gerente vai até a porta e, lá, a tela o devolve: o "Soltar o gerente" e o "Sair do escritório". */
+function leaveOffice(): void {
+  queue.clear();
+  queue.push({ label: "Ir até a porta", proposal: { avatar_id: avatarId(), action: "move", params: { near: "porta" } } });
+  leaving = true;
+}
+
+// A tela retrô do escritório (docs/design/briefing-tela.md): a moldura entra no primeiro estado do
+// escritório e reorganiza as peças de sempre dentro dela.
+const about = new AboutDialog(document.body, () => { void credits.open(art?.credits ?? []); });
+const retro = new RetroFrame(view, debug, {
+  assume: () => {
+    if (store.state !== undefined) {
+      assume(store.state);
+    }
+  },
+  release: () => { leaveOffice(); },
+  write: () => { office.focusNewTicket(); },
+  summon: (devId) => {
+    connection.send(PROPOSE, { avatar_id: avatarId(), action: "summon", params: devId === "" ? {} : { target: devId } });
+  },
+  dismiss: (devId) => {
+    connection.send(PROPOSE, { avatar_id: avatarId(), action: "dismiss", params: { target: devId } });
+  },
+  help: () => { help.show(); },
+  about: () => {
+    const state = store.state;
+    const build = store.welcome?.build;
+    about.open({
+      running: build === undefined ? undefined : `${build.commit.slice(0, 7)} · ${build.date.slice(8, 10)}/${build.date.slice(5, 7)}/${build.date.slice(0, 4)}`,
+      world: `${store.welcome?.worldid ?? "?"} · ${state?.cartridge ?? "?"}`,
+      clock: state === undefined ? "?" : `Dia ${String(state.day)} · ${clockText(state, shownTick).slice(0, 5)} · ${String(state.clock.scale ?? 1)}× · ${store.status === "open" ? "ao vivo" : "sem conexão"}`,
+      debug,
+    });
+  },
+});
+
+function renderRetro(state: ObserverState): void {
+  if (run !== null || !isOffice(state)) {
+    return;
+  }
+  retro.mount(appRoot, world, [officeAside, view === "operator" && aside]);
+  const mine = inControl(state, avatarId());
+  const shown = clockText(state, shownTick);
+  const banner = bannerOf({ status: store.status, everOpen: store.everOpen, notice: store.notice, fresh: store.fresh, now: Date.now() });
+  const clockable = playerClock();
+  retro.render({
+    state,
+    timeline: store.timeline,
+    light: lightOf(store.status, state.pulse?.alive !== false, banner),
+    clock: clockView(state, shown),
+    live: store.status === "open" ? "ao vivo" : store.status === "connecting" ? "conectando…" : "sem conexão",
+    chips: chipsOf(state, avatarId(), shownTick, store.timeline),
+    mine,
+    connected: store.status === "open",
+    hint: mine ? "Sua vez: clique esquerdo anda; clique direito abre o menu; shift enfileira." : "Assuma o gerente para jogar.",
+    clockButtons: () => (clockable ? clockButtons(state) : []),
+    clockKey: JSON.stringify([clockable, state.clock.paused, state.clock.scale]),
+  });
+}
 
 const clock = new DisplayClock();
 let welcomes = 0;
@@ -794,6 +866,7 @@ function frame(now: number): void {
     shownTick = tick;
     map.draw(state, tick);
     renderControl(state);
+    renderRetro(state);
     if (hold !== undefined) {
       steerHold(state, now);
     } else if (paced && !holding() && state.actions[avatarId()] === undefined) {
@@ -854,6 +927,7 @@ void loadArt().then((loaded) => {
     lastClock = ""; // os nomes chegaram: o HUD se redesenha no próximo quadro
   });
   map.setArt(loaded.manifest);
+  retro.setArt(loaded.manifest);
   icons.setArt(loaded.manifest);
   portrait.setArt(loaded.manifest, avatarId());
 });

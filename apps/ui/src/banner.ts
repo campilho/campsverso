@@ -37,6 +37,8 @@ export interface Banner {
   readonly text: string;
   /** info: a troca e a versão nova; warn: a queda e a volta. */
   readonly tone: "info" | "warn";
+  /** O que é: a troca, a espera, a volta, a queda ou a versão nova (a tela retrô escolhe a forma). */
+  readonly kind: "troca" | "espera" | "volta" | "queda" | "fresh";
 }
 
 function version(commit: string, pullRequests: readonly number[]): string {
@@ -50,21 +52,21 @@ export function bannerOf(input: BannerInput): Banner | undefined {
   const age = notice === undefined ? Number.POSITIVE_INFINITY : now - notice.at;
   if (status !== "open") {
     if (notice?.message.kind === "troca" && age < SWAP_MS) {
-      return { text: "Trocando de versão… o escritório volta em instantes.", tone: "info" };
+      return { text: "Trocando de versão… o escritório volta em instantes.", tone: "info", kind: "troca" };
     }
-    return input.everOpen ? { text: "Conexão perdida; tentando de novo…", tone: "warn" } : undefined;
+    return input.everOpen ? { text: "Conexão perdida; tentando de novo…", tone: "warn", kind: "queda" } : undefined;
   }
   if (fresh !== undefined && now - fresh.at < FRESH_MS) {
-    return { text: `Versão nova no ar: ${version(fresh.commit, fresh.pullRequests)}.`, tone: "info" };
+    return { text: `Versão nova no ar: ${version(fresh.commit, fresh.pullRequests)}.`, tone: "info", kind: "fresh" };
   }
   if (notice?.message.kind === "volta" && age < BACK_MS) {
-    return { text: notice.message.text, tone: "warn" };
+    return { text: notice.message.text, tone: "warn", kind: "volta" };
   }
   if (notice?.message.kind === "espera" && age < WAIT_MS) {
-    return { text: notice.message.text, tone: "info" };
+    return { text: notice.message.text, tone: "info", kind: "espera" };
   }
   if (notice?.message.kind === "troca" && age < SWAP_MS) {
-    return { text: notice.message.text, tone: "info" }; // avisou, e a conexão ainda não caiu
+    return { text: notice.message.text, tone: "info", kind: "troca" }; // avisou, e a conexão ainda não caiu
   }
   return undefined;
 }

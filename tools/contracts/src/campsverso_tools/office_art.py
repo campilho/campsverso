@@ -16,7 +16,9 @@ saem, para os cartuchos:
 - as folhas dos três personagens, copiadas para `cartridges/office_campsverso/art/`;
 - as folhas dos balões, dos ícones e da fonte (o pedido de arte de 18/nov), copiadas, e a geometria
   delas em `baloes.json`, que o `art.json` do gênero inclui: as peças, as molduras em nove fatias, o
-  fio do progresso, a fonte com a largura de cada glifo e as cores da paleta em hex.
+  fio do progresso, a fonte com a largura de cada glifo e as cores da paleta em hex;
+- na folha dos ícones, os dois dos chips da tela retrô (`docs/design/briefing-tela.md`), que vieram
+  soltos em `escritorio-arte/tela/`: colados nas casas livres da folha.
 
 O mapa visual sai depois, por `make mapa-visual`. Com `--check`, só confere se está tudo em dia.
 """
@@ -33,6 +35,7 @@ REPO = Path(__file__).resolve().parents[4]
 SOURCE = REPO / "docs/design/escritorio-arte/folhas"
 GENRE = REPO / "cartridges/office/art"
 SCENARIO = REPO / "cartridges/office_campsverso/art"
+SCREEN = REPO / "docs/design/escritorio-arte/tela"
 T = 32
 COLUMNS = 8
 TILESET = "office-terreno"
@@ -62,11 +65,16 @@ FURNITURE = (
 )
 CHARACTERS = ("camps", "gerente", "vigia")
 # Soltas: as fichas do quadro, que a tela pendura pelo estado (10 x 10), os selos do PR nelas
-# (6 x 6) e a placa da versão na parede, com o commit escrito pela tela (64 x 64; o M25).
-LOOSE = ("fichas", "selos", "placa_versao")
-# O que fica sobre a cabeça (o pedido de arte de 18/nov): os balões e os ícones, copiados; a fonte
-# sai de `font_sheet`, com cada glifo colado à esquerda da célula.
-INTERFACE = ("baloes", "icones")
+# (6 x 6) e a placa da versão na parede numa linha, com o commit e o dia escritos pela tela (96 x
+# 64; a placa de duas linhas do M25 saiu em 21/nov).
+LOOSE = ("fichas", "selos", "placa_versao_linha")
+# O que fica sobre a cabeça (o pedido de arte de 18/nov): os balões, copiados; os ícones saem de
+# `icons_sheet`, com os dois dos chips; a fonte sai de `font_sheet`, com cada glifo colado à
+# esquerda da célula.
+INTERFACE = ("baloes",)
+# Os ícones dos chips da tela retrô (briefing-tela.md, §3.3), soltos em `tela/`: a casa livre de
+# cada um na folha `icones` (coluna, linha).
+CHIP_ICONS = {"fora": (6, 3), "vigiar": (7, 3)}
 # O que fica na parede do fundo, em módulos de 32 x 64: o nome do tile e o quadro da folha.
 WALL_PIECES = (
     ("quadro-comeco", "quadro_pedidos", 0),
@@ -219,7 +227,11 @@ def bubbles() -> dict[str, object]:
                 },
                 "at_desk": balloons["naMesa"],
             },
-            "icons": {"sheet": "icones", "columns": icons["colunas"], "frames": icons["icones"]},
+            "icons": {
+                "sheet": "icones",
+                "columns": icons["colunas"],
+                "frames": {**icons["icones"], **{k: list(v) for k, v in CHIP_ICONS.items()}},
+            },
             "label": frame("etiqueta", "etiqueta"),
             "speech": {
                 **frame("fala", "fala"),
@@ -235,6 +247,23 @@ def bubbles() -> dict[str, object]:
             },
         },
     }
+
+
+def icons_sheet() -> Img:
+    """A folha dos ícones com os dois dos chips colados nas casas livres. Uma casa ocupada, ou um
+    nome que a folha já tem, é erro: o Claude Design mudou a folha, e a escolha volta para cá."""
+    meta = json.loads((SOURCE / "metadados.json").read_text(encoding="utf-8"))
+    icons = meta["folhas"]["icones"]
+    width, height = icons["quadro"]
+    taken = {tuple(cell) for cell in icons["icones"].values()}
+    sheet = read_png(SOURCE / "icones.png")
+    for name, (column, row) in CHIP_ICONS.items():
+        cell = crop(sheet, column * width, row * height, width, height)
+        drawn = any(px[3] for line in cell for px in line)
+        if (column, row) in taken or name in icons["icones"] or drawn:
+            raise SystemExit(f"a casa {column},{row} da folha icones não está livre para {name}")
+        paste(sheet, read_png(SCREEN / f"ic_{name}.png"), column * width, row * height)
+    return sheet
 
 
 def font_sheet() -> Img:
@@ -264,6 +293,7 @@ def outputs() -> dict[Path, bytes]:
     for name in (*FURNITURE, *LOOSE, *INTERFACE):
         files[GENRE / f"{name}.png"] = (SOURCE / f"{name}.png").read_bytes()
     files[GENRE / "fonte.png"] = encode_png(font_sheet())
+    files[GENRE / "icones.png"] = encode_png(icons_sheet())
     text = json.dumps(bubbles(), indent=2, ensure_ascii=False) + "\n"
     files[GENRE / "baloes.json"] = text.encode()
     files[GENRE / "mesa_copa.png"] = encode_png(copa_table())

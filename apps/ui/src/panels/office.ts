@@ -213,6 +213,7 @@ export class OfficePanel {
   private shown = "";
   private readonly root: HTMLElement;
   private readonly actions: OfficeActions;
+  private newTitle: HTMLInputElement | undefined;
   private readonly delivery: DeliveryDialog;
 
   constructor(root: HTMLElement, actions: OfficeActions) {
@@ -239,6 +240,7 @@ export class OfficePanel {
     const talk = el("div", { className: "card" }, el("h2", {}, "Falar"), el("div", { className: "row" }, say, button("Falar", speak)));
 
     const title = el("input");
+    this.newTitle = title;
     title.maxLength = TITLE_MAX;
     title.placeholder = "Título";
     const description = el("textarea");
@@ -282,6 +284,12 @@ export class OfficePanel {
     const summon = el("div", { className: "card summon" }, el("h2", {}, "Convocação"), this.summons);
     this.managerOnly.push(talk, summon, form, leave);
     this.root.replaceChildren(el("div", { className: "card" }, el("h2", {}, "Quadro dos pedidos"), this.board), talk, summon, form, leave, this.hint);
+  }
+
+  /** O "Escrever pedido" da barra de baixo, até a prancheta chegar (a fase 2 da tela retrô). */
+  focusNewTicket(): void {
+    this.newTitle?.scrollIntoView({ block: "center", behavior: "smooth" });
+    this.newTitle?.focus({ preventScroll: true });
   }
 
   /** `underway`: os pedidos a que o gerente já está indo (aceitar ou devolver, na fila ou fazendo). */

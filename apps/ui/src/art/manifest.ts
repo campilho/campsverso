@@ -339,7 +339,8 @@ export interface Plaque {
   readonly x: number;
   readonly y: number;
   readonly frame?: number;
-  readonly text: { readonly x: number; readonly y: number; readonly width: number; readonly line: number; readonly color: string };
+  /** O retângulo de uma linha onde a tela escreve `<commit> <dd/mm>`, centrado. */
+  readonly text: { readonly x: number; readonly y: number; readonly width: number; readonly color: string };
 }
 
 /** O selo do PR de um pedido: aberto (com o CI, quando há), mesclado; fechado sem mesclar, nenhum. */
@@ -355,10 +356,10 @@ export function badgeOf(attributes: Readonly<Record<string, unknown>>): string |
   return ci === "success" ? "ci_verde" : ci === "failure" ? "ci_vermelho" : "pr";
 }
 
-/** As duas linhas da placa: o commit curto e o dia dele. */
-export function plaqueLines(build: { readonly commit: string; readonly date: string }): [string, string] {
+/** A linha da placa: o commit curto e o dia dele (`89f4167 21/11`). */
+export function plaqueText(build: { readonly commit: string; readonly date: string }): string {
   const [, month = "", day = ""] = /^\d{4}-(\d{2})-(\d{2})/.exec(build.date) ?? [];
-  return [build.commit.slice(0, 7), day === "" ? "" : `${day}/${month}`];
+  return build.commit.slice(0, 7) + (day === "" ? "" : ` ${day}/${month}`);
 }
 
 export const EMPTY: ArtManifest = { version: 1 };

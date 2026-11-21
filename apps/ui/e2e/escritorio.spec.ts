@@ -16,6 +16,18 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   const office = page.locator("aside.office");
   await expect(office).toContainText("Quadro dos pedidos");
 
+  // A moldura retrô (docs/design/briefing-tela.md): a luz com o rótulo, o gerente seu nos chips, o
+  // comando de soltar e o Sobre, que abre e fecha.
+  await expect(page.locator("body")).toHaveClass(/retro/);
+  await expect(page.getByRole("img", { name: "online" })).toBeVisible();
+  await expect(page.locator(".retro-chip", { hasText: "Gerente" })).toContainText("você");
+  await expect(page.getByRole("button", { name: "Soltar o gerente" })).toBeEnabled();
+  await page.getByRole("button", { name: "Sobre o Campsverso" }).click();
+  const about = page.getByRole("dialog", { name: "Sobre o Campsverso" });
+  await expect(about).toContainText("v0.4");
+  await about.getByRole("button", { name: "Fechar" }).click();
+  await expect(about).toBeHidden();
+
   // A seta segurada anda no passo de tela, e soltar não faz o gerente voltar (ADR-0079): a 72×, o
   // teclado troca o destino a cada 200 ms, e o passo começado termina antes de o avatar virar.
   const drawn = (id: string): Promise<{ x: number; y: number } | undefined> =>

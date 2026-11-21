@@ -22,7 +22,7 @@ import {
   lookOf,
   loopFrame,
   minuteOfDay,
-  plaqueLines,
+  plaqueText,
   seasonSheet,
   seasonTint,
   seatAt,
@@ -664,17 +664,15 @@ class WorldScene extends Phaser.Scene {
       const source = frame.source.image as CanvasImageSource;
       context.drawImage(source, frame.cutX, frame.cutY, frame.cutWidth, frame.cutHeight, 0, 0, frame.cutWidth, frame.cutHeight);
       const glyphs = kit.glyphs(plaque.text.color);
-      plaqueLines(build).forEach((line, row) => {
-        let x = plaque.text.x + Math.max(0, Math.floor((plaque.text.width - textWidth(font, line)) / 2));
-        const y = plaque.text.y + row * plaque.text.line;
-        for (const char of line) {
-          const [gx, gy, gw, gh] = glyphRect(font, glyphIndex(font, char));
-          if (gw > 0) {
-            context.drawImage(glyphs, gx, gy, gw, gh, x, y, gw, gh);
-          }
-          x += gw + font.spacing;
+      const line = plaqueText(build);
+      let x = plaque.text.x + Math.max(0, Math.floor((plaque.text.width - textWidth(font, line)) / 2));
+      for (const char of line) {
+        const [gx, gy, gw, gh] = glyphRect(font, glyphIndex(font, char));
+        if (gw > 0) {
+          context.drawImage(glyphs, gx, gy, gw, gh, x, plaque.text.y, gw, gh);
         }
-      });
+        x += gw + font.spacing;
+      }
       if (this.plaqueKey !== "" && this.textures.exists(this.plaqueKey)) {
         this.plaque?.setTexture("__DEFAULT");
         this.textures.remove(this.plaqueKey);

@@ -95,6 +95,32 @@ export class CreditsDialog {
         ),
       );
     }
-    this.body.replaceChildren(...(sections.length > 0 ? sections : [el("p", {}, "Nenhum crédito publicado pelos cartuchos.")]));
+    sections.push(fontsCredits());
+    this.body.replaceChildren(...sections);
   }
+}
+
+/** As fontes da tela do escritório, que vêm junto com a UI (docs/design/briefing-tela.md). */
+export const FONTS = [
+  { name: "Pixelify Sans", authors: "Stefie Justprince" },
+  { name: "Inter", authors: "Rasmus Andersson" },
+  { name: "JetBrains Mono", authors: "JetBrains" },
+  { name: "Patrick Hand", authors: "Patrick Wagesreiter" },
+] as const;
+
+function fontsCredits(): HTMLElement {
+  return el(
+    "section",
+    {},
+    el("h3", {}, "fontes da tela"),
+    ...FONTS.map((font) =>
+      el(
+        "article",
+        {},
+        el("strong", {}, font.name),
+        el("p", {}, font.authors),
+        el("p", { className: "license" }, "SIL Open Font License 1.1"),
+      ),
+    ),
+  );
 }

@@ -42,11 +42,11 @@
     "badge": { "sheet": "selos", "at": [4, 4], "frames": { "pr": 0, "ci_verde": 1, "ci_vermelho": 2, "mesclado": 3 } }
   },
   "plaque": {
-    "sheet": "placa_versao",
+    "sheet": "placa_versao_linha",
     "x": 416,
     "y": 0,
     "frame": 0,
-    "text": { "x": 9, "y": 15, "width": 41, "line": 11, "color": "#26222f" }
+    "text": { "x": 13, "y": 14, "width": 70, "color": "#26222f" }
   },
   "avatars": {
     "camps": {

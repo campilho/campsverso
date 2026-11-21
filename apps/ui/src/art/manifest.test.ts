@@ -14,7 +14,7 @@ import {
   inUseFrame,
   lightMode,
   lookOf,
-  plaqueLines,
+  plaqueText,
   loopFrame,
   mergeManifests,
   minuteOfDay,
@@ -460,7 +460,8 @@ describe("as animações e a noite do escritório (ADR-0082)", () => {
     expect(cardPlacements(cards, things).map((c) => c.badge)).toEqual([3, 1, undefined]);
   });
 
-  it("a placa escreve o commit curto e o dia dele", () => {
-    expect(plaqueLines({ commit: "4b7ab259633452ca529e0e1d9e0244476a96d2ae", date: "2026-11-21T01:38:37-03:00" })).toEqual(["4b7ab25", "21/11"]);
+  it("a placa escreve o commit curto e o dia dele numa linha", () => {
+    expect(plaqueText({ commit: "4b7ab259633452ca529e0e1d9e0244476a96d2ae", date: "2026-11-21T01:38:37-03:00" })).toBe("4b7ab25 21/11");
+    expect(plaqueText({ commit: "4b7ab259633452ca529e0e1d9e0244476a96d2ae", date: "" })).toBe("4b7ab25");
   });
 });

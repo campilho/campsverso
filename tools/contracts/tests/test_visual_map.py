@@ -228,6 +228,9 @@ def test_os_manifestos_do_escritorio_apontam_para_quadros_que_existem() -> None:
     plaque = scenario["plaque"]
     columns, rows = sheets[plaque["sheet"]]
     assert plaque["frame"] < columns * rows
+    # A placa numa linha (ADR-0087): o texto cabe no quadro, e o quadro, na parede.
+    frame_width = manifests["office"]["sheets"][plaque["sheet"]]["frame_width"]
     text = plaque["text"]
-    assert text["x"] + text["width"] <= 64
-    assert 0 <= plaque["x"] < width * 32 - 64
+    assert set(text) == {"x", "y", "width", "color"}
+    assert text["x"] + text["width"] <= frame_width
+    assert 0 <= plaque["x"] <= width * 32 - frame_width

@@ -46,6 +46,7 @@ describe("a faixa", () => {
     expect(bannerOf(input({ notice, status: "closed" }))).toEqual({
       text: "Trocando de versão… o escritório volta em instantes.",
       tone: "info",
+      kind: "troca",
     });
     const late = 1_000_000 + SWAP_MS + 1;
     expect(bannerOf(input({ notice, status: "closed", now: late }))?.text).toBe("Conexão perdida; tentando de novo…");
@@ -56,7 +57,7 @@ describe("a faixa", () => {
     expect(bannerOf(input({ fresh }))?.text).toBe("Versão nova no ar: 8888888 (PR #2).");
     expect(bannerOf(input({ fresh, now: 1_000_000 + FRESH_MS }))).toBeUndefined();
     const back = { message: { ...swap, kind: "volta" as const, text: "A versão falhou." }, at: 1_000_000 };
-    expect(bannerOf(input({ notice: back }))).toEqual({ text: "A versão falhou.", tone: "warn" });
+    expect(bannerOf(input({ notice: back }))).toEqual({ text: "A versão falhou.", tone: "warn", kind: "volta" });
     expect(bannerOf(input({ notice: back, now: 1_000_000 + BACK_MS }))).toBeUndefined();
   });
 });

@@ -53,7 +53,7 @@
     "banheiro": { "image": "banheiro.png", "frame_width": 128, "frame_height": 96 },
     "fichas": { "image": "fichas.png", "frame_width": 10, "frame_height": 10 },
     "selos": { "image": "selos.png", "frame_width": 6, "frame_height": 6 },
-    "placa_versao": { "image": "placa_versao.png", "frame_width": 64, "frame_height": 64 }
+    "placa_versao_linha": { "image": "placa_versao_linha.png", "frame_width": 96, "frame_height": 64 }
   },
   "tiles": {
     "wall": { "color": "#cdbb8f" },
