@@ -76,6 +76,8 @@ describe("os chips das pessoas", () => {
       ["testador", "robô"],
     ]);
     expect(chips.find((c) => c.id === "vigia")).toMatchObject({ icon: "vigiar", line: "vigiando", away: false });
+    const looking = state({ ...office, actions: { vigia: { action: "wait" } } as unknown as ObserverState["actions"] });
+    expect(chipsOf(looking, "gerente", office.tick).find((c) => c.id === "vigia")?.line).toBe("vigiando"); // olhando a sala
     expect(chips.find((c) => c.id === "gerente")?.line).toBe("no escritório");
     expect(chips.filter((c) => c.robot).map((c) => c.line)).toEqual(["parado", "parado"]);
   });

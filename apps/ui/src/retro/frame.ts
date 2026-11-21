@@ -275,10 +275,11 @@ export class RetroFrame {
     const write = button("Escrever pedido", "retro-small", () => { this.actions.write(); }, input.mine && input.connected);
     const parts: HTMLElement[] = [take, write];
     if (summon !== undefined) {
+      const who = summon.id === "" ? summon.name : `o ${summon.name}`; // sem o dev na visão, "o dev"
       parts.push(
         summon.summoned
-          ? button(`Dispensar o ${summon.name}`, "retro-small", () => { this.actions.dismiss(summon.id); }, input.connected)
-          : button(`Convocar o ${summon.name}`, "retro-small", () => { this.actions.summon(summon.id); }, input.connected),
+          ? button(`Dispensar ${who}`, "retro-small", () => { this.actions.dismiss(summon.id); }, input.connected)
+          : button(`Convocar ${who}`, "retro-small", () => { this.actions.summon(summon.id); }, input.connected),
       );
     }
     this.commands.replaceChildren(...parts);

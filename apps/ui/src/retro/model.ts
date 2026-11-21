@@ -126,7 +126,8 @@ export function chipsOf(state: ObserverState, me: string, tick: number, timeline
     const away = entity?.position === undefined;
     const controller = state.controllers[id];
     const tag: Chip["tag"] = id === me && controller?.type === "human" ? "você" : controller?.type === "llm" ? "LLM" : "script";
-    const doing = state.actions[id];
+    // O vigia parado no ponto da ronda (o `wait` do script) está vigiando, não esperando.
+    const doing = role(id) === "vigia" && state.actions[id]?.action === "wait" ? undefined : state.actions[id];
     const asleep = state.asleep[id] === true;
     let icon: string | undefined;
     let line: string;

@@ -229,8 +229,9 @@ body.retro .banner.warn {
 /* O que já ficava sobre o mapa (a ajuda, a fila, o aviso de recusa) e o menu da coisa guardam o
    painel escuro de hoje, com o texto claro, até a fase das mensagens (o plano, fase 4). */
 body.retro .retro-screen,
-body.retro .action-menu {
-  color: var(--text);
+body.retro .action-menu,
+body.retro .retro-right .card {
+  color: var(--text); /* e os cartões escuros da coluna da direita, até as fases 2 a 5 */
 }
 
 body.retro .retro-screen .world {
@@ -518,6 +519,20 @@ body.retro .dot.off {
   justify-content: center;
   gap: 8px;
   min-width: 190px;
+}
+
+/* Com o convocar ou o dispensar, os três botões cabem na altura da barra. */
+.retro-commands:has(> :nth-child(3)) {
+  gap: 5px;
+  padding-block: 6px;
+}
+
+.retro-commands:has(> :nth-child(3)) .retro-take {
+  height: 40px;
+}
+
+.retro-commands:has(> :nth-child(3)) .retro-small {
+  height: 28px;
 }
 
 .retro-take,

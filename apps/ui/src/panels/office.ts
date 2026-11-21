@@ -322,7 +322,7 @@ export class OfficePanel {
             ? [button(`Dispensar o ${dev.name}`, () => { this.actions.dismiss(dev.id); })]
             : dev.present
               ? []
-              : [button(`Convocar o ${dev.name}`, () => { this.actions.summon(dev.id); })]),
+              : [button(`Convocar ${dev.id === "" ? dev.name : `o ${dev.name}`}`, () => { this.actions.summon(dev.id); })]),
         ),
       ),
     );
