@@ -41,6 +41,9 @@ robos:
     modulo: tools.robos.testador
     descricao: Roda os testes que cobrem os caminhos dados e devolve um resumo curto.
     reserva: [tools/robos/tests]  # os testes da própria bancada: rápidos e em todo clone
+  - nome: briefing
+    modulo: tools.robos.briefing
+    descricao: Monta o briefing de uma sessão do Claude Code a partir do pedido e das notas da memória.
 
 # O elenco (ADR-0077): o dev é sempre um LLM ou um script; o humano entra como o gerente.
 cast:
