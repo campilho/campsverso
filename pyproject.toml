@@ -20,6 +20,7 @@ dependencies = [
   "campsverso-archiver",
   "campsverso-budget",
   "campsverso-codehost",
+  "campsverso-supervisor",
   "campsverso-farm-sim",
   "campsverso-farm-script",
   "campsverso-farm-camps-sim",
@@ -93,6 +94,7 @@ campsverso-gateway = { workspace = true }
 campsverso-archiver = { workspace = true }
 campsverso-budget = { workspace = true }
 campsverso-codehost = { workspace = true }
+campsverso-supervisor = { workspace = true }
 campsverso-farm-sim = { workspace = true }
 campsverso-farm-script = { workspace = true }
 campsverso-farm-camps-sim = { workspace = true }
@@ -178,6 +180,7 @@ root_packages = [
   "campsverso_archiver",
   "campsverso_budget",
   "campsverso_codehost",
+  "campsverso_supervisor",
   "campsverso_farm_sim",
   "campsverso_farm_script",
   "campsverso_office_script",
@@ -211,6 +214,7 @@ forbidden_modules = [
   "campsverso_archiver",
   "campsverso_budget",
   "campsverso_codehost",
+  "campsverso_supervisor",
   "campsverso_farm_sim",
   "campsverso_farm_script",
   "campsverso_office_script",
@@ -249,6 +253,7 @@ forbidden_modules = [
   "campsverso_archiver",
   "campsverso_budget",
   "campsverso_codehost",
+  "campsverso_supervisor",
   "campsverso_farm_sim",
   "campsverso_farm_script",
   "campsverso_office_script",
@@ -272,6 +277,7 @@ modules = [
   "campsverso_archiver",
   "campsverso_budget",
   "campsverso_codehost",
+  "campsverso_supervisor",
 ]
 
 [[tool.importlinter.contracts]]
@@ -285,6 +291,7 @@ source_modules = [
   "campsverso_archiver",
   "campsverso_budget",
   "campsverso_codehost",
+  "campsverso_supervisor",
 ]
 forbidden_modules = [
   "campsverso_farm_sim",
@@ -316,6 +323,7 @@ forbidden_modules = [
   "campsverso_archiver",
   "campsverso_budget",
   "campsverso_codehost",
+  "campsverso_supervisor",
   "campsverso_farm_sim",
   "campsverso_farm_camps_sim",
   "campsverso_farm_boavista_sim",
@@ -339,6 +347,7 @@ forbidden_modules = [
   "campsverso_archiver",
   "campsverso_budget",
   "campsverso_codehost",
+  "campsverso_supervisor",
   "campsverso_office_sim",
   "campsverso_office_campsverso_sim",
 ]
@@ -363,6 +372,7 @@ forbidden_modules = [
   "campsverso_archiver",
   "campsverso_budget",
   "campsverso_codehost",
+  "campsverso_supervisor",
 ]
 
 [[tool.importlinter.contracts]]
@@ -383,6 +393,7 @@ forbidden_modules = [
   "campsverso_archiver",
   "campsverso_budget",
   "campsverso_codehost",
+  "campsverso_supervisor",
   "campsverso_farm_sim",
   "campsverso_farm_script",
   "campsverso_office_script",
@@ -406,6 +417,7 @@ source_modules = [
   "campsverso_archiver",
   "campsverso_budget",
   "campsverso_codehost",
+  "campsverso_supervisor",
   "campsverso_world_view",
   "campsverso_mind",
   "campsverso_ports",
@@ -453,6 +465,7 @@ forbidden_modules = [
   "campsverso_archiver",
   "campsverso_budget",
   "campsverso_codehost",
+  "campsverso_supervisor",
   "campsverso_farm_sim",
   "campsverso_farm_script",
   "campsverso_office_script",
@@ -479,6 +492,7 @@ forbidden_modules = [
   "campsverso_archiver",
   "campsverso_budget",
   "campsverso_codehost",
+  "campsverso_supervisor",
   "campsverso_farm_sim",
   "campsverso_farm_script",
   "campsverso_office_script",
@@ -508,6 +522,7 @@ source_modules = [
   "campsverso_archiver",
   "campsverso_budget",
   "campsverso_codehost",
+  "campsverso_supervisor",
 ]
 forbidden_modules = ["campsverso_adapters"]
 ignore_imports = [
@@ -525,6 +540,8 @@ ignore_imports = [
   "campsverso_budget.main -> campsverso_adapters.**",
   "campsverso_codehost.main -> campsverso_adapters",
   "campsverso_codehost.main -> campsverso_adapters.**",
+  "campsverso_supervisor.main -> campsverso_adapters",
+  "campsverso_supervisor.main -> campsverso_adapters.**",
 ]
 unmatched_ignore_imports_alerting = "none"
 
@@ -545,6 +562,7 @@ source_modules = [
   "campsverso_archiver",
   "campsverso_budget",
   "campsverso_codehost",
+  "campsverso_supervisor",
   "campsverso_farm_sim",
   "campsverso_farm_script",
   "campsverso_office_script",

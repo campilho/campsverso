@@ -1,0 +1,15 @@
+[project]
+name = "campsverso-supervisor"
+version = "0.1.0.dev0"
+description = "O supervisor do escritório vivo: busca a versão nova, testa numa cópia, troca e volta se falhar (ADR-0083)."
+requires-python = ">=3.14"
+license = "MIT"
+dependencies = [
+  "campsverso-contracts",
+  "campsverso-ports",
+  "campsverso-adapters",  # só o main.py (raiz de composição) importa
+]
+
+[build-system]
+requires = ["uv_build>=0.13,<0.14"]
+build-backend = "uv_build"

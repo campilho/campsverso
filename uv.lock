@@ -33,6 +33,7 @@ members = [
     "campsverso-office-sim",
     "campsverso-perception",
     "campsverso-ports",
+    "campsverso-supervisor",
     "campsverso-testkit",
     "campsverso-tools",
     "campsverso-world-view",
@@ -161,6 +162,7 @@ dependencies = [
     { name = "campsverso-office-sim" },
     { name = "campsverso-perception" },
     { name = "campsverso-ports" },
+    { name = "campsverso-supervisor" },
     { name = "campsverso-testkit" },
     { name = "campsverso-tools" },
     { name = "campsverso-world-view" },
@@ -209,6 +211,7 @@ requires-dist = [
     { name = "campsverso-office-sim", editable = "cartridges/office/sim" },
     { name = "campsverso-perception", editable = "services/perception" },
     { name = "campsverso-ports", editable = "libs/ports" },
+    { name = "campsverso-supervisor", editable = "services/supervisor" },
     { name = "campsverso-testkit", editable = "tests/support" },
     { name = "campsverso-tools", editable = "tools/contracts" },
     { name = "campsverso-world-view", editable = "libs/world-view" },
@@ -682,6 +685,23 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "campsverso-contracts", editable = "packages/contracts-py" }]
+
+[[package]]
+name = "campsverso-supervisor"
+version = "0.1.0.dev0"
+source = { editable = "services/supervisor" }
+dependencies = [
+    { name = "campsverso-adapters" },
+    { name = "campsverso-contracts" },
+    { name = "campsverso-ports" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "campsverso-adapters", editable = "libs/adapters" },
+    { name = "campsverso-contracts", editable = "packages/contracts-py" },
+    { name = "campsverso-ports", editable = "libs/ports" },
+]
 
 [[package]]
 name = "campsverso-testkit"
