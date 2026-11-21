@@ -8,6 +8,17 @@ import { summonsOf, type TicketView } from "./panels/office.ts";
 import type { Step } from "./queue.ts";
 import { chipsOf, clockView, lightOf, robotLine, summonShort } from "./retro/model.ts";
 import {
+  completeMention,
+  linesOf,
+  mentionQuery,
+  mentionTarget,
+  peopleLine,
+  peopleOf,
+  personTag,
+  splitMentions,
+  suggestionsOf,
+} from "./retro/talk.ts";
+import {
   EMPTY_DRAFT,
   badgeOfPullRequest,
   boardSummary,
@@ -263,5 +274,83 @@ describe("a prancheta (§3.6)", () => {
     expect(parseDraft(JSON.stringify({ title: "A lousa", description: 3, size: "X" }))).toEqual({ ...EMPTY_DRAFT, title: "A lousa" });
     const draft = { title: "A lousa", description: "Na copa", acceptance: "Entro e vejo", size: "G" };
     expect(parseDraft(JSON.stringify(draft))).toEqual(draft);
+  });
+});
+
+describe("a conversa (§3.5)", () => {
+  const room = state({
+    entities: {
+      camps: { kind: "avatar", display_name: "Camps", position: { x: 4, y: 5 }, attributes: { papel: "dev" } },
+      vigia: { kind: "avatar", display_name: "Vigia", position: { x: 2, y: 14 }, attributes: { papel: "vigia" } },
+      gerente: { kind: "avatar", display_name: "Gerente", position: { x: 9, y: 14 }, attributes: { papel: "gerente" } },
+      faxina: { kind: "avatar", display_name: "Fátima", attributes: { papel: "dev" } }, // fora da sala
+      "robo-testador": { kind: "robot", display_name: "Testador", position: { x: 15, y: 4 }, attributes: {} },
+    },
+    controllers: { camps: { type: "llm" }, vigia: { type: "script" }, gerente: { type: "human" } } as unknown as ObserverState["controllers"],
+  });
+  const people = peopleOf(room, "gerente");
+
+  it("tem quem está na sala, menos quem joga e menos os robôs, o dev primeiro", () => {
+    expect(people.map((p) => [p.id, p.controller])).toEqual([
+      ["camps", "LLM"],
+      ["vigia", "script"],
+    ]);
+    expect(peopleLine(people)).toBe("o Camps e o vigia");
+    expect(peopleLine(people.slice(0, 1))).toBe("o Camps");
+    expect(peopleLine([])).toBe("ninguém na sala");
+    expect(people[0] && personTag(people[0])).toBe("o dev · LLM");
+  });
+
+  it("a primeira menção de quem está na sala vira o `to`; o gerente e quem está fora, nunca", () => {
+    expect(mentionTarget("@Vigia e @Camps, tudo certo?", people)).toBe("vigia");
+    expect(mentionTarget("@gerente @camps olha isto", people)).toBe("camps"); // sem diferença de maiúsculas
+    expect(mentionTarget("@Fátima vem amanhã?", people)).toBeUndefined();
+    expect(mentionTarget("sem menção", people)).toBeUndefined();
+  });
+
+  it("sugere pelo começo do nome quando o texto termina em @, e completa a menção", () => {
+    expect(mentionQuery("oi @Ca")).toBe("Ca");
+    expect(mentionQuery("@")).toBe("");
+    expect(mentionQuery("oi @Camps e")).toBeUndefined();
+    expect(mentionQuery("email@dominio")).toBeUndefined();
+    expect(suggestionsOf("", people).map((p) => p.id)).toEqual(["camps", "vigia"]);
+    expect(suggestionsOf("vi", people).map((p) => p.id)).toEqual(["vigia"]);
+    const camps = people[0];
+    expect(camps && completeMention("oi @ca", camps)).toBe("oi @Camps ");
+  });
+
+  it("separa as menções do texto, para a fala as mostrar como pílulas", () => {
+    expect(splitMentions("@Camps depois veja o @Vigia.")).toEqual([
+      { text: "@Camps", mention: true },
+      { text: " depois veja o ", mention: false },
+      { text: "@Vigia", mention: true },
+      { text: ".", mention: false },
+    ]);
+    expect(splitMentions("sem nada")).toEqual([{ text: "sem nada", mention: false }]);
+  });
+
+  it("monta as falas e as linhas do quadro, do PR e da bancada, na ordem, com a hora", () => {
+    const at = (type: string, data: Record<string, unknown>, tick: number, id: string): EnvelopeV1 =>
+      ({ id, type, data, tick, visibility: "public" }) as unknown as EnvelopeV1;
+    const labels = [
+      { event: "campsverso.office.ticket.taken.v1", text: "pegou o pedido {number}" },
+      { event: "campsverso.office.ticket.pr_merged.v1", text: "PR #{pull_request} mesclado" },
+    ] as unknown as Parameters<typeof linesOf>[3];
+    const timeline = [
+      at("campsverso.avatar.spoke.v1", { avatar_id: "gerente", text: "@Camps bom dia", action_id: "a1" }, 16200, "e1"),
+      at("campsverso.world.entity.moved.v1", { entity_id: "camps" }, 16210, "e2"),
+      at("campsverso.office.ticket.taken.v1", { ticket_id: "pedido-001", number: 1, by: "camps" }, 16230, "e3"),
+      at("campsverso.workshop.robot_called.v1", { robot_id: "robo-testador", summary: "testes verdes", ok: true }, 16260, "e4"),
+      at("campsverso.office.ticket.pr_merged.v1", { ticket_id: "pedido-001", number: 1, pull_request: 7 }, 16290, "e5"),
+      at("campsverso.avatar.spoke.v1", { avatar_id: "camps", text: "Anotado.", action_id: "a2" }, 16320, "e6"),
+    ];
+    expect(linesOf(timeline, room, "gerente", labels)).toEqual([
+      { kind: "speech", id: "e1", who: "gerente", name: "Gerente", text: "@Camps bom dia", mine: true, time: "09:00" },
+      { kind: "system", id: "e3", text: "Camps pegou o pedido 1", time: "09:01" },
+      { kind: "system", id: "e4", text: "o testador passou: testes verdes", time: "09:02" },
+      { kind: "system", id: "e5", text: "PR #7 mesclado", time: "09:03" },
+      { kind: "speech", id: "e6", who: "camps", name: "Camps", text: "Anotado.", mine: false, time: "09:04" },
+    ]);
+    expect(linesOf(timeline, room, "gerente", labels, 2).map((l) => l.id)).toEqual(["e5", "e6"]); // só as últimas
   });
 });

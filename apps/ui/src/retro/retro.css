@@ -974,6 +974,288 @@ a.retro-pr:hover {
   image-rendering: pixelated;
 }
 
+/* Com a conversa aumentada, o quadro vira uma fileira só, com rolagem de lado, e as fichas ficam
+   com o número, o tamanho e o título. */
+.retro-right.talk-big .retro-board {
+  flex: 0 0 auto; /* a altura de uma fileira; quem cede é a conversa */
+  min-height: 0;
+}
+
+.retro-right.talk-big .retro-cork {
+  flex: none;
+  min-height: 108px; /* uma fileira, mesmo com a aba vazia */
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.retro-right.talk-big .retro-cards {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: 210px;
+  width: max-content;
+  padding: 14px 10px 10px;
+}
+
+.retro-right.talk-big .retro-ficha-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  min-height: 2.6em;
+  overflow: hidden;
+}
+
+.retro-right.talk-big .retro-ficha-who,
+.retro-right.talk-big .retro-pr {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ a conversa (§3.5) */
+
+.retro-talk {
+  flex: 0 1 300px;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+  padding: 10px 12px 12px;
+  border: 3px solid var(--contorno);
+  border-radius: 14px;
+  background: var(--creme);
+  box-shadow: inset 3px 3px 0 var(--cremeCl), inset -4px -4px 0 var(--begeSomb);
+  transition: flex-basis 0.35s ease;
+}
+
+.retro-talk.big {
+  flex-basis: 520px;
+}
+
+.retro-talk-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  min-width: 0;
+}
+
+.retro-talk-head h2 {
+  margin: 0;
+  font: 700 17px var(--pixel);
+}
+
+.retro-talk-faces {
+  display: flex;
+}
+
+.retro-talk-faces > * + * {
+  margin-left: -8px;
+}
+
+.retro-face-small {
+  flex: none;
+  width: 26px;
+  height: 24px;
+  box-sizing: border-box;
+  border: 2px solid var(--contorno);
+  border-radius: 6px;
+  background: var(--bege);
+  object-fit: cover;
+  image-rendering: pixelated;
+}
+
+.retro-talk-who {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--grafite);
+}
+
+.retro-talk-toggle {
+  flex: none;
+}
+
+.retro-talk-log {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  padding: 10px 12px;
+  border: 2px solid var(--contorno);
+  border-radius: 8px;
+  background: var(--cremeCl);
+}
+
+.retro-talk-empty {
+  margin: auto;
+  font-size: 13px;
+  color: var(--grafite);
+}
+
+.retro-say {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: 88%;
+}
+
+.retro-say.mine {
+  align-self: flex-end;
+}
+
+.retro-say > .retro-face-small {
+  margin-bottom: 15px;
+}
+
+.retro-say-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 0;
+}
+
+.retro-say.mine .retro-say-body {
+  align-items: flex-end;
+}
+
+.retro-bubble {
+  padding: 7px 12px;
+  border: 2px solid var(--contorno);
+  border-radius: 8px 8px 8px 2px;
+  background: var(--branco);
+  font-size: 14px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.retro-say.mine .retro-bubble {
+  border-radius: 8px 8px 2px 8px;
+  background: var(--amarelo);
+}
+
+.retro-mention {
+  padding: 0 5px;
+  border-radius: 4px;
+  background: var(--azulEsc);
+  color: #fff;
+  font-weight: 600;
+}
+
+.retro-say-meta {
+  font-size: 10px;
+  color: var(--grafite);
+}
+
+.retro-sys {
+  align-self: center;
+  margin: 0;
+  font-size: 12px;
+  color: var(--grafite);
+  text-align: center;
+}
+
+.retro-talk-write {
+  position: relative;
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.retro-talk-write .retro-button {
+  height: 40px;
+}
+
+.retro-talk-at {
+  width: 40px;
+  padding: 0;
+  font: 600 16px var(--mono);
+}
+
+.retro-talk-field {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 40px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border: 2px solid var(--contorno);
+  border-radius: 6px;
+  background: var(--cremeCl);
+  color: var(--escuro);
+  font: 15px var(--texto);
+}
+
+.retro-talk-field:disabled {
+  background: var(--bege);
+}
+
+.retro-talk-field::placeholder {
+  color: var(--begeEsc);
+}
+
+.retro-talk-send.ready:not(:disabled) {
+  background: var(--amarelo);
+}
+
+.retro-suggest {
+  position: absolute;
+  left: 0;
+  bottom: 48px;
+  z-index: 5;
+  width: 250px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: 2px solid var(--contorno);
+  border-radius: 8px;
+  background: var(--cremeCl);
+  box-shadow: 0 4px 0 var(--contorno);
+}
+
+.retro-suggest[hidden] {
+  display: none;
+}
+
+.retro-suggest-title {
+  padding: 2px 6px 6px;
+  font-size: 11px;
+  color: var(--grafite);
+}
+
+.retro-suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.retro-suggest-item[aria-selected="true"] {
+  background: var(--amareloCl);
+}
+
+.retro-suggest-item b {
+  display: block;
+  font-size: 14px;
+}
+
+.retro-suggest-tag {
+  display: block;
+  font-size: 11px;
+  color: var(--grafite);
+}
+
+@media (max-height: 759px) {
+  .retro-talk {
+    flex-basis: 240px;
+  }
+}
+
 /* ------------------------------------------------------------------ a prancheta (§3.6) */
 
 .retro-clipboard-dialog {
@@ -1353,7 +1635,12 @@ textarea.retro-lined {
 
 @media (prefers-reduced-motion: reduce) {
   .retro-people,
-  .retro-cork {
+  .retro-cork,
+  .retro-talk-log {
     scroll-behavior: auto;
+  }
+
+  .retro-talk {
+    transition: none;
   }
 }

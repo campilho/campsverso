@@ -47,8 +47,11 @@ import { Store } from "./store.ts";
 import { AboutDialog } from "./retro/about.ts";
 import { RetroBoard } from "./retro/board.ts";
 import { Clipboard, type ClipboardContext } from "./retro/clipboard.ts";
+import { RetroTalk } from "./retro/conversation.ts";
+import { FaceCache } from "./retro/faces.ts";
 import { RetroFrame } from "./retro/frame.ts";
 import { chipsOf, clockView, lightOf } from "./retro/model.ts";
+import { linesOf, peopleOf } from "./retro/talk.ts";
 import { ghostsOf } from "./retro/tickets.ts";
 import { parseTiledMap, tileAt as terrainAt, type TileGrid } from "./tiled.ts";
 
@@ -264,6 +267,14 @@ function clipboardContext(state: ObserverState): ClipboardContext {
   };
 }
 
+// A conversa (§3.5), no lugar do cartão "Falar": a primeira menção vira o `to`; sem ela, o dev.
+const faces = new FaceCache(() => { dirty = true; });
+const talk = new RetroTalk(faces, (text, to) => {
+  const state = store.state;
+  const target = to ?? (state === undefined ? undefined : devOf(state));
+  connection.send(PROPOSE, { avatar_id: avatarId(), action: "say", params: { text, ...(target === undefined ? {} : { to: target }) } });
+});
+
 const board = new RetroBoard((ticketId) => {
   if (store.state !== undefined) {
     clipboard.openTicket(ticketId, clipboardContext(store.state));
@@ -304,7 +315,7 @@ function renderRetro(state: ObserverState): void {
   if (run !== null || !isOffice(state)) {
     return;
   }
-  retro.mount(appRoot, world, [board.element, officeAside, view === "operator" && aside]);
+  retro.mount(appRoot, world, [board.element, talk.element, view === "operator" && aside]);
   const mine = inControl(state, avatarId());
   const shown = clockText(state, shownTick);
   const banner = bannerOf({ status: store.status, everOpen: store.everOpen, notice: store.notice, fresh: store.fresh, now: Date.now() });
@@ -946,6 +957,11 @@ function frame(now: number): void {
       if (retro.isMounted) {
         board.render({ state, tickets: ticketsOf(state), ghosts: ghostsOf(queue.list, state, avatarId()) });
         clipboard.update(clipboardContext(state));
+        talk.render({
+          manager: run === null && store.status === "open" && inControl(state, avatarId()),
+          lines: linesOf(store.timeline, state, avatarId(), state.session?.labels ?? []),
+          people: peopleOf(state, avatarId()),
+        });
       }
       panel?.render(state, avatarId(), store.welcome?.commands ?? [], store.timeline, store.lastReply);
       dirty = false;
@@ -972,6 +988,7 @@ void loadArt().then((loaded) => {
   map.setArt(loaded.manifest);
   retro.setArt(loaded.manifest);
   board.setArt(loaded.manifest);
+  faces.setArt(loaded.manifest);
   icons.setArt(loaded.manifest);
   portrait.setArt(loaded.manifest, avatarId());
 });

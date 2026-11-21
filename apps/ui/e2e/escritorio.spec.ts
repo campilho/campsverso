@@ -85,12 +85,27 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   // A fala que interrompe (ADR-0080): o dev para o bloco de trabalho e responde ao gerente.
   const said = (): Promise<string[]> =>
     page.evaluate(() => (window as unknown as { campsverso: { said(id: string): string[] } }).campsverso.said("camps"));
+  // A conversa (docs/design/briefing-tela.md, §3.5): o @ abre as sugestões de quem está na sala, o
+  // Enter escolhe, e a fala vai com a menção; a resposta do dev aparece no registro.
   const heardBefore = (await said()).length;
-  const speech = page.getByPlaceholder("Fale com o dev e aperte Enter");
-  await speech.fill("Camps, como vai a busca?");
+  const talk = page.locator(".retro-talk");
+  const speech = talk.getByRole("textbox", { name: "Falar" });
+  await speech.pressSequentially("@Ca");
+  await expect(talk.getByRole("option", { name: /@Camps/ })).toBeVisible();
+  await speech.press("Enter");
+  await expect(speech).toHaveValue("@Camps ");
+  await speech.pressSequentially("como vai a busca?");
   await speech.press("Enter");
   await expect(speech).toHaveValue("");
+  const log = talk.getByRole("log");
+  await expect(log.locator(".retro-say.mine")).toContainText("@Camps como vai a busca?");
   await expect.poll(async () => (await said()).slice(heardBefore), { timeout: 20_000 }).toContain("Anotado.");
+  await expect(log).toContainText("Anotado.");
+  await expect(log).toContainText("Camps pegou o pedido 1"); // a linha do quadro
+  await talk.getByRole("button", { name: "Aumentar a conversa" }).click();
+  await expect(page.locator(".retro-right")).toHaveClass(/talk-big/);
+  await talk.getByRole("button", { name: "Diminuir a conversa" }).click();
+  await expect(page.locator(".retro-right")).not.toHaveClass(/talk-big/);
 
   // O robô na bancada (o plano do M24, §4): antes de entregar, o dev-script chama o testador com os
   // testes da própria bancada (a `reserva` do registro), e a tela o mostra trabalhando e depois o
