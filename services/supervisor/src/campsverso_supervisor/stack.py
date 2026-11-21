@@ -219,7 +219,10 @@ class ProcessStack:
             return None
         pulse = cast(Mapping[str, Any] | None, body.get("pulse"))
         alive = bool(pulse.get("alive")) if pulse is not None else False
-        return Health(int(body["tick"]), alive, bool(body.get("busy")))
+        # O tick do pulso, que anda com o relógio; o da projeção é o do último fato, e de
+        # madrugada, com o vigia sentado, ele fica parado (o ensaio de 21/nov).
+        tick = int(pulse["tick"]) if pulse is not None and "tick" in pulse else int(body["tick"])
+        return Health(tick, alive, bool(body.get("busy")))
 
     def logged(self, name: str, event: str) -> bool:
         path = self._log(name)
