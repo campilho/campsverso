@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from tools.robos import briefing
 
 ACCEPT = "Teste de aceite: o robô aparece na bancada e   devolve o resumo."
@@ -25,7 +27,7 @@ def _build() -> str:
 
 def test_briefing_is_short_and_keeps_acceptance_verbatim() -> None:
     text = _build()
-    assert len(text.splitlines()) <= briefing.MAX_LINES
+    assert len(text.splitlines()) <= 150
     assert ACCEPT in text
 
 
@@ -63,8 +65,41 @@ def test_briefing_truncates_rules_not_request() -> None:
     long_request = REQUEST + "\n".join(f"linha {i}" for i in range(120))
     claude_md = (REPO_ROOT / "CLAUDE.md").read_text(encoding="utf-8")
     text = briefing.build(long_request, NOTES, claude_md, REPO_ROOT)
-    assert len(text.splitlines()) <= briefing.MAX_LINES
+    assert len(text.splitlines()) <= 150
     assert ACCEPT in text
+
+
+def test_briefing_caps_lines_even_without_rules() -> None:
+    long_request = REQUEST + "\n".join(f"linha {i}" for i in range(120))
+    notes = "\n".join(f"- testador nota {i}" for i in range(15))
+    text = briefing.build(long_request, notes, "", REPO_ROOT)
+    assert len(text.splitlines()) <= 150
+    assert ACCEPT in text
+
+
+def test_briefing_refuses_request_too_long_alone() -> None:
+    huge = REQUEST + "\n".join(f"linha {i}" for i in range(200))
+    with pytest.raises(briefing.RequestTooLongError):
+        briefing.build(huge, NOTES, "", REPO_ROOT)
+
+
+def test_forbidden_is_by_path_from_root_not_substring() -> None:
+    assert briefing._forbidden_path("data/x.txt")
+    assert briefing._forbidden_path("./privado/a")
+    assert briefing._forbidden_path(".env.local")
+    assert not briefing._forbidden_path("tools/metadata/x.py")
+    assert not briefing._forbidden_path("tools/robos/data_utils.py")
+    notes = "- tools/metadata/testador.py guarda o testador.\n- veja data/testador."
+    kept = briefing.relevant_notes(notes, ["testador"])
+    assert kept == ["- tools/metadata/testador.py guarda o testador."]
+
+
+def test_main_refuses_forbidden_inputs(tmp_path: Path) -> None:
+    forbidden = REPO_ROOT / "data" / "pedido_x.md"
+    assert briefing._read_input(str(forbidden)) is None
+    ok = tmp_path / "p.md"
+    ok.write_text("oi", encoding="utf-8")
+    assert briefing._read_input(str(ok)) == "oi"
 
 
 def test_main_requires_two_arguments(capsys: object) -> None:

@@ -14,8 +14,8 @@ MAX_LINES = 150
 _MAX_FILES = 8
 _MAX_NOTES = 15
 _RULE_SECTIONS = ("Princípios inegociáveis", "Convenções")
-_SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", "data", "privado"}
-_FORBIDDEN = (".env", "data/", "privado/")
+_SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv"}
+_FORBIDDEN_DIRS = {"data", "privado"}
 _STOPWORDS = {
     "para", "com", "uma", "que", "dos", "das", "nos", "nas", "pelo", "pela", "como", "mais",
     "sem", "nem", "ele", "ela", "seu", "sua", "vem", "traz", "pedido", "teste", "aceite",
@@ -48,8 +48,29 @@ def rules(claude_md: str) -> list[str]:
     return out
 
 
+class RequestTooLongError(ValueError):
+    """O pedido sozinho não cabe no teto de linhas do briefing."""
+
+
+def _forbidden_path(path: str) -> bool:
+    """Diz se um caminho a partir da raiz cai em .env, data/ ou privado/."""
+    parts = [p for p in path.strip().replace("\\", "/").split("/") if p not in ("", ".")]
+    if not parts:
+        return False
+    first = parts[0]
+    return first.startswith(".env") or first in _FORBIDDEN_DIRS
+
+
 def _allowed(path: str) -> bool:
-    return not any(part in path for part in _FORBIDDEN)
+    return not _forbidden_path(path)
+
+
+def _line_allowed(line: str) -> bool:
+    """Uma linha de nota é barrada se citar um caminho proibido (palavra a palavra)."""
+    for token in line.split():
+        if _forbidden_path(token.strip("`'\"()[],;:.")) or _forbidden_path(token.strip("`'\"()[],;")):
+            return False
+    return True
 
 
 def find_files(root: Path, words: Sequence[str]) -> list[str]:
@@ -57,7 +78,7 @@ def find_files(root: Path, words: Sequence[str]) -> list[str]:
     scored: list[tuple[int, str]] = []
     for path in root.rglob("*"):
         rel = path.relative_to(root)
-        if any(part in _SKIP_DIRS or part.startswith(".env") for part in rel.parts):
+        if any(part in _SKIP_DIRS for part in rel.parts) or _forbidden_path(rel.as_posix()):
             continue
         if not path.is_file():
             continue
@@ -74,7 +95,7 @@ def relevant_notes(notes: str, words: Sequence[str]) -> list[str]:
     out = []
     for line in notes.splitlines():
         low = line.lower()
-        if line.strip() and _allowed(low) and any(word in low for word in words):
+        if line.strip() and _line_allowed(line) and any(word in low for word in words):
             out.append(line.strip())
     return out[:_MAX_NOTES]
 
@@ -87,31 +108,60 @@ def build(request: str, notes: str, claude_md: str, root: Path) -> str:
     notes_lines = relevant_notes(notes, words)
     rule_lines = rules(claude_md)
 
-    def assemble(rule_part: list[str]) -> list[str]:
+    def assemble(rule_part: list[str], file_part: list[str], note_part: list[str]) -> list[str]:
         lines = ["# Briefing", "", "## Pedido", "", *request_lines, "", "## Regras do CLAUDE.md", ""]
         lines += rule_part
         lines += ["", "## Arquivos prováveis", ""]
-        lines += [f"- `{name}`" for name in files] or ["- (nenhum achado)"]
+        lines += [f"- `{name}`" for name in file_part] or ["- (nenhum achado)"]
         lines += ["", "## Notas da memória", ""]
-        lines += [f"- {n.lstrip('- ')}" for n in notes_lines] or ["- (nada sobre o assunto)"]
+        lines += [f"- {n.lstrip('- ')}" for n in note_part] or ["- (nada sobre o assunto)"]
         return lines
 
-    lines = assemble(rule_lines)
-    # Se passar do limite, corta as regras (a parte mais longa), nunca o pedido.
-    while len(lines) > MAX_LINES and rule_lines:
-        rule_lines = rule_lines[:-1]
-        lines = assemble(rule_lines)
+    if len(assemble([], [], [])) > MAX_LINES:
+        raise RequestTooLongError(
+            f"o pedido sozinho não cabe em {MAX_LINES} linhas; encurte o pedido"
+        )
+    # Se passar do limite, corta regras, depois notas, depois arquivos; nunca o pedido.
+    lines = assemble(rule_lines, files, notes_lines)
+    while len(lines) > MAX_LINES:
+        if rule_lines:
+            rule_lines = rule_lines[:-1]
+        elif notes_lines:
+            notes_lines = notes_lines[:-1]
+        else:
+            files = files[:-1]
+        lines = assemble(rule_lines, files, notes_lines)
     return "\n".join(lines) + "\n"
+
+
+def _read_input(arg: str) -> str | None:
+    """Lê pedido ou notas; recusa o que estiver em .env, data/ ou privado/ do repositório."""
+    path = Path(arg).resolve()
+    try:
+        rel = path.relative_to(_REPO_ROOT).as_posix()
+    except ValueError:
+        rel = ""
+    if rel and _forbidden_path(rel):
+        return None
+    return path.read_text(encoding="utf-8")
 
 
 def main(argv: Sequence[str]) -> int:
     if len(argv) != 2:
         print("uso: python -m tools.robos.briefing <pedido.md> <notas.md>")
         return 2
-    request = Path(argv[0]).read_text(encoding="utf-8")
-    notes = Path(argv[1]).read_text(encoding="utf-8")
+    request = _read_input(argv[0])
+    notes = _read_input(argv[1])
+    if request is None or notes is None:
+        print("recusado: não leio arquivos de .env, data/ nem privado/")
+        return 2
     claude_md = (_REPO_ROOT / "CLAUDE.md").read_text(encoding="utf-8")
-    print(build(request, notes, claude_md, _REPO_ROOT), end="")
+    try:
+        text = build(request, notes, claude_md, _REPO_ROOT)
+    except RequestTooLongError as error:
+        print(f"erro: {error}")
+        return 1
+    print(text, end="")
     return 0
 
 
