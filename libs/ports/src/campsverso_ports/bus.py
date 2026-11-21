@@ -55,6 +55,8 @@ class EventBus(Protocol):
         """Consumidor durável: entrega em ordem o que chegou desde a última confirmação.
 
         Cada lote só é confirmado depois que o handler termina sem erro; o que não foi
-        confirmado volta a ser entregue, inclusive depois de o processo cair (ADR-0017).
+        confirmado volta a ser entregue, inclusive depois de o processo cair (ADR-0017). Ao
+        retomar, o que ficou sem confirmação volta primeiro, em ordem, antes do que é novo
+        (ADR-0085).
         """
         ...

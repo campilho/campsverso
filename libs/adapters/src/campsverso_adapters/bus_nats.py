@@ -3,6 +3,8 @@
 - `publish` usa o JetStream com o cabeçalho `Nats-Msg-Id` = `id` do envelope: republicar depois de
   uma queda não duplica dentro da janela de deduplicação do stream.
 - `consume` cria (ou retoma) um consumidor durável de pull e confirma cada lote depois do handler.
+  Ao retomar, o que ficou sem confirmação (o lote em voo de um processo que caiu) volta na hora e
+  em ordem, antes do que é novo (ADR-0085).
 - `subscribe` é uma assinatura comum do NATS, sem persistência.
 - Os streams são criados ou atualizados de forma idempotente por quem tem `manage_streams`.
 """
@@ -43,6 +45,7 @@ _UNAVAILABLE = (
 )
 
 _BATCH = 100
+_RESET_SECONDS = 2.0  # o prazo do pedido de rebobinar um consumidor (ADR-0085)
 _WAIT_SECONDS = 1.0  # de quanto em quanto tempo o laço quieto confere se deve parar
 _DRAIN_SECONDS = 0.02  # o prazo para recolher o que já está no stream
 
@@ -284,6 +287,52 @@ class NatsBus:
             raise
         return _CoreSubscription(inner)
 
+    async def _rewind(self, stream: str, durable: str) -> None:
+        """O lote em voo de quem caiu volta agora e em ordem (ADR-0085).
+
+        Um consumidor durável que retoma recebe primeiro o que é novo; o que o processo anterior
+        tinha recebido sem confirmar só voltaria depois do `ack_wait`, fora de ordem, e quem guarda
+        uma marca d'água de `seq` (o gateway, a percepção) o descartaria como já visto. O
+        `CONSUMER.RESET` do JetStream (2.14) rebobina o consumidor até o primeiro não confirmado,
+        sem apagá-lo nem mudar a configuração. Sem nada em voo, nada muda; sem permissão ou num
+        servidor antigo, fica como antes, com um aviso."""
+        try:
+            info = await self._unless_denied(
+                self._js.consumer_info(stream, durable), f"consultar {durable}"
+            )
+        except Exception:  # o consumidor é novo, ou não há como consultar: nada a rebobinar
+            return
+        if not info.num_ack_pending:
+            return
+        floor = info.ack_floor.stream_seq if info.ack_floor is not None else 0
+        seq = int(floor or 0) + 1
+        try:
+            reply = await self._unless_denied(
+                self._nc.request(
+                    f"$JS.API.CONSUMER.RESET.{stream}.{durable}",
+                    json.dumps({"seq": seq}).encode(),
+                    timeout=_RESET_SECONDS,
+                ),
+                f"rebobinar {durable}",
+            )
+            answer = cast(dict[str, Any], json.loads(reply.data))
+        except Exception as error:
+            answer = {"error": repr(error)}
+        if "error" in answer:
+            if self._telemetry is not None:
+                self._telemetry.warning(
+                    "nats.rewind_failed", consumer=durable, stream=stream, error=answer["error"]
+                )
+            return
+        if self._telemetry is not None:
+            self._telemetry.info(
+                "nats.rewound",
+                consumer=durable,
+                stream=stream,
+                seq=seq,
+                in_flight=info.num_ack_pending,
+            )
+
     async def consume(self, pattern: str, durable: str, handler: BatchHandler) -> _PullConsumer:
         stream = self._stream_for(pattern)
         for _ in range(120):  # no primeiro `make run`, quem cria os streams pode subir depois
@@ -295,6 +344,7 @@ class NatsBus:
             except Exception:  # sem permissão de consultar: o pull_subscribe dirá o que houver
                 pass
             break
+        await self._rewind(stream, durable)
         try:
             sub = await self._unless_denied(
                 self._js.pull_subscribe(

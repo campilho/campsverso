@@ -2,6 +2,7 @@
 
 import asyncio
 import random
+import sys
 import time
 from collections.abc import Sequence
 from pathlib import Path
@@ -91,10 +92,72 @@ async def test_lote_com_erro_volta_a_ser_entregue(nats: NatsServer) -> None:
     await archiver.close()
     archiver, again = await _connect(nats, "archiver"), Collector()
     await archiver.consume("campsverso.*.world.>", "teste-erro", again)
-    with pytest.raises(TimeoutError):
-        await again.until(1, timeout=1)  # sem confirmação, só volta depois do ack_wait
+    await again.until(1, timeout=2)  # quem retoma recebe na hora, sem esperar o ack_wait
+    assert [e["id"] for e in again.received] == ["b-0"]
     await kernel.close()
     await archiver.close()
+
+
+# O processo que cai: consome, recebe o lote com o seq 1 e nunca confirma, até o SIGKILL.
+_STUCK = """
+import asyncio, sys
+from campsverso_adapters import NatsBus, load_env
+from campsverso_testkit.nats_server import REPO
+
+async def main(url, user, password, durable):
+    streams = load_env(REPO / "config" / "env" / "local.yaml", root=REPO).nats.streams
+    bus = await NatsBus.connect(url, user=user, password=password, name="caido", streams=streams)
+
+    async def stuck(batch):
+        if any(e["seq"] == 1 for _, e in batch):
+            print("recebi", flush=True)
+            await asyncio.Event().wait()
+
+    await bus.consume("campsverso.*.world.>", durable, stuck)
+    await asyncio.Event().wait()
+
+asyncio.run(main(*sys.argv[1:]))
+"""
+
+
+@pytest.mark.parametrize("user", ["gateway", "perception", "budget", "codehost"])
+async def test_o_lote_em_voo_de_quem_caiu_volta_na_hora_e_em_ordem(
+    nats: NatsServer, user: str
+) -> None:
+    """ADR-0085: o processo cai (SIGKILL) com um lote recebido e sem confirmar; o mundo segue
+    publicando; o processo que volta recebe o lote antes do que é novo, e não 30 s depois."""
+    kernel = await _connect(nats, "kernel", manage=True)
+    for seq in range(3):
+        await kernel.publish("campsverso.w.world.teste.v1", _event(f"v-{seq}", seq))
+    durable = f"teste-voo-{user}"
+    process = await asyncio.create_subprocess_exec(
+        sys.executable,
+        "-c",
+        _STUCK,
+        nats.url,
+        user,
+        nats.passwords[user],
+        durable,
+        stdout=asyncio.subprocess.PIPE,
+    )
+    assert process.stdout is not None
+    async with asyncio.timeout(15):
+        assert (await process.stdout.readline()).strip() == b"recebi"
+    process.kill()
+    await process.wait()
+    for seq in range(3, 5):
+        await kernel.publish("campsverso.w.world.teste.v1", _event(f"v-{seq}", seq))
+    back, seen = await _connect(nats, user), Collector()
+    started = time.monotonic()
+    await back.consume("campsverso.*.world.>", durable, seen)
+    await seen.until(4, timeout=5)
+    assert time.monotonic() - started < 5  # bem antes do ack_wait de 30 s
+    seqs = [e["seq"] for e in seen.received]
+    assert seqs == sorted(seqs)
+    assert seqs[-2:] == [3, 4]
+    assert 1 in seqs  # o lote em voo voltou
+    await kernel.close()
+    await back.close()
 
 
 @pytest.mark.parametrize("pattern", ["campsverso.w.internal.>", "campsverso.w.world.>"])
