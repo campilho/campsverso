@@ -76,3 +76,29 @@ O ciclo fecha em memória e o código fala com o GitHub de verdade; falta só o 
    - A lista de palavras fica fora do git, e o publicador já a conferiu.
    - As notas da mente (`escritorio.md`) ainda listam a constituição de antes. Elas mudam na parte 2, com a fita regravada: mudar o texto que o modelo lê muda o hash de cada pedido da fita.
 9. **O sandbox do escritório publica no GitHub só com `GITHUB=1`.** Ele copia o `codehost` do escritório vivo, e `CHAVE=` aponta a chave fora de `privado/`. Sem isso, o sandbox fica como no M24: com o GitHub falso, ninguém mescla, e nenhum pedido seria aceito.
+
+## Adendo: a parte 2, o supervisor (21/nov)
+
+O supervisor está pronto e foi ensaiado de verdade, com um repositório local no papel do GitHub. O que a implementação decidiu além do plano:
+
+1. **Duas worktrees que trocam de papel,** `a` e `b`, em vez de uma viva e uma candidata.
+   - A candidata é preparada ao lado (`uv sync`, `pnpm install`, a tela compilada) e vira a viva na troca. A de antes fica intacta, presa no commit dela.
+   - Assim, a troca e a volta são só parar, apontar para a outra e subir, sem compilar nada no meio. No ensaio, o escritório ficou 6,2 s fora do ar.
+2. **Tudo do escritório vivo fica numa pasta só dele,** `../campsverso-vivo`, com as duas worktrees, os dados, o arquivo, o NATS, as cópias para a volta, os logs e o estado. O git e a pasta de trabalho não a tocam.
+   - A pasta `privado/` (a chave do App e a lista de palavras) chega a cada worktree por um link.
+   - O `.env` chega pelo ambiente.
+   - As senhas do NATS são geradas a cada subida.
+3. **A fumaça fecha a cópia com a versão de antes.** O kernel só retoma um mundo com entradas depois do snapshot na mesma versão do código. Na fumaça, o kernel de antes sobe na cópia e para com elegância, e o snapshot a fecha.
+   - A versão nova sobe nessa cópia inteira, sem o publicador (nada vai ao GitHub) e sem a mente (nenhuma chamada paga), na escala 72 (o kernel aceita `--scale` num mundo retomado, pelo comando de sempre).
+   - Ela passa se nada cai, o gateway responde e o pulso anda.
+   - Os invariantes do escritório ficaram de fora da fumaça: eles moram no testkit, que o sistema não importa.
+4. **O arquivador só liga depois da saúde.** O arquivo nunca se reescreve, e o que a versão nova publicou numa troca que voltou fica fora dele. O que ela publicou na janela da saúde fica no JetStream, e o arquivador o alcança ao ligar.
+5. **A volta devolve os dados e o NATS** guardados logo depois da parada elegante. A oficina (os clones do dev) não entra na cópia nem na volta.
+6. **A saúde é lida no `/health` do gateway,** que passa a dizer o tick do pulso do kernel, se o pulso chega, se um dev está numa sessão na oficina (um passo há menos de 5 minutos simulados que não foi a entrega, ou um robô rodando) e a versão.
+   - O tick usado é o do pulso. O tick do último fato fica parado de madrugada, e uma troca à noite voltaria à toa; foi o ensaio que mostrou.
+7. **Um processo que cai sem troca derruba e sobe a pilha inteira,** na mesma versão. Depois de três reinícios em dez minutos, o supervisor espera, mas segue olhando o `origin/main`, porque o commit novo pode trazer o conserto.
+8. **O supervisor não se atualiza sozinho.** Ele roda da pasta de trabalho, e atualizá-lo é reiniciar o `make escritorio` depois de um `git pull`. O `make escritorio-aqui` sobe o escritório desta pasta, sem supervisor, para ver uma mudança antes de publicá-la.
+9. **A troca de versão entra no mundo como um comando,** `cmd.world.version.record.v1`, mandado pela raiz de composição do kernel quando o supervisor diz o commit (`CAMPSVERSO_COMMIT`, a data e os PRs).
+   - O kernel guarda a versão no estado e publica `world.version.changed.v1`.
+   - O gateway manda a versão na sessão da tela, e o HUD a mostra em texto. A placa desenhada da arte do M25 vem depois.
+   - A memória do dev guarda a troca com peso 8.
