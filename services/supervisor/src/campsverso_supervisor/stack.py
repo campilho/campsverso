@@ -277,8 +277,10 @@ def reap(path: Path, marker: str) -> list[int]:
     killed: list[int] = []
     for group in _read_pids(path).values():
         for pid in group.values():
+            # `-ww`: sem limite de largura. Fora de um terminal, o `ps` do Linux corta a linha em
+            # 80 colunas, e a pasta do escritório, no fim da linha, ficava de fora (CI de 21/nov).
             probe = subprocess.run(
-                ["ps", "-o", "command=", "-p", str(pid)], capture_output=True, text=True
+                ["ps", "-ww", "-o", "command=", "-p", str(pid)], capture_output=True, text=True
             )
             if marker in probe.stdout:
                 with contextlib.suppress(ProcessLookupError):
