@@ -30,6 +30,7 @@ class MemoryCodeHost:
     titles: dict[int, str] = field(default_factory=dict[int, str])
     bodies: dict[int, str] = field(default_factory=dict[int, str])
     comments: dict[int, list[str]] = field(default_factory=dict[int, list[str]])
+    commit_cis: dict[str, CiState] = field(default_factory=dict[str, CiState])
 
     async def publish_branch(
         self, branch: str, base: str, files: Mapping[str, str | None], message: str
@@ -64,6 +65,9 @@ class MemoryCodeHost:
     async def comment(self, number: int, body: str) -> None:
         self._pull(number)
         self.comments.setdefault(number, []).append(body)
+
+    async def commit_ci(self, sha: str) -> CiState | None:
+        return self.commit_cis.get(sha)
 
     # ------------------------------------------------------------- o que os testes fazem à mão
 

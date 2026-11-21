@@ -2744,6 +2744,78 @@
         }
       }
     },
+    "OfficeStaffDismissedV1": {
+      "title": "OfficeStaffDismissedV1",
+      "description": "A convocação de um dev acabou (a parte 5 do M25): ele sai pela porta, se estava lá, e o vigia volta.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "avatar_id",
+        "reason"
+      ],
+      "properties": {
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "O dev que estava convocado."
+        },
+        "by": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Quem dispensou, quando foi o gerente."
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "dispensado",
+            "saida",
+            "teto",
+            "janela",
+            "expediente"
+          ],
+          "description": "Por que acabou: o gerente dispensou, o gerente saiu do escritório, passou o teto de horas, acabou a janela do dia, ou o expediente começou (o dev fica, agora no expediente)."
+        }
+      }
+    },
+    "OfficeStaffSummonedV1": {
+      "title": "OfficeStaffSummonedV1",
+      "description": "O gerente convocou um dev fora do expediente (a parte 5 do M25): ele chega pela porta depois do deslocamento e fica até ser dispensado, até o gerente sair ou até o teto.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "avatar_id",
+        "by",
+        "origin",
+        "arrives_tick",
+        "until_tick"
+      ],
+      "properties": {
+        "avatar_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "O dev convocado."
+        },
+        "by": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Quem convocou: o gerente."
+        },
+        "origin": {
+          "type": "string",
+          "enum": [
+            "entrada",
+            "gerente"
+          ],
+          "description": "Como veio a convocação: o gerente entrou fora do expediente (`entrada`) ou apertou o botão (`gerente`)."
+        },
+        "arrives_tick": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "O tick a partir do qual o dev entra, depois do deslocamento."
+        },
+        "until_tick": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "O teto: o tick em que a convocação acaba, se nada a encerrar antes."
+        }
+      }
+    },
     "OfficeTicketAcceptedV1": {
       "title": "OfficeTicketAcceptedV1",
       "description": "O gerente aceitou um pedido entregue (ADR-0078): o pedido está pronto.",
@@ -5072,6 +5144,51 @@
         }
       }
     },
+    "RealtimeNoticeV1": {
+      "title": "RealtimeNoticeV1",
+      "description": "Um aviso do escritório vivo para as telas (a parte 5 do M25): o supervisor vai trocar de versão, a troca espera o dev terminar uma sessão, ou a versão nova falhou e o escritório voltou. A tela o mostra numa faixa e, na queda da conexão que vem depois, sabe que é uma troca.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "kind",
+        "text"
+      ],
+      "properties": {
+        "type": {
+          "const": "campsverso.realtime.notice.v1"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "troca",
+            "espera",
+            "volta"
+          ],
+          "description": "`troca`: o escritório vai parar e subir na versão nova agora; `espera`: há uma versão nova, esperando o dev terminar a sessão na oficina; `volta`: a versão nova falhou, e o escritório voltou para a de antes."
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300,
+          "description": "A frase da faixa, pronta."
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$",
+          "description": "A versão nova."
+        },
+        "pull_requests": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "description": "Os PRs mesclados que a versão nova traz."
+        }
+      }
+    },
     "RealtimeReplyV1": {
       "title": "RealtimeReplyV1",
       "description": "Resposta do gateway a um command: publicado ou recusado. Quem aceita ou recusa o comando no mundo é o kernel, com um evento (ADR-0050).",
@@ -5203,6 +5320,10 @@
               "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(Z|[+-][0-9]{2}:[0-9]{2})$"
             }
           }
+        },
+        "notice": {
+          "$ref": "#/$defs/RealtimeNoticeV1",
+          "description": "O último aviso do supervisor, de até dois minutos atrás (a parte 5 do M25): a tela que reconecta no meio de uma troca sabe que é uma troca."
         },
         "commands": {
           "type": "array",

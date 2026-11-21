@@ -20,6 +20,7 @@ from campsverso_cartridge_api import (
     ClockDef,
     ControllerRef,
     DailyAt,
+    EveryMinutes,
     ItemDef,
     KindDef,
     NeedDef,
@@ -257,3 +258,30 @@ def test_a_acao_que_outro_avatar_desfez_no_meio_falha_na_conclusao() -> None:
     assert core.world.items("bia") == {"pedra": 1}
     asked = [d for d in _only(facts, "avatar.decision_requested") if d["avatar_id"] == "ana"]
     assert asked[-1]["reason"] == "action_interrupted"
+
+
+def test_o_gatilho_a_cada_n_minutos_roda_no_minuto_certo_e_o_salto_para_nele() -> None:
+    """A parte 5 do M25: o prazo contado em minutos (a chegada do dev convocado). O horário fixo do
+    mesmo sistema ganha do periódico quando os dois vencem."""
+    seen: list[tuple[int, str]] = []
+
+    def note(ctx: SystemContext, _ops: WorldOps) -> None:
+        seen.append((ctx.view.minute_of_day, type(ctx.trigger).__name__))
+
+    @dataclass(frozen=True)
+    class Periodic(Lab3):
+        def contribute(self, world: WorldBuilder) -> None:
+            super().contribute(world)
+            triggers = (EveryMinutes(15), DailyAt(("06:05", "06:30")))
+            world.add_system(LabSystem("ronda", "scheduled", 20, triggers, note))
+
+    core = make_core(Periodic())
+    _run(core, 31)  # das 06:00 às 06:30
+    assert seen == [
+        (360, "EveryMinutes"),
+        (365, "DailyAt"),
+        (375, "EveryMinutes"),
+        (390, "DailyAt"),
+    ]
+    core.advance(30, jump=True)  # o salto para em cada vencimento
+    assert seen[-2:] == [(405, "EveryMinutes"), (420, "EveryMinutes")]

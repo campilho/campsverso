@@ -2095,6 +2095,65 @@ class MemoryReflectedV1(BaseModel):
     """
 
 
+class OfficeStaffDismissedV1(BaseModel):
+    """
+    A convocação de um dev acabou (a parte 5 do M25): ele sai pela porta, se estava lá, e o vigia volta.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O dev que estava convocado.
+    """
+    by: Annotated[
+        str | None,
+        Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId"),
+    ] = None
+    """
+    Quem dispensou, quando foi o gerente.
+    """
+    reason: Literal["dispensado", "saida", "teto", "janela", "expediente"]
+    """
+    Por que acabou: o gerente dispensou, o gerente saiu do escritório, passou o teto de horas, acabou a janela do dia, ou o expediente começou (o dev fica, agora no expediente).
+    """
+
+
+class OfficeStaffSummonedV1(BaseModel):
+    """
+    O gerente convocou um dev fora do expediente (a parte 5 do M25): ele chega pela porta depois do deslocamento e fica até ser dispensado, até o gerente sair ou até o teto.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O dev convocado.
+    """
+    by: Annotated[str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")]
+    """
+    Quem convocou: o gerente.
+    """
+    origin: Literal["entrada", "gerente"]
+    """
+    Como veio a convocação: o gerente entrou fora do expediente (`entrada`) ou apertou o botão (`gerente`).
+    """
+    arrives_tick: Annotated[int, Field(ge=0)]
+    """
+    O tick a partir do qual o dev entra, depois do deslocamento.
+    """
+    until_tick: Annotated[int, Field(ge=0)]
+    """
+    O teto: o tick em que a convocação acaba, se nada a encerrar antes.
+    """
+
+
 class OfficeTicketAcceptedV1(BaseModel):
     """
     O gerente aceitou um pedido entregue (ADR-0078): o pedido está pronto.
@@ -3937,6 +3996,33 @@ class RealtimeCommandV1(BaseModel):
     """
 
 
+class RealtimeNoticeV1(BaseModel):
+    """
+    Um aviso do escritório vivo para as telas (a parte 5 do M25): o supervisor vai trocar de versão, a troca espera o dev terminar uma sessão, ou a versão nova falhou e o escritório voltou. A tela o mostra numa faixa e, na queda da conexão que vem depois, sabe que é uma troca.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    type: Literal["campsverso.realtime.notice.v1"]
+    kind: Literal["troca", "espera", "volta"]
+    """
+    `troca`: o escritório vai parar e subir na versão nova agora; `espera`: há uma versão nova, esperando o dev terminar a sessão na oficina; `volta`: a versão nova falhou, e o escritório voltou para a de antes.
+    """
+    text: Annotated[str, Field(max_length=300, min_length=1)]
+    """
+    A frase da faixa, pronta.
+    """
+    commit: Annotated[str | None, Field(pattern="^[0-9a-f]{40}$")] = None
+    """
+    A versão nova.
+    """
+    pull_requests: Annotated[list[PullRequest] | None, Field(max_length=100)] = None
+    """
+    Os PRs mesclados que a versão nova traz.
+    """
+
+
 class RealtimeError(BaseModel):
     model_config = ConfigDict(
         extra="ignore",
@@ -4565,6 +4651,10 @@ class RealtimeWelcomeV1(BaseModel):
     build: Build | None = None
     """
     A versão do código que o gateway roda (ADR-0083), quando o supervisor a diz: a placa da parede e o HUD. Sem ela, a tela não mostra placa.
+    """
+    notice: RealtimeNoticeV1 | None = None
+    """
+    O último aviso do supervisor, de até dois minutos atrás (a parte 5 do M25): a tela que reconecta no meio de uma troca sabe que é uma troca.
     """
     commands: list[Command]
     """

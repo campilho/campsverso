@@ -1,9 +1,15 @@
 /** O WebSocket com o gateway: reconecta sozinho e manda comandos (contracts/realtime, ADR-0050). */
-import type { RealtimeCommandV1, RealtimeReplyV1, RealtimeUpdateV1, RealtimeWelcomeV1 } from "@campsverso/contracts";
+import type {
+  RealtimeCommandV1,
+  RealtimeNoticeV1,
+  RealtimeReplyV1,
+  RealtimeUpdateV1,
+  RealtimeWelcomeV1,
+} from "@campsverso/contracts";
 
 import type { Store } from "./store.ts";
 
-type Incoming = RealtimeWelcomeV1 | RealtimeUpdateV1 | RealtimeReplyV1;
+type Incoming = RealtimeWelcomeV1 | RealtimeUpdateV1 | RealtimeReplyV1 | RealtimeNoticeV1;
 export type View = RealtimeWelcomeV1["view"];
 
 const RETRY_MS = [500, 1000, 2000, 5000];
@@ -51,6 +57,9 @@ export class Connection {
         break;
       case "campsverso.realtime.reply.v1":
         this.store.applyReply(message);
+        break;
+      case "campsverso.realtime.notice.v1":
+        this.store.applyNotice(message);
         break;
     }
   }

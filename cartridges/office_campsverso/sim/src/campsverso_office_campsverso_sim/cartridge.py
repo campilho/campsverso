@@ -109,6 +109,8 @@ class OfficeCampsversoCartridge:
         for member in cast(list[Mapping[str, Any]], state["cast"]):
             controller = cast(Mapping[str, str], member["controller"])
             avatar_id = str(member["id"])
+            if member.get("on_call"):  # o acordo de convocação próprio do dev (a parte 5 do M25)
+                world.merge_data("office", {"agreements": {avatar_id: member["on_call"]}})
             # Todos começam fora: o expediente põe o dev e o vigia; o gerente entra ao ser assumido.
             world.spawn(
                 SpawnDef(

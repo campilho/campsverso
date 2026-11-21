@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/office/staff.dismissed.v1",
+  "title": "OfficeStaffDismissedV1",
+  "description": "A convocação de um dev acabou (a parte 5 do M25): ele sai pela porta, se estava lá, e o vigia volta.",
+  "x-type": "campsverso.office.staff.dismissed.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "avatar_id",
+    "reason"
+  ],
+  "properties": {
+    "avatar_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "O dev que estava convocado."
+    },
+    "by": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "Quem dispensou, quando foi o gerente."
+    },
+    "reason": {
+      "type": "string",
+      "enum": [
+        "dispensado",
+        "saida",
+        "teto",
+        "janela",
+        "expediente"
+      ],
+      "description": "Por que acabou: o gerente dispensou, o gerente saiu do escritório, passou o teto de horas, acabou a janela do dia, ou o expediente começou (o dev fica, agora no expediente)."
+    }
+  }
+}

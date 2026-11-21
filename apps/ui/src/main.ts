@@ -18,6 +18,7 @@ import { button, el } from "./dom.ts";
 import { fogKey } from "./fog.ts";
 import { loadLocale } from "./locale.ts";
 import { pathFrom, stepsAt } from "./motion.ts";
+import { bannerOf } from "./banner.ts";
 import { CreditsDialog } from "./panels/credits.ts";
 import { CommandsHelp } from "./panels/help.ts";
 import { renderHud } from "./panels/hud.ts";
@@ -58,6 +59,30 @@ const map: WorldRenderer = debug ? new MapCanvas(el("canvas")) : new PhaserRende
 map.follow?.(avatarId());
 map.setFog?.(view === "player" ? "always" : "toggle");
 const hud = el("div", { className: "hud" });
+// A faixa do escritório vivo (a parte 5 do M25): a troca de versão, a queda, a versão nova.
+const banner = el("div", { className: "banner" });
+banner.setAttribute("role", "status");
+banner.hidden = true;
+document.body.prepend(banner);
+let lastBanner = "";
+
+function renderBanner(): void {
+  const shown = bannerOf({
+    status: store.status,
+    everOpen: store.everOpen,
+    notice: store.notice,
+    fresh: store.fresh,
+    now: Date.now(),
+  });
+  const key = shown === undefined ? "" : `${shown.tone}:${shown.text}`;
+  if (key === lastBanner) {
+    return;
+  }
+  lastBanner = key;
+  banner.hidden = shown === undefined;
+  banner.textContent = shown?.text ?? "";
+  banner.className = `banner ${shown?.tone ?? ""}`;
+}
 const control = el("div", { className: "control" });
 const notice = el("div", { className: "notice" });
 const queueBox = el("div", { className: "queue" });
@@ -171,6 +196,14 @@ const office = new OfficePanel(officeAside, {
   },
   giveBack: (ticketId, comment) => {
     officeStep(`Devolver ${ticketId}`, "return_ticket", { target: ticketId, comment });
+  },
+  // A convocação (a parte 5 do M25): de qualquer lugar da sala, sem andar até o quadro.
+  summon: (devId) => {
+    // Sem id, o kernel convoca o único dev do elenco.
+    connection.send(PROPOSE, { avatar_id: avatarId(), action: "summon", params: devId === "" ? {} : { target: devId } });
+  },
+  dismiss: (devId) => {
+    connection.send(PROPOSE, { avatar_id: avatarId(), action: "dismiss", params: { target: devId } });
   },
   speak: (text) => {
     const state = store.state;
@@ -796,7 +829,7 @@ function frame(now: number): void {
     if (panelDue) {
       officeAside.hidden = !isOffice(state);
       if (!officeAside.hidden) {
-        office.render(state, run === null && inControl(state, avatarId()), ticketsUnderway(state));
+        office.render(state, run === null && inControl(state, avatarId()), ticketsUnderway(state), store.timeline);
       }
       panel?.render(state, avatarId(), store.welcome?.commands ?? [], store.timeline, store.lastReply);
       dirty = false;
@@ -808,6 +841,7 @@ function frame(now: number): void {
   if (!notice.hidden && now > noticeUntil) {
     notice.hidden = true;
   }
+  renderBanner();
   requestAnimationFrame(frame);
 }
 

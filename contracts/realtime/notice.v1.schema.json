@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://realtime/notice.v1",
+  "title": "RealtimeNoticeV1",
+  "description": "Um aviso do escritório vivo para as telas (a parte 5 do M25): o supervisor vai trocar de versão, a troca espera o dev terminar uma sessão, ou a versão nova falhou e o escritório voltou. A tela o mostra numa faixa e, na queda da conexão que vem depois, sabe que é uma troca.",
+  "x-message": "campsverso.realtime.notice.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "type",
+    "kind",
+    "text"
+  ],
+  "properties": {
+    "type": {
+      "const": "campsverso.realtime.notice.v1"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "troca",
+        "espera",
+        "volta"
+      ],
+      "description": "`troca`: o escritório vai parar e subir na versão nova agora; `espera`: há uma versão nova, esperando o dev terminar a sessão na oficina; `volta`: a versão nova falhou, e o escritório voltou para a de antes."
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "description": "A frase da faixa, pronta."
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$",
+      "description": "A versão nova."
+    },
+    "pull_requests": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "description": "Os PRs mesclados que a versão nova traz."
+    }
+  }
+}

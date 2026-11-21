@@ -174,6 +174,35 @@ async def test_a_saude_diz_o_tick_o_pulso_e_a_sessao_na_oficina(rig: Rig) -> Non
     assert rig.gateway.health()["busy"] is True
 
 
+async def test_o_aviso_do_supervisor_vai_a_todas_as_telas(rig: Rig) -> None:
+    """A parte 5 do M25: antes de trocar de versão, o supervisor avisa as telas pelo gateway."""
+    await rig.pipeline.run_until(30)
+    rig.gateway.flush()
+    player, _ = await rig.connect("player")
+    operator, _ = await rig.connect("operator")
+    commit = "8" * 40
+    given = {"kind": "troca", "text": "O escritório vai trocar de versão.", "commit": commit}
+    assert rig.gateway.notice({**given, "pull_requests": [2]}) is None
+    for client in (player, operator):
+        message = dict(await client.receive())
+        assert MESSAGES.validate(message) == []
+        assert (message["kind"], message["commit"], message["pull_requests"]) == (
+            "troca",
+            commit,
+            [2],
+        )
+    # A tela que reconecta no meio da troca recebe o aviso no welcome, por dois minutos.
+    _, welcome = await rig.connect("player")
+    assert welcome["notice"]["kind"] == "troca"
+    rig.pipeline.clock.advance(121)
+    _, later = await rig.connect("player")
+    assert "notice" not in later
+    assert rig.gateway.notice({"kind": "festa", "text": "oi"}) == (
+        "kind é um de ['troca', 'espera', 'volta']"
+    )
+    assert rig.gateway.notice({"kind": "volta", "text": ""}) is not None
+
+
 async def test_welcome_traz_o_estado_e_o_mapa(rig: Rig) -> None:
     await rig.pipeline.run_until(30)
     rig.gateway.flush()

@@ -10,6 +10,11 @@ office:
     lunch_where: copa # o dev almoça na copa, pela rotina (ADR-0080)
     lunch_tail_minutes: 5 # comer acaba às 12:55: jogar fora e voltar à mesa (ADR-0082)
     closes: "18:00"
+    # A convocação (a parte 5 do M25): o usuário trabalha nos fins de semana e feriados; ao
+    # entrar como o gerente fora do expediente, o Camps vem. O resto vem do gênero.
+    on_call:
+      enabled: true
+      on_manager_enter: true
     # Os feriados nacionais (o expediente não abre).
     holidays:
       "2026-11-02": Finados

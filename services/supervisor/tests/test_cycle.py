@@ -1,9 +1,11 @@
 """O ciclo do supervisor com peças falsas (ADR-0083): o git, a pilha e os dados de mentira, e o
 estado e o diário de verdade, numa pasta temporária. O relógio só anda quando o ciclo espera."""
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -60,6 +62,7 @@ class Running:
     clock: Clock
     behavior: str = "ok"  # ok, dies, silent, busy:<segundos>
     stopped: bool = False
+    notices: list[dict[str, Any]] = field(default_factory=list[dict[str, Any]])
 
     def dead(self) -> list[str]:
         return ["kernel"] if self.behavior == "dies" and self.clock.now > 0 else []
@@ -67,6 +70,10 @@ class Running:
     async def health(self) -> Health | None:
         busy = self.behavior.startswith("busy:") and self.clock.now < float(self.behavior[5:])
         return Health(int(self.clock.now * 10), self.behavior != "silent", busy)
+
+    async def notify(self, notice: Mapping[str, Any], tries: int = 10) -> bool:
+        self.notices.append(dict(notice))
+        return True
 
     async def start_archiver(self) -> None:
         self.archiver = True
@@ -117,6 +124,13 @@ class Rig:
         self.releases = Releases()
         self.stacks = Stacks(self.clock)
         self.vault = Vault()
+        self.ci: dict[str, str] | None = None  # o CI de cada commit no GitHub; None: sem portão
+
+    async def ci_of(self, commit: str) -> str | None:
+        assert self.ci is not None
+        if commit == "fora-do-ar":
+            raise RuntimeError("503")
+        return self.ci.get(commit)
 
     def supervisor(self) -> Supervisor:
         journal = Journal(self.home / "versoes" / "supervisor.jsonl", lambda: datetime.now(UTC))
@@ -129,6 +143,7 @@ class Rig:
             Settings(busy_wait_seconds=600),
             sleep=self.clock.sleep,
             monotonic=self.clock.monotonic,
+            ci=None if self.ci is None else self.ci_of,
         )
 
     def steps(self) -> list[str]:
@@ -166,6 +181,12 @@ async def test_um_commit_bom_troca_de_worktree_e_liga_o_arquivador_so_depois(rig
     state = State.load(rig.home / "estado.json")
     assert (state.live, state.commit, state.swap) == ("b", NEW, None)
     assert rig.steps()[-4:] == ["candidata", "fumaca_ok", "troca", "trocou"]
+    # A parte 5 do M25: a pilha de antes avisou as telas antes de parar.
+    (notice,) = old.notices
+    assert (notice["kind"], notice["commit"], notice["pull_requests"]) == ("troca", NEW, [7])
+    assert notice["text"] == (
+        f"O escritório vai trocar para a versão {NEW[:7]} (PR #7) agora e volta em instantes."
+    )
     assert await supervisor.turn() == "em_dia"
     # A próxima volta usa a worktree a de novo: as duas trocam de papel.
     rig.releases.head = NEWER
@@ -201,6 +222,9 @@ async def test_a_versao_que_cai_depois_de_subir_volta_com_os_dados_de_antes(rig:
     state = State.load(rig.home / "estado.json")
     assert (state.live, state.commit, state.rejected, state.swap) == ("a", OLD, [NEW], None)
     assert rig.steps()[-1] == "voltou"
+    (notice,) = back.notices  # a pilha de antes, de pé de novo, conta a volta às telas
+    assert notice["kind"] == "volta"
+    assert notice["text"].endswith(f"voltou para a {OLD[:7]}.")
 
 
 async def test_a_versao_sem_pulso_tambem_volta(rig: Rig) -> None:
@@ -221,6 +245,8 @@ async def test_a_troca_espera_o_dev_sair_da_oficina(rig: Rig) -> None:
     assert await supervisor.turn() == "trocou"
     assert 90 <= rig.clock.now < 300  # esperou a sessão, e depois a saúde
     assert "espera_estourou" not in rig.steps()
+    # A tela soube uma vez que a troca esperava o dev, e depois que ela vinha.
+    assert [n["kind"] for n in rig.stacks.started[0].notices] == ["espera", "troca"]
 
 
 async def test_a_espera_tem_limite(rig: Rig) -> None:
@@ -302,3 +328,27 @@ async def test_um_commit_que_nao_prepara_e_recusado(rig: Rig) -> None:
     rig.releases.broken.add(NEW)
     assert await supervisor.turn() == "recusou:preparar"
     assert len(rig.stacks.started) == 1
+
+
+async def test_so_o_commit_com_o_ci_verde_vai_ao_ar(rig: Rig) -> None:
+    """A parte 5 do M25: o `49fb87e` foi ao ar com o CI vermelho. O que ainda roda espera; o
+    vermelho também, porque o CI pode rodar de novo; o verde troca."""
+    rig.ci = {}
+    supervisor = rig.supervisor()
+    await supervisor.boot()
+    rig.releases.head = NEW
+    assert await supervisor.turn() == "esperando_ci"  # nenhuma verificação ainda
+    rig.ci[NEW] = "pending"
+    assert await supervisor.turn() == "esperando_ci"
+    rig.ci[NEW] = "failure"
+    assert await supervisor.turn() == "ci_vermelho"
+    assert await supervisor.turn() == "ci_vermelho"
+    assert len(rig.stacks.started) == 1  # nada subiu, nem a fumaça
+    assert NEW not in State.load(rig.home / "estado.json").rejected
+    rig.ci[NEW] = "success"  # o CI rodou de novo e passou
+    assert await supervisor.turn() == "trocou"
+    steps = rig.steps()
+    assert steps.count("esperando_ci") == 1  # uma linha por estado, sem repetir a cada volta
+    assert steps.count("ci_vermelho") == 1
+    rig.releases.head = "fora-do-ar"
+    assert await supervisor.turn() == "sem_ci"

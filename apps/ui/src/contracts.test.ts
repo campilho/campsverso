@@ -8,7 +8,7 @@ describe("contratos vistos pela UI", () => {
     // no M24 (ADR-0080), a sessão com o tick em milissegundos (ADR-0081), o passo na oficina e o
     // robô da bancada, que começa e termina; no M25, os quatro do PR do dev com o comando do vigia
     // e a troca de versão com o comando dela (ADR-0083).
-    expect(Object.keys(CONTRACT_TYPES)).toHaveLength(96);
+    expect(Object.keys(CONTRACT_TYPES)).toHaveLength(98);
     expect(CONTRACT_TYPES["campsverso.world.version.changed.v1"].visibility).toBe("world");
     expect(CONTRACT_TYPES["campsverso.workshop.robot_called.v1"].visibility).toBe("observer");
     expect(CONTRACT_TYPES["campsverso.avatar.spoke.v1"].visibility).toBe("world");

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/office/staff.summoned.v1",
+  "title": "OfficeStaffSummonedV1",
+  "description": "O gerente convocou um dev fora do expediente (a parte 5 do M25): ele chega pela porta depois do deslocamento e fica até ser dispensado, até o gerente sair ou até o teto.",
+  "x-type": "campsverso.office.staff.summoned.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "avatar_id",
+    "by",
+    "origin",
+    "arrives_tick",
+    "until_tick"
+  ],
+  "properties": {
+    "avatar_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "O dev convocado."
+    },
+    "by": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "Quem convocou: o gerente."
+    },
+    "origin": {
+      "type": "string",
+      "enum": [
+        "entrada",
+        "gerente"
+      ],
+      "description": "Como veio a convocação: o gerente entrou fora do expediente (`entrada`) ou apertou o botão (`gerente`)."
+    },
+    "arrives_tick": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "O tick a partir do qual o dev entra, depois do deslocamento."
+    },
+    "until_tick": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "O teto: o tick em que a convocação acaba, se nada a encerrar antes."
+    }
+  }
+}

@@ -3,6 +3,10 @@
 O escritório roda de uma de duas worktrees, `a` e `b`, cada uma presa num commit. A cada volta:
 
 1. **Olhar:** busca o `origin/main`. O mesmo commit que roda, ou um que já falhou, não muda nada.
+   Nunca um commit local: só o que está no GitHub.
+1. **O CI verde:** o commit novo só segue com os passos do CI no GitHub terminados e verdes. Um que
+   ainda roda espera a próxima volta; um vermelho também espera, porque o CI pode rodar de novo, e
+   um commit novo toma o lugar dele (a parte 5 do M25: o `49fb87e` foi ao ar com o CI vermelho).
 2. **Preparar, ao lado:** põe o commit novo na outra worktree e prepara as dependências e a tela.
    O escritório segue rodando.
 3. **A fumaça, numa cópia:** a versão nova sobe sobre uma cópia dos dados, com o NATS próprio, e
@@ -27,10 +31,10 @@ rápidas: a worktree nova já tem as dependências e a tela prontas, e a de ante
 import asyncio
 import contextlib
 import time
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
 
 from campsverso_supervisor.state import Journal, State, Swap
 
@@ -51,6 +55,10 @@ class Health:
     tick: int
     alive: bool  # o pulso do kernel chega
     busy: bool  # um dev numa sessão na oficina
+
+
+# O CI de um commit no GitHub: "success", "failure", "pending", ou None sem verificação nenhuma.
+type CiCheck = Callable[[str], Awaitable[str | None]]
 
 
 class Releases(Protocol):
@@ -79,6 +87,10 @@ class Running(Protocol):
     def dead(self) -> list[str]: ...
 
     async def health(self) -> Health | None: ...
+
+    async def notify(self, notice: Mapping[str, Any], tries: int = 10) -> bool:
+        """Um aviso às telas pelo gateway da pilha (a parte 5 do M25)."""
+        ...
 
     async def start_archiver(self) -> None: ...
 
@@ -127,6 +139,7 @@ class Supervisor:
         *,
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
         monotonic: Callable[[], float] = time.monotonic,
+        ci: CiCheck | None = None,
     ) -> None:
         self.home = home
         self._releases = releases
@@ -142,6 +155,8 @@ class Supervisor:
         self.build: Build | None = None
         self._first_healthy: float | None = None  # quando a versão nova respondeu bem
         self._restarted: list[float] = []  # os reinícios recentes, para o laço de quedas
+        self._ci = ci  # None: sem o portão do CI (o ensaio com um repositório local)
+        self._ci_noted: tuple[str, str] | None = None  # o último aviso do CI, para não repetir
 
     def slot(self, name: str) -> Path:
         return self.home / name
@@ -220,7 +235,27 @@ class Supervisor:
             return "sem_origem"
         if head == self.state.commit or head in self.state.rejected:
             return "em_espera" if waiting else "em_dia"
+        if (held := await self._held_by_ci(head)) is not None:
+            return held
         return await self._update(head)
+
+    async def _held_by_ci(self, head: str) -> str | None:
+        """None quando o CI do commit está verde (ou não há portão); senão, o que segura a troca."""
+        if self._ci is None:
+            return None
+        try:
+            state = await self._ci(head)
+        except Exception as error:  # o GitHub fora do ar: a próxima volta pergunta de novo
+            self.journal.write("sem_ci", commit=head, error=str(error)[:300])
+            return "sem_ci"
+        if state == "success":
+            self._ci_noted = None
+            return None
+        step = "ci_vermelho" if state == "failure" else "esperando_ci"
+        if self._ci_noted != (head, step):  # uma linha no diário por commit e por estado
+            self._ci_noted = (head, step)
+            self.journal.write(step, commit=head, ci=state or "sem verificação")
+        return step
 
     def _may_restart(self) -> bool:
         now = self._monotonic()
@@ -260,7 +295,7 @@ class Supervisor:
         if reason is not None:
             return self._reject(head, "fumaca", reason)
         self.journal.write("fumaca_ok", commit=head, seconds=self._since(started))
-        await self._wait_quiet(head)
+        await self._wait_quiet(head, build)
         return await self._swap(head, build, old, live, other)
 
     def _reject(self, commit: str, step: str, reason: str) -> str:
@@ -269,15 +304,23 @@ class Supervisor:
         self.journal.write("recusou", commit=commit, at_step=step, reason=reason[:500])
         return f"recusou:{step}"
 
-    async def _wait_quiet(self, head: str) -> None:
+    async def _wait_quiet(self, head: str, build: Build) -> None:
         """Espera o dev sair de uma sessão na oficina, até o limite; passou dele, troca assim
         mesmo, e a sessão volta no próximo bloco de trabalho."""
         assert self.running is not None
         start = self._monotonic()
+        warned = False
         while True:
             health = await self.running.health()
             if health is None or not health.busy:
                 return
+            if not warned:  # a tela diz por que a versão nova ainda não subiu
+                warned = True
+                text = (
+                    f"Há uma versão nova ({_version(build)}): o escritório troca quando o dev "
+                    "terminar a sessão na oficina."
+                )
+                await self.running.notify(_notice("espera", text, build), tries=1)
             waited = self._monotonic() - start
             if waited >= self._settings.busy_wait_seconds:
                 self.journal.write("espera_estourou", commit=head, seconds=round(waited))
@@ -287,6 +330,10 @@ class Supervisor:
     async def _swap(self, head: str, build: Build, old: str, live: str, other: str) -> str:
         assert self.running is not None
         assert self.build is not None
+        text = (
+            f"O escritório vai trocar para a versão {_version(build)} agora e volta em instantes."
+        )
+        await self.running.notify(_notice("troca", text, build), tries=1)
         down = self._monotonic()
         await self.running.stop()
         self.running = None
@@ -325,6 +372,10 @@ class Supervisor:
         self.journal.write(
             "voltou", commit=head, to=old, reason=reason[:500], down_seconds=self._since(down)
         )
+        text = (
+            f"A versão {_version(build)} falhou ao subir, e o escritório voltou para a {old[:7]}."
+        )
+        await self.running.notify(_notice("volta", text, build))
         return "voltou"
 
     async def _healthy(self, running: Running) -> str | None:
@@ -354,3 +405,18 @@ class Supervisor:
 
     def _since(self, start: float, end: float | None = None) -> float:
         return round((end if end is not None else self._monotonic()) - start, 1)
+
+
+def _version(build: Build) -> str:
+    """A versão como a faixa da tela a diz: o commit curto e os PRs."""
+    prs = ", ".join(f"#{n}" for n in build.pull_requests)
+    return f"{build.commit[:7]}" + (f" (PR {prs})" if prs else "")
+
+
+def _notice(kind: str, text: str, build: Build) -> dict[str, Any]:
+    return {
+        "kind": kind,
+        "text": text,
+        "commit": build.commit,
+        "pull_requests": list(build.pull_requests),
+    }

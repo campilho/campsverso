@@ -5,8 +5,9 @@ import json
 import socket
 import urllib.error
 import urllib.request
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Mapping
 from pathlib import Path
+from typing import Any
 
 import pytest
 import websockets
@@ -19,6 +20,16 @@ def _free_port() -> int:
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
         return int(s.getsockname()[1])
+
+
+NOTICES: list[dict[str, Any]] = []
+
+
+def _notice(given: Mapping[str, Any]) -> str | None:
+    if given.get("kind") != "troca":
+        return "kind é troca"
+    NOTICES.append(dict(given))
+    return None
 
 
 async def _echo(connection: RealtimeConnection) -> None:
@@ -50,6 +61,7 @@ async def server(tmp_path: Path) -> AsyncIterator[str]:
         maps={"farm_camps": tmj},
         art=(("farm", genre), ("farm_camps", scenario), ("sem_pasta", tmp_path / "nada")),
         deliveries=tmp_path / "entregas",
+        notice=_notice,
     )
     task = asyncio.create_task(realtime.serve(_echo))
     async with asyncio.timeout(10):
@@ -182,3 +194,26 @@ async def test_o_patch_entregue_so_para_ler(server: str) -> None:
         "/content/entregas/..%2Fsegredo.txt",
     ):
         assert (await asyncio.to_thread(get, refused))[0] == 404
+
+
+async def test_o_aviso_do_supervisor_entra_por_post_local(server: str) -> None:
+    """A parte 5 do M25: o supervisor, na mesma máquina, avisa as telas pelo gateway."""
+
+    def post(body: object) -> int:
+        request = urllib.request.Request(
+            f"http://{server}/aviso",
+            data=json.dumps(body).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=5) as response:
+                return response.status
+        except urllib.error.HTTPError as error:
+            return error.code
+
+    NOTICES.clear()
+    assert await asyncio.to_thread(post, {"kind": "troca", "text": "agora"}) == 200
+    assert NOTICES == [{"kind": "troca", "text": "agora"}]
+    assert await asyncio.to_thread(post, {"kind": "outro", "text": "x"}) == 422
+    assert await asyncio.to_thread(post, ["não", "é", "objeto"]) == 422

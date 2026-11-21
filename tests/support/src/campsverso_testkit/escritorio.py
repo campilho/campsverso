@@ -25,6 +25,7 @@ ACCEPTED = "campsverso.action.accepted.v1"
 CREATED = "campsverso.office.ticket.created.v1"
 DELIVERED = "campsverso.office.ticket.delivered.v1"
 LEFT = "campsverso.avatar.left.v1"
+ENTERED = "campsverso.avatar.entered.v1"
 
 
 @dataclass
@@ -62,6 +63,7 @@ def office_report(
     created: dict[str, str] = {}  # pedido -> dia em que foi escrito
     delivered: set[str] = set()
     days: dict[str, int] = {}  # dia -> o último minuto com fatos
+    summoned = False  # o dev convocado fora do expediente (a parte 5 do M25) pode usar a copa
     for envelope in envelopes:
         simtime = envelope.get("simtime")
         if not isinstance(simtime, str):
@@ -75,9 +77,13 @@ def office_report(
             created[str(data["ticket_id"])] = day
         elif kind == DELIVERED:
             delivered.add(str(data["ticket_id"]))
+        elif kind in (ENTERED, LEFT) and data.get("avatar_id") == dev:
+            summoned = kind == ENTERED and data.get("reason") == "convocacao"
+            if kind == LEFT and data.get("reason") == "almoco":
+                report.lunches[day] = report.lunches.get(day, 0) + 1
         elif kind == ACCEPTED and data["action"] in COPA:
             open_now = _workday(day, schedule) and opens <= minute < closes
-            if not open_now:
+            if not open_now and not (summoned and data["avatar_id"] == dev):
                 report.problems.append(
                     f"{data['avatar_id']} fez {data['action']} na copa fora do expediente "
                     f"({simtime})"
@@ -86,8 +92,6 @@ def office_report(
                 report.pauses[day] = report.pauses.get(day, 0) + 1
             if data["avatar_id"] == dev and data["action"] == "lunch":
                 report.lunches[day] = report.lunches.get(day, 0) + 1
-        elif kind == LEFT and data["avatar_id"] == dev and data.get("reason") == "almoco":
-            report.lunches[day] = report.lunches.get(day, 0) + 1
     # Os dias de expediente que os fatos cobrem até o fim do expediente: o soak para à meia-noite,
     # e o primeiro minuto do dia seguinte não é um dia sem pausa.
     report.workdays = [d for d, last in days.items() if _workday(d, schedule) and last >= closes]

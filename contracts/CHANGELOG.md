@@ -13,6 +13,12 @@ Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão 
   - `campsverso.office.ticket.pr_closed.v1`: fechado sem mesclar; o pedido volta a "a fazer", e o kernel publica também o `office.ticket.returned.v1`.
 - **A troca de versão** (ADR-0083, a parte 2): o comando novo `campsverso.cmd.world.version.record.v1` (o commit inteiro, a data dele e, opcionais, os PRs mesclados desde a versão de antes; produtor `kernel`, visibilidade `observer`), que a raiz de composição do kernel manda ao subir quando o supervisor diz qual commit sobe; o diário o guarda, e o replay o refaz. E o tipo novo `campsverso.world.version.changed.v1` (o commit, a data, o commit de antes e os PRs, os dois últimos opcionais; produtor `kernel`, visibilidade `world`): o mundo passou a rodar noutra versão. A sessão da tela (`realtime/welcome.v1`) ganha `build`, opcional: o commit e a data que o gateway roda, para a placa.
 
+- **A convocação** (a parte 5 do M25): dois tipos novos do domínio `office`, de visibilidade `world`, produtor `kernel`:
+  - `campsverso.office.staff.summoned.v1`: o gerente convocou um dev fora do expediente, ao entrar (`origin: entrada`) ou pelo botão (`gerente`), com o tick em que ele chega, depois do deslocamento, e o teto;
+  - `campsverso.office.staff.dismissed.v1`: a convocação acabou, com o motivo (`dispensado`, `saida`, `teto`, `janela` ou `expediente`) e, quando foi o gerente, quem dispensou.
+  - O dev entra e sai com o motivo `convocacao`, um token como os outros: o `avatar.entered.v1` e o `avatar.left.v1` não mudam.
+- **A troca avisada** (a parte 5 do M25): a mensagem nova da tela `campsverso.realtime.notice.v1`, do gateway para a UI: o tipo do aviso (`troca`, `espera` ou `volta`), a frase pronta e, opcionais, o commit da versão nova e os PRs que ela traz. O supervisor a pede ao gateway vivo antes de parar a pilha, enquanto espera o dev terminar uma sessão e depois de uma volta. A sessão da tela (`realtime/welcome.v1`) ganha `notice`, opcional: o último aviso, de até dois minutos atrás, para a tela que reconecta no meio de uma troca.
+
 ### M24
 
 - **A oficina** (ADR-0080): o tipo novo `campsverso.workshop.step.v1`, num domínio novo da plataforma, `workshop` (visibilidade `observer`, produtor `controller`): um passo do dev na oficina, com a ferramenta, o caminho, uma linha do que aconteceu, se deu certo e a duração. O `office.ticket.delivered.v1` ganha o campo opcional `patch`: a referência do patch no depósito de entregas, o commit de base, os arquivos e as linhas a mais e a menos.

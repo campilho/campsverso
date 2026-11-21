@@ -104,6 +104,25 @@ def lunch_tail(view: WorldView) -> int:
     return int(section(view, "schedule").get("lunch_tail_minutes", 0))
 
 
+def on_call(view: WorldView, avatar_id: str) -> Mapping[str, Any]:
+    """O acordo de convocação de um dev (a parte 5 do M25): o padrão do cenário
+    (`schedule.on_call`), com o acordo próprio do dev por cima (`agreements.<dev>`, do elenco)."""
+    rules = dict(cast(Mapping[str, Any], section(view, "schedule").get("on_call") or {}))
+    agreements = cast(Mapping[str, Any], view.data(NAMESPACE).get("agreements") or {})
+    return {**rules, **cast(Mapping[str, Any], agreements.get(avatar_id) or {})}
+
+
+def in_window(view: WorldView, rules: Mapping[str, Any]) -> bool:
+    """Agora está dentro da janela do dia em que a convocação vale."""
+    start, end = (minutes(str(hhmm)) for hhmm in rules.get("window") or ("00:00", "24:00"))
+    return start <= view.minute_of_day < end
+
+
+def ticks_of_minutes(view: WorldView, count: float) -> int:
+    """Quantos ticks têm tantos minutos, no passo do escritório."""
+    return round(count * 60_000 / tick_ms(view))
+
+
 def office_hours(view: WorldView) -> bool:
     """O dev está no escritório agora: num dia de expediente, entre a abertura e o fim, fora do
     almoço quando o almoço é na rua."""

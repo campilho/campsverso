@@ -1,12 +1,15 @@
 """As cópias dos dados para a volta e os processos que sobram de uma queda (ADR-0083). A pilha de
 verdade sobe no ensaio do supervisor, fora do `make check`."""
 
+import json
 import subprocess
 import sys
+import threading
 from datetime import UTC, datetime, timedelta
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
-from campsverso_supervisor.stack import DirVault, reap
+from campsverso_supervisor.stack import DirVault, ProcessStack, StackConfig, free_port, reap
 
 
 def test_a_copia_guarda_e_devolve_os_dados_e_o_nats_sem_a_oficina(tmp_path: Path) -> None:
@@ -59,3 +62,56 @@ def test_os_processos_de_uma_queda_saem_so_os_do_escritorio(tmp_path: Path) -> N
     finally:
         other.kill()
         other.wait()
+
+
+async def test_o_aviso_vai_ao_gateway_da_pilha_e_nunca_derruba(tmp_path: Path) -> None:
+    """A parte 5 do M25: o supervisor avisa as telas pelo `POST /aviso` do gateway da pilha."""
+    received: list[dict[str, object]] = []
+
+    class Gateway(BaseHTTPRequestHandler):
+        def do_POST(self) -> None:
+            length = int(self.headers["Content-Length"])
+            received.append(json.loads(self.rfile.read(length)))
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b'{"ok": true}')
+
+        def log_message(self, format: str, *args: object) -> None:
+            pass
+
+    server = HTTPServer(("127.0.0.1", 0), Gateway)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        config = StackConfig(
+            world="w.yaml",
+            data=tmp_path,
+            archive=tmp_path,
+            nats_store=tmp_path,
+            logs=tmp_path,
+            nats_bin=tmp_path / "nats-server",
+            nats_port=1,
+            gateway_port=server.server_address[1],
+            environ={},
+            pids=tmp_path / "pids.json",
+        )
+
+        def stack(port: int) -> ProcessStack:
+            return ProcessStack(
+                tmp_path,
+                config,
+                None,
+                data=tmp_path,
+                archive=tmp_path,
+                nats_store=tmp_path,
+                nats_port=1,
+                gateway_port=port,
+                label="vivo-a",
+            )
+
+        notice = {"kind": "troca", "text": "agora"}
+        assert await stack(int(server.server_address[1])).notify(notice, tries=1)
+        assert received == [notice]
+        assert not await stack(free_port()).notify(notice, tries=2)  # ninguém ouvindo: só avisa
+    finally:
+        server.shutdown()

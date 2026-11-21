@@ -13,6 +13,10 @@ repositório de trabalho), que o git e a pasta de trabalho não tocam:
     logs/        um log por processo de cada pilha
     estado.json  qual worktree está viva, o commit, os recusados e a troca em andamento
 
+O supervisor só troca para um commit com o CI verde no GitHub, que ele lê pelo App do dev (a chave
+em `privado/`, que só o `openssl` lê). Sem a chave, ele não sobe: `--sem-ci` desliga o portão, para
+o ensaio com um repositório local no papel do GitHub.
+
 As senhas do NATS são geradas a cada subida. O `.env` chega pelo ambiente (`--env-file`), para a
 mente que chama o modelo; o supervisor não o lê. A chave do App fica em `privado/`, que cada
 worktree vê por um link.
@@ -27,8 +31,8 @@ from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
 
-from campsverso_adapters import JsonTelemetry, load_world
-from campsverso_supervisor.cycle import Settings, Supervisor
+from campsverso_adapters import GitHubCodeHost, JsonTelemetry, load_world
+from campsverso_supervisor.cycle import CiCheck, Settings, Supervisor
 from campsverso_supervisor.releases import GitReleases
 from campsverso_supervisor.stack import DirVault, ProcessStacks, StackConfig, reap
 from campsverso_supervisor.state import Journal
@@ -48,10 +52,26 @@ def _parse(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument(
         "--offline", action="store_true", help="preparar as worktrees sem rede (uv e pnpm)"
     )
+    parser.add_argument(
+        "--sem-ci", action="store_true", help="troca sem olhar o CI (o ensaio com um repo local)"
+    )
     return parser.parse_args(argv)
 
 
-def compose(args: argparse.Namespace) -> Supervisor:
+def ci_check(args: argparse.Namespace, repo: Path) -> tuple[CiCheck, GitHubCodeHost] | None:
+    """O CI de um commit pelo App do dev, ou None quando o mundo não fala com o GitHub."""
+    settings = load_world(repo / args.world, repo).codehost
+    if settings is None or settings.host != "github" or settings.key is None:
+        return None
+    if not settings.key.is_file() or settings.app_id is None or settings.installation_id is None:
+        return None
+    host = GitHubCodeHost.connect(
+        settings.repo, settings.app_id, settings.installation_id, settings.key
+    )
+    return host.commit_ci, host
+
+
+def compose(args: argparse.Namespace, ci: CiCheck | None = None) -> Supervisor:
     repo = args.repo.resolve()
     home = (args.home or repo.parent / "campsverso-vivo").resolve()
     world = load_world(repo / args.world, repo)
@@ -84,23 +104,36 @@ def compose(args: argparse.Namespace) -> Supervisor:
         DirVault(config.data, config.nats_store, home / "versoes", now),
         Journal(home / "versoes" / "supervisor.jsonl", now),
         Settings(poll_seconds=args.poll, health_seconds=args.health),
+        ci=ci,
     )
 
 
 async def run(args: argparse.Namespace) -> int:
     telemetry = JsonTelemetry("supervisor")
-    supervisor = compose(args)
+    gate = None if args.sem_ci else ci_check(args, args.repo.resolve())
+    if gate is None and not args.sem_ci:
+        telemetry.error(
+            "supervisor.no_ci",
+            hint="sem o codehost do GitHub e a chave do App, não há CI; --sem-ci desliga",
+        )
+        return 2
+    supervisor = compose(args, None if gate is None else gate[0])
     if killed := reap(supervisor.home / "pids.json", str(supervisor.home)):
         telemetry.warning("supervisor.reaped", pids=killed)
     stop = asyncio.Event()
     for signum in (signal.SIGINT, signal.SIGTERM):
         asyncio.get_running_loop().add_signal_handler(signum, stop.set)
-    telemetry.info("supervisor.running", home=str(supervisor.home), port=args.port)
+    telemetry.info(
+        "supervisor.running", home=str(supervisor.home), port=args.port, ci=gate is not None
+    )
     try:
         await supervisor.run(stop)
     except Exception as error:
         telemetry.error("supervisor.failed", error=repr(error))
         return 1
+    finally:
+        if gate is not None:
+            await gate[1].aclose()
     telemetry.info("supervisor.stopped", commit=supervisor.state.commit)
     return 0
 

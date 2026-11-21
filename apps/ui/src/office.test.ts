@@ -1,10 +1,10 @@
 /** O escritório na tela (ADR-0078): os balões de fala, o quadro dos pedidos e o relógio em tempo
  * real. */
-import type { ObserverState } from "@campsverso/contracts";
+import type { EnvelopeV1, ObserverState } from "@campsverso/contracts";
 import { describe, expect, it } from "vitest";
 
 import { deliveryUrl, diffLines, summaryOf, summaryRef } from "./panels/delivery.ts";
-import { isOffice, pullRequestLine, ticketsOf } from "./panels/office.ts";
+import { isOffice, pullRequestLine, summonLine, summonsOf, ticketsOf } from "./panels/office.ts";
 import { BALLOON_CHARS, Balloons, balloonMs, balloonText } from "./speech.ts";
 import { clockText, realTime } from "./simclock.ts";
 
@@ -115,5 +115,40 @@ describe("o relógio em tempo real", () => {
     const farm = state({ session: { cartridge_version: "0.1.0", tick_seconds: 60, map: { id: "farm_camps", width: 3, height: 2 } } });
     expect(realTime(farm)).toBe(false);
     expect(clockText(farm, 16201)).toBe("09:01");
+  });
+});
+
+describe("a convocação", () => {
+  // O tick de 2 s deste estado: 30 ticks por minuto, a partir das 09:00 no tick 16200.
+  const camps = { kind: "avatar", display_name: "Camps", attributes: { papel: "dev" } } as const;
+  const gerente = { kind: "avatar", display_name: "Gerente", position: { x: 9, y: 14 }, attributes: { papel: "gerente" } };
+  const summon = { convocado_por: "gerente", convocado_chega: 16260, convocado_ate: 16200 + 6 * 60 * 30 };
+  const line = (s: ObserverState): string => summonsOf(s).map((dev) => summonLine(s, dev)).join(" | ");
+
+  it("mostra o dev fora, a caminho e convocado até uma hora", () => {
+    const away = state({ entities: { camps, gerente } });
+    expect(summonsOf(away)).toHaveLength(1); // só os devs, não o gerente
+    expect(line(away)).toBe("Camps está fora");
+    const coming = state({ entities: { camps: { ...camps, attributes: { ...camps.attributes, ...summon } }, gerente } });
+    expect(line(coming)).toBe("Camps está a caminho: chega às 09:02");
+    const there = state({
+      entities: { camps: { ...camps, position: { x: 9, y: 14 }, attributes: { ...camps.attributes, ...summon } }, gerente },
+    });
+    expect(summonsOf(there).map((dev) => dev.present)).toEqual([true]);
+    expect(line(there)).toBe("Camps convocado até as 15:00");
+  });
+
+  it("sem o dev na tela do jogador, a convocação vem dos fatos, e sem fatos, um dev sem id", () => {
+    const empty = state({ entities: { gerente } });
+    expect(summonsOf(empty).map((dev) => [dev.id, dev.name, dev.summoned])).toEqual([["", "o dev", false]]);
+    const event = {
+      type: "campsverso.office.staff.summoned.v1",
+      data: { avatar_id: "camps", by: "gerente", origin: "entrada", arrives_tick: 16260, until_tick: 16800 },
+    } as unknown as EnvelopeV1;
+    expect(summonsOf(empty, [event]).map((dev) => summonLine(empty, dev))).toEqual([
+      "Camps está a caminho: chega às 09:02",
+    ]);
+    const gone = { ...event, type: "campsverso.office.staff.dismissed.v1", data: { avatar_id: "camps", reason: "saida" } };
+    expect(summonsOf(empty, [event, gone]).map((dev) => summonLine(empty, dev))).toEqual(["Camps está fora"]);
   });
 });

@@ -17,6 +17,7 @@ from campsverso_cartridge_api import (
     CommandSpec,
     ControllerRef,
     DailyAt,
+    EveryMinutes,
     OnSessionStart,
     OnThreshold,
     Position,
@@ -151,6 +152,11 @@ class KernelCore:
                 if isinstance(trigger, DailyAt):
                     for hhmm in trigger.times:
                         index.setdefault((system.stage, parse_hhmm(hhmm)), []).append(system)
+                elif isinstance(trigger, EveryMinutes):
+                    if trigger.minutes < 1:
+                        raise ValueError(f"{system.name}: EveryMinutes precisa de 1 minuto ou mais")
+                    for minute in range(0, 1440, trigger.minutes):
+                        index.setdefault((system.stage, minute), []).append(system)
         return {key: sorted(set(v), key=lambda s: (s.priority, s.name)) for key, v in index.items()}
 
     def describe_order(self, hhmm: str) -> list[str]:
@@ -746,7 +752,7 @@ class KernelCore:
         if self.calendar.is_minute_start(self.tick):
             minute = self.calendar.minute_of_day(self.tick)
             for system in self._daily.get((stage, minute), []):
-                trigger = next(t for t in system.triggers if isinstance(t, DailyAt))
+                trigger = _due(system, minute)
                 with world.context(cause=system.name):
                     system.run(SystemContext(world, trigger), world)
         ready = sorted(
@@ -1243,3 +1249,15 @@ class KernelCore:
                 if threshold.direction == "down" and rate < 0 and units > level:
                     candidates.append(now + math.ceil((units - level) / -rate) - 1)
         return max(now, min(candidates))
+
+
+def _due(system: SystemSpec, minute: int) -> DailyAt | EveryMinutes:
+    """O gatilho que venceu neste minuto: o horário fixo, se é um dos dele; senão, o periódico."""
+    periodic: EveryMinutes | None = None
+    for trigger in system.triggers:
+        if isinstance(trigger, DailyAt) and minute in {parse_hhmm(h) for h in trigger.times}:
+            return trigger
+        if isinstance(trigger, EveryMinutes):
+            periodic = trigger
+    assert periodic is not None, f"{system.name} não tem gatilho no minuto {minute}"
+    return periodic

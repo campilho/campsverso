@@ -35,6 +35,8 @@ importance:
     campsverso.office.ticket.accepted.v1: 8
     campsverso.office.ticket.returned.v1: 9 # o comentário do gerente é o que mais ensina
     campsverso.world.version.changed.v1: 8 # o escritório trocou de versão (ADR-0083)
+    campsverso.office.staff.summoned.v1: 7 # convocado fora do expediente (a parte 5 do M25)
+    campsverso.office.staff.dismissed.v1: 4
     campsverso.avatar.spoke.v1: 5
     "campsverso.avatar.spoke.v1:self": 3
     campsverso.avatar.entered.v1: 2
@@ -50,6 +52,10 @@ lines:
   campsverso.office.ticket.accepted.v1: "{when} {by} aceitou o pedido {number}"
   campsverso.office.ticket.returned.v1: "{when} {by} devolveu o pedido {number}: {comment}"
   campsverso.world.version.changed.v1: "{when} o escritório reiniciou numa versão nova do código"
+  campsverso.office.staff.summoned.v1: "{when} {by} convocou {avatar_id} fora do expediente"
+  "campsverso.office.staff.summoned.v1:self": "{when} {by} me convocou fora do expediente, e eu vim"
+  campsverso.office.staff.dismissed.v1: "{when} a convocação de {avatar_id} acabou ({reason})"
+  "campsverso.office.staff.dismissed.v1:self": "{when} a minha convocação acabou ({reason})"
   campsverso.avatar.spoke.v1: "{when} {avatar_id} disse: {text}"
   "campsverso.avatar.spoke.v1:self": "{when} eu disse: {text}"
   campsverso.avatar.entered.v1: "{when} {avatar_id} entrou no escritório"

@@ -107,7 +107,15 @@ class OnSessionStart:
     pass
 
 
-type Trigger = DailyAt | OnThreshold | OnSessionStart
+@dataclass(frozen=True, slots=True)
+class EveryMinutes:
+    """A cada `minutes` minutos do dia, a partir da meia-noite (a parte 5 do M25): o que depende
+    de um prazo contado em minutos, como a chegada do dev convocado e o teto da convocação."""
+
+    minutes: int
+
+
+type Trigger = DailyAt | OnThreshold | OnSessionStart | EveryMinutes
 
 
 @dataclass(frozen=True, slots=True)

@@ -1504,6 +1504,42 @@ export interface MemoryReflectedV1 {
   days?: [Day, ...Day[]];
 }
 /**
+ * A convocação de um dev acabou (a parte 5 do M25): ele sai pela porta, se estava lá, e o vigia volta.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "OfficeStaffDismissedV1".
+ */
+export interface OfficeStaffDismissedV1 {
+  avatar_id: EntityId;
+  by?: EntityId;
+  /**
+   * Por que acabou: o gerente dispensou, o gerente saiu do escritório, passou o teto de horas, acabou a janela do dia, ou o expediente começou (o dev fica, agora no expediente).
+   */
+  reason: "dispensado" | "saida" | "teto" | "janela" | "expediente";
+}
+/**
+ * O gerente convocou um dev fora do expediente (a parte 5 do M25): ele chega pela porta depois do deslocamento e fica até ser dispensado, até o gerente sair ou até o teto.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "OfficeStaffSummonedV1".
+ */
+export interface OfficeStaffSummonedV1 {
+  avatar_id: EntityId;
+  by: EntityId;
+  /**
+   * Como veio a convocação: o gerente entrou fora do expediente (`entrada`) ou apertou o botão (`gerente`).
+   */
+  origin: "entrada" | "gerente";
+  /**
+   * O tick a partir do qual o dev entra, depois do deslocamento.
+   */
+  arrives_tick: number;
+  /**
+   * O teto: o tick em que a convocação acaba, se nada a encerrar antes.
+   */
+  until_tick: number;
+}
+/**
  * O gerente aceitou um pedido entregue (ADR-0078): o pedido está pronto.
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
@@ -2946,6 +2982,33 @@ export interface RealtimeCommandV1 {
   data: Params;
 }
 /**
+ * Um aviso do escritório vivo para as telas (a parte 5 do M25): o supervisor vai trocar de versão, a troca espera o dev terminar uma sessão, ou a versão nova falhou e o escritório voltou. A tela o mostra numa faixa e, na queda da conexão que vem depois, sabe que é uma troca.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "RealtimeNoticeV1".
+ */
+export interface RealtimeNoticeV1 {
+  type: "campsverso.realtime.notice.v1";
+  /**
+   * `troca`: o escritório vai parar e subir na versão nova agora; `espera`: há uma versão nova, esperando o dev terminar a sessão na oficina; `volta`: a versão nova falhou, e o escritório voltou para a de antes.
+   */
+  kind: "troca" | "espera" | "volta";
+  /**
+   * A frase da faixa, pronta.
+   */
+  text: string;
+  /**
+   * A versão nova.
+   */
+  commit?: string;
+  /**
+   * Os PRs mesclados que a versão nova traz.
+   *
+   * @maxItems 100
+   */
+  pull_requests?: number[];
+}
+/**
  * Resposta do gateway a um command: publicado ou recusado. Quem aceita ou recusa o comando no mundo é o kernel, com um evento (ADR-0050).
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
@@ -3000,6 +3063,7 @@ export interface RealtimeWelcomeV1 {
     commit: string;
     date: string;
   };
+  notice?: RealtimeNoticeV1;
   /**
    * Tipos de comando que esta conexão pode mandar.
    */

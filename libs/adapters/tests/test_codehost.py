@@ -201,6 +201,10 @@ async def test_o_pr_o_estado_e_o_ci(tmp_path: Path) -> None:
     assert (now.state, now.ci) == ("merged", "failure")
     with pytest.raises(CodeHostError, match="404"):
         await host.pull_request(99)
+    # O CI de um commit qualquer, para o supervisor (a parte 5 do M25); sem verificação, None.
+    assert await host.commit_ci("c" * 40) == "failure"
+    with pytest.raises(CodeHostError, match="404"):
+        await host.commit_ci("d" * 40)
 
 
 async def test_o_ramo_com_pr_aberto_devolve_o_mesmo(tmp_path: Path) -> None:
@@ -252,3 +256,30 @@ async def test_os_arquivos_da_entrega_saem_do_patch_sobre_a_base(tmp_path: Path)
     assert await files_after_patch(repo, base, "") == {}
     with pytest.raises(CodeHostError, match="git apply"):
         await files_after_patch(repo, base, "diff --git a/x b/x\nlixo\n")
+
+
+async def test_o_github_que_responde_sem_json_ou_cai_vira_codehost_error(tmp_path: Path) -> None:
+    """Um 502 do GitHub com o corpo vazio derrubou o publicador do sandbox em 21/nov: agora é um
+    `CodeHostError`, como a rede que cai, e o vigia tenta de novo na volta seguinte."""
+
+    def answer(request: httpx2.Request) -> httpx2.Response:
+        path = request.url.path
+        if path.endswith("/access_tokens"):
+            return httpx2.Response(201, json={"token": "t"})
+        if path.endswith(f"/commits/{'e' * 40}/check-runs"):
+            return httpx2.Response(502, text="")
+        if path.endswith(f"/commits/{'f' * 40}/check-runs"):
+            raise httpx2.ConnectError("sem rede", request=request)
+        return httpx2.Response(200, text="<html>não é json</html>")
+
+    client = httpx2.AsyncClient(
+        base_url="https://api.github.com", transport=httpx2.MockTransport(answer)
+    )
+    app = GitHubApp(5854989, 7, _key(tmp_path), client, now=lambda: 1_795_000_000.0)
+    host = GitHubCodeHost("campilho/campsverso", app, client)
+    with pytest.raises(CodeHostError, match="502"):
+        await host.commit_ci("e" * 40)
+    with pytest.raises(CodeHostError, match="ConnectError"):
+        await host.commit_ci("f" * 40)
+    with pytest.raises(CodeHostError, match="não é JSON"):
+        await host.commit_ci("a" * 40)

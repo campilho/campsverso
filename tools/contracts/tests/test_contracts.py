@@ -24,9 +24,9 @@ def test_catalogo_tem_77_eventos_e_11_comandos(contracts: catalog.Contracts) -> 
     avisos do orçamento na v2, os tetos mudados e o comando deles (ADR-0080), e a sessão com o
     tick em milissegundos (ADR-0081), e o passo na oficina e o robô da bancada, que começa e
     termina (ADR-0080), e os quatro do PR do dev, com o comando do vigia (ADR-0083, ADR-0084), e a
-    troca de versão, com o comando dela (ADR-0083)."""
+    troca de versão, com o comando dela (ADR-0083), e os dois da convocação (a parte 5 do M25)."""
     kinds = [f.kind for f in contracts.by_type.values()]
-    assert kinds.count("event") == 83
+    assert kinds.count("event") == 85
     assert kinds.count("command") == 13
 
 

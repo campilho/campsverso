@@ -35,11 +35,15 @@ from campsverso_office_sim.config import (
     TRASH,
     WATER_COOLER,
     at_lunch,
+    in_window,
     lunch_end,
     lunch_tail,
+    office_hours,
+    on_call,
     section,
     tick_ms,
 )
+from campsverso_office_sim.systems import SUMMON_REASON, end_summon, start_summon, summon_of
 
 # Os estados do pedido, no atributo `estado`.
 TODO, DOING, DELIVERED, ACCEPTED = "a_fazer", "fazendo", "entregue", "aceito"
@@ -492,6 +496,73 @@ class ReturnTicket(OfficeAction):
         )
 
 
+def _dev(ctx: ActionContext) -> str | Rejection:
+    """O dev que o gerente convoca ou dispensa: o dado, ou o único dev do elenco."""
+    devs = sorted(
+        e.entity_id for e in ctx.view.entities("avatar") if e.attributes.get("papel") == DEV
+    )
+    target = ctx.params.get("target") or (devs[0] if len(devs) == 1 else None)
+    if target not in devs:
+        return Rejection("invalid_params", f"target é um dev do elenco: {devs}")
+    return str(target)
+
+
+@dataclass(frozen=True)
+class SummonDev(OfficeAction):
+    """O gerente convoca um dev fora do expediente (a parte 5 do M25), de qualquer lugar da sala:
+    ele chega pela porta depois do deslocamento."""
+
+    name: str = "summon"
+    role: ClassVar[str] = MANAGER
+
+    def check(self, ctx: ActionContext) -> Rejection | None:
+        dev = _dev(ctx)
+        if isinstance(dev, Rejection):
+            return dev
+        rules = on_call(ctx.view, dev)
+        name = ctx.view.entity(dev).display_name or dev
+        if not rules.get("enabled"):
+            return Rejection("not_allowed", f"o acordo do {name} não tem convocação")
+        if office_hours(ctx.view):
+            return Rejection("wrong_state", f"o {name} está no expediente")
+        if not in_window(ctx.view, rules):
+            start, end = rules.get("window") or ("00:00", "24:00")
+            return Rejection("wrong_state", f"a convocação vale das {start} às {end}")
+        if summon_of(ctx.view, dev) is not None:
+            return Rejection("wrong_state", f"o {name} já foi convocado")
+        return None
+
+    def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
+        dev = _dev(ctx)
+        assert not isinstance(dev, Rejection)
+        start_summon(ctx.view, ops, dev, ctx.avatar_id, "gerente")
+
+
+@dataclass(frozen=True)
+class DismissDev(OfficeAction):
+    """O gerente dispensa o dev convocado: ele vai embora, e o vigia volta. O dev não volta
+    sozinho nesta visita do gerente; o botão o chama de novo."""
+
+    name: str = "dismiss"
+    role: ClassVar[str] = MANAGER
+
+    def check(self, ctx: ActionContext) -> Rejection | None:
+        dev = _dev(ctx)
+        if isinstance(dev, Rejection):
+            return dev
+        if summon_of(ctx.view, dev) is None:
+            name = ctx.view.entity(dev).display_name or dev
+            return Rejection("wrong_state", f"o {name} não está convocado")
+        return None
+
+    def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
+        dev = _dev(ctx)
+        assert not isinstance(dev, Rejection)
+        end_summon(ops, dev, "dispensado", ctx.avatar_id)
+        if ctx.view.present(dev):
+            ops.leave(dev, SUMMON_REASON)
+
+
 @dataclass(frozen=True)
 class Break(OfficeAction):
     """Uma pausa da rotina (ADR-0080): beber água, um café, o banheiro, as etapas do almoço. É
@@ -572,5 +643,7 @@ ALL_ACTIONS: tuple[OfficeAction, ...] = (
     Deliver(),
     AcceptTicket(),
     ReturnTicket(),
+    SummonDev(),
+    DismissDev(),
     *BREAKS,
 )

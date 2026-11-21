@@ -1,0 +1,9 @@
+{
+  "type": "campsverso.realtime.notice.v1",
+  "kind": "troca",
+  "text": "O escritório vai trocar para a versão 89f4167 (PR #2) agora e volta em instantes.",
+  "commit": "89f4167899ef434436544f05a028f39a51dabc3e",
+  "pull_requests": [
+    2
+  ]
+}

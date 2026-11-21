@@ -141,6 +141,7 @@ async def run(args: argparse.Namespace) -> int:
         settings.art_for(world.cartridge),
         deliveries=deliveries,
         status=service.health,
+        notice=service.notice,
     )
     stop = asyncio.Event()
     for signum in (signal.SIGINT, signal.SIGTERM):

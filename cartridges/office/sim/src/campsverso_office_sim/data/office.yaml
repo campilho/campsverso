@@ -46,6 +46,15 @@ schedule:
   lunch_where: rua # rua: o dev sai pela porta; copa: almoça na sala (ADR-0080)
   closes: "18:00"
   holidays: {}
+  # A convocação (a parte 5 do M25): fora do expediente (as noites, os fins de semana e os
+  # feriados), o gerente chama o dev. O cenário a liga; cada dev do elenco pode ter o próprio acordo
+  # (`on_call` na linha dele), por cima deste.
+  on_call:
+    enabled: false
+    on_manager_enter: false # o dev vem sozinho quando o gerente entra
+    window: ["08:00", "23:00"] # as horas do dia em que vale
+    arrive_minutes: 2 # o deslocamento
+    max_hours: 6 # o teto de uma convocação
 
 # Quanto dura cada ação, em segundos simulados (o kernel converte em ticks; ADR-0078).
 actions:
@@ -65,6 +74,9 @@ actions:
   tv: { seconds: 600, interrupt: cancel } # ver TV no sofá (ADR-0082)
   videogame: { seconds: 900, interrupt: cancel } # jogar videogame no sofá
   return_ticket: { seconds: 10, interrupt: cancel }
+  # A convocação (a parte 5 do M25): o gerente liga para o dev, ou o dispensa, de onde estiver.
+  summon: { seconds: 5, interrupt: cancel }
+  dismiss: { seconds: 3, interrupt: cancel }
 
 # A linha do tempo (ADR-0068): como cada fato se conta.
 labels:
@@ -99,6 +111,27 @@ labels:
   # A troca de versão do escritório vivo (ADR-0083).
   - event: campsverso.world.version.changed.v1
     text: "o escritório subiu numa versão nova do código"
+  # A convocação fora do expediente (a parte 5 do M25).
+  - event: campsverso.office.staff.summoned.v1
+    where: { origin: entrada }
+    text: "convocou o dev ao entrar"
+  - event: campsverso.office.staff.summoned.v1
+    text: "convocou o dev"
+  - event: campsverso.office.staff.dismissed.v1
+    where: { reason: dispensado }
+    text: "dispensou o dev"
+  - event: campsverso.office.staff.dismissed.v1
+    where: { reason: saida }
+    text: "a convocação do dev acabou: o gerente saiu"
+  - event: campsverso.office.staff.dismissed.v1
+    where: { reason: teto }
+    text: "a convocação do dev chegou ao teto de horas"
+  - event: campsverso.office.staff.dismissed.v1
+    where: { reason: janela }
+    text: "a convocação do dev acabou com a janela do dia"
+  - event: campsverso.office.staff.dismissed.v1
+    where: { reason: expediente }
+    text: "o expediente começou: o dev convocado segue no escritório"
   - event: campsverso.avatar.spoke.v1
     text: "disse: “{text}”"
   - event: campsverso.avatar.entered.v1
@@ -110,6 +143,9 @@ labels:
   - event: campsverso.avatar.entered.v1
     where: { reason: possessed }
     text: "entrou no escritório"
+  - event: campsverso.avatar.entered.v1
+    where: { reason: convocacao }
+    text: "chegou pelo chamado"
   - event: campsverso.avatar.left.v1
     where: { reason: expediente }
     text: "foi embora"
@@ -122,6 +158,9 @@ labels:
   - event: campsverso.avatar.left.v1
     where: { reason: released }
     text: "saiu do escritório"
+  - event: campsverso.avatar.left.v1
+    where: { reason: convocacao }
+    text: "foi embora depois do chamado"
   # As pausas da rotina (ADR-0080).
   - event: campsverso.action.accepted.v1
     where: { action: drink }

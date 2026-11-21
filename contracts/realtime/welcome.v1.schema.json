@@ -54,6 +54,10 @@
         }
       }
     },
+    "notice": {
+      "$ref": "contracts://realtime/notice.v1",
+      "description": "O último aviso do supervisor, de até dois minutos atrás (a parte 5 do M25): a tela que reconecta no meio de uma troca sabe que é uma troca."
+    },
     "commands": {
       "type": "array",
       "uniqueItems": true,

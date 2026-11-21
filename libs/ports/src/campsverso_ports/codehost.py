@@ -53,3 +53,8 @@ class CodeHostPort(Protocol):
     async def comment(self, number: int, body: str) -> None:
         """Um comentário na conversa do PR (o revisor, na parte 3 do M25)."""
         ...
+
+    async def commit_ci(self, sha: str) -> CiState | None:
+        """O CI de um commit qualquer, como o de um topo de PR: o supervisor só troca o escritório
+        vivo para um commit verde (a parte 5 do M25). None: nenhuma verificação ainda."""
+        ...

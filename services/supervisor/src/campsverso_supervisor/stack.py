@@ -224,6 +224,29 @@ class ProcessStack:
         tick = int(pulse["tick"]) if pulse is not None and "tick" in pulse else int(body["tick"])
         return Health(tick, alive, bool(body.get("busy")))
 
+    async def notify(self, notice: Mapping[str, Any], tries: int = 10) -> bool:
+        """Um aviso às telas pelo gateway desta pilha (a parte 5 do M25), com algumas tentativas:
+        a pilha que acabou de subir ainda pode estar abrindo a porta. Nunca derruba nada."""
+        url = f"http://127.0.0.1:{self.gateway_port}/aviso"
+        body = json.dumps(dict(notice)).encode()
+
+        def post() -> bool:
+            request = urllib.request.Request(
+                url, data=body, headers={"Content-Type": "application/json"}, method="POST"
+            )
+            try:
+                with urllib.request.urlopen(request, timeout=3) as response:
+                    return response.status == 200
+            except OSError, ValueError:
+                return False
+
+        for attempt in range(tries):
+            if await asyncio.to_thread(post):
+                return True
+            if attempt + 1 < tries:
+                await asyncio.sleep(1.0)
+        return False
+
     def logged(self, name: str, event: str) -> bool:
         path = self._log(name)
         return path.is_file() and f'"event": "{event}"' in path.read_text(errors="replace")

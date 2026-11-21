@@ -7,10 +7,87 @@
  * O formulário e a caixa de fala são montados uma vez só: redesenhar o painel a cada mudança do
  * estado apagaria o que o gerente está escrevendo. Só o quadro se redesenha.
  */
-import type { ObserverState } from "@campsverso/contracts";
+import type { EnvelopeV1, ObserverState } from "@campsverso/contracts";
 
 import { button, el } from "../dom.ts";
+import { clockText } from "../simclock.ts";
 import { DeliveryDialog } from "./delivery.ts";
+
+/** Um dev e a convocação dele fora do expediente (a parte 5 do M25), dos atributos do avatar. */
+export interface SummonView {
+  readonly id: string;
+  readonly name: string;
+  readonly present: boolean;
+  readonly summoned: boolean;
+  readonly arrives: number | undefined;
+  readonly until: number | undefined;
+}
+
+const SUMMONED = "campsverso.office.staff.summoned.v1";
+const DISMISSED = "campsverso.office.staff.dismissed.v1";
+
+function title(id: string): string {
+  return id === "" ? "o dev" : id.charAt(0).toUpperCase() + id.slice(1);
+}
+
+/** Os devs, com a convocação de cada um. A tela do jogador não traz quem está fora da sala: a
+ * convocação de um dev ausente vem dos fatos dela na linha do tempo, e, sem nenhum dev conhecido,
+ * fica um "dev" sem id, que o kernel resolve para o único dev do elenco. */
+export function summonsOf(state: ObserverState, timeline: readonly EnvelopeV1[] = []): SummonView[] {
+  const found = new Map<string, SummonView>();
+  for (const event of timeline) {
+    if (event.type !== SUMMONED && event.type !== DISMISSED) {
+      continue;
+    }
+    const data = event.data as { avatar_id?: unknown; arrives_tick?: unknown; until_tick?: unknown };
+    if (typeof data.avatar_id !== "string") {
+      continue;
+    }
+    const summoned = event.type === SUMMONED;
+    found.set(data.avatar_id, {
+      id: data.avatar_id,
+      name: state.entities[data.avatar_id]?.display_name ?? title(data.avatar_id),
+      present: false,
+      summoned,
+      arrives: summoned && typeof data.arrives_tick === "number" ? data.arrives_tick : undefined,
+      until: summoned && typeof data.until_tick === "number" ? data.until_tick : undefined,
+    });
+  }
+  for (const [id, entity] of Object.entries(state.entities)) {
+    if (entity?.kind !== "avatar" || entity.attributes.papel !== "dev") {
+      continue;
+    }
+    const a = entity.attributes;
+    const tick = (key: string): number | undefined => {
+      const value = a[key];
+      return typeof value === "number" ? value : undefined;
+    };
+    found.set(id, {
+      id,
+      name: entity.display_name ?? title(id),
+      present: entity.position !== undefined, // fora do escritório, o avatar não tem posição
+      summoned: typeof a.convocado_por === "string",
+      arrives: tick("convocado_chega"),
+      until: tick("convocado_ate"),
+    });
+  }
+  if (found.size === 0) {
+    found.set("", { id: "", name: title(""), present: false, summoned: false, arrives: undefined, until: undefined });
+  }
+  return [...found.values()].sort((x, y) => (x.id < y.id ? -1 : x.id > y.id ? 1 : 0));
+}
+
+/** A linha de um dev na convocação: a caminho, até quando, no expediente ou fora. */
+export function summonLine(state: ObserverState, dev: SummonView): string {
+  const at = (tick: number | undefined): string => (tick === undefined ? "--:--" : clockText(state, tick).slice(0, 5));
+  if (dev.summoned && !dev.present) {
+    return `${dev.name} está a caminho: chega às ${at(dev.arrives)}`;
+  }
+  if (dev.summoned) {
+    return `${dev.name} convocado até as ${at(dev.until)}`;
+  }
+  return dev.present ? `${dev.name} está no escritório` : `${dev.name} está fora`;
+}
 
 export interface TicketView {
   readonly id: string;
@@ -124,10 +201,13 @@ export interface OfficeActions {
   giveBack(ticketId: string, comment: string): void;
   speak(text: string): void;
   leave(): void;
+  summon(devId: string): void;
+  dismiss(devId: string): void;
 }
 
 export class OfficePanel {
   private readonly board = el("div", { className: "board" });
+  private readonly summons = el("div", { className: "summons" });
   private readonly managerOnly: HTMLElement[] = [];
   private readonly hint = el("p", { className: "hint" });
   private shown = "";
@@ -199,23 +279,45 @@ export class OfficePanel {
       el("div", { className: "row" }, size, button("Escrever no quadro", write)),
     );
     const leave = button("Sair do escritório", () => { this.actions.leave(); });
-    this.managerOnly.push(talk, form, leave);
-    this.root.replaceChildren(el("div", { className: "card" }, el("h2", {}, "Quadro dos pedidos"), this.board), talk, form, leave, this.hint);
+    const summon = el("div", { className: "card summon" }, el("h2", {}, "Convocação"), this.summons);
+    this.managerOnly.push(talk, summon, form, leave);
+    this.root.replaceChildren(el("div", { className: "card" }, el("h2", {}, "Quadro dos pedidos"), this.board), talk, summon, form, leave, this.hint);
   }
 
   /** `underway`: os pedidos a que o gerente já está indo (aceitar ou devolver, na fila ou fazendo). */
-  render(state: ObserverState, manager: boolean, underway: ReadonlySet<string> = new Set()): void {
+  render(
+    state: ObserverState,
+    manager: boolean,
+    underway: ReadonlySet<string> = new Set(),
+    timeline: readonly EnvelopeV1[] = [],
+  ): void {
     for (const part of this.managerOnly) {
       part.hidden = !manager;
     }
     this.hint.hidden = manager;
     this.hint.textContent = "Entre no escritório como o gerente para escrever pedidos e falar com o dev.";
     const tickets = ticketsOf(state);
-    const key = JSON.stringify([manager, tickets, [...underway].sort()]);
+    const devs = summonsOf(state, timeline);
+    const lines = devs.map((dev) => summonLine(state, dev));
+    const key = JSON.stringify([manager, tickets, [...underway].sort(), devs, lines]);
     if (key === this.shown) {
       return;
     }
     this.shown = key;
+    this.summons.replaceChildren(
+      ...devs.map((dev, i) =>
+        el(
+          "div",
+          { className: "row" },
+          el("span", { className: "hint" }, lines[i] ?? ""),
+          ...(dev.summoned
+            ? [button(`Dispensar o ${dev.name}`, () => { this.actions.dismiss(dev.id); })]
+            : dev.present
+              ? []
+              : [button(`Convocar o ${dev.name}`, () => { this.actions.summon(dev.id); })]),
+        ),
+      ),
+    );
     this.board.replaceChildren(
       ...COLUMNS.map(([id, label]) => {
         const mine = tickets.filter((t) => t.state === id);

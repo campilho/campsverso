@@ -24,7 +24,7 @@ from typing import Any, cast
 from urllib.parse import urlsplit
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -108,9 +108,11 @@ class FastApiRealtime:
         runs: Callable[[], list[dict[str, Any]]] | None = None,
         deliveries: Path | None = None,
         status: Callable[[], Mapping[str, Any]] | None = None,
+        notice: Callable[[Mapping[str, Any]], str | None] | None = None,
     ) -> None:
         self.host, self.port = host, port
         self._status = status  # o que o /health diz além do ok (o supervisor, ADR-0083)
+        self._notice = notice  # o aviso do supervisor às telas (a parte 5 do M25)
         self._deliveries = None if deliveries is None else deliveries.resolve()
         self._runs = runs  # o modo de assistir lista as corridas em /arena/runs (ADR-0068)
         self._maps = dict(maps or {})
@@ -192,6 +194,20 @@ class FastApiRealtime:
         @app.get("/health")
         async def health() -> dict[str, Any]:  # pyright: ignore[reportUnusedFunction]
             return {"ok": True, **(self._status() if self._status is not None else {})}
+
+        @app.post("/aviso")
+        async def notice(request: Request) -> dict[str, Any]:  # pyright: ignore[reportUnusedFunction]
+            # Só da própria máquina: quem avisa é o supervisor, ao lado do gateway.
+            client = request.client.host if request.client is not None else ""
+            if self._notice is None or client not in ("127.0.0.1", "::1", "localhost"):
+                raise HTTPException(status_code=403, detail="o aviso vem só do supervisor local")
+            body = await request.json()
+            if not isinstance(body, dict):
+                raise HTTPException(status_code=422, detail="o aviso é um objeto")
+            reason = self._notice(cast(Mapping[str, Any], body))
+            if reason is not None:
+                raise HTTPException(status_code=422, detail=reason)
+            return {"ok": True}
 
         if self._ui_dir is not None and self._ui_dir.is_dir():
             app.mount("/", StaticFiles(directory=self._ui_dir, html=True), name="ui")

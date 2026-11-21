@@ -79,17 +79,20 @@ class GitHubApp:
     async def token(self) -> str:
         if self._token is not None and self._now() < self._expires - RENEW_SECONDS:
             return self._token
-        response = await self._client.post(
-            f"/app/installations/{self._installation}/access_tokens",
-            headers={
-                "Authorization": f"Bearer {await self.jwt()}",
-                "Accept": "application/vnd.github+json",
-                "X-GitHub-Api-Version": VERSION,
-            },
-        )
+        try:
+            response = await self._client.post(
+                f"/app/installations/{self._installation}/access_tokens",
+                headers={
+                    "Authorization": f"Bearer {await self.jwt()}",
+                    "Accept": "application/vnd.github+json",
+                    "X-GitHub-Api-Version": VERSION,
+                },
+            )
+        except httpx2.HTTPError as error:
+            raise CodeHostError(f"o token do App não veio: {type(error).__name__}") from error
         if response.status_code != 201:
             raise CodeHostError(f"o token do App foi recusado ({response.status_code})")
-        body = cast(dict[str, Any], response.json())
+        body = cast(dict[str, Any], _json(response, "o token do App"))
         self._token = str(body["token"])
         self._expires = self._now() + 3600
         return self._token
@@ -126,23 +129,32 @@ class GitHubCodeHost:
         *,
         missing: bool = False,
     ) -> Any:
-        """Uma chamada ao repositório; com `missing`, um 404 devolve None."""
-        response = await self._client.request(
-            method,
-            f"/repos/{self._repo}{path}",
-            json=None if body is None else dict(body),
-            headers={
-                "Authorization": f"Bearer {await self._app.token()}",
-                "Accept": "application/vnd.github+json",
-                "X-GitHub-Api-Version": VERSION,
-            },
-        )
+        """Uma chamada ao repositório; com `missing`, um 404 devolve None. A rede que cai e a
+        resposta que não é JSON (um 502 do GitHub com o corpo vazio derrubou o publicador do
+        sandbox em 21/nov) viram `CodeHostError`, que quem chama já trata."""
+        token = await self._app.token()
+        try:
+            response = await self._client.request(
+                method,
+                f"/repos/{self._repo}{path}",
+                json=None if body is None else dict(body),
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": "application/vnd.github+json",
+                    "X-GitHub-Api-Version": VERSION,
+                },
+            )
+        except httpx2.HTTPError as error:
+            raise CodeHostError(f"{method} {path}: {type(error).__name__}") from error
         if missing and response.status_code == 404:
             return None
         if response.status_code >= 400:
-            message = str(cast(dict[str, Any], response.json()).get("message", ""))[:200]
-            raise CodeHostError(f"{method} {path}: {response.status_code} {message}")
-        return response.json()
+            try:
+                message = str(cast(dict[str, Any], response.json()).get("message", ""))
+            except ValueError:
+                message = response.text.strip()
+            raise CodeHostError(f"{method} {path}: {response.status_code} {message[:200]}")
+        return _json(response, f"{method} {path}")
 
     async def publish_branch(
         self, branch: str, base: str, files: Mapping[str, str | None], message: str
@@ -211,6 +223,17 @@ class GitHubCodeHost:
 
     async def comment(self, number: int, body: str) -> None:
         await self._call("POST", f"/issues/{number}/comments", {"body": body})
+
+    async def commit_ci(self, sha: str) -> CiState | None:
+        runs = await self._call("GET", f"/commits/{sha}/check-runs")
+        return _ci(cast(list[Mapping[str, Any]], runs.get("check_runs") or []))
+
+
+def _json(response: httpx2.Response, what: str) -> Any:
+    try:
+        return response.json()
+    except ValueError as error:
+        raise CodeHostError(f"{what}: a resposta não é JSON ({response.status_code})") from error
 
 
 def _ci(runs: list[Mapping[str, Any]]) -> CiState | None:

@@ -17,6 +17,7 @@
 import asyncio
 import contextlib
 import json
+import re
 from collections import deque
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
@@ -47,6 +48,9 @@ WELCOME = "campsverso.realtime.welcome.v1"
 UPDATE = "campsverso.realtime.update.v1"
 COMMAND = "campsverso.realtime.command.v1"
 REPLY = "campsverso.realtime.reply.v1"
+NOTICE = "campsverso.realtime.notice.v1"
+NOTICE_KINDS = ("troca", "espera", "volta")
+NOTICE_SECONDS = 120.0  # quanto tempo o último aviso vai no welcome de quem reconecta
 
 # O relógio é só do operador (ADR-0050); jogar, assumir e devolver valem nas duas visões (ADR-0051).
 CLOCK_COMMANDS = tuple(
@@ -147,6 +151,7 @@ class GatewayService:
         self._bus = bus
         self._blobs = blobs
         self._clock = clock
+        self._notice: tuple[float, Message] | None = None  # o último aviso e quando chegou
         self._ids = ids
         self._telemetry = telemetry
         self._validator = validator
@@ -291,6 +296,32 @@ class GatewayService:
             **({} if self._build is None else {"build": self._build}),
         }
 
+    def notice(self, given: Mapping[str, Any]) -> str | None:
+        """Um aviso do supervisor para as telas (a parte 5 do M25): a troca de versão que vem, a
+        que espera o dev, a volta. Vai a todas as telas conectadas; None se saiu, ou o motivo."""
+        kind, text = given.get("kind"), given.get("text")
+        if kind not in NOTICE_KINDS:
+            return f"kind é um de {list(NOTICE_KINDS)}"
+        if not isinstance(text, str) or not 0 < len(text) <= 300:
+            return "text é uma frase de até 300 caracteres"
+        message: Message = {"type": NOTICE, "kind": kind, "text": text}
+        commit = given.get("commit")
+        if isinstance(commit, str) and re.fullmatch(r"[0-9a-f]{40}", commit):
+            message["commit"] = commit
+        prs = given.get("pull_requests")
+        if isinstance(prs, list):
+            message["pull_requests"] = [int(n) for n in cast(list[Any], prs)[:100] if int(n) > 0]
+        self._notice = (self._clock.monotonic(), message)
+        for client in list(self._clients):
+            self._enqueue(client, message)
+        self._telemetry.info("gateway.notice", kind=kind, clients=len(self._clients))
+        return None
+
+    def _recent_notice(self) -> Message | None:
+        if self._notice is None or self._clock.monotonic() - self._notice[0] > NOTICE_SECONDS:
+            return None
+        return self._notice[1]
+
     def _busy(self) -> bool:
         shop = self.projection.workshop
         if any(robot.get("state") == "working" for robot in shop.get("robots", {}).values()):
@@ -365,6 +396,7 @@ class GatewayService:
             "view": view,
             "avatar_id": self._avatar,
             **({} if self._build is None else {"build": self._build}),
+            **({} if (notice := self._recent_notice()) is None else {"notice": notice}),
             "commands": list(self._commands[view]),
             "state": self._states[view],
             "events": [e for e in self._timeline if client.sees(e)],
