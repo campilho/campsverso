@@ -94,6 +94,13 @@ def test_forbidden_is_by_path_from_root_not_substring() -> None:
     assert kept == ["- tools/metadata/testador.py guarda o testador."]
 
 
+def test_find_files_prunes_heavy_and_forbidden_dirs(tmp_path: Path) -> None:
+    for folder in ("node_modules", ".venv", "data", "src"):
+        (tmp_path / folder).mkdir()
+        (tmp_path / folder / "robo.py").write_text("x", encoding="utf-8")
+    assert briefing.find_files(tmp_path, ["robo"]) == ["src/robo.py"]
+
+
 def test_main_refuses_forbidden_inputs(tmp_path: Path) -> None:
     forbidden = REPO_ROOT / "data" / "pedido_x.md"
     assert briefing._read_input(str(forbidden)) is None

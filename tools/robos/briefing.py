@@ -5,6 +5,7 @@ Uso: python -m tools.robos.briefing <pedido.md> <notas.md>
 
 from __future__ import annotations
 
+import os
 import re
 import sys
 from collections.abc import Sequence
@@ -68,7 +69,9 @@ def _allowed(path: str) -> bool:
 def _line_allowed(line: str) -> bool:
     """Uma linha de nota é barrada se citar um caminho proibido (palavra a palavra)."""
     for token in line.split():
-        if _forbidden_path(token.strip("`'\"()[],;:.")) or _forbidden_path(token.strip("`'\"()[],;")):
+        if _forbidden_path(token.strip("`'\"()[],;:.")):
+            return False
+        if _forbidden_path(token.strip("`'\"()[],;")):
             return False
     return True
 
@@ -76,16 +79,21 @@ def _line_allowed(line: str) -> bool:
 def find_files(root: Path, words: Sequence[str]) -> list[str]:
     """Arquivos do repositório cujo caminho tem palavras do pedido, os melhores primeiro."""
     scored: list[tuple[int, str]] = []
-    for path in root.rglob("*"):
-        rel = path.relative_to(root)
-        if any(part in _SKIP_DIRS for part in rel.parts) or _forbidden_path(rel.as_posix()):
-            continue
-        if not path.is_file():
-            continue
-        name = rel.as_posix()
-        score = sum(1 for word in words if word in name.lower())
-        if score and _allowed(name):
-            scored.append((score, name))
+    for dirpath, dirnames, filenames in os.walk(root):
+        # Poda antes de descer: nem entra em node_modules, .venv, data/ etc.
+        here = Path(dirpath).relative_to(root)
+        dirnames[:] = [
+            d
+            for d in dirnames
+            if d not in _SKIP_DIRS and _allowed((here / d).as_posix())
+        ]
+        for filename in filenames:
+            name = (here / filename).as_posix()
+            if not _allowed(name):
+                continue
+            score = sum(1 for word in words if word in name.lower())
+            if score:
+                scored.append((score, name))
     scored.sort(key=lambda item: (-item[0], item[1]))
     return [name for _, name in scored[:_MAX_FILES]]
 
@@ -109,7 +117,8 @@ def build(request: str, notes: str, claude_md: str, root: Path) -> str:
     rule_lines = rules(claude_md)
 
     def assemble(rule_part: list[str], file_part: list[str], note_part: list[str]) -> list[str]:
-        lines = ["# Briefing", "", "## Pedido", "", *request_lines, "", "## Regras do CLAUDE.md", ""]
+        lines = ["# Briefing", "", "## Pedido", "", *request_lines]
+        lines += ["", "## Regras do CLAUDE.md", ""]
         lines += rule_part
         lines += ["", "## Arquivos prováveis", ""]
         lines += [f"- `{name}`" for name in file_part] or ["- (nenhum achado)"]
