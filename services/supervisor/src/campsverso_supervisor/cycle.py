@@ -105,6 +105,10 @@ class Settings:
     busy_wait_seconds: float = 1800.0
     busy_every: float = 15.0
     keep_backups: int = 3
+    # Um laço de quedas: depois de tantos reinícios na janela, o supervisor espera a janela passar
+    # (ou um commit novo, que pode trazer o conserto) em vez de reiniciar de novo.
+    restarts: int = 3
+    restart_window: float = 600.0
 
 
 class Supervisor:
@@ -133,6 +137,7 @@ class Supervisor:
         self.running: Running | None = None
         self.build: Build | None = None
         self._first_healthy: float | None = None  # quando a versão nova respondeu bem
+        self._restarted: list[float] = []  # os reinícios recentes, para o laço de quedas
 
     def slot(self, name: str) -> Path:
         return self.home / name
@@ -194,21 +199,36 @@ class Supervisor:
     async def turn(self) -> str:
         """Uma volta do ciclo; devolve o que aconteceu, para os testes e o diário."""
         assert self.running is not None
+        waiting = False
         if dead := self.running.dead():
-            return await self._restart(dead)
+            if self._may_restart():
+                return await self._restart(dead)
+            waiting = True
         try:
             head = await self._releases.fetch()
         except Exception as error:  # sem rede: a próxima volta tenta de novo
             self.journal.write("sem_origem", error=str(error)[:300])
             return "sem_origem"
         if head == self.state.commit or head in self.state.rejected:
-            return "em_dia"
+            return "em_espera" if waiting else "em_dia"
         return await self._update(head)
+
+    def _may_restart(self) -> bool:
+        now = self._monotonic()
+        window = self._settings.restart_window
+        self._restarted = [t for t in self._restarted if now - t < window]
+        if len(self._restarted) < self._settings.restarts:
+            return True
+        if len(self._restarted) == self._settings.restarts:  # avisa uma vez por laço
+            self._restarted.append(now)
+            self.journal.write("laco_de_quedas", commit=self.state.commit, window=window)
+        return False
 
     async def _restart(self, dead: list[str]) -> str:
         """Um processo caiu sem troca nenhuma: o escritório sobe de novo, na mesma versão."""
         assert self.running is not None
         assert self.build is not None
+        self._restarted.append(self._monotonic())
         self.journal.write("caiu", commit=self.state.commit, processes=dead)
         await self.running.stop()
         self.running = await self._stacks.start(

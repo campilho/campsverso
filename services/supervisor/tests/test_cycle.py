@@ -250,6 +250,26 @@ async def test_um_processo_que_cai_sem_troca_sobe_de_novo_na_mesma_versao(rig: R
     assert rig.stacks.started[-1].build.commit == OLD
 
 
+async def test_o_laco_de_quedas_espera_mas_aceita_o_conserto(rig: Rig) -> None:
+    rig.stacks.behavior[OLD] = "dies"
+    supervisor = rig.supervisor()
+    await supervisor.boot()
+    rig.clock.now = 1
+    assert [await supervisor.turn() for _ in range(5)] == [
+        "reiniciou",
+        "reiniciou",
+        "reiniciou",
+        "em_espera",
+        "em_espera",
+    ]
+    assert rig.steps().count("laco_de_quedas") == 1
+    rig.releases.head = NEW  # o conserto chega: a troca segue, mesmo com o escritório caído
+    assert await supervisor.turn() == "trocou"
+    rig.clock.now += 601  # e, passada a janela, reiniciar volta a valer
+    rig.stacks.started[-1].behavior = "dies"
+    assert await supervisor.turn() == "reiniciou"
+
+
 async def test_sem_rede_nada_muda(rig: Rig) -> None:
     supervisor = rig.supervisor()
     await supervisor.boot()
