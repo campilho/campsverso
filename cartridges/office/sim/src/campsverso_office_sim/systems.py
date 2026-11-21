@@ -20,6 +20,8 @@ from campsverso_cartridge_api import (
     DailyAt,
     EveryMinutes,
     OnSessionStart,
+    Position,
+    SpawnDef,
     SystemContext,
     Trigger,
     WorldOps,
@@ -30,6 +32,8 @@ from campsverso_office_sim.config import (
     DEV,
     GUARD,
     MANAGER,
+    NAMESPACE,
+    ROBOT,
     at_lunch,
     door,
     in_window,
@@ -205,6 +209,32 @@ def staff(ctx: SystemContext, ops: WorldOps) -> None:
             ops.enter(avatar_id, door(view), reason)
 
 
+def bench(ctx: SystemContext, ops: WorldOps) -> None:
+    """A bancada segue o registro dos robôs (`office.bench_robots`, do cenário): o mundo novo já
+    nasce com eles, mas o retomado de um snapshot só os ganha aqui, quando uma versão nova do
+    código traz um robô a mais, ou a menos. Sem registro nos dados, a bancada fica como está."""
+    view = ctx.view
+    declared = cast(list[dict[str, Any]] | None, view.data(NAMESPACE).get("bench_robots"))
+    if declared is None:
+        return
+    wanted = {str(robot["id"]): robot for robot in declared}
+    present = {e.entity_id: e for e in view.entities(ROBOT)}
+    for robot_id in sorted(present):
+        if robot_id not in wanted and not view.targeted(robot_id):
+            ops.despawn(robot_id, "registro")
+    for robot_id, robot in sorted(wanted.items()):
+        attributes = cast(dict[str, Any], robot.get("attributes") or {})
+        found = present.get(robot_id)
+        if found is None:
+            spot = Position(int(robot["x"]), int(robot["y"]))
+            name = str(robot.get("name") or robot_id)
+            ops.spawn(
+                SpawnDef(robot_id, ROBOT, position=spot, display_name=name, attributes=attributes)
+            )
+        elif any(found.attributes.get(key) != value for key, value in attributes.items()):
+            ops.set_attributes(robot_id, visible=attributes)
+
+
 def build_systems(data: dict[str, Any]) -> tuple[OfficeSystem, ...]:
     """Os horários vêm dos dados no momento de montar o mundo; a meia-noite vira o dia útil. O
     sistema roda também a cada minuto, para os prazos da convocação: o cenário a liga depois de o
@@ -217,4 +247,7 @@ def build_systems(data: dict[str, Any]) -> tuple[OfficeSystem, ...]:
         str(schedule["closes"]),
     )
     triggers = (OnSessionStart(), DailyAt(tuple(sorted(set(times)))), EveryMinutes(1))
-    return (OfficeSystem("staff", "scheduled", 10, triggers, staff),)
+    return (
+        OfficeSystem("staff", "scheduled", 10, triggers, staff),
+        OfficeSystem("bench", "scheduled", 20, (EveryMinutes(1),), bench),
+    )

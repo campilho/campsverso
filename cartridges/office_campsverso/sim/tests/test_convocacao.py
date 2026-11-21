@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from campsverso_cartridge_api import Position, SpawnDef
 from campsverso_kernel.core import KernelCore, WorldConfig
 from campsverso_kernel.facts import Fact
 from campsverso_kernel.loader import build_world
@@ -192,3 +193,22 @@ def test_no_dia_util_o_botao_espera_o_fim_do_expediente_e_o_expediente_assume() 
     ]
     assert not [d for d in _only(facts, "avatar.left") if d["avatar_id"] == "camps"]
     assert _present(early, "camps")
+
+
+def test_a_bancada_segue_o_registro_num_mundo_retomado() -> None:
+    """O escritório vivo retomado de um snapshot não ganhava o robô que o registro ganhou numa
+    versão nova (o briefing do PR #2, 21/nov): agora a bancada o põe em um minuto, e tira o que
+    saiu do registro."""
+    core = _core()
+    robots = sorted(e.entity_id for e in core.world.entities("robot"))
+    assert robots == ["robo-briefing", "robo-testador"]
+    with core.world.context(cause="teste"):
+        core.world.despawn("robo-briefing", "o mundo de antes do PR #2")
+        core.world.spawn(SpawnDef("robo-velho", "robot", position=Position(9, 4)))
+    core.drain()
+    facts = _minutes(core, 1.1)
+    assert [d["entity_id"] for d in _only(facts, "world.entity.spawned")] == ["robo-briefing"]
+    assert [d["entity_id"] for d in _only(facts, "world.entity.despawned")] == ["robo-velho"]
+    assert core.world.position_of("robo-briefing") == Position(8, 4)
+    assert core.world.entity_map["robo-briefing"].attributes["modulo"] == "tools.robos.briefing"
+    assert not _only(_minutes(core, 1.1), "world.entity.spawned")  # em dia: nada mais muda

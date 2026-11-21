@@ -101,8 +101,26 @@ class OfficeCampsversoCartridge:
         state = cast(
             dict[str, Any], yaml.safe_load((DATA / "escritorio.yaml").read_text(encoding="utf-8"))
         )
-        for robot in robots(state.get("robos"), bench_of(tmj)):
+        bench = robots(state.get("robos"), bench_of(tmj))
+        for robot in bench:
             world.spawn(robot)
+        # O registro também vai aos dados: o sistema da bancada põe no mundo retomado o robô que o
+        # registro ganhou numa versão nova, e tira o que saiu (o briefing do PR #2, 21/nov).
+        world.merge_data(
+            "office",
+            {
+                "bench_robots": [
+                    {
+                        "id": r.entity_id,
+                        "x": r.position.x if r.position else 0,
+                        "y": r.position.y if r.position else 0,
+                        "name": r.display_name or r.entity_id,
+                        "attributes": dict(r.attributes),
+                    }
+                    for r in bench
+                ]
+            },
+        )
         office = cast(Mapping[str, Any], state["office"])
         world.merge_data("office", office)
         door = Position(int(office["door"]["x"]), int(office["door"]["y"]))
