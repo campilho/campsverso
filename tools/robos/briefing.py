@@ -83,9 +83,7 @@ def find_files(root: Path, words: Sequence[str]) -> list[str]:
         # Poda antes de descer: nem entra em node_modules, .venv, data/ etc.
         here = Path(dirpath).relative_to(root)
         dirnames[:] = [
-            d
-            for d in dirnames
-            if d not in _SKIP_DIRS and _allowed((here / d).as_posix())
+            d for d in dirnames if d not in _SKIP_DIRS and _allowed((here / d).as_posix())
         ]
         for filename in filenames:
             name = (here / filename).as_posix()
