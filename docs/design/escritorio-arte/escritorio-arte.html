@@ -1250,7 +1250,7 @@ const GLIFOS_BASE = {
   7: '#####/....#/...#./..#../..#../..#../..#..',
   8: '.###./#...#/#...#/.###./#...#/#...#/.###.',
   9: '.###./#...#/#...#/.####/....#/...#./.##..',
-  '.': './././././.#',
+  '.': './././././#',
   ',': '../../../../../.#/.#/#.',
   ';': '../../.#/../../.#/.#/#.',
   ':': './././#/./././#',
@@ -1876,6 +1876,24 @@ function selo(nome) {
   return s;
 }
 
+// ---- a placa da versão numa linha só (21/11): comprida, da altura do relógio e alinhada com
+// ele, sem a luz (o estado vai na barra de cima da tela). Substitui a placa_versao.
+const PLACA_LINHA = {
+  posicao: [13, 1],                                   // o tile da esquerda, na linha de baixo da parede (as colunas 13 a 15)
+  texto: { x: 13, y: 14, largura: 70, altura: 12, cor: 'escuro', formato: '<commit> <dd/mm>' },
+};
+function placaLinha() {
+  const s = new Spr(96, 64), p = new Spr(96, 64);
+  const x0 = 7, y0 = 12, x1 = 88, y1 = 28;
+  s.hl(x0 + 1, x1 + 1, y1 + 2, 'begeSomb').vl(x1 + 2, y0 + 2, y1 + 2, 'begeSomb');                  // a sombra na parede
+  p.r(x0, y0, x1 - x0 + 1, y1 - y0 + 1, 'cinzaCl');
+  p.hl(x0, x1, y0, 'branco').vl(x0, y0, y1, 'branco').hl(x0, x1, y1, 'cinza').vl(x1, y0, y1, 'cinza');
+  p.hl(x0 + 2, x1 - 2, y0 + 2, 'cinza').hl(x0 + 2, x1 - 2, y1 - 2, 'branco').vl(x0 + 2, y0 + 2, y1 - 2, 'cinza').vl(x1 - 2, y0 + 2, y1 - 2, 'branco');
+  for (const x of [x0 + 4, x1 - 5]) p.r(x, 19, 2, 2, 'cinza').p(x, 19, 'cinzaEsc').p(x + 1, 20, 'branco');   // os dois parafusos
+  p.contorno();
+  return s.cola(p);
+}
+
 // =====================================================================
 // PERSONAGENS: um corpo-base parametrizável, em quadros de 64 × 64
 // Âncora (32, 64): o contorno do pé encosta na última linha.
@@ -2356,7 +2374,11 @@ const FOLHAS = [
   { nome: 'placa_versao', grupo: 'parede do fundo', q: [64, 64], col: PLACA_ESTADOS.length, lin: 1, pegada: [2, 1], ancora: [32, 64], camada: 'parede',
     quadros: PLACA_ESTADOS, desenha: c => placaVersao(PLACA_ESTADOS[c]),
     nota: 'na parede do fundo, ao lado do relógio: posicao é o tile da esquerda na linha 1 da parede (as colunas 13 e 14), e o quadro cobre as linhas 0 e 1. A luz é emissiva. A tela escreve o commit e a data em texto, em duas linhas, na fonte da sala; atualizando e atualizando2 se alternam.',
-    extra: () => ({ posicao: PLACA.posicao, texto: PLACA.texto }) },
+    extra: () => ({ posicao: PLACA.posicao, texto: PLACA.texto, substituidaPor: 'placa_versao_linha' }) },
+  { nome: 'placa_versao_linha', grupo: 'parede do fundo', q: [96, 64], col: 1, lin: 1, pegada: [3, 1], ancora: [48, 64], camada: 'parede',
+    quadros: ['placa'], desenha: () => placaLinha(),
+    nota: 'a placa da versão numa linha só (21/11), no lugar da placa_versao: da altura do relógio e alinhada com ele, nas colunas 13 a 15; sem a luz, porque o estado vai na barra de cima da tela. A tela escreve o commit curto e o dia, separados por um espaço (ex.: 89f4167 21/11), centrados no retângulo texto.',
+    extra: () => ({ posicao: PLACA_LINHA.posicao, texto: PLACA_LINHA.texto }) },
   { nome: 'mesa_dev', grupo: 'móveis', q: [96, 64], col: 7, lin: 1, pegada: [3, 1], ancora: [48, 64], camada: 'normal',
     quadros: ['apagada', 'tela 1', 'tela 2', 'tela 3', 'lendo', 'testes verdes', 'testes vermelhos'],
     nota: 'os quadros 4 a 6 são o último passo do dev na oficina', desenha: c => mesaDev(c) },
@@ -2758,8 +2780,9 @@ function objetos(cena, t) {
   if (typeof e.ficha === 'number') fichaEm(1, (2 + e.ficha) * T + (e.ficha === 0 ? 5 : 2) + 1, 19, e.ficha === 2 && e.selo);
   if (cena.fichasPr) { fichaEm(0, 4 * T + 15, 19, 'ci_verde'); fichaEm(3, 4 * T + 3, 31, 'mesclado'); }
   // a placa da versão, na parede ao lado do relógio, com o commit e a data
-  const [estado, commit, data] = cena.placa ? cena.placa(t) : ['rodando', '7c6b8ac', '20/11'];
-  o.push({ spr: placaComTexto(estado, [commit, data]), x: PLACA.posicao[0] * T, y: (PLACA.posicao[1] + 1) * T - 64, base: -1, ordem: 0 });
+  let [, commit, data] = cena.placa ? cena.placa(t) : ['rodando', '7c6b8ac', '20/11'];
+  if (PLACA_TEXTO) [commit, data] = PLACA_TEXTO;
+  o.push({ spr: placaLinhaComTexto(commit + ' ' + data), x: PLACA_LINHA.posicao[0] * T, y: (PLACA_LINHA.posicao[1] + 1) * T - 64, base: -1, ordem: 0 });
   // os cubículos
   for (const k of DIV) { const [c, l] = k.split(',').map(Number); poe(quadro('divisoria', mascara(c, l) % 4, mascara(c, l) >> 2), c, l); }
   const digitando = atores.camps && atores.camps.anim === 'digitando';
@@ -2809,6 +2832,17 @@ function placaComTexto(estado, linhas) {
   if (!PLACAS.has(k)) {
     const s = quadro('placa_versao', PLACA_ESTADOS.indexOf(estado)).clone(), tx = PLACA.texto;
     linhas.forEach((l, i) => escreve(s, l, tx.x, tx.y + i * tx.entrelinha, tx.cor));
+    PLACAS.set(k, s);
+  }
+  return PLACAS.get(k);
+}
+// a placa numa linha: o texto centrado no retângulo da folha
+let PLACA_TEXTO = null;                 // quem exporta pode fixar o texto: [commit, dia]
+function placaLinhaComTexto(linha) {
+  const k = 'linha|' + linha;
+  if (!PLACAS.has(k)) {
+    const s = quadro('placa_versao_linha', 0).clone(), tx = PLACA_LINHA.texto;
+    escreve(s, linha, tx.x + Math.max(0, Math.floor((tx.largura - larguraTexto(linha)) / 2)), tx.y, tx.cor);
     PLACAS.set(k, s);
   }
   return PLACAS.get(k);
@@ -2898,6 +2932,7 @@ window.cenas = () => Object.entries(CENAS).map(([id, c]) => ({ id, nome: c.nome,
 window.quadroPrevia = (i, op = {}) => {
   const cv = document.createElement('canvas'); cv.width = SALA.L * T; cv.height = SALA.A * T;
   MOUSE = op.mouse || null;
+  PLACA_TEXTO = op.placa || null;
   desenhaPrevia(cv.getContext('2d'), i, op.cena || (op.noite ? 'noite' : 'pedido'));
   return cv.toDataURL('image/png');
 };

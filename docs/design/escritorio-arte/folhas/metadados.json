@@ -645,7 +645,43 @@
         "cor": "escuro",
         "entrelinha": 11
       },
+      "substituidaPor": "placa_versao_linha",
       "nota": "na parede do fundo, ao lado do relógio: posicao é o tile da esquerda na linha 1 da parede (as colunas 13 e 14), e o quadro cobre as linhas 0 e 1. A luz é emissiva. A tela escreve o commit e a data em texto, em duas linhas, na fonte da sala; atualizando e atualizando2 se alternam."
+    },
+    "placa_versao_linha": {
+      "arquivo": "placa_versao_linha.png",
+      "grupo": "parede do fundo",
+      "quadro": [
+        96,
+        64
+      ],
+      "colunas": 1,
+      "linhas": 1,
+      "pegada": [
+        3,
+        1
+      ],
+      "ancora": [
+        48,
+        64
+      ],
+      "camada": "parede",
+      "quadros": [
+        "placa"
+      ],
+      "posicao": [
+        13,
+        1
+      ],
+      "texto": {
+        "x": 13,
+        "y": 14,
+        "largura": 70,
+        "altura": 12,
+        "cor": "escuro",
+        "formato": "<commit> <dd/mm>"
+      },
+      "nota": "a placa da versão numa linha só (21/11), no lugar da placa_versao: da altura do relógio e alinhada com ele, nas colunas 13 a 15; sem a luz, porque o estado vai na barra de cima da tela. A tela escreve o commit curto e o dia, separados por um espaço (ex.: 89f4167 21/11), centrados no retângulo texto."
     },
     "mesa_dev": {
       "arquivo": "mesa_dev.png",
