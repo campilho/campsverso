@@ -12,12 +12,14 @@ from campsverso_adapters import (
     MemoryTelemetry,
     SequentialUuid7Ids,
 )
+from campsverso_codehost.reviewer import Review, ReviewInput
 from campsverso_codehost.service import (
     CREATED,
     DELIVERED,
     PR_OPENED,
     REPORT,
     CodeHostService,
+    ReviewFn,
 )
 from campsverso_contracts import subject
 from campsverso_ports import CodeHostError, PullRequest
@@ -38,7 +40,11 @@ async def _files(base: str, patch: str) -> Mapping[str, str | None]:
 
 
 def _service(
-    host: MemoryCodeHost, review: Sequence[str] = (), forbidden: Sequence[str] = ()
+    host: MemoryCodeHost,
+    review: Sequence[str] = (),
+    forbidden: Sequence[str] = (),
+    reviewer: ReviewFn | None = None,
+    state: MemoryBlobStore | None = None,
 ) -> tuple[CodeHostService, InMemoryBus, MemoryTelemetry]:
     bus, telemetry, deliveries = InMemoryBus(), MemoryTelemetry(), MemoryBlobStore()
     deliveries.put(f"{WORLD}/pedido-001/x.patch", b"diff --git a/docs/a.md b/docs/a.md\n")
@@ -47,15 +53,30 @@ def _service(
         bus,
         host,
         deliveries,
-        MemoryBlobStore(),
+        state or MemoryBlobStore(),
         _files,
         lambda _diff: list(review),
         forbidden,
         FakeWallClock(),
         SequentialUuid7Ids(),
         telemetry,
+        reviewer=reviewer,
     )
     return service, bus, telemetry
+
+
+class Reviews:
+    """O revisor falso: guarda o que leu e responde o texto dado (ou None, a falha)."""
+
+    def __init__(self, text: str | None = "Tudo certo.") -> None:
+        self.text = text
+        self.read: list[ReviewInput] = []
+
+    async def __call__(self, item: ReviewInput) -> Review | None:
+        self.read.append(item)
+        if self.text is None:
+            return None
+        return Review("google/gemini-4-neon", "mesclar", self.text, 0, 0.031, False, None, "h")
 
 
 def _event(kind: str, data: dict[str, Any], seq: int) -> dict[str, Any]:
@@ -159,3 +180,64 @@ async def test_o_github_fora_do_ar_nao_derruba_o_vigia() -> None:
     assert await service.watch() == 0
     assert "codehost.watch_failed" in telemetry.events("warning")
     assert service.failure is None
+
+
+async def test_a_entrega_publicada_entra_na_fila_e_a_revisao_vira_comentario() -> None:
+    host, reviews = MemoryCodeHost(), Reviews()
+    state = MemoryBlobStore()
+    service, bus, telemetry = _service(host, reviewer=reviews, state=state)
+    await service.start()
+    await _deliver(bus)
+    assert [r["pull_request"] for r in service.reviews] == [1]
+    assert '"reviews"' in state.get(f"{WORLD}/codehost.json").decode()  # a fila sobrevive
+    assert host.comments == {}  # a revisão é fora do consumidor
+    assert await service.review_pending() == 1
+    (read,) = reviews.read
+    assert (read.number, read.title, read.acceptance) == (1, "Busca no código", "Acha o texto.")
+    assert read.diff.startswith("diff --git")
+    (comment,) = host.comments[1]
+    assert comment.startswith("### Revisão do pedido 1: pode mesclar")
+    assert "`google/gemini-4-neon`" in comment
+    assert "US$ 0,031" in comment
+    assert service.reviews == []
+    assert "codehost.reviewed" in telemetry.events("info")
+    assert service.published["pedido-001"]["pull_request"] == 1
+
+
+async def test_a_revisao_com_palavra_proibida_nao_sai() -> None:
+    host = MemoryCodeHost()
+    service, bus, telemetry = _service(
+        host, forbidden=["segredo"], reviewer=Reviews("Achei o Segredo no diff.")
+    )
+    await service.start()
+    await _deliver(bus)
+    assert await service.review_pending() == 1
+    assert host.comments == {}
+    assert "codehost.review_withheld" in telemetry.events("warning")
+
+
+async def test_a_revisao_que_falha_sai_da_fila_com_um_aviso() -> None:
+    host = MemoryCodeHost()
+    service, bus, telemetry = _service(host, reviewer=Reviews(None))
+    await service.start()
+    await _deliver(bus)
+    assert await service.review_pending() == 1
+    assert host.comments == {}
+    assert service.reviews == []
+    assert "codehost.review_failed" in telemetry.events("warning")
+
+
+async def test_a_fila_volta_depois_de_uma_queda_e_sem_revisor_nada_entra() -> None:
+    host, state = MemoryCodeHost(), MemoryBlobStore()
+    service, bus, _ = _service(host, reviewer=Reviews(), state=state)
+    await service.start()
+    await _deliver(bus)
+    again, _, _ = _service(host, reviewer=Reviews(), state=state)
+    assert [r["head"] for r in again.reviews] == [r["head"] for r in service.reviews]
+    assert await again.review_pending() == 1
+    assert len(host.comments[1]) == 1
+    plain, bus2, _ = _service(MemoryCodeHost())
+    await plain.start()
+    await _deliver(bus2)
+    assert plain.reviews == []
+    assert await plain.review_pending() == 0

@@ -133,6 +133,9 @@ class CodeHostSettings:
     installation_id: int | None = None
     key: Path | None = None  # a chave do App; relativa à raiz do repositório
     poll_seconds: float = 60.0  # a volta do vigia
+    # O revisor de outra família (parte 3 do M25): os modelos em ordem, o plano A e a reserva;
+    # cada um precisa de preço na tabela `models` do ambiente. Vazio: nenhuma revisão.
+    reviewers: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -372,6 +375,7 @@ def _codehost(raw: Any, base: Path) -> CodeHostSettings | None:
         installation_id=None if doc.get("installation_id") is None else int(doc["installation_id"]),
         key=None if doc.get("key") is None else base / str(doc["key"]),
         poll_seconds=float(doc.get("poll_seconds", 60)),
+        reviewers=tuple(str(m) for m in cast(list[Any], doc.get("reviewers") or [])),
     )
 
 

@@ -45,6 +45,10 @@ codehost:
   installation_id: 184174558
   key: privado/campsverso-dev.2026-11-20.private-key.pem
   poll_seconds: 60
+  # O revisor de outra família (ADR-0083, parte 3): o GPT-6.2 Astra e, se ele falhar, o Gemini 4
+  # Neon, os dois pela OpenRouter. A calibração de 21/nov inverteu a ordem do plano: os dois acharam
+  # os três defeitos, e só o Astra não pediu nada no caso limpo. Ele comenta no PR e só aconselha.
+  reviewers: [openai/gpt-6.2-astra, google/gemini-4-neon]
 
 # A foto da percepção leva o que aconteceu desde a entrega anterior (ADR-0080): a memória do dev
 # não perde, a cada 20 deltas, o que houve no meio-tempo (a devolução de um pedido).

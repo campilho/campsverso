@@ -12,6 +12,7 @@ dependencies = [
   "rfc3339-validator>=0.1.4",
   "campsverso-world-view",  # o delta da percepção, para estimar o orçamento (ADR-0056)
   "campsverso-adapters",  # a porta de modelo, para a fumaça e a contagem de tokens (ADR-0058)
+  "campsverso-codehost",  # o revisor de outra família, para a calibração (ADR-0083)
 ]
 
 [build-system]

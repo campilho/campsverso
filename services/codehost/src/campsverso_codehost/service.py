@@ -17,6 +17,11 @@ Quem decide é o kernel: o serviço só propõe (`cmd.office.pull_request.report
 controlador (princípio 2). O modelo nunca vê o GitHub, e o serviço nunca mescla. O estado (os
 títulos dos pedidos, os PRs abertos e o último relato de cada um) vai para um arquivo antes de cada
 confirmação; depois de uma queda, o serviço retoma dele, e o PR aberto de novo é o mesmo.
+
+**O revisor de outra família** (parte 3 do M25): cada entrega publicada, aberta ou atualizada, entra
+numa fila (no mesmo arquivo), e o laço do serviço a esvazia fora do consumidor, porque uma revisão
+leva minutos e o lote do barramento não pode esperar tanto. A revisão vira um comentário no PR; o
+comentário passa pela lista de palavras proibidas antes de sair, e não chega ao mundo.
 """
 
 import json
@@ -24,6 +29,7 @@ from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from typing import Any, cast
 
+from campsverso_codehost.reviewer import Review, ReviewInput, comment_body
 from campsverso_contracts import CONTRACT_TYPES, subject
 from campsverso_ports import (
     BlobStore,
@@ -50,7 +56,9 @@ ACTOR = "system/codehost"
 # O texto de cada arquivo mudado sobre a base, a partir do patch: o git, na raiz de composição.
 type PatchFiles = Callable[[str, str], Awaitable[Mapping[str, str | None]]]
 # A revisão do patch (a da oficina): os motivos para recusar, vazio quando pode sair.
-type Review = Callable[[str], Sequence[str]]
+type PatchReview = Callable[[str], Sequence[str]]
+# O revisor de outra família: a revisão de uma entrega, ou None quando todos os modelos falham.
+type ReviewFn = Callable[[ReviewInput], Awaitable[Review | None]]
 
 
 @dataclass
@@ -85,11 +93,13 @@ class CodeHostService:
         deliveries: BlobStore,
         state: BlobStore,
         files: PatchFiles,
-        review: Review,
+        review: PatchReview,
         forbidden: Sequence[str],
         clock: WallClock,
         ids: IdGenerator,
         telemetry: Telemetry,
+        *,
+        reviewer: ReviewFn | None = None,
     ) -> None:
         self._worldid = worldid
         self._bus = bus
@@ -102,11 +112,15 @@ class CodeHostService:
         self._clock = clock
         self._ids = ids
         self._telemetry = telemetry
+        self._reviewer = reviewer
         self._key = f"{worldid}/codehost.json"
         self.tickets: dict[str, Ticket] = {}
         self.open: dict[str, OpenPullRequest] = {}
         self.sent: dict[str, list[Any]] = {}
         self.refused: list[str] = []
+        self.reviews: list[dict[str, Any]] = []  # a fila do revisor: o PR, o topo e a entrega
+        # A última entrega publicada de cada pedido, para revisar de novo à mão (make revisar).
+        self.published: dict[str, dict[str, Any]] = {}
         self._cartridge = ""
         self._load()
         self._consumer: Consumer | None = None
@@ -123,6 +137,8 @@ class CodeHostService:
         self.tickets = {k: Ticket(**v) for k, v in saved["tickets"].items()}
         self.open = {k: OpenPullRequest(**v) for k, v in saved["open"].items()}
         self.sent = saved["sent"]
+        self.reviews = list(saved.get("reviews") or [])
+        self.published = dict(saved.get("published") or {})
         self._cartridge = saved["cartridge"]
 
     def _save(self) -> None:
@@ -130,6 +146,8 @@ class CodeHostService:
             "tickets": {k: asdict(v) for k, v in self.tickets.items()},
             "open": {k: asdict(v) for k, v in self.open.items()},
             "sent": self.sent,
+            "reviews": self.reviews,
+            "published": self.published,
             "cartridge": self._cartridge,
         }
         self._state.put(self._key, json.dumps(saved, ensure_ascii=False).encode())
@@ -208,6 +226,7 @@ class CodeHostService:
             if known is not None:  # o pedido devolvido e refeito: o PR acompanha o ramo
                 known.head = head
                 await self._report(ticket_id, known.pull_request, "updated", {"head": head}, cause)
+                self._queue_review(ticket_id, known.pull_request, head, str(patch["ref"]))
                 return
             pull = await self._host.open_pull_request(branch, title, body)
         except CodeHostError as error:
@@ -221,10 +240,90 @@ class CodeHostService:
         )
         opened = {"url": pull.url, "branch": pull.branch, "head": pull.head}
         await self._report(ticket_id, pull.number, "opened", opened, cause)
+        self._queue_review(ticket_id, pull.number, pull.head, str(patch["ref"]))
 
     def _has_forbidden(self, text: str) -> bool:
         lowered = text.lower()
         return any(word in lowered for word in self._forbidden)
+
+    # ------------------------------------------------------------------ o revisor
+
+    def _queue_review(self, ticket_id: str, pull_request: int, head: str, ref: str) -> None:
+        """Põe a entrega na fila do revisor; um topo novo do mesmo PR toma o lugar do antigo."""
+        self.published[ticket_id] = {"pull_request": pull_request, "head": head, "ref": ref}
+        if self._reviewer is None:
+            return
+        self.reviews = [r for r in self.reviews if r["pull_request"] != pull_request]
+        self.reviews.append(
+            {"ticket_id": ticket_id, "pull_request": pull_request, "head": head, "ref": ref}
+        )
+
+    async def review_pending(self) -> int:
+        """Revisa a fila, um PR por vez, e comenta cada revisão. Devolve quantas saíram da fila.
+
+        Uma revisão que falha em todos os modelos sai da fila com um aviso: `make revisar PR=N` a
+        roda de novo à mão. Uma que cai no meio volta da fila na próxima subida, e a fita do
+        revisor responde de graça o pedido que já foi pago."""
+        if self._reviewer is None:
+            return 0
+        done = 0
+        for item in list(self.reviews):
+            pull_request = int(item["pull_request"])
+            ticket = self._ticket(str(item["ticket_id"]))
+            try:
+                diff = self._deliveries.get(str(item["ref"])).decode("utf-8")
+            except FileNotFoundError, KeyError:
+                diff = None
+            result = None
+            if diff is not None:
+                given = ReviewInput(
+                    ticket.number,
+                    ticket.title,
+                    ticket.description,
+                    ticket.acceptance,
+                    diff,
+                    str(item["head"]),
+                )
+                result = await self._reviewer(given)
+                if result is not None:
+                    await self._comment(pull_request, result, comment_body(result, given))
+            if result is None:
+                self._telemetry.warning(
+                    "codehost.review_failed",
+                    pull_request=pull_request,
+                    reason="sem a entrega" if diff is None else "nenhum modelo respondeu",
+                )
+            if item in self.reviews:  # um topo novo pode ter tomado o lugar durante a revisão
+                self.reviews.remove(item)
+            self._save()
+            done += 1
+        return done
+
+    def _ticket(self, ticket_id: str) -> Ticket:
+        known = self.tickets.get(ticket_id)
+        if known is not None:
+            return known
+        return Ticket(0, ticket_id, "", "")
+
+    async def _comment(self, pull_request: int, review: Review, body: str) -> None:
+        facts = {
+            "pull_request": pull_request,
+            "model": review.model,
+            "verdict": review.verdict,
+            "findings": review.findings,
+            "cost_usd": review.cost_usd,
+            "replayed": review.replayed,
+            "failed": [list(f) for f in review.failed],
+        }
+        if self._has_forbidden(body):
+            self._telemetry.warning("codehost.review_withheld", **facts)
+            return
+        try:
+            await self._host.comment(pull_request, body)
+        except CodeHostError as error:
+            self._telemetry.error("codehost.comment_failed", error=str(error), **facts)
+            return
+        self._telemetry.info("codehost.reviewed", **facts)
 
     # ------------------------------------------------------------------ o vigia
 

@@ -1,0 +1,29 @@
+diff --git a/libs/adapters/src/campsverso_adapters/workshop_review.py b/libs/adapters/src/campsverso_adapters/workshop_review.py
+index 5b438ad..cfe6051 100644
+--- a/libs/adapters/src/campsverso_adapters/workshop_review.py
++++ b/libs/adapters/src/campsverso_adapters/workshop_review.py
+@@ -21,8 +21,8 @@ CONSTITUTION = (
+     "services/budget/",
+     "config/",
+     "data/archive/",
+-    # O caminho até o GitHub (ADR-0083): o publicador, o App e esta regra.
+-    "services/codehost/",
++    # O caminho até o GitHub (ADR-0083): o App e esta regra. O publicador é do escritório, e o
++    # dev pode ajustar o texto do PR.
+     "libs/adapters/src/campsverso_adapters/codehost_",
+     "libs/adapters/src/campsverso_adapters/workshop_review.py",
+ )
+diff --git a/services/codehost/src/campsverso_codehost/service.py b/services/codehost/src/campsverso_codehost/service.py
+index 7ba88b6..487769f 100644
+--- a/services/codehost/src/campsverso_codehost/service.py
++++ b/services/codehost/src/campsverso_codehost/service.py
+@@ -187,7 +187,8 @@ class CodeHostService:
+         patch = cast(Mapping[str, Any], data["patch"])
+         ticket = self.tickets.get(ticket_id, Ticket(number, f"pedido {number}", "", ""))
+         text = self._deliveries.get(str(patch["ref"])).decode("utf-8")
+-        title = f"Pedido {number}: {ticket.title}"
++        by = str(data.get("by") or "dev")
++        title = f"Pedido {number} ({by}): {ticket.title}"
+         body = _body(ticket, str(data.get("by") or "dev"), patch)
+         reasons = [*self._review(text)]
+         if self._has_forbidden(f"{title}\n{body}"):

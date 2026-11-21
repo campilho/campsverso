@@ -119,7 +119,7 @@ campsverso/
     planos/                   # plano de cada marco, aprovado antes do código; futuro.md: tarefas sem marco
     design/                   # referências visuais (Claude Design)
     custos/                   # tempo e tokens por marco (make sessoes) e os créditos de API (creditos.csv), só números
-    arena/                    # os relatórios da arena (make arena-report), um por data (ADR-0061); o gabarito e os controles do juiz (ADR-0070)
+    arena/                    # os relatórios da arena (make arena-report), um por data (ADR-0061); o gabarito e os controles do juiz (ADR-0070); a calibração do revisor (ADR-0083)
     versoes/                  # notas de cada versão (v0.1.0, v0.2.0)
     imagens/                  # um print de cada versão, para o README
   tests/
@@ -166,6 +166,8 @@ make fita DIAS=2  # grava em processo a fita de teste do controlador LLM, chaman
 make corrida DIAS=7   # N dias em processo com a mente sobre a API, com ou sem memória (ADR-0060); o mundo espera o modelo; CARTUCHO=farm_morada_do_sol escolhe a fazenda
 make arena DIAS=30    # as corridas da arena, em sequência, em data/arena/<data>-<rodada> (ADR-0061); SO=nome roda uma só; RODADA=boavista é a segunda rodada (M14), RODADA=morada a verificação do M19, RODADA=ajudantes a contratação forçada (ADR-0073), RODADA=terceira e RODADA=familias o M21, RODADA=procedimento o playbook 4 (ADR-0074), RODADA=conserto o Astra consertado e o Haiku pela OpenRouter (ADR-0076); vários em paralelo no mesmo dia dividem as corridas
 make juiz PASTA=data/arena/<rodada>  # o juiz das crenças (ADR-0070): o Opus dá a causa, só o lugar ou não por regra oculta; CONTROLES=docs/arena/juiz-gabarito.yaml julga os controles; CONFERIR=docs/arena/juiz-gabarito.yaml confere sem chamar a API
+make revisar PR=N     # o revisor de outra família de novo num PR do dev (ADR-0083): o GPT-6.2 Astra, com o Gemini 4 Neon de reserva (a calibração de 21/nov), comenta no PR; chama a API; SECO=1 só imprime
+make revisor-calibrar # a calibração do revisor nos casos de tests/fixtures/revisor (três defeitos plantados e um gêmeo limpo), numa fita, com teto de US$ 1; o relatório em docs/arena/revisor-calibracao.md
 make conformidade     # a prova de conformidade do escritório (ADR-0077, decisão 11): dois pedidos curtos num repositório de exemplo, para cada um dos cinco modelos; chama a API; MODELOS=a,b escolhe
 make arena-report     # o relatório da arena (tabela da bíblia lado a lado, o leste pela memória, a exploração, a prova, o juiz, o valor de saber) em docs/arena/
 make arena-humano SANDBOX=data/sandbox/<pasta>  # a partida de um humano no sandbox como mais uma corrida da rodada (ADR-0066); PASTA= escolhe a rodada

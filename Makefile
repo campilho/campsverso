@@ -23,7 +23,7 @@ NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR BUDGET MIND
 .DEFAULT_GOAL := help
 .PHONY: help setup contracts check lint fmt types test arch contracts-check compat escritorio aplicar \
         up stop run ui ui-build sandbox jogar escritorio-aqui soak replay metrics ui-e2e mapa-visual mapa-variantes arte-escritorio sessoes tools secrets fita corrida \
-        arena arena-report arena-humano assistir juiz conformidade
+        arena arena-report arena-humano assistir juiz conformidade revisar revisor-calibrar
 
 help: ## lista os alvos
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-16s %s\n", $$1, $$2}'
@@ -150,6 +150,13 @@ assistir: ui-build ## assistir as corridas de uma rodada da arena na tela, ao vi
 arena-humano: ## a partida de um humano no sandbox como corrida da arena: make arena-humano SANDBOX=data/sandbox/<pasta> [PASTA=rodada] [NOME=humano]
 	@test -n "$(SANDBOX)" || { echo "uso: make arena-humano SANDBOX=data/sandbox/<pasta> [PASTA=data/arena/<rodada>]"; exit 1; }
 	$(PY) python -m campsverso_tools.arena_humano $(SANDBOX) $(if $(PASTA),--arena $(PASTA),) $(if $(NOME),--name $(NOME),)
+
+revisar: ## o revisor de outra família de novo num PR do dev (ADR-0083, parte 3): make revisar PR=N; chama a API; DADOS= a pasta de dados (padrão: a do escritório vivo, ../campsverso-vivo/dados); SECO=1 imprime o comentário sem postar
+	@test -n "$(PR)" || { echo "uso: make revisar PR=N [DADOS=pasta] [SECO=1]"; exit 1; }
+	uv run --locked --env-file .env python -m campsverso_codehost.revisar --pr $(PR) --data-dir $(or $(DADOS),../campsverso-vivo/dados) $(if $(SECO),--dry-run,)
+
+revisor-calibrar: ## a calibração do revisor (ADR-0083, parte 3): os casos de tests/fixtures/revisor nos dois modelos, numa fita, com teto de US$ 1 (TETO=); chama a API; o relatório em docs/arena/revisor-calibracao.md
+	uv run --locked --env-file .env python -m campsverso_tools.revisor calibrar --teto $(or $(TETO),1)
 
 juiz: ## o juiz das crenças (ADR-0070): make juiz PASTA=data/arena/<rodada> [SO=nome] julga as corridas com memória; make juiz CONTROLES=docs/arena/juiz-gabarito.yaml julga os controles; make juiz CONFERIR=docs/arena/juiz-gabarito.yaml confere, sem chamar a API; JUIZ=openai/gpt-6-astra troca o juiz (ADR-0074)
 	@test -n "$(PASTA)$(CONTROLES)$(CONFERIR)" || { echo "uso: make juiz PASTA=data/arena/<rodada> | CONTROLES=gabarito | CONFERIR=gabarito [JUIZ=modelo]"; exit 1; }

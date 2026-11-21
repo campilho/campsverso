@@ -185,6 +185,8 @@ def test_tabela_de_precos_do_ambiente() -> None:
         "openai/gpt-6-astra",  # as outras famílias, pela OpenRouter (ADR-0074)
         "google/gemini-4-argon",
         "anthropic/claude-haiku-5.5",  # o Haiku pela OpenRouter, para medir o cano (ADR-0076)
+        "openai/gpt-6.2-astra",  # o revisor de outra família do escritório (ADR-0083)
+        "google/gemini-4-neon",
     }
     # A tabela conferida em 28/out (ADR-0074): o cache lido do Sonnet 5.5 é 0,10, não 0,20.
     assert env.models["claude-sonnet-5-5"] == ModelPrices(2.00, 10.00, 0.10, 2.50)
@@ -195,7 +197,10 @@ def test_tabela_de_precos_do_ambiente() -> None:
         "openai/gpt-6-astra": "openai",
         "google/gemini-4-argon": "google-ai-studio",
         "anthropic/claude-haiku-5.5": "anthropic",
+        "openai/gpt-6.2-astra": "openai",  # sem flex: o revisor é uma chamada curta
+        "google/gemini-4-neon": "google-ai-studio",
     }
+    assert env.models["openai/gpt-6.2-astra"] == ModelPrices(8.00, 40.00, 0.40, 10.00)
     # O flex de cada um, que a arena escolhe por corrida (ADR-0074, decisão 28).
     assert env.flex_routes == {
         "openai/gpt-6-astra": "openai/flex",

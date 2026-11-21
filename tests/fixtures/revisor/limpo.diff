@@ -1,0 +1,110 @@
+diff --git a/cartridges/office/sim/src/campsverso_office_sim/config.py b/cartridges/office/sim/src/campsverso_office_sim/config.py
+index 4a25899..319cc0b 100644
+--- a/cartridges/office/sim/src/campsverso_office_sim/config.py
++++ b/cartridges/office/sim/src/campsverso_office_sim/config.py
+@@ -104,10 +104,20 @@ def lunch_tail(view: WorldView) -> int:
+     return int(section(view, "schedule").get("lunch_tail_minutes", 0))
+ 
+ 
++def closes_at(view: WorldView) -> int:
++    """O minuto em que o expediente de hoje acaba: mais cedo na sexta, quando o cenário dá
++    `closes_friday`."""
++    rules = section(view, "schedule")
++    friday = date.fromisoformat(view.today).isoweekday() == 5
++    if friday and rules.get("closes_friday"):
++        return minutes(str(rules["closes_friday"]))
++    return minutes(str(rules["closes"]))
++
++
+ def office_hours(view: WorldView) -> bool:
+     """O dev está no escritório agora: num dia de expediente, entre a abertura e o fim, fora do
+     almoço quando o almoço é na rua."""
+     rules = section(view, "schedule")
+     now = view.minute_of_day
+-    open_now = minutes(str(rules["opens"])) <= now < minutes(str(rules["closes"]))
++    open_now = minutes(str(rules["opens"])) <= now < closes_at(view)
+     return workday(view) and open_now and not (at_lunch(view) and lunch_out(view))
+diff --git a/cartridges/office/sim/src/campsverso_office_sim/systems.py b/cartridges/office/sim/src/campsverso_office_sim/systems.py
+index 0f6763f..030321d 100644
+--- a/cartridges/office/sim/src/campsverso_office_sim/systems.py
++++ b/cartridges/office/sim/src/campsverso_office_sim/systems.py
+@@ -16,6 +16,7 @@ from campsverso_office_sim.config import (
+     DEV,
+     GUARD,
+     at_lunch,
++    closes_at,
+     door,
+     lunch_out,
+     office_hours,
+@@ -46,7 +47,7 @@ def staff(ctx: SystemContext, ops: WorldOps) -> None:
+     entra, para os dois nunca estarem lá dentro ao mesmo tempo."""
+     view = ctx.view
+     rules = view.data("office")["schedule"]
+-    opens, closes = minute_of(str(rules["opens"])), minute_of(str(rules["closes"]))
++    opens, closes = minute_of(str(rules["opens"])), closes_at(view)
+     wanted: dict[str, tuple[bool, str]] = {}
+     for dev in _with_role(ctx, DEV):
+         lunch = at_lunch(view) and workday(view) and lunch_out(view)
+@@ -70,6 +71,7 @@ def build_systems(data: dict[str, Any]) -> tuple[OfficeSystem, ...]:
+         str(schedule["opens"]),
+         *(str(hhmm) for hhmm in schedule["lunch"]),
+         str(schedule["closes"]),
++        *([str(schedule["closes_friday"])] if schedule.get("closes_friday") else []),
+     )
+     return (
+         OfficeSystem(
+diff --git a/cartridges/office_campsverso/sim/src/campsverso_office_campsverso_sim/data/escritorio.yaml b/cartridges/office_campsverso/sim/src/campsverso_office_campsverso_sim/data/escritorio.yaml
+index e4beabf..ff9f9de 100644
+--- a/cartridges/office_campsverso/sim/src/campsverso_office_campsverso_sim/data/escritorio.yaml
++++ b/cartridges/office_campsverso/sim/src/campsverso_office_campsverso_sim/data/escritorio.yaml
+@@ -10,6 +10,7 @@ office:
+     lunch_where: copa # o dev almoça na copa, pela rotina (ADR-0080)
+     lunch_tail_minutes: 5 # comer acaba às 12:55: jogar fora e voltar à mesa (ADR-0082)
+     closes: "18:00"
++    closes_friday: "17:00" # sexta-feira
+     # Os feriados nacionais (o expediente não abre).
+     holidays:
+       "2026-11-02": Finados
+diff --git a/services/kernel/tests/test_sexta_curta.py b/services/kernel/tests/test_sexta_curta.py
+new file mode 100644
+index 0000000..672a708
+--- /dev/null
++++ b/services/kernel/tests/test_sexta_curta.py
+@@ -0,0 +1,37 @@
++"""O expediente curto da sexta (pedido 9): o dev sai às 17:00 e o vigia entra."""
++
++from typing import Any, cast
++
++from campsverso_cartridge_api import WorldView
++from campsverso_office_sim.config import closes_at, minutes
++
++SCHEDULE = {
++    "workdays": [1, 2, 3, 4, 5],
++    "opens": "09:00",
++    "lunch": ["12:00", "13:00"],
++    "closes": "18:00",
++    "closes_friday": "17:00",
++}
++
++
++class _View:
++    """Só o que `closes_at` lê da vista do mundo."""
++
++    def __init__(self, today: str) -> None:
++        self.today = today
++        self.minute_of_day = minutes("16:30")
++
++    def data(self, namespace: str) -> dict[str, Any]:
++        return {"schedule": SCHEDULE}
++
++
++def _view(today: str) -> WorldView:
++    return cast(WorldView, _View(today))
++
++
++def test_na_sexta_o_expediente_acaba_as_17() -> None:
++    assert closes_at(_view("2026-11-27")) == minutes("17:00")  # sexta, 27/nov
++
++
++def test_nos_outros_dias_acaba_as_18() -> None:
++    assert closes_at(_view("2026-11-24")) == minutes("18:00")  # terça

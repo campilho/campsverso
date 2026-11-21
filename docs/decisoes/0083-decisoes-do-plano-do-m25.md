@@ -102,3 +102,39 @@ O supervisor está pronto e foi ensaiado de verdade, com um repositório local n
    - O kernel guarda a versão no estado e publica `world.version.changed.v1`.
    - O gateway manda a versão na sessão da tela, e o HUD a mostra em texto. A placa desenhada da arte do M25 vem depois.
    - A memória do dev guarda a troca com peso 8.
+
+## Adendo: a mesclagem e o revisor (21/nov)
+
+**O ruleset do `main` muda (decisão 2).** Com o escritório vivo ligado, o PR do dev precisa ser mesclável sem a caixa de contornar. A pedido do usuário, a regra "só o dono atualiza" virou:
+
+- o `main` só muda por PR, com os três passos do CI verdes (`make check`, `make ui-e2e` e a constituição do PR do dev) e com uma aprovação;
+- a aprovação cai quando o ramo recebe um commit novo, e a mesclagem é por merge ou squash, que são as duas formas em que o supervisor acha o número do PR;
+- o contorno de dono continua para os nossos pushes diretos;
+- o App não consegue mesclar sozinho, porque não aprova o próprio PR. A garantia vem da permissão, e não do código do publicador, que de todo modo não tem o verbo.
+
+O que o gerente faz num PR do dev: lê o PR, aprova e mescla. O ruleset anterior está guardado fora do git, para voltar se for preciso.
+
+**O revisor de outra família (decisões 7 e 8), como ficou:**
+
+1. **Uma chamada só, sem ferramentas.** O modelo responde em Markdown, e a primeira linha é o veredito: mesclar, conferir ou devolver. Sem ferramentas, a tradução da OpenRouter não tem onde tropeçar, e foi numa chamada com ferramentas que o Gemini desistiu no M21.
+2. **O que ele lê:**
+   - o pedido do quadro, com o aceite;
+   - as seções do `CLAUDE.md` que valem para um diff (os princípios, as convenções e o "nunca faça");
+   - a lista da constituição;
+   - o diff da entrega, até 150 mil caracteres.
+   - A lista de palavras proibidas nunca vai ao modelo, porque é privada. O comentário passa por ela antes de sair.
+3. **O publicador chama o revisor, fora do consumidor.** Cada entrega publicada, aberta ou atualizada, entra numa fila no estado do publicador. O laço do serviço a esvazia numa tarefa à parte, porque uma revisão leva minutos e o lote do barramento não pode esperar tanto.
+   - A revisão vira um comentário no PR, que diz quem revisou, quem falhou antes e o custo.
+   - Uma revisão que falha nos dois modelos sai da fila com um aviso, e `make revisar PR=N` a roda de novo à mão.
+4. **A fita do revisor** fica nos dados do mundo (`codehost/<mundo>/revisor.jsonl`). Uma revisão paga e interrompida antes do comentário responde de graça na volta.
+5. **O custo do revisor não entra no orçamento do mundo:** ele está fora do mundo, como o juiz. O custo fica na telemetria (`codehost.reviewed`) e no comentário.
+6. **A calibração** (`make revisor-calibrar`) usa quatro entregas do escritório. Três têm um defeito plantado: um teste afrouxado, um caminho da constituição e um erro de lógica, em que a sexta caiu na quinta e o teste usa uma quinta. A quarta é o gêmeo limpo do erro de lógica, a mesma mudança feita certa, para medir se o revisor inventa defeito.
+   - Os testes e o pyright passam nas quatro: o CI não pega nenhum dos defeitos.
+   - As respostas ficam em `tests/fixtures/revisor/calibracao.json` e o relatório em `docs/arena/revisor-calibracao.md`.
+7. **A calibração inverteu a ordem da decisão 8.** Na rodada de 21/nov (US$ 0,35, as quatro entregas nos dois modelos):
+   - **os dois acharam os três defeitos plantados,** todos como graves, sem nenhum achado a mais nos casos com defeito;
+   - **no gêmeo limpo, o GPT-6.2 Astra disse "mesclar",** sem achados;
+   - **o Gemini 4 Neon disse "conferir",** com dois achados médios. Um deles lê o princípio 8, que é sobre o código do kernel, como se valesse para os testes; o outro é uma sugestão justa de cobertura, que não impede a mesclagem;
+   - **pela regra do plano** (fica o que acha os defeitos sem inventar outros), o Astra passa a ser o plano A, e o Gemini, a reserva;
+   - **o Astra também saiu mais barato,** US$ 0,153 contra US$ 0,194 nos quatro casos, porque escreve menos raciocínio, apesar do preço por token maior;
+   - **com quatro casos, a diferença é de um caso só.** Voltar à ordem do plano é trocar uma linha do arquivo do mundo, e a próxima calibração, com mais casos, pode mudar isso.

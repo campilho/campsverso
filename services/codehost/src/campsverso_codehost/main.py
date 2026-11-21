@@ -9,6 +9,11 @@ de palavras proibidas é obrigatória: o PR é público. Sem uma das duas, o pro
 o escritório segue, e as entregas ficam no depósito, como no M24 (o honcho derrubaria todos os
 processos com um que saísse). A senha do NATS vem de NATS_CODEHOST_PASSWORD, gerada por
 `make secrets`. O patch de cada entrega se aplica sobre um clone deste repositório.
+
+O revisor de outra família (`codehost.reviewers`) chama os modelos pela OpenRouter, com a chave de
+OPENROUTER_API_KEY, numa fita (`<dados>/codehost/<mundo>/revisor.jsonl`): uma revisão paga e
+interrompida antes do comentário responde de graça na volta. Sem a chave, o publicador segue sem
+revisor, com um aviso. As regras que o revisor lê saem do `CLAUDE.md` desta pasta.
 """
 
 import argparse
@@ -20,21 +25,28 @@ import signal
 import sys
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 from campsverso_adapters import (
     DiskBlobStore,
+    EnvSettings,
     GitHubCodeHost,
     JsonTelemetry,
     MemoryCodeHost,
     NatsBus,
+    RecordingModel,
     SystemWallClock,
     Uuid7Ids,
     files_after_patch,
+    key_variable,
     load_env,
     load_world,
+    model_port,
 )
-from campsverso_adapters.workshop_review import review
+from campsverso_adapters.workshop_review import CONSTITUTION, review
+from campsverso_codehost.reviewer import Reviewer, guide_from
 from campsverso_codehost.service import CodeHostService
+from campsverso_ports import ModelPort, Telemetry, WallClock
 
 
 def _parse(argv: Sequence[str]) -> argparse.Namespace:
@@ -52,6 +64,48 @@ def _parse(argv: Sequence[str]) -> argparse.Namespace:
 async def _wait(stop: asyncio.Event) -> None:
     with contextlib.suppress(TimeoutError):
         await asyncio.wait_for(stop.wait(), 0.5)
+
+
+class ReviewerPorts:
+    """Uma porta por modelo do revisor, na fita do serviço; fecha as conexões no fim."""
+
+    def __init__(self, env: EnvSettings, tape: Path, clock: WallClock) -> None:
+        self._env, self._tape, self._clock = env, tape, clock
+        self._ports: dict[str, ModelPort] = {}
+        self._inner: list[Any] = []
+
+    def __call__(self, model: str) -> ModelPort:
+        if model not in self._ports:
+            inner = model_port(model, routes=self._env.routes, clock=self._clock)
+            self._inner.append(inner)
+            self._ports[model] = RecordingModel(inner, self._tape, "record", clock=self._clock)
+        return self._ports[model]
+
+    async def aclose(self) -> None:
+        for inner in self._inner:
+            await inner.aclose()
+
+
+def reviewer_for(
+    models: Sequence[str],
+    env: EnvSettings,
+    tape: Path,
+    clock: WallClock,
+    telemetry: Telemetry,
+    root: Path,
+) -> tuple[Reviewer, ReviewerPorts] | None:
+    """O revisor do mundo, ou None (sem modelos, sem preço ou sem a chave), com o aviso."""
+    if not models:
+        return None
+    unpriced = [m for m in models if m not in env.models]
+    keys = sorted({key_variable(m, env.routes) for m in models})
+    missing = [k for k in keys if not os.environ.get(k)]
+    if unpriced or missing:
+        telemetry.warning("codehost.reviewer_off", unpriced=unpriced, missing_keys=missing)
+        return None
+    ports = ReviewerPorts(env, tape, clock)
+    guide = guide_from((root / "CLAUDE.md").read_text(encoding="utf-8"))
+    return Reviewer(ports, models, guide, CONSTITUTION), ports
 
 
 async def run(args: argparse.Namespace) -> int:
@@ -103,6 +157,8 @@ async def run(args: argparse.Namespace) -> int:
         telemetry=telemetry,
     )
     clock = SystemWallClock()
+    tape = data_dir / "codehost" / world.worldid / "revisor.jsonl"
+    built = reviewer_for(settings.reviewers, env, tape, clock, telemetry, Path.cwd())
     service = CodeHostService(
         world.worldid,
         bus,
@@ -115,7 +171,9 @@ async def run(args: argparse.Namespace) -> int:
         clock,
         Uuid7Ids(),
         telemetry,
+        reviewer=None if built is None else built[0].review,
     )
+    reviewing: asyncio.Task[int] | None = None
     try:
         await service.start()
         telemetry.info(
@@ -125,18 +183,31 @@ async def run(args: argparse.Namespace) -> int:
             repo=settings.repo,
             open=len(service.open),
             poll_seconds=settings.poll_seconds,
+            reviewers=list(settings.reviewers) if built is not None else [],
         )
         next_watch = 0.0
         while not stop.is_set() and service.failure is None:
             if clock.monotonic() >= next_watch:
                 next_watch = clock.monotonic() + settings.poll_seconds
                 await service.watch()
+            if reviewing is not None and reviewing.done():
+                if not reviewing.cancelled() and reviewing.exception() is not None:
+                    telemetry.error("codehost.review_crashed", error=repr(reviewing.exception()))
+                reviewing = None
+            if reviewing is None and service.reviews:  # a revisão leva minutos: fora do laço
+                reviewing = asyncio.create_task(service.review_pending())
             await _wait(stop)
         if service.failure is not None:
             telemetry.error("codehost.failed", error=repr(service.failure))
             return 1
         telemetry.info("codehost.stopped", open=len(service.open))
     finally:
+        if reviewing is not None:
+            reviewing.cancel()
+            with contextlib.suppress(asyncio.CancelledError, Exception):
+                await reviewing
+        if built is not None:
+            await built[1].aclose()
         await service.stop()
         await bus.close()
         if isinstance(host, GitHubCodeHost):

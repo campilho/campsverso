@@ -540,6 +540,8 @@ ignore_imports = [
   "campsverso_budget.main -> campsverso_adapters.**",
   "campsverso_codehost.main -> campsverso_adapters",
   "campsverso_codehost.main -> campsverso_adapters.**",
+  "campsverso_codehost.revisar -> campsverso_adapters",
+  "campsverso_codehost.revisar -> campsverso_adapters.**",
   "campsverso_supervisor.main -> campsverso_adapters",
   "campsverso_supervisor.main -> campsverso_adapters.**",
 ]
