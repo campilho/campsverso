@@ -125,6 +125,15 @@ Em [escritorio-arte/](escritorio-arte/): a fatia que basta para decidir entre a 
 
 Uma quarta referência fica fora do repositório: a capa de um vídeo do YouTube sobre jogos de Mega Drive, que não é nossa. Ela mostra o clima de 16 bits que se quer: vista de cima em 3/4, folhagem densa, sombras marcadas e um personagem pequeno num cenário rico.
 
+## A tela do escritório, a versão retrô (21/11)
+
+A tela inteira redesenhada com o usuário: o mapa dentro de um monitor de tubo, o quadro em madeira e cortiça com abas, a conversa com menções, a barra de baixo com o relógio, as pessoas e os comandos, o Sobre, a gaveta do operador, as mensagens do sistema e a prancheta do novo pedido; e o tablet e o celular.
+
+- **O pedido:** [briefing-tela.md](briefing-tela.md), para a implementação na `apps/ui`: as medidas, os tokens, o comportamento, de onde vem cada dado e como conferir. Nenhum contrato novo.
+- **Os prints:** [escritorio-tela/](escritorio-tela/), 13 telas nos tamanhos do MacBook Pro, do iPad e dos celulares, com dados de exemplo.
+- **A arte da moldura:** [escritorio-arte/tela/](escritorio-arte/tela/), em 1x, com o `tela.json`: o ícone (o monitor com um mundo dentro, a opção 1), a cortiça, a caneta e o prendedor da prancheta, e dois ícones de chip.
+- **Origem:** o Claude desenhou numa sessão do Cowork, como canvas do Claude Design, em 21/11/2026; o canvas interativo fica na conta do usuário. O usuário escolheu a versão B (a retrô) entre duas propostas, o ícone 1 entre quatro, e pediu os ajustes que o pedido lista.
+
 ## O estúdio (depois do escritório)
 
 Duas propostas do Claude Design para o estúdio do podcast, guardadas para quando ele chegar (ADR-0055 o põe depois do escritório, sobre a porta de efeitos externos que o escritório constrói).

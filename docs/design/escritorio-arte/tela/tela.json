@@ -1,0 +1,13 @@
+{
+  "versao": 1,
+  "nota": "A arte da moldura da tela do escritório (docs/design/briefing-tela.md). Pixel art em 1x, com a paleta da sala, sem transparência parcial. A tela escala por inteiro (2x, 3x) com image-rendering: pixelated.",
+  "pecas": {
+    "icone": { "arquivo": "icone.png", "quadro": [32, 32], "escala": { "barra_de_cima": 1, "sobre": 4, "favicon": 1 }, "uso": "o ícone do Campsverso: o monitor de tubo com um mundo dentro (a opção 1); botão do Sobre na barra de cima" },
+    "cortica": { "arquivo": "cortica.png", "quadro": [32, 32], "escala": { "quadro": 2 }, "uso": "o ladrilho de cortiça do fundo das colunas do quadro (repetido, 64 x 64 na tela)" },
+    "caneta": { "arquivo": "caneta.png", "quadro": [48, 48], "escala": { "prancheta": 3 }, "uso": "a caneta deitada ao lado da prancheta do pedido; some abaixo de 900 px de largura" },
+    "prendedor": { "arquivo": "prendedor.png", "quadro": [64, 26], "escala": { "prancheta": 3 }, "uso": "o prendedor de metal no alto da prancheta, por cima do papel (192 x 78 na tela)" },
+    "ic_fora": { "arquivo": "ic_fora.png", "quadro": [16, 16], "escala": { "chip": 1 }, "uso": "o ícone do chip de quem está fora da sala (a porta com a seta)" },
+    "ic_vigiar": { "arquivo": "ic_vigiar.png", "quadro": [16, 16], "escala": { "chip": 1 }, "uso": "o ícone do chip do vigia parado no posto (o olho)" }
+  },
+  "casas_livres_na_folha_de_icones": "icones.png tem 30 de 32 casas: ic_fora e ic_vigiar cabem em [6,3] e [7,3], se a arte for para a folha (pede make arte-escritorio)"
+}
