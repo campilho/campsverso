@@ -98,6 +98,8 @@ export interface TicketView {
   readonly size: string;
   readonly state: string;
   readonly owner: string | undefined;
+  /** Quem escreveu o pedido (o gerente). */
+  readonly author: string | undefined;
   readonly comment: string | undefined;
   /** A chave do patch que o dev entregou da oficina (ADR-0080); sem ela, o trabalho foi simulado. */
   readonly patch: string | undefined;
@@ -116,7 +118,7 @@ export interface PullRequestView {
 
 const CI_TEXT: Readonly<Record<string, string>> = { pending: "CI rodando", success: "CI verde", failure: "CI vermelho" };
 // Só o endereço de um PR no GitHub vira link (o contrato já o confere; aqui, de novo).
-const PR_URL = /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/pull\/[0-9]+$/;
+export const PR_URL = /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/pull\/[0-9]+$/;
 
 function pullRequestOf(a: Readonly<Record<string, unknown>>): PullRequestView | undefined {
   if (typeof a.pr !== "number") {
@@ -180,6 +182,7 @@ export function ticketsOf(state: ObserverState): TicketView[] {
       size: text(a.tamanho),
       state: text(a.estado),
       owner: typeof a.dono === "string" ? a.dono : undefined,
+      author: typeof a.autor === "string" ? a.autor : undefined,
       comment: typeof a.comentario === "string" ? a.comentario : undefined,
       patch: typeof a.patch === "string" && a.patch !== "" ? a.patch : undefined,
       pr: pullRequestOf(a),
@@ -213,7 +216,6 @@ export class OfficePanel {
   private shown = "";
   private readonly root: HTMLElement;
   private readonly actions: OfficeActions;
-  private newTitle: HTMLInputElement | undefined;
   private readonly delivery: DeliveryDialog;
 
   constructor(root: HTMLElement, actions: OfficeActions) {
@@ -240,7 +242,6 @@ export class OfficePanel {
     const talk = el("div", { className: "card" }, el("h2", {}, "Falar"), el("div", { className: "row" }, say, button("Falar", speak)));
 
     const title = el("input");
-    this.newTitle = title;
     title.maxLength = TITLE_MAX;
     title.placeholder = "Título";
     const description = el("textarea");
@@ -283,13 +284,14 @@ export class OfficePanel {
     const leave = button("Sair do escritório", () => { this.actions.leave(); });
     const summon = el("div", { className: "card summon" }, el("h2", {}, "Convocação"), this.summons);
     this.managerOnly.push(talk, summon, form, leave);
-    this.root.replaceChildren(el("div", { className: "card" }, el("h2", {}, "Quadro dos pedidos"), this.board), talk, summon, form, leave, this.hint);
+    // Na tela retrô, o quadro e o novo pedido vão para a cortiça e a prancheta (`retro/`).
+    const tickets = el("div", { className: "card tickets" }, el("h2", {}, "Quadro dos pedidos"), this.board);
+    this.root.replaceChildren(tickets, talk, summon, form, leave, this.hint);
   }
 
-  /** O "Escrever pedido" da barra de baixo, até a prancheta chegar (a fase 2 da tela retrô). */
-  focusNewTicket(): void {
-    this.newTitle?.scrollIntoView({ block: "center", behavior: "smooth" });
-    this.newTitle?.focus({ preventScroll: true });
+  /** O "Ver o patch" de um pedido, no diálogo de sempre (a prancheta da tela retrô o usa também). */
+  openPatch(heading: string, ref: string): void {
+    void this.delivery.open(heading, ref);
   }
 
   /** `underway`: os pedidos a que o gerente já está indo (aceitar ou devolver, na fila ou fazendo). */

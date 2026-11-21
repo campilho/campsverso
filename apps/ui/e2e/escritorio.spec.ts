@@ -13,8 +13,7 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   if (await understood.isVisible()) {
     await understood.click();
   }
-  const office = page.locator("aside.office");
-  await expect(office).toContainText("Quadro dos pedidos");
+  await expect(page.locator(".retro-board")).toContainText("Quadro dos pedidos");
 
   // A moldura retrô (docs/design/briefing-tela.md): a luz com o rótulo, o gerente seu nos chips, o
   // comando de soltar e o Sobre, que abre e fecha.
@@ -48,13 +47,34 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   expect(ys.every((y, i) => i === 0 || y <= (ys[i - 1] ?? y) + 0.01), JSON.stringify(ys)).toBe(true); // nunca volta
   expect(15 - (ys.at(-1) ?? 15)).toBeGreaterThanOrEqual(3); // um segundo a 4 tiles por segundo
 
-  await page.getByPlaceholder("Título").fill("Ferramenta de busca");
-  await page.getByPlaceholder("O que fazer").fill("Achar um arquivo do repositório pelo nome.");
-  await page.getByRole("button", { name: "Escrever no quadro" }).click();
-  await expect(office).toContainText("#1 Ferramenta de busca (P)", { timeout: 60_000 });
+  // A prancheta (docs/design/briefing-tela.md, §3.6): o "Escrever pedido" a abre com o foco no
+  // título; escrever não anda com o gerente; o Esc fecha e guarda o rascunho.
+  const board = page.locator(".retro-board");
+  const write = page.getByRole("button", { name: "Escrever pedido" });
+  await write.click();
+  const clipboard = page.getByRole("dialog", { name: "Novo pedido" });
+  await expect(clipboard).toBeVisible();
+  const title = clipboard.getByRole("textbox", { name: "Título" });
+  await expect(title).toBeFocused();
+  const standing = await drawn("gerente");
+  await title.pressSequentially("Ferramenta de busca");
+  await page.waitForTimeout(300);
+  expect(await drawn("gerente")).toEqual(standing); // as letras não andam com ele
+  await page.keyboard.press("Escape");
+  await expect(clipboard).toBeHidden();
+  await write.click();
+  await expect(title).toHaveValue("Ferramenta de busca"); // o rascunho ficou
+  await clipboard.getByRole("textbox", { name: "O que fazer" }).fill("Achar um arquivo do repositório pelo nome.");
+  await clipboard.getByRole("radio", { name: "P, pequeno" }).check();
+  await clipboard.getByRole("button", { name: "Pôr no quadro" }).click();
+  await expect(clipboard).toBeHidden();
+  // Enquanto o gerente vai ao quadro, a ficha fantasma fica em "A fazer"; depois, a de verdade.
+  await expect(board.locator(".retro-ficha.fantasma")).toContainText("Ferramenta de busca");
+  await expect(board.getByRole("button", { name: /#1.*Ferramenta de busca/ })).toBeVisible({ timeout: 60_000 });
+  await expect(board.locator(".retro-ficha.fantasma")).toHaveCount(0);
 
   // O dev trabalha sentado: com o pedido em "Fazendo", o desenho dele chega na cadeira da mesa.
-  await expect(office.locator(".fazendo")).toContainText("#1", { timeout: 60_000 });
+  await expect(board.getByRole("tab", { name: "Fazendo, 1 pedido" })).toBeVisible({ timeout: 60_000 });
   const camps = (): Promise<{ x: number; y: number } | undefined> =>
     page.evaluate(() => {
       type Hook = { drawn(id: string): { x: number; y: number } | undefined };
@@ -80,12 +100,18 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   await expect.poll(() => look("robo-testador"), { intervals: [100], timeout: 60_000 }).toBe("trabalhando");
   await expect.poll(() => look("robo-testador"), { timeout: 30_000 }).toBe("passou");
   await page.screenshot({ path: `${SHOTS}/escritorio-bancada.png` });
-  await expect(office.locator(".entregue")).toContainText("#1", { timeout: 60_000 });
+  const delivered = board.getByRole("tab", { name: "Entregue, 1 pedido" });
+  await expect(delivered).toBeVisible({ timeout: 60_000 });
+  await delivered.click();
   await page.screenshot({ path: `${SHOTS}/escritorio.png` });
 
-  // O "ver o patch" (ADR-0080): sem modelo, a sessão fixa do dev-script na oficina registra o
-  // pedido num arquivo, e o patch vai ao depósito de entregas do sandbox.
-  await office.getByRole("button", { name: "Ver o patch" }).click();
+  // A ficha aberta, na prancheta em leitura, e o "ver o patch" (ADR-0080): sem modelo, a sessão fixa
+  // do dev-script na oficina registra o pedido num arquivo, e o patch vai ao depósito de entregas.
+  await board.getByRole("button", { name: /#1.*Ferramenta de busca/ }).click();
+  const card = page.getByRole("dialog", { name: "Ficha do pedido" });
+  await expect(card).toContainText("ENTREGUE");
+  await expect(card).toContainText("Achar um arquivo do repositório pelo nome.");
+  await card.getByRole("button", { name: "Ver o patch" }).click();
   const patch = page.locator("dialog.delivery");
   await expect(patch).toContainText("docs/oficina/pedido-001.md", { timeout: 10_000 });
   await expect(patch.locator(".delivery-counts")).toContainText("1 arquivo(s)");
@@ -93,8 +119,9 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   await page.screenshot({ path: `${SHOTS}/escritorio-patch.png` });
   await patch.getByRole("button", { name: "fechar" }).click();
   await expect(patch).toBeHidden();
-  await office.getByRole("button", { name: "Aceitar" }).click();
-  await expect(office.locator(".aceito")).toContainText("#1", { timeout: 30_000 });
+  await card.getByRole("button", { name: "Aceitar" }).click();
+  await expect(card).toBeHidden();
+  await expect(board.getByRole("tab", { name: "Aceito, 1 pedido" })).toBeVisible({ timeout: 30_000 });
 
   // A 1×, o andar responde como a 72× (ADR-0081): com o tick de 250 ms, o kernel aceita um comando
   // a cada quarto de segundo. Com o tick de 2 s, a seta solta passava até 8 tiles do ponto e

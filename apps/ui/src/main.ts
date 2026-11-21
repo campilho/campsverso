@@ -32,7 +32,7 @@ import { CreditsDialog } from "./panels/credits.ts";
 import { CommandsHelp } from "./panels/help.ts";
 import { renderHud } from "./panels/hud.ts";
 import { ActionMenu } from "./panels/menu.ts";
-import { OfficePanel, isOffice } from "./panels/office.ts";
+import { OfficePanel, isOffice, ticketsOf, type NewTicket } from "./panels/office.ts";
 import { OperatorPanel } from "./panels/operator.ts";
 import { Portrait } from "./panels/portrait.ts";
 import { contentsOf, holdTarget, inControl, menuFor, proposal, refusalText, thingAt, tileMenu, walkTo, type MenuEntry, type Tile } from "./play.ts";
@@ -45,8 +45,11 @@ import { DisplayClock, clockText, isLive, realTime, tickSeconds } from "./simclo
 import { describe, shortType } from "./timeline.ts";
 import { Store } from "./store.ts";
 import { AboutDialog } from "./retro/about.ts";
+import { RetroBoard } from "./retro/board.ts";
+import { Clipboard, type ClipboardContext } from "./retro/clipboard.ts";
 import { RetroFrame } from "./retro/frame.ts";
 import { chipsOf, clockView, lightOf } from "./retro/model.ts";
+import { ghostsOf } from "./retro/tickets.ts";
 import { parseTiledMap, tileAt as terrainAt, type TileGrid } from "./tiled.ts";
 
 const NOTICE_MS = 6000;
@@ -200,16 +203,22 @@ function officeStep(label: string, action: string, params: Record<string, unknow
   dirty = true;
 }
 
-const office = new OfficePanel(officeAside, {
-  write: (ticket) => {
+/** O que o gerente faz no quadro, pelo painel de hoje ou pela prancheta: o passo vai à fila, e ele
+ * anda até o quadro. */
+const ticketSteps = {
+  write: (ticket: NewTicket): void => {
     officeStep(`Escrever o pedido "${ticket.title}"`, "write_ticket", { ...ticket });
   },
-  accept: (ticketId) => {
+  accept: (ticketId: string): void => {
     officeStep(`Aceitar ${ticketId}`, "accept_ticket", { target: ticketId });
   },
-  giveBack: (ticketId, comment) => {
+  giveBack: (ticketId: string, comment: string): void => {
     officeStep(`Devolver ${ticketId}`, "return_ticket", { target: ticketId, comment });
   },
+};
+
+const office = new OfficePanel(officeAside, {
+  ...ticketSteps,
   // A convocação (a parte 5 do M25): de qualquer lugar da sala, sem andar até o quadro.
   summon: (devId) => {
     // Sem id, o kernel convoca o único dev do elenco.
@@ -236,8 +245,30 @@ function leaveOffice(): void {
 }
 
 // A tela retrô do escritório (docs/design/briefing-tela.md): a moldura entra no primeiro estado do
-// escritório e reorganiza as peças de sempre dentro dela.
+// escritório e reorganiza as peças de sempre dentro dela; o quadro de cortiça e a prancheta tomam o
+// lugar do quadro e do novo pedido do painel de hoje.
 const about = new AboutDialog(document.body, () => { void credits.open(art?.credits ?? []); });
+const clipboard = new Clipboard(document.body, {
+  ...ticketSteps,
+  patch: (heading, ref) => { office.openPatch(heading, ref); },
+});
+
+function clipboardContext(state: ObserverState): ClipboardContext {
+  return {
+    state,
+    me: avatarId(),
+    manager: run === null && store.status === "open" && inControl(state, avatarId()),
+    underway: ticketsUnderway(state),
+    when: `Dia ${String(state.day)} · ${clockText(state, shownTick).slice(0, 5)}`,
+    art: art?.manifest,
+  };
+}
+
+const board = new RetroBoard((ticketId) => {
+  if (store.state !== undefined) {
+    clipboard.openTicket(ticketId, clipboardContext(store.state));
+  }
+});
 const retro = new RetroFrame(view, debug, {
   assume: () => {
     if (store.state !== undefined) {
@@ -245,7 +276,11 @@ const retro = new RetroFrame(view, debug, {
     }
   },
   release: () => { leaveOffice(); },
-  write: () => { office.focusNewTicket(); },
+  write: () => {
+    if (store.state !== undefined) {
+      clipboard.openNew(clipboardContext(store.state));
+    }
+  },
   summon: (devId) => {
     connection.send(PROPOSE, { avatar_id: avatarId(), action: "summon", params: devId === "" ? {} : { target: devId } });
   },
@@ -269,7 +304,7 @@ function renderRetro(state: ObserverState): void {
   if (run !== null || !isOffice(state)) {
     return;
   }
-  retro.mount(appRoot, world, [officeAside, view === "operator" && aside]);
+  retro.mount(appRoot, world, [board.element, officeAside, view === "operator" && aside]);
   const mine = inControl(state, avatarId());
   const shown = clockText(state, shownTick);
   const banner = bannerOf({ status: store.status, everOpen: store.everOpen, notice: store.notice, fresh: store.fresh, now: Date.now() });
@@ -396,6 +431,9 @@ store.onChange(() => {
 store.onEvents((events) => {
   for (const event of events) {
     const data = event.data as Record<string, unknown> | undefined;
+    if (event.type === TICKET_CREATED && data?.author === avatarId() && typeof data.title === "string") {
+      clipboard.created(data.title); // a ficha nasceu: o rascunho da prancheta some
+    }
     if (event.type === SPOKE && typeof data?.avatar_id === "string" && typeof data.text === "string") {
       map.speak?.(data.avatar_id, data.text); // o balão (ADR-0078); a linha do tempo guarda o texto inteiro
       saidBy.set(data.avatar_id, [...(saidBy.get(data.avatar_id) ?? []), data.text].slice(-20));
@@ -422,6 +460,7 @@ store.onEvents((events) => {
 /** O trajeto que chega pelo evento: a tela o desenha mesmo que ele comece e termine entre duas
  * atualizações (a 144× e a 720×; achado do usuário no mapa d). */
 const MOVED = "campsverso.world.entity.moved.v1";
+const TICKET_CREATED = "campsverso.office.ticket.created.v1";
 const SPOKE = "campsverso.avatar.spoke.v1";
 
 function observeMove(data: Record<string, unknown>): void {
@@ -904,6 +943,10 @@ function frame(now: number): void {
       if (!officeAside.hidden) {
         office.render(state, run === null && inControl(state, avatarId()), ticketsUnderway(state), store.timeline);
       }
+      if (retro.isMounted) {
+        board.render({ state, tickets: ticketsOf(state), ghosts: ghostsOf(queue.list, state, avatarId()) });
+        clipboard.update(clipboardContext(state));
+      }
       panel?.render(state, avatarId(), store.welcome?.commands ?? [], store.timeline, store.lastReply);
       dirty = false;
       lastPanel = now;
@@ -928,6 +971,7 @@ void loadArt().then((loaded) => {
   });
   map.setArt(loaded.manifest);
   retro.setArt(loaded.manifest);
+  board.setArt(loaded.manifest);
   icons.setArt(loaded.manifest);
   portrait.setArt(loaded.manifest, avatarId());
 });

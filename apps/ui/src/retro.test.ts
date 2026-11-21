@@ -4,8 +4,23 @@ import type { EnvelopeV1, ObserverState } from "@campsverso/contracts";
 import { describe, expect, it } from "vitest";
 
 import type { Banner } from "./banner.ts";
+import { summonsOf, type TicketView } from "./panels/office.ts";
+import type { Step } from "./queue.ts";
 import { chipsOf, clockView, lightOf, robotLine, summonShort } from "./retro/model.ts";
-import { summonsOf } from "./panels/office.ts";
+import {
+  EMPTY_DRAFT,
+  badgeOfPullRequest,
+  boardSummary,
+  counterOf,
+  ghostsOf,
+  nextNumber,
+  nextTab,
+  parseDraft,
+  pinOf,
+  stateLabel,
+  tabsOf,
+  whoLine,
+} from "./retro/tickets.ts";
 
 function state(overrides: Partial<ObserverState> = {}): ObserverState {
   return {
@@ -142,5 +157,111 @@ describe("o robô da bancada", () => {
     expect(robotLine(robots({ state: "failed", tick: 16190 }), "testador", 16200)).toBe("falhou");
     expect(robotLine(robots({ state: "passed", tick: 10000 }), "testador", 16200)).toBe("parado");
     expect(robotLine(robots({ state: "working", tick: 0 }), "testador", 16200)).toBe("parado"); // passou das duas horas
+  });
+});
+
+describe("o quadro de cortiça (§3.4)", () => {
+  const ticket = (n: number, state: string, extra: Partial<TicketView> = {}): TicketView => ({
+    id: `pedido-${String(n).padStart(3, "0")}`,
+    number: n,
+    title: `Pedido ${String(n)}`,
+    description: "",
+    acceptance: "",
+    size: "M",
+    state,
+    owner: undefined,
+    author: "gerente",
+    comment: undefined,
+    patch: undefined,
+    pr: undefined,
+    ...extra,
+  });
+  const open = { number: 7, url: "https://github.com/campilho/campsverso/pull/7", state: "aberto", ci: "success" };
+  const tickets = [
+    ticket(1, "aceito", { pr: { ...open, number: 5, state: "mesclado" } }),
+    ticket(2, "entregue", { pr: open }),
+    ticket(3, "fazendo", { owner: "camps" }),
+    ticket(4, "a_fazer"),
+    ticket(5, "a_fazer"),
+  ];
+
+  it("conta os pedidos de cada aba, nas quatro colunas", () => {
+    expect(tabsOf(tickets).map((t) => [t.label, t.count])).toEqual([
+      ["A fazer", 2],
+      ["Fazendo", 1],
+      ["Entregue", 1],
+      ["Aceito", 1],
+    ]);
+    expect(tabsOf([]).every((t) => t.count === 0)).toBe(true);
+  });
+
+  it("diz no cabeçalho os pedidos e os PRs abertos", () => {
+    expect(boardSummary(tickets)).toBe("5 pedidos · 1 PR aberto");
+    expect(boardSummary([ticket(1, "a_fazer")])).toBe("1 pedido");
+    expect(boardSummary([ticket(1, "entregue", { pr: open }), ticket(2, "entregue", { pr: open })])).toBe("2 pedidos · 2 PR abertos");
+  });
+
+  it("anda entre as abas pelas setas, dando a volta, e Home e End vão às pontas", () => {
+    expect(nextTab(0, "ArrowRight", 4)).toBe(1);
+    expect(nextTab(3, "ArrowRight", 4)).toBe(0);
+    expect(nextTab(0, "ArrowLeft", 4)).toBe(3);
+    expect(nextTab(2, "Home", 4)).toBe(0);
+    expect(nextTab(1, "End", 4)).toBe(3);
+    expect(nextTab(1, "Enter", 4)).toBeUndefined();
+  });
+
+  it("põe a ficha fantasma do pedido que o gerente está escrevendo e dos que estão na fila", () => {
+    const step = (title: string, size: string): Step => ({
+      label: `Escrever o pedido "${title}"`,
+      proposal: { avatar_id: "gerente", action: "write_ticket", params: { title, size } },
+      near: "quadro",
+    });
+    const walk: Step = { label: "Ir até a porta", proposal: { avatar_id: "gerente", action: "move", params: { near: "porta" } } };
+    const writing = state({
+      actions: { gerente: { action: "write_ticket", params: { title: "A lousa", size: "G" } } } as unknown as ObserverState["actions"],
+    });
+    expect(ghostsOf([walk, step("O café", "P")], writing, "gerente")).toEqual([
+      { title: "A lousa", size: "G" },
+      { title: "O café", size: "P" },
+    ]);
+    expect(ghostsOf([walk], state(), "gerente")).toEqual([]);
+    expect(ghostsOf([], writing, "camps")).toEqual([]); // só os passos de quem joga
+  });
+
+  it("diz de quem é a ficha, o selo do PR, o pino e o número de prévia", () => {
+    const office = state({
+      entities: {
+        camps: { kind: "avatar", display_name: "Camps", attributes: { papel: "dev" } },
+        gerente: { kind: "avatar", display_name: "Gerente", attributes: { papel: "gerente" } },
+      },
+    });
+    expect(whoLine(ticket(3, "fazendo", { owner: "camps" }), office)).toBe("com Camps");
+    expect(whoLine(ticket(4, "a_fazer"), office)).toBe("do gerente");
+    expect(whoLine(ticket(4, "a_fazer", { author: undefined }), office)).toBe("");
+    expect(badgeOfPullRequest(open)).toBe("ci_verde");
+    expect(badgeOfPullRequest({ ...open, ci: "failure" })).toBe("ci_vermelho");
+    expect(badgeOfPullRequest({ ...open, ci: "" })).toBe("pr");
+    expect(badgeOfPullRequest({ ...open, state: "mesclado" })).toBe("mesclado");
+    expect(badgeOfPullRequest({ ...open, state: "fechado" })).toBeUndefined();
+    expect([pinOf(1), pinOf(2)]).toEqual(["vermelho", "azul"]);
+    expect(nextNumber(tickets)).toBe(6);
+    expect(nextNumber([])).toBe(1);
+    expect(stateLabel("entregue")).toBe("ENTREGUE");
+  });
+});
+
+describe("a prancheta (§3.6)", () => {
+  it("mostra o contador só depois de 80% do limite", () => {
+    expect(counterOf(800, 1000)).toBeUndefined();
+    expect(counterOf(812, 1000)).toBe("812/1000");
+  });
+
+  it("lê o rascunho guardado, e o que vier torto vira o rascunho vazio", () => {
+    expect(parseDraft(null)).toEqual(EMPTY_DRAFT);
+    expect(EMPTY_DRAFT.size).toBe("M"); // o padrão é M
+    expect(parseDraft("{")).toEqual(EMPTY_DRAFT);
+    expect(parseDraft(JSON.stringify({ title: "A lousa", description: 3, size: "X" }))).toEqual({ ...EMPTY_DRAFT, title: "A lousa" });
+    const draft = { title: "A lousa", description: "Na copa", acceptance: "Entro e vejo", size: "G" };
+    expect(parseDraft(JSON.stringify(draft))).toEqual(draft);
   });
 });
