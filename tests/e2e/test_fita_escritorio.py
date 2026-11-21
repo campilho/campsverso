@@ -1,7 +1,9 @@
 """A manhã do escritório com o dev pensando com o modelo, reproduzida da fita (o plano do M24, §8).
 
-A fita foi gravada em 20/nov com `make fita CARTUCHO=office_campsverso`, com o Sonnet 5.5 (17
-chamadas, US$ 0,058): o bom-dia do gerente e os pedidos das 9:30 e das 10:30 do mundo de teste,
+A fita foi gravada de novo em 21/nov com `make fita CARTUCHO=office_campsverso`, com o Sonnet 5.5
+(14 chamadas, US$ 0,057), depois que o robô do briefing entrou na bancada (o PR #2) e a constituição
+das notas do dev ganhou o caminho até o GitHub (ADR-0083); a de 20/nov tinha 17 chamadas. É o
+bom-dia do gerente e os pedidos das 9:30 e das 10:30 do mundo de teste,
 com a oficina no repositório de exemplo (`tests/fixtures/oficina`). O CI só a reproduz: os mesmos
 pedidos ao modelo, na mesma ordem, sem rede e sem custo. Se a mente, a oficina ou o mundo mudarem o
 que vai ao modelo, a fita deixa de bater, e é preciso gravar de novo (uns centavos).
@@ -15,7 +17,7 @@ TAPE = FIXTURES / "escritorio-manha.jsonl"
 
 async def test_a_manha_do_escritorio_com_o_modelo_reproduz_da_fita() -> None:
     summary = await run_office(RecordingModel(None, TAPE, "replay"))
-    assert (summary["calls"], summary["replayed"], summary["charged"]) == (17, 17, 0)
+    assert (summary["calls"], summary["replayed"], summary["charged"]) == (14, 14, 0)
     assert summary["failed"] == 0  # nenhum pedido fora da fita
     assert summary["replies"] == 1  # o bom-dia do gerente
     assert summary["sessions"] == 2
@@ -24,9 +26,9 @@ async def test_a_manha_do_escritorio_com_o_modelo_reproduz_da_fita() -> None:
     assert summary["patches"] == 2
     # A busca virou um robô irmão do testador, com o teste rodado; o resumo do diário, lido.
     assert summary["steps"] == {
-        "buscar": 4,
+        "buscar": 2,
         "escrever": 2,
-        "ler": 3,
+        "ler": 2,
         "pronto": 2,
         "rodar_testes": 1,
         "ver_arquivos": 4,
