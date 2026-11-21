@@ -13,7 +13,7 @@ import contextlib
 import os
 import signal
 import sys
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 from campsverso_adapters import (
@@ -88,6 +88,13 @@ async def watch(args: argparse.Namespace) -> int:
     return 1 if service.failure is not None else 0
 
 
+def _build(environ: Mapping[str, str]) -> dict[str, str] | None:
+    """A versão que o supervisor do escritório vivo diz ao subir a pilha (ADR-0083), para a placa;
+    sem supervisor, nenhuma."""
+    commit, date = environ.get("CAMPSVERSO_COMMIT", ""), environ.get("CAMPSVERSO_COMMIT_DATE", "")
+    return {"commit": commit, "date": date} if commit and date else None
+
+
 async def run(args: argparse.Namespace) -> int:
     if args.watch is not None:
         return await watch(args)
@@ -117,6 +124,7 @@ async def run(args: argparse.Namespace) -> int:
         telemetry,
         ContractValidator(),
         player_clock=args.relogio_do_jogador,
+        build=_build(os.environ),
     )
     settings = env.gateway
     port = args.port or settings.port

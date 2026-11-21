@@ -131,7 +131,9 @@ class GatewayService:
         flush_seconds: float = 0.1,
         timeline: int = 500,
         player_clock: bool = False,
+        build: Mapping[str, str] | None = None,
     ) -> None:
+        self._build = None if build is None else dict(build)  # a placa (ADR-0083)
         self._commands: Mapping[View, tuple[str, ...]] = {
             **COMMANDS,
             "player": (*PLAYER_CLOCK, *PLAY_COMMANDS) if player_clock else PLAY_COMMANDS,
@@ -338,6 +340,7 @@ class GatewayService:
             "worldid": self._worldid,
             "view": view,
             "avatar_id": self._avatar,
+            **({} if self._build is None else {"build": self._build}),
             "commands": list(self._commands[view]),
             "state": self._states[view],
             "events": [e for e in self._timeline if client.sees(e)],

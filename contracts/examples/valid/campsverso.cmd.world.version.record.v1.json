@@ -1,0 +1,20 @@
+{
+  "specversion": "1.0",
+  "id": "01a1fc40-1a2b-7c3d-8e4f-5a6b7c8d9e01",
+  "source": "/kernel/office-campsverso-01",
+  "type": "campsverso.cmd.world.version.record.v1",
+  "time": "2026-11-21T12:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://commands/world/version.record.v1",
+  "worldid": "office-campsverso-01",
+  "cartridge": "office_campsverso",
+  "seq": 0,
+  "actor": "kernel/versao",
+  "provenance": "simulated",
+  "visibility": "observer",
+  "data": {
+    "commit": "3267195f0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f",
+    "date": "2026-11-20T23:30:00-03:00",
+    "pull_requests": [2]
+  }
+}

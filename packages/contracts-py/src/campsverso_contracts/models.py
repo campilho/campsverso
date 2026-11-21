@@ -789,6 +789,37 @@ class CmdRulesToggleV1(BaseModel):
     experiment_id: Annotated[str | None, Field(max_length=64, min_length=1)] = None
 
 
+class PullRequest(RootModel[int]):
+    root: Annotated[int, Field(ge=1)]
+
+
+class CmdWorldVersionRecordV1(BaseModel):
+    """
+    A versão do código que roda o mundo (ADR-0083): ao subir, a raiz de composição do kernel a manda quando o supervisor do escritório vivo diz qual commit subiu. O kernel guarda a versão no estado e, se ela mudou, publica `world.version.changed`. O diário guarda o comando, e o replay o refaz sem perguntar ao git.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    commit: Annotated[str, Field(pattern="^[0-9a-f]{40}$")]
+    """
+    O commit que subiu.
+    """
+    date: Annotated[
+        str,
+        Field(
+            pattern="^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(Z|[+-][0-9]{2}:[0-9]{2})$"
+        ),
+    ]
+    """
+    A data do commit, com o fuso.
+    """
+    pull_requests: Annotated[list[PullRequest] | None, Field(max_length=100)] = None
+    """
+    Os PRs mesclados desde a versão de antes, quando o supervisor os conhece.
+    """
+
+
 class EnvelopeV1(BaseModel):
     """
     Envelope CloudEvents 1.0 com as extensões do Campsverso (contratos §5; ADR-0012, ADR-0013, ADR-0031). Os nomes dos atributos seguem o CloudEvents: minúsculas sem separador (ADR-0030).
@@ -3741,6 +3772,37 @@ class WorldSnapshotCreatedV1(BaseModel):
     size_bytes: Annotated[int, Field(ge=0)]
 
 
+class WorldVersionChangedV1(BaseModel):
+    """
+    O mundo passou a rodar noutra versão do código (ADR-0083): o supervisor trocou o escritório vivo para um commit novo, e o kernel subiu nele. Sem `previous`, é a primeira versão que o mundo registra. Todos veem: a placa da parede e a memória do dev.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    commit: Annotated[str, Field(pattern="^[0-9a-f]{40}$")]
+    """
+    O commit que roda agora.
+    """
+    date: Annotated[
+        str,
+        Field(
+            pattern="^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(Z|[+-][0-9]{2}:[0-9]{2})$"
+        ),
+    ]
+    """
+    A data do commit, com o fuso.
+    """
+    previous: Annotated[str | None, Field(pattern="^[0-9a-f]{40}$")] = None
+    """
+    O commit que rodava antes.
+    """
+    pull_requests: Annotated[list[PullRequest] | None, Field(max_length=100)] = None
+    """
+    Os PRs que entraram desde a versão de antes.
+    """
+
+
 class WorldWeatherChangedV1(BaseModel):
     """
     Clima sorteado para um dia agrícola (ADR-0018).
@@ -3921,6 +3983,23 @@ class RealtimeUpdateV1(BaseModel):
     Merge patch (RFC 7386) sobre o ObserverState; null apaga a chave.
     """
     events: Annotated[list[EnvelopeV1], Field(max_length=5000)]
+
+
+class Build(BaseModel):
+    """
+    A versão do código que o gateway roda (ADR-0083), quando o supervisor a diz: a placa da parede e o HUD. Sem ela, a tela não mostra placa.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    commit: Annotated[str, Field(pattern="^[0-9a-f]{40}$")]
+    date: Annotated[
+        str,
+        Field(
+            pattern="^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(Z|[+-][0-9]{2}:[0-9]{2})$"
+        ),
+    ]
 
 
 class Command(RootModel[str]):
@@ -4482,6 +4561,10 @@ class RealtimeWelcomeV1(BaseModel):
     ]
     """
     O avatar que esta conexão acompanha.
+    """
+    build: Build | None = None
+    """
+    A versão do código que o gateway roda (ADR-0083), quando o supervisor a diz: a placa da parede e o HUD. Sem ela, a tela não mostra placa.
     """
     commands: list[Command]
     """

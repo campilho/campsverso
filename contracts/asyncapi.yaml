@@ -334,6 +334,17 @@ channels:
     messages:
       CmdRulesToggleV1:
         $ref: '#/components/messages/CmdRulesToggleV1'
+  CmdWorldVersionRecordV1:
+    address: campsverso.{worldid}.cmd.world.version.record.v1
+    title: campsverso.cmd.world.version.record.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      CmdWorldVersionRecordV1:
+        $ref: '#/components/messages/CmdWorldVersionRecordV1'
   EconomyLaborDismissedV1:
     address: campsverso.{worldid}.world.economy.labor.dismissed.v1
     title: campsverso.economy.labor.dismissed.v1
@@ -1057,6 +1068,17 @@ channels:
     messages:
       WorldSnapshotCreatedV1:
         $ref: '#/components/messages/WorldSnapshotCreatedV1'
+  WorldVersionChangedV1:
+    address: campsverso.{worldid}.world.world.version.changed.v1
+    title: campsverso.world.version.changed.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorldVersionChangedV1:
+        $ref: '#/components/messages/WorldVersionChangedV1'
   WorldWeatherChangedV1:
     address: campsverso.{worldid}.world.world.weather.changed.v1
     title: campsverso.world.weather.changed.v1
@@ -1304,6 +1326,13 @@ operations:
     messages:
     - $ref: '#/channels/CmdRulesToggleV1/messages/CmdRulesToggleV1'
     x-producer: operator
+  sendCmdWorldVersionRecordV1:
+    action: send
+    channel:
+      $ref: '#/channels/CmdWorldVersionRecordV1'
+    messages:
+    - $ref: '#/channels/CmdWorldVersionRecordV1/messages/CmdWorldVersionRecordV1'
+    x-producer: kernel
   sendEconomyLaborDismissedV1:
     action: send
     channel:
@@ -1758,6 +1787,13 @@ operations:
       $ref: '#/channels/WorldSnapshotCreatedV1'
     messages:
     - $ref: '#/channels/WorldSnapshotCreatedV1/messages/WorldSnapshotCreatedV1'
+    x-producer: kernel
+  sendWorldVersionChangedV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorldVersionChangedV1'
+    messages:
+    - $ref: '#/channels/WorldVersionChangedV1/messages/WorldVersionChangedV1'
     x-producer: kernel
   sendWorldWeatherChangedV1:
     action: send
@@ -2732,6 +2768,33 @@ components:
           type: string
           minLength: 1
           maxLength: 64
+    CmdWorldVersionRecordV1:
+      title: CmdWorldVersionRecordV1
+      description: 'A versão do código que roda o mundo (ADR-0083): ao subir, a raiz de composição do
+        kernel a manda quando o supervisor do escritório vivo diz qual commit subiu. O kernel guarda a
+        versão no estado e, se ela mudou, publica `world.version.changed`. O diário guarda o comando,
+        e o replay o refaz sem perguntar ao git.'
+      type: object
+      additionalProperties: false
+      required:
+      - commit
+      - date
+      properties:
+        commit:
+          type: string
+          pattern: ^[0-9a-f]{40}$
+          description: O commit que subiu.
+        date:
+          type: string
+          pattern: ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(Z|[+-][0-9]{2}:[0-9]{2})$
+          description: A data do commit, com o fuso.
+        pull_requests:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+          maxItems: 100
+          description: Os PRs mesclados desde a versão de antes, quando o supervisor os conhece.
     EnvelopeV1:
       title: EnvelopeV1
       description: 'Envelope CloudEvents 1.0 com as extensões do Campsverso (contratos §5; ADR-0012, ADR-0013,
@@ -5598,6 +5661,36 @@ components:
         size_bytes:
           type: integer
           minimum: 0
+    WorldVersionChangedV1:
+      title: WorldVersionChangedV1
+      description: 'O mundo passou a rodar noutra versão do código (ADR-0083): o supervisor trocou o escritório
+        vivo para um commit novo, e o kernel subiu nele. Sem `previous`, é a primeira versão que o mundo
+        registra. Todos veem: a placa da parede e a memória do dev.'
+      type: object
+      additionalProperties: false
+      required:
+      - commit
+      - date
+      properties:
+        commit:
+          type: string
+          pattern: ^[0-9a-f]{40}$
+          description: O commit que roda agora.
+        date:
+          type: string
+          pattern: ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(Z|[+-][0-9]{2}:[0-9]{2})$
+          description: A data do commit, com o fuso.
+        previous:
+          type: string
+          pattern: ^[0-9a-f]{40}$
+          description: O commit que rodava antes.
+        pull_requests:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+          maxItems: 100
+          description: Os PRs que entraram desde a versão de antes.
     WorldWeatherChangedV1:
       title: WorldWeatherChangedV1
       description: Clima sorteado para um dia agrícola (ADR-0018).
@@ -5847,6 +5940,21 @@ components:
         avatar_id:
           $ref: '#/components/schemas/EntityId'
           description: O avatar que esta conexão acompanha.
+        build:
+          type: object
+          additionalProperties: false
+          required:
+          - commit
+          - date
+          description: 'A versão do código que o gateway roda (ADR-0083), quando o supervisor a diz: a
+            placa da parede e o HUD. Sem ela, a tela não mostra placa.'
+          properties:
+            commit:
+              type: string
+              pattern: ^[0-9a-f]{40}$
+            date:
+              type: string
+              pattern: ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(Z|[+-][0-9]{2}:[0-9]{2})$
         commands:
           type: array
           uniqueItems: true
@@ -6678,6 +6786,18 @@ components:
         $ref: '#/components/schemas/CmdRulesToggleV1'
       x-visibility: observer
       x-producer: operator
+    CmdWorldVersionRecordV1:
+      name: campsverso.cmd.world.version.record.v1
+      title: CmdWorldVersionRecordV1
+      summary: 'A versão do código que roda o mundo (ADR-0083): ao subir, a raiz de composição do kernel
+        a manda quando o supervisor do escritório vivo diz qual commit subiu. O kernel guarda a versão
+        no estado e, se ela mudou, publica `world.version.changed`. O diário guarda o comando, e o replay
+        o refaz sem perguntar ao git.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CmdWorldVersionRecordV1'
+      x-visibility: observer
+      x-producer: kernel
     EconomyLaborDismissedV1:
       name: campsverso.economy.labor.dismissed.v1
       title: EconomyLaborDismissedV1
@@ -7306,6 +7426,17 @@ components:
       payload:
         $ref: '#/components/schemas/WorldSnapshotCreatedV1'
       x-visibility: internal
+      x-producer: kernel
+    WorldVersionChangedV1:
+      name: campsverso.world.version.changed.v1
+      title: WorldVersionChangedV1
+      summary: 'O mundo passou a rodar noutra versão do código (ADR-0083): o supervisor trocou o escritório
+        vivo para um commit novo, e o kernel subiu nele. Sem `previous`, é a primeira versão que o mundo
+        registra. Todos veem: a placa da parede e a memória do dev.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorldVersionChangedV1'
+      x-visibility: world
       x-producer: kernel
     WorldWeatherChangedV1:
       name: campsverso.world.weather.changed.v1

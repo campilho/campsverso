@@ -35,6 +35,25 @@
       "$ref": "contracts://common/defs.v1#/$defs/entity_id",
       "description": "O avatar que esta conexão acompanha."
     },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "commit",
+        "date"
+      ],
+      "description": "A versão do código que o gateway roda (ADR-0083), quando o supervisor a diz: a placa da parede e o HUD. Sem ela, a tela não mostra placa.",
+      "properties": {
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "date": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(Z|[+-][0-9]{2}:[0-9]{2})$"
+        }
+      }
+    },
     "commands": {
       "type": "array",
       "uniqueItems": true,

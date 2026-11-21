@@ -180,6 +180,12 @@ export const CONTRACT_TYPES = {
     producer: "operator",
     dataschema: "contracts://commands/rules/toggle.v1",
   },
+  "campsverso.cmd.world.version.record.v1": {
+    kind: "command",
+    visibility: "observer",
+    producer: "kernel",
+    dataschema: "contracts://commands/world/version.record.v1",
+  },
   "campsverso.economy.labor.dismissed.v1": {
     kind: "event",
     visibility: "world",
@@ -570,6 +576,12 @@ export const CONTRACT_TYPES = {
     producer: "kernel",
     dataschema: "contracts://events/world/snapshot.created.v1",
   },
+  "campsverso.world.version.changed.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/world/version.changed.v1",
+  },
   "campsverso.world.weather.changed.v1": {
     kind: "event",
     visibility: "world",
@@ -609,6 +621,7 @@ export interface PayloadByType {
   "campsverso.cmd.office.pull_request.report.v1": T.CmdOfficePullRequestReportV1;
   "campsverso.cmd.ops.budget.set.v1": T.CmdOpsBudgetSetV1;
   "campsverso.cmd.rules.toggle.v1": T.CmdRulesToggleV1;
+  "campsverso.cmd.world.version.record.v1": T.CmdWorldVersionRecordV1;
   "campsverso.economy.labor.dismissed.v1": T.EconomyLaborDismissedV1;
   "campsverso.economy.labor.ended.v1": T.EconomyLaborEndedV1;
   "campsverso.economy.labor.hired.v1": T.EconomyLaborHiredV1;
@@ -674,6 +687,7 @@ export interface PayloadByType {
   "campsverso.world.session.started.v1": T.WorldSessionStartedV1;
   "campsverso.world.session.started.v2": T.WorldSessionStartedV2;
   "campsverso.world.snapshot.created.v1": T.WorldSnapshotCreatedV1;
+  "campsverso.world.version.changed.v1": T.WorldVersionChangedV1;
   "campsverso.world.weather.changed.v1": T.WorldWeatherChangedV1;
 }
 

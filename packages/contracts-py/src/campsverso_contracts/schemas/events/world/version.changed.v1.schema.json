@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/world/version.changed.v1",
+  "title": "WorldVersionChangedV1",
+  "description": "O mundo passou a rodar noutra versão do código (ADR-0083): o supervisor trocou o escritório vivo para um commit novo, e o kernel subiu nele. Sem `previous`, é a primeira versão que o mundo registra. Todos veem: a placa da parede e a memória do dev.",
+  "x-type": "campsverso.world.version.changed.v1",
+  "x-visibility": "world",
+  "x-producer": "kernel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "commit",
+    "date"
+  ],
+  "properties": {
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$",
+      "description": "O commit que roda agora."
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(Z|[+-][0-9]{2}:[0-9]{2})$",
+      "description": "A data do commit, com o fuso."
+    },
+    "previous": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$",
+      "description": "O commit que rodava antes."
+    },
+    "pull_requests": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "maxItems": 100,
+      "description": "Os PRs que entraram desde a versão de antes."
+    }
+  }
+}

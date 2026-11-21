@@ -96,6 +96,9 @@ labels:
     text: "PR #{pull_request} mesclado: o pedido {number} foi aceito"
   - event: campsverso.office.ticket.pr_closed.v1
     text: "PR #{pull_request} fechado sem mesclar: o pedido {number} voltou"
+  # A troca de versão do escritório vivo (ADR-0083).
+  - event: campsverso.world.version.changed.v1
+    text: "o escritório subiu numa versão nova do código"
   - event: campsverso.avatar.spoke.v1
     text: "disse: “{text}”"
   - event: campsverso.avatar.entered.v1

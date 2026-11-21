@@ -1,0 +1,24 @@
+{
+  "expect_error": "payload_schema",
+  "description": "Uma versão com o commit curto (ADR-0083): a placa mostra o curto, mas o mundo guarda o commit inteiro.",
+  "event": {
+    "specversion": "1.0",
+    "id": "01a1fc40-1a2b-7c3d-8e4f-5a6b7c8d9e03",
+    "source": "/kernel/office-campsverso-01",
+    "type": "campsverso.world.version.changed.v1",
+    "time": "2026-11-21T12:00:00Z",
+    "datacontenttype": "application/json",
+    "dataschema": "contracts://events/world/version.changed.v1",
+    "worldid": "office-campsverso-01",
+    "cartridge": "office_campsverso",
+    "tick": 1036800,
+    "simtime": "2026-11-21T09:00:00-03:00",
+    "seq": 20511,
+    "provenance": "simulated",
+    "visibility": "world",
+    "data": {
+      "commit": "3267195",
+      "date": "2026-11-20T23:30:00-03:00"
+    }
+  }
+}

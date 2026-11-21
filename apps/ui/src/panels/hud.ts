@@ -115,6 +115,13 @@ export function contractsText(state: ObserverState, avatarId: string): string[] 
     .map(([key, value]) => `${names[key] ?? key} até o dia ${value.slice(mark.length)}`);
 }
 
+/** A versão que o escritório vivo roda (ADR-0083), como a placa da parede: o commit curto e o dia
+ * dele, na data do próprio commit. */
+export function buildText(build: { readonly commit: string; readonly date: string }): string {
+  const [, month = "", day = ""] = /^\d{4}-(\d{2})-(\d{2})/.exec(build.date) ?? [];
+  return `versão ${build.commit.slice(0, 7)}${day === "" ? "" : ` · ${day}/${month}`}`;
+}
+
 export function renderHud(
   root: HTMLElement,
   state: ObserverState,
@@ -123,6 +130,7 @@ export function renderHud(
   status: Status,
   portrait?: HTMLElement,
   icon?: IconOf,
+  build?: { readonly commit: string; readonly date: string },
 ): void {
   const avatar = state.entities[avatarId];
   const controller = state.controllers[avatarId];
@@ -152,6 +160,7 @@ export function renderHud(
       status === "open" && state.pulse?.alive === false
         ? el("span", { className: "status closed" }, "kernel sem sinal")
         : el("span", { className: `status ${status}` }, STATUS[status]),
+      build === undefined ? undefined : el("span", { className: "hud-build", title: build.commit }, buildText(build)),
     ),
     el(
       "div",

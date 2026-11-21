@@ -813,6 +813,28 @@ export interface CmdRulesToggleV1 {
   experiment_id?: string;
 }
 /**
+ * A versão do código que roda o mundo (ADR-0083): ao subir, a raiz de composição do kernel a manda quando o supervisor do escritório vivo diz qual commit subiu. O kernel guarda a versão no estado e, se ela mudou, publica `world.version.changed`. O diário guarda o comando, e o replay o refaz sem perguntar ao git.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "CmdWorldVersionRecordV1".
+ */
+export interface CmdWorldVersionRecordV1 {
+  /**
+   * O commit que subiu.
+   */
+  commit: string;
+  /**
+   * A data do commit, com o fuso.
+   */
+  date: string;
+  /**
+   * Os PRs mesclados desde a versão de antes, quando o supervisor os conhece.
+   *
+   * @maxItems 100
+   */
+  pull_requests?: number[];
+}
+/**
  * Envelope CloudEvents 1.0 com as extensões do Campsverso (contratos §5; ADR-0012, ADR-0013, ADR-0031). Os nomes dos atributos seguem o CloudEvents: minúsculas sem separador (ADR-0030).
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
@@ -2798,6 +2820,32 @@ export interface WorldSnapshotCreatedV1 {
   size_bytes: number;
 }
 /**
+ * O mundo passou a rodar noutra versão do código (ADR-0083): o supervisor trocou o escritório vivo para um commit novo, e o kernel subiu nele. Sem `previous`, é a primeira versão que o mundo registra. Todos veem: a placa da parede e a memória do dev.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "WorldVersionChangedV1".
+ */
+export interface WorldVersionChangedV1 {
+  /**
+   * O commit que roda agora.
+   */
+  commit: string;
+  /**
+   * A data do commit, com o fuso.
+   */
+  date: string;
+  /**
+   * O commit que rodava antes.
+   */
+  previous?: string;
+  /**
+   * Os PRs que entraram desde a versão de antes.
+   *
+   * @maxItems 100
+   */
+  pull_requests?: number[];
+}
+/**
  * Clima sorteado para um dia agrícola (ADR-0018).
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
@@ -2945,6 +2993,13 @@ export interface RealtimeWelcomeV1 {
    */
   view: "player" | "operator";
   avatar_id: EntityId;
+  /**
+   * A versão do código que o gateway roda (ADR-0083), quando o supervisor a diz: a placa da parede e o HUD. Sem ela, a tela não mostra placa.
+   */
+  build?: {
+    commit: string;
+    date: string;
+  };
   /**
    * Tipos de comando que esta conexão pode mandar.
    */

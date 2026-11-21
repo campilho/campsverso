@@ -201,6 +201,12 @@ canvas {
   text-align: center;
 }
 
+/* A versão que o escritório vivo roda (ADR-0083); só aparece quando o supervisor a diz. */
+.hud-build {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .hud-name {
   min-width: 4em;
 }

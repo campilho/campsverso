@@ -252,6 +252,14 @@ CONTRACT_TYPES: Final[dict[str, ContractType]] = {
             models.CmdRulesToggleV1,
         ),
         ContractType(
+            "campsverso.cmd.world.version.record.v1",
+            "command",
+            "observer",
+            "kernel",
+            "contracts://commands/world/version.record.v1",
+            models.CmdWorldVersionRecordV1,
+        ),
+        ContractType(
             "campsverso.economy.labor.dismissed.v1",
             "event",
             "world",
@@ -770,6 +778,14 @@ CONTRACT_TYPES: Final[dict[str, ContractType]] = {
             "kernel",
             "contracts://events/world/snapshot.created.v1",
             models.WorldSnapshotCreatedV1,
+        ),
+        ContractType(
+            "campsverso.world.version.changed.v1",
+            "event",
+            "world",
+            "kernel",
+            "contracts://events/world/version.changed.v1",
+            models.WorldVersionChangedV1,
         ),
         ContractType(
             "campsverso.world.weather.changed.v1",

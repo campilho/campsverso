@@ -1,7 +1,7 @@
 import type { ObserverState } from "@campsverso/contracts";
 import { describe, expect, it } from "vitest";
 
-import { contractsText, loadView, needView } from "./panels/hud.ts";
+import { buildText, contractsText, loadView, needView } from "./panels/hud.ts";
 
 describe("as barras do corpo (M21)", () => {
   it("a fome aparece como saciedade: cheia é boa, como a energia", () => {
@@ -74,5 +74,13 @@ describe("a carga da mochila (M21)", () => {
 
   it("sem capacidade, nada (a fazenda 1)", () => {
     expect(loadView(carrying({}), "camps")).toBeUndefined();
+  });
+});
+
+describe("a versão do escritório vivo (ADR-0083)", () => {
+  it("mostra o commit curto e o dia do commit, como a placa", () => {
+    const commit = "3267195f0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f";
+    expect(buildText({ commit, date: "2026-11-20T23:30:00-03:00" })).toBe("versão 3267195 · 20/11");
+    expect(buildText({ commit, date: "" })).toBe("versão 3267195");
   });
 });

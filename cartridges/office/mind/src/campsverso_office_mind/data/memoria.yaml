@@ -34,6 +34,7 @@ importance:
     campsverso.office.ticket.delivered.v1: 6
     campsverso.office.ticket.accepted.v1: 8
     campsverso.office.ticket.returned.v1: 9 # o comentário do gerente é o que mais ensina
+    campsverso.world.version.changed.v1: 8 # o escritório trocou de versão (ADR-0083)
     campsverso.avatar.spoke.v1: 5
     "campsverso.avatar.spoke.v1:self": 3
     campsverso.avatar.entered.v1: 2
@@ -48,6 +49,7 @@ lines:
   "campsverso.office.ticket.delivered.v1:self": "{when} entreguei o pedido {number}"
   campsverso.office.ticket.accepted.v1: "{when} {by} aceitou o pedido {number}"
   campsverso.office.ticket.returned.v1: "{when} {by} devolveu o pedido {number}: {comment}"
+  campsverso.world.version.changed.v1: "{when} o escritório reiniciou numa versão nova do código"
   campsverso.avatar.spoke.v1: "{when} {avatar_id} disse: {text}"
   "campsverso.avatar.spoke.v1:self": "{when} eu disse: {text}"
   campsverso.avatar.entered.v1: "{when} {avatar_id} entrou no escritório"

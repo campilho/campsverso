@@ -23,10 +23,11 @@ def test_catalogo_tem_77_eventos_e_11_comandos(contracts: catalog.Contracts) -> 
     alcança o real, com o comando dele, e os cinco do pedido do escritório (ADR-0078), e os dois
     avisos do orçamento na v2, os tetos mudados e o comando deles (ADR-0080), e a sessão com o
     tick em milissegundos (ADR-0081), e o passo na oficina e o robô da bancada, que começa e
-    termina (ADR-0080)."""
+    termina (ADR-0080), e os quatro do PR do dev, com o comando do vigia (ADR-0083, ADR-0084), e a
+    troca de versão, com o comando dela (ADR-0083)."""
     kinds = [f.kind for f in contracts.by_type.values()]
-    assert kinds.count("event") == 82
-    assert kinds.count("command") == 12
+    assert kinds.count("event") == 83
+    assert kinds.count("command") == 13
 
 
 def test_exemplo_invalido_em_valid_quebra_o_check(contracts_copy: Path) -> None:

@@ -328,3 +328,51 @@ def test_o_relogio_ancorado_salta_ate_agora_e_roda_o_que_vence_no_caminho() -> N
     assert "noite" in phases  # e a noite das 20:00, que venceu no caminho, chegou
     # Em dia, não salta de novo.
     assert catch_up_command("lab-02", "lab_office", core.tick, to_tick, now, "x") is None
+
+
+# ------------------------------------------------------------------ a versão (ADR-0083)
+
+
+def test_a_versao_que_sobe_fica_no_estado_e_no_fato_e_o_reinicio_nao_repete() -> None:
+    from datetime import timedelta
+
+    from campsverso_adapters import ContractValidator
+    from campsverso_kernel.main import version_command
+
+    old, new = "a" * 40, "b" * 40
+    env = {"CAMPSVERSO_COMMIT": old, "CAMPSVERSO_COMMIT_DATE": "2026-11-20T23:30:00-03:00"}
+    now = START + timedelta(hours=1)
+    core = _core()
+    core.drain()
+    # Sem supervisor, nada.
+    assert version_command("lab-02", "lab_office", core.build, {}, now, "x") is None
+    ids = ("01a1fc40-1a2b-7c3d-8e4f-5a6b7c8d9e01", "01a1fc40-1a2b-7c3d-8e4f-5a6b7c8d9e02")
+    first = version_command("lab-02", "lab_office", core.build, env, now, ids[0])
+    assert first is not None
+    assert list(ContractValidator().validate(first)) == []
+    core.submit(first)
+    (changed,) = _only(core.drain(), "world.version.changed")
+    assert changed == {"commit": old, "date": "2026-11-20T23:30:00-03:00"}  # a primeira: sem antes
+    # O reinício no mesmo commit não manda nada; o snapshot leva a versão.
+    assert version_command("lab-02", "lab_office", core.build, env, now, "y") is None
+    state = core.export_state()
+    assert state["build"] == {"commit": old, "date": "2026-11-20T23:30:00-03:00"}
+    again = _core()
+    again.restore_state(state)
+    assert again.build == core.build
+    # A troca: o commit novo, com os PRs que entraram.
+    env |= {"CAMPSVERSO_COMMIT": new, "CAMPSVERSO_PRS": "7, 9,x"}
+    swap = version_command("lab-02", "lab_office", again.build, env, now, ids[1])
+    assert swap is not None
+    again.submit(swap)
+    (changed,) = _only(again.drain(), "world.version.changed")
+    assert changed == {
+        "commit": new,
+        "date": "2026-11-20T23:30:00-03:00",
+        "previous": old,
+        "pull_requests": [7, 9],
+    }
+
+
+def test_um_mundo_sem_versao_grava_o_snapshot_de_sempre() -> None:
+    assert "build" not in _core().export_state()

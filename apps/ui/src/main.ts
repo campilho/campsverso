@@ -783,7 +783,7 @@ function frame(now: number): void {
     if (panelDue || shownClock !== lastClock) {
       // O HUD acompanha cada minuto mostrado; o painel do operador, só as mudanças de estado.
       portrait.setBadge(progressOf(state, avatarId(), tick)?.label ?? "");
-      renderHud(hud, state, tick, avatarId(), store.status, portrait.element, (item) => icons.url(item));
+      renderHud(hud, state, tick, avatarId(), store.status, portrait.element, (item) => icons.url(item), store.welcome?.build);
       lastClock = shownClock;
     }
     if (leaving && queue.list.length === 0 && idle(state, avatarId())) {

@@ -12,7 +12,7 @@ import asyncio
 import os
 import signal
 import sys
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -111,6 +111,49 @@ def catch_up_command(
         "provenance": "simulated",
         "visibility": info.visibility,
         "data": {"to_tick": to_tick, "reason": "wall_clock"},
+    }
+
+
+VERSION = "campsverso.cmd.world.version.record.v1"
+# O que o supervisor do escritório vivo diz ao subir a pilha (ADR-0083): o commit, a data dele e
+# os PRs mesclados desde a versão de antes, separados por vírgula.
+COMMIT, COMMIT_DATE, PULL_REQUESTS = "CAMPSVERSO_COMMIT", "CAMPSVERSO_COMMIT_DATE", "CAMPSVERSO_PRS"
+
+
+def version_command(
+    worldid: str,
+    cartridge: str,
+    build: Mapping[str, str] | None,
+    environ: Mapping[str, str],
+    now: datetime,
+    command_id: str,
+) -> dict[str, Any] | None:
+    """O comando que registra a versão que subiu, ou nada: sem supervisor (sem o commit no
+    ambiente), ou com o mesmo commit de antes. Como o salto do relógio, vai pelo caminho de todo
+    comando, e o replay o refaz sem o git."""
+    commit, date = environ.get(COMMIT, ""), environ.get(COMMIT_DATE, "")
+    if not commit or not date or (build is not None and build.get("commit") == commit):
+        return None
+    data: dict[str, Any] = {"commit": commit, "date": date}
+    prs = [int(n) for n in environ.get(PULL_REQUESTS, "").split(",") if n.strip().isdigit()]
+    if prs:
+        data["pull_requests"] = prs
+    info = CONTRACT_TYPES[VERSION]
+    return {
+        "specversion": "1.0",
+        "id": command_id,
+        "source": f"/kernel/{worldid}",
+        "type": VERSION,
+        "time": now.isoformat(timespec="milliseconds").replace("+00:00", "Z"),
+        "datacontenttype": "application/json",
+        "dataschema": info.dataschema,
+        "worldid": worldid,
+        "cartridge": cartridge,
+        "seq": 0,
+        "actor": "kernel/versao",
+        "provenance": "simulated",
+        "visibility": info.visibility,
+        "data": data,
     }
 
 
@@ -244,6 +287,17 @@ async def run(args: argparse.Namespace) -> int:
             if jump is not None:
                 service.submit(jump)
                 telemetry.info("kernel.caught_up", to_tick=core.tick)
+        recorded = version_command(
+            world.worldid,
+            prepared.definition.top.id,
+            core.build,
+            os.environ,
+            clock.now(),
+            Uuid7Ids().new_id(),
+        )
+        if recorded is not None:
+            service.submit(recorded)
+            telemetry.info("kernel.version", commit=recorded["data"]["commit"])
         telemetry.info(
             "kernel.running", tick=core.tick, mode=core.mode, scale=core.scale, paused=core.paused
         )

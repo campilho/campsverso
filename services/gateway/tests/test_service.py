@@ -43,10 +43,12 @@ class Rig:
         blobs: MemoryBlobStore | None = None,
         *,
         player_clock: bool = False,
+        build: Mapping[str, str] | None = None,
     ) -> None:
         self.pipeline = pipeline
         self.blobs = blobs or MemoryBlobStore()
         self.player_clock = player_clock
+        self.build = build
         self.gateway = self.new_gateway()
         self.realtime = MemoryRealtime()
 
@@ -64,6 +66,7 @@ class Rig:
             p.validator,
             flush_seconds=3600,  # os testes chamam flush() na hora certa
             player_clock=self.player_clock,
+            build=self.build,
         )
 
     async def connect(self, view: str) -> tuple[MemoryClient, dict[str, Any]]:
@@ -127,6 +130,27 @@ async def _drain(client: MemoryClient) -> list[Mapping[str, Any]]:
 
 def _types(message: Mapping[str, Any]) -> set[str]:
     return {str(e["type"]).removeprefix("campsverso.") for e in message["events"]}
+
+
+async def test_a_placa_vem_na_sessao_so_quando_o_supervisor_diz_a_versao(rig: Rig) -> None:
+    """ADR-0083: o commit e a data que o gateway roda, para a placa; sem supervisor, nada."""
+    await rig.pipeline.run_until(30)
+    rig.gateway.flush()
+    _, welcome = await rig.connect("player")
+    assert "build" not in welcome
+    build = {"commit": "a" * 40, "date": "2026-11-20T23:30:00-03:00"}
+    other = Rig(rig.pipeline, build=build)
+    await other.gateway.start()
+    serving = asyncio.create_task(other.realtime.serve(other.gateway.handle))
+    try:
+        await rig.pipeline.run_until(60)
+        other.gateway.flush()
+        _, welcome = await other.connect("operator")
+        assert welcome["build"] == build
+    finally:
+        await other.realtime.stop()
+        await other.gateway.stop()
+        serving.cancel()
 
 
 async def test_welcome_traz_o_estado_e_o_mapa(rig: Rig) -> None:

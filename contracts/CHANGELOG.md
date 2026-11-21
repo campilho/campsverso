@@ -11,6 +11,7 @@ Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão 
   - `campsverso.office.ticket.pr_updated.v1`: um commit novo no ramo ou o resultado do CI;
   - `campsverso.office.ticket.pr_merged.v1`: o humano mesclou, o aceite; o kernel publica também o `office.ticket.accepted.v1`;
   - `campsverso.office.ticket.pr_closed.v1`: fechado sem mesclar; o pedido volta a "a fazer", e o kernel publica também o `office.ticket.returned.v1`.
+- **A troca de versão** (ADR-0083, a parte 2): o comando novo `campsverso.cmd.world.version.record.v1` (o commit inteiro, a data dele e, opcionais, os PRs mesclados desde a versão de antes; produtor `kernel`, visibilidade `observer`), que a raiz de composição do kernel manda ao subir quando o supervisor diz qual commit sobe; o diário o guarda, e o replay o refaz. E o tipo novo `campsverso.world.version.changed.v1` (o commit, a data, o commit de antes e os PRs, os dois últimos opcionais; produtor `kernel`, visibilidade `world`): o mundo passou a rodar noutra versão. A sessão da tela (`realtime/welcome.v1`) ganha `build`, opcional: o commit e a data que o gateway roda, para a placa.
 
 ### M24
 

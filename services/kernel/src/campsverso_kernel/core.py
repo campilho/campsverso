@@ -103,6 +103,9 @@ class KernelCore:
         self.mode: ClockMode = "continuous"
         self.scale = float(definition.clock.default_scale)
         self.paused = False
+        # A versão do código que roda o mundo (ADR-0083), quando o supervisor a diz: o commit e a
+        # data. Sem supervisor (os testes, o sandbox), fica vazia.
+        self.build: dict[str, str] | None = None
         self._queue: deque[Mapping[str, Any]] = deque()
         self._scheduled: list[tuple[int, Mapping[str, Any]]] = []  # (at_tick, comando) do replay
         self._initial_controllers: dict[str, ControllerRef] = {}
@@ -126,6 +129,7 @@ class KernelCore:
             "campsverso.cmd.clock.resume.v1": self._resume,
             "campsverso.cmd.clock.step.v1": self._step_command,
             "campsverso.cmd.clock.catch_up.v1": self._catch_up,
+            "campsverso.cmd.world.version.record.v1": self._record_version,
             "campsverso.cmd.avatar.possess.v1": self._possess,
             "campsverso.cmd.avatar.release.v1": self._release,
             "campsverso.cmd.rules.toggle.v1": self._toggle_rule,
@@ -213,6 +217,8 @@ class KernelCore:
             ],
             "next_seq": self.log.next_seq,
             "world": self.world.export_state(),
+            # Só quando há: o snapshot de um mundo sem supervisor fica igual, byte a byte.
+            **({} if self.build is None else {"build": dict(self.build)}),
         }
 
     def restore_state(self, state: Mapping[str, Any]) -> None:
@@ -236,6 +242,8 @@ class KernelCore:
             self._triggered.append((system, trigger, str(raw["avatar_id"])))
         self.log.next_seq = int(state["next_seq"])
         self.world.import_state(cast(Mapping[str, Any], state["world"]))
+        build = cast(Mapping[str, Any] | None, state.get("build"))
+        self.build = None if build is None else {k: str(v) for k, v in build.items()}
 
     # ------------------------------------------------------------- sessão
 
@@ -570,6 +578,25 @@ class KernelCore:
             "campsverso.world.clock.caught_up.v1",
             {"from_tick": start, "to_tick": self.tick, "reason": str(data["reason"])},
             caused_by=str(command.get("id")),
+        )
+        return None
+
+    def _record_version(self, command: Mapping[str, Any], data: Mapping[str, Any]) -> str | None:
+        """A versão do código que subiu (ADR-0083): guardada no estado e, se mudou, contada a
+        todos. O mesmo commit de novo (um reinício sem troca) não muda nada."""
+        commit, date = str(data["commit"]), str(data["date"])
+        previous = None if self.build is None else self.build.get("commit")
+        if previous == commit:
+            return "no_change"
+        self.build = {"commit": commit, "date": date}
+        fact: dict[str, Any] = {"commit": commit, "date": date}
+        if previous is not None:
+            fact["previous"] = previous
+        prs = [int(n) for n in cast(list[Any], data.get("pull_requests") or [])]
+        if prs:
+            fact["pull_requests"] = prs
+        self.world.emit_fact(
+            "campsverso.world.version.changed.v1", fact, caused_by=str(command.get("id"))
         )
         return None
 
