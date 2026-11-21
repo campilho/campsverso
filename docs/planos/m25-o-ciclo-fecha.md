@@ -318,6 +318,72 @@ Respondidas pelo usuário em 20/nov/2026 (ADR-0083).
     *Sim: conectar todos. O painel do elenco, com o modelo de cada personagem e quem está ligado numa rodada, entra no plano do M27 (§6).*
 16. **O orçamento do M25:** cada passo pago com o seu ok. *US$ 20.*
 
+## 13. A parte 5: a convocação e a troca segura (21/nov)
+
+**Por quê:** o usuário trabalha no projeto nos fins de semana e feriados, justamente quando o dev não está. E as primeiras trocas de verdade, em 21/nov, mostraram duas falhas:
+- o supervisor segue qualquer commit novo do `origin/main`, até com o CI vermelho (o `49fb87e` foi ao ar assim);
+- a tela não diz nada enquanto o escritório troca de versão.
+
+### A convocação
+
+- **Ao entrar:** quando o gerente entra fora do expediente e dentro da janela da convocação, o dev é convocado sozinho.
+  - Ele chega pela porta depois do deslocamento e diz que veio pelo chamado.
+  - O vigia sai na troca, como no fim do expediente.
+- **O botão:** com a convocação ao entrar, ele serve para o resto.
+  - "Dispensar o Camps", enquanto o dev está convocado.
+  - "Convocar o Camps" para chamá-lo de novo depois de dispensá-lo, num cenário com a convocação ao entrar desligada, ou para um segundo dev, que não vem sozinho.
+- **Até quando:** até o gerente dispensar ou sair do escritório, com um teto de horas. O que o dev estiver fazendo termina como no fim do expediente.
+- **Os números ficam nos dados do cenário** (`schedule.on_call`):
+  - se a convocação está ligada, e se ela vem ao entrar;
+  - a janela do dia em que vale (padrão 08:00 às 23:00), em qualquer hora fora do expediente: as noites, os fins de semana e os feriados;
+  - o deslocamento (padrão 2 minutos);
+  - o teto de uma convocação (padrão 6 horas);
+  - cada dev do elenco pode ter o próprio acordo, por cima do padrão do cenário.
+- **No mundo:**
+  - a convocação e a dispensa são ações do gerente, que o kernel confere e publica como fatos do escritório (`office.staff.summoned.v1` e `office.staff.dismissed.v1`);
+  - o dev entra e sai com o motivo `convocacao`;
+  - o replay refaz tudo, e a tela só propõe.
+- **O dev sabe:** a percepção mostra a convocação, e a memória a guarda (quem chamou e quando).
+- **O custo:** os tetos do orçamento de hoje, por dia e por pedido, seguem valendo.
+
+### A troca segura
+
+- **Só com o CI verde:** o supervisor só troca para um commit do `origin/main` cujos passos do CI no GitHub terminaram verdes.
+  - Ele lê o CI pelo App, que já tem Checks: Read.
+  - Um commit vermelho é recusado, como uma fumaça que falha; um que ainda roda espera.
+- **Nunca um commit local:** o supervisor só olha o `origin/main`. Hoje o `main` muda por um PR mesclado (o CI verde e a sua aprovação) ou por um push nosso. Com o portão do CI, os dois só vão ao ar verdes.
+- **Seguir só as versões publicadas** (as tags `v*`) fica como opção do supervisor para depois, se o escritório um dia precisar de mais calma.
+
+### A troca avisada
+
+- **Antes de parar a pilha,** o supervisor avisa o gateway vivo, e o gateway avisa as telas: "o escritório vai trocar para a versão abc1234 (PR #N)". A mensagem é nova no contrato da tela (`realtime`).
+- **Com a conexão caída,** a tela mostra uma faixa "trocando de versão…", e não só os botões apagados. Uma queda sem aviso mostra "conexão perdida; tentando de novo".
+- **Na volta,** a faixa diz "versão nova: abc1234 · PR #N" por alguns segundos, e a placa muda como hoje.
+- **Uma troca que espera o dev terminar uma sessão** avisa também: "troca pendente: esperando o dev terminar".
+- **Uma volta** avisa: "a versão nova falhou; voltamos para a abc1234".
+
+### O primeiro pedido do dev convocado
+
+O PR #2 caiu no lint, que a revisão da oficina não roda. O testador passa a rodar o `ruff` e o `pyright` nos arquivos mudados. É uma melhoria do robô do próprio dev, em `tools/robos/`, fora da constituição: um bom primeiro pedido para o dev convocado.
+
+### Ordem, testes e custo
+
+1. **A troca segura,** primeiro, porque é segurança.
+2. **A convocação:** os dados, as ações, os fatos, o sistema, o painel e a memória.
+3. **O aviso da troca:** o gateway e a tela.
+
+- **Os testes:**
+  - o sistema do escritório:
+    - convocar fora do expediente;
+    - chegar depois do deslocamento, e o vigia sai;
+    - dispensar, o teto, e o gerente que sai;
+    - fora da janela, nada;
+  - o replay de um sábado com convocação;
+  - o supervisor com o CI falso: o vermelho é recusado, o que roda espera e o verde troca;
+  - no navegador, o botão e a faixa.
+- **Uma ADR nova,** a 0086, com as decisões.
+- **O custo:** nada de API para construir. A convocação gasta o que o dev gastaria no expediente.
+
 ## Apêndice: como criar o GitHub App
 
 Os passos que o usuário faz, uma vez só. A chave privada nunca entra na conversa nem no git.

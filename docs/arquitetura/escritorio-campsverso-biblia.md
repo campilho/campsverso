@@ -47,11 +47,16 @@ Andar: 4 tiles por segundo na tela, em qualquer escala; o kernel converte pela e
 
 | Quem | Papel | Controlador padrão | Aceita | Quando está |
 |---|---|---|---|---|
-| Camps | `dev` | `script/dev` | `llm`, `script`, `replay`: nunca um humano | no expediente |
+| Camps | `dev` | `script/dev` | `llm`, `script`, `replay`: nunca um humano | no expediente, e convocado fora dele (ADR-0086) |
 | Gerente | `gerente` | `script/gerente-fora` (fora do escritório) | `human`, `script`, `replay` | enquanto alguém o assume; entra pela porta e sai quando é devolvido |
-| Vigia | `vigia` | `script/vigia` | `script`, `replay` | sempre que o dev não está: à noite, no fim de semana e nos feriados (não no almoço) |
+| Vigia | `vigia` | `script/vigia` | `script`, `replay` | sempre que o dev não está: à noite, no fim de semana e nos feriados (não no almoço, nem com o dev convocado) |
 
 A cadeira do jogador é o gerente (`player: gerente`): a tela do jogador o assume, e o gateway recusa qualquer outro avatar.
+
+**A convocação** (ADR-0086): fora do expediente, entre 08:00 e 23:00, o gerente convoca o dev, só de entrar no escritório (uma vez por visita) ou pelo botão "Convocar" do painel.
+- O dev chega pela porta 2 minutos depois e fica até ser dispensado, até o gerente sair, até 6 horas, até as 23:00 ou até o expediente começar, que o assume.
+- O vigia sai enquanto ele está.
+- Os números ficam em `office.schedule.on_call`, e cada dev do elenco pode ter o próprio acordo.
 
 ## 5. O pedido
 
