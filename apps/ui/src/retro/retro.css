@@ -201,29 +201,9 @@ body.retro a:focus-visible {
   z-index: 6;
 }
 
-/* A faixa do escritório vivo, até a fase das mensagens (o plano, fase 4): uma pílula fixa no meio
-   da barra de cima, que não empurra a moldura. */
+/* A faixa de hoje dá lugar às mensagens do sistema da moldura (§3.9). */
 body.retro .banner {
-  position: fixed;
-  top: 9px;
-  left: 50%;
-  transform: translateX(-50%);
-  max-width: min(640px, calc(100vw - 32px));
-  padding: 6px 14px;
-  border: 2px solid var(--contorno);
-  border-radius: 8px;
-  background: var(--cremeCl);
-  color: var(--escuro);
-  font: 600 13px var(--texto);
-  box-shadow: 0 3px 0 var(--contorno);
-}
-
-body.retro .banner.info {
-  background: var(--amareloCl);
-}
-
-body.retro .banner.warn {
-  background: #f6c9c3;
+  display: none !important;
 }
 
 /* O que já ficava sobre o mapa (a ajuda, a fila, o aviso de recusa) e o menu da coisa guardam o
@@ -1256,6 +1236,158 @@ a.retro-pr:hover {
   }
 }
 
+/* ------------------------------------------------------------------ as mensagens do sistema (§3.9) */
+
+.retro-system .retro-close {
+  visibility: hidden; /* o modal do sistema não fecha: some quando o escritório volta */
+}
+
+.retro-system .retro-about-icon {
+  width: 96px;
+  height: 96px;
+}
+
+.retro-system .retro-about-icon.off {
+  filter: grayscale(1) brightness(1.1);
+}
+
+.retro-system-title {
+  margin: 0 0 8px;
+  font: 700 22px var(--pixel);
+}
+
+.retro-system p {
+  margin: 0 0 12px;
+  font: 14px/1.45 var(--texto);
+}
+
+.retro-system code {
+  font: 600 14px var(--mono);
+}
+
+.retro-stripes {
+  height: 14px;
+  margin: 4px 0 12px;
+  border: 2px solid var(--contorno);
+  border-radius: 3px;
+  background: repeating-linear-gradient(-45deg, var(--amarelo) 0 10px, #b9902a 10px 20px);
+  background-size: 28px 28px;
+  animation: retro-stripes 1s linear infinite;
+}
+
+@keyframes retro-stripes {
+  to {
+    background-position: 28px 0;
+  }
+}
+
+.retro-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: 13px/1.6 var(--texto);
+}
+
+.retro-steps li::before {
+  display: inline-block;
+  width: 18px;
+}
+
+.retro-steps .feito {
+  color: var(--verdeEsc);
+}
+
+.retro-steps .feito::before {
+  content: "✓";
+}
+
+.retro-steps .agora {
+  color: var(--madEsc);
+}
+
+.retro-steps .agora::before {
+  content: "●";
+}
+
+.retro-steps .depois {
+  color: var(--begeEsc);
+}
+
+.retro-steps .depois::before {
+  content: "○";
+}
+
+.retro-toasts {
+  position: fixed;
+  top: 64px;
+  right: 16px;
+  z-index: 30;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+}
+
+.retro-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  border: 3px solid var(--contorno);
+  border-radius: 10px;
+  background: var(--creme);
+  box-shadow: inset 3px 3px 0 var(--cremeCl), inset -4px -4px 0 var(--begeSomb), 0 4px 0 var(--contorno);
+  color: var(--escuro);
+  font-family: var(--texto);
+}
+
+.retro-toast-stripe {
+  flex: none;
+  align-self: stretch;
+  width: 10px;
+  border: 2px solid var(--contorno);
+  border-radius: 3px;
+  background: var(--amarelo);
+}
+
+.retro-toast.vermelho .retro-toast-stripe {
+  background: var(--vermCl);
+}
+
+.retro-toast.verde .retro-toast-stripe {
+  background: var(--verdeCl);
+}
+
+.retro-toast-icon {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  image-rendering: pixelated;
+}
+
+.retro-toast-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.retro-toast-text b {
+  display: block;
+  font-size: 14px;
+}
+
+.retro-toast-close {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 2px solid var(--contorno);
+  border-radius: 5px;
+  background: var(--cremeCl);
+  color: var(--escuro);
+  font: 700 14px var(--texto);
+  cursor: pointer;
+}
+
 /* ------------------------------------------------------------------ a prancheta (§3.6) */
 
 .retro-clipboard-dialog {
@@ -1642,5 +1774,9 @@ textarea.retro-lined {
 
   .retro-talk {
     transition: none;
+  }
+
+  .retro-stripes {
+    animation: none;
   }
 }

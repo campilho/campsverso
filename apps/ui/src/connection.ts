@@ -17,6 +17,9 @@ const RETRY_MS = [500, 1000, 2000, 5000];
 export class Connection {
   private socket: WebSocket | undefined;
   private attempts = 0;
+  private retry: number | undefined;
+  /** Quando a próxima tentativa sai (ms de `Date.now()`), enquanto a conexão está fechada. */
+  nextRetryAt: number | undefined;
   private nextRequest = 1;
   private readonly url: string;
   private readonly store: Store;
@@ -24,6 +27,22 @@ export class Connection {
   constructor(url: string, store: Store) {
     this.url = url;
     this.store = store;
+  }
+
+  /** Quantas tentativas já falharam desde a última conexão aberta. */
+  get attempt(): number {
+    return this.attempts;
+  }
+
+  /** O "Tentar agora" da tela: sem esperar a próxima tentativa. */
+  retryNow(): void {
+    if (this.retry === undefined) {
+      return; // aberta, ou já tentando
+    }
+    window.clearTimeout(this.retry);
+    this.retry = undefined;
+    this.nextRetryAt = undefined;
+    this.open();
   }
 
   open(): void {
@@ -41,7 +60,10 @@ export class Connection {
       this.store.setStatus("closed");
       const delay = RETRY_MS[Math.min(this.attempts, RETRY_MS.length - 1)] ?? 5000;
       this.attempts += 1;
-      window.setTimeout(() => {
+      this.nextRetryAt = Date.now() + delay;
+      this.retry = window.setTimeout(() => {
+        this.retry = undefined;
+        this.nextRetryAt = undefined;
         this.open();
       }, delay);
     });

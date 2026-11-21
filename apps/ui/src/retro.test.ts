@@ -3,10 +3,11 @@
 import type { EnvelopeV1, ObserverState } from "@campsverso/contracts";
 import { describe, expect, it } from "vitest";
 
-import type { Banner } from "./banner.ts";
+import { bannerOf, type Banner, type Notice } from "./banner.ts";
 import { summonsOf, type TicketView } from "./panels/office.ts";
 import type { Step } from "./queue.ts";
 import { chipsOf, clockView, lightOf, robotLine, summonShort } from "./retro/model.ts";
+import { prsText, systemOf } from "./retro/system.ts";
 import {
   completeMention,
   linesOf,
@@ -352,5 +353,53 @@ describe("a conversa (§3.5)", () => {
       { kind: "speech", id: "e6", who: "camps", name: "Camps", text: "Anotado.", mine: false, time: "09:04" },
     ]);
     expect(linesOf(timeline, room, "gerente", labels, 2).map((l) => l.id)).toEqual(["e5", "e6"]); // só as últimas
+  });
+});
+
+describe("as mensagens do sistema (§3.9)", () => {
+  const commit = "5485c2e1234567890abcdef1234567890abcdef0";
+  const notice = (kind: "troca" | "espera" | "volta", text: string): Notice => ({
+    message: { type: "campsverso.realtime.notice.v1", kind, text, commit, pull_requests: [11] },
+    at: 1000,
+  });
+  const base = { running: "89f4167aaaa", notice: undefined, fresh: undefined, last: "10:59", attempt: 0, nextRetryAt: undefined, now: 5000 };
+
+  it("a troca e a queda travam a tela num modal; a espera, a volta e a versão nova só avisam", () => {
+    const swap = notice("troca", "O escritório vai trocar.");
+    const banner = bannerOf({ status: "closed", everOpen: true, notice: swap, fresh: undefined, now: 2000 });
+    expect(systemOf({ ...base, banner, notice: swap })).toEqual({ form: "modal", kind: "troca", from: "89f4167", to: "5485c2e", pullRequests: [11] });
+    const fall = bannerOf({ status: "closed", everOpen: true, notice: undefined, fresh: undefined, now: 2000 });
+    expect(systemOf({ ...base, banner: fall, attempt: 3, nextRetryAt: 12_100 })).toEqual({ form: "modal", kind: "queda", last: "10:59", attempt: 3, nextIn: 8 });
+    const wait = notice("espera", "Há uma versão nova.");
+    const waiting = systemOf({ ...base, banner: bannerOf({ status: "open", everOpen: true, notice: wait, fresh: undefined, now: 2000 }), notice: wait });
+    expect(waiting).toMatchObject({ form: "aviso", tone: "amarelo", title: "Versão nova na fila", text: "Há uma versão nova." });
+    const back = notice("volta", "A versão nova falhou, e o escritório voltou.");
+    expect(systemOf({ ...base, banner: bannerOf({ status: "open", everOpen: true, notice: back, fresh: undefined, now: 2000 }), notice: back })).toMatchObject({
+      form: "aviso",
+      tone: "vermelho",
+      title: "O escritório voltou",
+    });
+    const fresh = { commit, pullRequests: [11, 12], at: 1500 };
+    expect(systemOf({ ...base, banner: bannerOf({ status: "open", everOpen: true, notice: undefined, fresh, now: 2000 }), fresh })).toMatchObject({
+      form: "aviso",
+      tone: "verde",
+      title: "Versão nova no ar",
+      text: "5485c2e, com os PRs #11 e #12.",
+    });
+    expect(systemOf({ ...base, banner: undefined })).toBeUndefined();
+  });
+
+  it("o aviso novo tem outra chave, para o × fechar só o de agora", () => {
+    const wait = notice("espera", "Há uma versão nova.");
+    const banner = bannerOf({ status: "open", everOpen: true, notice: wait, fresh: undefined, now: 2000 });
+    const first = systemOf({ ...base, banner, notice: wait });
+    const second = systemOf({ ...base, banner, notice: { ...wait, at: 9000 } });
+    expect(first?.form === "aviso" && second?.form === "aviso" && first.key !== second.key).toBe(true);
+  });
+
+  it("diz os PRs por extenso", () => {
+    expect(prsText([])).toBe("");
+    expect(prsText([7])).toBe("com o PR #7");
+    expect(prsText([7, 8, 9])).toBe("com os PRs #7, #8 e #9");
   });
 });

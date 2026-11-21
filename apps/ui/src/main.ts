@@ -50,7 +50,9 @@ import { Clipboard, type ClipboardContext } from "./retro/clipboard.ts";
 import { RetroTalk } from "./retro/conversation.ts";
 import { FaceCache } from "./retro/faces.ts";
 import { RetroFrame } from "./retro/frame.ts";
+import { SystemMessages } from "./retro/messages.ts";
 import { chipsOf, clockView, lightOf } from "./retro/model.ts";
+import { systemOf } from "./retro/system.ts";
 import { linesOf, peopleOf } from "./retro/talk.ts";
 import { ghostsOf } from "./retro/tickets.ts";
 import { parseTiledMap, tileAt as terrainAt, type TileGrid } from "./tiled.ts";
@@ -267,6 +269,9 @@ function clipboardContext(state: ObserverState): ClipboardContext {
   };
 }
 
+// As mensagens do sistema (§3.9), no lugar da faixa: a troca e a queda travam a tela; o resto avisa.
+const system = new SystemMessages(document.body, () => { connection.retryNow(); });
+
 // A conversa (§3.5), no lugar do cartão "Falar": a primeira menção vira o `to`; sem ela, o dev.
 const faces = new FaceCache(() => { dirty = true; });
 const talk = new RetroTalk(faces, (text, to) => {
@@ -320,6 +325,18 @@ function renderRetro(state: ObserverState): void {
   const shown = clockText(state, shownTick);
   const banner = bannerOf({ status: store.status, everOpen: store.everOpen, notice: store.notice, fresh: store.fresh, now: Date.now() });
   const clockable = playerClock();
+  system.render(
+    systemOf({
+      banner,
+      running: store.welcome?.build?.commit,
+      notice: store.notice,
+      fresh: store.fresh,
+      last: clockText(state, state.tick).slice(0, 5),
+      attempt: connection.attempt,
+      nextRetryAt: connection.nextRetryAt,
+      now: Date.now(),
+    }),
+  );
   retro.render({
     state,
     timeline: store.timeline,

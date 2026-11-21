@@ -183,4 +183,24 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   await menu.getByRole("button", { name: "Tomar um café" }).click();
   await expect(hud).toContainText("fazendo: coffee", { timeout: 30_000 });
   await page.screenshot({ path: `${SHOTS}/escritorio-cafe.png` });
+
+  // As mensagens do sistema (docs/design/briefing-tela.md, §3.9), pelo aviso que o supervisor manda
+  // ao gateway: a espera avisa no canto e fecha no ×; a troca trava a tela, sem fechar no Esc; a
+  // volta tira o modal e avisa.
+  const notify = (data: Record<string, unknown>): Promise<unknown> => page.request.post("/aviso", { data });
+  await notify({ kind: "espera", text: "Há uma versão nova: o escritório troca quando o dev terminar a sessão na oficina." });
+  const toast = page.locator(".retro-toast");
+  await expect(toast).toContainText("Versão nova na fila");
+  await expect(page.getByRole("img", { name: "atualizando" })).toBeVisible();
+  await toast.getByRole("button", { name: "Fechar o aviso" }).click();
+  await expect(toast).toHaveCount(0);
+  await notify({ kind: "troca", text: "O escritório vai trocar agora e volta em instantes.", commit: "a".repeat(40), pull_requests: [7] });
+  const swap = page.getByRole("alertdialog", { name: "O Campsverso está se atualizando" });
+  await expect(swap).toContainText("para a aaaaaaa, com o PR #7");
+  await page.keyboard.press("Escape");
+  await expect(swap).toBeVisible();
+  await page.screenshot({ path: `${SHOTS}/escritorio-troca.png` });
+  await notify({ kind: "volta", text: "A versão aaaaaaa falhou ao subir, e o escritório voltou." });
+  await expect(swap).toBeHidden();
+  await expect(toast).toContainText("O escritório voltou");
 });
