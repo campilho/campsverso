@@ -81,7 +81,8 @@ async def test_a_entrega_vira_pr_e_a_mesclagem_aceita(tmp_path: Path) -> None:
     assert "pedido-001" not in service.open
 
     # O pedido 2: o PR fechado sem mesclar devolve o pedido, e o dev o refaz no mesmo ramo, num
-    # PR novo, com o commit novo sobre o topo do ramo.
+    # PR novo. Sem PR aberto, o ramo recomeça da base: o PR novo não arrasta o histórico do fechado
+    # (o PR #3 de 21/nov foi por cima de um ramo velho e mostrava o que não era do dev).
     await _until(pipeline, "pr_opened", 2)
     second = _facts(pipeline, "pr_opened")[1]
     assert (second["ticket_id"], second["pull_request"]) == ("pedido-002", 2)
@@ -96,9 +97,8 @@ async def test_a_entrega_vira_pr_e_a_mesclagem_aceita(tmp_path: Path) -> None:
         3,
         "dev/pedido-2",
     )
-    commits = host.branches["dev/pedido-2"]
-    assert len(commits) == 2
-    assert commits[1].parent == commits[0].sha
+    (commit,) = host.branches["dev/pedido-2"]
+    assert commit.parent == _facts(pipeline, "delivered")[-1]["patch"]["base"]
     assert pipeline.of_type("world.command.rejected.v1") == []
 
     # O replay do dia: os relatos estão no diário, e o GitHub não é consultado de novo.

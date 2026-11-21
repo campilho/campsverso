@@ -157,7 +157,13 @@ class GitHubCodeHost:
         return _json(response, f"{method} {path}")
 
     async def publish_branch(
-        self, branch: str, base: str, files: Mapping[str, str | None], message: str
+        self,
+        branch: str,
+        base: str,
+        files: Mapping[str, str | None],
+        message: str,
+        *,
+        fresh: bool = False,
     ) -> str:
         base_commit = await self._call("GET", f"/git/commits/{base}")
         tree: list[dict[str, Any]] = []
@@ -175,7 +181,7 @@ class GitHubCodeHost:
             "POST", "/git/trees", {"base_tree": base_commit["tree"]["sha"], "tree": tree}
         )
         ref = await self._call("GET", f"/git/ref/heads/{branch}", missing=True)
-        parent = base if ref is None else str(ref["object"]["sha"])
+        parent = base if ref is None or fresh else str(ref["object"]["sha"])
         commit = await self._call(
             "POST",
             "/git/commits",
@@ -185,7 +191,7 @@ class GitHubCodeHost:
         if ref is None:
             await self._call("POST", "/git/refs", {"ref": f"refs/heads/{branch}", "sha": sha})
         else:
-            await self._call("PATCH", f"/git/refs/heads/{branch}", {"sha": sha, "force": False})
+            await self._call("PATCH", f"/git/refs/heads/{branch}", {"sha": sha, "force": fresh})
         return sha
 
     async def open_pull_request(self, branch: str, title: str, body: str) -> PullRequest:

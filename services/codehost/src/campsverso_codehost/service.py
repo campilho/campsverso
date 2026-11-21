@@ -219,12 +219,18 @@ class CodeHostService:
             )
             return
         branch = branch_of(number, self._branch_prefix)
+        known = self.open.get(ticket_id)
         try:
             files = await self._files(str(patch["base"]), text)
+            # Sem PR aberto, o pedido começa do `main`: um ramo velho com o mesmo nome (o do
+            # primeiro PR de todos, fechado) não pode ser o pai, ou o PR mostra o que não é do dev.
             head = await self._host.publish_branch(
-                branch, str(patch["base"]), files, _message(number, ticket.title)
+                branch,
+                str(patch["base"]),
+                files,
+                _message(number, ticket.title),
+                fresh=known is None,
             )
-            known = self.open.get(ticket_id)
             if known is not None:  # o pedido devolvido e refeito: o PR acompanha o ramo
                 known.head = head
                 await self._report(ticket_id, known.pull_request, "updated", {"head": head}, cause)

@@ -265,3 +265,14 @@ async def test_o_prefixo_dos_ramos_vale_para_o_pr() -> None:
     await _deliver(bus)
     assert list(host.branches) == ["dev/sandbox-20261121-103000/pedido-1"]
     assert _reports(bus)[-1]["branch"] == "dev/sandbox-20261121-103000/pedido-1"
+
+
+async def test_o_pedido_sem_pr_aberto_comeca_da_base_mesmo_com_um_ramo_velho() -> None:
+    """O PR #3 (21/nov): o ramo do primeiro PR de todos, fechado, tinha o mesmo nome."""
+    host = MemoryCodeHost()
+    await host.publish_branch("dev/pedido-1", "o" * 40, {"a.md": "velho\n"}, "o de ontem")
+    service, bus, _ = _service(host)
+    await service.start()
+    await _deliver(bus)
+    (commit,) = host.branches["dev/pedido-1"]
+    assert commit.parent == BASE

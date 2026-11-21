@@ -185,6 +185,22 @@ async def test_o_ramo_que_existe_avanca_sobre_o_topo(tmp_path: Path) -> None:
     assert patched == {"sha": "c" * 40, "force": False}
 
 
+async def test_o_pedido_novo_reescreve_o_ramo_velho_a_partir_da_base(tmp_path: Path) -> None:
+    """O PR #3 (21/nov): o ramo `dev/pedido-1` do primeiro PR de todos ainda existia, e o pedido 1
+    do escritório vivo foi por cima dele. Com `fresh`, o pai é a base, e o ramo é reescrito."""
+    api = FakeApi(branch_exists=True)
+    host = _host(api, _key(tmp_path))
+    await host.publish_branch("dev/pedido-1", BASE, {"a.md": "x\n"}, "pedido 1", fresh=True)
+    commit = next(b for _, p, b in api.calls if p.endswith("/git/commits"))
+    assert commit["parents"] == [BASE]
+    patched = next(b for m, _, b in api.calls if m == "PATCH")
+    assert patched == {"sha": "c" * 40, "force": True}
+    memory = MemoryCodeHost()
+    await memory.publish_branch("dev/pedido-1", "o" * 40, {"a.md": "velho\n"}, "o de ontem")
+    fresh = await memory.publish_branch("dev/pedido-1", BASE, {"a.md": "x\n"}, "hoje", fresh=True)
+    assert [(c.sha, c.parent) for c in memory.branches["dev/pedido-1"]] == [(fresh, BASE)]
+
+
 async def test_o_pr_o_estado_e_o_ci(tmp_path: Path) -> None:
     api = FakeApi()
     host = _host(api, _key(tmp_path))

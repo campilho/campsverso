@@ -33,8 +33,16 @@ class MemoryCodeHost:
     commit_cis: dict[str, CiState] = field(default_factory=dict[str, CiState])
 
     async def publish_branch(
-        self, branch: str, base: str, files: Mapping[str, str | None], message: str
+        self,
+        branch: str,
+        base: str,
+        files: Mapping[str, str | None],
+        message: str,
+        *,
+        fresh: bool = False,
     ) -> str:
+        if fresh:
+            self.branches[branch] = []  # o ramo velho com o mesmo nome sai: começa da base
         commits = self.branches.setdefault(branch, [])
         parent = commits[-1].sha if commits else base
         body = json.dumps([branch, parent, dict(sorted(files.items())), message])

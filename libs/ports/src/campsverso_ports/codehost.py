@@ -35,10 +35,19 @@ class PullRequest:
 
 class CodeHostPort(Protocol):
     async def publish_branch(
-        self, branch: str, base: str, files: Mapping[str, str | None], message: str
+        self,
+        branch: str,
+        base: str,
+        files: Mapping[str, str | None],
+        message: str,
+        *,
+        fresh: bool = False,
     ) -> str:
         """Um commit com os arquivos mudados contra `base`, no ramo `branch`: cria o ramo sobre a
-        base, ou avança o que já existe. Devolve o commit novo."""
+        base, ou avança o que já existe (o pedido devolvido e refeito, no mesmo PR). Com `fresh`, o
+        commit vai sobre a base e reescreve o ramo que já existia: um pedido sem PR aberto começa do
+        `main`, e não da ponta de um ramo velho com o mesmo nome (o PR #3, 21/nov). Devolve o
+        commit novo."""
         ...
 
     async def open_pull_request(self, branch: str, title: str, body: str) -> PullRequest:
