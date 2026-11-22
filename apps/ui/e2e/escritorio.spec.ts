@@ -217,3 +217,26 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   await drawer.getByRole("button", { name: "Fechar o painel do operador" }).click();
   await expect(page).toHaveURL(/view=player/);
 });
+
+test("no celular, a câmera segue o gerente num recorte da sala, e as abas trocam o painel (§4)", async ({ page }) => {
+  await page.setViewportSize({ width: 402, height: 874 });
+  await page.goto("/?view=player");
+  await expect(page.locator(".retro-phone-tabs")).toBeVisible({ timeout: 45_000 });
+  await expect(page.locator(".retro-bar")).toBeHidden(); // a barra de baixo vira a faixa, as abas e a barra de ação
+  await expect(page.locator(".retro-strip")).toBeVisible();
+  await expect(page.locator(".retro-actionbar")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(402); // nada passa da tela
+  // A sala não cabe em 1x: o canvas é o recorte do monitor, e a câmera anda por ele.
+  const canvas = page.locator(".retro-screen .phaser canvas").first();
+  await expect.poll(() => canvas.evaluate((c: HTMLCanvasElement) => c.width), { timeout: 10_000 }).toBeLessThan(640);
+  const seguir = page.getByRole("button", { name: "seguir", exact: true });
+  await expect(seguir).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".retro-minimap")).toBeVisible();
+  await page.getByRole("tab", { name: /^Pessoas/ }).click();
+  await expect(page.locator(".retro-people-panel .retro-chip").first()).toBeVisible();
+  await expect(page.locator(".retro-board")).toBeHidden();
+  await page.screenshot({ path: `${SHOTS}/escritorio-celular.png` });
+  await page.getByRole("button", { name: "sala", exact: true }).click();
+  await expect(page.getByRole("button", { name: "sala", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".retro-follow-tag")).toBeHidden();
+});

@@ -40,6 +40,7 @@ body.retro {
 
 body.retro #app {
   display: grid;
+  grid-template-columns: minmax(0, 1fr); /* nada alarga a página além da tela */
   grid-template-rows: 52px minmax(0, 1fr);
   gap: 12px;
   height: 100vh;
@@ -820,7 +821,7 @@ body.retro aside.office h2 {
 
 .retro-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(196px, 100%), 1fr));
   gap: 16px 12px;
   margin: 0;
   padding: 18px 12px 14px;
@@ -1269,6 +1270,10 @@ a.retro-pr:hover {
   transition:
     transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
     visibility 0s linear 0.35s;
+}
+
+.retro-drawer[hidden] {
+  display: none;
 }
 
 .retro-drawer.open {
@@ -1762,6 +1767,7 @@ body.retro:has(.retro-drawer.open) .retro-toasts {
 }
 
 .retro-paper-no {
+  white-space: nowrap;
   padding: 2px 8px;
   border: 2px solid var(--contorno);
   font: 600 15px var(--mono);
@@ -2058,5 +2064,422 @@ textarea.retro-lined {
   .retro-drawer,
   .retro-drawer.open {
     transition: none;
+  }
+}
+
+/* ================================================================== tablet e celular (§4) */
+
+/* As peças do celular ficam escondidas no computador e no tablet. */
+.retro-strip,
+.retro-phone-tabs,
+.retro-actionbar,
+.retro-camera,
+.retro-follow-tag,
+.retro-minimap-slot,
+.retro-people-panel {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ o iPad em pé: 760 a 1179 */
+
+@media (max-width: 1179px) {
+  body.retro #app {
+    height: auto;
+    min-height: 100vh;
+    grid-template-rows: 52px auto;
+  }
+
+  .retro-main {
+    flex-direction: column;
+  }
+
+  .retro-left {
+    flex: none;
+  }
+
+  /* O monitor na largura toda, com as caixas de som de grade dos dois lados. */
+  .retro-monitor {
+    position: relative;
+    width: 100%;
+  }
+
+  .retro-monitor::before,
+  .retro-monitor::after {
+    content: "";
+    position: absolute;
+    top: 150px;
+    width: 46px;
+    height: 220px;
+    border-radius: 4px;
+    background: repeating-linear-gradient(to bottom, var(--begeSomb) 0 6px, transparent 6px 14px);
+  }
+
+  .retro-monitor::before {
+    left: calc((100% - 640px) / 4 - 23px);
+  }
+
+  .retro-monitor::after {
+    right: calc((100% - 640px) / 4 - 23px);
+  }
+
+  .retro-bar {
+    flex: none;
+  }
+
+  /* O quadro e a conversa lado a lado, até o fim. */
+  .retro-rightwrap {
+    flex: none;
+    min-height: 560px;
+  }
+
+  .retro-right {
+    flex-direction: row;
+    overflow: visible;
+  }
+
+  .retro-right > .retro-board,
+  .retro-right > .retro-talk {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 560px;
+  }
+}
+
+/* ------------------------------------------------------------------ o celular: abaixo de 760 */
+
+@media (max-width: 759px) {
+  body.retro #app {
+    grid-template-rows: 48px auto;
+    gap: 10px;
+    padding: 0 8px calc(64px + env(safe-area-inset-bottom));
+  }
+
+  .retro-top {
+    gap: 8px;
+    height: 48px;
+    margin: 0 -8px; /* a barra vai de ponta a ponta, sem passar da tela */
+    padding: 0 10px;
+  }
+
+  .retro-icon-button {
+    width: 32px;
+    height: 32px;
+  }
+
+  .retro-name {
+    font-size: 17px;
+  }
+
+  .retro-views button {
+    padding: 5px 10px;
+    font-size: 13px;
+  }
+
+  .retro-monitor {
+    height: auto;
+    padding: 10px 10px 0;
+  }
+
+  .retro-monitor::before,
+  .retro-monitor::after {
+    display: none;
+  }
+
+  /* O monitor recortado: a câmera segue o gerente em 1x, num recorte de 5:4. */
+  .retro-screen {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 5 / 4;
+  }
+
+  body.retro .retro-screen canvas {
+    width: auto !important;
+    height: auto !important;
+  }
+
+  .retro-follow-tag {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 7;
+    padding: 3px 8px;
+    border: 2px solid var(--contorno);
+    border-radius: 6px;
+    background: var(--cremeCl);
+    color: var(--escuro);
+    font: 600 12px var(--texto);
+  }
+
+  .retro-screen:not(.seguindo) .retro-follow-tag {
+    display: none;
+  }
+
+  .retro-follow-tag,
+  .retro-minimap-slot {
+    display: block;
+    pointer-events: none;
+  }
+
+  .retro-minimap-slot {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    z-index: 7;
+    line-height: 0;
+  }
+
+  .retro-minimap {
+    border: 2px solid var(--contorno);
+    border-radius: 4px;
+    image-rendering: pixelated;
+  }
+
+  .retro-monitor-foot {
+    height: auto;
+    min-height: 40px;
+    padding-block: 6px;
+    gap: 8px;
+  }
+
+  .retro-tab {
+    gap: 4px;
+    padding: 0 6px;
+    font-size: 12px;
+  }
+
+  .retro-tab-count {
+    min-width: 20px;
+    height: 20px;
+    padding: 0 4px;
+    line-height: 20px;
+  }
+
+  .retro-slots,
+  .retro-foot-clock,
+  .retro-help,
+  .retro-onair {
+    display: none;
+  }
+
+  .retro-camera {
+    display: flex;
+    margin-left: auto;
+    padding: 2px;
+    gap: 2px;
+    border: 2px solid var(--contorno);
+    border-radius: 7px;
+    background: var(--bege);
+  }
+
+  .retro-camera button {
+    min-height: 26px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--escuro);
+    font: 600 12px var(--texto);
+  }
+
+  .retro-camera button[aria-pressed="true"] {
+    background: var(--escuro);
+    color: var(--cremeCl);
+  }
+
+  .retro-bar {
+    display: none;
+  }
+
+  /* A faixa com a hora, o dia e "ao vivo". */
+  .retro-strip {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 3px solid var(--contorno);
+    border-radius: 10px;
+    background: var(--creme);
+    box-shadow: inset 2px 2px 0 var(--cremeCl), inset -3px -3px 0 var(--begeSomb);
+  }
+
+  .retro-strip-hour {
+    font: 700 20px var(--pixel);
+  }
+
+  .retro-strip-day {
+    font-size: 13px;
+  }
+
+  .retro-strip-live {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: auto;
+    font-size: 13px;
+    color: var(--verdeEsc);
+  }
+
+  /* As abas: Quadro, Conversa, Pessoas. */
+  .retro-phone-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    padding: 4px;
+    border: 3px solid var(--contorno);
+    border-radius: 10px;
+    background: var(--bege);
+  }
+
+  .retro-phone-tab {
+    min-height: 40px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--escuro);
+    font: 600 14px var(--texto);
+    cursor: pointer;
+  }
+
+  .retro-phone-tab[aria-selected="true"] {
+    background: var(--escuro);
+    color: var(--cremeCl);
+  }
+
+  .retro-rightwrap {
+    min-height: 0;
+  }
+
+  .retro-right {
+    flex-direction: column;
+  }
+
+  .retro-right > .retro-board,
+  .retro-right > .retro-talk {
+    flex: none;
+    height: 62vh;
+    min-height: 380px;
+  }
+
+  .retro-right[data-tab="quadro"] > :not([data-panel="quadro"]),
+  .retro-right[data-tab="conversa"] > :not([data-panel="conversa"]),
+  .retro-right[data-tab="pessoas"] > :not([data-panel="pessoas"]) {
+    display: none;
+  }
+
+  .retro-people-panel {
+    display: block;
+    padding: 10px;
+    border: 3px solid var(--contorno);
+    border-radius: 14px;
+    background: var(--creme);
+  }
+
+  .retro-people-panel .retro-people {
+    margin: 0;
+    padding: 0;
+    grid-template-rows: none;
+    grid-auto-flow: row;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    overflow: visible;
+    mask-image: none;
+  }
+
+  /* A barra de ação, presa embaixo. */
+  .retro-actionbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    display: block;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+    background: var(--pagina);
+  }
+
+  .retro-actionbar .retro-commands {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 6px;
+    min-width: 0;
+    padding: 0;
+  }
+
+  /* Com o convocar, os três não cabem lado a lado: o assumir ou soltar fica numa linha só dele. */
+  .retro-actionbar .retro-commands:has(> :nth-child(3)) {
+    grid-auto-flow: row;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .retro-actionbar .retro-commands:has(> :nth-child(3)) .retro-take {
+    grid-column: 1 / -1;
+  }
+
+  body.retro:has(.retro-actionbar .retro-commands > :nth-child(3)) #app {
+    padding-bottom: calc(118px + env(safe-area-inset-bottom));
+  }
+
+  .retro-actionbar .retro-commands .retro-take,
+  .retro-actionbar .retro-commands .retro-small {
+    height: 48px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .retro-actionbar .retro-take {
+    font-size: 15px;
+  }
+
+  .retro-actionbar .retro-small:disabled {
+    display: none;
+  }
+
+  /* Os modais e a gaveta usam a largura toda, menos 8 px de cada lado. */
+  .retro-clipboard-dialog,
+  .retro-dialog {
+    padding: 28px 8px 8px;
+  }
+
+  .retro-clipboard,
+  .retro-window {
+    width: calc(100vw - 16px);
+    max-width: none;
+  }
+
+  .retro-paper {
+    max-height: calc(100vh - 200px);
+  }
+
+  .retro-drawer {
+    position: fixed;
+    inset: 8px;
+    z-index: 30;
+  }
+
+  .retro-toasts {
+    top: 56px;
+    right: 8px;
+    width: calc(100vw - 16px);
+  }
+
+  .retro-about {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+/* O toque: todo alvo com 44 px de altura, no mínimo. */
+@media (pointer: coarse) {
+  .retro-small,
+  .retro-button,
+  .retro-tab,
+  .retro-views button,
+  .retro-camera button,
+  .retro-phone-tab,
+  .retro-talk-field,
+  .retro-toast-close {
+    min-height: 44px;
   }
 }

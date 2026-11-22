@@ -21,6 +21,13 @@ export interface WorldRenderer {
   follow?(entityId: string): void;
   /** Volta a seguir quem a câmera segue, depois de arrastar o mapa (a tecla espaço; ADR-0068). */
   recenter?(): void;
+  /** O tamanho da vista em pixels, menor que a sala (o celular da tela retrô: a câmera segue em 1x,
+   * num recorte); sem tamanho, a vista volta ao tamanho do mapa. */
+  setView?(size: { readonly width: number; readonly height: number } | undefined): void;
+  /** A sala inteira na vista, com zoom ("sala"), ou a câmera seguindo ("seguir"). */
+  setWhole?(whole: boolean): void;
+  /** O que a câmera mostra agora, em tiles, para o minimapa. */
+  viewRect?(): { readonly x: number; readonly y: number; readonly width: number; readonly height: number } | undefined;
   /** A névoa da visão do jogador (ADR-0068): sempre, ou com o botão do operador. */
   setFog?(mode: "always" | "toggle"): void;
   /** Guarda a lembrança da névoa no navegador, com esta chave (por mundo e avatar). */

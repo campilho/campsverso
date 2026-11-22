@@ -22,7 +22,15 @@ export interface FrameActions {
   dismiss(devId: string): void;
   help(): void;
   about(): void;
+  /** A câmera do celular: a sala inteira, ou seguindo o gerente (§4). */
+  camera(mode: Camera): void;
 }
+
+export type Camera = "sala" | "seguir";
+type Tab = "quadro" | "conversa" | "pessoas";
+
+/** O celular (§4): abaixo de 760 px, a barra de baixo se desfaz na faixa, nas abas e na barra de ação. */
+export const PHONE = "(max-width: 759px)";
 
 export interface FrameInput {
   readonly state: ObserverState;
@@ -40,6 +48,9 @@ export interface FrameInput {
   /** Os botões do relógio do sandbox, feitos só quando a chave muda; nenhum no escritório vivo. */
   readonly clockButtons: () => readonly HTMLElement[];
   readonly clockKey: string;
+  /** As contagens das abas do celular: os pedidos e as falas. */
+  readonly counts: { readonly tickets: number; readonly talk: number };
+  readonly camera: Camera;
 }
 
 const TELA = "/tela";
@@ -77,6 +88,19 @@ export class RetroFrame {
   private shownChips = "";
   private shownCommands = "";
   private shownClock = "";
+  // As peças do celular (§4): a faixa, as abas, o painel das pessoas e a barra de ação.
+  private readonly cameraButtons: Record<Camera, HTMLButtonElement>;
+  private readonly stripHour = el("b", { className: "retro-strip-hour" });
+  private readonly stripDay = el("span", { className: "retro-strip-day" });
+  private readonly stripLive = el("span", { className: "retro-strip-live" });
+  private readonly tabs = el("div", { className: "retro-phone-tabs" });
+  private readonly tabButtons = new Map<Tab, HTMLButtonElement>();
+  private tab: Tab = "quadro";
+  private readonly peoplePanel = el("section", { className: "retro-people-panel" });
+  private readonly bar: HTMLElement;
+  private readonly actionBar = el("div", { className: "retro-actionbar" });
+  readonly minimapSlot = el("div", { className: "retro-minimap-slot" });
+  private readonly phone = matchMedia(PHONE);
   private readonly view: "player" | "operator";
   private readonly debug: boolean;
   private readonly actions: FrameActions;
@@ -107,7 +131,17 @@ export class RetroFrame {
       el("div", { className: "retro-views", title: "A visão do jogador ou a do operador" }, player, operator),
     );
 
-    this.screen = el("div", { className: "retro-screen" });
+    this.screen = el(
+      "div",
+      { className: "retro-screen" },
+      el("span", { className: "retro-follow-tag" }, "seguindo o gerente"),
+      this.minimapSlot,
+    );
+    const sala = button("sala", "", () => { this.actions.camera("sala"); });
+    const seguir = button("seguir", "", () => { this.actions.camera("seguir"); });
+    this.cameraButtons = { sala, seguir };
+    const camera = el("div", { className: "retro-camera" }, sala, seguir);
+    camera.setAttribute("aria-label", "A câmera");
     this.helpButton = button("?", "retro-help", () => { this.actions.help(); });
     this.helpButton.setAttribute("aria-label", "Os comandos");
     this.footClock = el("div", { className: "retro-foot-clock" });
@@ -121,6 +155,7 @@ export class RetroFrame {
         el("span", { className: "retro-brand" }, "CAMPSVERSO"),
         el("span", { className: "retro-slots" }, el("i"), el("i"), el("i"), el("i"), el("i")),
         this.footClock,
+        camera,
         this.helpButton,
         el("span", { className: "retro-onair" }, el("i", { className: "dot" }), "ao vivo"),
       ),
@@ -132,13 +167,26 @@ export class RetroFrame {
     this.people = el("ul", { className: "retro-people" });
     this.people.setAttribute("aria-label", "Quem está no escritório");
     this.commands = el("div", { className: "retro-commands" });
-    const bar = el(
+    const bar = (this.bar = el(
       "section",
       { className: "retro-bar" },
       el("div", { className: "retro-clock" }, this.hour, this.day, this.liveLine),
       this.people,
       this.commands,
-    );
+    ));
+
+    const strip = el("div", { className: "retro-strip" }, this.stripHour, this.stripDay, this.stripLive);
+    this.tabs.setAttribute("role", "tablist");
+    this.tabs.setAttribute("aria-label", "O que mostrar");
+    for (const id of ["quadro", "conversa", "pessoas"] as const) {
+      const tab = button("", "retro-phone-tab", () => { this.select(id); });
+      tab.setAttribute("role", "tab");
+      tab.setAttribute("aria-controls", `retro-panel-${id}`);
+      this.tabButtons.set(id, tab);
+      this.tabs.append(tab);
+    }
+    this.peoplePanel.id = "retro-panel-pessoas";
+    this.peoplePanel.dataset.panel = "pessoas";
 
     this.right = el("div", { className: "retro-right" });
     // A gaveta do operador (§3.8): cobre a coluna da direita, como a Central de Notificações; o "×"
@@ -151,9 +199,50 @@ export class RetroFrame {
     this.main = el(
       "main",
       { className: "retro-main" },
-      el("div", { className: "retro-left" }, monitor, bar),
+      el("div", { className: "retro-left" }, monitor, bar, strip, this.tabs),
       el("div", { className: "retro-rightwrap" }, this.right, this.drawer),
+      this.actionBar,
     );
+    this.phone.addEventListener("change", () => { this.arrange(); });
+  }
+
+  /** No celular, as pessoas vão para a aba delas, e os comandos, para a barra de ação; no
+   * computador e no tablet, voltam para a barra de baixo. */
+  private arrange(): void {
+    if (this.phone.matches) {
+      this.peoplePanel.append(this.people);
+      this.actionBar.append(this.commands);
+    } else {
+      this.commands.before(this.people);
+      this.bar.append(this.commands);
+    }
+    this.renderTabs();
+  }
+
+  get isPhone(): boolean {
+    return this.phone.matches;
+  }
+
+  /** O tamanho da tela do monitor em pixels, para o recorte da câmera no celular. */
+  screenSize(): { width: number; height: number } {
+    return { width: this.screen.clientWidth, height: this.screen.clientHeight };
+  }
+
+  private select(tab: Tab): void {
+    this.tab = tab;
+    this.renderTabs();
+  }
+
+  private counts = { tickets: 0, talk: 0 };
+
+  private renderTabs(): void {
+    this.right.dataset.tab = this.tab;
+    const numbers: Record<Tab, number> = { quadro: this.counts.tickets, conversa: this.counts.talk, pessoas: this.people.children.length };
+    const labels: Record<Tab, string> = { quadro: "Quadro", conversa: "Conversa", pessoas: "Pessoas" };
+    for (const [id, tab] of this.tabButtons) {
+      tab.textContent = `${labels[id]} · ${String(numbers[id])}`;
+      tab.setAttribute("aria-selected", id === this.tab ? "true" : "false");
+    }
   }
 
   /** Põe as peças de sempre dentro da moldura: o mapa no monitor, o quadro e a conversa na coluna
@@ -164,9 +253,22 @@ export class RetroFrame {
     }
     this.mounted = true;
     document.body.classList.add("retro");
-    this.screen.append(world);
-    this.right.append(...sides);
+    this.screen.prepend(world);
+    const [board, talk] = sides;
+    if (board !== undefined) {
+      board.id = "retro-panel-quadro";
+      board.dataset.panel = "quadro";
+    }
+    if (talk !== undefined) {
+      talk.id = "retro-panel-conversa";
+      talk.dataset.panel = "conversa";
+    }
+    this.right.append(...sides, this.peoplePanel);
+    // Sem o painel do operador (a visão do jogador), a gaveta nem entra no layout: escondida fora da
+    // tela, ela alargaria a página no celular.
+    this.drawer.hidden = drawer === undefined;
     app.replaceChildren(this.top, this.main);
+    this.arrange();
     if (drawer !== undefined) {
       this.drawerBody.append(drawer);
       requestAnimationFrame(() => {
@@ -210,6 +312,20 @@ export class RetroFrame {
       );
     }
     this.helpButton.title = input.hint;
+    this.stripHour.textContent = input.clock.hour;
+    this.stripDay.textContent = input.clock.day;
+    if (this.stripLive.dataset.key !== liveKey) {
+      this.stripLive.dataset.key = liveKey;
+      this.stripLive.replaceChildren(el("i", { className: `dot ${input.connected ? "" : "off"}` }), input.live, ...(input.clock.pace === undefined ? [] : [el("span", { className: "retro-pace" }, input.clock.pace)]));
+    }
+    for (const [mode, node] of Object.entries(this.cameraButtons)) {
+      pressed(node, mode === input.camera);
+    }
+    this.screen.classList.toggle("seguindo", input.camera === "seguir");
+    if (input.counts.tickets !== this.counts.tickets || input.counts.talk !== this.counts.talk) {
+      this.counts = { ...input.counts };
+      this.renderTabs();
+    }
     if (input.clockKey !== this.shownClock) {
       this.shownClock = input.clockKey;
       this.footClock.replaceChildren(...input.clockButtons());
@@ -225,6 +341,7 @@ export class RetroFrame {
     }
     this.shownChips = key;
     this.people.replaceChildren(...chips.map((chip) => this.chip(chip)));
+    this.renderTabs(); // "Pessoas · n"
   }
 
   private chip(chip: Chip): HTMLElement {

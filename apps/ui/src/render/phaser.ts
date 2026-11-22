@@ -1080,6 +1080,8 @@ export class PhaserRenderer implements WorldRenderer {
   private readonly game: Phaser.Game;
   private size = { width: 32, height: 18 };
   private grid = { width: 32, height: 18 };
+  /** A vista em pixels, quando a tela pede um recorte menor que a sala (o celular). */
+  private view: { width: number; height: number } | undefined;
   private savesOnHide = false;
   private drag: { x: number; y: number; moved: boolean } | undefined;
   private swallowClick = false;
@@ -1117,14 +1119,38 @@ export class PhaserRenderer implements WorldRenderer {
     this.scene.grid = grid;
     this.scene.terrainDirty = true;
     this.grid = { width: grid.width, height: grid.height };
-    // O canvas tem no máximo o tamanho da tela; o resto do mapa a câmera mostra (ADR-0067).
-    const width = Math.min(grid.width, VIEW.width);
-    const height = Math.min(grid.height, VIEW.height);
-    if (width !== this.size.width || height !== this.size.height) {
-      this.size = { width, height };
-      this.game.scale.resize(width * TILE, height * TILE);
-    }
+    this.fit();
     this.buttons();
+  }
+
+  /** O canvas tem no máximo o tamanho da tela; o resto do mapa a câmera mostra (ADR-0067). Com uma
+   * vista pedida (o celular), o canvas tem o tamanho dela, em 1x. */
+  private fit(): void {
+    const width = this.view?.width ?? Math.min(this.grid.width, VIEW.width) * TILE;
+    const height = this.view?.height ?? Math.min(this.grid.height, VIEW.height) * TILE;
+    if (width !== this.size.width * TILE || height !== this.size.height * TILE) {
+      this.size = { width: width / TILE, height: height / TILE };
+      this.game.scale.resize(width, height);
+    }
+  }
+
+  setView(size: { readonly width: number; readonly height: number } | undefined): void {
+    this.view = size === undefined ? undefined : { width: Math.max(TILE, Math.round(size.width)), height: Math.max(TILE, Math.round(size.height)) };
+    this.fit();
+  }
+
+  setWhole(whole: boolean): void {
+    this.scene.whole = whole;
+    this.scene.following = true;
+    this.buttons();
+  }
+
+  viewRect(): { x: number; y: number; width: number; height: number } | undefined {
+    if (!this.scene.created) {
+      return undefined;
+    }
+    const view = this.scene.cameras.main.worldView;
+    return { x: view.x / TILE, y: view.y / TILE, width: view.width / TILE, height: view.height / TILE };
   }
 
   /** Quem a câmera segue, num mapa maior que a tela. */

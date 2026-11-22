@@ -49,8 +49,9 @@ import { RetroBoard } from "./retro/board.ts";
 import { Clipboard, type ClipboardContext } from "./retro/clipboard.ts";
 import { RetroTalk } from "./retro/conversation.ts";
 import { FaceCache } from "./retro/faces.ts";
-import { RetroFrame } from "./retro/frame.ts";
+import { PHONE, RetroFrame, type Camera } from "./retro/frame.ts";
 import { SystemMessages } from "./retro/messages.ts";
+import { Minimap } from "./retro/minimap.ts";
 import { chipsOf, clockView, lightOf, versionLine } from "./retro/model.ts";
 import { systemOf } from "./retro/system.ts";
 import { linesOf, peopleOf } from "./retro/talk.ts";
@@ -304,6 +305,10 @@ const retro = new RetroFrame(view, debug, {
     connection.send(PROPOSE, { avatar_id: avatarId(), action: "dismiss", params: { target: devId } });
   },
   help: () => { help.show(); },
+  camera: (mode) => {
+    camera = mode;
+    fitScreen();
+  },
   about: () => {
     const state = store.state;
     const build = store.welcome?.build;
@@ -345,9 +350,36 @@ function renderVersion(banner: ReturnType<typeof bannerOf>): void {
   }
 }
 
+// O celular (§4): a câmera segue o gerente em 1x, num recorte de 5:4 do monitor, com o minimapa no
+// canto; "sala" põe a sala inteira, com zoom. No computador e no tablet, a sala cabe inteira.
+let camera: Camera = "seguir";
+const minimap = new Minimap();
+let talkCount = 0;
+
+function fitScreen(): void {
+  if (!retro.isMounted) {
+    return;
+  }
+  map.follow?.(avatarId()); // o gerente; antes do welcome, a tela não sabe quem é de quem joga
+  if (retro.isPhone) {
+    map.setView?.(retro.screenSize());
+    map.setWhole?.(camera === "sala");
+  } else {
+    map.setView?.(undefined);
+    map.setWhole?.(false);
+  }
+}
+
+matchMedia(PHONE).addEventListener("change", () => { requestAnimationFrame(fitScreen); });
+addEventListener("resize", () => { requestAnimationFrame(fitScreen); });
+
 function renderRetro(state: ObserverState): void {
   if (run !== null || !isOffice(state)) {
     return;
+  }
+  if (!retro.isMounted) {
+    retro.minimapSlot.append(minimap.element);
+    requestAnimationFrame(fitScreen); // depois de a moldura ter tamanho
   }
   retro.mount(appRoot, world, [board.element, talk.element], view === "operator" ? drawerOf(aside) : undefined);
   const mine = inControl(state, avatarId());
@@ -381,7 +413,12 @@ function renderRetro(state: ObserverState): void {
     hint: mine ? "Sua vez: clique esquerdo anda; clique direito abre o menu; shift enfileira." : "Assuma o gerente para jogar.",
     clockButtons: () => (clockable ? clockButtons(state) : []),
     clockKey: JSON.stringify([clockable, state.clock.paused, state.clock.scale]),
+    counts: { tickets: ticketsOf(state).length, talk: talkCount },
+    camera,
   });
+  if (retro.isPhone) {
+    minimap.draw(grid, art?.manifest, state, avatarId(), map.viewRect?.());
+  }
 }
 
 const clock = new DisplayClock();
@@ -1006,9 +1043,11 @@ function frame(now: number): void {
       if (retro.isMounted) {
         board.render({ state, tickets: ticketsOf(state), ghosts: ghostsOf(queue.list, state, avatarId()) });
         clipboard.update(clipboardContext(state));
+        const lines = linesOf(store.timeline, state, avatarId(), state.session?.labels ?? []);
+        talkCount = lines.filter((line) => line.kind === "speech").length;
         talk.render({
           manager: run === null && store.status === "open" && inControl(state, avatarId()),
-          lines: linesOf(store.timeline, state, avatarId(), state.session?.labels ?? []),
+          lines,
           people: peopleOf(state, avatarId()),
         });
       }
