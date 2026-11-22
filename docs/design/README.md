@@ -148,7 +148,9 @@ O segundo pedido da tela, depois da tela retrô no ar: [briefing-tela-2.md](brie
   A prévia, os seis andando, está em [previa/elenco.gif](escritorio-arte/previa/elenco.gif).
 - **Os retratos:** um busto de frente em 40 × 40 para cada personagem, parado e piscando, em [folhas/retratos.png](escritorio-arte/folhas/retratos.png), para os chips e a conversa. Ele substitui o recorte do sprite.
 - **O que não mudou:** as folhas de antes ficaram iguais, pixel a pixel, e a paleta continua com 48 cores. Os personagens novos saem do mesmo gerador parametrizado do Camps, com penteados, roupas e acessórios novos.
-- **Em aberto:** o monitor maior. A barra de baixo vira o painel do monitor, e a sala escala para a altura toda, a 1,08x num 1288 × 720 e a 1,27x num 1456 × 816. A proposta está na página 5 do canvas e espera a escolha do usuário.
+- **O monitor maior, aprovado:** a barra de baixo vira o painel do monitor, com o relógio, as pessoas e o assumir, e o "Escrever pedido" vai para o cabeçalho do quadro. A sala escala para a altura toda, a 1,09x num 1288 × 720 e a 1,28x num 1456 × 816. O gabinete abraça a tela, sem as caixas de som, e a coluna da direita fica com o resto da largura.
+- **As fichas quadradas e a ficha aberta:** a cortiça mostra quadrados só com o número, o tamanho, o título e os selos. Um clique abre a ficha inteira na prancheta, em leitura, com o carimbo do estado, o PR, o patch e o devolver.
+- **O gerente fica de blazer**, a escolha do usuário. Os prints novos estão em [escritorio-tela/](escritorio-tela/): `grande`, `grande-1288`, `fichas` e `ficha-aberta`.
 
 ## O estúdio (depois do escritório)
 

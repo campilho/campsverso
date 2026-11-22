@@ -3213,7 +3213,7 @@ function objetos(cena, t) {
   if (!atores.vigia) poe(quadro('vigia', (t % 37) < 2 ? 1 : 0, LIN_ANIM('parado', 2)), PORTA[0] + 2, 14);
   for (const [id, a] of Object.entries(atores)) {
     if (!a) continue;
-    const spr = quadro(id, a.f, LIN_ANIM(a.anim, a.dir));
+    const spr = quadro(ELENCO[id] || id, a.f, LIN_ANIM(a.anim, a.dir));
     o.push({ spr, x: a.x + T / 2 - 32, y: a.y + T - 64, base: a.y + T, ordem: 1 });
   }
   return { lista: o.sort((a, b) => a.base - b.base || a.ordem - b.ordem), atores };
@@ -3278,7 +3278,7 @@ function sobreposicao(ctx, cena, t, atores) {
   const etiquetas = [];
   for (const [id, a] of Object.entries(atores)) {
     if (!a) continue;
-    const r = cena.atores[id], spr = quadro(id, a.f, LIN_ANIM(a.anim, a.dir));
+    const r = cena.atores[id], spr = quadro(ELENCO[id] || id, a.f, LIN_ANIM(a.anim, a.dir));
     let cx = Math.round(a.x + T / 2), yb = Math.round(a.y + T - 64 + topoSpr(spr)) - 1;        // o bico, 1 px acima da cabeça
     // sentado à mesa, de costas: o balão vai para o lado da cabeça, para não cobrir o monitor
     const naMesa = SENTADO_MESA.includes(a.anim) && a.dir === 0;
@@ -3322,7 +3322,10 @@ function quadroPeca(nome) {
   return PECA_CACHE[nome];
 }
 window.cenas = () => Object.entries(CENAS).map(([id, c]) => ({ id, nome: c.nome, duracao: c.duracao, luz: c.luz }));
+// Quem veste cada papel na prévia (22/11): por padrão, a folha com o nome do papel.
+let ELENCO = {};
 window.quadroPrevia = (i, op = {}) => {
+  ELENCO = op.elenco || {};
   const cv = document.createElement('canvas'); cv.width = SALA.L * T; cv.height = SALA.A * T;
   MOUSE = op.mouse || null;
   PLACA_TEXTO = op.placa || null;
