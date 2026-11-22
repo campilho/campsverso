@@ -12,6 +12,8 @@ from campsverso_cartridge_api import (
     EventLabelDef,
     KindDef,
     MetricDef,
+    Requirement,
+    Scalar,
     WorldBuilder,
 )
 from campsverso_office_sim import config
@@ -47,6 +49,7 @@ def _kinds() -> tuple[KindDef, ...]:
         KindDef(config.SOFA, blocking=True),
         KindDef(config.PUFF, blocking=True, attributes={"cor": None}),
         KindDef(config.ROBOT, attributes={"nome": None, "modulo": None, "descricao": None}),
+        KindDef(config.LIGHT_SWITCH, attributes={"acesa": None}),  # na parede (ADR-0088)
     )
 
 
@@ -69,6 +72,14 @@ def affordances(data: Mapping[str, Any]) -> tuple[AffordanceDef, ...]:
             on=tuple(str(k) for k in entry["kinds"]),  # `on` no contrato; `kinds` no YAML
             target=bool(entry.get("target", True)),
             note=None if entry.get("note") is None else str(entry["note"]),
+            requires=tuple(
+                Requirement(
+                    hint=str(need["hint"]),
+                    attribute=None if need.get("attribute") is None else str(need["attribute"]),
+                    values=tuple(cast(list[Scalar | None], need.get("values") or [])),
+                )
+                for need in cast(list[Mapping[str, Any]], entry.get("requires") or [])
+            ),
         )
         for entry in cast(list[Mapping[str, Any]], data.get("affordances", []))
     )

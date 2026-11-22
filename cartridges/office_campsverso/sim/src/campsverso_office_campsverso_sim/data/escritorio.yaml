@@ -3,6 +3,7 @@
 
 office:
   door: { x: 9, y: 15 } # o tile do corredor por onde se entra e se sai
+  light_switch: { x: 10, y: 13 } # o interruptor, na parede à direita da porta (ADR-0088)
   schedule:
     workdays: [1, 2, 3, 4, 5]
     opens: "09:00"

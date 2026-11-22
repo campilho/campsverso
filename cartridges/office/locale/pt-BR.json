@@ -21,13 +21,15 @@
     "plant": "planta",
     "tv": "TV",
     "sofa": "sofá",
-    "puff": "pufe"
+    "puff": "pufe",
+    "light_switch": "interruptor"
   },
   "attributes": {
     "estado": "estado",
     "tamanho": "tamanho",
     "trabalho": "trabalho",
-    "papel": "papel"
+    "papel": "papel",
+    "acesa": "acesa"
   },
   "actions": {
     "write_ticket": "Escrevendo um pedido",
@@ -45,6 +47,8 @@
     "lunch": "Almoçando",
     "trash": "Jogando fora",
     "tv": "Vendo TV",
-    "videogame": "Jogando videogame"
+    "videogame": "Jogando videogame",
+    "light_on": "Acendendo a luz",
+    "light_off": "Apagando a luz"
   }
 }

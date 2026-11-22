@@ -27,6 +27,7 @@ from campsverso_office_sim.config import (
     DESK,
     DEV,
     FRIDGE,
+    LIGHT_SWITCH,
     MANAGER,
     MICROWAVE,
     RESTROOM_DOOR,
@@ -43,7 +44,13 @@ from campsverso_office_sim.config import (
     section,
     tick_ms,
 )
-from campsverso_office_sim.systems import SUMMON_REASON, end_summon, start_summon, summon_of
+from campsverso_office_sim.systems import (
+    LIGHT_SWITCHED,
+    SUMMON_REASON,
+    end_summon,
+    start_summon,
+    summon_of,
+)
 
 # Os estados do pedido, no atributo `estado`.
 TODO, DOING, DELIVERED, ACCEPTED = "a_fazer", "fazendo", "entregue", "aceito"
@@ -623,6 +630,41 @@ class Lunch(Break):
         return float(max(60, (until - ctx.view.minute_of_day) * 60))
 
 
+@dataclass(frozen=True)
+class SwitchLight(OfficeAction):
+    """Acender ou apagar a luz da sala no interruptor (ADR-0088): qualquer um que esteja ao lado
+    dele (o gerente, o dev, o vigia). O estado é do mundo, igual para todos; a tela só o desenha."""
+
+    on: bool = True
+    role: ClassVar[str] = ""  # qualquer um
+    shared: ClassVar[bool] = True  # duas mãos no mesmo interruptor: confere de novo ao concluir
+
+    def _switch(self, ctx: ActionContext) -> EntityView | Rejection:
+        switches = ctx.view.entities(LIGHT_SWITCH)
+        if not switches:
+            return Rejection("invalid_params", "não há interruptor no escritório")
+        near = [s for s in switches if adjacent(ctx.view, ctx.avatar_id, s)]
+        if not near:
+            return Rejection("not_adjacent", "longe do interruptor")
+        return near[0]
+
+    def check(self, ctx: ActionContext) -> Rejection | None:
+        switch = self._switch(ctx)
+        if isinstance(switch, Rejection):
+            return switch
+        if bool(switch.attributes.get("acesa")) == self.on:
+            already = "a luz já está acesa" if self.on else "a luz já está apagada"
+            return Rejection("invalid_params", already)
+        return None
+
+    def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
+        switch = self._switch(ctx)
+        assert not isinstance(switch, Rejection)
+        ops.set_attributes(switch.entity_id, visible={"acesa": self.on}, cause=self.name)
+        fact = {"switch_id": switch.entity_id, "on": self.on, "by": ctx.avatar_id}
+        ops.emit(LIGHT_SWITCHED, fact)
+
+
 BREAKS: tuple[OfficeAction, ...] = (
     Break("drink", WATER_COOLER),
     Break("coffee", COFFEE_MACHINE),
@@ -645,5 +687,7 @@ ALL_ACTIONS: tuple[OfficeAction, ...] = (
     ReturnTicket(),
     SummonDev(),
     DismissDev(),
+    SwitchLight("light_on", on=True),
+    SwitchLight("light_off", on=False),
     *BREAKS,
 )

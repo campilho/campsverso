@@ -77,6 +77,15 @@ actions:
   # A convocação (a parte 5 do M25): o gerente liga para o dev, ou o dispensa, de onde estiver.
   summon: { seconds: 5, interrupt: cancel }
   dismiss: { seconds: 3, interrupt: cancel }
+  # A luz da sala (ADR-0088): no interruptor, ao lado da porta.
+  light_on: { seconds: 2, interrupt: cancel }
+  light_off: { seconds: 2, interrupt: cancel }
+
+# O temporizador do prédio (ADR-0088): acende a luz da sala e apaga em horas marcadas. No meio, e
+# depois, quem está na sala acende e apaga no interruptor.
+lights:
+  acende: "18:00" # `on` e `off` o YAML lê como booleanos
+  apaga: "21:00"
 
 # A linha do tempo (ADR-0068): como cada fato se conta.
 labels:
@@ -111,6 +120,13 @@ labels:
   # A troca de versão do escritório vivo (ADR-0083).
   - event: campsverso.world.version.changed.v1
     text: "o escritório subiu numa versão nova do código"
+  # A luz da sala (ADR-0088).
+  - event: campsverso.office.light.switched.v1
+    where: { "on": true }
+    text: "acendeu a luz da sala"
+  - event: campsverso.office.light.switched.v1
+    where: { "on": false }
+    text: "apagou a luz da sala"
   # A convocação fora do expediente (a parte 5 do M25).
   - event: campsverso.office.staff.summoned.v1
     where: { origin: entrada }
@@ -202,6 +218,17 @@ affordances:
   - { action: restroom, label: Ir ao banheiro, kinds: [restroom_door, restroom], target: false }
   - { action: tv, label: Ver TV, kinds: [sofa, tv], target: false }
   - { action: videogame, label: Jogar videogame, kinds: [sofa, tv], target: false }
+  # A luz da sala (ADR-0088): o menu desabilita o que não faz sentido agora; quem decide é o kernel.
+  - action: light_on
+    label: Acender a luz
+    kinds: [light_switch]
+    target: false
+    requires: [{ attribute: acesa, values: [false, null], hint: "a luz já está acesa" }]
+  - action: light_off
+    label: Apagar a luz
+    kinds: [light_switch]
+    target: false
+    requires: [{ attribute: acesa, values: [true], hint: "a luz já está apagada" }]
 
 # As métricas do dia (ADR-0054), contadas pela projeção comum.
 metrics:

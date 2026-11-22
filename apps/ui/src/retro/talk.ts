@@ -9,7 +9,8 @@ import { describe } from "../timeline.ts";
 const SPOKE = "campsverso.avatar.spoke.v1";
 const ROBOT_CALLED = "campsverso.workshop.robot_called.v1";
 // Os fatos que viram uma linha do sistema na conversa: o quadro, o PR, a convocação e os robôs.
-const SYSTEM = /^campsverso\.office\.(ticket|staff)\.[a-z_]+\.v1$/;
+const SYSTEM = /^campsverso\.office\.(ticket|staff|light)\.[a-z_]+\.v1$/;
+const LIGHT = "campsverso.office.light.switched.v1";
 
 /** Quem está na conversa: os avatares na sala, menos quem joga. */
 export interface Person {
@@ -170,7 +171,8 @@ export function linesOf(
     } else if (SYSTEM.test(event.type)) {
       const text = describe(event, labels);
       if (text !== undefined) {
-        const actor = nameOf(state, data.by ?? data.author);
+        // A luz que o temporizador do prédio acende ou apaga não tem quem (ADR-0088).
+        const actor = nameOf(state, data.by ?? data.author) ?? (event.type === LIGHT ? "O temporizador" : undefined);
         lines.push({ kind: "system", id: event.id, text: actor === undefined ? text : `${actor} ${text}`, time });
       }
     }

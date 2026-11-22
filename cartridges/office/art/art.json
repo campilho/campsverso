@@ -53,7 +53,8 @@
     "banheiro": { "image": "banheiro.png", "frame_width": 128, "frame_height": 96 },
     "fichas": { "image": "fichas.png", "frame_width": 10, "frame_height": 10 },
     "selos": { "image": "selos.png", "frame_width": 6, "frame_height": 6 },
-    "placa_versao_linha": { "image": "placa_versao_linha.png", "frame_width": 96, "frame_height": 64 }
+    "placa_versao_linha": { "image": "placa_versao_linha.png", "frame_width": 96, "frame_height": 64 },
+    "interruptor": { "image": "interruptor.png", "frame_width": 32, "frame_height": 32 }
   },
   "tiles": {
     "wall": { "color": "#cdbb8f" },
@@ -93,6 +94,7 @@
       ]
     },
     "board": { "sheet": "vazio", "frame": 0 },
+    "light_switch": { "sheet": "interruptor", "frame": 0, "variants": [{ "when": { "acesa": true }, "look": { "frame": 1 } }] },
     "door": { "sheet": "vazio", "frame": 0 },
     "microwave": { "sheet": "vazio", "frame": 0 },
     "restroom_door": { "sheet": "vazio", "frame": 0 },

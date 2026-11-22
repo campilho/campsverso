@@ -35,6 +35,11 @@ vigia:
   chair: [11, 14]
   wait_seconds: 120
   look_seconds: 30 # parado em cada ponto da ronda, até a vez do próximo (a cada 2 minutos)
+  # A luz (ADR-0088): o que ele responde a quem pede, antes de ir ao interruptor.
+  lines:
+    light_on: "Já vou acender a luz."
+    light_off: "Já vou apagar a luz."
+    no_switch: "Aqui não tem interruptor."
 
 gerente:
   id: script/gerente

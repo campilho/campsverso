@@ -219,6 +219,82 @@ def test_o_vigia_faz_a_ronda_no_comeco_da_hora_e_senta_no_resto() -> None:
     assert (following["action"], following["intent"]) == ("move", "fazer a ronda")
 
 
+SWITCH = {"entity_id": "interruptor", "kind": "light_switch", "position": {"x": 10, "y": 13}}
+
+
+def _night(
+    at: tuple[int, int], hhmm: str, lit: bool, heard: list[dict[str, Any]] | None = None
+) -> dict[str, Any]:
+    """A foto do vigia à noite, sozinho na sala (sem o dev e sem o gerente), com o interruptor."""
+    view = _view(me="vigia", at=at, hhmm=hhmm, heard=heard, manager_in=False)
+    view["entities"] = [
+        e for e in view["entities"] if e["kind"] != "avatar" or e["entity_id"] == "vigia"
+    ]
+    view["entities"].append(
+        {
+            "entity_id": "vigia",
+            "kind": "avatar",
+            "position": {"x": at[0], "y": at[1]},
+            "attributes": {"papel": "vigia"},
+        }
+    )
+    view["entities"].append({**SWITCH, "attributes": {"acesa": lit}})
+    return view
+
+
+def test_o_vigia_atende_o_pedido_da_luz_e_vai_acender_no_interruptor() -> None:
+    guard = staff("vigia")
+    assert isinstance(guard, GuardScript)
+    asked = [
+        {
+            "avatar_id": "gerente",
+            "listener_id": "vigia",
+            "text": "@Vigia pode acender a luz da sala?",
+        }
+    ]
+    reply = guard.decide(_night((11, 14), "22:30", lit=False, heard=asked))
+    assert (reply["action"], reply["params"]) == (
+        "say",
+        {"text": "Já vou acender a luz.", "to": "gerente"},
+    )
+    going = guard.decide(_night((15, 10), "22:30", lit=False))  # na copa: vai ao interruptor
+    assert (going["action"], going["params"]) == ("move", {"near": "interruptor"})
+    switching = guard.decide(_night((10, 12), "22:30", lit=False))
+    assert switching["action"] == "light_on"
+    back = guard.decide(_night((10, 12), "22:30", lit=True))
+    assert back["intent"] == "voltar para a cadeira"  # acesa: volta ao posto
+
+
+def test_o_vigia_so_atende_a_luz_quando_falam_com_ele() -> None:
+    guard = staff("vigia")
+    assert isinstance(guard, GuardScript)
+    other = [{"avatar_id": "gerente", "listener_id": "camps", "text": "Acende a luz, Camps?"}]
+    assert guard.decide(_night((11, 14), "22:30", lit=False, heard=other))["action"] == "wait"
+    named = [{"avatar_id": "gerente", "text": "Vigia, apaga a luz por favor."}]
+    reply = guard.decide(_night((11, 14), "22:30", lit=True, heard=named))
+    assert reply["params"]["text"] == "Já vou apagar a luz."
+    assert guard.wanted is False
+
+
+def test_na_ronda_o_vigia_apaga_a_sala_vazia_e_com_gente_deixa_acesa() -> None:
+    guard = staff("vigia")
+    assert isinstance(guard, GuardScript)
+    empty = guard.decide(_night((9, 12), "23:00", lit=True))
+    assert (empty["action"], empty["params"]) == ("light_off", {})  # ao lado do interruptor
+    guard = staff("vigia")
+    assert isinstance(guard, GuardScript)
+    busy = _night((9, 12), "23:00", lit=True)
+    busy["entities"].append(
+        {
+            "entity_id": "gerente",
+            "kind": "avatar",
+            "position": {"x": 5, "y": 6},
+            "attributes": {"papel": "gerente"},
+        }
+    )
+    assert guard.decide(busy)["action"] != "light_off"
+
+
 def test_o_gerente_script_escreve_o_que_venceu_e_devolve_um_de_cada_tres() -> None:
     manager = staff("gerente")
     assert isinstance(manager, ManagerScript)

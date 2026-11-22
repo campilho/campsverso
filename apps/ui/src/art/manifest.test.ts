@@ -13,6 +13,8 @@ import {
   frameOf,
   inUseFrame,
   lightMode,
+  roomLight,
+  switchLit,
   lookOf,
   plaqueText,
   loopFrame,
@@ -383,6 +385,15 @@ describe("as animações e a noite do escritório (ADR-0082)", () => {
     expect(lightMode(lights, minuteOfDay("03:00"))).toBe("dark"); // a madrugada é a noite da véspera
     expect(lightMode(undefined, 23 * 60)).toBe("day"); // a fazenda não tem
     expect(lightMode(lights, undefined)).toBe("day");
+    // O interruptor do mundo (ADR-0088): de dia, nada muda; à noite, ele manda.
+    expect(roomLight(lights, minuteOfDay("12:00"), false)).toBe("day");
+    expect(roomLight(lights, minuteOfDay("22:00"), true)).toBe("lamps");
+    expect(roomLight(lights, minuteOfDay("19:00"), false)).toBe("dark"); // apagaram antes das 21:00
+    expect(roomLight(lights, minuteOfDay("22:00"), undefined)).toBe("dark"); // sem interruptor, a agenda
+    const office = { interruptor: { kind: "light_switch", attributes: { acesa: true } }, quadro: { kind: "board", attributes: {} } };
+    expect(switchLit(office)).toBe(true);
+    expect(switchLit({ ...office, interruptor: { kind: "light_switch", attributes: { acesa: false } } })).toBe(false);
+    expect(switchLit({ quadro: office.quadro })).toBeUndefined();
   });
 
   it("a janela vira a de noite e o relógio anda com a hora, nas duas metades do tile", () => {

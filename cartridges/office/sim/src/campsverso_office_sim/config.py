@@ -46,6 +46,9 @@ FILE_CABINET, PLANT, TV, SOFA, PUFF, RESTROOM = (
     "puff",
     "restroom",
 )
+# A luz da sala (ADR-0088): o interruptor na parede, com o atributo visível `acesa`. O cenário diz
+# onde ele fica; o temporizador do prédio acende e apaga em horas marcadas.
+LIGHT_SWITCH = "light_switch"
 # Os papéis, no atributo `papel` de cada avatar (ADR-0077: o dev é sempre um LLM ou um script).
 DEV, MANAGER, GUARD = "dev", "gerente", "vigia"
 

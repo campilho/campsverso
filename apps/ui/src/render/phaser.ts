@@ -18,7 +18,8 @@ import {
   facingOf,
   frameOf,
   inUseFrame,
-  lightMode,
+  roomLight,
+  switchLit,
   lookOf,
   loopFrame,
   minuteOfDay,
@@ -470,7 +471,7 @@ class WorldScene extends Phaser.Scene {
     this.drawThings(this.fogged(state), time, frame);
     // A hora do mundo acende as luminárias, apaga a sala, troca a janela e anda o relógio (ADR-0082).
     const minute = minuteOfDay(clockText(state, frame.tick));
-    const mode = lightMode(this.art.lights, minute);
+    const mode = roomLight(this.art.lights, minute, switchLit(state.entities));
     this.drawNight(mode);
     this.drawDecor(mode, minute);
     this.drawCards(state);

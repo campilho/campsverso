@@ -12,7 +12,7 @@ até o fim da janela do dia ou até o expediente começar, que o assume. Enquant
 vigia sai. O sistema roda a cada minuto, além dos horários do expediente, para os prazos.
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -31,6 +31,7 @@ from campsverso_office_sim.config import (
     AVATAR,
     DEV,
     GUARD,
+    LIGHT_SWITCH,
     MANAGER,
     NAMESPACE,
     ROBOT,
@@ -48,6 +49,8 @@ from campsverso_office_sim.config import minutes as minute_of
 SUMMONED = "campsverso.office.staff.summoned.v1"
 DISMISSED = "campsverso.office.staff.dismissed.v1"
 SUMMON_REASON = "convocacao"  # o motivo de entrar e sair de quem foi convocado
+LIGHT_SWITCHED = "campsverso.office.light.switched.v1"
+SWITCH_ID = "interruptor"
 
 
 @dataclass(frozen=True)
@@ -235,6 +238,42 @@ def bench(ctx: SystemContext, ops: WorldOps) -> None:
             ops.set_attributes(robot_id, visible=attributes)
 
 
+def lights(ctx: SystemContext, ops: WorldOps) -> None:
+    """O interruptor e o temporizador do prédio (ADR-0088). O interruptor entra no mundo quando o
+    cenário diz onde ele fica e ele ainda não existe, também num mundo retomado (o escritório vivo
+    volta de um snapshot a cada troca de versão), aceso se for a hora do temporizador. Nas horas
+    marcadas, o temporizador acende e apaga; no meio, quem está na sala manda."""
+    view = ctx.view
+    data = view.data(NAMESPACE)
+    spot = cast(Mapping[str, Any] | None, data.get("light_switch"))
+    if spot is None:
+        return  # um escritório sem interruptor: a tela segue o horário do art.json
+    timer = cast(Mapping[str, Any], data.get("lights") or {})
+    on_at = minute_of(str(timer.get("acende", "18:00")))
+    off_at = minute_of(str(timer.get("apaga", "21:00")))
+    now = view.minute_of_day
+    found = view.entities(LIGHT_SWITCH)
+    if not found:
+        lit = on_at <= now < off_at if on_at < off_at else not off_at <= now < on_at
+        ops.spawn(
+            SpawnDef(
+                SWITCH_ID,
+                LIGHT_SWITCH,
+                position=Position(int(spot["x"]), int(spot["y"])),
+                display_name="Interruptor",
+                attributes={"acesa": lit},
+            )
+        )
+        return
+    if not isinstance(ctx.trigger, DailyAt):
+        return
+    want = True if now == on_at else False if now == off_at else None
+    switch = found[0]
+    if want is not None and bool(switch.attributes.get("acesa")) != want:
+        ops.set_attributes(switch.entity_id, visible={"acesa": want}, cause="temporizador")
+        ops.emit(LIGHT_SWITCHED, {"switch_id": switch.entity_id, "on": want})
+
+
 def build_systems(data: dict[str, Any]) -> tuple[OfficeSystem, ...]:
     """Os horários vêm dos dados no momento de montar o mundo; a meia-noite vira o dia útil. O
     sistema roda também a cada minuto, para os prazos da convocação: o cenário a liga depois de o
@@ -247,7 +286,12 @@ def build_systems(data: dict[str, Any]) -> tuple[OfficeSystem, ...]:
         str(schedule["closes"]),
     )
     triggers = (OnSessionStart(), DailyAt(tuple(sorted(set(times)))), EveryMinutes(1))
+    timer = cast(Mapping[str, Any], data.get("lights") or {})
+    switch_times = DailyAt(
+        tuple(sorted({str(timer.get("acende", "18:00")), str(timer.get("apaga", "21:00"))}))
+    )
     return (
         OfficeSystem("staff", "scheduled", 10, triggers, staff),
         OfficeSystem("bench", "scheduled", 20, (EveryMinutes(1),), bench),
+        OfficeSystem("lights", "scheduled", 30, (OnSessionStart(), switch_times), lights),
     )

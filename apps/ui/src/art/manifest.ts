@@ -590,6 +590,22 @@ export function lightMode(lights: Lights | undefined, minute: number | undefined
   return mode;
 }
 
+/** A luz da sala (ADR-0088): de dia, a agenda; à noite, o interruptor do mundo manda, quando o
+ * mundo tem um (aceso, as luminárias; apagado, o escuro). Sem interruptor, a agenda de sempre. */
+export function roomLight(lights: Lights | undefined, minute: number | undefined, lit: boolean | undefined): LightMode {
+  const mode = lightMode(lights, minute);
+  if (mode === "day" || lit === undefined) {
+    return mode;
+  }
+  return lit ? "lamps" : "dark";
+}
+
+/** O interruptor da sala no estado (ADR-0088): aceso ou apagado, ou nada num mundo sem ele. */
+export function switchLit(entities: Readonly<Record<string, { readonly kind: string; readonly attributes: Readonly<Record<string, unknown>> } | undefined>>): boolean | undefined {
+  const found = Object.values(entities).find((e) => e?.kind === "light_switch");
+  return found === undefined ? undefined : found.attributes.acesa === true;
+}
+
 /** O tile que a camada de decoração mostra no lugar de `name` agora: o relógio na hora do mundo
  * (`relogio-3-t` às 15:20) e, fora do dia, a janela de noite; o próprio nome nos outros. */
 export function timedTile(tiles: TimeTiles | undefined, name: string, night: boolean, minute: number | undefined): string {

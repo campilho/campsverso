@@ -176,6 +176,13 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   expect(Date.now() - clicked).toBeLessThan(800); // o clique anda logo (em geral, em 100 ms)
   await expect.poll(() => drawn("gerente"), { timeout: 5_000 }).toEqual(goal);
 
+  // A luz da sala (ADR-0088): o menu do interruptor, na parede à direita da porta, acende a luz, e
+  // a conversa conta quem acendeu. De dia a sala não muda; à noite, o interruptor manda.
+  const lightSwitch = await tile(page, 10, 13);
+  await page.mouse.click(lightSwitch.x, lightSwitch.y, { button: "right" });
+  await page.locator(".action-menu").getByRole("button", { name: "Acender a luz" }).click();
+  await expect(page.locator(".retro-talk").getByRole("log")).toContainText("Gerente acendeu a luz da sala", { timeout: 30_000 });
+
   // A pausa do gerente (ADR-0082): o menu da máquina de café, na copa, e o café no HUD dele.
   const machine = await tile(page, 13, 9);
   await page.mouse.click(machine.x, machine.y, { button: "right" });

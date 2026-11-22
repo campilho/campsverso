@@ -453,13 +453,28 @@ def _xy(item: Mapping[str, Any]) -> tuple[int, int]:
 # ---------------------------------------------------------------------------------- o vigia
 
 
+LIGHT_SWITCH = "light_switch"  # o interruptor da sala (ADR-0088)
+
+
+def light_request(text: str) -> bool | None:
+    """O que pediram da luz numa fala: acender (`True`), apagar (`False`), ou nada."""
+    low = text.lower()
+    if "luz" not in low:
+        return None
+    return not any(word in low for word in ("apag", "deslig"))
+
+
 @dataclass
 class GuardScript:
     """O vigia: a ronda nos primeiros minutos de cada hora, e a cadeira no resto. Na ronda, ele
     fica em cada ponto até a vez do próximo: antes, chegando ao ponto, voltava à cadeira e ia ao
-    ponto de novo, e em tempo real ficava indo e vindo da porta a cada segundo (21/nov)."""
+    ponto de novo, e em tempo real ficava indo e vindo da porta a cada segundo (21/nov).
+
+    A luz (ADR-0088): quem fala com ele sobre a luz (com a menção, ou dizendo "vigia") ouve a
+    resposta, e ele vai ao interruptor acender ou apagar. Na ronda, apaga a sala vazia."""
 
     config: Mapping[str, Any]
+    wanted: bool | None = None  # a luz que pediram, até ele chegar ao interruptor
 
     @property
     def controller_type(self) -> str:
@@ -471,6 +486,9 @@ class GuardScript:
 
     def decide(self, view: View) -> Proposal:
         now, here = minute_of(view), position(view)
+        light = self._light(view, now, here)
+        if light is not None:
+            return light
         points = [tuple(cast(Sequence[int], p)) for p in self.config["points"]]
         if now % 60 < int(self.config["round_minutes"]):
             x, y = points[(now // 2) % len(points)]
@@ -481,6 +499,48 @@ class GuardScript:
         if not at(here, int(chair[0]), int(chair[1])):
             return go_to(int(chair[0]), int(chair[1]), "voltar para a cadeira")
         return wait(int(self.config["wait_seconds"]), "vigiar")
+
+    def _light(self, view: View, now: int, here: Mapping[str, int] | None) -> Proposal | None:
+        """O pedido da luz, a ida ao interruptor e a sala vazia apagada na ronda; nada, senão."""
+        mine = me(view)
+        lines = cast(Mapping[str, str], self.config.get("lines") or {})
+        switch = next(iter(entities(view, LIGHT_SWITCH)), None)
+        for heard in reversed(heard_from_others(view)):
+            text = str(heard["text"])
+            asked = light_request(text)
+            if asked is None or (heard.get("listener_id") != mine and "vigia" not in text.lower()):
+                continue
+            speaker = str(heard["avatar_id"])
+            if switch is None:
+                missing = lines.get("no_switch", "Aqui não tem interruptor.")
+                return say(missing, speaker, "responder")
+            self.wanted = asked
+            line = lines.get("light_on" if asked else "light_off", "Já vou.")
+            return say(line, speaker, "responder sobre a luz")
+        if switch is None:
+            return None
+        lit = bool(attrs(switch).get("acesa"))
+        others = [
+            e
+            for e in entities(view, "avatar")
+            if e["entity_id"] != mine and e.get("position") is not None
+        ]
+        on_round = now % 60 < int(self.config["round_minutes"])
+        if self.wanted is None and lit and not others and on_round:
+            self.wanted = False  # na ronda, a sala vazia não fica acesa
+        if self.wanted is None:
+            return None
+        if lit == self.wanted:
+            self.wanted = None
+            return None
+        if not adjacent(here, cast(Mapping[str, int] | None, switch.get("position"))):
+            return go_near(str(switch["entity_id"]), "ir ao interruptor")
+        on, self.wanted = self.wanted, None
+        return {
+            "action": "light_on" if on else "light_off",
+            "params": {},
+            "intent": "acender a luz" if on else "apagar a luz",
+        }
 
 
 # ---------------------------------------------------------------------------------- o gerente

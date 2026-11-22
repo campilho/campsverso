@@ -353,6 +353,19 @@ describe("a conversa (§3.5)", () => {
       { kind: "speech", id: "e6", who: "camps", name: "Camps", text: "Anotado.", mine: false, time: "09:04" },
     ]);
     expect(linesOf(timeline, room, "gerente", labels, 2).map((l) => l.id)).toEqual(["e5", "e6"]); // só as últimas
+    // A luz (ADR-0088): quem acendeu, ou o temporizador do prédio.
+    const light = [
+      { event: "campsverso.office.light.switched.v1", where: { on: true }, text: "acendeu a luz da sala" },
+      { event: "campsverso.office.light.switched.v1", where: { on: false }, text: "apagou a luz da sala" },
+    ] as unknown as Parameters<typeof linesOf>[3];
+    const switched = [
+      at("campsverso.office.light.switched.v1", { switch_id: "interruptor", on: true, by: "gerente" }, 16200, "l1"),
+      at("campsverso.office.light.switched.v1", { switch_id: "interruptor", on: false }, 16230, "l2"),
+    ];
+    expect(linesOf(switched, room, "gerente", light).map((l) => (l.kind === "system" ? l.text : ""))).toEqual([
+      "Gerente acendeu a luz da sala",
+      "O temporizador apagou a luz da sala",
+    ]);
   });
 });
 
