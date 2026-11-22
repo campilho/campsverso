@@ -72,9 +72,11 @@ LOOSE = ("fichas", "selos", "placa_versao_linha")
 # `icons_sheet`, com os dois dos chips; a fonte sai de `font_sheet`, com cada glifo colado à
 # esquerda da célula.
 INTERFACE = ("baloes",)
-# Os ícones dos chips da tela retrô (briefing-tela.md, §3.3), soltos em `tela/`: a casa livre de
-# cada um na folha `icones` (coluna, linha).
-CHIP_ICONS = {"fora": (6, 3), "vigiar": (7, 3)}
+# Os ícones dos chips da tela retrô (briefing-tela.md, §3.3), soltos em `tela/`: a casa de cada um
+# na folha `icones` (coluna, linha). Desde 22/nov, a folha do Claude Design não tem casa livre (os
+# ícones da luz, `acender` e `apagar`, tomaram as duas últimas), e os dos chips vão numa linha a
+# mais, embaixo dela.
+CHIP_ICONS = {"fora": (0, 4), "vigiar": (1, 4)}
 # O que fica na parede do fundo, em módulos de 32 x 64: o nome do tile e o quadro da folha.
 WALL_PIECES = (
     ("quadro-comeco", "quadro_pedidos", 0),
@@ -281,13 +283,19 @@ def bubbles() -> dict[str, object]:
 
 
 def icons_sheet() -> Img:
-    """A folha dos ícones com os dois dos chips colados nas casas livres. Uma casa ocupada, ou um
-    nome que a folha já tem, é erro: o Claude Design mudou a folha, e a escolha volta para cá."""
+    """A folha dos ícones com os dois dos chips colados nas casas livres, numa linha a mais se a
+    folha acaba antes. Uma casa ocupada, ou um nome que a folha já tem, é erro: o Claude Design
+    mudou a folha, e a escolha volta para cá."""
     meta = json.loads((SOURCE / "metadados.json").read_text(encoding="utf-8"))
     icons = meta["folhas"]["icones"]
     width, height = icons["quadro"]
     taken = {tuple(cell) for cell in icons["icones"].values()}
     sheet = read_png(SOURCE / "icones.png")
+    rows = max(row for _, row in CHIP_ICONS.values()) + 1
+    if rows * height > len(sheet):
+        grown = blank(len(sheet[0]), rows * height)
+        paste(grown, sheet, 0, 0)
+        sheet = grown
     for name, (column, row) in CHIP_ICONS.items():
         cell = crop(sheet, column * width, row * height, width, height)
         drawn = any(px[3] for line in cell for px in line)
