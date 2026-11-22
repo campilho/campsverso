@@ -38,6 +38,7 @@ Uma sala de 20 × 14 tiles com as paredes, e o corredor embaixo, em duas linhas 
 | O banheiro | o bloco de (1, 11) a (4, 13), com as portas em (2, 13), masculino, e (3, 13), feminino | `restroom` e `restroom_door`; as portas dão para o corredor, e quem entra some |
 | Plantas | (1, 2), (1, 7) e (18, 7) | `plant`, bloqueiam |
 | Porta | (9, 13) | `door` |
+| Interruptor | (10, 13), na parede à direita da porta; quem está ao lado dele, de dentro da sala ou do corredor, acende e apaga | `light_switch`; `acesa` (ADR-0088) |
 | Posto do vigia | (11, 14), no corredor, ao lado da porta | |
 | Entrada | (9, 15) | o tile do corredor por onde todos entram e saem |
 
@@ -94,12 +95,15 @@ Uma entidade `ticket` guardada no quadro, com os atributos:
 | `trash` | todos | ao lado de uma lixeira | 5 s | joga fora o resto; entre a geladeira e o lixo, o avatar carrega a marmita (`carregando`) |
 | `tv` | todos | no tapete, logo acima ou abaixo do sofá | 10 min | vê TV sentado no sofá (ADR-0082) |
 | `videogame` | todos | no tapete, logo acima ou abaixo do sofá | 15 min | joga videogame sentado no sofá; a rotina joga uma partida por dia, à tarde |
+| `light_on`, `light_off` | todos | ao lado do interruptor | 2 s | acende ou apaga a luz da sala; recusada se ela já está assim (ADR-0088) |
+
+**A luz da sala** (ADR-0088): o temporizador do prédio acende às 18:00 e apaga às 21:00 (`lights` no `office.yaml`); no meio e depois, quem está na sala manda no interruptor. De dia, a tela não muda; à noite, desenha as luminárias com a luz acesa e o escuro com ela apagada, com a lanterna do vigia por cima.
 
 Fora do papel, a ação é recusada (`not_allowed`); longe do lugar, `not_adjacent`. As pausas são de qualquer um: o gerente do humano as encontra no menu de cada coisa (ADR-0082).
 
 ## 7. Os eventos
 
-`campsverso.office.ticket.created.v1`, `taken`, `delivered`, `accepted` e `returned`, mais a fala (`campsverso.avatar.spoke.v1`) e a entrada e a saída de cada um (`avatar.entered` e `avatar.left`, com os motivos `expediente`, `plantao`, `possessed` e `released`; `almoco` só quando o almoço é na rua). Falar com alguém (`say` com `to`) interrompe a ação dele, que decide de novo (`action_interrupted`; ADR-0080).
+`campsverso.office.ticket.created.v1`, `taken`, `delivered`, `accepted` e `returned`, a luz (`campsverso.office.light.switched.v1`, com quem mexeu ou, sem `by`, o temporizador; ADR-0088), mais a fala (`campsverso.avatar.spoke.v1`) e a entrada e a saída de cada um (`avatar.entered` e `avatar.left`, com os motivos `expediente`, `plantao`, `possessed` e `released`; `almoco` só quando o almoço é na rua). Falar com alguém (`say` com `to`) interrompe a ação dele, que decide de novo (`action_interrupted`; ADR-0080).
 
 ## 8. Os scripts
 
@@ -110,7 +114,7 @@ Fora do papel, a ação é recusada (`not_allowed`); longe do lugar, `not_adjace
   - trabalha em blocos de um minuto, entrega e avisa;
   - avisa o almoço e almoça na copa, das 12 às 13, mesmo com um pedido em andamento, em quatro etapas: a geladeira, o micro-ondas, a mesinha (sentado na cadeira de lado) e o lixo (ADR-0082);
   - sem pedido, segue a rotina (ADR-0080): as pausas do dia, num sorteio pelo dia (dois cafés perto das 10:00 e das 15:30, água a cada uns 100 minutos, o banheiro duas vezes), e a cadeira da mesa no resto. As pausas são ilustrativas e não pesam no trabalho.
-- **O vigia:** faz a ronda nos 10 primeiros minutos de cada hora e passa o resto de pé no posto, no corredor, ao lado da porta.
+- **O vigia:** faz a ronda nos 10 primeiros minutos de cada hora e passa o resto de pé no posto, no corredor, ao lado da porta. A luz (ADR-0088): quando falam com ele sobre a luz (com a menção, ou dizendo "vigia"), responde ("Já vou acender a luz.") e vai ao interruptor; na ronda, apaga a sala vazia.
 - **O gerente-script** (só nos testes e no soak):
   - escreve três pedidos por dia, às 09:30, 10:30 e 14:00;
   - cumprimenta o dev;
