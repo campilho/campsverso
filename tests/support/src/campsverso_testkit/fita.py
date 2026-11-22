@@ -172,7 +172,7 @@ def office_summary(pipeline: Pipeline) -> dict[str, Any]:
         "delivered": [str(d["ticket_id"]) for d in pipeline.of_type("office.ticket.delivered.v1")],
         "patches": len([k for k in pipeline.deliveries.blobs if k.endswith(".patch")]),
         "steps": dict(
-            sorted(Counter(str(s["tool"]) for s in pipeline.of_type("workshop.step.v1")).items())
+            sorted(Counter(str(s["tool"]) for s in pipeline.of_type("workshop.step.v2")).items())
         ),
         "robots": len(pipeline.of_type("workshop.robot_called.v1")),
     }

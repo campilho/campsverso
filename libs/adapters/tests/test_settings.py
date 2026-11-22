@@ -90,9 +90,29 @@ def test_o_orcamento_do_escritorio() -> None:
     """ADR-0080: o escritório tem teto por pedido e, no teto do dia ou do total, desliga a mente em
     vez de pausar o mundo. Sem orçamento, a guarda não sobe, e o `make escritorio` caía junto."""
     for name in ("office-campsverso-01", "office-campsverso-demo"):
-        budget = load_world(REPO / "config" / "worlds" / f"{name}.yaml", root=REPO).budget
+        world = load_world(REPO / "config" / "worlds" / f"{name}.yaml", root=REPO)
+        budget = world.budget
         assert budget is not None
-        assert (budget.usd_per_ticket, budget.on_exceeded) == (1.0, "mind_off")
+        # Os tetos do M26 (ADR-0089, decisão 8): US$ 5 por pedido e US$ 10 por dia.
+        assert (budget.usd_per_ticket, budget.usd_per_sim_day) == (5.0, 10.0)
+        assert budget.on_exceeded == "mind_off"
+        assert world.minds["camps"].hands == "api"  # o padrão até a comparação das mãos
+
+
+def test_as_maos_do_mundo(tmp_path: Path) -> None:
+    """ADR-0089: quem programa os pedidos sem escolha; sem a chave, o nosso harness."""
+    base = (
+        "worldid: lab-01\ncartridge: lab\nseed: 1\nstart: 2026-11-16T00:00:00-03:00\n"
+        "minds:\n  camps: {mind: camps, model: claude-opus-5-5"
+    )
+    world = tmp_path / "mundo.yaml"
+    world.write_text(base + "}\n", encoding="utf-8")
+    assert load_world(world).minds["camps"].hands == "api"
+    world.write_text(base + ", hands: claude_code}\n", encoding="utf-8")
+    assert load_world(world).minds["camps"].hands == "claude_code"
+    world.write_text(base + ", hands: codex}\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="hands inválido"):
+        load_world(world)
 
 
 def test_o_que_fazer_no_teto(tmp_path: Path) -> None:

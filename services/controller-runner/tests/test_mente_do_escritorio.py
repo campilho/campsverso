@@ -10,7 +10,7 @@ from typing import Any
 import pytest
 import yaml
 
-from campsverso_adapters import MemoryBlobStore, SqliteMemory
+from campsverso_adapters import MemoryBlobStore, MemoryTelemetry, SqliteMemory
 from campsverso_adapters.workshop_local import LocalWorkshop
 from campsverso_adapters.workshop_review import review
 from campsverso_controller_runner.office_mind import OfficeMind
@@ -19,11 +19,16 @@ from campsverso_controller_runner.workshop import WorkshopSession
 from campsverso_mind import Memory, MemorySettings, Mind
 from campsverso_ports import (
     Episode,
+    HandsJob,
+    HandsResult,
+    HandsStep,
+    HandsWorld,
     ModelCallError,
     ModelCapabilities,
     ModelRequest,
     ModelResponse,
     ModelUsage,
+    Workspace,
 )
 
 GIT = [
@@ -105,6 +110,7 @@ def _snapshot(
     estado: str = "fazendo",
     day: int = 1,
     extra: Sequence[dict[str, Any]] = (),
+    chosen: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     ticket = {
         "entity_id": "pedido-001",
@@ -115,6 +121,7 @@ def _snapshot(
             "descricao": "Rodar os testes.",
             "estado": estado,
             "dono": "camps",
+            **(chosen or {}),  # as mãos e o modelo da prancheta (ADR-0089)
         },
     }
     view: dict[str, Any] = {
@@ -152,6 +159,8 @@ def _mind(
     memory: Memory | None = None,
     robot_tool: Mapping[str, Any] | None = None,
     background: bool = True,
+    events: list[tuple[str, Mapping[str, Any]]] | None = None,
+    **extra: Any,
 ) -> tuple[OfficeMind, list[Mapping[str, Any]], list[str]]:
     proposed: list[Mapping[str, Any]] = []
     steps: list[str] = []
@@ -160,7 +169,14 @@ def _mind(
         proposed.append(proposal)
 
     async def publish(kind: str, data: Mapping[str, Any]) -> None:
-        steps.append(str(data["tool"]) if "tool" in data else f"{kind}:{data['robot_id']}")
+        if events is not None:
+            events.append((kind, data))
+        if "tool" in data:
+            steps.append(str(data["tool"]))
+        elif "robot_id" in data:
+            steps.append(f"{kind}:{data['robot_id']}")
+        else:  # o fim da sessão (ADR-0089), com as mãos e o motivo
+            steps.append(f"fim:{data['harness']}:{data['reason']}")
 
     shop = WorkshopSession(
         "office-teste",
@@ -189,6 +205,7 @@ def _mind(
         chat_instructions="Responda curto.",
         memory=memory,
         background=background,
+        **extra,
     )
     mind.propose = propose
     return mind, proposed, steps
@@ -218,7 +235,7 @@ async def test_o_modelo_trabalha_na_oficina_e_a_entrega_sai_sozinha(
     assert deliver["action"] == "deliver"
     assert deliver["intent"] == "entregar o pedido 1: Escrevi o testador."
     assert deliver["params"]["patch"]["files"] == ["tools/testador.py"]
-    assert steps == ["escrever", "pronto"]
+    assert steps == ["escrever", "pronto", "fim:api:pronto"]  # o fim da sessão (ADR-0089)
     # O pedido da sessão leva o do quadro, o ticket para a guarda e o resultado da ferramenta.
     assert "Pedido 1: Testador" in port.requests[0].messages[0]["content"][0]["text"]
     assert {r.ticket_id for r in port.requests} == {"pedido-001"}
@@ -237,7 +254,7 @@ async def test_fora_do_mundo_vivo_o_mundo_espera_a_sessao(repo: Path, tmp_path: 
     assert deliver is not None
     assert deliver["action"] == "deliver"
     assert deliver["params"]["patch"]["files"] == ["tools/testador.py"]
-    assert steps == ["escrever", "pronto"]
+    assert steps == ["escrever", "pronto", "fim:api:pronto"]
     assert not mind.working
     assert proposed == []  # nada sai por fora da decisão
     assert mind.sessions == 1
@@ -377,12 +394,15 @@ async def test_ao_chegar_o_dev_reve_a_vespera_e_a_sessao_comeca_com_a_memoria(
     assert "O gerente devolve o pedido que não cobre o caso vazio." in text
     assert text.index("## O que você lembra") < text.index("Pedido 1: Testador")
     assert "anotar" in [t["name"] for t in opening.tools]
-    assert steps == ["escrever", "pronto"]  # a anotação não passa pela oficina
+    assert steps == ["escrever", "pronto", "fim:api:pronto"]  # a anotação não passa pela oficina
     assert proposed[0]["action"] == "deliver"
     (note,) = memory.port.notes(2)
     assert note.text == "O gerente sempre pede o caso vazio."
     (line,) = memory.port.episodes(2)
-    assert line.text.startswith("10:00 trabalhei no pedido 1 na oficina, em ")
+    assert line.text.startswith(
+        "10:00 trabalhei no pedido 1 na oficina com as ferramentas de sempre"
+        " (claude-sonnet-5-5), em "
+    )
     assert line.text.endswith("passos; terminei: Escrevi o testador.")
     kinds = [e["type"] for e in mind.drain_events()]
     assert kinds == [
@@ -474,3 +494,133 @@ async def test_sem_robo_na_bancada_nao_ha_chamar_robo(repo: Path, tmp_path: Path
     assert mind._task is not None  # pyright: ignore[reportPrivateUsage]
     await mind._task  # pyright: ignore[reportPrivateUsage]
     assert "chamar_robo" not in {t["name"] for t in port.requests[0].tools}
+
+
+# ---------------------------------------------------------------- as mãos (ADR-0089)
+
+
+class FakeHands:
+    """Umas mãos de fora de mentira: escrevem um arquivo, mostram um passo e terminam."""
+
+    harness = "claude_code"
+
+    def __init__(self) -> None:
+        self.jobs: list[HandsJob] = []
+
+    async def run(self, space: Workspace, job: HandsJob, world: HandsWorld) -> HandsResult:
+        self.jobs.append(job)
+        (space.root / "ola.py").write_text("print('olá')\n")
+        await world.step(HandsStep("Write", "Write: ola.py", True, 12, "ola.py"))
+        return HandsResult(True, "Escrevi o ola.py pelo Claude Code.", 3, 1, "pronto", 0.42)
+
+
+async def test_o_pedido_escolhe_as_maos_e_o_modelo(repo: Path, tmp_path: Path) -> None:
+    hands = FakeHands()
+    events: list[tuple[str, Mapping[str, Any]]] = []
+    mind, _, steps = _mind(
+        Scripted(),
+        repo,
+        tmp_path,
+        background=False,
+        events=events,
+        hands={"claude_code": hands},
+        hands_instructions="Termine com um resumo.",
+    )
+    chosen = {"maos": "claude_code", "modelo": "claude-opus-5-5"}
+    deliver = await mind.decide(_snapshot(chosen=chosen))
+    assert deliver is not None
+    assert deliver["action"] == "deliver"
+    assert deliver["params"]["patch"]["files"] == ["ola.py"]
+    (job,) = hands.jobs
+    assert job.model == "claude-opus-5-5"
+    assert job.system.endswith("Termine com um resumo.")  # as instruções das mãos de fora
+    assert "Trabalhe." not in job.system
+    assert job.limits.max_turns == 80  # os tetos da sessão (ADR-0089, decisão 8)
+    assert steps == ["Write", "fim:claude_code:pronto"]
+    step = dict(events[0][1])
+    assert (events[0][0], step["harness"], step["model"]) == (
+        "campsverso.workshop.step.v2",
+        "claude_code",
+        "claude-opus-5-5",
+    )
+    kind, finished = events[-1]
+    assert kind == "campsverso.workshop.session_finished.v1"
+    assert (finished["turns"], finished["steps"], finished["cost_usd"]) == (3, 1, 0.42)
+    assert finished["model"] == "claude-opus-5-5"
+
+
+def _not_outside(model: str) -> bool:
+    return model != "gpt-de-fora"
+
+
+async def test_maos_ou_modelo_que_nao_estao_ligados_viram_o_padrao(
+    repo: Path, tmp_path: Path
+) -> None:
+    port = Scripted([_use("escrever", path="a.py", content="A = 1\n")], [_use("pronto")])
+    telemetry = MemoryTelemetry()
+    mind, _, steps = _mind(
+        port,
+        repo,
+        tmp_path,
+        background=False,
+        telemetry=telemetry,
+        model_ok=_not_outside,
+    )
+    chosen = {"maos": "claude_code", "modelo": "gpt-de-fora"}
+    deliver = await mind.decide(_snapshot(chosen=chosen))
+    assert deliver is not None
+    assert deliver["action"] == "deliver"
+    assert steps == ["escrever", "pronto", "fim:api:pronto"]
+    assert port.requests[0].model == "claude-sonnet-5-5"
+    assert {"mind.hands_unavailable", "mind.model_unavailable"} <= set(telemetry.events())
+
+
+BRIEFING_ROBOT = {
+    "entity_id": "robo-briefing",
+    "kind": "robot",
+    "position": {"x": 8, "y": 4},
+    "attributes": {
+        "nome": "briefing",
+        "modulo": "tools.briefing",
+        "descricao": "Monta o briefing.",
+    },
+}
+
+
+def _briefing(repo: Path, body: str) -> None:
+    (repo / "tools").mkdir(exist_ok=True)
+    (repo / "tools" / "__init__.py").write_text("")
+    (repo / "tools" / "briefing.py").write_text(body)
+    subprocess.run([*GIT, "-C", str(repo), "add", "-A"], check=True)
+    subprocess.run([*GIT, "-C", str(repo), "commit", "-q", "-m", "briefing"], check=True)
+
+
+async def test_o_briefing_abre_a_sessao(repo: Path, tmp_path: Path) -> None:
+    _briefing(
+        repo,
+        "import sys\nfrom pathlib import Path\n\n"
+        "print('# Briefing')\nprint(Path(sys.argv[1]).read_text())\n"
+        "print('## Notas da memória')\nprint(Path(sys.argv[2]).read_text())\n",
+    )
+    port = Scripted([_use("pronto", resumo="Feito.")])
+    mind, _, steps = _mind(port, repo, tmp_path, background=False)
+    await mind.decide(_snapshot(extra=[BRIEFING_ROBOT]))
+    opening = port.requests[0].messages[0]["content"][0]["text"]
+    assert opening.startswith("# Briefing\nPedido 1: Testador")
+    assert "chamando o robô" not in opening  # a linha da tela não entra
+    assert steps[:2] == [
+        "campsverso.workshop.robot_started.v1:robo-briefing",
+        "campsverso.workshop.robot_called.v1:robo-briefing",
+    ]
+    space = tmp_path / "oficina" / "office-teste" / "pedido-001"
+    assert (space / ".oficina" / "pedido.md").read_text().startswith("Pedido 1: Testador")
+
+
+async def test_se_o_briefing_falha_a_sessao_abre_como_antes(repo: Path, tmp_path: Path) -> None:
+    _briefing(repo, "raise SystemExit('quebrado')\n")
+    port = Scripted([_use("pronto", resumo="Feito.")])
+    telemetry = MemoryTelemetry()
+    mind, _, _ = _mind(port, repo, tmp_path, background=False, telemetry=telemetry)
+    await mind.decide(_snapshot(extra=[BRIEFING_ROBOT]))
+    assert port.requests[0].messages[0]["content"][0]["text"].startswith("Pedido 1: Testador")
+    assert "mind.briefing_failed" in telemetry.events("warning")

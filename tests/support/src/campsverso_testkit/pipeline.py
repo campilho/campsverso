@@ -17,9 +17,10 @@ O relógio fica no modo contínuo, porque o máximo é só de script e replay (p
 em memória não faz diferença: o barramento entrega e espera a resposta antes do próximo tick.
 """
 
+import dataclasses
 import functools
 import sys
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any, Literal, cast
 
@@ -60,7 +61,7 @@ from campsverso_kernel.service import KernelService
 from campsverso_kernel.version import run_version
 from campsverso_mind import LlmController, Memory, MemoryProfile, MemorySettings
 from campsverso_perception.service import PerceptionService
-from campsverso_ports import Effort, Envelope, MemoryPort, ModelPort
+from campsverso_ports import CallMeter, Effort, Envelope, Hands, MemoryPort, ModelPort
 from campsverso_testkit.farm import WORLD, make_core
 from campsverso_testkit.nats_server import REPO
 
@@ -80,6 +81,15 @@ WORLDS: dict[str, tuple[str, str, str]] = {
 }
 
 type ControllerKind = Literal["script", "replay", "none", "llm"]
+
+
+def _helper(script: str, avatar: str, extra: Mapping[str, Any] | None) -> Controller:
+    """O script de um ajudante, com as chaves de `extra` por cima da configuração dele."""
+    controller = load_controller(script, avatar)
+    if not extra:
+        return controller
+    found = cast(Any, controller)  # um script com `config` (o gerente-script)
+    return cast(Controller, dataclasses.replace(found, config={**found.config, **extra}))
 
 
 class DeadlockError(Exception):
@@ -110,6 +120,8 @@ class Pipeline:
         workshop_repo: Path | None = None,
         effort: Effort | None = "medium",
         codehost: bool = False,
+        hands: Callable[[CallMeter], Mapping[str, Hands]] | None = None,
+        helper_config: Mapping[str, Mapping[str, Any]] | None = None,
     ) -> None:
         """`memory=True` dá à mente um caderno SQLite em memória (ADR-0060); `False` é o M10;
         uma porta pronta (um arquivo) serve ao teste de reinício. `cartridge` escolhe o mundo
@@ -120,7 +132,9 @@ class Pipeline:
         reflexão a ferramenta de comparação, e `advisor`, o conselheiro (ADR-0074); `full_notebook`
         dá à memória o caderno completo (ADR-0074, decisão 35). No escritório, `workshop_repo` é o
         repositório da oficina do dev, e `effort` o esforço da sessão (o dos mundos do
-        escritório)."""
+        escritório); `hands` recebe o medidor da mente e devolve as mãos de fora (ADR-0089), e
+        `helper_config` troca chaves da configuração do script de um ajudante (o roteiro do
+        gerente-script)."""
         worldid, default_script, default_mind = WORLDS[cartridge]
         script = script or default_script
         self.worldid, self.cartridge = worldid, cartridge
@@ -256,6 +270,9 @@ class Pipeline:
                     telemetry=self.telemetry,
                     memory=notebook,
                     background=False,  # o mundo espera a sessão: a fita reproduz o dia
+                    hands=None if hands is None else hands(metered),
+                    hands_instructions=package.hands_session,
+                    spent=metered.ticket_cost,
                 )
             else:
                 brain = self.mind = LlmController(
@@ -295,7 +312,7 @@ class Pipeline:
             ControllerRunner(
                 worldid,
                 avatar,
-                load_controller(world_file.helper_script, avatar),
+                _helper(world_file.helper_script, avatar, (helper_config or {}).get(avatar)),
                 self.bus,
                 self.ids,
                 self.clock,

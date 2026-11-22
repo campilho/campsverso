@@ -27,6 +27,7 @@ MAX_READ_LINES = 300
 MAX_RESULTS = 50
 MAX_WRITE_LINES = 2000
 MAX_TEST_LINES = 60
+MAX_WHOLE_LINES = 400  # a saída inteira de um robô, quando o controlador a lê (o briefing)
 MAX_DIFF_LINES = 400
 TEST_SECONDS = 120.0
 SKIPPED_DIRS = {".git", ".venv", "__pycache__", "node_modules", ".oficina", ".pytest_cache"}
@@ -315,10 +316,12 @@ class LocalWorkspace:
         text = f"{summary}\n{tail}".rstrip()
         return ToolResult(code == 0, text, summary, path)
 
-    async def run_robot(self, module: str, args: Sequence[str] = ()) -> ToolResult:
+    async def run_robot(
+        self, module: str, args: Sequence[str] = (), *, whole: bool = False
+    ) -> ToolResult:
         """Um robô da bancada: `python -m <module> <args>`, no espaço, sem rede e sem escrever
         fora dele, até o limite de tempo dos testes. A saída volta inteira até 60 linhas; mais
-        que isso, as últimas, onde fica o resumo."""
+        que isso, as últimas, onde fica o resumo. Com `whole`, as primeiras 400."""
         line = f"chamando o robô {module}"
         if not ROBOT_MODULE.fullmatch(module):
             return ToolResult(False, f"{module!r} não é um módulo Python", f"{line}: recusado")
@@ -347,7 +350,10 @@ class LocalWorkspace:
             text = f"o robô passou de {int(self._test_seconds)} s e foi parado"
             return ToolResult(False, text, f"{line}: tempo esgotado")
         lines = self._plain(out).splitlines()
-        shown = lines if len(lines) <= MAX_TEST_LINES else lines[-MAX_TEST_LINES:]
+        if whole:
+            shown = lines[:MAX_WHOLE_LINES]
+        else:
+            shown = lines if len(lines) <= MAX_TEST_LINES else lines[-MAX_TEST_LINES:]
         summary = f"{line}: saída {code}"
         text = f"{summary}\n" + "\n".join(shown)
         return ToolResult(code == 0, text.rstrip(), summary)

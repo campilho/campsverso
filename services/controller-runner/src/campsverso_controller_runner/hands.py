@@ -8,7 +8,7 @@
 """
 
 import json
-from collections.abc import Awaitable, Callable, Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -61,7 +61,8 @@ def robot_args(given: object) -> list[str]:
 
 
 class OfficeHandsWorld:
-    """O mundo de um pedido, para as mãos: a bancada, a memória e o sinal de parar."""
+    """O mundo de um pedido, para as mãos: a bancada, a memória, os passos na tela (o
+    `workshop.step.v2`, com as mãos e o modelo) e o sinal de parar."""
 
     def __init__(
         self,
@@ -70,14 +71,17 @@ class OfficeHandsWorld:
         robots: Sequence[BenchRobot],
         memory: Memory | None,
         should_stop: Callable[[], bool],
-        on_step: Callable[[HandsStep], Awaitable[None]] | None = None,
+        *,
+        harness: str,
+        model: str,
     ) -> None:
         self._workshop = workshop
         self._space = space
         self._bench = list(robots)
         self._memory = memory
         self._should_stop = should_stop
-        self._on_step = on_step
+        self._harness = harness
+        self._model = model
 
     @property
     def robots(self) -> Sequence[Robot]:
@@ -101,8 +105,7 @@ class OfficeHandsWorld:
         return ToolResult(True, NOTED, "anotado")
 
     async def step(self, step: HandsStep) -> None:
-        if self._on_step is not None:
-            await self._on_step(step)
+        await self._workshop.shown(self._space, step, harness=self._harness, model=self._model)
 
     def should_stop(self) -> bool:
         return self._should_stop()
@@ -155,9 +158,9 @@ class ApiHands:
                 return StepOutcome(result.text, result.ok)
             if tool == "pronto":
                 summary = str(args.get("resumo") or "")
-                await self._workshop.step(space, tool, args)
+                await self._workshop.step(space, tool, args, harness="api", model=job.model)
                 return StepOutcome("pronto: a entrega vai para a revisão", True, True)
-            result = await self._workshop.step(space, tool, args)
+            result = await self._workshop.step(space, tool, args, harness="api", model=job.model)
             if tool == "rodar_testes":
                 tests = (result.text.splitlines() or [""])[0][:160]
             return StepOutcome(result.text, result.ok)

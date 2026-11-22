@@ -15,7 +15,8 @@ MAX_LINES = 150
 _MAX_FILES = 8
 _MAX_NOTES = 15
 _RULE_SECTIONS = ("Princípios inegociáveis", "Convenções")
-_SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv"}
+# A `.oficina` é a parte do espaço fora do diff: o pedido, as notas e a casa das mãos (ADR-0089).
+_SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", ".oficina"}
 _FORBIDDEN_DIRS = {"data", "privado"}
 _STOPWORDS = {
     "para", "com", "uma", "que", "dos", "das", "nos", "nas", "pelo", "pela", "como", "mais",

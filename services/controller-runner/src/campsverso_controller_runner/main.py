@@ -39,7 +39,9 @@ from campsverso_adapters import (
     model_port,
     read_world_archive,
 )
-from campsverso_adapters.settings import EnvSettings, WorldSettings
+from campsverso_adapters.hands_claude_code import ClaudeCodeHands
+from campsverso_adapters.model_routes import ANTHROPIC_KEY
+from campsverso_adapters.settings import EnvSettings, MindSettings, WorldSettings
 from campsverso_adapters.workshop_local import LocalWorkshop
 from campsverso_adapters.workshop_review import review
 from campsverso_controller_runner.office_mind import OfficeMind
@@ -52,7 +54,7 @@ from campsverso_controller_runner.runner import (
 )
 from campsverso_controller_runner.workshop import WorkshopSession
 from campsverso_mind import LlmController, Memory, MemoryProfile, MemorySettings
-from campsverso_ports import EventBus, ModelPort
+from campsverso_ports import EventBus, Hands, ModelPort, Telemetry
 
 
 def _parse(argv: Sequence[str]) -> argparse.Namespace:
@@ -217,6 +219,16 @@ async def run(args: argparse.Namespace) -> int:
                 effort=settings.effort,
                 telemetry=telemetry,
                 memory=memory,
+                # As mãos (ADR-0089): o pedido escolhe na prancheta; sem escolha, o padrão do mundo.
+                hands=_outside_hands(
+                    settings, port, (args.data_dir or env.data_dir) / world.worldid, telemetry
+                ),
+                default_harness=settings.hands,
+                hands_instructions=mind.hands_session,
+                model_ok=lambda model: (
+                    model in env.models and (model in env.routes) == (settings.model in env.routes)
+                ),
+                spent=port.ticket_cost,
             )
         else:
             brain = LlmController(
@@ -278,6 +290,30 @@ async def run(args: argparse.Namespace) -> int:
             await each.stop()
         await nats.close()
     return 0
+
+
+def _outside_hands(
+    settings: MindSettings, meter: MeteredModel, data: Path, telemetry: Telemetry
+) -> dict[str, Hands]:
+    """As mãos de fora (ADR-0089): o Claude Code, que chama o modelo pela porta das mãos com a
+    chave da Anthropic, que só a porta vê. A conversa de cada sessão fica em `<dados>/maos/`; com a
+    fita do mundo, a da porta fica ao lado dela (`<fita>-maos.jsonl`), e na reprodução ela basta."""
+    key = os.environ.get(ANTHROPIC_KEY, "")
+    mode = settings.cassette_mode
+    if not key and mode != "replay":
+        telemetry.info("mind.hands", available=["api"], hint=f"{ANTHROPIC_KEY} liga o Claude Code")
+        return {}
+    tape = settings.cassette_path.with_name(f"{settings.cassette_path.stem}-maos.jsonl")
+    return {
+        "claude_code": ClaudeCodeHands(
+            meter,
+            api_key=key,
+            home=data / "maos",
+            tape=None if mode == "live" else tape,
+            tape_mode=None if mode == "live" else mode,
+            warn=lambda event, fields: telemetry.warning(event, **fields),
+        )
+    }
 
 
 def _workshop(

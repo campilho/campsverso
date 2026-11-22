@@ -23,8 +23,8 @@ helpers:  # o vigia, que fica sempre que o dev não está
 # a mente e a rotina conduz o dev, sem pausar o mundo; o de um pedido faz a mente largá-lo. Os
 # números são provisórios, até a mente chegar (M24, parte 3); o operador os muda com o mundo vivo.
 budget:
-  usd_per_sim_day: 3.00
-  usd_per_ticket: 1.00
+  usd_per_sim_day: 10.00  # o M26 (ADR-0089, decisão 8): uma sessão do Claude Code custa mais
+  usd_per_ticket: 5.00
   usd_total: 30.00
   on_exceeded: mind_off
 
@@ -60,6 +60,9 @@ minds:  # a mente com rotina do dev (ADR-0080): `make sandbox MENTE=camps_escrit
     id: llm/camps
     mind: camps_escritorio  # entry point do grupo campsverso.minds (cartridges/office_campsverso/mind)
     model: claude-sonnet-5-5  # a sessão na oficina; a prova de conformidade escolhe o da criação
+    # Quem programa os pedidos sem escolha na prancheta (ADR-0089, decisão 3): o nosso harness com o
+    # Sonnet 5.5 até o relatório da comparação das mãos; o pedido pode escolher o Claude Code.
+    hands: api
     effort: medium
     max_tokens: 8192
     cassette: {path: data/llm/office-campsverso-01.jsonl, mode: record}

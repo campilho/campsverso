@@ -1,5 +1,6 @@
 """A sessão do dev na oficina (ADR-0080): os passos que o controlador roda pela porta antes de
-propor a entrega, um `workshop.step.v1` por passo, e o patch revisado no depósito de entregas.
+propor a entrega, um `workshop.step.v2` por passo (com as mãos e o modelo, ADR-0089), o fim da
+sessão (`workshop.session_finished.v1`) e o patch revisado no depósito de entregas.
 
 Quem pede os passos é o controlador do dev: o dev-script de reserva, com uma sessão fixa, e a mente,
 na parte 3 do M24. O kernel nunca vê a oficina: ele recebe a proposta de entrega com o resumo do
@@ -14,6 +15,8 @@ from typing import Any, cast
 from campsverso_ports import (
     TOOLS,
     BlobStore,
+    HandsResult,
+    HandsStep,
     ToolResult,
     WorkshopError,
     WorkshopPort,
@@ -23,7 +26,9 @@ from campsverso_ports import (
 type Review = Callable[[str], list[str]]
 type Publish = Callable[[str, Mapping[str, Any]], Awaitable[None]]
 
-STEP = "campsverso.workshop.step.v1"
+STEP = "campsverso.workshop.step.v2"
+SESSION_FINISHED = "campsverso.workshop.session_finished.v1"
+SCRIPT = "script"  # as mãos da sessão fixa da reserva, sem modelo
 ROBOT_STARTED = "campsverso.workshop.robot_started.v1"
 ROBOT_CALLED = "campsverso.workshop.robot_called.v1"
 MAX_STEPS = 200  # o limite de passos de uma sessão (o plano do M24, §3.4)
@@ -88,26 +93,91 @@ class WorkshopSession:
         """Abre o espaço do pedido (ou retoma o que já existe)."""
         return await self._workshop.open(self._worldid, ticket)
 
-    async def step(self, space: Workspace, tool: str, args: Mapping[str, Any]) -> ToolResult:
-        """Um passo: a ferramenta pela porta e o `workshop.step.v1` dele."""
+    async def step(
+        self,
+        space: Workspace,
+        tool: str,
+        args: Mapping[str, Any],
+        *,
+        harness: str,
+        model: str | None = None,
+    ) -> ToolResult:
+        """Um passo do nosso harness (ou da sessão fixa): a ferramenta pela porta e o passo dele."""
         started = time.monotonic()
         result = await call(space, tool, args)
+        if tool in TOOLS:
+            await self.shown(
+                space,
+                HandsStep(
+                    tool,
+                    result.summary or tool,
+                    result.ok,
+                    int((time.monotonic() - started) * 1000),
+                    result.path,
+                ),
+                harness=harness,
+                model=model,
+            )
+        return result
+
+    async def shown(
+        self, space: Workspace, step: HandsStep, *, harness: str, model: str | None
+    ) -> None:
+        """Um passo na tela e no arquivo (`workshop.step.v2`): o das nossas ferramentas ou o de
+        umas mãos de fora, pelo nome que elas usam."""
+        if self.publish is None:
+            return
         data: dict[str, Any] = {
             "avatar_id": self._avatar,
             "ticket_id": space.ticket_id,
-            "tool": tool if tool in TOOLS else "pronto",
-            "summary": (result.summary or tool)[:200],
-            "ok": result.ok,
-            "duration_ms": int((time.monotonic() - started) * 1000),
+            "harness": harness,
+            "tool": step.tool[:64] or "?",
+            "summary": (step.summary or step.tool or "?")[:200],
+            "ok": step.ok,
+            "duration_ms": max(0, int(step.duration_ms)),
         }
-        if result.path:
-            data["path"] = result.path[:300]
-        if self.publish is not None and tool in TOOLS:
-            await self.publish(STEP, data)
-        return result
+        if model:
+            data["model"] = model[:128]
+        if step.path:
+            data["path"] = step.path[:300]
+        await self.publish(STEP, data)
+
+    async def finished(
+        self,
+        space: Workspace,
+        result: HandsResult,
+        *,
+        harness: str,
+        model: str,
+        cost_usd: float | None,
+        duration_ms: int,
+    ) -> None:
+        """O fim de uma sessão (`workshop.session_finished.v1`): a fonte da comparação das mãos."""
+        if self.publish is None:
+            return
+        data: dict[str, Any] = {
+            "avatar_id": self._avatar,
+            "ticket_id": space.ticket_id,
+            "harness": harness,
+            "model": model[:128],
+            "done": result.done,
+            "reason": (result.reason or "?")[:80],
+            "turns": max(0, result.turns),
+            "steps": max(0, result.steps),
+            "duration_ms": max(0, duration_ms),
+        }
+        if cost_usd is not None:
+            data["cost_usd"] = round(max(0.0, cost_usd), 6)
+        await self.publish(SESSION_FINISHED, data)
 
     async def robot(
-        self, space: Workspace, robot_id: str, module: str, args: Sequence[str]
+        self,
+        space: Workspace,
+        robot_id: str,
+        module: str,
+        args: Sequence[str],
+        *,
+        whole: bool = False,
     ) -> ToolResult:
         """Um robô da bancada no espaço (o plano do M24, §4): o `workshop.robot_started.v1` antes de
         ele rodar, para a tela o animar trabalhando, e o `workshop.robot_called.v1` com o
@@ -124,7 +194,7 @@ class WorkshopSession:
                 },
             )
         started = time.monotonic()
-        result = await space.run_robot(module, given)
+        result = await space.run_robot(module, given, whole=whole)
         data: dict[str, Any] = {
             "avatar_id": self._avatar,
             "ticket_id": space.ticket_id,
@@ -194,7 +264,7 @@ class WorkshopSession:
                     if robot and module:
                         await self.robot(space, robot, module, [str(a) for a in given])
                     continue
-                await self.step(space, tool, args)
+                await self.step(space, tool, args, harness=SCRIPT)
                 if tool == "pronto":
                     ready = True
                     break

@@ -15,7 +15,7 @@ import yaml
 from campsverso_adapters.bus_nats import StreamSpec
 from campsverso_adapters.model_metered import ModelPrices
 from campsverso_adapters.model_recording import RecordingMode
-from campsverso_ports import Effort
+from campsverso_ports import HARNESSES, Effort
 
 EFFORTS = ("low", "medium", "high", "xhigh", "max")
 RECORDING_MODES = ("live", "record", "replay")
@@ -157,6 +157,9 @@ class MindSettings:
     reflection_model: str | None = None  # None: o modelo das decisões
     reflection_effort: Effort | None = "medium"
     reflection_max_tokens: int = 16384
+    # Quem programa os pedidos sem escolha na prancheta (ADR-0089): o nosso harness (`api`) ou o
+    # Claude Code (`claude_code`).
+    hands: str = "api"
 
 
 @dataclass(frozen=True, slots=True)
@@ -293,6 +296,9 @@ def _mind(avatar: str, raw: Mapping[str, Any], base: Path) -> MindSettings:
     reflection_effort = cast(Effort | None, reflection.get("effort", "medium"))
     if reflection_effort is not None and reflection_effort not in EFFORTS:
         raise ValueError(f"minds.{avatar}.reflection.effort inválido: {reflection_effort!r}")
+    hands = str(raw.get("hands", "api"))
+    if hands not in HARNESSES:
+        raise ValueError(f"minds.{avatar}.hands inválido: {hands!r} (use {HARNESSES})")
     return MindSettings(
         id=str(raw.get("id") or f"llm/{avatar}"),
         mind=str(raw["mind"]),
@@ -306,6 +312,7 @@ def _mind(avatar: str, raw: Mapping[str, Any], base: Path) -> MindSettings:
         reflection_model=cast(str | None, reflection.get("model")),
         reflection_effort=reflection_effort,
         reflection_max_tokens=int(reflection.get("max_tokens", 16384)),
+        hands=hands,
     )
 
 

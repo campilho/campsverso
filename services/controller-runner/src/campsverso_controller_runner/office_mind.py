@@ -22,6 +22,12 @@ perfil do escritório; cada sessão na oficina vira uma linha; a ferramenta `ano
 modelo quer lembrar. Ao chegar, o dev revê os dias de trabalho ainda não revistos, numa chamada em
 segundo plano, e a sessão de um pedido espera a revisão acabar. A memória vem antes do pedido, na
 sessão, e na conversa.
+
+**As mãos** (ADR-0089): quem programa o pedido é o nosso harness (`api`) ou umas mãos de fora, como
+o Claude Code, escolhidas na prancheta junto com o modelo; sem escolha, o padrão do mundo. O robô
+do briefing, quando está na bancada, abre a sessão nas duas mãos; se ele falha, a sessão abre com a
+memória e o pedido, como antes. No fim, o `workshop.session_finished.v1` diz as mãos, o modelo, as
+voltas, os passos, o custo e o tempo.
 """
 
 import asyncio
@@ -49,6 +55,12 @@ from campsverso_ports import (
 from campsverso_world_view import apply_delta
 
 type Propose = Callable[[Mapping[str, Any]], Awaitable[None]]
+
+API = "api"  # o nosso harness, sempre presente
+BRIEFING = "briefing"  # o robô da bancada que abre a sessão (ADR-0089, decisão 4)
+BRIEFING_INPUTS = (".oficina/pedido.md", ".oficina/notas.md")
+# Como a memória diz as mãos de uma sessão, na voz do dev.
+HANDS_SAID = {API: "com as ferramentas de sempre", "claude_code": "pelo Claude Code"}
 
 DOING = "fazendo"
 # Sem o sinal de vida da guarda por este tempo, a mente desliga (ADR-0080, decisão 16): três sinais
@@ -135,7 +147,11 @@ class OfficeMind:
         telemetry: Telemetry | None = None,
         memory: Memory | None = None,
         background: bool = True,
-        hands: Hands | None = None,
+        hands: Mapping[str, Hands] | None = None,
+        default_harness: str = API,
+        hands_instructions: str = "",
+        model_ok: Callable[[str], bool] | None = None,
+        spent: Callable[[str], float] | None = None,
     ) -> None:
         self._script = script
         self._background = background
@@ -155,10 +171,19 @@ class OfficeMind:
         self._chat_system = f"{self._identity}\n\n{chat_instructions.strip()}"
         self._effort: Effort | None = effort
         self._max_steps = max_steps
-        # As mãos (ADR-0089): o nosso harness, se ninguém der outras.
-        self._hands: Hands = hands or ApiHands(
-            port, workshop, tools=self._tools, robot_tool=mind.robot_tool, note_tool=self._note
-        )
+        # As mãos (ADR-0089): o nosso harness sempre, e as de fora que a raiz de composição der. O
+        # pedido escolhe; sem escolha, `default_harness`. As de fora leem as instruções delas.
+        self._hands: dict[str, Hands] = {
+            API: ApiHands(
+                port, workshop, tools=self._tools, robot_tool=mind.robot_tool, note_tool=self._note
+            ),
+            **dict(hands or {}),
+        }
+        self._default_harness = default_harness
+        self._hands_system = f"{self._identity}\n\n{hands_instructions.strip()}"
+        self._model_ok: Callable[[str], bool] = model_ok or _any_model
+        self._spent = spent
+        self._session_model = model
         self._telemetry = telemetry
         self._view: dict[str, Any] | None = None
         self._task: asyncio.Task[None] | None = None
@@ -284,7 +309,7 @@ class OfficeMind:
         number = cast(Mapping[str, Any], (doing_ticket(view) or {}).get("attributes") or {}).get(
             "numero", "?"
         )
-        intent = f"pensando no pedido {number} ({self._model})"
+        intent = f"pensando no pedido {number} ({self._session_model})"
         if self._working_on is not None and _rejected_done(delivery):
             self._thinking.add(self._working_on)
         if self._working_on in self._thinking:
@@ -303,51 +328,133 @@ class OfficeMind:
         if self.propose is not None:
             await self.propose(outcome)
 
+    def _choose(self, ticket: Mapping[str, Any]) -> tuple[str, str]:
+        """As mãos e o modelo do pedido (ADR-0089): os da prancheta, ou o padrão do mundo. Mãos que
+        não estão ligadas, ou um modelo que a porta não atende, viram o padrão, com um aviso."""
+        a = cast(Mapping[str, Any], ticket.get("attributes") or {})
+        ticket_id = str(ticket["entity_id"])
+        harness = str(a.get("maos") or self._default_harness)
+        if harness not in self._hands:
+            self._warn("mind.hands_unavailable", ticket=ticket_id, hands=harness)
+            harness = self._default_harness if self._default_harness in self._hands else API
+        model = str(a.get("modelo") or self._model)
+        if model != self._model and not self._model_ok(model):
+            self._warn("mind.model_unavailable", ticket=ticket_id, model=model)
+            model = self._model
+        return harness, model
+
     async def _session(self, ticket: Mapping[str, Any]) -> dict[str, Any]:
         """A sessão de um pedido na oficina, pelas mãos: devolve a entrega com o patch, ou a fala
         com o motivo."""
         ticket_id = str(ticket["entity_id"])
         number = cast(Mapping[str, Any], ticket.get("attributes") or {}).get("numero", "?")
+        harness, model = self._choose(ticket)
+        self._session_model = model
         tests = ""
         steps = 0
+        cost: float | None = None
         await self._await_review()
         robots = robots_in(self._view or {})
         try:
             space = await self._workshop.begin(ticket_id)
+            started = time.monotonic()
+            before = None if self._spent is None else self._spent(ticket_id)
             world = OfficeHandsWorld(
-                self._workshop, space, robots, self._memory, lambda: self._stop
+                self._workshop,
+                space,
+                robots,
+                self._memory,
+                lambda: self._stop,
+                harness=harness,
+                model=model,
             )
             job = HandsJob(
                 ticket_id=ticket_id,
-                opening=self._opening(ticket),
-                system=self._session_system,
-                model=self._model,
+                opening=await self._opening(ticket, space, robots),
+                system=self._session_system if harness == API else self._hands_system,
+                model=model,
                 avatar_id=self._avatar,
                 effort=self._effort,
-                limits=HandsLimits(max_turns=self._max_steps),
+                # O nosso harness segue com os passos dele; as de fora, com os tetos da sessão
+                # (ADR-0089, decisão 8).
+                limits=HandsLimits(max_turns=self._max_steps) if harness == API else HandsLimits(),
             )
-            result = await self._hands.run(space, job, world)
+            result = await self._hands[harness].run(space, job, world)
             steps = result.turns
             tests = result.tests
+            cost = (
+                result.cost_usd
+                if before is None or self._spent is None
+                else (self._spent(ticket_id) - before)
+            )
+            await self._workshop.finished(
+                space,
+                result,
+                harness=harness,
+                model=model,
+                cost_usd=cost,
+                duration_ms=int((time.monotonic() - started) * 1000),
+            )
             outcome = await self._outcome(space, result, number)
         except Exception as error:  # a oficina caiu: o dev diz, e o pedido fica em fazendo
             self._warn("mind.session_failed", ticket=ticket_id, error=repr(error))
             outcome = _say(f"Não consegui trabalhar no pedido {number}: a oficina falhou.")
-        self._remember_session(ticket_id, number, outcome, steps, tests)
+        self._remember_session(ticket_id, number, outcome, steps, tests, harness, model, cost)
         if outcome.get("action") != "deliver":
             self.failed.add(ticket_id)
         return dict(outcome)
 
-    def _opening(self, ticket: Mapping[str, Any]) -> str:
-        """O que abre a sessão: a memória, se ligada, e o pedido."""
+    def _plain_opening(self, ticket: Mapping[str, Any]) -> str:
+        """A abertura sem o briefing: a memória, se ligada, e o pedido."""
         if self._memory is None or self._memory.clock is None:
             return brief(ticket)
         return f"{self._memory.block(self._memory.clock)}\n\n{brief(ticket)}"
 
+    async def _opening(
+        self, ticket: Mapping[str, Any], space: Workspace, robots: Sequence[BenchRobot]
+    ) -> str:
+        """O que abre a sessão (ADR-0089, decisão 4): o briefing, montado pelo robô da bancada a
+        partir do pedido e da memória, que o controlador escreve na parte do espaço fora do diff.
+        Sem o robô na bancada, ou se ele falha, a memória e o pedido, como antes."""
+        plain = self._plain_opening(ticket)
+        robot = next((r for r in robots if r.name == BRIEFING), None)
+        if robot is None:
+            return plain
+        memory = self._memory
+        notes = "" if memory is None or memory.clock is None else memory.block(memory.clock)
+        try:
+            local = space.root / ".oficina"
+            local.mkdir(parents=True, exist_ok=True)
+            (local / "pedido.md").write_text(brief(ticket) + "\n", encoding="utf-8")
+            (local / "notas.md").write_text(notes + "\n", encoding="utf-8")
+        except OSError as error:
+            self._warn("mind.briefing_failed", ticket=str(ticket["entity_id"]), error=repr(error))
+            return plain
+        result = await self._workshop.robot(
+            space, robot.entity_id, robot.module, list(BRIEFING_INPUTS), whole=True
+        )
+        # A primeira linha é a do robô na tela ("chamando o robô ...: saída 0"); o resto é o texto.
+        text = result.text.split("\n", 1)[1].strip() if "\n" in result.text else ""
+        if not result.ok or not text:
+            self._warn(
+                "mind.briefing_failed", ticket=str(ticket["entity_id"]), summary=result.summary
+            )
+            return plain
+        return text
+
     def _remember_session(
-        self, ticket_id: str, number: object, outcome: Mapping[str, Any], steps: int, tests: str
+        self,
+        ticket_id: str,
+        number: object,
+        outcome: Mapping[str, Any],
+        steps: int,
+        tests: str,
+        harness: str,
+        model: str,
+        cost: float | None,
     ) -> None:
-        """A sessão numa linha da memória: o que saiu dela, quantos passos e os últimos testes."""
+        """A sessão numa linha da memória: as mãos e o modelo, o que saiu dela, quantos passos, o
+        custo e os últimos testes."""
         memory = self._memory
         if memory is None or memory.clock is None:
             return
@@ -359,9 +466,12 @@ class OfficeMind:
             else f"não entreguei: {params.get('text', '')}"
         )
         detail = f"; testes: {tests}" if tests else ""
+        hands = HANDS_SAID.get(harness, f"pelas mãos {harness}")
+        spent = "" if cost is None else f", US$ {cost:.2f}".replace(".", ",")
         memory.record(
             memory.clock,
-            f"trabalhei no pedido {number} na oficina, em {steps} passos; {what}{detail}",
+            f"trabalhei no pedido {number} na oficina {hands} ({model}), em {steps} passos{spent};"
+            f" {what}{detail}",
             7 if delivered else 8,
             "workshop",
             (ticket_id,),
@@ -486,6 +596,10 @@ class OfficeMind:
     def _warn(self, event: str, **fields: Any) -> None:
         if self._telemetry is not None:
             self._telemetry.warning(event, **fields)
+
+
+def _any_model(_model: str) -> bool:
+    return True
 
 
 def _say(text: str) -> dict[str, Any]:

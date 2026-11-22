@@ -95,7 +95,7 @@ def test_forbidden_is_by_path_from_root_not_substring() -> None:
 
 
 def test_find_files_prunes_heavy_and_forbidden_dirs(tmp_path: Path) -> None:
-    for folder in ("node_modules", ".venv", "data", "src"):
+    for folder in ("node_modules", ".venv", "data", ".oficina", "src"):
         (tmp_path / folder).mkdir()
         (tmp_path / folder / "robo.py").write_text("x", encoding="utf-8")
     assert briefing.find_files(tmp_path, ["robo"]) == ["src/robo.py"]

@@ -87,9 +87,12 @@ class Workspace(Protocol):
         """O `pytest` de um caminho, isolado: sem rede, escrita só no espaço, sem segredos."""
         ...
 
-    async def run_robot(self, module: str, args: Sequence[str] = ()) -> ToolResult:
+    async def run_robot(
+        self, module: str, args: Sequence[str] = (), *, whole: bool = False
+    ) -> ToolResult:
         """Um robô da bancada (o plano do M24, §4): `python -m <module> <args>` no espaço, com o
-        mesmo isolamento dos testes e o mesmo limite de tempo; a saída, até 60 linhas."""
+        mesmo isolamento dos testes e o mesmo limite de tempo; a saída, até 60 linhas. Com `whole`,
+        a saída inteira, até 400 linhas: o briefing que abre a sessão (ADR-0089)."""
         ...
 
     async def diff(self) -> ToolResult: ...

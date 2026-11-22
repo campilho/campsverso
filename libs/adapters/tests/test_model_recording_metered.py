@@ -1,5 +1,6 @@
 """A fita e o decorador da porta de modelo (ADR-0058): gravar, reproduzir, medir e publicar."""
 
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -142,6 +143,17 @@ async def test_decorador_publica_a_chamada_concluida_pelo_contrato() -> None:
         "low",
     )
     assert metered.spent_usd == 0.000168
+
+
+async def test_o_custo_da_oficina_de_cada_pedido() -> None:
+    """ADR-0089: a sessão de um pedido mede o dela pela diferença; a conversa fica fora."""
+    metered = _metered(FakeModel(), ValidatingBus(InMemoryBus()))
+    work = replace(_request(), purpose="workshop", ticket_id="pedido-7")
+    await metered.complete(work)
+    await metered.complete(work)
+    await metered.complete(replace(_request(), purpose="conversation", ticket_id="pedido-7"))
+    assert metered.ticket_cost("pedido-7") == pytest.approx(2 * 0.000168)
+    assert metered.ticket_cost("pedido-8") == 0.0
 
 
 async def test_reproduzida_nao_e_cobrada_e_falha_vira_evento(tmp_path: Path) -> None:

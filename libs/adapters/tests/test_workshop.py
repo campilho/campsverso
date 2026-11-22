@@ -145,6 +145,12 @@ async def test_o_robo_da_bancada_roda_um_modulo_com_argumentos(repo: Path, tmp_p
     refused = await space.run_robot("tools.eco; rm -rf /")
     assert (refused.ok, refused.summary) == (False, "chamando o robô tools.eco; rm -rf /: recusado")
     assert not (await space.run_robot("tools.eco", ["x" * 400])).ok
+    # Mais de 60 linhas: as últimas na tela; inteira, quando o controlador lê (o briefing).
+    await space.write("tools/longo.py", "for n in range(100):\n    print(f'linha {n}')\n")
+    short = (await space.run_robot("tools.longo")).text.splitlines()
+    assert (short[1], short[-1]) == ("linha 40", "linha 99")
+    whole = (await space.run_robot("tools.longo", whole=True)).text.splitlines()
+    assert (whole[1], whole[-1], len(whole)) == ("linha 0", "linha 99", 101)
 
 
 @pytest.mark.skipif(sys.platform != "darwin", reason="o sandbox-exec é do macOS")

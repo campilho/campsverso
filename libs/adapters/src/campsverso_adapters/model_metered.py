@@ -86,6 +86,7 @@ class MeteredModel:
         self._sim_clock = sim_clock
         self._seq = 0
         self.spent_usd = 0.0  # soma das chamadas cobradas neste processo
+        self._by_ticket: dict[str, float] = {}  # o custo de cada pedido, cobrado ou da fita
 
     @property
     def provider(self) -> str:
@@ -154,6 +155,8 @@ class MeteredModel:
         charged = not response.replayed
         if charged:
             self.spent_usd += cost
+        if request.ticket_id and request.purpose == "workshop":
+            self._by_ticket[request.ticket_id] = self._by_ticket.get(request.ticket_id, 0.0) + cost
         data: dict[str, Any] = {
             "usage": response.usage.as_dict(),
             "cost_usd": cost,
@@ -178,6 +181,11 @@ class MeteredModel:
             data["harness"] = harness
         await self._publish(COMPLETED, request, response.latency_ms, data)
         return cost
+
+    def ticket_cost(self, ticket_id: str) -> float:
+        """O que as chamadas da oficina de um pedido custaram pela tabela até agora, cobradas ou da
+        fita: a sessão de um pedido mede o dela pela diferença (ADR-0089). A conversa fica fora."""
+        return self._by_ticket.get(ticket_id, 0.0)
 
     async def count_tokens(self, request: ModelRequest) -> int:
         return await self._inner.count_tokens(request)  # contar não custa nem vira evento
