@@ -74,6 +74,25 @@ body.retro aside.operator,
   box-shadow: inset 0 -4px 0 var(--begeSomb);
 }
 
+/* O relógio do sandbox (pausar e as velocidades) na barra de cima do monitor maior. */
+.retro-top-clock {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+}
+
+.retro-top-clock:empty {
+  display: none;
+}
+
+.retro-top-clock .retro-foot-clock {
+  margin-left: 0;
+}
+
+.retro-top-clock + .retro-views {
+  margin-left: 12px;
+}
+
 .retro-icon-button {
   width: 40px;
   height: 40px;
@@ -353,15 +372,63 @@ body.retro .dot.off {
   gap: 2px;
 }
 
-.retro-hour {
-  font-family: var(--pixel);
-  font-size: 38px;
-  line-height: 1;
+/* O relógio de 7 segmentos (briefing-tela-2.md, §1): a folha de 14 células de 12 x 20, na escala
+   `--seg` (2 na barra e no painel, 1 na faixa do celular), num visor escuro sem brilho em volta. */
+.retro-7seg {
+  --seg: 2;
+  display: inline-flex;
+  align-self: flex-start;
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #1b1726;
+  box-shadow:
+    0 0 0 2px #1b1726,
+    0 0 0 4px var(--begeSomb),
+    inset 0 2px 0 rgb(0 0 0 / 60%),
+    inset 0 -2px 0 rgb(255 255 255 / 6%);
+}
+
+.retro-7seg.x1 {
+  padding: 3px 6px;
+  border-radius: 4px;
+}
+
+.retro-7seg-digit,
+.retro-7seg-colon {
+  display: block;
+  height: calc(20px * var(--seg));
+  background: url("/tela/relogio_7seg.png") no-repeat;
+  background-size: calc(168px * var(--seg)) calc(20px * var(--seg));
+  image-rendering: pixelated;
+}
+
+.retro-7seg-digit {
+  width: calc(12px * var(--seg));
+  background-position: calc(-12px * var(--seg) * var(--cell, 11)) 0;
+}
+
+/* Os dois pontos: as 4 primeiras colunas da célula 12 (acesos) ou da 13 (apagados), piscando a
+   cada segundo da parede. */
+.retro-7seg-colon {
+  width: calc(4px * var(--seg));
+  background-position: calc(-144px * var(--seg)) 0;
+  animation: retro-colon 1s step-end infinite;
+}
+
+@keyframes retro-colon {
+  50% {
+    background-position: calc(-156px * var(--seg)) 0;
+  }
 }
 
 .retro-day {
   font-size: 12px;
   font-weight: 600;
+}
+
+.retro-clock .retro-7seg {
+  margin: 2px 2px 6px;
 }
 
 .retro-live {
@@ -495,6 +562,22 @@ body.retro .dot.off {
   font-size: 12px;
   color: var(--grafite);
   white-space: nowrap;
+}
+
+/* A convocação no chip do dev, no monitor maior: "fora · Convocar". */
+.retro-chip-sep {
+  color: var(--begeEsc);
+}
+
+.retro-chip-action {
+  height: 20px;
+  padding: 0 6px;
+  border: 2px solid var(--contorno);
+  border-radius: 4px;
+  background: var(--amarelo);
+  color: var(--escuro);
+  font: 700 11px var(--texto);
+  cursor: pointer;
 }
 
 .retro-ic {
@@ -752,7 +835,7 @@ body.retro aside.office h2 {
 
 .retro-board-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
   padding: 7px 12px;
   margin-bottom: 8px;
@@ -767,8 +850,52 @@ body.retro aside.office h2 {
 }
 
 .retro-board-summary {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 13px;
   color: var(--grafite);
+}
+
+.retro-board-head h2 {
+  flex: 0 0 auto;
+}
+
+/* O "Escrever pedido" do monitor maior (briefing-tela-2.md, §6): 32 px, com o pino vermelho;
+   amarelo com o gerente assumido, bege e desabilitado sem ele. O contador encolhe antes dele. */
+.retro-board-write {
+  flex: 0 0 auto;
+  display: flex;
+}
+
+.retro-board-write:empty {
+  display: none;
+}
+
+.retro-write {
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.retro-board-write .retro-write {
+  height: 32px;
+  background: var(--amarelo);
+  box-shadow: inset 0 -3px 0 #b9902a;
+}
+
+.retro-pin {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--contorno);
+  border-radius: 50%;
+  background: var(--verm);
+}
+
+body.retro .retro-board-write .retro-write:disabled .retro-pin {
+  background: var(--begeEsc);
 }
 
 .retro-tabs {
@@ -2097,7 +2224,8 @@ select.retro-pick {
     transition: none;
   }
 
-  .retro-stripes {
+  .retro-stripes,
+  .retro-7seg-colon {
     animation: none;
   }
 
@@ -2121,6 +2249,141 @@ select.retro-pick {
 }
 
 /* ------------------------------------------------------------------ o iPad em pé: 760 a 1179 */
+
+/* ------------------------------------------------------------------ o monitor maior (ADR-0092) */
+
+/* O painel embaixo da tela só existe a partir de 1180 px. */
+.retro-panel {
+  display: none;
+}
+
+@media (min-width: 1180px) {
+  body.retro #app {
+    grid-template-rows: 44px minmax(0, 1fr);
+    gap: 8px;
+    padding: 0 8px 8px;
+  }
+
+  .retro-top {
+    margin: 0 -8px;
+  }
+
+  /* A margem da página é a do #app: o `main` de sempre não põe a dele. */
+  .retro-main {
+    gap: 8px;
+    padding: 0;
+  }
+
+  .retro-left {
+    flex: 0 0 auto;
+    gap: 0;
+  }
+
+  /* O gabinete abraça a tela, sem as caixas de som: 16 px de borda creme dos lados e 14 em cima. A
+     altura é a da tela mais 102 px, a largura, a da tela mais 44. */
+  .retro-monitor {
+    width: calc(640px * var(--sala, 1) + 44px);
+    height: auto;
+    padding: 14px 16px 0;
+  }
+
+  /* A sala na escala que a moldura calcula (`--sala`); o canvas continua em 1x, ampliado pelo CSS. */
+  /* A moldura da tela fica fora da sala: a sala inteira aparece, sem perder 3 px de cada lado. */
+  .retro-screen {
+    box-sizing: content-box;
+    width: calc(640px * var(--sala, 1));
+    height: calc(512px * var(--sala, 1));
+  }
+
+  body.retro .retro-screen canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .retro-monitor-foot,
+  .retro-bar {
+    display: none;
+  }
+
+  /* Uma linha só, de 64 px, com o bisel em cima: o relógio e o dia, as pessoas, o "?" e o "Assumir". */
+  .retro-panel {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    height: 64px;
+    margin-top: 12px;
+    padding: 0 2px;
+    box-sizing: border-box;
+    border-top: 2px solid var(--begeSomb);
+    box-shadow: inset 0 2px 0 var(--cremeCl);
+  }
+
+  .retro-panel-clock {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .retro-panel-clock .retro-7seg {
+    align-self: center;
+    margin-left: 4px;
+  }
+
+  .retro-panel-day {
+    display: flex;
+    flex-direction: column;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+
+  /* As pessoas numa linha que rola de lado, com a borda da direita esmaecida e um divisor antes. */
+  .retro-panel .retro-people {
+    flex: 1 1 auto;
+    min-width: 0;
+    align-self: stretch;
+    grid-template-rows: none;
+    grid-auto-columns: max-content;
+    align-items: center;
+    padding: 0 0 0 12px;
+    border-left: 2px solid var(--begeSomb);
+    scrollbar-width: none;
+  }
+
+  .retro-panel .retro-people::-webkit-scrollbar {
+    display: none;
+  }
+
+  .retro-panel .retro-help {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+  }
+
+  .retro-panel-take {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .retro-panel .retro-take {
+    height: 44px;
+    padding: 0 16px;
+    white-space: nowrap;
+  }
+
+  /* A coluna da direita fica com o resto da largura. */
+  .retro-rightwrap {
+    flex: 1 1 0;
+  }
+
+  .retro-right {
+    gap: 8px;
+  }
+}
 
 @media (max-width: 1179px) {
   body.retro #app {
@@ -2333,7 +2596,7 @@ select.retro-pick {
   /* A faixa com a hora, o dia e "ao vivo". */
   .retro-strip {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 8px;
     padding: 8px 12px;
     border: 3px solid var(--contorno);
@@ -2342,8 +2605,9 @@ select.retro-pick {
     box-shadow: inset 2px 2px 0 var(--cremeCl), inset -3px -3px 0 var(--begeSomb);
   }
 
-  .retro-strip-hour {
-    font: 700 20px var(--pixel);
+  .retro-strip .retro-7seg {
+    align-self: center;
+    margin: 2px;
   }
 
   .retro-strip-day {

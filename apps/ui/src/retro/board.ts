@@ -20,6 +20,8 @@ export interface BoardInput {
 export class RetroBoard {
   readonly element: HTMLElement;
   private readonly summary = el("span", { className: "retro-board-summary" });
+  /** O "Escrever pedido" do monitor maior (briefing-tela-2.md, §6): a moldura o põe aqui. */
+  readonly writeSlot = el("div", { className: "retro-board-write" });
   private readonly tablist = el("div", { className: "retro-tabs" });
   private readonly panel = el("div", { className: "retro-cork" });
   private readonly cards = el("ul", { className: "retro-cards" });
@@ -41,7 +43,7 @@ export class RetroBoard {
     this.element = el(
       "section",
       { className: "retro-board" },
-      el("header", { className: "retro-board-head" }, el("h2", {}, "Quadro dos pedidos"), this.summary),
+      el("header", { className: "retro-board-head" }, el("h2", {}, "Quadro dos pedidos"), this.summary, this.writeSlot),
       this.tablist,
       this.panel,
     );

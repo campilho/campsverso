@@ -247,6 +247,34 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   await expect(page).toHaveURL(/view=player/);
 });
 
+test("o monitor maior: a sala na altura toda, o relógio de 7 segmentos e o pedido no quadro (ADR-0092)", async ({ page }) => {
+  // As duas janelas do briefing-tela-2.md, §6, com a escala da sala de cada uma.
+  for (const [width, height, scale] of [
+    [1288, 720, 1.09],
+    [1456, 816, 1.28],
+  ] as const) {
+    await page.setViewportSize({ width, height });
+    await page.goto("/?view=player");
+    const panel = page.locator(".retro-panel");
+    await expect(panel).toBeVisible({ timeout: 45_000 });
+    await expect(page.locator(".retro-bar")).toBeHidden(); // a barra de baixo foi para o painel do monitor
+    // A sala escala pelo CSS; o canvas do Phaser continua em 1x.
+    const canvas = page.locator(".retro-screen canvas").first();
+    await expect.poll(async () => Math.round(((await canvas.boundingBox())?.width ?? 0) / 6.4), { timeout: 10_000 }).toBe(Math.round(scale * 100));
+    expect(await canvas.evaluate((c: HTMLCanvasElement) => [c.width, c.height])).toEqual([640, 512]);
+    // Nada passa da janela.
+    expect(await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.scrollHeight])).toEqual([width, height]);
+    // O relógio de 7 segmentos diz a hora do mundo para quem não vê o visor; as pessoas, o "?" e o
+    // "Assumir" no painel; o "Escrever pedido" no cabeçalho do quadro.
+    await expect(panel.getByRole("img", { name: /^\d{2}:\d{2}$/ })).toBeVisible();
+    await expect(panel.locator(".retro-chip").first()).toBeVisible();
+    await expect(panel.getByRole("button", { name: "Os comandos" })).toBeVisible();
+    await expect(panel.getByRole("button", { name: /o gerente$/ })).toBeVisible();
+    await expect(page.locator(".retro-board-head").getByRole("button", { name: "Escrever pedido" })).toBeVisible();
+    await page.screenshot({ path: `${SHOTS}/escritorio-grande-${String(width)}.png` });
+  }
+});
+
 test("no celular, a câmera segue o gerente num recorte da sala, e as abas trocam o painel (§4)", async ({ page }) => {
   await page.setViewportSize({ width: 402, height: 874 });
   await page.goto("/?view=player");

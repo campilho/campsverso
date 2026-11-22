@@ -43,21 +43,27 @@ export function versionLine(build: { readonly commit: string } | undefined, bann
   return { commit: build.commit.slice(0, 7), state: banner === undefined ? "rodando" : state[banner.kind] };
 }
 
-/** O relógio da barra de baixo: a hora, o dia com a fase e o ritmo, só quando não for 1×. */
+/** O relógio da barra de baixo: a hora, o dia com a fase e o ritmo, só quando não for 1×. O painel
+ * do monitor maior (ADR-0092) põe o dia e a fase em duas linhas: `date` e `period`. */
 export interface ClockView {
   readonly hour: string;
   readonly day: string;
+  readonly date: string;
+  readonly period: string;
   readonly pace: string | undefined;
 }
 
 const PHASES: Readonly<Record<string, string>> = { manha: "manhã", tarde: "tarde", noite: "noite", almoco: "almoço" };
 
 export function clockView(state: ObserverState, shown: string): ClockView {
-  const phase = ` · ${PHASES[state.phase] ?? state.phase}`;
+  const period = PHASES[state.phase] ?? state.phase;
+  const date = `Dia ${String(state.day)}`;
   const scale = state.clock.scale;
   return {
     hour: shown.slice(0, 5),
-    day: `Dia ${String(state.day)}${phase}`,
+    day: `${date} · ${period}`,
+    date,
+    period,
     pace: scale === undefined || scale === 1 ? undefined : `${String(scale)}×`,
   };
 }

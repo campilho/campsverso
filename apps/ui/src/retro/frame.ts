@@ -2,6 +2,10 @@
  * cima, o monitor com a sala, a barra de baixo com o relógio, as pessoas e os comandos, e a coluna
  * da direita. A moldura não decide nada: cada botão chama uma ação que vira proposta, como hoje.
  *
+ * Três arranjos das mesmas peças: o monitor maior, a partir de 1180 px (briefing-tela-2.md, §6;
+ * ADR-0092), com a sala escalada e o painel embaixo da tela; o iPad, com a barra de baixo; e o
+ * celular (§4), com a faixa, as abas e a barra de ação.
+ *
  * Ela entra só no escritório. A tela monta a página de sempre e, quando o estado diz que é o
  * escritório, a moldura reorganiza as mesmas peças (o mapa, a fila, o painel do quadro) dentro
  * dela. A fazenda, a arena e o assistir não mudam. */
@@ -11,7 +15,9 @@ import type { ArtManifest } from "../art/manifest.ts";
 import { el } from "../dom.ts";
 import { summonsOf } from "../panels/office.ts";
 import { Portrait } from "../panels/portrait.ts";
+import { BIG, roomLayout } from "./layout.ts";
 import type { Chip, ClockView, Light } from "./model.ts";
+import { SevenSeg } from "./sevenseg.ts";
 
 export interface FrameActions {
   assume(): void;
@@ -30,6 +36,13 @@ export interface FrameActions {
 
 export type Camera = "sala" | "seguir";
 type Tab = "quadro" | "conversa" | "pessoas";
+type Arrangement = "grande" | "ipad" | "celular";
+
+interface Summon {
+  readonly id: string;
+  readonly name: string;
+  readonly summoned: boolean;
+}
 
 /** O celular (§4): abaixo de 760 px, a barra de baixo se desfaz na faixa, nas abas e na barra de ação. */
 export const PHONE = "(max-width: 759px)";
@@ -78,7 +91,9 @@ export class RetroFrame {
   private readonly screen: HTMLElement;
   private readonly footClock: HTMLElement;
   private readonly helpButton: HTMLButtonElement;
-  private readonly hour: HTMLElement;
+  private readonly cameraBox: HTMLElement;
+  private readonly barClock = new SevenSeg(2);
+  private readonly barClockBox: HTMLElement;
   private readonly day: HTMLElement;
   private readonly liveLine: HTMLElement;
   private readonly people: HTMLElement;
@@ -92,9 +107,23 @@ export class RetroFrame {
   private shownChips = "";
   private shownCommands = "";
   private shownClock = "";
+  // As peças do monitor maior (ADR-0092): o painel embaixo da tela, com o relógio, as pessoas, o "?"
+  // e o "Assumir"; o "Escrever pedido" vai para o cabeçalho do quadro, e o relógio do sandbox, para a
+  // barra de cima.
+  private readonly big = matchMedia(BIG);
+  private readonly panel = el("div", { className: "retro-panel" });
+  private readonly panelClock = new SevenSeg(2);
+  private readonly panelDate = el("span", {});
+  private readonly panelPeriod = el("span", {});
+  private readonly panelClockBox: HTMLElement;
+  private readonly takeSlot = el("div", { className: "retro-panel-take" });
+  private readonly topClock = el("div", { className: "retro-top-clock" });
+  private writeSlot: HTMLElement | undefined;
+  private summonButton: HTMLButtonElement | undefined;
+  private last: FrameInput | undefined;
   // As peças do celular (§4): a faixa, as abas, o painel das pessoas e a barra de ação.
   private readonly cameraButtons: Record<Camera, HTMLButtonElement>;
-  private readonly stripHour = el("b", { className: "retro-strip-hour" });
+  private readonly stripClock = new SevenSeg(1);
   private readonly stripDay = el("span", { className: "retro-strip-day" });
   private readonly stripLive = el("span", { className: "retro-strip-live" });
   private readonly tabs = el("div", { className: "retro-phone-tabs" });
@@ -132,6 +161,7 @@ export class RetroFrame {
       iconButton,
       el("span", { className: "retro-name" }, "Campsverso"),
       this.lightDot,
+      this.topClock,
       el("div", { className: "retro-views", title: "A visão do jogador ou a do operador" }, player, operator),
     );
 
@@ -144,11 +174,17 @@ export class RetroFrame {
     const sala = button("sala", "", () => { this.actions.camera("sala"); });
     const seguir = button("seguir", "", () => { this.actions.camera("seguir"); });
     this.cameraButtons = { sala, seguir };
-    const camera = el("div", { className: "retro-camera" }, sala, seguir);
+    const camera = (this.cameraBox = el("div", { className: "retro-camera" }, sala, seguir));
     camera.setAttribute("aria-label", "A câmera");
     this.helpButton = button("?", "retro-help", () => { this.actions.help(); });
     this.helpButton.setAttribute("aria-label", "Os comandos");
     this.footClock = el("div", { className: "retro-foot-clock" });
+    this.panelClockBox = el(
+      "div",
+      { className: "retro-panel-clock" },
+      this.panelClock.element,
+      el("div", { className: "retro-panel-day" }, this.panelDate, this.panelPeriod),
+    );
     const monitor = el(
       "section",
       { className: "retro-monitor" },
@@ -163,23 +199,24 @@ export class RetroFrame {
         this.helpButton,
         el("span", { className: "retro-onair" }, el("i", { className: "dot" }), "ao vivo"),
       ),
+      this.panel,
     );
 
-    this.hour = el("div", { className: "retro-hour" });
     this.day = el("div", { className: "retro-day" });
     this.liveLine = el("div", { className: "retro-live" });
+    this.barClockBox = el("div", { className: "retro-clock" }, this.barClock.element, this.day, this.liveLine);
     this.people = el("ul", { className: "retro-people" });
     this.people.setAttribute("aria-label", "Quem está no escritório");
     this.commands = el("div", { className: "retro-commands" });
     const bar = (this.bar = el(
       "section",
       { className: "retro-bar" },
-      el("div", { className: "retro-clock" }, this.hour, this.day, this.liveLine),
+      this.barClockBox,
       this.people,
       this.commands,
     ));
 
-    const strip = el("div", { className: "retro-strip" }, this.stripHour, this.stripDay, this.stripLive);
+    const strip = el("div", { className: "retro-strip" }, this.stripClock.element, this.stripDay, this.stripLive);
     this.tabs.setAttribute("role", "tablist");
     this.tabs.setAttribute("aria-label", "O que mostrar");
     for (const id of ["quadro", "conversa", "pessoas"] as const) {
@@ -208,19 +245,50 @@ export class RetroFrame {
       this.actionBar,
     );
     this.phone.addEventListener("change", () => { this.arrange(); });
+    this.big.addEventListener("change", () => { this.arrange(); });
+    window.addEventListener("resize", () => { this.scaleRoom(); });
   }
 
-  /** No celular, as pessoas vão para a aba delas, e os comandos, para a barra de ação; no
-   * computador e no tablet, voltam para a barra de baixo. */
+  private arrangement(): Arrangement {
+    return this.phone.matches ? "celular" : this.big.matches ? "grande" : "ipad";
+  }
+
+  /** No monitor maior, o relógio, as pessoas e o "?" vão para o painel embaixo da tela, e o relógio
+   * do sandbox, para a barra de cima. No celular, as pessoas vão para a aba delas, e os comandos,
+   * para a barra de ação. No iPad, tudo fica na barra de baixo e no rodapé do gabinete. */
   private arrange(): void {
-    if (this.phone.matches) {
-      this.peoplePanel.append(this.people);
-      this.actionBar.append(this.commands);
+    const arrangement = this.arrangement();
+    if (arrangement === "grande") {
+      this.panel.replaceChildren(this.panelClockBox, this.people, this.helpButton, this.takeSlot);
+      this.topClock.append(this.footClock);
     } else {
-      this.commands.before(this.people);
-      this.bar.append(this.commands);
+      this.cameraBox.before(this.footClock);
+      this.cameraBox.after(this.helpButton);
+      if (arrangement === "celular") {
+        this.peoplePanel.append(this.people);
+        this.actionBar.append(this.commands);
+      } else {
+        this.bar.replaceChildren(this.barClockBox, this.people, this.commands);
+      }
+    }
+    this.scaleRoom();
+    // Os botões e os chips mudam de lugar: a próxima pintura os refaz.
+    this.shownChips = "";
+    this.shownCommands = "";
+    if (this.last !== undefined) {
+      this.render(this.last);
     }
     this.renderTabs();
+  }
+
+  /** A escala da sala no monitor maior (§6), que o CSS lê em `--sala`. */
+  private scaleRoom(): void {
+    if (!this.mounted || !this.big.matches) {
+      document.body.style.removeProperty("--sala");
+      return;
+    }
+    const { scale } = roomLayout(window.innerWidth, window.innerHeight);
+    document.body.style.setProperty("--sala", scale.toFixed(4));
   }
 
   get isPhone(): boolean {
@@ -251,11 +319,12 @@ export class RetroFrame {
 
   /** Põe as peças de sempre dentro da moldura: o mapa no monitor, o quadro e a conversa na coluna
    * da direita e, na visão do operador, o painel dele na gaveta, que entra deslizando. */
-  mount(app: HTMLElement, world: HTMLElement, sides: readonly HTMLElement[], drawer: HTMLElement | undefined): void {
+  mount(app: HTMLElement, world: HTMLElement, sides: readonly HTMLElement[], drawer: HTMLElement | undefined, writeSlot?: HTMLElement): void {
     if (this.mounted) {
       return;
     }
     this.mounted = true;
+    this.writeSlot = writeSlot;
     document.body.classList.add("retro");
     this.screen.prepend(world);
     const [board, talk] = sides;
@@ -300,11 +369,20 @@ export class RetroFrame {
   }
 
   render(input: FrameInput): void {
+    this.last = input;
     this.lightDot.className = `retro-light ${input.light.color}`;
     this.lightDot.setAttribute("aria-label", input.light.label);
     this.lightDot.title = input.light.label;
-    this.hour.textContent = input.clock.hour;
+    this.barClock.set(input.clock.hour);
+    this.panelClock.set(input.clock.hour);
+    this.stripClock.set(input.clock.hour);
     this.day.textContent = input.clock.day;
+    if (this.panelDate.textContent !== input.clock.date) {
+      this.panelDate.textContent = input.clock.date;
+    }
+    if (this.panelPeriod.textContent !== input.clock.period) {
+      this.panelPeriod.textContent = input.clock.period;
+    }
     const pace = input.clock.pace === undefined ? [] : [el("span", { className: "retro-pace" }, input.clock.pace)];
     const liveKey = `${input.live}|${input.clock.pace ?? ""}|${String(input.connected)}`;
     if (this.liveLine.dataset.key !== liveKey) {
@@ -316,7 +394,6 @@ export class RetroFrame {
       );
     }
     this.helpButton.title = input.hint;
-    this.stripHour.textContent = input.clock.hour;
     this.stripDay.textContent = input.clock.day;
     if (this.stripLive.dataset.key !== liveKey) {
       this.stripLive.dataset.key = liveKey;
@@ -334,21 +411,35 @@ export class RetroFrame {
       this.shownClock = input.clockKey;
       this.footClock.replaceChildren(...input.clockButtons());
     }
-    this.renderChips(input.chips);
-    this.renderCommands(input);
+    const summon = this.summonOf(input);
+    this.renderCommands(input, summon);
+    this.renderChips(input.chips, summon);
   }
 
-  private renderChips(chips: readonly Chip[]): void {
-    const key = JSON.stringify(chips);
+  /** A convocação do dev, quando o gerente é de quem joga e o dev está fora ou convocado. */
+  private summonOf(input: FrameInput): Summon | undefined {
+    const [dev] = summonsOf(input.state, input.timeline);
+    return input.mine && dev !== undefined && (dev.summoned || !dev.present) ? dev : undefined;
+  }
+
+  /** No monitor maior, a convocação cabe no chip do dev ("fora · Convocar"); sem o dev na visão
+   * (sem id), ela fica ao lado do "Assumir". */
+  private summonInChip(summon: Summon | undefined): boolean {
+    return this.arrangement() === "grande" && summon !== undefined && summon.id !== "";
+  }
+
+  private renderChips(chips: readonly Chip[], summon: Summon | undefined): void {
+    const host = this.summonInChip(summon) ? summon?.id : undefined;
+    const key = JSON.stringify([chips, host, this.shownCommands]);
     if (key === this.shownChips) {
       return;
     }
     this.shownChips = key;
-    this.people.replaceChildren(...chips.map((chip) => this.chip(chip)));
+    this.people.replaceChildren(...chips.map((chip) => this.chip(chip, chip.id === host ? this.summonButton : undefined)));
     this.renderTabs(); // "Pessoas · n"
   }
 
-  private chip(chip: Chip): HTMLElement {
+  private chip(chip: Chip, action: HTMLButtonElement | undefined): HTMLElement {
     const item = el("li", { className: `retro-chip${chip.away ? " away" : ""}${chip.screen === true ? " has-screen" : ""}`, title: chip.title });
     if (chip.screen === true) {
       // O chip do dev com uma sessão na oficina abre a tela dele (ADR-0089).
@@ -371,7 +462,13 @@ export class RetroFrame {
         "div",
         { className: "retro-chip-text" },
         el("div", { className: "retro-chip-name" }, chip.name, el("span", { className: `retro-tag ${chip.tag === "você" ? "you" : chip.tag === "LLM" ? "llm" : ""}` }, chip.tag)),
-        el("div", { className: "retro-chip-line" }, this.icon(chip.icon), el("span", {}, chip.line)),
+        el(
+          "div",
+          { className: "retro-chip-line" },
+          this.icon(chip.icon),
+          el("span", {}, chip.line),
+          ...(action === undefined ? [] : [el("span", { className: "retro-chip-sep" }, "·"), action]),
+        ),
       ),
     );
     return item;
@@ -419,10 +516,9 @@ export class RetroFrame {
     return span;
   }
 
-  private renderCommands(input: FrameInput): void {
-    const [dev] = summonsOf(input.state, input.timeline);
-    const summon = input.mine && dev !== undefined && (dev.summoned || !dev.present) ? dev : undefined;
-    const key = JSON.stringify([input.mine, input.connected, summon?.id, summon?.summoned, summon?.name]);
+  private renderCommands(input: FrameInput, summon: Summon | undefined): void {
+    const arrangement = this.arrangement();
+    const key = JSON.stringify([input.mine, input.connected, summon?.id, summon?.summoned, summon?.name, arrangement]);
     if (key === this.shownCommands) {
       return; // refazer o botão sem mudança engoliria cliques
     }
@@ -431,17 +527,39 @@ export class RetroFrame {
       ? button("Soltar o gerente", "retro-take release", () => { this.actions.release(); }, input.connected)
       : button("Assumir o gerente", "retro-take", () => { this.actions.assume(); }, input.connected);
     pressed(take, input.mine);
-    const write = button("Escrever pedido", "retro-small", () => { this.actions.write(); }, input.mine && input.connected);
-    const parts: HTMLElement[] = [take, write];
-    if (summon !== undefined) {
-      const who = summon.id === "" ? summon.name : `o ${summon.name}`; // sem o dev na visão, "o dev"
-      parts.push(
-        summon.summoned
-          ? button(`Dispensar ${who}`, "retro-small", () => { this.actions.dismiss(summon.id); }, input.connected)
-          : button(`Convocar ${who}`, "retro-small", () => { this.actions.summon(summon.id); }, input.connected),
-      );
+    const write = button("Escrever pedido", "retro-small retro-write", () => { this.actions.write(); }, input.mine && input.connected);
+    this.summonButton = summon === undefined ? undefined : this.summonAction(summon, input.connected);
+    if (arrangement === "grande") {
+      // O pino vermelho do "Escrever pedido" no cabeçalho do quadro (§6).
+      write.prepend(el("i", { className: "retro-pin" }));
+      const beside = this.summonInChip(summon) || this.summonButton === undefined ? [] : [this.summonButton];
+      this.takeSlot.replaceChildren(...beside, take);
+      this.writeSlot?.replaceChildren(write);
+      this.commands.replaceChildren();
+    } else {
+      this.takeSlot.replaceChildren();
+      this.writeSlot?.replaceChildren();
+      this.commands.replaceChildren(take, write, ...(this.summonButton === undefined ? [] : [this.summonButton]));
     }
-    this.commands.replaceChildren(...parts);
+  }
+
+  /** "Convocar o Tiago" ou "Dispensar o Tiago"; no chip do monitor maior, só o verbo. */
+  private summonAction(summon: Summon, connected: boolean): HTMLButtonElement {
+    const who = summon.id === "" ? summon.name : `o ${summon.name}`; // sem o dev na visão, "o dev"
+    const verb = summon.summoned ? "Dispensar" : "Convocar";
+    const short = this.summonInChip(summon);
+    const node = button(short ? verb : `${verb} ${who}`, short ? "retro-chip-action" : "retro-small", () => {
+      if (summon.summoned) {
+        this.actions.dismiss(summon.id);
+      } else {
+        this.actions.summon(summon.id);
+      }
+    }, connected);
+    node.setAttribute("aria-label", `${verb} ${who}`);
+    // No chip que abre a tela do dev, o clique do botão não abre a tela.
+    node.addEventListener("click", (event) => { event.stopPropagation(); });
+    node.addEventListener("keydown", (event) => { event.stopPropagation(); });
+    return node;
   }
 
   private go(target: "player" | "operator"): void {

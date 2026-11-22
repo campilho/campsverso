@@ -75,9 +75,9 @@ describe("a luz da barra de cima", () => {
 
 describe("o relógio da barra de baixo", () => {
   it("diz a hora, o dia com a fase e o ritmo só quando não é 1×", () => {
-    expect(clockView(state(), "09:00:12")).toEqual({ hour: "09:00", day: "Dia 1 · manhã", pace: undefined });
+    expect(clockView(state(), "09:00:12")).toEqual({ hour: "09:00", day: "Dia 1 · manhã", date: "Dia 1", period: "manhã", pace: undefined });
     const fast = state({ day: 3, phase: "tarde", clock: { mode: "continuous", scale: 72, paused: false } });
-    expect(clockView(fast, "15:30:00")).toEqual({ hour: "15:30", day: "Dia 3 · tarde", pace: "72×" });
+    expect(clockView(fast, "15:30:00")).toEqual({ hour: "15:30", day: "Dia 3 · tarde", date: "Dia 3", period: "tarde", pace: "72×" });
   });
 });
 

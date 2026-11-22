@@ -389,7 +389,7 @@ function renderRetro(state: ObserverState): void {
     retro.minimapSlot.append(minimap.element);
     requestAnimationFrame(fitScreen); // depois de a moldura ter tamanho
   }
-  retro.mount(appRoot, world, [board.element, talk.element], view === "operator" ? drawerOf(aside) : undefined);
+  retro.mount(appRoot, world, [board.element, talk.element], view === "operator" ? drawerOf(aside) : undefined, board.writeSlot);
   const mine = inControl(state, avatarId());
   const shown = clockText(state, shownTick);
   const banner = bannerOf({ status: store.status, everOpen: store.everOpen, notice: store.notice, fresh: store.fresh, now: Date.now() });

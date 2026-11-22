@@ -187,3 +187,18 @@ O desenho fica conosco, no estilo que a prancheta já tem: não precisa do Claud
 
    *Recomendação: sim.*
 10. **As fitas regravadas** quando o nome muda, por uns US$ 0,10, com o seu ok. *Recomendação: sim.*
+
+## 10. Como ficou, fase a fase
+
+1. **Os nomes e o elenco (22/nov):**
+   - o gerente Camps de blazer e o dev Tiago, com os bustos nos chips e o rosto na conversa;
+   - o arquivo do mundo passou a dizer qual avatar o script e a mente conduzem (`avatar: tiago`), e o NATS deixa o controlador ler a percepção do Tiago;
+   - a fita do escritório foi regravada: 14 chamadas, US$ 0,046;
+   - o escritório vivo foi para o mundo 02 às 20:14. Para trocar de mundo, o `estado.json` do supervisor foi guardado com outro nome (`estado-mundo-01.json`); sem isso, ele religaria a versão antiga, que não conhece o mundo novo.
+2. **O monitor maior (22/nov):**
+   - a escala da sala é uma conta pura (`retro/layout.ts`), testada pela tabela do §6 do briefing; a moldura a põe em `--sala`, e o CSS amplia o canvas, que continua em 1x;
+   - a tela agora fica fora da sala (`content-box`): antes, a moldura de 3 px comia 3 px de cada lado da sala;
+   - o relógio de 7 segmentos (`retro/sevenseg.ts`) está no painel do monitor, na barra do iPad e na faixa do celular, com os dois pontos piscando só no CSS;
+   - o relógio do sandbox (pausar e as velocidades) foi para a barra de cima, porque o painel não tem lugar para ele;
+   - **a convocação no chip só aparece quando o dev está na visão:** na visão do operador, ou depois da convocação. Na visão do jogador, o dev fora da sala não vem no estado (o princípio 5), então o "Convocar o dev" fica ao lado do "Assumir";
+   - no iPad e no celular, só o relógio mudou.
