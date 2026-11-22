@@ -45,7 +45,7 @@ office:
 robos:
   - nome: testador
     modulo: tools.robos.testador
-    descricao: Roda os testes que cobrem os caminhos dados e devolve um resumo curto.
+    descricao: Roda os testes que cobrem os caminhos dados, mais o ruff e o pyright estrito, e devolve um resumo curto.
     reserva: [tools/robos/tests]  # os testes da própria bancada: rápidos e em todo clone
   - nome: briefing
     modulo: tools.robos.briefing

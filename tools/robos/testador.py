@@ -5,10 +5,12 @@ Uso: python -m tools.robos.testador <caminho> [<caminho> ...]
 
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import sys
-from collections.abc import Sequence
+import tomllib
+from collections.abc import Callable, Sequence
 from pathlib import Path
 
 _COUNT = re.compile(r"(\d+) (passed|failed|error|errors)")
@@ -107,12 +109,100 @@ def ruff_summary(paths: Sequence[str]) -> str:
     return "ruff: passou"
 
 
+def _pyright_config() -> tuple[list[str], list[str]]:
+    with (_REPO_ROOT / "pyproject.toml").open("rb") as handle:
+        section = tomllib.load(handle)["tool"]["pyright"]
+    return list(section["include"]), list(section["exclude"])
+
+
+def _matches(relative: str, pattern: str) -> bool:
+    """Casa um caminho relativo com um item do include/exclude do pyright."""
+    pattern = pattern.rstrip("/")
+    parts = relative.split("/")
+    if pattern.startswith("**/"):
+        return pattern[3:] in parts
+    return relative == pattern or relative.startswith(pattern + "/")
+
+
+def pyright_files(paths: Sequence[str]) -> list[str]:
+    """Os .py dos caminhos que o include/exclude do pyright cobre (caminhos absolutos)."""
+    include, exclude = _pyright_config()
+    found: set[Path] = set()
+    for raw in paths:
+        path = Path(raw).resolve()
+        if path.is_dir():
+            found.update(p for p in path.rglob("*.py") if p.is_file())
+        elif path.suffix == ".py" and path.is_file():
+            found.add(path)
+    covered: list[str] = []
+    for file in sorted(found):
+        try:
+            relative = file.relative_to(_REPO_ROOT).as_posix()
+        except ValueError:
+            continue
+        if any(_matches(relative, p) for p in exclude):
+            continue
+        if any(_matches(relative, p) for p in include):
+            covered.append(str(file))
+    return covered
+
+
+def _pyright(files: Sequence[str]) -> tuple[int, str]:
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pyright",
+            "--project",
+            str(_REPO_ROOT / "pyproject.toml"),
+            "--outputjson",
+            *files,
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=_REPO_ROOT,
+    )
+    return proc.returncode, proc.stdout + proc.stderr
+
+
+def pyright_summary(
+    paths: Sequence[str],
+    runner: Callable[[Sequence[str]], tuple[int, str]] = _pyright,
+) -> str:
+    """Roda o pyright estrito nos .py cobertos pela configuração; devolve uma linha."""
+    files = pyright_files(paths)
+    if not files:
+        return "pyright: nenhum arquivo coberto"
+    code, output = runner(files)
+    try:
+        report = json.loads(output)
+        diagnostics = report["generalDiagnostics"]
+    except (ValueError, KeyError, TypeError):
+        return f"pyright: não consegui rodar (código {code})"
+    errors = [d for d in diagnostics if d.get("severity") == "error"]
+    if errors:
+        first = errors[0]
+        where = Path(str(first.get("file", "?")))
+        try:
+            shown = where.relative_to(_REPO_ROOT).as_posix()
+        except ValueError:
+            shown = where.as_posix()
+        line = int(first.get("range", {}).get("start", {}).get("line", 0)) + 1
+        rule = first.get("rule", "erro")
+        return f"pyright: {len(errors)} erro(s); primeiro: {shown}:{line} {rule}"
+    if code != 0:
+        return f"pyright: falhou (código {code})"
+    return "pyright: passou"
+
+
 def main(argv: Sequence[str]) -> int:
     if not argv:
         print("uso: python -m tools.robos.testador <caminho> [<caminho> ...]")
         return 2
     print(run(argv))
     print(ruff_summary(argv))
+    print(pyright_summary(argv))
     return 0
 
 
