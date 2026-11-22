@@ -152,6 +152,27 @@ O segundo pedido da tela, depois da tela retrô no ar: [briefing-tela-2.md](brie
 - **As fichas quadradas e a ficha aberta:** a cortiça mostra quadrados só com o número, o tamanho, o título e os selos. Um clique abre a ficha inteira na prancheta, em leitura, com o carimbo do estado, o PR, o patch e o devolver.
 - **O gerente fica de blazer**, a escolha do usuário. Os prints novos estão em [escritorio-tela/](escritorio-tela/): `grande`, `grande-1288`, `fichas` e `ficha-aberta`.
 
+## A tela do dev (22/11)
+
+O terceiro pedido da tela: [briefing-tela-3.md](briefing-tela-3.md). Ele dá forma à tela do dev que entrou com a ADR-0089, no ramo `m23-bases`.
+
+- **O computador do dev:** o modal é um monitor bege, como os da sala, com um terminal de fósforo verde em fundo preto, na letra VT323. Ele tem linhas de varredura, vinheta, um brilho leve e uma tremida de vez em quando.
+- **Cada passo da sessão vira um comando de bash,** com o prompt `camps@oficina:~/pedido-2$`, a ferramenta, o arquivo e a hora. O resultado vem no estilo da inicialização do Linux: `[  OK  ]`, `[FALHOU]` e `[ ROBÔ ]`. Embaixo, uma barra de status como a do `tmux`, com o pedido, as mãos, o modelo, o tempo, os passos, o custo e "● AO VIVO".
+- **Animado e só para acompanhar:**
+  - o passo novo entra deslizando e o comando se digita;
+  - depois do último passo, o prompt espera com o cursor piscando;
+  - a tela segue o fim, a menos que a pessoa suba para reler;
+  - não há onde digitar.
+- **De qual dev é:** são quatro sinais:
+  - a plaqueta do gabinete, com o retrato e "Tela do Camps · o dev · LLM · mesa 1";
+  - o `login: camps`;
+  - o prompt;
+  - o `[camps]` da barra.
+  Com mais de um dev, a plaqueta vira um seletor.
+- **Como abrir:** pelo computador dele na sala, que ganha um contorno amarelo ao passar o mouse, ou pelo botão de monitor no chip.
+- **Nada muda nos dados:** a tela usa a sessão da projeção como ela é. As respostas do modelo entre os passos ficam como opção, porque pedem contrato.
+- **Os prints** estão em [escritorio-tela/](escritorio-tela/): `tela-dev`, `tela-dev-fim`, `tela-dev-vazia` e `tela-dev-celular`.
+
 ## O estúdio (depois do escritório)
 
 Duas propostas do Claude Design para o estúdio do podcast, guardadas para quando ele chegar (ADR-0055 o põe depois do escritório, sobre a porta de efeitos externos que o escritório constrói).
