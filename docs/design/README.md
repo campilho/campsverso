@@ -134,6 +134,22 @@ A tela inteira redesenhada com o usuário: o mapa dentro de um monitor de tubo, 
 - **A arte da moldura:** [escritorio-arte/tela/](escritorio-arte/tela/), em 1x, com o `tela.json`: o ícone (o monitor com um mundo dentro, a opção 1), a cortiça, a caneta e o prendedor da prancheta, e dois ícones de chip.
 - **Origem:** o Claude desenhou numa sessão do Cowork, como canvas do Claude Design, em 21/11/2026; o canvas interativo fica na conta do usuário. O usuário escolheu a versão B (a retrô) entre duas propostas, o ícone 1 entre quatro, e pediu os ajustes que o pedido lista.
 
+## O elenco novo, os retratos e o relógio (22/11)
+
+O segundo pedido da tela, depois da tela retrô no ar: [briefing-tela-2.md](briefing-tela-2.md).
+
+- **O relógio de 7 segmentos:** a hora da barra de baixo num visor escuro, com os dígitos acesos em verde e os apagados quase pretos, como um relógio digital dos anos 90. A folha é [tela/relogio_7seg.png](escritorio-arte/tela/relogio_7seg.png), em células de 12 × 20, descrita no `tela.json`.
+- **O gerente novo:** parecido com o usuário, com cabelo escuro de topete, barba com o queixo grisalho, camisa social azul e calça bege. Vem em duas folhas: `gerente_camisa.png` (as mangas dobradas) e `gerente_blazer.png` (o blazer azul-marinho por cima, sem gravata). As referências foram duas imagens do Nano Banana que o usuário mandou. O gerente antigo, o senhor de terno, fica em `gerente.png` para outros usos.
+- **O elenco novo:** quatro folhas para os próximos lugares, com todas as animações:
+  - `tiago.png`: crespo, moletom e fone;
+  - `dandara.png`: black power, argolas e blazer vermelho;
+  - `livia.png`: rabo de cavalo ruivo e saia;
+  - `kenji.png`: franja, gola alta e crachá.
+  A prévia, os seis andando, está em [previa/elenco.gif](escritorio-arte/previa/elenco.gif).
+- **Os retratos:** um busto de frente em 40 × 40 para cada personagem, parado e piscando, em [folhas/retratos.png](escritorio-arte/folhas/retratos.png), para os chips e a conversa. Ele substitui o recorte do sprite.
+- **O que não mudou:** as folhas de antes ficaram iguais, pixel a pixel, e a paleta continua com 48 cores. Os personagens novos saem do mesmo gerador parametrizado do Camps, com penteados, roupas e acessórios novos.
+- **Em aberto:** o monitor maior. A barra de baixo vira o painel do monitor, e a sala escala para a altura toda, a 1,08x num 1288 × 720 e a 1,27x num 1456 × 816. A proposta está na página 5 do canvas e espera a escolha do usuário.
+
 ## O estúdio (depois do escritório)
 
 Duas propostas do Claude Design para o estúdio do podcast, guardadas para quando ele chegar (ADR-0055 o põe depois do escritório, sobre a porta de efeitos externos que o escritório constrói).

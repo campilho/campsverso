@@ -7,7 +7,8 @@
     "caneta": { "arquivo": "caneta.png", "quadro": [48, 48], "escala": { "prancheta": 3 }, "uso": "a caneta deitada ao lado da prancheta do pedido; some abaixo de 900 px de largura" },
     "prendedor": { "arquivo": "prendedor.png", "quadro": [64, 26], "escala": { "prancheta": 3 }, "uso": "o prendedor de metal no alto da prancheta, por cima do papel (192 x 78 na tela)" },
     "ic_fora": { "arquivo": "ic_fora.png", "quadro": [16, 16], "escala": { "chip": 1 }, "uso": "o ícone do chip de quem está fora da sala (a porta com a seta)" },
-    "ic_vigiar": { "arquivo": "ic_vigiar.png", "quadro": [16, 16], "escala": { "chip": 1 }, "uso": "o ícone do chip do vigia parado no posto (o olho)" }
+    "ic_vigiar": { "arquivo": "ic_vigiar.png", "quadro": [16, 16], "escala": { "chip": 1 }, "uso": "o ícone do chip do vigia parado no posto (o olho)" },
+    "relogio_7seg": { "arquivo": "relogio_7seg.png", "quadro": [12, 20], "escala": { "barra": 2, "celular": 1 }, "celulas": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "-", " ", ":", ":apagado"], "larguras": { ":": 4, ":apagado": 4 }, "cores": { "aceso": "telaTexto, com telaBrilho no meio de cada segmento", "apagado": "#16261e (fora da paleta, só a moldura)", "visor": "contorno #1b1726" }, "uso": "o relógio digital de 7 segmentos da barra de baixo (briefing-tela-2.md): cada célula traz os segmentos acesos e os apagados; os dois pontos piscam" }
   },
-  "casas_livres_na_folha_de_icones": "icones.png tem 30 de 32 casas: ic_fora e ic_vigiar cabem em [6,3] e [7,3], se a arte for para a folha (pede make arte-escritorio)"
+  "casas_livres_na_folha_de_icones": "ic_fora e ic_vigiar já estão na icones.png, nas casas [6,3] e [7,3] (ADR-0087)"
 }

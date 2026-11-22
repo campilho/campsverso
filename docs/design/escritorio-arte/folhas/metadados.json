@@ -2344,6 +2344,825 @@
         }
       },
       "andar": "per_tile: 8 quadros por tile"
+    },
+    "gerente_camisa": {
+      "arquivo": "gerente_camisa.png",
+      "grupo": "personagens",
+      "quadro": [
+        64,
+        64
+      ],
+      "colunas": 8,
+      "linhas": 29,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        32,
+        64
+      ],
+      "camada": "personagem",
+      "animacoes": {
+        "andar": {
+          "linha": 0,
+          "quadros": 8,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "parado": {
+          "linha": 4,
+          "quadros": 2,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "usar": {
+          "linha": 8,
+          "quadros": 6,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "sentado": {
+          "linha": 12,
+          "quadros": 1,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "digitando": {
+          "linha": 16,
+          "quadros": 4,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": true
+        },
+        "beber": {
+          "linha": 17,
+          "quadros": 3,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "comer": {
+          "linha": 21,
+          "quadros": 4,
+          "direcoes": [
+            "esquerda",
+            "direita"
+          ],
+          "tem": true
+        },
+        "carregar": {
+          "linha": 23,
+          "quadros": 8,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "sofa_tv": {
+          "linha": 27,
+          "quadros": 2,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": true
+        },
+        "sofa_jogar": {
+          "linha": 28,
+          "quadros": 4,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": true
+        }
+      },
+      "andar": "per_tile: 8 quadros por tile",
+      "configuracao": {
+        "nome": "Gerente",
+        "descricao": "o gerente novo, parecido com o usuário: cabelo escuro com topete, barba com o queixo grisalho, camisa social azul de mangas dobradas, calça bege, cinto e sapato marrons"
+      }
+    },
+    "gerente_blazer": {
+      "arquivo": "gerente_blazer.png",
+      "grupo": "personagens",
+      "quadro": [
+        64,
+        64
+      ],
+      "colunas": 8,
+      "linhas": 29,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        32,
+        64
+      ],
+      "camada": "personagem",
+      "animacoes": {
+        "andar": {
+          "linha": 0,
+          "quadros": 8,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "parado": {
+          "linha": 4,
+          "quadros": 2,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "usar": {
+          "linha": 8,
+          "quadros": 6,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "sentado": {
+          "linha": 12,
+          "quadros": 1,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "digitando": {
+          "linha": 16,
+          "quadros": 4,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": true
+        },
+        "beber": {
+          "linha": 17,
+          "quadros": 3,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "comer": {
+          "linha": 21,
+          "quadros": 4,
+          "direcoes": [
+            "esquerda",
+            "direita"
+          ],
+          "tem": true
+        },
+        "carregar": {
+          "linha": 23,
+          "quadros": 8,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "sofa_tv": {
+          "linha": 27,
+          "quadros": 2,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": true
+        },
+        "sofa_jogar": {
+          "linha": 28,
+          "quadros": 4,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": true
+        }
+      },
+      "andar": "per_tile: 8 quadros por tile",
+      "configuracao": {
+        "nome": "Gerente",
+        "descricao": "o mesmo gerente, com o blazer azul-marinho por cima da camisa azul, sem gravata"
+      }
+    },
+    "tiago": {
+      "arquivo": "tiago.png",
+      "grupo": "personagens",
+      "quadro": [
+        64,
+        64
+      ],
+      "colunas": 8,
+      "linhas": 29,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        32,
+        64
+      ],
+      "camada": "personagem",
+      "animacoes": {
+        "andar": {
+          "linha": 0,
+          "quadros": 8,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "parado": {
+          "linha": 4,
+          "quadros": 2,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "usar": {
+          "linha": 8,
+          "quadros": 6,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "sentado": {
+          "linha": 12,
+          "quadros": 1,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "digitando": {
+          "linha": 16,
+          "quadros": 4,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": true
+        },
+        "beber": {
+          "linha": 17,
+          "quadros": 3,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "comer": {
+          "linha": 21,
+          "quadros": 4,
+          "direcoes": [
+            "esquerda",
+            "direita"
+          ],
+          "tem": true
+        },
+        "carregar": {
+          "linha": 23,
+          "quadros": 8,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "sofa_tv": {
+          "linha": 27,
+          "quadros": 2,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": true
+        },
+        "sofa_jogar": {
+          "linha": 28,
+          "quadros": 4,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": true
+        }
+      },
+      "andar": "per_tile: 8 quadros por tile",
+      "configuracao": {
+        "nome": "Tiago",
+        "descricao": "cabelo crespo baixo, cavanhaque, moletom verde com capuz, fone vermelho no pescoço, jeans e tênis branco"
+      }
+    },
+    "dandara": {
+      "arquivo": "dandara.png",
+      "grupo": "personagens",
+      "quadro": [
+        64,
+        64
+      ],
+      "colunas": 8,
+      "linhas": 29,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        32,
+        64
+      ],
+      "camada": "personagem",
+      "animacoes": {
+        "andar": {
+          "linha": 0,
+          "quadros": 8,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "parado": {
+          "linha": 4,
+          "quadros": 2,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "usar": {
+          "linha": 8,
+          "quadros": 6,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "sentado": {
+          "linha": 12,
+          "quadros": 1,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "digitando": {
+          "linha": 16,
+          "quadros": 4,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": true
+        },
+        "beber": {
+          "linha": 17,
+          "quadros": 3,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "comer": {
+          "linha": 21,
+          "quadros": 4,
+          "direcoes": [
+            "esquerda",
+            "direita"
+          ],
+          "tem": true
+        },
+        "carregar": {
+          "linha": 23,
+          "quadros": 8,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "sofa_tv": {
+          "linha": 27,
+          "quadros": 2,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": true
+        },
+        "sofa_jogar": {
+          "linha": 28,
+          "quadros": 4,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": true
+        }
+      },
+      "andar": "per_tile: 8 quadros por tile",
+      "configuracao": {
+        "nome": "Dandara",
+        "descricao": "black power, brincos de argola dourados, blazer vermelho sobre a camiseta branca, calça e sapato pretos"
+      }
+    },
+    "livia": {
+      "arquivo": "livia.png",
+      "grupo": "personagens",
+      "quadro": [
+        64,
+        64
+      ],
+      "colunas": 8,
+      "linhas": 29,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        32,
+        64
+      ],
+      "camada": "personagem",
+      "animacoes": {
+        "andar": {
+          "linha": 0,
+          "quadros": 8,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "parado": {
+          "linha": 4,
+          "quadros": 2,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "usar": {
+          "linha": 8,
+          "quadros": 6,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "sentado": {
+          "linha": 12,
+          "quadros": 1,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "digitando": {
+          "linha": 16,
+          "quadros": 4,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": true
+        },
+        "beber": {
+          "linha": 17,
+          "quadros": 3,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "comer": {
+          "linha": 21,
+          "quadros": 4,
+          "direcoes": [
+            "esquerda",
+            "direita"
+          ],
+          "tem": true
+        },
+        "carregar": {
+          "linha": 23,
+          "quadros": 8,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "sofa_tv": {
+          "linha": 27,
+          "quadros": 2,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": true
+        },
+        "sofa_jogar": {
+          "linha": 28,
+          "quadros": 4,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": true
+        }
+      },
+      "andar": "per_tile: 8 quadros por tile",
+      "configuracao": {
+        "nome": "Lívia",
+        "descricao": "rabo de cavalo ruivo com elástico vermelho, brincos pequenos, blusa mostarda, saia azul-marinho até o joelho e sapatilha vinho"
+      }
+    },
+    "kenji": {
+      "arquivo": "kenji.png",
+      "grupo": "personagens",
+      "quadro": [
+        64,
+        64
+      ],
+      "colunas": 8,
+      "linhas": 29,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        32,
+        64
+      ],
+      "camada": "personagem",
+      "animacoes": {
+        "andar": {
+          "linha": 0,
+          "quadros": 8,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "parado": {
+          "linha": 4,
+          "quadros": 2,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "usar": {
+          "linha": 8,
+          "quadros": 6,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "sentado": {
+          "linha": 12,
+          "quadros": 1,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "digitando": {
+          "linha": 16,
+          "quadros": 4,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": true
+        },
+        "beber": {
+          "linha": 17,
+          "quadros": 3,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "comer": {
+          "linha": 21,
+          "quadros": 4,
+          "direcoes": [
+            "esquerda",
+            "direita"
+          ],
+          "tem": true
+        },
+        "carregar": {
+          "linha": 23,
+          "quadros": 8,
+          "direcoes": [
+            "cima",
+            "esquerda",
+            "baixo",
+            "direita"
+          ],
+          "tem": true
+        },
+        "sofa_tv": {
+          "linha": 27,
+          "quadros": 2,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": true
+        },
+        "sofa_jogar": {
+          "linha": 28,
+          "quadros": 4,
+          "direcoes": [
+            "cima"
+          ],
+          "tem": true
+        }
+      },
+      "andar": "per_tile: 8 quadros por tile",
+      "configuracao": {
+        "nome": "Kenji",
+        "descricao": "cabelo liso preto com franja, suéter de gola alta creme, crachá azul, calça marrom e sapato preto"
+      }
+    },
+    "retratos": {
+      "arquivo": "retratos.png",
+      "grupo": "retratos",
+      "quadro": [
+        40,
+        40
+      ],
+      "colunas": 9,
+      "linhas": [
+        "parado",
+        "piscando"
+      ],
+      "pegada": null,
+      "ancora": [
+        20,
+        40
+      ],
+      "camada": "interface",
+      "quadros": [
+        "gerente_camisa",
+        "gerente_blazer",
+        "camps",
+        "vigia",
+        "tiago",
+        "dandara",
+        "livia",
+        "kenji",
+        "gerente"
+      ],
+      "retratos": {
+        "gerente_camisa": [
+          0,
+          0
+        ],
+        "gerente_blazer": [
+          1,
+          0
+        ],
+        "camps": [
+          2,
+          0
+        ],
+        "vigia": [
+          3,
+          0
+        ],
+        "tiago": [
+          4,
+          0
+        ],
+        "dandara": [
+          5,
+          0
+        ],
+        "livia": [
+          6,
+          0
+        ],
+        "kenji": [
+          7,
+          0
+        ],
+        "gerente": [
+          8,
+          0
+        ]
+      },
+      "nota": "o busto de cada personagem, de frente, para os chips e a conversa da tela: uma coluna por personagem, a linha 0 parada e a 1 piscando; sem fundo (o chip põe a cor)"
     }
   }
 }

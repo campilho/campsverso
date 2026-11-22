@@ -1900,6 +1900,7 @@ function placaLinha() {
 // Direções: 0 cima, 1 esquerda, 2 baixo, 3 direita (= esquerda espelhada)
 // =====================================================================
 const PELE = ['peleCl', 'pele', 'peleSomb'];
+const TODAS = ['andar', 'parado', 'usar', 'sentado', 'digitando', 'beber', 'comer', 'carregar', 'sofa_tv', 'sofa_jogar'];
 const PERSONAGENS = {
   camps: {
     nome: 'Camps', pele: PELE, cabelo: ['cabCl', 'cab', 'cabEsc'], penteado: 'curto', barba: true, oculos: true,
@@ -1915,6 +1916,39 @@ const PERSONAGENS = {
     nome: 'Vigia', pele: ['pele', 'peleSomb', 'cabCl'], cabelo: ['cab', 'cabEsc', 'escuro'], penteado: 'bone', farda: true, lanterna: true,
     tronco: ['marCl', 'mar', 'marEsc'], calca: ['marCl', 'mar', 'marEsc'], cinto: 'escuro', fivela: 'amarelo',
     sapato: ['grafiteEsc', 'escuro'], anims: ['andar', 'parado'],
+  },
+  // O gerente novo (22/11): o usuário, de cabelo escuro com topete, barba grisalha no queixo, camisa
+  // social azul e calça bege; uma folha sem o blazer (as mangas dobradas) e outra com o blazer azul-marinho.
+  gerente_camisa: {
+    nome: 'Gerente', descricao: 'o gerente novo, parecido com o usuário: cabelo escuro com topete, barba com o queixo grisalho, camisa social azul de mangas dobradas, calça bege, cinto e sapato marrons', pele: PELE, cabelo: ['cabEsc', 'escuro', 'contorno'], penteado: 'topete', barba: true, barbaGris: true,
+    tronco: ['azulCl', 'azul', 'azulEsc'], camisaSocial: true, mangaDobrada: true,
+    calca: ['creme', 'bege', 'begeSomb'], cinto: 'madMEsc', fivela: 'cinzaCl', sapato: ['mad', 'madEsc'], anims: TODAS,
+  },
+  gerente_blazer: {
+    nome: 'Gerente', descricao: 'o mesmo gerente, com o blazer azul-marinho por cima da camisa azul, sem gravata', pele: PELE, cabelo: ['cabEsc', 'escuro', 'contorno'], penteado: 'topete', barba: true, barbaGris: true,
+    tronco: ['marCl', 'mar', 'marEsc'], paleto: true, camisa: ['azulCl', 'azul', 'azulEsc'],
+    calca: ['creme', 'bege', 'begeSomb'], sapato: ['mad', 'madEsc'], anims: TODAS,
+  },
+  // Os outros do elenco (22/11), para os próximos lugares do escritório.
+  tiago: {
+    nome: 'Tiago', descricao: 'cabelo crespo baixo, cavanhaque, moletom verde com capuz, fone vermelho no pescoço, jeans e tênis branco', pele: ['cabCl', 'cab', 'cabEsc'], cabelo: ['grafite', 'grafiteEsc', 'escuro'], penteado: 'crespo', cavanhaque: true,
+    tronco: ['verdeCl', 'verde', 'verdeEsc'], moletom: true, fone: ['vermCl', 'verm', 'escuro'],
+    calca: ['carpCl', 'carp', 'carpEsc'], sapato: ['branco', 'cinzaCl'], anims: TODAS,
+  },
+  dandara: {
+    nome: 'Dandara', descricao: 'black power, brincos de argola dourados, blazer vermelho sobre a camiseta branca, calça e sapato pretos', pele: ['peleSomb', 'cabCl', 'cab'], cabelo: ['grafite', 'grafiteEsc', 'escuro'], penteado: 'black', cilios: true, boca: 'vermEsc',
+    brincos: 'argola', tronco: ['vermCl', 'verm', 'vermEsc'], paleto: true, camisa: ['branco', 'cremeCl', 'creme'],
+    calca: ['grafite', 'grafiteEsc', 'escuro'], sapato: ['escuro', 'contorno'], anims: TODAS,
+  },
+  livia: {
+    nome: 'Lívia', descricao: 'rabo de cavalo ruivo com elástico vermelho, brincos pequenos, blusa mostarda, saia azul-marinho até o joelho e sapatilha vinho', pele: PELE, cabelo: ['madCl', 'mad', 'madEsc'], penteado: 'rabo', cilios: true, boca: 'verm', brincos: 'ponto',
+    tronco: ['amareloCl', 'amarelo', 'madCl'], saia: ['marCl', 'mar', 'marEsc'],
+    calca: PELE, sapato: ['vermEsc', 'escuro'], anims: TODAS,
+  },
+  kenji: {
+    nome: 'Kenji', descricao: 'cabelo liso preto com franja, suéter de gola alta creme, crachá azul, calça marrom e sapato preto', pele: PELE, cabelo: ['grafite', 'grafiteEsc', 'escuro'], penteado: 'franja',
+    tronco: ['cremeCl', 'creme', 'bege'], golaAlta: true, cracha: ['azul', 'azulEsc'],
+    calca: ['begeSomb', 'begeEsc', 'madMEsc'], sapato: ['escuro', 'contorno'], anims: TODAS,
   },
 };
 // Mapa da folha (igual para todos): [linha da 1ª direção, quadros, direções]
@@ -1960,9 +1994,24 @@ const COMER_ALVO = (f, ty, hy) => [[16, 42], [21, 37], [25, hy + 14], [21, 39]][
 
 // ------------------------------------------------------------ peças do corpo
 function quadril(s, d, ty) {
-  const [lc, lb, ls] = d.calca;
+  const [lc, lb, ls] = d.saia || d.calca;
   s.r(25, ty + 13, 14, 3, lb).vl(25, ty + 13, ty + 15, lc).vl(38, ty + 14, ty + 15, ls);
   if (!d.paleto) { s.hl(25, 38, ty + 13, d.cinto || lb); if (d.fivela) s.r(31, ty + 13, 2, 1, d.fivela); }
+}
+// A saia por cima das pernas: do quadril até o joelho, um pouco mais larga na barra.
+function saia(s, d, ty, vista, o) {
+  if (!d.saia) return;
+  const [sc, sb, ss] = d.saia;
+  if (vista === 'perfil') {
+    if (o.sentado) { s.r(22, ty + 13, 13, 4, sb).hl(22, 34, ty + 13, sc).hl(22, 34, ty + 16, ss).vl(34, ty + 13, ty + 16, ss); return; }
+    for (let y = ty + 13; y <= ty + 21; y++) { const k = y >= ty + 19 ? 1 : 0; s.hl(27 - k, 36 + k, y, sb).p(27 - k, y, sc).p(36 + k, y, ss); }
+    s.hl(26, 37, ty + 21, ss).pts([[30, ty + 16], [31, ty + 19]], ss);
+    return;
+  }
+  const fim = o.sentado ? ty + 17 : ty + 21;
+  for (let y = ty + 13; y <= fim; y++) { const k = y >= ty + 19 ? 1 : 0; s.hl(25 - k, 38 + k, y, sb).p(25 - k, y, sc).hl(37 + k, 38 + k, y, ss); }
+  s.hl(25, 38, fim, ss);
+  if (!o.sentado) s.pts([[29, ty + 16], [29, ty + 17], [34, ty + 18], [34, ty + 19]], ss);
 }
 function pernaFrente(s, d, x0, ty, sobe, esq, costas) {
   const [lc, lb, ls] = d.calca, [sb, ss] = d.sapato;
@@ -1981,28 +2030,58 @@ function troncoBloco(s, d, ty, linhas = 13) {
 function bracoFrente(s, d, x0, ty, dy, esq) {
   const [tc, tb, ts] = d.tronco, [pc, pb, ps] = d.pele;
   const y1 = ty + 10 + dy;
-  for (let y = ty + 1; y <= y1; y++) s.p(x0, y, esq ? tc : tb).p(x0 + 1, y, tb).p(x0 + 2, y, ts);
+  for (let y = ty + 1; y <= y1; y++) {
+    if (d.mangaDobrada && y > ty + 6) s.p(x0, y, esq ? pc : pb).p(x0 + 1, y, pb).p(x0 + 2, y, ps);
+    else s.p(x0, y, esq ? tc : tb).p(x0 + 1, y, tb).p(x0 + 2, y, ts);
+  }
+  if (d.mangaDobrada) s.hl(x0, x0 + 2, ty + 6, tc);
   s.apaga(esq ? x0 : x0 + 2, ty + 1);
-  if (d.paleto) s.hl(x0, x0 + 2, y1, 'branco');
+  if (d.paleto) s.hl(x0, x0 + 2, y1, punho(d));
   s.r(x0, y1 + 1, 3, 3, pb).p(esq ? x0 + 2 : x0, y1 + 3, ps).p(esq ? x0 : x0 + 2, y1 + 1, pc);
 }
 function lanterna(s, x, y) {        // (x, y): o punho, logo abaixo da mão
   s.r(x, y, 3, 4, 'cinzaEsc').vl(x, y, y + 3, 'cinza');
   s.r(x - 1, y + 4, 5, 2, 'cinza').hl(x - 1, x + 3, y + 4, 'cinzaCl').hl(x, x + 2, y + 6, 'amareloCl');
 }
+// O punho e a gola da camisa por baixo do paletó: branca, ou da cor da camisa.
+function punho(d) { return d.camisa ? d.camisa[0] : 'branco'; }
 function detalheTronco(s, d, ty, vista) {
   const [tc, tb, ts] = d.tronco;
   if (d.paleto) {
-    const [gc, gb, gs] = d.gravata;
+    const g = punho(d);
     s.r(25, ty + 12, 14, 2, tb).vl(25, ty + 12, ty + 13, tc).hl(26, 38, ty + 13, ts);          // o paletó cobre o cinto
     if (vista === 'frente') {
-      s.hl(29, 34, ty, 'branco').hl(30, 33, ty + 1, 'branco').pts([[30, ty + 2], [33, ty + 2], [30, ty + 3], [33, ty + 3]], 'branco');
-      s.r(31, ty + 1, 2, 1, gs).r(31, ty + 2, 2, 5, gb).vl(31, ty + 2, ty + 6, gc).p(31, ty + 7, gb).p(32, ty + 7, gs);
+      s.hl(29, 34, ty, g).hl(30, 33, ty + 1, g).pts([[30, ty + 2], [33, ty + 2], [30, ty + 3], [33, ty + 3]], g);
+      if (d.gravata) {
+        const [gc, gb, gs] = d.gravata;
+        s.r(31, ty + 1, 2, 1, gs).r(31, ty + 2, 2, 5, gb).vl(31, ty + 2, ty + 6, gc).p(31, ty + 7, gb).p(32, ty + 7, gs);
+      } else {                                                                                 // sem gravata: a camisa aberta no V
+        const [cc, cb, cs] = d.camisa;
+        s.r(31, ty + 1, 2, 6, cb).vl(31, ty + 2, ty + 6, cc).p(32, ty + 7, cs).p(31, ty + 7, cb).p(32, ty + 4, cs);
+        if (d.camisa[0] !== 'branco') s.hl(31, 32, ty, d.pele[1]);                              // o pescoço no colarinho aberto
+      }
       s.linha(29, ty + 1, 30, ty + 6, ts).linha(34, ty + 1, 33, ty + 6, ts);
-      s.p(32, ty + 9, 'cinza').p(35, ty + 3, 'branco').vl(31, ty + 11, ty + 13, ts);
+      s.p(32, ty + 9, 'cinza').p(35, ty + 3, g).vl(31, ty + 11, ty + 13, ts);
     } else if (vista === 'costas') {
-      s.hl(29, 34, ty, 'branco').vl(31, ty + 9, ty + 13, ts).pts([[27, ty + 1], [36, ty + 1]], ts);
+      s.hl(29, 34, ty, g).vl(31, ty + 9, ty + 13, ts).pts([[27, ty + 1], [36, ty + 1]], ts);
     }
+  } else if (d.camisaSocial) {
+    if (vista === 'frente') {
+      s.pts([[29, ty], [30, ty + 1], [34, ty], [33, ty + 1]], tc).hl(31, 32, ty, d.pele[1]).p(31, ty + 1, d.pele[2]);   // a gola aberta
+      s.vl(32, ty + 2, ty + 12, ts).pts([[31, ty + 4], [31, ty + 7], [31, ty + 10]], 'cinzaCl').hl(27, 29, ty + 4, ts).p(27, ty + 3, ts);
+    } else if (vista === 'costas') {
+      s.hl(28, 35, ty, tc).hl(29, 34, ty + 1, ts).vl(31, ty + 3, ty + 11, ts);
+    }
+  } else if (d.moletom) {
+    if (vista === 'frente') {
+      s.hl(27, 36, ty, tc).hl(28, 35, ty + 1, ts).pts([[30, ty + 2], [30, ty + 3], [30, ty + 4], [33, ty + 2], [33, ty + 3], [33, ty + 4]], 'branco');
+      s.hl(27, 36, ty + 8, ts).vl(27, ty + 8, ty + 11, ts).vl(36, ty + 8, ty + 11, ts).hl(25, 38, ty + 12, ts);   // o bolso e a barra
+    } else if (vista === 'costas') {
+      s.r(27, ty, 10, 4, tb).hl(27, 36, ty, tc).hl(28, 35, ty + 4, ts).vl(36, ty + 1, ty + 3, ts).pts([[31, ty + 2], [32, ty + 2]], ts).hl(25, 38, ty + 12, ts);
+    }
+  } else if (d.golaAlta) {
+    if (vista === 'frente') s.hl(28, 35, ty + 2, ts).pts([[30, ty + 6], [33, ty + 6], [31, ty + 9], [32, ty + 9]], ts);
+    if (vista === 'costas') s.hl(28, 35, ty + 2, ts);
   } else if (d.farda) {
     if (vista === 'frente') { s.hl(27, 29, ty + 4, ts).hl(34, 36, ty + 4, ts).r(27, ty + 2, 2, 2, 'amarelo').p(27, ty + 2, 'amareloCl'); s.hl(25, 27, ty, ts).hl(36, 38, ty, ts); }
     if (vista === 'costas') s.hl(25, 27, ty, ts).hl(36, 38, ty, ts);
@@ -2022,13 +2101,15 @@ function cabecaFrente(s, d, hy, o) {
   else s.vl(28, hy + 7, hy + 8, 'contorno').vl(35, hy + 7, hy + 8, 'contorno');
   s.hl(27, 29, hy + 5, cs).hl(34, 36, hy + 5, cs);                              // sobrancelhas
   s.p(32, hy + 10, ps).p(31, hy + 10, pc);                                    // nariz
-  s.hl(30, 33, hy + 13, ps);                                                  // boca
+  s.hl(30, 33, hy + 13, d.boca || ps);                                        // boca
+  if (d.cilios && !o.pisca) s.pts([[27, hy + 7], [36, hy + 7]], 'contorno');
   // cabelo
-  if (d.penteado === 'curto') {
+  if (d.penteado === 'curto' || d.penteado === 'topete') {
     s.hl(28, 35, hy, cb).hl(26, 37, hy + 1, cb).hl(25, 38, hy + 2, cb).hl(24, 39, hy + 3, cb).hl(24, 30, hy + 4, cb).hl(37, 39, hy + 4, cb);
     s.vl(24, hy + 5, hy + 6, cb).vl(39, hy + 5, hy + 6, cb);
     s.hl(29, 32, hy + 1, cc).hl(26, 28, hy + 2, cc).p(25, hy + 3, cc);
     s.hl(37, 38, hy + 2, cs).hl(38, 39, hy + 3, cs).pts([[29, hy + 4], [30, hy + 4], [33, hy + 3], [39, hy + 4]], cs);
+    if (d.penteado === 'topete') s.hl(28, 34, hy - 1, cb).hl(29, 32, hy - 1, cc).hl(30, 33, hy - 2, cb).p(31, hy - 2, cc).p(34, hy - 1, cs);
   } else if (d.penteado === 'grisalho') {
     s.hl(28, 35, hy, cb).hl(26, 37, hy + 1, cb).hl(25, 38, hy + 2, cb).hl(24, 27, hy + 3, cb).hl(32, 33, hy + 3, cb).hl(36, 39, hy + 3, cb);
     s.vl(24, hy + 4, hy + 6, cb).vl(39, hy + 4, hy + 6, cs).p(25, hy + 4, cb).p(38, hy + 4, cs);
@@ -2040,7 +2121,7 @@ function cabecaFrente(s, d, hy, o) {
     s.r(31, hy + 1, 2, 2, 'amarelo').p(31, hy + 1, 'amareloCl');
     s.hl(23, 40, hy + 5, 'marEsc').hl(25, 38, hy + 6, ps);
     s.vl(24, hy + 6, hy + 7, cs).vl(39, hy + 6, hy + 7, cs);
-  }
+  } else cabeloNovo(s, d, hy, 'frente');
   if (d.barba) {
     s.vl(25, hy + 5, hy + 11, cb).vl(38, hy + 5, hy + 11, cs).vl(24, hy + 5, hy + 6, cb).vl(39, hy + 5, hy + 6, cb);
     s.hl(25, 26, hy + 10, cb).hl(37, 38, hy + 10, cs);
@@ -2048,9 +2129,13 @@ function cabecaFrente(s, d, hy, o) {
     s.hl(25, 29, hy + 12, cb).hl(34, 38, hy + 12, cb).p(30, hy + 12, cb).p(33, hy + 12, cb).hl(31, 32, hy + 12, 'vermEsc');
     s.hl(25, 38, hy + 13, cb).hl(26, 37, hy + 14, cb).hl(27, 36, hy + 15, cb).hl(29, 34, hy + 16, cs);
     s.vl(37, hy + 11, hy + 14, cs).hl(30, 35, hy + 15, cs).pts([[27, hy + 13], [29, hy + 14], [26, hy + 12], [31, hy + 11]], cc);
+    if (d.barbaGris) s.pts([[30, hy + 14], [33, hy + 14], [31, hy + 15], [29, hy + 15], [32, hy + 16], [34, hy + 15], [28, hy + 13], [35, hy + 13]], 'cinzaEsc').pts([[31, hy + 14], [32, hy + 15]], 'cinza');
   } else if (d.bigode) {
     s.hl(28, 35, hy + 11, cb).p(28, hy + 12, cb).p(35, hy + 12, cs).p(29, hy + 11, cc).p(35, hy + 11, cs);
+  } else if (d.cavanhaque) {
+    s.hl(29, 34, hy + 11, cb).pts([[29, hy + 12], [34, hy + 12]], cb).hl(30, 33, hy + 14, cb).hl(31, 32, hy + 15, cs).p(30, hy + 14, cs);
   }
+  brincos(s, d, hy, 'frente');
   if (d.oculos) {
     const a = 'grafiteEsc';
     for (const x0 of [26, 33]) {
@@ -2068,7 +2153,9 @@ function cabecaCostas(s, d, hy) {
     const larg = { 0: [28, 35], 1: [26, 37], 2: [25, 38] };
     for (let y = y0; y <= y1; y++) { const k = y - hy, [a, b] = larg[k] || [24, 39]; s.hl(a, b, y, cor); }
   };
-  if (d.penteado === 'bone') {
+  if (cabeloNovo(s, d, hy, 'costas')) {
+    // os penteados novos se desenham sozinhos
+  } else if (d.penteado === 'bone') {
     forma(hy, hy + 4, 'mar'); s.hl(27, 36, hy - 1, 'mar').hl(27, 29, hy, 'marCl').hl(25, 26, hy + 1, 'marCl').vl(39, hy + 1, hy + 4, 'marEsc');
     s.r(29, hy + 3, 6, 2, 'marEsc').r(31, hy + 3, 2, 1, cs);
     s.r(24, hy + 5, 16, 4, cb).hl(26, 37, hy + 9, cb).hl(24, 39, hy + 5, cs).vl(39, hy + 5, hy + 8, cs).pts([[29, hy + 7], [34, hy + 6]], cs);
@@ -2076,13 +2163,15 @@ function cabecaCostas(s, d, hy) {
   } else {
     const g = d.penteado === 'grisalho', fim = g ? hy + 9 : hy + 11;
     forma(hy, fim, cb);
+    if (d.penteado === 'topete') s.hl(28, 34, hy - 1, cb).hl(29, 32, hy - 1, cc).hl(30, 33, hy - 2, cb);
     if (g) s.hl(26, 37, fim + 1, cb).hl(27, 36, fim + 2, ps);
     else s.hl(26, 37, hy + 12, cb).hl(29, 34, hy + 12, cb);
     s.hl(28, 31, hy + 1, cc).hl(26, 27, hy + 2, cc).vl(25, hy + 3, hy + 4, cc);
     s.vl(39, hy + 3, fim, cs).vl(38, hy + 8, fim, cs).hl(26, 37, fim + 1, cs);
     s.pts([[31, hy + 5], [34, hy + 7], [28, hy + 8], [35, hy + 4], [30, hy + 9]], cs);
   }
-  s.vl(24, hy + 7, hy + 9, pb).p(24, hy + 8, ps).vl(39, hy + 7, hy + 9, ps);       // orelhas
+  if (!['black', 'franja'].includes(d.penteado)) s.vl(24, hy + 7, hy + 9, pb).p(24, hy + 8, ps).vl(39, hy + 7, hy + 9, ps);       // orelhas
+  brincos(s, d, hy, 'costas');
   if (d.barba) s.vl(24, hy + 10, hy + 13, cs).vl(39, hy + 10, hy + 13, cs).vl(25, hy + 11, hy + 13, cs).vl(38, hy + 11, hy + 13, cs);
   if (d.oculos) s.p(24, hy + 6, 'grafiteEsc').p(39, hy + 6, 'grafiteEsc');
 }
@@ -2095,13 +2184,15 @@ function cabecaPerfil(s, d, hy, o) {             // olhando para a esquerda
   s.vl(33, hy + 11, hy + 13, ps).vl(34, hy + 10, hy + 13, ps);
   s.r(32, hy + 7, 2, 3, pb).p(33, hy + 8, ps).p(32, hy + 9, ps);           // orelha
   if (o.pisca) s.hl(26, 27, hy + 8, 'contorno'); else s.vl(27, hy + 7, hy + 8, 'contorno');
+  if (d.cilios && !o.pisca) s.p(26, hy + 7, 'contorno');
   s.hl(26, 28, hy + 5, cs);
-  s.p(26, hy + 12, ps);
-  if (d.penteado === 'curto') {
+  s.p(26, hy + 12, d.boca || ps);
+  if (d.penteado === 'curto' || d.penteado === 'topete') {
     s.hl(29, 35, hy, cb).hl(27, 37, hy + 1, cb).hl(26, 38, hy + 2, cb).hl(25, 38, hy + 3, cb).hl(25, 27, hy + 4, cb).hl(30, 38, hy + 4, cb);
     s.r(34, hy + 5, 5, 5, cb).hl(35, 37, hy + 10, cb).hl(35, 36, hy + 11, cs).vl(31, hy + 5, hy + 7, cb);
     s.hl(29, 32, hy + 1, cc).hl(27, 28, hy + 2, cc).p(26, hy + 3, cc);
     s.vl(38, hy + 3, hy + 9, cs).pts([[37, hy + 10], [26, hy + 4], [27, hy + 4], [35, hy + 6]], cs);
+    if (d.penteado === 'topete') s.hl(27, 34, hy - 1, cb).hl(28, 31, hy - 1, cc).hl(28, 32, hy - 2, cb).p(25, hy + 1, cb).p(29, hy - 2, cc);
   } else if (d.penteado === 'grisalho') {
     s.hl(29, 35, hy, cb).hl(27, 37, hy + 1, cb).hl(27, 38, hy + 2, cb).hl(30, 38, hy + 3, cb);
     s.r(34, hy + 4, 5, 6, cb).vl(31, hy + 4, hy + 6, cb).hl(35, 37, hy + 10, cs);
@@ -2112,15 +2203,19 @@ function cabecaPerfil(s, d, hy, o) {             // olhando para a esquerda
     s.r(27, hy + 1, 2, 2, 'amarelo').p(27, hy + 1, 'amareloCl');
     s.hl(20, 30, hy + 5, 'marEsc').hl(25, 31, hy + 6, ps);
     s.r(34, hy + 5, 5, 4, cb).vl(38, hy + 5, hy + 8, cs);
-  }
+  } else cabeloNovo(s, d, hy, 'perfil');
   if (d.barba) {
     s.vl(31, hy + 5, hy + 10, cb).hl(30, 34, hy + 10, cb);
     s.hl(25, 34, hy + 11, cb).hl(25, 34, hy + 12, cb).p(26, hy + 12, 'vermEsc').hl(24, 25, hy + 11, cb);
     s.hl(25, 34, hy + 13, cb).hl(25, 33, hy + 14, cb).hl(26, 32, hy + 15, cb).hl(27, 30, hy + 16, cs);
     s.vl(33, hy + 11, hy + 14, cs).vl(34, hy + 11, hy + 13, cs).hl(28, 32, hy + 15, cs).pts([[27, hy + 13], [29, hy + 12]], cc);
+    if (d.barbaGris) s.pts([[25, hy + 13], [27, hy + 15], [26, hy + 14], [29, hy + 15]], 'cinzaEsc').pts([[26, hy + 13]], 'cinza');
   } else if (d.bigode) {
     s.hl(24, 28, hy + 11, cb).p(24, hy + 12, cs).p(25, hy + 11, cc);
+  } else if (d.cavanhaque) {
+    s.hl(24, 27, hy + 11, cb).hl(25, 27, hy + 13, cb).hl(25, 26, hy + 14, cs);
   }
+  brincos(s, d, hy, 'perfil');
   if (d.oculos) {
     const a = 'grafiteEsc';
     s.hl(25, 28, hy + 6, a).hl(25, 28, hy + 9, a).vl(25, hy + 6, hy + 9, a).vl(28, hy + 6, hy + 9, a);
@@ -2140,10 +2235,11 @@ function bracoAte(s, d, sx, sy, hx, hy, longe = false, mao = true) {
   const [tc, tb, ts] = d.tronco, [pc, pb, ps] = d.pele;
   const n = Math.max(Math.abs(hx - sx), Math.abs(hy - sy), 1);
   const ponto = i => [Math.round(sx + (hx - sx) * i / n), Math.round(sy + (hy - sy) * i / n)];
-  for (let i = 0; i <= n; i++) { const [x, y] = ponto(i); s.r(x - 1, y - 1, 3, 3, longe ? ts : tb); }
-  if (!longe) for (let i = 0; i <= n; i++) { const [x, y] = ponto(i); if (s.g(x - 1, y - 1) === tb) s.p(x - 1, y - 1, tc); }
+  const pele = (i) => d.mangaDobrada && i > n * 0.55;
+  for (let i = 0; i <= n; i++) { const [x, y] = ponto(i); s.r(x - 1, y - 1, 3, 3, pele(i) ? (longe ? ps : pb) : (longe ? ts : tb)); }
+  if (!longe) for (let i = 0; i <= n; i++) { const [x, y] = ponto(i); if (s.g(x - 1, y - 1) === (pele(i) ? pb : tb)) s.p(x - 1, y - 1, pele(i) ? pc : tc); }
   if (!mao) return;
-  if (d.paleto && n > 2) { const [x, y] = ponto(n - 2); s.p(x, y, 'branco'); }
+  if (d.paleto && n > 2) { const [x, y] = ponto(n - 2); s.p(x, y, punho(d)); }
   s.r(hx - 1, hy - 1, 3, 3, longe ? ps : pb).p(hx + 1, hy + 1, ps).p(hx - 1, hy - 1, pc);
 }
 
@@ -2162,6 +2258,7 @@ function frente(s, d, o) {
     pernaFrente(s, d, 26, ty, o.sobeA, true, false);
     pernaFrente(s, d, 33, ty, o.sobeB, false, false);
   }
+  saia(s, d, ty, 'frente', o);
   troncoBloco(s, d, ty);
   detalheTronco(s, d, ty, 'frente');
   const alvo = o.usar != null ? USAR_ALVO.frente[o.usar] : null;
@@ -2182,6 +2279,7 @@ function frente(s, d, o) {
     else if (o.beber == null) bracoFrente(s, d, 39, ty, o.maoB, false);
   }
   cabecaFrente(s, d, hy, o);
+  depoisCabeca(s, d, 'frente', ty, hy);
   if (o.beber != null) { const [hx, hy2] = BEBER_ALVO.frente(o.beber, ty, hy); bracoAte(s, d, 40, ty + 2, hx, hy2); copo(s, hx, hy2); }
 }
 
@@ -2190,6 +2288,7 @@ function costas(s, d, o) {
   quadril(s, d, ty);
   pernaFrente(s, d, 26, ty, o.sobeA, true, true);
   pernaFrente(s, d, 33, ty, o.sobeB, false, true);
+  saia(s, d, ty, 'costas', o);
   troncoBloco(s, d, ty);
   detalheTronco(s, d, ty, 'costas');
   if (d.lanterna) lanterna(s, 22, ty + 14 + o.maoA);
@@ -2202,6 +2301,7 @@ function costas(s, d, o) {
     else bracoFrente(s, d, 39, ty, o.maoB, false);
   }
   cabecaCostas(s, d, hy);
+  depoisCabeca(s, d, 'costas', ty, hy);
 }
 
 function perfil(s, d, o) {
@@ -2218,9 +2318,10 @@ function perfil(s, d, o) {
   const braco = (hx, longe) => {
     for (let y = ty + 1; y <= ty + 10; y++) {
       const cx = Math.round(32 + (hx - 32) * (y - ty - 1) / 9);
-      s.p(cx - 1, y, longe ? ts : tc).p(cx, y, longe ? ts : tb).p(cx + 1, y, ts);
+      if (d.mangaDobrada && y > ty + 6) s.p(cx - 1, y, longe ? ps : pc).p(cx, y, longe ? ps : pb).p(cx + 1, y, ps);
+      else s.p(cx - 1, y, longe ? ts : tc).p(cx, y, longe ? ts : tb).p(cx + 1, y, y === ty + 6 && d.mangaDobrada ? tc : ts);
     }
-    if (d.paleto) s.hl(hx - 1, hx + 1, ty + 10, longe ? 'cinzaCl' : 'branco');
+    if (d.paleto) s.hl(hx - 1, hx + 1, ty + 10, longe ? 'cinzaCl' : punho(d));
     if (d.lanterna && !longe) lanterna(s, hx - 1, ty + 14);
     s.r(hx - 1, ty + 11, 3, 3, longe ? ps : pb).p(hx + 1, ty + 13, ps);
   };
@@ -2233,25 +2334,33 @@ function perfil(s, d, o) {
   } else {
     perna(Math.round(31 + 4 * c), o.liftB, false);
     s.r(28, ty + 13, 8, 3, lb).vl(28, ty + 13, ty + 15, lc);
-    if (!d.paleto) { s.hl(28, 35, ty + 13, d.cinto || lb); if (d.fivela) s.p(28, ty + 13, d.fivela); }
+    if (!d.paleto && !d.saia) { s.hl(28, 35, ty + 13, d.cinto || lb); if (d.fivela) s.p(28, ty + 13, d.fivela); }
   }
   const ocupado = o.carrega || o.usar != null || o.beber != null;
   if (!o.sentado && !ocupado) braco(Math.round(31 - 3 * c), true);
   // tronco de lado
   s.r(27, ty, 10, 13, tb).apaga(27, ty).apaga(36, ty).vl(27, ty + 1, ty + 12, tc).vl(35, ty + 1, ty + 12, ts).vl(36, ty + 1, ty + 12, ts).hl(28, 36, ty + 12, ts);
   if (d.paleto) {
-    const [gc, gb, gs] = d.gravata;
     s.r(27, ty + 12, 10, 2, tb).vl(27, ty + 12, ty + 13, tc).hl(28, 36, ty + 13, ts);
-    s.vl(27, ty, ty + 2, 'branco').vl(26, ty + 1, ty + 6, gb).p(26, ty + 1, gs).p(26, ty + 6, gs).linha(28, ty, 29, ty + 4, ts).p(28, ty + 8, 'cinza');
+    if (d.gravata) {
+      const [gc, gb, gs] = d.gravata;
+      s.vl(27, ty, ty + 2, 'branco').vl(26, ty + 1, ty + 6, gb).p(26, ty + 1, gs).p(26, ty + 6, gs).linha(28, ty, 29, ty + 4, ts).p(28, ty + 8, 'cinza');
+    } else s.vl(27, ty, ty + 2, punho(d)).vl(26, ty + 1, ty + 3, d.camisa[1]).linha(28, ty, 29, ty + 4, ts).p(28, ty + 8, 'cinza');
   } else if (d.farda) {
     s.hl(28, 30, ty + 4, ts).r(28, ty + 2, 2, 2, 'amarelo');
+  } else if (d.moletom) {
+    s.r(32, ty - 1, 5, 4, tb).hl(32, 36, ty - 1, tc).vl(36, ty, ty + 2, ts).pts([[28, ty + 2], [28, ty + 3], [28, ty + 4]], 'branco').hl(28, 33, ty + 8, ts).hl(27, 36, ty + 12, ts);
+  } else if (d.camisaSocial) {
+    s.pts([[28, ty], [29, ty + 1]], tc).pts([[28, ty + 4], [28, ty + 7], [28, ty + 10]], 'cinzaCl');
   } else s.pts([[28, ty + 5], [28, ty + 8]], ts);
   if (!o.sentado) perna(Math.round(31 - 4 * c), o.liftA, true);
+  saia(s, d, ty, 'perfil', o);
   const alvo = o.usar != null ? USAR_ALVO.perfil[o.usar] : null;
   if (o.carrega) { caixa(s, 18, ty + 5); bracoAte(s, d, 32, ty + 2, 26, ty + 8); }
   else if (alvo) bracoAte(s, d, 32, ty + 2, alvo[0], ty + alvo[1]);
   else if (o.comer == null && o.beber == null) braco(o.sentado ? 28 : Math.round(31 + 3 * c), false);
   cabecaPerfil(s, d, hy, o);
+  depoisCabeca(s, d, 'perfil', ty, hy);
   if (o.comer != null) {
     const [hx, hy2] = COMER_ALVO(o.comer, ty, hy);
     bracoAte(s, d, 32, ty + 2, hx, hy2);
@@ -2272,7 +2381,7 @@ function costasSofa(s, d, modo, f) {
     const e = [0, 1, 0, -1][f];
     bracoAte(s, d, 24, ty + 2, 19, ty + 3 + e, false, false); bracoAte(s, d, 39, ty + 2, 44, ty + 3 - e, false, false);   // os cotovelos abertos
   } else { bracoAte(s, d, 24, ty + 2, 23, ty + 10, false, false); bracoAte(s, d, 39, ty + 2, 40, ty + 10, false, false); }
-  const cab = new Spr(64, 64); cabecaCostas(cab, d, hy); s.cola(cab, dx, 0);
+  const cab = new Spr(64, 64); cabecaCostas(cab, d, hy); depoisCabeca(cab, d, 'costas', hy + 15, hy); s.cola(cab, dx, 0);
 }
 
 // Sentado de costas, na mesa, com as mãos no teclado. O corpo vem encostado na mesa
@@ -2282,7 +2391,8 @@ function costasMesa(s, d, f) {
   const ty = 27, hy = 12;
   const braco = (dy) => {
     const b = new Spr(64, 64);
-    b.linha(19, 30, 21, 19, tb, 3).linha(19, 30, 21, 19, tc, 1);         // antebraço
+    if (d.mangaDobrada) b.linha(19, 30, 21, 19, pb, 3).linha(19, 30, 21, 19, pc, 1);
+    else b.linha(19, 30, 21, 19, tb, 3).linha(19, 30, 21, 19, tc, 1);         // antebraço
     b.r(21, 15 + dy, 3, 3, pb).p(21, 15 + dy, pc).p(23, 17 + dy, ps);  // mão no teclado
     b.linha(24, 28, 19, 31, tb, 3).linha(24, 28, 19, 31, tc, 1);         // braço até o cotovelo
     b.pts([[19, 33], [20, 33], [21, 33]], ts);
@@ -2292,7 +2402,9 @@ function costasMesa(s, d, f) {
   s.cola(braco(f === 3 ? -1 : 0).espelha());
   s.r(25, ty, 14, 15, tb).apaga(25, ty).apaga(38, ty).vl(25, ty + 1, ty + 14, tc).vl(37, ty + 1, ty + 14, ts).vl(38, ty + 1, ty + 14, ts);
   s.pts([[29, ty + 4], [30, ty + 5], [34, ty + 4], [33, ty + 5]], ts);      // dobras da camisa
+  if (d.moletom) s.r(27, ty, 10, 4, tb).hl(27, 36, ty, tc).hl(28, 35, ty + 4, ts).vl(36, ty + 1, ty + 3, ts);   // o capuz nas costas
   cabecaCostas(s, d, hy);
+  depoisCabeca(s, d, 'costas', ty, hy);
 }
 
 function humano(id, anim, dir, f) {
@@ -2307,6 +2419,277 @@ function humano(id, anim, dir, f) {
   else {
     const o = pose(anim, f);
     if (dir === 2) frente(s, d, o); else if (dir === 0) costas(s, d, o); else perfil(s, d, o);
+  }
+  return s.contorno();
+}
+
+// ------------------------------------------------------------ o que entrou com o elenco novo (22/11)
+// Os penteados novos, nas três vistas: o crespo baixo, o black, o rabo de cavalo e o liso com franja.
+// Devolve verdadeiro quando desenhou (a vista de costas usa isso para pular o resto).
+function cabeloNovo(s, d, hy, vista) {
+  const [cc, cb, cs] = d.cabelo, p = d.penteado;
+  const textura = (x, y) => { const h = hash(x, y, 7); return h < 0.18 ? cc : h > 0.8 ? cs : cb; };
+  const elipse = (cx, cy, rx, ry, pula) => {
+    for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) {
+      const t = ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2;
+      if (t > 1 || (pula && pula(x, y))) continue;
+      const borda = t > 0.72, luz = x - cx < -rx * 0.35 && y - cy < 0, sombra = x - cx > rx * 0.45 || y - cy > ry * 0.55;
+      s.p(x, y, borda && sombra ? cs : luz && hash(x, y, 3) < 0.5 ? cc : textura(x, y));
+    }
+  };
+  if (p === 'crespo') {
+    if (vista === 'frente') { elipse(31.5, hy + 2.5, 8.6, 5.6, (x, y) => y >= hy + 4 && x >= 26 && x <= 37); s.vl(24, hy + 4, hy + 6, cb).vl(39, hy + 4, hy + 6, cs); }
+    else if (vista === 'costas') { elipse(31.5, hy + 4, 8.6, 7.4); s.hl(27, 36, hy + 11, cs); }
+    else { elipse(32, hy + 2.5, 7.6, 5.6, (x, y) => y >= hy + 4 && x <= 30); s.r(34, hy + 5, 5, 4, cb).vl(38, hy + 5, hy + 8, cs); }
+    return true;
+  }
+  if (p === 'black') {
+    if (vista === 'frente') elipse(31.5, hy + 4, 11.5, 9.5, (x, y) => y >= hy + 4 && x >= 25 && x <= 38 && y <= hy + 15);
+    else if (vista === 'costas') elipse(31.5, hy + 4.5, 11.5, 9.8);
+    else elipse(34, hy + 4, 10, 9.5, (x, y) => y >= hy + 4 && x <= 33 && y <= hy + 15);
+    return true;
+  }
+  if (p === 'rabo') {
+    if (vista === 'frente') {
+      s.hl(28, 35, hy, cb).hl(26, 37, hy + 1, cb).hl(25, 38, hy + 2, cb).hl(24, 39, hy + 3, cb).hl(24, 31, hy + 4, cb).hl(36, 39, hy + 4, cb);
+      s.vl(24, hy + 5, hy + 9, cb).vl(25, hy + 5, hy + 6, cb).vl(39, hy + 5, hy + 9, cs).vl(38, hy + 5, hy + 6, cs);
+      s.hl(28, 31, hy + 1, cc).hl(26, 28, hy + 2, cc).p(25, hy + 3, cc).p(32, hy + 3, cs).hl(36, 37, hy + 2, cs);
+    } else if (vista === 'costas') {
+      for (let y = hy; y <= hy + 8; y++) { const k = y - hy, [a, b] = { 0: [28, 35], 1: [26, 37], 2: [25, 38] }[k] || [24, 39]; s.hl(a, b, y, cb); }
+      s.hl(28, 31, hy + 1, cc).hl(26, 27, hy + 2, cc).vl(39, hy + 3, hy + 8, cs).hl(26, 37, hy + 9, cs);
+      s.r(30, hy + 4, 4, 2, 'vermCl').p(33, hy + 5, 'verm');
+      for (let y = hy + 6; y <= hy + 19; y++) { const w = y < hy + 15 ? 4 : y < hy + 18 ? 3 : 2, x0 = 30 + (y > hy + 16 ? 1 : 0); s.hl(x0, x0 + w - 1, y, cb).p(x0, y, cc).p(x0 + w - 1, y, cs); }
+    } else {
+      s.hl(29, 35, hy, cb).hl(27, 37, hy + 1, cb).hl(26, 38, hy + 2, cb).hl(25, 38, hy + 3, cb).hl(25, 27, hy + 4, cb).hl(30, 38, hy + 4, cb);
+      s.r(33, hy + 5, 6, 4, cb).vl(31, hy + 5, hy + 7, cb).hl(29, 32, hy + 1, cc).hl(27, 28, hy + 2, cc).vl(38, hy + 3, hy + 8, cs);
+      s.r(38, hy + 3, 2, 2, 'vermCl');
+      for (let y = hy + 4; y <= hy + 16; y++) { const x0 = y < hy + 7 ? 39 : y < hy + 13 ? 40 : 39; s.hl(x0, x0 + 1, y, cb).p(x0 + 1, y, cs); }
+    }
+    return true;
+  }
+  if (p === 'franja') {
+    if (vista === 'frente') {
+      s.hl(28, 35, hy, cb).hl(26, 37, hy + 1, cb).r(24, hy + 2, 16, 3, cb).hl(25, 38, hy + 5, cb);
+      for (const x of [26, 29, 33, 36]) s.p(x, hy + 5, cs);
+      s.r(24, hy + 5, 2, 5, cb).r(38, hy + 5, 2, 5, cs).p(24, hy + 10, cb).p(39, hy + 10, cs);
+      s.hl(29, 33, hy + 1, cc).hl(26, 28, hy + 2, cc).p(25, hy + 3, cc).hl(37, 39, hy + 2, cs).pts([[30, hy + 4], [34, hy + 4]], cs);
+      s.hl(27, 29, hy + 6, cs).hl(34, 36, hy + 6, cs);                               // as sobrancelhas aparecem embaixo da franja
+    } else if (vista === 'costas') {
+      for (let y = hy; y <= hy + 11; y++) { const k = y - hy, [a, b] = { 0: [28, 35], 1: [26, 37], 2: [25, 38] }[k] || [24, 39]; s.hl(a, b, y, cb); }
+      s.hl(28, 31, hy + 1, cc).hl(26, 27, hy + 2, cc).vl(25, hy + 3, hy + 6, cc).vl(39, hy + 3, hy + 11, cs).hl(24, 39, hy + 11, cs).pts([[30, hy + 6], [34, hy + 8]], cs);
+    } else {
+      s.hl(29, 35, hy, cb).hl(27, 37, hy + 1, cb).r(25, hy + 2, 14, 3, cb).hl(24, 29, hy + 5, cb).r(32, hy + 5, 7, 6, cb).hl(33, 38, hy + 11, cs);
+      s.hl(29, 32, hy + 1, cc).hl(27, 28, hy + 2, cc).p(26, hy + 3, cc).vl(38, hy + 3, hy + 10, cs).pts([[25, hy + 5], [28, hy + 5]], cs);
+    }
+    return true;
+  }
+  return false;
+}
+
+function brincos(s, d, hy, vista) {
+  if (!d.brincos) return;
+  const ouro = d.brincos === 'argola' ? 'amarelo' : 'amareloCl';
+  const um = (x, y) => {
+    if (d.brincos === 'argola') s.pts([[x, y], [x - 1, y + 1], [x + 1, y + 1], [x - 1, y + 2], [x + 1, y + 2], [x, y + 3]], ouro);
+    else s.p(x, y, ouro);
+  };
+  if (vista === 'frente') { um(24, hy + 10); um(39, hy + 10); }
+  else if (vista === 'costas') { um(24, hy + 10); um(39, hy + 10); }
+  else um(33, hy + 10);
+}
+
+function depoisCabeca(s, d, vista, ty, hy) {
+  const [tc, tb, ts] = d.tronco;
+  if (d.golaAlta) {
+    if (vista === 'perfil') s.r(29, hy + 14, 6, 3, tb).hl(29, 34, hy + 14, tc).p(34, hy + 15, ts);
+    else s.r(28, hy + 14, 8, 3, tb).hl(28, 35, hy + 14, tc).hl(28, 35, hy + 16, ts).vl(35, hy + 14, hy + 16, ts);
+  }
+  if (d.fone) {
+    const [fc, fb, fs] = d.fone;
+    if (vista === 'frente') {
+      s.pts([[27, ty - 1], [36, ty - 1]], fs);
+      for (const x of [25, 36]) s.r(x, ty, 3, 3, fb).p(x, ty, fc).p(x + 2, ty + 2, fs);
+    } else if (vista === 'costas') {
+      s.hl(28, 35, ty - 1, fs).hl(27, 36, ty, fs).pts([[25, ty + 1], [38, ty + 1]], fb);
+    } else {
+      s.hl(31, 34, ty - 1, fs).r(29, ty, 3, 3, fb).p(29, ty, fc).p(31, ty + 2, fs);
+    }
+  }
+  if (d.cracha) {
+    const [cb, cs] = d.cracha;
+    if (vista === 'frente') { s.linha(29, ty + 2, 31, ty + 6, cb).linha(34, ty + 2, 32, ty + 6, cb); s.r(30, ty + 7, 4, 5, 'branco').hl(30, 33, ty + 7, cb).hl(31, 32, ty + 9, 'cinza').p(31, ty + 10, 'cinza'); }
+    else if (vista === 'costas') s.hl(28, 35, ty + 2, cb).pts([[27, ty + 3], [36, ty + 3]], cs);
+    else s.linha(29, ty + 2, 27, ty + 6, cb).r(26, ty + 7, 2, 5, 'branco').p(26, ty + 7, cb);
+  }
+}
+
+// =====================================================================
+// RETRATOS (22/11): o busto de cada personagem, de frente, em 40 × 40, para os chips da tela.
+// Sai dos mesmos dados de PERSONAGENS: a pele, o cabelo, o penteado, a barba, a roupa e os acessórios.
+// Duas linhas na folha: o rosto parado e piscando.
+// =====================================================================
+const RETRATO = 40;
+const RETRATOS = ['gerente_camisa', 'gerente_blazer', 'camps', 'vigia', 'tiago', 'dandara', 'livia', 'kenji', 'gerente'];
+
+// O rosto: a largura de cada linha, do alto da testa ao queixo.
+const ROSTO = { 8: [14, 25], 9: [12, 27], 22: [12, 27], 23: [12, 27], 24: [13, 26], 25: [14, 25], 26: [15, 24], 27: [16, 23] };
+function rostoLinha(y) { return y >= 10 && y <= 21 ? [11, 28] : ROSTO[y]; }
+function noRosto(x, y) { const l = rostoLinha(y); return !!l && x >= l[0] && x <= l[1]; }
+
+function retrato(id, piscando) {
+  const d = PERSONAGENS[id], s = new Spr(RETRATO, RETRATO);
+  const [pc, pb, ps] = d.pele, [cc, cb, cs] = d.cabelo, [tc, tb, ts] = d.tronco;
+  const textura = (x, y) => { const h = hash(x, y, 7); return h < 0.18 ? cc : h > 0.8 ? cs : cb; };
+  const elipse = (cx, cy, rx, ry, pula, liso) => {
+    for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) {
+      const t = ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2;
+      if (t > 1 || (pula && pula(x, y))) continue;
+      const sombra = t > 0.7 && (x - cx > rx * 0.3 || y - cy > ry * 0.4), luz = x - cx < -rx * 0.3 && y - cy < -ry * 0.2 && t > 0.35;
+      s.p(x, y, sombra ? cs : luz && hash(x, y, 3) < 0.55 ? cc : liso ? cb : textura(x, y));
+    }
+  };
+
+  // 1. o cabelo que fica atrás do rosto
+  if (d.penteado === 'black') elipse(19.5, 13, 17.5, 13.5);
+  if (d.penteado === 'rabo') for (let y = 10; y <= 34; y++) { const x0 = y < 16 ? 28 : y < 28 ? 29 : 28; s.hl(x0, x0 + 3, y, cb).p(x0 + 3, y, cs).p(x0, y, cc); }
+
+  // 2. a roupa: os ombros e o peito
+  const ombro = { 30: [11, 28], 31: [8, 31], 32: [6, 33], 33: [5, 34] };
+  for (let y = 30; y < RETRATO; y++) {
+    const [a, b] = ombro[y] || [4, 35];
+    s.hl(a, b, y, tb).p(a, y, tc).p(a + 1, y, tc).hl(b - 1, b, y, ts);
+  }
+  s.hl(9, 15, 31, tc).hl(6, 10, 32, tc);                                     // a luz no ombro esquerdo
+  if (d.farda) {
+    s.hl(5, 11, 32, 'marEsc').hl(28, 34, 32, 'marEsc');                       // as dragonas
+    s.pts([[11, 35], [13, 35], [12, 34], [12, 36], [12, 35]], 'amarelo').p(12, 35, 'amareloCl');   // o distintivo
+    s.hl(26, 30, 35, ts).vl(19, 33, 39, ts).pts([[18, 34], [18, 37]], 'amarelo');
+  } else if (d.paleto) {
+    const g = d.camisa || ['branco', 'branco', 'cinzaCl'];
+    for (let y = 30; y < RETRATO; y++) { const k = Math.floor((y - 30) / 3); s.hl(15 + k, 24 - k, y, g[1]); s.p(15 + k, y, g[0]); }
+    if (d.gravata) { const [gc, gb, gs] = d.gravata; s.r(18, 31, 4, 2, gb).p(18, 31, gc); for (let y = 33; y < RETRATO; y++) s.hl(18, 21, y, gb).p(18, y, gc).p(21, y, gs); }
+    else { s.hl(18, 21, 30, pb).hl(19, 20, 31, ps); s.pts([[19, 35], [20, 38]], g[2]); }
+    s.linha(14, 30, 18, 39, ts).linha(25, 30, 21, 39, ts).linha(13, 31, 16, 36, tc).linha(26, 31, 23, 36, tc);   // as lapelas
+    if (!d.gravata && g[0] !== 'branco') s.pts([[15, 30], [16, 31], [24, 30], [23, 31]], g[0]);
+  } else if (d.camisaSocial) {
+    s.hl(17, 22, 30, pb).hl(18, 21, 31, pb).hl(19, 20, 32, ps);                // o colarinho aberto
+    s.linha(13, 30, 17, 33, tc).linha(26, 30, 22, 33, tc).linha(14, 30, 18, 33, tc).linha(25, 30, 21, 33, tc);
+    s.pts([[17, 34], [22, 34]], ts).vl(20, 34, 39, ts).pts([[19, 35], [19, 38]], 'cinzaCl').hl(25, 28, 35, ts).vl(25, 35, 37, ts);
+  } else if (d.moletom) {
+    s.hl(11, 28, 30, tc).hl(9, 30, 31, tc).hl(10, 29, 32, ts);                // o capuz em volta do pescoço
+    s.vl(16, 33, 37, 'branco').vl(23, 33, 37, 'branco');
+  } else if (d.golaAlta) {
+    s.hl(14, 25, 31, ts);
+  } else {
+    s.hl(16, 23, 30, ps).hl(17, 22, 31, ps);                                  // a gola redonda
+    if (d.tronco[1] === 'amarelo') s.pts([[19, 34], [19, 37]], ts);
+  }
+
+  // 3. o pescoço e as orelhas
+  s.r(16, 25, 8, 6, pb).hl(16, 23, 25, ps).hl(17, 22, 26, ps).vl(23, 27, 30, ps);
+  if (d.golaAlta) { s.r(14, 26, 12, 6, tb).hl(14, 25, 26, tc).hl(14, 25, 28, ts).hl(14, 25, 31, ts).vl(25, 26, 31, ts); }
+  for (const [x0, x1] of [[9, 10], [29, 30]]) s.r(x0, 15, 2, 6, pb);
+  s.vl(10, 16, 19, ps).vl(29, 16, 19, ps).p(30, 20, ps);
+
+  // 4. o rosto, com a luz da esquerda
+  for (let y = 8; y <= 27; y++) { const [a, b] = rostoLinha(y); s.hl(a, b, y, pb); }
+  for (let y = 10; y <= 20; y++) s.p(11, y, pc).p(12, y, y > 12 && y < 19 ? pc : pb);
+  s.hl(13, 16, 9, pc);
+  for (let y = 9; y <= 24; y++) { const [, b] = rostoLinha(y); s.p(b, y, ps); }
+  s.hl(14, 25, 25, ps).p(15, 26, ps).p(24, 26, ps).hl(16, 23, 27, ps);
+  s.pts([[13, 21], [26, 21]], ps);
+
+  // 5. os olhos, as sobrancelhas, o nariz e a boca
+  const sob = ['crespo', 'black', 'franja'].includes(d.penteado) || cb === 'escuro' || cb === 'grafiteEsc' ? cs : cb;
+  s.hl(13, 16, 13, sob).hl(23, 26, 13, sob).p(13, 14, sob).p(26, 14, sob);
+  if (piscando) { s.hl(14, 17, 16, 'contorno').hl(22, 25, 16, 'contorno'); }
+  else {
+    for (const x of [14, 22]) { s.r(x + 1, 15, 2, 2, 'contorno').p(x + 1, 15, 'branco').p(x, 16, ps).p(x + 3, 16, ps); }
+    if (d.cilios) s.pts([[14, 15], [25, 15]], 'contorno');
+  }
+  s.vl(20, 17, 19, ps).p(21, 20, ps).hl(18, 21, 21, ps).p(19, 20, pc);      // o nariz
+  const boca = d.boca || 'vermEsc';
+  s.hl(17, 22, 23, boca).pts([[16, 22], [23, 22]], ps);
+  if (d.boca) s.hl(18, 21, 24, d.boca);
+
+  // 6. a barba, o bigode e o cavanhaque
+  if (d.barba) {
+    for (let y = 13; y <= 28; y++) for (let x = 10; x <= 29; x++) {
+      const dentro = noRosto(x, y) || (y === 28 && x >= 16 && x <= 23);
+      const lado = (x <= 12 || x >= 27) && y >= 13, baixo = y >= 20, boca = y === 23 && x >= 17 && x <= 22;
+      if (!dentro || boca || !(lado || baixo)) continue;
+      if (y === 20 && x >= 14 && x <= 25) continue;                           // a bochecha aparece acima do bigode
+      s.p(x, y, y >= 26 || x >= 26 ? cs : textura(x, y));
+    }
+    s.hl(17, 22, 23, 'vermEsc');
+    s.hl(15, 24, 21, cb).hl(16, 23, 22, cb).pts([[16, 21], [18, 22]], cc);    // o bigode
+    if (d.barbaGris) {
+      s.pts([[18, 26], [20, 27], [22, 26], [17, 25], [21, 25], [19, 28], [23, 27], [16, 27], [20, 25], [18, 27]], 'grafite');
+      s.pts([[19, 26], [21, 27], [22, 25], [17, 26]], 'cinzaEsc');
+    }
+  } else if (d.bigode) {
+    s.hl(15, 24, 21, cb).hl(16, 23, 22, cb).pts([[15, 22], [24, 22]], cs).hl(17, 19, 21, cc);
+  } else if (d.cavanhaque) {
+    s.hl(16, 23, 21, cb).pts([[16, 22], [23, 22]], cb).r(17, 25, 6, 3, cb).hl(18, 21, 27, cs).p(18, 25, cc);
+  }
+
+  // 7. o cabelo da frente
+  const p = d.penteado;
+  if (p === 'curto' || p === 'topete') {
+    const linhas = { 3: [15, 23], 4: [13, 25], 5: [11, 27], 6: [10, 29], 7: [10, 29], 8: [10, 29], 9: [10, 29] };
+    for (const [y, [a, b]] of Object.entries(linhas)) s.hl(a, b, +y, cb);
+    s.hl(10, 13, 10, cb).hl(24, 29, 10, cb).hl(10, 12, 11, cb).hl(27, 29, 11, cb).vl(10, 12, 15, cb).vl(11, 12, 14, cb).vl(29, 12, 15, cs).vl(28, 12, 13, cs);
+    s.hl(14, 18, 4, cc).hl(12, 15, 5, cc).hl(11, 13, 6, cc).hl(19, 22, 5, cc).p(11, 7, cc);
+    s.hl(25, 29, 7, cs).hl(26, 29, 8, cs).hl(20, 23, 9, cs).p(16, 9, cs).p(24, 10, cs);
+    if (p === 'topete') { s.hl(15, 24, 2, cb).hl(17, 22, 1, cb).hl(16, 19, 2, cc).hl(18, 20, 1, cc).p(24, 3, cs).p(23, 2, cs); }
+  } else if (p === 'grisalho') {
+    s.hl(14, 25, 6, cb).hl(12, 27, 7, cb).hl(11, 14, 8, cb).hl(25, 28, 8, cb).hl(15, 17, 7, cc);
+    s.r(9, 9, 3, 8, cb).r(28, 9, 3, 8, cs).vl(11, 9, 12, cb).vl(28, 9, 12, cs).pts([[10, 10], [9, 12]], cc);
+    s.pts([[13, 9], [26, 9]], ps);                                            // as entradas
+  } else if (p === 'bone') {
+    for (let y = 3; y <= 10; y++) { const [a, b] = { 3: [14, 25], 4: [12, 27], 5: [11, 28] }[y] || [10, 29]; s.hl(a, b, y, 'mar'); }
+    s.hl(14, 18, 4, 'marCl').hl(12, 14, 5, 'marCl').vl(29, 6, 10, 'marEsc').vl(28, 7, 10, 'marEsc');
+    s.r(18, 5, 4, 3, 'amarelo').hl(18, 21, 5, 'amareloCl');
+    s.hl(8, 31, 11, 'marEsc').hl(9, 30, 12, 'marEsc').hl(10, 29, 13, ps);      // a aba e a sombra dela
+    s.r(10, 13, 2, 3, cb).r(28, 13, 2, 3, cs);
+  } else if (p === 'crespo') {
+    elipse(19.5, 8, 11.5, 7.5, (x, y) => y >= 10 && x >= 12 && x <= 27 && noRosto(x, y));
+  } else if (p === 'black') {
+    for (let y = 4; y <= 9; y++) for (let x = 10; x <= 29; x++) if (noRosto(x, y) || y < 8) { const t = ((x - 19.5) / 17.5) ** 2 + ((y - 13) / 13.5) ** 2; if (t <= 1) s.p(x, y, textura(x, y)); }
+    s.hl(12, 27, 10, cs).pts([[11, 11], [28, 11]], cs);
+  } else if (p === 'rabo') {
+    const linhas = { 3: [14, 25], 4: [12, 27], 5: [11, 28], 6: [10, 29], 7: [10, 29], 8: [10, 29], 9: [10, 29] };
+    for (const [y, [a, b]] of Object.entries(linhas)) s.hl(a, b, +y, cb);
+    s.hl(10, 15, 10, cb).hl(23, 29, 10, cb).hl(10, 13, 11, cb).hl(26, 29, 11, cb);
+    for (let y = 12; y <= 21; y++) s.hl(10, 11, y, cb).hl(28, 29, y, cs);
+    s.hl(14, 19, 4, cc).hl(12, 15, 5, cc).hl(11, 13, 6, cc).vl(10, 7, 14, cc).p(20, 4, cs).vl(20, 5, 7, cs).hl(24, 28, 7, cs);
+    s.r(29, 8, 3, 3, 'vermCl').p(31, 10, 'verm');                            // o elástico
+  } else if (p === 'franja') {
+    const linhas = { 3: [14, 25], 4: [12, 27], 5: [11, 28] };
+    for (let y = 3; y <= 12; y++) { const [a, b] = linhas[y] || [10, 29]; s.hl(a, b, y, cb); }
+    for (let y = 13; y <= 15; y++) s.hl(10, 11, y, cb).hl(28, 29, y, cs);
+    for (const x of [13, 16, 20, 24, 27]) s.vl(x, 10, 12, cs);
+    s.hl(14, 19, 4, cc).hl(12, 15, 5, cc).hl(11, 13, 6, cc).hl(18, 22, 6, cc).vl(10, 8, 16, cc).hl(12, 27, 12, cb).p(21, 12, cs);
+    s.hl(13, 16, 13, cs).hl(23, 26, 13, cs);
+  }
+
+  // 8. os óculos, os brincos, o fone e o crachá
+  if (d.oculos) {
+    const a = 'grafiteEsc';
+    for (const x0 of [12, 21]) { s.hl(x0, x0 + 6, 14, a).hl(x0, x0 + 6, 18, a).vl(x0, 14, 18, a).vl(x0 + 6, 14, 18, a).p(x0 + 5, 15, 'ceuCl'); }
+    s.hl(19, 20, 15, a).p(11, 15, a).p(28, 15, a);
+  }
+  if (d.brincos === 'argola') for (const x of [9, 30]) s.pts([[x, 21], [x - 1, 22], [x + 1, 22], [x - 1, 23], [x + 1, 23], [x - 1, 24], [x + 1, 24], [x, 25]], 'amarelo');
+  if (d.brincos === 'ponto') s.pts([[10, 21], [29, 21]], 'amareloCl');
+  if (d.fone) {
+    const [fc, fb, fs] = d.fone;
+    for (const x of [8, 27]) s.r(x, 28, 5, 5, fb).hl(x, x + 3, 28, fc).p(x, 29, fc).hl(x + 1, x + 4, 32, fs).vl(x + 4, 29, 32, fs);
+    s.hl(13, 15, 29, fs).hl(24, 26, 29, fs);
+  }
+  if (d.cracha) {
+    const [kb, ks] = d.cracha;
+    s.linha(15, 31, 18, 36, kb).linha(24, 31, 21, 36, kb);
+    s.r(17, 36, 6, 4, 'branco').hl(17, 22, 36, kb).hl(18, 20, 38, 'cinza');
   }
   return s.contorno();
 }
@@ -2329,8 +2712,10 @@ function folhaRobo(id) {
   };
 }
 function folhaPersonagem(id) {
+  const d = PERSONAGENS[id];
   return {
     nome: id, grupo: 'personagens', q: [64, 64], col: 8, lin: LINHAS_PERSONAGEM, pegada: [1, 1], ancora: [32, 64], camada: 'personagem',
+    ...(d.descricao ? { configuracao: { nome: d.nome, descricao: d.descricao } } : {}),
     animacoes: Object.fromEntries(Object.entries(MAPA_PERSONAGEM).map(([a, [linha, quadros, dirs]]) =>
       [a, { linha, quadros, direcoes: dirs === 4 ? DIRECOES : dirs === 1 ? ['cima'] : ['esquerda', 'direita'], tem: PERSONAGENS[id].anims.includes(a) }])),
     desenha: (c, l) => {
@@ -2448,6 +2833,14 @@ const FOLHAS = [
         glifos: FONTE_GLIFOS, larguras: [...FONTE_GLIFOS].map(ch => glifo(ch).w) },
     }) },
   folhaPersonagem('camps'), folhaPersonagem('gerente'), folhaPersonagem('vigia'),
+  // o elenco novo (22/11): o gerente novo nas duas roupas e quatro pessoas para os próximos lugares
+  folhaPersonagem('gerente_camisa'), folhaPersonagem('gerente_blazer'),
+  folhaPersonagem('tiago'), folhaPersonagem('dandara'), folhaPersonagem('livia'), folhaPersonagem('kenji'),
+  { nome: 'retratos', grupo: 'retratos', q: [RETRATO, RETRATO], col: RETRATOS.length, lin: 2, pegada: null, ancora: [20, 40], camada: 'interface',
+    quadros: RETRATOS,
+    nota: 'o busto de cada personagem, de frente, para os chips e a conversa da tela: uma coluna por personagem, a linha 0 parada e a 1 piscando; sem fundo (o chip põe a cor)',
+    desenha: (c, l) => c < RETRATOS.length ? retrato(RETRATOS[c], l === 1) : null,
+    extra: () => ({ retratos: Object.fromEntries(RETRATOS.map((id, i) => [id, [i, 0]])), linhas: ['parado', 'piscando'] }) },
 ];
 
 // ---- cache de quadros e montagem das folhas
