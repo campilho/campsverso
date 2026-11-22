@@ -144,7 +144,8 @@ campsverso/
 make help         # lista os alvos
 make setup        # instala dependências Python e TS e o nats-server (make tools)
 make contracts    # valida schemas e regenera packages/contracts-*
-make check        # lint + tipos + testes + teste de arquitetura + validação de contratos
+make check        # lint + tipos + testes + teste de arquitetura + validação de contratos; o pytest em paralelo (ADR-0091); antes de cada push
+make check-rapido # o check de cada commit (ADR-0091): o make check sem os e2e de tests/e2e, em cerca de 1 minuto; PYTEST_N=0 roda o pytest num processo só
 make tools        # baixa o nats-server com versão e sha256 fixados (.tools/)
 make secrets      # gera em .env (fora do git) as senhas do NATS que faltam
 make up           # sobe o NATS em segundo plano

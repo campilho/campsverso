@@ -48,6 +48,8 @@ dev = [
   "nodejs-wheel-binaries>=24,<25",
   "pytest>=8",
   "pytest-asyncio>=1",
+  # O pytest em paralelo, um processo por núcleo, no make test e no make check-rapido (ADR-0091).
+  "pytest-xdist>=3",
   "hypothesis>=6",
   "import-linter>=2",
   "types-jsonschema",

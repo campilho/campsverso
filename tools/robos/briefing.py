@@ -16,7 +16,11 @@ _MAX_FILES = 8
 _MAX_NOTES = 15
 _RULE_SECTIONS = ("Princípios inegociáveis", "Convenções")
 # A `.oficina` é a parte do espaço fora do diff: o pedido, as notas e a casa das mãos (ADR-0089).
-_SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", ".oficina"}
+# As saídas dos testes do navegador (fora do git) também ficam de fora: não são arquivos do projeto.
+_SKIP_DIRS = {
+    ".git", "node_modules", "__pycache__", ".venv", "venv", ".oficina",
+    "test-results", "playwright-report",
+}  # fmt: skip
 _FORBIDDEN_DIRS = {"data", "privado"}
 _STOPWORDS = {
     "para", "com", "uma", "que", "dos", "das", "nos", "nas", "pelo", "pela", "como", "mais",

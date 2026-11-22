@@ -9,6 +9,10 @@ PNPM ?= pnpm
 PY := $(UV) run --locked
 CONTRACTS := $(PY) python -m campsverso_tools.contracts
 COMPAT_BASE ?= HEAD
+# O pytest em paralelo, um processo por núcleo (ADR-0091): o worksteal reparte de novo quando um
+# processo pega os e2e lentos. PYTEST_N=0 roda num processo só, para depurar um teste.
+PYTEST_N ?= auto
+PYTEST := $(PY) pytest -n $(PYTEST_N) --dist worksteal
 
 # nats-server com versão e sha256 fixados (ADR-0024). Os hashes vêm do SHA256SUMS da release.
 NATS_VERSION := 2.14.8
@@ -21,7 +25,7 @@ NATS_LOG := data/nats/nats-server.log
 NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR BUDGET MIND HELPERS CODEHOST
 
 .DEFAULT_GOAL := help
-.PHONY: help setup contracts check lint fmt types test arch contracts-check compat escritorio aplicar \
+.PHONY: help setup contracts check check-rapido lint fmt types test arch contracts-check compat escritorio aplicar \
         up stop run ui ui-build sandbox jogar escritorio-aqui soak replay metrics ui-e2e mapa-visual mapa-variantes arte-escritorio sessoes tools secrets fita corrida \
         arena arena-report arena-humano assistir juiz conformidade maos maos-relatorio revisar revisor-calibrar
 
@@ -38,8 +42,13 @@ contracts: ## valida os schemas e regenera packages/contracts-* e contracts/asyn
 	$(PNPM) -s contracts:codegen
 	$(PNPM) -s contracts:validate
 
-check: lint types test arch contracts-check compat ## lint + tipos + testes + arquitetura + contratos
+check: lint types test arch contracts-check compat ## lint + tipos + testes + arquitetura + contratos; antes de cada push (ADR-0091)
 	@echo "make check: tudo verde."
+
+check-rapido: lint types arch contracts-check compat ## o check de cada commit (ADR-0091): o make check sem os e2e de tests/e2e, em cerca de 1 minuto
+	$(PYTEST) --ignore=tests/e2e
+	$(PNPM) -s test
+	@echo "make check-rapido: verde. Antes do push, o make check completo."
 
 lint: ## ruff e eslint
 	$(PY) ruff check .
@@ -54,8 +63,8 @@ types: ## pyright (estrito) e tsc
 	$(PY) pyright
 	$(PNPM) -s typecheck
 
-test: ## pytest e vitest
-	$(PY) pytest
+test: ## pytest (em paralelo) e vitest
+	$(PYTEST)
 	$(PNPM) -s test
 
 arch: ## teste de arquitetura: import-linter e dependency-cruiser
