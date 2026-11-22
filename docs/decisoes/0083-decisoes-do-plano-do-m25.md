@@ -138,3 +138,14 @@ O que o gerente faz num PR do dev: lê o PR, aprova e mescla. O ruleset anterior
    - **pela regra do plano** (fica o que acha os defeitos sem inventar outros), o Astra passa a ser o plano A, e o Gemini, a reserva;
    - **o Astra também saiu mais barato,** US$ 0,153 contra US$ 0,194 nos quatro casos, porque escreve menos raciocínio, apesar do preço por token maior;
    - **com quatro casos, a diferença é de um caso só.** Voltar à ordem do plano é trocar uma linha do arquivo do mundo, e a próxima calibração, com mais casos, pode mudar isso.
+
+## Adendo: o fechamento (21/nov)
+
+O M25 fecha com as cinco partes do plano, a tela retrô (ADR-0087) e a luz (ADR-0088).
+- **Os dois consertos do fechamento,** sem API:
+  - **o publicador tenta de novo** a entrega que o GitHub não recebeu, a cada volta do vigia (60 s), até uma hora. Na queda de rede da tarde, a entrega ficava recusada para sempre. Uma entrega nova do mesmo pedido toma o lugar da que esperava, e a fila vai para o estado em arquivo;
+  - **o dev convocado não faz as pausas do dia que ficaram para trás.** No primeiro pedido do dev convocado, ele chegou à noite e foi jogar videogame antes de olhar o quadro. Num dia normal, a pausa com mais de uma hora de atraso fica para outro dia. A mente usa a mesma rotina do script.
+- **Ficam para o `futuro.md`:**
+  - o revisor julgando pela entrega contra o teste de aceite (hoje ele é rigoroso demais), com uma calibração paga nova;
+  - o apagar da oficina;
+  - a conferência de que a sessão do dev retoma depois de uma falha do modelo.

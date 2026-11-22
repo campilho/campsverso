@@ -384,6 +384,31 @@ O PR #2 caiu no lint, que a revisão da oficina não roda. O testador passa a ro
 - **Uma ADR nova,** a 0086, com as decisões.
 - **O custo:** nada de API para construir. A convocação gasta o que o dev gastaria no expediente.
 
+## 14. Como ficou
+
+Feito de 20 a 21/nov, com as decisões da ADR-0083 e os adendos dela, a ADR-0084 (os comandos do cartucho), a ADR-0085 (o consumidor que retoma em ordem) e a ADR-0086 (a convocação e a troca segura). No caminho entraram a tela retrô (ADR-0087) e a luz (ADR-0088).
+
+- **A parte 1, o caminho do PR** (`f90233f`, `6407e93`, `9935362`, `d31292c`, `acb1678`): a porta do repositório de fora, o GitHub como o App do dev, o publicador e o vigia do GitHub, o PR no quadro e a constituição no CI dos PRs do dev. O primeiro PR de todos saiu do dev-script e foi fechado sem mesclar.
+- **A parte 2, o supervisor** (`431822e`, `195d9d2`, `41402b4`, `32d91de`, `a2a3271`): a versão que roda o mundo e o fato da troca, a fumaça numa cópia, a troca, a volta e a placa da versão na parede. O consumidor durável passou a retomar em ordem (ADR-0085; `6a70069`).
+- **A parte 3, o revisor** (`0316fa4`): o GPT-6.2 Astra, com o Gemini 4 Neon de reserva, comenta no PR do dev, calibrado em três defeitos plantados e um gêmeo limpo (US$ 0,35).
+- **A parte 4, a criação:** o dev do sandbox fez o robô do briefing por PR, em quatro revisões (US$ 0,64 com a revisão), e o usuário o mesclou (PR #2). A bancada passou a seguir o registro num mundo retomado (`58c2fa9`).
+- **A parte 5, a convocação e a troca segura** (ADR-0086; `5485c2e`): o dev vem fora do expediente pelo botão ou quando o gerente entra; o supervisor só troca para um commit com o CI verde e avisa as telas. O primeiro pedido do dev convocado, o testador com o `ruff`, virou o PR #3, mesclado.
+- **A tela retrô** (ADR-0087; `b057b9c` a `178b4d6`), em seis fases, cada uma no `main` inteira: a moldura, o quadro de cortiça e a prancheta, a conversa com o @, as mensagens do sistema, a gaveta do operador, o tablet e o celular.
+- **A luz** (ADR-0088; `ffd1614`, `11cb94c`): o interruptor no mundo, o temporizador do prédio e o vigia que atende.
+- **Os consertos do fechamento:** o publicador que tenta de novo e a rotina do dev convocado (o adendo de fechamento da ADR-0083).
+- **O que mudou em relação ao plano:**
+  - a ordem do revisor: o Astra de plano A e o Neon de reserva, pela calibração;
+  - a convocação e a troca segura, que o plano não previa, a pedido do usuário;
+  - a tela retrô e a luz, também fora do plano;
+  - o custo: uns US$ 1,19, contra os centavos a poucos dólares previstos.
+- **O que se achou no caminho:**
+  - o ramo velho de mesmo nome que virava o pai do PR novo;
+  - a bancada que não seguia o registro num mundo retomado;
+  - o vigia que ia e voltava da porta;
+  - a entrega perdida na queda de rede;
+  - o dev convocado que fazia as pausas atrasadas antes do quadro;
+  - o escritório vivo que caiu junto com a aba de terminal que o rodava.
+
 ## Apêndice: como criar o GitHub App
 
 Os passos que o usuário faz, uma vez só. A chave privada nunca entra na conversa nem no git.
