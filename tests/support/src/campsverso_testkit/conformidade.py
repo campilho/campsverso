@@ -31,8 +31,10 @@ um modelo de mentira.
 
 import argparse
 import asyncio
+import importlib.metadata
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -42,6 +44,8 @@ from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
+
+from packaging.requirements import Requirement
 
 from campsverso_adapters import ModelPrices, RecordingModel, SystemWallClock, cost_usd, load_env
 from campsverso_adapters.hands_claude_code import ClaudeCodeHands
@@ -455,15 +459,52 @@ class ProofWorld:
         return self._should_stop()
 
 
+def _closure(name: str) -> list[importlib.metadata.Distribution]:
+    """Um pacote instalado e as dependências dele, deste ambiente, pelos metadados."""
+    found: dict[str, importlib.metadata.Distribution] = {}
+    todo = [name]
+    while todo:
+        key = todo.pop().lower().replace("_", "-")
+        if key in found:
+            continue
+        dist = importlib.metadata.distribution(key)
+        found[key] = dist
+        for raw in dist.requires or ():
+            requirement = Requirement(raw)
+            if requirement.marker is None or requirement.marker.evaluate({"extra": ""}):
+                todo.append(requirement.name)
+    return [found[k] for k in sorted(found)]
+
+
 def space_python(root: Path) -> None:
     """O Python do espaço para as mãos de fora, que rodam o `pytest` pelo terminal: um ambiente
-    com o pytest, do cache do uv, sem rede (o repositório de exemplo não tem o `uv.lock`)."""
-    env = sync_env(os.environ)
+    com o pytest e as dependências dele copiados deste, sem rede e sem o índice de pacotes (o
+    repositório de exemplo não tem o `uv.lock`, e o cache do CI só tem o que o `uv sync` usa)."""
     venv = root / ".venv"
     uv = ["uv", "--offline", "--quiet"]
-    subprocess.run([*uv, "venv", "--python", sys.executable, str(venv)], check=True, env=env)
-    python = str(venv / "bin" / "python")
-    subprocess.run([*uv, "pip", "install", "--python", python, "pytest"], check=True, env=env)
+    subprocess.run(
+        [*uv, "venv", "--python", sys.executable, str(venv)], check=True, env=sync_env(os.environ)
+    )
+    target = Path(
+        subprocess.run(
+            [
+                str(venv / "bin" / "python"),
+                "-c",
+                "import sysconfig; print(sysconfig.get_path('purelib'))",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+    )
+    for dist in _closure("pytest"):
+        for file in dist.files or ():
+            if file.parts and file.parts[0] == "..":
+                continue  # os scripts de `bin/`: o espaço roda `python -m pytest`
+            source = Path(str(dist.locate_file(file)))
+            if source.is_file():
+                (target / file).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source, target / file)
 
 
 def hands_session(hands: Hands, mind: Mind, model: str, tally: Tally) -> Session:
