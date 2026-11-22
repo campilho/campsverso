@@ -9,7 +9,7 @@ from typing import Any
 import httpx2
 import pytest
 
-from campsverso_adapters.hands_gate import HandsGate, Tape, UsageReader
+from campsverso_adapters.hands_gate import HandsGate, Tape, UsageReader, sse_of
 from campsverso_adapters.model_fake_http import FakeModel, text, use
 from campsverso_ports import ModelRequest, ModelResponse
 
@@ -137,24 +137,33 @@ async def test_modelo_sem_preco_e_recusado_antes_de_gastar() -> None:
     assert fake.seen == []
 
 
-async def test_a_fita_grava_e_depois_responde_na_ordem_sem_o_modelo(tmp_path: Path) -> None:
+async def test_a_fita_grava_magra_e_responde_na_ordem_noutro_espaco(tmp_path: Path) -> None:
     path = tmp_path / "fita.jsonl"
-    fake, meter = FakeModel([use("Read", file_path="a.py"), text("pronto")]), Meter()
-    async with _gate(fake, meter, tape=Tape(path, "record")) as gate:
-        first = await _post(gate, _body())
+    here, there = tmp_path / "espaco-1", tmp_path / "espaco-2"
+    fake, meter = FakeModel([use("Read", file_path=f"{here}/a.py"), text("pronto")]), Meter()
+    async with _gate(fake, meter, tape=Tape(path, "record", here)) as gate:
+        await _post(gate, _body())
         second = await _post(gate, _body(stream=False))
-    assert len(path.read_text().splitlines()) == 2
+    entries = [json.loads(line) for line in path.read_text().splitlines()]
+    # Magra: os blocos, o motivo e os tokens, sem o streaming; o espaço vira um marcador.
+    assert [e["message"]["stop_reason"] for e in entries] == ["tool_use", "end_turn"]
+    assert entries[0]["message"]["content"][0]["input"] == {"file_path": "{espaco}/a.py"}
+    assert entries[0]["tools"] is True
+    assert str(tmp_path) not in path.read_text()
 
     offline, replay_meter = FakeModel([]), Meter()
-    async with _gate(offline, replay_meter, tape=Tape(path, "replay")) as gate:
+    async with _gate(offline, replay_meter, tape=Tape(path, "replay", there)) as gate:
         again_first = await _post(gate, _body())
         again_second = await _post(gate, _body(stream=False))
         exhausted = await _post(gate, _body())
     assert offline.seen == []  # ninguém chamou o modelo
-    assert again_first.content == first.content
-    assert again_second.json() == second.json()
+    reader = UsageReader()
+    reader.feed(again_first.content)
+    assert reader.content[0]["input"] == {"file_path": f"{there}/a.py"}  # o espaço de agora
+    assert again_second.json()["content"] == second.json()["content"]
     assert exhausted.status_code == 500
     assert [r.replayed for _, r, _ in replay_meter.calls] == [True, True]
+    assert replay_meter.calls[0][1].tool_uses()[0]["name"] == "Read"
 
 
 def test_a_leitura_dos_tokens_junta_os_pedacos_do_streaming() -> None:
@@ -171,3 +180,24 @@ def test_a_leitura_dos_tokens_junta_os_pedacos_do_streaming() -> None:
     assert reader.tokens.cache_read_input_tokens == 900
     assert reader.tokens.output_tokens == 42
     assert (reader.model, reader.stop_reason, reader.request_id) == ("m", "end_turn", "msg_1")
+
+
+def test_a_resposta_inteira_volta_igual_do_streaming_em_pedacos() -> None:
+    message: dict[str, Any] = {
+        "id": "msg_9",
+        "model": "claude-opus-5-5",
+        "content": [
+            {"type": "thinking", "thinking": "vou ler o arquivo", "signature": "assinatura"},
+            {"type": "text", "text": "Vou ler."},
+            {"type": "tool_use", "id": "toolu_1", "name": "Read", "input": {"file_path": "á.py"}},
+        ],
+        "stop_reason": "tool_use",
+        "usage": {"input_tokens": 10, "output_tokens": 7},
+    }
+    raw = sse_of(message)
+    reader = UsageReader()
+    for i in range(0, len(raw), 5):  # o JSON dos argumentos chega cortado em vários pedaços
+        reader.feed(raw[i : i + 5])
+    assert list(reader.content) == message["content"]
+    assert reader.as_message()["usage"] == {"input_tokens": 10, "output_tokens": 7}
+    assert reader.stop_reason == "tool_use"

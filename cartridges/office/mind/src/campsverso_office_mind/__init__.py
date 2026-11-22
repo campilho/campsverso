@@ -1,8 +1,8 @@
 """A mente do gênero office (ADR-0080): só dados. As notas do escritório dizem o que um dev
 recém-chegado saberia (o quadro, o expediente, a oficina e as regras dela); as ferramentas da
-oficina estão no formato da Messages API; há as instruções da sessão de trabalho e da conversa; e
-o perfil da memória, com a revisão da manhã (o plano do M24, §2.2 e §2.3). O cenário põe o cartão
-por cima."""
+oficina estão no formato da Messages API; há as instruções da sessão de trabalho (as do nosso
+harness e as das mãos de fora, ADR-0089) e da conversa; e o perfil da memória, com a revisão da
+manhã (o plano do M24, §2.2 e §2.3). O cenário põe o cartão por cima."""
 
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -16,6 +16,7 @@ DATA = Path(__file__).parent / "data"
 NOTES = DATA / "escritorio.md"
 WORKSHOP = DATA / "oficina.yaml"
 SESSION = DATA / "sessao.md"
+HANDS_SESSION = DATA / "sessao-maos.md"
 CHAT = DATA / "conversa.md"
 MEMORY = DATA / "memoria.yaml"
 
@@ -37,6 +38,12 @@ def session_instructions() -> str:
     return SESSION.read_text(encoding="utf-8")
 
 
+def hands_session_instructions() -> str:
+    """As instruções da sessão quando as mãos são de fora, como o Claude Code (ADR-0089): as
+    ferramentas são as do harness, e a resposta final é a entrega."""
+    return HANDS_SESSION.read_text(encoding="utf-8")
+
+
 def chat_instructions() -> str:
     return CHAT.read_text(encoding="utf-8")
 
@@ -56,6 +63,7 @@ def mind() -> Mind:
         tools=(),
         workshop=tuple(workshop_tools()),
         session=session_instructions(),
+        hands_session=hands_session_instructions(),
         conversation=chat_instructions(),
         memory=memory_profile(),
         robot_tool=robot_tool(),
@@ -65,11 +73,13 @@ def mind() -> Mind:
 __all__ = [
     "CHAT",
     "DATA",
+    "HANDS_SESSION",
     "MEMORY",
     "NOTES",
     "SESSION",
     "WORKSHOP",
     "chat_instructions",
+    "hands_session_instructions",
     "memory_profile",
     "mind",
     "robot_tool",

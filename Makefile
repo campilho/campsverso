@@ -115,8 +115,8 @@ sandbox: tools ui-build ## mundo descartável com tudo ligado, em data/sandbox/<
 jogar: tools ui-build ## o sandbox de quem joga: começa pausado e a tela do jogador assume o Camps ao abrir; make jogar MUNDO=farm-morada-do-sol-04; RETOMAR=data/sandbox/<pasta> continua de onde parou (pause antes do Ctrl+C)
 	$(PY) python -m campsverso_testkit.sandbox --world config/worlds/$(MUNDO).yaml --out $(or $(RETOMAR),data/sandbox/$$(date +%Y%m%d-%H%M%S)) $(if $(RETOMAR),--retomar,) --jogar
 
-conformidade: ## a prova de conformidade do escritório (ADR-0077, decisão 11): dois pedidos curtos num repositório de exemplo, para cada modelo; chama a API. MODELOS=claude-sonnet-5-5,claude-opus-5-5 escolhe
-	uv run --locked --env-file .env python -m campsverso_testkit.conformidade $(if $(MODELOS),--modelos $(MODELOS),)
+conformidade: ## a prova de conformidade do escritório (ADR-0077, decisão 11): dois pedidos curtos num repositório de exemplo, para cada modelo; chama a API. MODELOS=claude-sonnet-5-5,claude-opus-5-5 escolhe; MAOS=claude_code faz a prova pelo Claude Code (ADR-0089), com o Opus 5.5
+	uv run --locked --env-file .env python -m campsverso_testkit.conformidade $(if $(MODELOS),--modelos $(MODELOS),) $(if $(MAOS),--maos $(MAOS),)
 
 DIAS ?= 1
 

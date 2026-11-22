@@ -16,6 +16,8 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
+from campsverso_adapters.hands_gate import sse_of
+
 USAGE = {
     "input_tokens": 1000,
     "output_tokens": 50,
@@ -32,10 +34,6 @@ def text(value: str) -> dict[str, Any]:
 def use(tool: str, **given: Any) -> dict[str, Any]:
     """Um passo do roteiro: o modelo usa uma ferramenta com estes argumentos."""
     return {"tool": tool, "input": given}
-
-
-def _sse(event: str, data: Mapping[str, Any]) -> bytes:
-    return f"event: {event}\ndata: {json.dumps(data)}\n\n".encode()
 
 
 @dataclass
@@ -67,7 +65,6 @@ class FakeModel:
         if request.url.path.endswith("/count_tokens"):
             return JSONResponse({"input_tokens": 100})
         step = self._step(body)
-        model = str(body.get("model") or "x")
         if "tool" in step:
             block: dict[str, Any] = {
                 "type": "tool_use",
@@ -79,54 +76,18 @@ class FakeModel:
         else:
             block = {"type": "text", "text": step["text"]}
             stop = "end_turn"
-        if not body.get("stream"):
-            return JSONResponse(
-                {
-                    "id": f"msg_{len(self.seen):04d}",
-                    "type": "message",
-                    "role": "assistant",
-                    "model": model,
-                    "content": [block],
-                    "stop_reason": stop,
-                    "stop_sequence": None,
-                    "usage": dict(self.usage),
-                }
-            )
-        start: dict[str, Any] = {
+        message: dict[str, Any] = {
             "id": f"msg_{len(self.seen):04d}",
-            "type": "message",
-            "role": "assistant",
-            "model": model,
-            "content": [],
-            "stop_reason": None,
-            "stop_sequence": None,
-            "usage": {**self.usage, "output_tokens": 1},
+            "model": str(body.get("model") or "x"),
+            "content": [block],
+            "stop_reason": stop,
+            "usage": dict(self.usage),
         }
-        out = _sse("message_start", {"type": "message_start", "message": start})
-        if block["type"] == "text":
-            opening: dict[str, Any] = {"type": "text", "text": ""}
-            delta: dict[str, Any] = {"type": "text_delta", "text": block["text"]}
-        else:
-            opening = {"type": "tool_use", "id": block["id"], "name": block["name"], "input": {}}
-            delta = {"type": "input_json_delta", "partial_json": json.dumps(block["input"])}
-        out += _sse(
-            "content_block_start",
-            {"type": "content_block_start", "index": 0, "content_block": opening},
+        if body.get("stream"):
+            return Response(sse_of(message), media_type="text/event-stream")
+        return JSONResponse(
+            {"type": "message", "role": "assistant", "stop_sequence": None, **message}
         )
-        out += _sse(
-            "content_block_delta", {"type": "content_block_delta", "index": 0, "delta": delta}
-        )
-        out += _sse("content_block_stop", {"type": "content_block_stop", "index": 0})
-        out += _sse(
-            "message_delta",
-            {
-                "type": "message_delta",
-                "delta": {"stop_reason": stop, "stop_sequence": None},
-                "usage": {"output_tokens": self.usage["output_tokens"]},
-            },
-        )
-        out += _sse("message_stop", {"type": "message_stop"})
-        return Response(out, media_type="text/event-stream")
 
     def app(self) -> Starlette:
         return Starlette(routes=[Route("/v1/{rest:path}", self._messages, methods=["POST"])])

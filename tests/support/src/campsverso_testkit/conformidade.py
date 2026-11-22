@@ -10,43 +10,61 @@ dev (`camps_escritorio`), as ferramentas da oficina e a de anotar, a memória va
 Depois do `pronto`, a prova confere por fora: os testes de novo, sob o mesmo `sandbox-exec`, e um
 teste escondido que o modelo nunca viu; a revisão da oficina olha o patch.
 
+**As mãos** (ADR-0089): a prova roda pelo nosso harness (`api`, o padrão) ou por um harness de fora,
+como o Claude Code (`--maos claude_code`). Com as mãos de fora, as chamadas ao modelo passam pela
+porta das mãos e são contadas lá (`ProbeMeter`): a resposta final do harness é o `pronto`, as
+chamadas sem ferramentas (as auxiliares dele) contam só no custo, e o formato é conferido contra as
+ferramentas que o próprio harness ofereceu. O espaço ganha um ambiente Python com o `pytest`, que o
+terminal do harness usa.
+
 **Os limites** (o plano macro da v0.4, decisão 11): nenhuma recusa, no máximo 5% de respostas
 sem ação e no máximo dois erros de formato (uma ferramenta que não existe, um argumento que falta
 ou de tipo errado, uma resposta cortada). Passa quem respeita os limites e faz os dois pedidos.
 
     uv run --env-file .env python -m campsverso_testkit.conformidade [--modelos a,b] [--out pasta]
+        [--maos claude_code]
 
-Cada modelo grava a fita dele (`<modelo>.jsonl`, magra) e o resultado vai em `resultado.json` e
-`relatorio.md` na pasta da prova. O CI nunca chama a API: os testes usam um modelo de mentira.
+Cada modelo grava a fita dele (`<modelo>.jsonl`, ou `<modelo>--<mãos>.jsonl`, magra) e o resultado
+vai em `resultado.json` e `relatorio.md` na pasta da prova. O CI nunca chama a API: os testes usam
+um modelo de mentira.
 """
 
 import argparse
 import asyncio
 import json
+import os
 import subprocess
 import sys
 import tempfile
 import time
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
 from campsverso_adapters import ModelPrices, RecordingModel, SystemWallClock, cost_usd, load_env
+from campsverso_adapters.hands_claude_code import ClaudeCodeHands
 from campsverso_adapters.model_routes import model_port
-from campsverso_adapters.workshop_local import LocalWorkshop
+from campsverso_adapters.workshop_local import LocalWorkshop, sync_env
 from campsverso_adapters.workshop_review import review
 from campsverso_controller_runner.office_mind import brief
 from campsverso_controller_runner.runner import load_mind
 from campsverso_controller_runner.workshop import call
 from campsverso_mind import Mind, StepOutcome, WorkSession
 from campsverso_ports import (
+    CallMeter,
     Effort,
+    Hands,
+    HandsJob,
+    HandsLimits,
+    HandsStep,
     ModelCapabilities,
     ModelPort,
     ModelRequest,
     ModelResponse,
+    Robot,
+    ToolResult,
     Workspace,
 )
 from campsverso_testkit.nats_server import REPO
@@ -66,6 +84,10 @@ FORMAT_LIMIT = 2
 CAP_USD = 1.50  # por modelo: a prova para no meio se passar disto
 MAX_STEPS = 30
 EFFORT: Effort = "medium"  # o do escritório (config/worlds/office-campsverso-*.yaml)
+HANDS = ("api", "claude_code")
+HANDS_MODEL = "claude-opus-5-5"  # o modelo da prova das mãos de fora (o plano do M26, §9)
+SESSION_SECONDS = 15 * 60  # por pedido, com as mãos de fora
+NOTED = "anotado: você vai rever isso de manhã"
 
 # O repositório de exemplo, escrito numa pasta temporária a cada prova (fora de `tests/`: o pytest
 # do projeto coletaria o teste que falha de propósito).
@@ -158,6 +180,7 @@ class Tally:
     refusals: int = 0
     format_errors: list[str] = field(default_factory=list[str])
     failures: int = 0  # as chamadas que não voltaram (rede, limite, servidor)
+    auxiliary: int = 0  # as chamadas sem ferramentas de um harness de fora: só no custo
     cost_usd: float = 0.0
     seconds: float = 0.0
 
@@ -188,6 +211,23 @@ def format_problem(use: Mapping[str, Any], tools: Mapping[str, Mapping[str, Any]
         if kind == "integer" and (isinstance(value, bool) or not isinstance(value, int)):
             return f"{name}: {key} não é inteiro"
     return None
+
+
+def count(tally: Tally, response: ModelResponse, tools: Mapping[str, Mapping[str, Any]]) -> None:
+    """Uma resposta na contagem: a recusa, a resposta cortada, a resposta sem ação e o formato de
+    cada ferramenta usada, contra as ferramentas oferecidas."""
+    tally.responses += 1
+    if response.stop_reason == "refusal":
+        tally.refusals += 1
+    if response.stop_reason == "max_tokens":
+        tally.format_errors.append("resposta cortada (max_tokens)")
+    uses = response.tool_uses()
+    if not uses:
+        tally.no_action += 1
+    for use in uses:
+        problem = format_problem(use, tools)
+        if problem is not None:
+            tally.format_errors.append(problem)
 
 
 class Probe:
@@ -226,24 +266,41 @@ class Probe:
             raise
         finally:
             tally.seconds += time.monotonic() - started
-        tally.responses += 1
         usage = response.usage
         if usage.cost_usd is not None:
             tally.cost_usd += usage.cost_usd
         elif self._prices is not None:
             tally.cost_usd += cost_usd(usage, self._prices)
-        if response.stop_reason == "refusal":
-            tally.refusals += 1
-        if response.stop_reason == "max_tokens":
-            tally.format_errors.append("resposta cortada (max_tokens)")
-        uses = response.tool_uses()
-        if not uses:
-            tally.no_action += 1
-        for use in uses:
-            problem = format_problem(use, self._tools)
-            if problem is not None:
-                tally.format_errors.append(problem)
+        count(tally, response, self._tools)
         return response
+
+
+class ProbeMeter:
+    """O medidor da prova para as mãos de fora (ADR-0089): a porta das mãos mede aqui cada chamada
+    do harness, com a mesma contagem da porta de modelo. O formato é conferido contra as ferramentas
+    que o harness ofereceu naquela chamada; as chamadas sem ferramentas (as auxiliares dele) contam
+    só no custo."""
+
+    def __init__(self, tally: Tally, prices: Mapping[str, ModelPrices]) -> None:
+        self._tally = tally
+        self._prices = prices
+
+    def assert_priced(self, model: str) -> None:
+        if model not in self._prices:
+            raise LookupError(f"{model}: sem preço na tabela (config/env/local.yaml)")
+
+    async def observed(
+        self, request: ModelRequest, response: ModelResponse, *, harness: str
+    ) -> float:
+        tally = self._tally
+        spent = cost_usd(response.usage, self._prices[request.model])
+        tally.cost_usd += spent
+        tally.seconds += response.latency_ms / 1000
+        if not request.tools:
+            tally.auxiliary += 1
+        else:
+            count(tally, response, {str(t.get("name")): t for t in request.tools})
+        return spent
 
 
 # ---------------------------------------------------------------- um pedido
@@ -261,6 +318,8 @@ class TaskResult:
     touched: list[str] = field(default_factory=list[str])  # o que o patch não podia mudar e mudou
     files: list[str] = field(default_factory=list[str])
     notes: int = 0
+    summary: str = ""  # o resumo do dev para o gerente: o do `pronto`, ou a resposta final
+    trail: list[str] = field(default_factory=list[str])  # os passos, como a tela os mostra
 
     @property
     def correct(self) -> bool:
@@ -287,10 +346,12 @@ def example_repo(root: Path, changes: Mapping[str, str] | None = None) -> Path:
     return repo
 
 
-def system_of(mind: Mind) -> str:
-    """O sistema da sessão do dev, como o da mente do escritório (`OfficeMind`)."""
+def system_of(mind: Mind, harness: str = "api") -> str:
+    """O sistema da sessão do dev, como o da mente do escritório (`OfficeMind`); com as mãos de
+    fora, as instruções da sessão são as delas (ADR-0089)."""
     identity = f"{mind.card.strip()}\n\n{mind.notes.strip()}"
-    return f"{identity}\n\n{mind.session.strip()}"
+    session = mind.session if harness == "api" else mind.hands_session
+    return f"{identity}\n\n{session.strip()}"
 
 
 def opening(mind: Mind, task: Task) -> str:
@@ -307,42 +368,20 @@ def opening(mind: Mind, task: Task) -> str:
     return f"## O que você lembra\n{empty}\n\n{brief(ticket)}"
 
 
+type Session = Callable[[Task, Workspace, TaskResult, Callable[[], bool]], Awaitable[None]]
+
+
 async def run_task(
-    port: ModelPort,
-    mind: Mind,
-    model: str,
-    task: Task,
-    scratch: Path,
-    should_stop: Callable[[], bool],
+    session: Session, task: Task, scratch: Path, should_stop: Callable[[], bool]
 ) -> TaskResult:
+    """Um pedido: o espaço novo, a sessão das mãos e a conferência por fora."""
     result = TaskResult(task.title)
     repo = example_repo(scratch / task.ticket_id, task.changes)
     workshop = LocalWorkshop(
         repo, scratch / "oficina", python_env=False, python=Path(sys.executable)
     )
     space: Workspace = await workshop.open(WORLD, task.ticket_id)
-    note = None if mind.memory is None else mind.memory.note_tool
-    tools = [dict(t) for t in mind.workshop] + ([] if note is None else [dict(note)])
-
-    async def execute(tool: str, args: Mapping[str, Any]) -> StepOutcome:
-        if note is not None and tool == note["name"]:
-            result.notes += 1
-            return StepOutcome("anotado: você vai rever isso de manhã", True)
-        outcome = await call(space, tool, args)
-        return StepOutcome(outcome.text, outcome.ok, tool == "pronto")
-
-    session = WorkSession(
-        port,
-        model=model,
-        system=system_of(mind),
-        tools=tools,
-        avatar_id="camps",
-        ticket_id=task.ticket_id,
-        max_steps=MAX_STEPS,
-        effort=EFFORT,
-    )
-    ran = await session.run(opening(mind, task), execute, should_stop)
-    result.done, result.steps, result.reason = ran.done, ran.steps, ran.reason
+    await session(task, space, result, should_stop)
     patch = await space.patch()
     result.files = list(patch.summary.files)
     result.review = review(patch.text, [])
@@ -351,6 +390,105 @@ async def run_task(
     await space.write(HIDDEN, task.hidden)
     result.hidden_pass = (await space.run_tests(HIDDEN)).ok
     return result
+
+
+def api_session(port: ModelPort, mind: Mind, model: str) -> Session:
+    """O pedido pelo nosso harness: a `WorkSession`, com as ferramentas da oficina e a de anotar."""
+    note = None if mind.memory is None else mind.memory.note_tool
+    tools = [dict(t) for t in mind.workshop] + ([] if note is None else [dict(note)])
+
+    async def session(
+        task: Task, space: Workspace, result: TaskResult, should_stop: Callable[[], bool]
+    ) -> None:
+        async def execute(tool: str, args: Mapping[str, Any]) -> StepOutcome:
+            if note is not None and tool == note["name"]:
+                result.notes += 1
+                result.trail.append("anotado")
+                return StepOutcome(NOTED, True)
+            outcome = await call(space, tool, args)
+            result.trail.append(outcome.summary)
+            if tool == "pronto":
+                result.summary = str(args.get("resumo") or "")
+            return StepOutcome(outcome.text, outcome.ok, tool == "pronto")
+
+        work = WorkSession(
+            port,
+            model=model,
+            system=system_of(mind),
+            tools=tools,
+            avatar_id="camps",
+            ticket_id=task.ticket_id,
+            max_steps=MAX_STEPS,
+            effort=EFFORT,
+        )
+        ran = await work.run(opening(mind, task), execute, should_stop)
+        result.done, result.steps, result.reason = ran.done, ran.steps, ran.reason
+
+    return session
+
+
+class ProofWorld:
+    """O mundo da prova, para as mãos de fora: a bancada vazia, a anotação contada e os passos
+    guardados."""
+
+    def __init__(self, result: TaskResult, should_stop: Callable[[], bool]) -> None:
+        self._result = result
+        self._should_stop = should_stop
+
+    @property
+    def robots(self) -> Sequence[Robot]:
+        return ()
+
+    async def robot(self, name: str, args: Sequence[str]) -> ToolResult:
+        return ToolResult(False, "a bancada está vazia na prova", f"robô {name}: bancada vazia")
+
+    async def note(self, text: str) -> ToolResult:
+        if not text.strip():
+            return ToolResult(False, "nada anotado: o texto veio vazio", "anotar: vazio")
+        self._result.notes += 1
+        return ToolResult(True, NOTED, "anotado")
+
+    async def step(self, step: HandsStep) -> None:
+        self._result.trail.append(step.summary)
+
+    def should_stop(self) -> bool:
+        return self._should_stop()
+
+
+def space_python(root: Path) -> None:
+    """O Python do espaço para as mãos de fora, que rodam o `pytest` pelo terminal: um ambiente
+    com o pytest, do cache do uv, sem rede (o repositório de exemplo não tem o `uv.lock`)."""
+    env = sync_env(os.environ)
+    venv = root / ".venv"
+    uv = ["uv", "--offline", "--quiet"]
+    subprocess.run([*uv, "venv", "--python", sys.executable, str(venv)], check=True, env=env)
+    python = str(venv / "bin" / "python")
+    subprocess.run([*uv, "pip", "install", "--python", python, "pytest"], check=True, env=env)
+
+
+def hands_session(hands: Hands, mind: Mind, model: str, tally: Tally) -> Session:
+    """O pedido pelas mãos de fora: o mesmo pedido, a mesma abertura, as instruções delas."""
+
+    async def session(
+        task: Task, space: Workspace, result: TaskResult, should_stop: Callable[[], bool]
+    ) -> None:
+        space_python(space.root)
+        job = HandsJob(
+            task.ticket_id,
+            opening(mind, task),
+            system_of(mind, hands.harness),
+            model,
+            "camps",
+            EFFORT,
+            HandsLimits(MAX_STEPS, CAP_USD, SESSION_SECONDS),
+        )
+        ran = await hands.run(space, job, ProofWorld(result, should_stop))
+        result.done, result.steps, result.reason = ran.done, ran.turns, ran.reason
+        result.summary = ran.summary
+        if ran.done and tally.no_action:
+            tally.no_action -= 1  # a resposta final do harness é o `pronto` dele
+
+    return session
 
 
 # ---------------------------------------------------------------- um modelo
@@ -362,6 +500,7 @@ class Verdict:
     tally: Tally
     tasks: list[TaskResult]
     stopped: bool = False  # passou do teto de custo
+    harness: str = "api"
 
     @property
     def passed(self) -> bool:
@@ -380,6 +519,7 @@ class Verdict:
         tally["seconds"] = round(self.tally.seconds, 1)
         return {
             "model": self.model,
+            "harness": self.harness,
             "passed": self.passed,
             "stopped": self.stopped,
             "tally": tally,
@@ -394,13 +534,33 @@ async def prove(
     out: Path,
     mind: Mind | None = None,
 ) -> Verdict:
-    """Os dois pedidos com um modelo, cada um num espaço novo clonado do repositório de exemplo."""
+    """Os dois pedidos com um modelo, pelo nosso harness, cada um num espaço novo clonado do
+    repositório de exemplo."""
     mind = mind or load_mind(MIND)
     note = None if mind.memory is None else mind.memory.note_tool
     tools = [*mind.workshop, *([] if note is None else [note])]
     tally = Tally()
     port = Probe(inner, tally, tools, prices)
-    verdict = Verdict(model, tally, [])
+    return await _prove(model, "api", tally, api_session(port, mind, model), out)
+
+
+async def prove_hands(
+    model: str,
+    hands_of: Callable[[CallMeter], Hands],
+    prices: Mapping[str, ModelPrices],
+    out: Path,
+    mind: Mind | None = None,
+) -> Verdict:
+    """Os dois pedidos com um modelo, pelas mãos de fora (ADR-0089): `hands_of` recebe o medidor da
+    prova e devolve as mãos, que medem cada chamada por ele."""
+    mind = mind or load_mind(MIND)
+    tally = Tally()
+    hands = hands_of(ProbeMeter(tally, prices))
+    return await _prove(model, hands.harness, tally, hands_session(hands, mind, model, tally), out)
+
+
+async def _prove(model: str, harness: str, tally: Tally, session: Session, out: Path) -> Verdict:
+    verdict = Verdict(model, tally, [], harness=harness)
     with tempfile.TemporaryDirectory(prefix="conformidade-") as scratch:
 
         def over() -> bool:
@@ -408,8 +568,8 @@ async def prove(
             return verdict.stopped
 
         for task in TASKS:
-            verdict.tasks.append(await run_task(port, mind, model, task, Path(scratch), over))
-    (out / f"{slug(model)}.json").write_text(
+            verdict.tasks.append(await run_task(session, task, Path(scratch), over))
+    (out / f"{label(model, harness)}.json").write_text(
         json.dumps(verdict.as_dict(), ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     return verdict
@@ -419,12 +579,17 @@ def slug(model: str) -> str:
     return model.replace("/", "-")
 
 
+def label(model: str, harness: str) -> str:
+    """O nome dos arquivos de um modelo na prova: só o modelo com o nosso harness, como antes."""
+    return slug(model) if harness == "api" else f"{slug(model)}--{harness}"
+
+
 def report(verdicts: Sequence[Verdict]) -> str:
     """A tabela da prova, em Markdown."""
     lines = [
-        "| Modelo | Passou | Respostas | Sem ação | Recusas | Formato | Escrever | Consertar "
-        "| Passos | Custo | Tempo |",
-        "|---|---|---:|---:|---:|---:|---|---|---:|---:|---:|",
+        "| Modelo | Mãos | Passou | Respostas | Sem ação | Recusas | Formato | Escrever "
+        "| Consertar | Passos | Custo | Tempo |",
+        "|---|---|---|---:|---:|---:|---:|---|---|---:|---:|---:|",
     ]
     for v in verdicts:
         t = v.tally
@@ -435,14 +600,18 @@ def report(verdicts: Sequence[Verdict]) -> str:
         tasks = [mark(task) for task in v.tasks] + ["—"] * (len(TASKS) - len(v.tasks))
         steps = sum(task.steps for task in v.tasks)
         lines.append(
-            f"| {v.model} | {'sim' if v.passed else 'não'} | {t.responses} "
+            f"| {v.model} | {v.harness} | {'sim' if v.passed else 'não'} | {t.responses} "
             f"| {t.no_action} ({t.no_action_rate:.0%}) | {t.refusals} | {len(t.format_errors)} "
             f"| {tasks[0]} | {tasks[1]} | {steps} | US$ {t.cost_usd:.3f} | {t.seconds:.0f} s |"
         )
     return "\n".join(lines) + "\n"
 
 
-async def run(models: Sequence[str], out: Path) -> int:
+def _warn(event: str, fields: Mapping[str, Any]) -> None:
+    print(f"{event}: {json.dumps(dict(fields), ensure_ascii=False)[:600]}", file=sys.stderr)
+
+
+async def run(models: Sequence[str], out: Path, harness: str = "api") -> int:
     out.mkdir(parents=True, exist_ok=True)
     env = load_env(ENV)
     clock = SystemWallClock()
@@ -452,13 +621,31 @@ async def run(models: Sequence[str], out: Path) -> int:
         if prices is None:
             print(f"{model}: sem preço na tabela (config/env/local.yaml)", flush=True)
             return 2
-        api = model_port(model, routes=env.routes, clock=clock)
-        tape = RecordingModel(api, out / f"{slug(model)}.jsonl", "record", clock=clock)
-        print(f"{model}: os dois pedidos...", flush=True)
-        try:
-            verdict = await prove(model, tape, prices, out)
-        finally:
-            await api.aclose()
+        print(f"{model} ({harness}): os dois pedidos...", flush=True)
+        if harness == "api":
+            api = model_port(model, routes=env.routes, clock=clock)
+            tape = RecordingModel(api, out / f"{slug(model)}.jsonl", "record", clock=clock)
+            try:
+                verdict = await prove(model, tape, prices, out)
+            finally:
+                await api.aclose()
+        else:
+            key = os.environ.get("ANTHROPIC_API_KEY", "")
+            if model in env.routes or not key:
+                print(f"{model}: as mãos de fora falam só com a Anthropic, pela chave do .env")
+                return 2
+
+            def hands_of(meter: CallMeter, model: str = model, key: str = key) -> Hands:
+                return ClaudeCodeHands(
+                    meter,
+                    api_key=key,
+                    home=out / "maos",
+                    tape=out / f"{label(model, harness)}.jsonl",
+                    tape_mode="record",
+                    warn=_warn,
+                )
+
+            verdict = await prove_hands(model, hands_of, env.models, out)
         verdicts.append(verdict)
         t = verdict.tally
         print(
@@ -479,13 +666,18 @@ async def run(models: Sequence[str], out: Path) -> int:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="campsverso_testkit.conformidade")
-    parser.add_argument("--modelos", default=",".join(MODELS), help="separados por vírgula")
+    parser.add_argument(
+        "--modelos", help="separados por vírgula; padrão: os cinco, ou o Opus 5.5 com mãos de fora"
+    )
+    parser.add_argument("--maos", choices=HANDS, default="api", help="quem programa (ADR-0089)")
     parser.add_argument("--out", type=Path, help="padrão: data/conformidade/<data-hora>")
     args = parser.parse_args(argv)
     stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
     out = args.out or REPO / "data" / "conformidade" / stamp
-    models = [m.strip() for m in str(args.modelos).split(",") if m.strip()]
-    return asyncio.run(run(models, out))
+    harness = str(args.maos)
+    given = str(args.modelos or ",".join(MODELS if harness == "api" else (HANDS_MODEL,)))
+    models = [m.strip() for m in given.split(",") if m.strip()]
+    return asyncio.run(run(models, out, harness))
 
 
 if __name__ == "__main__":

@@ -299,5 +299,5 @@ async def test_acima_do_teto_a_sessao_para_e_diz_o_motivo(cli: Path, tmp_path: P
     hands = _hands(fake, meter, tmp_path / "maos", cli=cli)
     result = await asyncio.wait_for(hands.run(cast(Workspace, Space(root)), _job(), world), 180)
     assert not result.done
-    assert result.reason == "o teto do pedido"
+    assert result.reason == "parada"  # o mesmo motivo do nosso harness
     assert fake.seen == []  # nenhuma chamada passou da porta

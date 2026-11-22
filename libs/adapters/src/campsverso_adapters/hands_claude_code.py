@@ -314,6 +314,8 @@ class ClaudeCodeHands:
             "HOME": str(casa),
             "TMPDIR": str(tmp),
             "CLAUDE_CODE_TMPDIR": str(tmp),
+            # O zsh põe o here-doc em /tmp, que o sandbox fecha; o Opus escreve arquivos assim.
+            "TMPPREFIX": str(tmp / "zsh"),
             "LANG": "C.UTF-8",
             "ANTHROPIC_API_KEY": gate.token,
             "ANTHROPIC_BASE_URL": gate.url,
@@ -385,7 +387,7 @@ class ClaudeCodeHands:
         tape = (
             None
             if self._tape is None or self._tape_mode is None
-            else Tape(self._tape, self._tape_mode)
+            else Tape(self._tape, self._tape_mode, root)
         )
 
         async def guard(hook_input: Any, _tool_use_id: str | None, _context: Any) -> HookJSONOutput:
@@ -502,11 +504,12 @@ class ClaudeCodeHands:
         if estimate and measured and abs(estimate - measured) > 0.25 * max(estimate, measured):
             self._warn("hands.cost_mismatch", {"estimate_usd": estimate, "measured_usd": measured})
         if final is None:
-            reason = "o teto do pedido" if refused else (stopped or "sem resposta final")
+            # Parado pelo mundo, na porta ou entre um passo e outro: o motivo do nosso harness.
+            reason = "parada" if refused else (stopped or "sem resposta final")
             return HandsResult(False, "", 0, steps, reason, measured)
         reason = REASONS.get(final.subtype, final.subtype)
         if refused:
-            reason = "o teto do pedido"
+            reason = "parada"
         elif stopped is not None:
             reason = stopped
         done = final.subtype == "success" and not final.is_error and stopped is None and not refused

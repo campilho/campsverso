@@ -59,6 +59,9 @@ class Mind:
     # instruções da sessão e da conversa. Só a mente do escritório as tem.
     workshop: tuple[Mapping[str, Any], ...] = ()
     session: str = ""
+    # As instruções da sessão quando as mãos são de fora, como o Claude Code (ADR-0089): as
+    # ferramentas são as do harness, e a resposta final é a entrega.
+    hands_session: str = ""
     conversation: str = ""
     # O perfil da memória do mundo (o plano do M24, §2.2): None é a fazenda.
     memory: MemoryProfile | None = None

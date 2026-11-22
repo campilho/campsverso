@@ -20,7 +20,7 @@ import json
 import secrets
 import socket
 import time
-from collections.abc import AsyncIterator, Callable, Generator, Mapping
+from collections.abc import AsyncIterator, Callable, Generator, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, cast
@@ -51,14 +51,20 @@ def _error(status: int, kind: str, message: str) -> JSONResponse:
     )
 
 
+TOOL_BLOCKS = ("tool_use", "server_tool_use", "mcp_tool_use")
+
+
 @dataclass(slots=True)
 class UsageReader:
-    """Lê os tokens, o modelo e o motivo do fim de uma resposta, em streaming ou não."""
+    """Lê uma resposta, em streaming ou não: os tokens, o modelo, o motivo do fim e os blocos (o
+    texto, o pensamento e as ferramentas usadas), para a medida e para a fita."""
 
     model: str = ""
     stop_reason: str = ""
     request_id: str | None = None
     usage: dict[str, int] = field(default_factory=dict[str, int])
+    blocks: dict[int, dict[str, Any]] = field(default_factory=dict[int, dict[str, Any]])
+    _partial: dict[int, list[str]] = field(default_factory=dict[int, list[str]])
     _pending: bytes = b""
 
     def _take(self, usage: Mapping[str, Any]) -> None:
@@ -72,8 +78,38 @@ class UsageReader:
             if isinstance(value, int):
                 self.usage[key] = value
 
+    def _delta(self, index: int, delta: Mapping[str, Any]) -> None:
+        block = self.blocks.get(index)
+        if block is None:
+            return
+        kind = delta.get("type")
+        if kind == "text_delta":
+            block["text"] = str(block.get("text") or "") + str(delta.get("text") or "")
+        elif kind == "input_json_delta" and index in self._partial:
+            self._partial[index].append(str(delta.get("partial_json") or ""))
+        elif kind == "thinking_delta":
+            block["thinking"] = str(block.get("thinking") or "") + str(delta.get("thinking") or "")
+        elif kind == "signature_delta":
+            block["signature"] = str(block.get("signature") or "") + str(
+                delta.get("signature") or ""
+            )
+
+    def _close(self, index: int) -> None:
+        raw = "".join(self._partial.pop(index, []))
+        block = self.blocks.get(index)
+        if block is None or block.get("type") not in TOOL_BLOCKS:
+            return
+        if raw.strip():
+            try:
+                block["input"] = json.loads(raw)
+            except ValueError:
+                block["input"] = raw  # o modelo mandou argumentos que não são JSON
+        else:
+            block.setdefault("input", {})
+
     def event(self, data: Mapping[str, Any]) -> None:
         kind = data.get("type")
+        index = data.get("index")
         if kind == "message_start":
             message = cast(Mapping[str, Any], data.get("message") or {})
             self.model = str(message.get("model") or self.model)
@@ -83,6 +119,15 @@ class UsageReader:
             delta = cast(Mapping[str, Any], data.get("delta") or {})
             self.stop_reason = str(delta.get("stop_reason") or self.stop_reason)
             self._take(cast(Mapping[str, Any], data.get("usage") or {}))
+        elif kind == "content_block_start" and isinstance(index, int):
+            block = dict(cast(Mapping[str, Any], data.get("content_block") or {}))
+            self.blocks[index] = block
+            if block.get("type") in TOOL_BLOCKS:
+                self._partial[index] = []
+        elif kind == "content_block_delta" and isinstance(index, int):
+            self._delta(index, cast(Mapping[str, Any], data.get("delta") or {}))
+        elif kind == "content_block_stop" and isinstance(index, int):
+            self._close(index)
 
     def feed(self, chunk: bytes) -> None:
         """Um pedaço do streaming (SSE): os eventos inteiros são lidos, o resto espera."""
@@ -100,6 +145,16 @@ class UsageReader:
         self.stop_reason = str(data.get("stop_reason") or "")
         self.request_id = cast(str | None, data.get("id"))
         self._take(cast(Mapping[str, Any], data.get("usage") or {}))
+        content = cast(list[Any], data.get("content") or [])
+        self.blocks = {
+            i: dict(cast(Mapping[str, Any], b))
+            for i, b in enumerate(content)
+            if isinstance(b, Mapping)
+        }
+
+    @property
+    def content(self) -> tuple[dict[str, Any], ...]:
+        return tuple(self.blocks[i] for i in sorted(self.blocks))
 
     @property
     def tokens(self) -> ModelUsage:
@@ -114,19 +169,112 @@ class UsageReader:
     def complete(self) -> bool:
         return bool(self.stop_reason)
 
+    def as_message(self) -> dict[str, Any]:
+        """A resposta inteira, no formato da Messages API sem streaming."""
+        return {
+            "id": self.request_id,
+            "model": self.model,
+            "content": [dict(b) for b in self.content],
+            "stop_reason": self.stop_reason,
+            "usage": dict(self.usage),
+        }
+
+
+def _sse(event: str, data: Mapping[str, Any]) -> bytes:
+    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n".encode()
+
+
+def _opening(block: Mapping[str, Any]) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Como um bloco começa no streaming, e os pedaços que vêm depois."""
+    kind = block.get("type")
+    if kind == "text":
+        return {"type": "text", "text": ""}, [{"type": "text_delta", "text": block.get("text", "")}]
+    if kind in TOOL_BLOCKS:
+        given = block.get("input")
+        raw = given if isinstance(given, str) else json.dumps(given or {}, ensure_ascii=False)
+        start: dict[str, Any] = {k: v for k, v in block.items() if k != "input"}
+        start["input"] = {}
+        return start, [{"type": "input_json_delta", "partial_json": raw}]
+    if kind == "thinking":
+        deltas = [{"type": "thinking_delta", "thinking": block.get("thinking", "")}]
+        if block.get("signature"):
+            deltas.append({"type": "signature_delta", "signature": block["signature"]})
+        return {"type": "thinking", "thinking": "", "signature": ""}, deltas
+    return dict(block), []
+
+
+def sse_of(message: Mapping[str, Any]) -> bytes:
+    """Uma resposta inteira como o streaming da Messages API a mandaria: o modelo falso e a fita
+    respondem assim a quem pediu em streaming."""
+    usage = dict(cast(Mapping[str, int], message.get("usage") or {}))
+    start: dict[str, Any] = {
+        "id": message.get("id") or "msg_fita",
+        "type": "message",
+        "role": "assistant",
+        "model": message.get("model") or "",
+        "content": [],
+        "stop_reason": None,
+        "stop_sequence": None,
+        "usage": {**usage, "output_tokens": 1},
+    }
+    out = _sse("message_start", {"type": "message_start", "message": start})
+    for index, block in enumerate(cast(list[Mapping[str, Any]], message.get("content") or [])):
+        opening, deltas = _opening(block)
+        out += _sse(
+            "content_block_start",
+            {"type": "content_block_start", "index": index, "content_block": opening},
+        )
+        for delta in deltas:
+            out += _sse(
+                "content_block_delta",
+                {"type": "content_block_delta", "index": index, "delta": delta},
+            )
+        out += _sse("content_block_stop", {"type": "content_block_stop", "index": index})
+    out += _sse(
+        "message_delta",
+        {
+            "type": "message_delta",
+            "delta": {"stop_reason": message.get("stop_reason"), "stop_sequence": None},
+            "usage": {"output_tokens": usage.get("output_tokens", 0)},
+        },
+    )
+    return out + _sse("message_stop", {"type": "message_stop"})
+
+
+SPACE = "{espaco}"
+
+
+def _swap(value: Any, old: Sequence[str], new: str) -> Any:
+    if isinstance(value, str):
+        for item in old:
+            value = value.replace(item, new)
+        return value
+    if isinstance(value, Mapping):
+        return {k: _swap(v, old, new) for k, v in cast(Mapping[str, Any], value).items()}
+    if isinstance(value, list):
+        return [_swap(v, old, new) for v in cast(list[Any], value)]
+    return value
+
 
 class Tape:
-    """A fita da porta: cada chamada ao modelo e a resposta, uma por linha.
+    """A fita da porta: cada chamada ao modelo e a resposta inteira, magra (os blocos, o motivo do
+    fim e os tokens), uma por linha.
 
-    No modo `record`, grava. No modo `replay`, responde na ordem, pela primeira resposta ainda não
-    usada do mesmo caminho e do mesmo modelo (as chamadas auxiliares de um harness usam outro
-    modelo e não tiram a ordem das principais)."""
+    O caminho do espaço vira `{espaco}` na gravação e volta, no espaço de agora, na reprodução: a
+    fita toca em outra pasta e em outra máquina. No modo `replay`, responde na ordem, pela primeira
+    resposta ainda não usada do mesmo caminho, com ou sem ferramentas e do mesmo modelo (as chamadas
+    auxiliares de um harness não tiram a ordem das principais)."""
 
-    def __init__(self, path: Path, mode: str) -> None:
+    def __init__(self, path: Path, mode: str, space: Path | None = None) -> None:
         if mode not in ("record", "replay"):
             raise ValueError(f"modo da fita desconhecido: {mode}")
         self.path = path
         self.mode = mode
+        self._space = (
+            []
+            if space is None
+            else sorted({str(space), str(space.resolve())}, key=len, reverse=True)
+        )
         self._entries: list[dict[str, Any]] = []
         self._used: set[int] = set()
         if mode == "replay":
@@ -136,20 +284,29 @@ class Tape:
         else:
             path.parent.mkdir(parents=True, exist_ok=True)
 
-    def write(self, entry: Mapping[str, Any]) -> None:
+    def write(self, path: str, body: Mapping[str, Any], message: Mapping[str, Any]) -> None:
+        entry = {
+            "path": path,
+            "model": str(body.get("model") or ""),
+            "tools": bool(body.get("tools")),
+            "message": _swap(dict(message), self._space, SPACE),
+        }
         with self.path.open("a", encoding="utf-8") as tape:
             tape.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
-    def next(self, path: str, model: str) -> dict[str, Any] | None:
+    def next(self, path: str, model: str, tools: bool) -> dict[str, Any] | None:
+        """A próxima resposta gravada, com o espaço de agora no lugar de `{espaco}`."""
         same_path = [
             i for i, e in enumerate(self._entries) if i not in self._used and e["path"] == path
         ]
-        exact = [i for i in same_path if self._entries[i].get("model") == model]
-        chosen = (exact or same_path or [None])[0]
+        same_kind = [i for i in same_path if bool(self._entries[i].get("tools")) == tools]
+        exact = [i for i in same_kind if self._entries[i].get("model") == model]
+        chosen = (exact or same_kind or same_path or [None])[0]
         if chosen is None:
             return None
         self._used.add(chosen)
-        return self._entries[chosen]
+        here = self._space[-1] if self._space else SPACE
+        return cast(dict[str, Any], _swap(self._entries[chosen]["message"], [SPACE], here))
 
 
 class _QuietServer(uvicorn.Server):
@@ -299,7 +456,7 @@ class HandsGate:
             with contextlib.suppress(ValueError):
                 reader.message(cast(Mapping[str, Any], response.json()))
             await self._measure(body, reader, started, replayed=False)
-            self._record(request.url.path, body, response.status_code, False, response.text)
+            self._record(request.url.path, body, reader)
         return Response(
             response.content,
             status_code=response.status_code,
@@ -325,54 +482,38 @@ class HandsGate:
         path = request.url.path
 
         async def relay() -> AsyncIterator[bytes]:
-            kept: list[bytes] = []
             try:
                 async for chunk in response.aiter_raw():
                     reader.feed(chunk)
-                    kept.append(chunk)
                     yield chunk
             finally:
                 await response.aclose()
                 # O que passou foi cobrado, mesmo que o harness tenha largado a resposta no meio.
                 if reader.usage:
                     await self._measure(body, reader, started, replayed=False)
-                    text = b"".join(kept).decode("utf-8", errors="replace")
-                    self._record(path, body, 200, True, text)
+                    if reader.complete:
+                        self._record(path, body, reader)
 
         return StreamingResponse(relay(), media_type="text/event-stream")
 
     async def _replay(self, path: str, model: str, body: Mapping[str, Any]) -> Response:
         assert self._tape is not None
-        entry = self._tape.next(path, model)
-        if entry is None:
+        message = self._tape.next(path, model, bool(body.get("tools")))
+        if message is None:
             return _error(500, "api_error", "a fita acabou: não há resposta gravada para isto")
         started = time.monotonic()
-        text = str(entry["body"])
         reader = UsageReader()
-        if entry.get("stream"):
-            reader.feed(text.encode() + b"\n\n")
-        else:
-            with contextlib.suppress(ValueError):
-                reader.message(cast(Mapping[str, Any], json.loads(text)))
-        if int(entry.get("status", 200)) == 200:
-            await self._measure(body, reader, started, replayed=True)
-        media = "text/event-stream" if entry.get("stream") else "application/json"
-        return Response(text.encode(), status_code=int(entry.get("status", 200)), media_type=media)
+        reader.message(message)
+        await self._measure(body, reader, started, replayed=True)
+        if body.get("stream"):
+            return Response(sse_of(message), media_type="text/event-stream")
+        whole = {"type": "message", "role": "assistant", "stop_sequence": None, **message}
+        return JSONResponse(whole)
 
-    def _record(
-        self, path: str, body: Mapping[str, Any], status: int, stream: bool, text: str
-    ) -> None:
+    def _record(self, path: str, body: Mapping[str, Any], reader: UsageReader) -> None:
         if self._tape is None or self._tape.mode != "record":
             return
-        self._tape.write(
-            {
-                "path": path,
-                "model": str(body.get("model") or ""),
-                "status": status,
-                "stream": stream,
-                "body": text,
-            }
-        )
+        self._tape.write(path, body, reader.as_message())
 
     async def _measure(
         self, body: Mapping[str, Any], reader: UsageReader, started: float, *, replayed: bool
@@ -389,7 +530,7 @@ class HandsGate:
             ticket_id=self._ticket,
         )
         response = ModelResponse(
-            content=(),
+            content=reader.content,
             stop_reason=reader.stop_reason or "unknown",
             usage=reader.tokens,
             model=reader.model or model,
