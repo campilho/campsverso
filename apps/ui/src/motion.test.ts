@@ -321,6 +321,34 @@ describe("a seta a 1× com o tick de 250 ms (ADR-0081)", () => {
     expect(drawn.every((p, i) => i === 0 || p.x >= (drawn[i - 1]?.x ?? 0) - 1e-9)).toBe(true);
     expect(drawn.at(-1)).toEqual({ x: 5, y: 0 });
   });
+
+  it("a parada parte do tile de trás com o desenho já parado nela: o desenho fica, sem voltar", () => {
+    // O vaivém do teste do navegador: a soltura mira o tile 10, e o desenho, preso ao limite, para
+    // exatamente nele. O kernel recebe a parada na virada do tile 9 (a 1×, um tile por tick, ele
+    // está sempre na virada) e publica o andar de 9 a 10, que chega com a tela já no tick 20.
+    const clock = new MotionClock();
+    const perMs = rate(60);
+    const go: ObserverMotion = { path: line(0, 20), depart_tick: 10, tiles_per_tick: 1, action_id: "ida" };
+    const stop: ObserverMotion = { path: line(9, 10), depart_tick: 19, tiles_per_tick: 1, action_id: "parada" };
+    const drawn: Point[] = [];
+    for (let ms = 0; ms <= 14000; ms += FRAME_MS) {
+      const kernel = 10 + ms * perMs;
+      if (ms >= 9000 && ms < 9000 + FRAME_MS) {
+        clock.limit("camps", { x: 10, y: 0 }, 1500); // soltou com o desenho no 9,4
+      }
+      const late = kernel < 19.9;
+      const motion = kernel < 21 ? (late ? go : stop) : undefined;
+      const point = clock.at("camps", motion, late ? { x: 20, y: 0 } : { x: 10, y: 0 }, kernel + 0.4, ms);
+      if (point !== undefined) {
+        drawn.push(point);
+      }
+    }
+    expect(Math.max(...drawn.map((p) => p.x))).toBeLessThanOrEqual(10);
+    expect(drawn.every((p, i) => i === 0 || p.x >= (drawn[i - 1]?.x ?? 0) - 1e-9)).toBe(true);
+    expect(drawn.at(-1)).toEqual({ x: 10, y: 0 });
+    // A tela lembra por que começou cada caminho: o da parada, com o desenho já no tile 10.
+    expect(clock.trace("camps").at(-1)).toMatchObject({ key: "ação parada", drawn: { x: 10, y: 0 }, origin: { x: 9, y: 0 } });
+  });
 });
 
 describe("o relógio da tela a 72× com o tick de 250 ms (ADR-0081)", () => {

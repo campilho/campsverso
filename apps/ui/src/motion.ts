@@ -29,6 +29,24 @@ export const SNAP_TILES = 16;
 export const FOLLOW_TILES_PER_FRAME = 8;
 /** O maior intervalo entre dois quadros que conta para andar: a aba em segundo plano não acumula. */
 export const MAX_FRAME_MS = 50;
+/** Quantos começos de caminho a tela lembra por entidade, para explicar um desenho que voltou. */
+export const TRACE_KEPT = 40;
+
+/** Um caminho que a tela começou a desenhar: por quê, de onde o desenho estava e para onde. */
+export interface MotionTrace {
+  readonly ms: number;
+  readonly tick: number | undefined;
+  readonly key: string;
+  /** "trajeto": um `motion` novo do kernel; "parada": o kernel pôs a entidade noutro lugar. */
+  readonly why: "trajeto" | "parada";
+  readonly drawn: Point | undefined;
+  readonly origin: Point;
+  readonly end: Point | undefined;
+  /** O desenho já estava no caminho novo, à frente da origem (o atalho do vaivém, ADR-0081). */
+  readonly ahead: number | undefined;
+  /** Os pontos da emenda, de onde o desenho estava até a origem do caminho novo. */
+  readonly prefix: readonly Point[];
+}
 
 /** Quantos tiles do trajeto já foram andados no tick dado (fracionário), limitado ao fim. */
 export function stepsAt(motion: ObserverMotion, tick: number): number {
@@ -94,8 +112,11 @@ function distance(a: Point, b: Point): number {
   return Math.hypot(b.x - a.x, b.y - a.y);
 }
 
-/** Quantos tiles da origem o ponto `p` está, se ele fica no meio de um trecho do caminho (fora dos
- * tiles); nada se ele não está no caminho. Os trechos são retos, de um tile, em 4 direções. */
+/** Quantos tiles da origem o ponto `p` está, se ele fica no caminho depois da origem: no meio de um
+ * trecho ou em cima de um tile; nada se ele não está no caminho. Os trechos são retos, de um tile,
+ * em 4 direções. Em cima de um tile conta: a parada da seta solta prende o desenho exatamente no
+ * tile, e o kernel, na virada do tile de trás, parte dele; sem contar, o desenho voltava ao tile de
+ * trás e andava de novo (o vaivém do teste do navegador, ADR-0081). */
 function along(path: readonly Position[], p: Point): number | undefined {
   for (let i = 0; i + 1 < path.length; i++) {
     const a = path[i];
@@ -105,8 +126,8 @@ function along(path: readonly Position[], p: Point): number | undefined {
     }
     const t = a.x === b.x ? (p.y - a.y) / (b.y - a.y) : (p.x - a.x) / (b.x - a.x);
     const onLine = a.x === b.x ? Math.abs(p.x - a.x) < 1e-9 : Math.abs(p.y - a.y) < 1e-9;
-    if (onLine && t > 1e-9 && t < 1 - 1e-9) {
-      return i + t;
+    if (onLine && t > 1e-9 && t < 1 + 1e-9) {
+      return t > 1 - 1e-9 ? i + 1 : i + t;
     }
   }
   return undefined;
@@ -212,6 +233,13 @@ export class MotionClock {
   private readonly paces = new Map<string, number>();
   private readonly drawnAt = new Map<string, Point>();
   private readonly limits = new Map<string, { readonly tile: Point; readonly forMs: number; untilMs?: number }>();
+  private readonly traces = new Map<string, MotionTrace[]>();
+  private tick: number | undefined;
+
+  /** Os últimos caminhos que a tela começou para uma entidade, do mais antigo ao mais novo. */
+  trace(id: string): readonly MotionTrace[] {
+    return this.traces.get(id) ?? [];
+  }
 
   /** Até onde o desenho pode ir pelo caminho de agora: o tile da parada que a seta solta mandou
    * (ADR-0081). Até o kernel responder, o trajeto velho segue no estado, e o relógio da tela o
@@ -248,6 +276,7 @@ export class MotionClock {
 
   /** Onde desenhar a entidade agora: no trajeto em curso, ou parada em `rest`, onde o kernel a pôs. */
   at(id: string, motion: ObserverMotion | undefined, rest: Point | undefined, tick: number, nowMs: number): Point | undefined {
+    this.tick = tick;
     if (motion === undefined && rest === undefined) {
       this.forget(id); // saiu do mundo
       return undefined;
@@ -330,8 +359,9 @@ export class MotionClock {
       this.limits.delete(id); // a parada chegou
     }
     // O desenho já está no caminho novo, à frente da origem: o relógio da tela andou o trajeto
-    // velho um pouco além do tick em que o kernel trocou de destino. O desenho espera o kernel
-    // passar por ele, em vez de voltar até a origem e andar de novo (o vaivém a 1×, ADR-0081).
+    // velho um pouco além do tick em que o kernel trocou de destino, ou o limite da parada o
+    // prendeu no tile dela. O desenho espera o kernel passar por ele, em vez de voltar até a
+    // origem e andar de novo (o vaivém a 1×, ADR-0081).
     const ahead = drawn === undefined || same(drawn, origin) ? undefined : along(path, drawn);
     if (drawn !== undefined && ahead !== undefined && motion !== undefined) {
       const walker: Walker = {
@@ -344,6 +374,7 @@ export class MotionClock {
         goal: undefined,
       };
       this.walkers.set(id, walker);
+      this.note(id, { ms: nowMs, tick: this.tick, key, why: "trajeto", drawn, origin, end, ahead, prefix: [] });
       return walker;
     }
     let prefix: Point[] = [];
@@ -368,6 +399,14 @@ export class MotionClock {
       goal: undefined,
     };
     this.walkers.set(id, walker);
+    this.note(id, { ms: nowMs, tick: this.tick, key, why: motion === undefined ? "parada" : "trajeto", drawn, origin, end, ahead, prefix });
     return walker;
+  }
+
+  private note(id: string, entry: MotionTrace): void {
+    const list = this.traces.get(id) ?? [];
+    list.push(entry);
+    list.splice(0, Math.max(0, list.length - TRACE_KEPT));
+    this.traces.set(id, list);
   }
 }

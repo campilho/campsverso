@@ -34,6 +34,9 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
       type Hook = { drawn(id: string): { x: number; y: number } | undefined };
       return (window as unknown as { campsverso: Hook }).campsverso.drawn(who);
     }, id);
+  // O rastro do desenho (os caminhos que a tela começou): numa falha, a mensagem diz por que voltou.
+  const trace = (id: string): Promise<unknown> =>
+    page.evaluate((who) => (window as unknown as { campsverso: { motionTrace(id: string): unknown } }).campsverso.motionTrace(who), id);
   await expect.poll(() => drawn("gerente"), { timeout: 20_000 }).toEqual({ x: 9, y: 15 });
   const ys: number[] = [];
   await page.keyboard.down("ArrowUp");
@@ -44,7 +47,7 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
     await page.waitForTimeout(100);
     ys.push((await drawn("gerente"))?.y ?? Number.NaN);
   }
-  expect(ys.every((y, i) => i === 0 || y <= (ys[i - 1] ?? y) + 0.01), JSON.stringify(ys)).toBe(true); // nunca volta
+  expect(ys.every((y, i) => i === 0 || y <= (ys[i - 1] ?? y) + 0.01), JSON.stringify({ ys, trace: await trace("gerente") })).toBe(true); // nunca volta
   expect(15 - (ys.at(-1) ?? 15)).toBeGreaterThanOrEqual(3); // um segundo a 4 tiles por segundo
 
   // A prancheta (docs/design/briefing-tela.md, §3.6): o "Escrever pedido" a abre com o foco no
@@ -175,7 +178,7 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
     await page.waitForTimeout(100);
     right.push((await drawn("gerente"))?.x ?? Number.NaN);
   }
-  expect(right.every((x, i) => i === 0 || x >= (right[i - 1] ?? x) - 0.01), JSON.stringify(right)).toBe(true); // nunca volta
+  expect(right.every((x, i) => i === 0 || x >= (right[i - 1] ?? x) - 0.01), JSON.stringify({ right, trace: await trace("gerente") })).toBe(true); // nunca volta
   const released = right[9] ?? Number.NaN;
   const end = right.at(-1) ?? Number.NaN;
   expect(end - (before?.x ?? 0)).toBeGreaterThanOrEqual(3); // um segundo a 4 tiles por segundo

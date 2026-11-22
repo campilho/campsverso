@@ -167,6 +167,7 @@ Object.assign(window, {
   campsverso: {
     tileCenter: (x: number, y: number) => map.clientOf?.(x, y),
     drawn: (id: string) => map.motion.drawn(id),
+    motionTrace: (id: string) => map.motion.trace(id),
     said: (id: string) => saidBy.get(id) ?? [],
     sight: (x: number, y: number) => map.sight?.(x, y),
     look: (id: string) => map.workshopLook?.(id),
