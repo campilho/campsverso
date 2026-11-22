@@ -50,6 +50,7 @@ PR_OPENED = "campsverso.office.ticket.pr_opened.v1"
 PR_UPDATED = "campsverso.office.ticket.pr_updated.v1"
 PR_MERGED = "campsverso.office.ticket.pr_merged.v1"
 PR_CLOSED = "campsverso.office.ticket.pr_closed.v1"
+RETRY_LIMIT = 60  # com a volta do vigia de 60 s, uma hora de tentativas
 REPORT = "campsverso.cmd.office.pull_request.report.v1"
 ACTOR = "system/codehost"
 
@@ -120,6 +121,9 @@ class CodeHostService:
         self.open: dict[str, OpenPullRequest] = {}
         self.sent: dict[str, list[Any]] = {}
         self.refused: list[str] = []
+        # As entregas que o GitHub não recebeu (a rede caiu, 21/nov): a volta do vigia tenta de
+        # novo, até `RETRY_LIMIT` vezes; uma entrega nova do mesmo pedido toma o lugar.
+        self.pending: dict[str, dict[str, Any]] = {}
         self.reviews: list[dict[str, Any]] = []  # a fila do revisor: o PR, o topo e a entrega
         # A última entrega publicada de cada pedido, para revisar de novo à mão (make revisar).
         self.published: dict[str, dict[str, Any]] = {}
@@ -141,6 +145,7 @@ class CodeHostService:
         self.sent = saved["sent"]
         self.reviews = list(saved.get("reviews") or [])
         self.published = dict(saved.get("published") or {})
+        self.pending = dict(saved.get("pending") or {})
         self._cartridge = saved["cartridge"]
 
     def _save(self) -> None:
@@ -150,6 +155,7 @@ class CodeHostService:
             "sent": self.sent,
             "reviews": self.reviews,
             "published": self.published,
+            "pending": self.pending,
             "cartridge": self._cartridge,
         }
         self._state.put(self._key, json.dumps(saved, ensure_ascii=False).encode())
@@ -200,9 +206,12 @@ class CodeHostService:
         elif kind in (PR_MERGED, PR_CLOSED):
             self.open.pop(ticket_id, None)
         elif kind == DELIVERED and data.get("patch"):
+            self.pending.pop(ticket_id, None)  # a entrega nova toma o lugar da que esperava
             await self._publish(envelope, ticket_id, data)
 
-    async def _publish(self, cause: Envelope, ticket_id: str, data: Mapping[str, Any]) -> None:
+    async def _publish(
+        self, cause: Envelope, ticket_id: str, data: Mapping[str, Any], attempts: int = 0
+    ) -> None:
         number = int(data["number"])
         patch = cast(Mapping[str, Any], data["patch"])
         ticket = self.tickets.get(ticket_id, Ticket(number, f"pedido {number}", "", ""))
@@ -238,9 +247,20 @@ class CodeHostService:
                 return
             pull = await self._host.open_pull_request(branch, title, body)
         except CodeHostError as error:
-            self.refused.append(ticket_id)
-            self._telemetry.error(
-                "codehost.publish_failed", ticket_id=ticket_id, number=number, error=str(error)
+            tries = attempts + 1
+            if tries >= RETRY_LIMIT:
+                self.refused.append(ticket_id)
+                self._telemetry.error(
+                    "codehost.publish_gave_up", ticket_id=ticket_id, number=number, tries=tries
+                )
+                return
+            self.pending[ticket_id] = {"cause": dict(cause), "data": dict(data), "attempts": tries}
+            self._telemetry.warning(
+                "codehost.publish_failed",
+                ticket_id=ticket_id,
+                number=number,
+                tries=tries,
+                error=str(error),
             )
             return
         self._telemetry.info(
@@ -332,6 +352,19 @@ class CodeHostService:
             self._telemetry.error("codehost.comment_failed", error=str(error), **facts)
             return
         self._telemetry.info("codehost.reviewed", **facts)
+
+    async def retry_pending(self) -> int:
+        """Tenta de novo as entregas que o GitHub não recebeu; devolve quantas saíram da espera."""
+        if not self.pending:
+            return 0
+        waiting = sorted(self.pending.items())
+        self.pending = {}
+        for ticket_id, item in waiting:
+            cause = cast(Envelope, item["cause"])
+            data = cast(Mapping[str, Any], item["data"])
+            await self._publish(cause, ticket_id, data, int(item.get("attempts") or 0))
+        self._save()
+        return len(waiting) - len(self.pending)
 
     # ------------------------------------------------------------------ o vigia
 

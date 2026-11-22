@@ -18,6 +18,7 @@ from campsverso_codehost.service import (
     DELIVERED,
     PR_OPENED,
     REPORT,
+    RETRY_LIMIT,
     CodeHostService,
     ReviewFn,
 )
@@ -141,6 +142,55 @@ async def test_a_entrega_abre_o_pr_e_relata_uma_vez() -> None:
         "state": "updated",
         "ci": "failure",
     }
+
+
+class FlakyHost(MemoryCodeHost):
+    """O GitHub fora do alcance, enquanto `down` (a queda de rede de 21/nov)."""
+
+    down: bool = True
+
+    async def publish_branch(
+        self,
+        branch: str,
+        base: str,
+        files: Mapping[str, str | None],
+        message: str,
+        *,
+        fresh: bool = False,
+    ) -> str:
+        if self.down:
+            raise CodeHostError("a rede caiu")
+        return await super().publish_branch(branch, base, files, message, fresh=fresh)
+
+
+async def test_a_entrega_que_a_rede_derrubou_sai_numa_volta_seguinte() -> None:
+    host = FlakyHost()
+    service, bus, telemetry = _service(host)
+    await service.start()
+    await _deliver(bus)
+    assert _reports(bus) == []
+    assert service.refused == []  # não é uma recusa: espera a rede
+    assert service.pending["pedido-001"]["attempts"] == 1
+    assert await service.retry_pending() == 0  # ainda fora
+    assert service.pending["pedido-001"]["attempts"] == 2
+    assert telemetry.events().count("codehost.publish_failed") == 2
+    host.down = False
+    assert await service.retry_pending() == 1
+    (report,) = _reports(bus)
+    assert report["state"] == "opened"
+    assert service.pending == {}
+
+
+async def test_a_entrega_que_nunca_sai_desiste_no_limite() -> None:
+    host = FlakyHost()
+    service, bus, telemetry = _service(host)
+    await service.start()
+    await _deliver(bus)
+    service.pending["pedido-001"]["attempts"] = RETRY_LIMIT - 1
+    assert await service.retry_pending() == 1  # saiu da espera, mas como recusa
+    assert service.pending == {}
+    assert service.refused == ["pedido-001"]
+    assert "codehost.publish_gave_up" in telemetry.events("error")
 
 
 async def test_a_entrega_recusada_nao_sai() -> None:

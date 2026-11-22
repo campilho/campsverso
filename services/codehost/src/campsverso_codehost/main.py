@@ -190,6 +190,7 @@ async def run(args: argparse.Namespace) -> int:
         while not stop.is_set() and service.failure is None:
             if clock.monotonic() >= next_watch:
                 next_watch = clock.monotonic() + settings.poll_seconds
+                await service.retry_pending()  # a entrega que a rede derrubou (21/nov)
                 await service.watch()
             if reviewing is not None and reviewing.done():
                 if not reviewing.cancelled() and reviewing.exception() is not None:
