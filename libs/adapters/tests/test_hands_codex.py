@@ -3,10 +3,12 @@
 
 import asyncio
 import json
+import os
 import sys
+import time
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -15,10 +17,11 @@ from campsverso_adapters.hands_codex import (
     CodexUsage,
     clean_environment,
     codex_cost_usd,
+    resolve_command,
     steps_of,
 )
 from campsverso_adapters.model_metered import ModelPrices
-from campsverso_ports import HandsJob, HandsLimits, HandsStep, Robot, ToolResult
+from campsverso_ports import HandsJob, HandsLimits, HandsStep, Robot, ToolResult, Workspace
 
 FAKE = Path(__file__).parents[3] / "tests" / "fixtures" / "codex" / "codex_falso.py"
 MODEL = "gpt-codex-teste"
@@ -77,7 +80,7 @@ def _hands(*options: str) -> CodexHands:
 
 
 def _run(hands: CodexHands, space: Space, world: World, **limits: Any) -> Any:
-    return asyncio.run(hands.run(space, _job(**limits), world))
+    return asyncio.run(hands.run(cast(Workspace, space), _job(**limits), world))
 
 
 def test_uma_sessao_vira_os_passos_na_ordem(space: Space) -> None:
@@ -120,7 +123,7 @@ def test_o_custo_conta_o_cache_e_o_raciocinio_uma_vez_so() -> None:
 def test_um_modelo_sem_preco_e_recusado_antes_de_abrir_o_codex(space: Space) -> None:
     hands = CodexHands({}, command=(sys.executable, str(FAKE)))
     with pytest.raises(ValueError, match="preço"):
-        asyncio.run(hands.run(space, _job(), World()))
+        asyncio.run(hands.run(cast(Workspace, space), _job(), World()))
 
 
 def test_uma_sessao_que_passa_do_limite_de_tempo_e_parada(space: Space) -> None:
@@ -191,3 +194,87 @@ def test_os_passos_aceitam_o_caminho_absoluto_e_ignoram_o_que_nao_e_ferramenta(
     assert steps_of({"type": "todo_list", "items": []}, tmp_path, 0) == []
     mcp = {"type": "mcp_tool_call", "server": "oficina", "tool": "anotar", "status": "completed"}
     assert steps_of(mcp, tmp_path, 0)[0].summary == "mcp_tool_call: oficina.anotar"
+
+
+def test_o_limite_de_voltas_nao_corta_a_resposta_final(space: Space) -> None:
+    # Seis ferramentas e a mensagem final: com sete voltas, a sessão acaba no turn.completed.
+    world = World()
+    result = _run(_hands(), space, world, max_turns=7)
+    assert result.done
+    assert result.reason == "pronto"
+    assert result.cost_usd is not None
+    assert result.cost_usd > 0
+
+
+def test_parada_no_meio_ainda_conta_o_usage_que_chega(space: Space) -> None:
+    result = _run(_hands(), space, World(), max_turns=2)
+    assert result.reason == "limite de voltas"
+    assert result.cost_usd == round((6229 * 1.0 + 41984 * 0.1 + 1873 * 10.0) / 1_000_000, 8)
+
+
+def test_o_briefing_entra_dentro_do_limite_de_tempo(space: Space) -> None:
+    # Um Codex que nunca lê a entrada: o briefing grande enche o cano, e o relógio para a sessão.
+    hands = _hands("--sem-ler", "1")
+    job = HandsJob(
+        ticket_id="pedido-2",
+        opening="x" * (4 * 1024 * 1024),
+        system="",
+        model=MODEL,
+        avatar_id="camps",
+        limits=HandsLimits(max_seconds=0.5),
+    )
+    began = time.monotonic()
+    result = asyncio.run(hands.run(cast(Workspace, space), job, World()))
+    assert result.reason == "limite de tempo"
+    assert time.monotonic() - began < 15
+
+
+def _alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
+
+
+def test_a_parada_encerra_o_grupo_de_processos(space: Space, tmp_path: Path) -> None:
+    grandchild = tmp_path / "neto.txt"
+    result = _run(
+        _hands("--neto", str(grandchild), "--dorme", "30"), space, World(), max_seconds=1.0
+    )
+    assert result.reason == "limite de tempo"
+    pid = int(grandchild.read_text(encoding="utf-8"))
+    deadline = time.monotonic() + 5
+    while _alive(pid) and time.monotonic() < deadline:
+        time.sleep(0.05)
+    assert not _alive(pid)
+
+
+def _program(folder: Path) -> Path:
+    folder.mkdir(parents=True, exist_ok=True)
+    program = folder / "codex"
+    program.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    program.chmod(0o755)
+    return program
+
+
+def test_o_codex_vem_do_path_de_quem_chama_e_nao_do_espaco(
+    space: Space, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    planted = _program(space.root / ".venv" / "bin")
+    real = _program(tmp_path / "fora")
+    monkeypatch.setenv("PATH", str(real.parent))
+    assert resolve_command(("codex", "--x"), space.root) == [str(real), "--x"]
+    assert str(planted) not in resolve_command(("codex",), space.root)
+
+
+def test_um_codex_dentro_do_espaco_ou_ausente_e_recusado(
+    space: Space, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    planted = _program(space.root / "bin")
+    monkeypatch.setenv("PATH", str(planted.parent))
+    with pytest.raises(ValueError, match="espaço"):
+        resolve_command(("codex",), space.root)
+    monkeypatch.setenv("PATH", str(tmp_path / "vazio"))
+    with pytest.raises(FileNotFoundError):
+        resolve_command(("codex",), space.root)

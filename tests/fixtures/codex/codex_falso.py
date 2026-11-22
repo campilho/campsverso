@@ -3,11 +3,14 @@
 As opções vêm antes do `exec` que o conector acrescenta:
 - `--dorme N`: espera N segundos depois da primeira linha (para o limite de tempo);
 - `--ambiente ARQUIVO`: grava o ambiente do processo em JSON;
-- `--entrada ARQUIVO`: grava o que chegou pela entrada padrão (o briefing).
+- `--entrada ARQUIVO`: grava o que chegou pela entrada padrão (o briefing);
+- `--neto ARQUIVO`: abre um processo filho que dorme e grava o pid dele (para o grupo de processos);
+- `--sem-ler 1`: não lê a entrada padrão (para o briefing dentro do limite de tempo).
 """
 
 import json
 import os
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -23,6 +26,11 @@ def main(argv: list[str]) -> int:
         rest = rest[2:]
     if "--ambiente" in options:
         Path(options["--ambiente"]).write_text(json.dumps(dict(os.environ)), encoding="utf-8")
+    if "--neto" in options:
+        child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+        Path(options["--neto"]).write_text(str(child.pid), encoding="utf-8")
+    if "--sem-ler" in options:
+        time.sleep(60)
     received = sys.stdin.read()
     if "--entrada" in options:
         Path(options["--entrada"]).write_text(received, encoding="utf-8")
