@@ -518,6 +518,30 @@
       ],
       "nota": "o quadro é a hora % 12; o ponteiro dos minutos fica no 12"
     },
+    "interruptor": {
+      "arquivo": "interruptor.png",
+      "grupo": "parede de baixo",
+      "quadro": [
+        32,
+        32
+      ],
+      "colunas": 2,
+      "linhas": 1,
+      "pegada": [
+        1,
+        1
+      ],
+      "ancora": [
+        16,
+        32
+      ],
+      "camada": "parede",
+      "quadros": [
+        "apagado",
+        "aceso"
+      ],
+      "nota": "o interruptor da luz (ADR-0088), por cima do tile da parede de baixo à direita da porta: o espelho fica na faixa creme da parede; aceso, a tecla sobe e o led âmbar acende (emissivo)"
+    },
     "quadro_pedidos": {
       "arquivo": "quadro_pedidos.png",
       "grupo": "parede do fundo",
@@ -538,7 +562,7 @@
         "meio",
         "fim"
       ],
-      "nota": "um módulo por coluna; a faixa clara é onde a tela escreve o nome"
+      "nota": "um módulo por coluna: as quatro do quadro (a fazer, fazendo, entregue e aceito) são começo, meio, meio e fim, nas colunas 2 a 5 da parede; a faixa clara é onde a tela pode escrever o nome"
     },
     "fichas": {
       "arquivo": "fichas.png",
@@ -1612,7 +1636,9 @@
         "ci_verde",
         "ci_vermelho",
         "mesclado",
-        "atualizando"
+        "atualizando",
+        "acender",
+        "apagar"
       ],
       "icones": {
         "trabalhar": [
@@ -1734,6 +1760,14 @@
         "atualizando": [
           5,
           3
+        ],
+        "acender": [
+          6,
+          3
+        ],
+        "apagar": [
+          7,
+          3
         ]
       },
       "acoes": {
@@ -1837,6 +1871,12 @@
         ],
         "atualizando": [
           "a troca de versão, no HUD"
+        ],
+        "acender": [
+          "light_on"
+        ],
+        "apagar": [
+          "light_off"
         ]
       },
       "nota": "um ícone por quadro, para o miolo do balão de ação; as 14 primeiras são do escritório e as 11 seguintes, da fazenda"

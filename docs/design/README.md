@@ -173,6 +173,18 @@ O terceiro pedido da tela: [briefing-tela-3.md](briefing-tela-3.md). Ele dá for
 - **Nada muda nos dados:** a tela usa a sessão da projeção como ela é. As respostas do modelo entre os passos ficam como opção, porque pedem contrato.
 - **Os prints** estão em [escritorio-tela/](escritorio-tela/): `tela-dev`, `tela-dev-fim`, `tela-dev-vazia` e `tela-dev-celular`.
 
+## O menu, os comandos e os créditos (22/11)
+
+O quarto pedido da tela: [briefing-tela-4.md](briefing-tela-4.md).
+
+- **As três janelas que ainda estavam no visual antigo** ganham a moldura do Sobre: o bisel creme, a barra listrada com a caixinha de fechar e a Pixelify no título.
+  - **O menu do clique direito** abre colado ao clique, com um rabicho, e põe um contorno amarelo na coisa clicada. Cada ação tem o ícone, a duração e, quando não vale, o porquê. Os campos de escolha, o interior dos contêineres e a ficha da opção cabem no mesmo desenho.
+  - **Os comandos** vêm em duas colunas, Mouse e Teclado, com teclas e um mouse desenhados. Só aparece o que vale no mundo e na tela.
+  - **Os créditos** juntam as peças por grupo de autores, com as licenças em selos e as fontes da tela. A frase do LPC sai do escritório, que é todo desenho próprio.
+- **O quadro da parede passa a ter quatro colunas,** uma por coluna da tela. A mudança é só no `decor.json` e no `art.json` do cenário; a arte já servia.
+- **O interruptor não se perdeu:** o mundo ao vivo volta de um snapshot, e os sistemas `OnSessionStart` não rodam na recuperação. O briefing propõe a correção. A arte do interruptor foi refeita, e a folha de ícones ganhou a lâmpada acesa e a apagada.
+- **Os prints** estão em [escritorio-tela/](escritorio-tela/): `menu`, `comandos`, `creditos` e `janelas`.
+
 ## O estúdio (depois do escritório)
 
 Duas propostas do Claude Design para o estúdio do podcast, guardadas para quando ele chegar (ADR-0055 o põe depois do escritório, sobre a porta de efeitos externos que o escritório constrói).

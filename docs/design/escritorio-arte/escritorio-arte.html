@@ -349,6 +349,19 @@ function relogio(h = 10) {
   return s;
 }
 
+// ---- o interruptor (22/11): na face da parede de baixo, à direita da porta (ADR-0088). Só o espelho
+// com a tecla, sem fundo: a parede é do terreno. Apagado, a tecla embaixo; aceso, em cima, com o led âmbar.
+function interruptor(aceso) {
+  const s = new Spr(T, T);
+  s.r(12, 11, 8, 10, 'branco').vl(19, 12, 20, 'cinzaCl').hl(13, 19, 20, 'cinzaCl');      // o espelho
+  s.hl(12, 19, 10, 'contorno').hl(12, 19, 21, 'contorno').vl(11, 11, 20, 'contorno').vl(20, 11, 20, 'contorno');
+  s.p(21, 12, 'begeSomb').vl(21, 13, 21, 'begeSomb').hl(13, 21, 22, 'madEsc');           // a sombra na parede
+  s.r(14, 13, 4, 6, 'cinzaCl').hl(14, 17, 13, 'contorno').hl(14, 17, 18, 'contorno').vl(14, 13, 18, 'contorno').vl(17, 13, 18, 'contorno');
+  if (aceso) s.r(15, 14, 2, 2, 'branco').r(15, 16, 2, 2, 'cinza').p(18, 12, 'ledAmbar');   // a tecla para cima
+  else s.r(15, 14, 2, 2, 'cinza').r(15, 16, 2, 2, 'branco');                             // a tecla para baixo
+  return s;
+}
+
 // ---- quadro dos pedidos: um módulo por coluna (começo, meio, fim)
 function quadroPedidos(tipo) {
   const s = new Spr(T, 64);
@@ -1431,6 +1444,21 @@ const PR_RAMO = ponta => [
 ].map((l, k) => l.replace(/#/g, k < 5 ? ponta : 'w'));
 // A ficha do quadro, como na parede (9 × 12 + contorno)
 const FICHA_IC = ['yyyyyyyyy', 'yyyyyyyyy', 'wwwwwwwww', 'wllllllww', 'wwwwwwwww', 'wlllllwww', 'wwwwwwwww', 'wllllwwww', 'wwwwwwwww', 'wwwwwwwww', 'wwwwwwwww', 'RRRRRRRRR'];
+// A lâmpada: o bulbo (cor, luz, brilho) e a rosca cinza
+const LAMPADA = (c, L, w) => [
+  '..cccc..'.replace(/c/g, c),
+  '.cwLLcc.'.replace(/c/g, c).replace(/L/g, L).replace('w', w),
+  'cwLLcccc'.replace(/c/g, c).replace(/L/g, L).replace('w', w),
+  'cLLccccc'.replace(/c/g, c).replace(/L/g, L),
+  'cLcccccc'.replace(/c/g, c).replace(/L/g, L),
+  'cccccccc'.replace(/c/g, c),
+  '.cccccc.'.replace(/c/g, c),
+  '..cccc..'.replace(/c/g, c),
+  '..llll..',
+  '..ssss..',
+  '..llll..',
+  '...ss...',
+];
 const ICONES_DESENHO = {
   // ---- o escritório
   trabalhar: () => ic([grade([
@@ -1809,6 +1837,14 @@ const ICONES_DESENHO = {
     '..aaAAAAaa....',
     '....aaaa......',
   ]), 0, 1]),
+  // ---- a luz da sala (22/11): a lâmpada acesa e a apagada, no menu do interruptor
+  acender: () => ic([grade([
+    '.Y..........Y.',
+    '..Y........Y..',
+    '..............',
+    'Y............Y',
+  ], false), 0, 1], [grade(LAMPADA('y', 'Y', 'w')), 3, 1]),
+  apagar: () => ic([grade(LAMPADA('c', 'l', 'l')), 3, 1]),
 };
 const ICONES = Object.keys(ICONES_DESENHO);
 const ICONES_COL = 8;
@@ -1821,7 +1857,7 @@ const ICONES_ACOES = {
   dinheiro: ['vender', 'comprar'], cozinhar: ['cozinhar', 'o tacho'], adubar: ['adubar', 'compostar'], encomenda: ['aceitar a encomenda', 'entregar a encomenda'],
   fincar: ['fincar'], mandar: ['as ordens ao ajudante', 'contratar', 'dispensar'],
   pr: ['o PR aberto'], ci_verde: ['o PR com os testes verdes'], ci_vermelho: ['o PR com os testes vermelhos'], mesclado: ['o PR mesclado'],
-  atualizando: ['a troca de versão, no HUD'],
+  atualizando: ['a troca de versão, no HUD'], acender: ['light_on'], apagar: ['light_off'],
 };
 function icone(nome) { return ICONES_DESENHO[nome](); }
 
@@ -2748,8 +2784,11 @@ const FOLHAS = [
   { nome: 'relogio', grupo: 'parede do fundo', q: [32, 64], col: 12, lin: 1, pegada: null, ancora: [16, 64], camada: 'parede',
     quadros: ['12h', '1h', '2h', '3h', '4h', '5h', '6h', '7h', '8h', '9h', '10h', '11h'], nota: 'o quadro é a hora % 12; o ponteiro dos minutos fica no 12',
     desenha: c => relogio(c) },
+  { nome: 'interruptor', grupo: 'parede de baixo', q: [32, 32], col: 2, lin: 1, pegada: [1, 1], ancora: [16, 32], camada: 'parede',
+    quadros: ['apagado', 'aceso'], desenha: c => interruptor(c === 1),
+    nota: 'o interruptor da luz (ADR-0088), por cima do tile da parede de baixo à direita da porta: o espelho fica na faixa creme da parede; aceso, a tecla sobe e o led âmbar acende (emissivo)' },
   { nome: 'quadro_pedidos', grupo: 'parede do fundo', q: [32, 64], col: 3, lin: 1, pegada: null, ancora: [16, 64], camada: 'parede',
-    quadros: MODULOS, nota: 'um módulo por coluna; a faixa clara é onde a tela escreve o nome', desenha: c => quadroPedidos(MODULOS[c]) },
+    quadros: MODULOS, nota: 'um módulo por coluna: as quatro do quadro (a fazer, fazendo, entregue e aceito) são começo, meio, meio e fim, nas colunas 2 a 5 da parede; a faixa clara é onde a tela pode escrever o nome', desenha: c => quadroPedidos(MODULOS[c]) },
   { nome: 'fichas', grupo: 'parede do fundo', q: [10, 10], col: 5, lin: 1, pegada: null, ancora: [5, 10], camada: 'parede',
     quadros: FICHA_CORES, nota: 'a tela pendura as fichas conforme o estado real; o selo do PR pousa em selo: [x, y]', desenha: c => ficha(c),
     extra: () => ({ selo: SELO_NA_FICHA }) },
@@ -2909,7 +2948,7 @@ for (const l0 of [3, 7]) {
 const temDiv = (c, l) => DIV.has(c + ',' + l);
 function mascara(c, l) { return (temDiv(c, l - 1) ? 1 : 0) | (temDiv(c + 1, l) ? 2 : 0) | (temDiv(c, l + 1) ? 4 : 0) | (temDiv(c - 1, l) ? 8 : 0); }
 const TAPETE = { c0: 14, c1: 18, l0: 3, l1: 6 };
-const QUADRO_COLS = 3;      // o quadro dos pedidos: a fazer, fazendo, feito (colunas 2 a 4 da parede)
+const QUADRO_COLS = 4;      // o quadro dos pedidos: a fazer, fazendo, entregue, aceito (colunas 2 a 5 da parede)
 
 // ---- a luz. Três fases: 'dia' (o sol), 'luzes' (18h às 21h, as luminárias acesas) e 'escuro'
 // (21h em diante, tudo apagado; o vigia anda com a lanterna). À noite, o corredor fica na
@@ -3146,9 +3185,10 @@ function fundo(cena) {
   for (let l = TAPETE.l0; l <= TAPETE.l1; l++) for (let c = TAPETE.c0; c <= TAPETE.c1; c++)
     ctx.drawImage(quadro('tapete', c === TAPETE.c0 ? 0 : c === TAPETE.c1 ? 2 : 1, l === TAPETE.l0 ? 0 : l === TAPETE.l1 ? 2 : 1).canvas(), c * T, l * T);
   const na = (nome, c, col) => ctx.drawImage(quadro(nome, c).canvas(), col * T, 0);
-  ['comeco', 'meio', 'fim'].forEach((t, i) => na('quadro_pedidos', MODULOS.indexOf(t), 2 + i));
+  ['comeco', 'meio', 'meio', 'fim'].forEach((t, i) => na('quadro_pedidos', MODULOS.indexOf(t), 2 + i));
   const noite = cena.luz !== 'dia';
   ['comeco', 'meioA', 'meioB', 'meioA', 'fim'].forEach((t, i) => na(noite ? 'janela_noite' : 'janela_dia', JANELAS.indexOf(t), 7 + i));
+  ctx.drawImage(quadro('interruptor', noite ? 1 : 0).canvas(), (PORTA[0] + 1) * T, PORTA[1] * T);
   na('relogio', cena.hora % 12, 12);
   return cv;
 }
@@ -3171,7 +3211,7 @@ function objetos(cena, t) {
     if (sl) o.push({ spr: quadro('selos', SELOS.indexOf(sl)), x: x + SELO_NA_FICHA[0], y: y + SELO_NA_FICHA[1], base: -1, ordem: 0 });
   };
   if (typeof e.ficha === 'number') fichaEm(1, (2 + e.ficha) * T + (e.ficha === 0 ? 5 : 2) + 1, 19, e.ficha === 2 && e.selo);
-  if (cena.fichasPr) { fichaEm(0, 4 * T + 15, 19, 'ci_verde'); fichaEm(3, 4 * T + 3, 31, 'mesclado'); }
+  if (cena.fichasPr) { fichaEm(0, 4 * T + 15, 19, 'ci_verde'); fichaEm(3, 5 * T + 3, 19, 'mesclado'); }
   // a placa da versão, na parede ao lado do relógio, com o commit e a data
   let [, commit, data] = cena.placa ? cena.placa(t) : ['rodando', '7c6b8ac', '20/11'];
   if (PLACA_TEXTO) [commit, data] = PLACA_TEXTO;
