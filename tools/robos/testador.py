@@ -177,8 +177,10 @@ def pyright_summary(
     code, output = runner(files)
     try:
         report = json.loads(output)
-        diagnostics = report["generalDiagnostics"]
-    except (ValueError, KeyError, TypeError):
+    except ValueError:
+        return f"pyright: não consegui rodar (código {code})"
+    diagnostics = report.get("generalDiagnostics") if isinstance(report, dict) else None
+    if not isinstance(diagnostics, list):
         return f"pyright: não consegui rodar (código {code})"
     errors = [d for d in diagnostics if d.get("severity") == "error"]
     if errors:
