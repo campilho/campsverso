@@ -323,6 +323,9 @@ class ClaudeCodeHands:
             "DISABLE_TELEMETRY": "1",
             "DISABLE_ERROR_REPORTING": "1",
             "PYTHONDONTWRITEBYTECODE": "1",
+            # O pyright do espaço não pergunta ao PyPI por uma versão nova: a conexão o sandbox
+            # corta, mas a consulta de DNS passaria (ADR-0090).
+            "PYRIGHT_PYTHON_IGNORE_WARNINGS": "1",
         }
 
     def _write_launcher(self, folder: Path, root: Path, gate: HandsGate, cli: Path) -> Path:

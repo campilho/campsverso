@@ -1,6 +1,7 @@
 """A oficina local (ADR-0080; o plano do M24, §3): o clone isolado, as ferramentas com os limites,
 os caminhos que escapam recusados, os testes sem rede e sem escrita fora, e o patch revisado."""
 
+import importlib.util
 import socket
 import subprocess
 import sys
@@ -181,6 +182,30 @@ async def test_o_robo_nao_tem_rede_nem_escreve_fora(repo: Path, tmp_path: Path) 
     assert "rede: não" in result.text, result.text
     assert "fora: não" in result.text, result.text
     assert not outside.exists()
+
+
+def test_o_ambiente_traz_o_node_do_pyright() -> None:
+    """O pacote do pyright traz o pyright, mas não o node: sem o node do lock (o extra `nodejs`),
+    ele o baixaria na primeira vez, e a oficina não tem rede (ADR-0090)."""
+    assert importlib.util.find_spec("pyright") is not None
+    assert importlib.util.find_spec("nodejs_wheel") is not None
+
+
+@pytest.mark.skipif(sys.platform != "darwin", reason="o sandbox-exec é do macOS")
+async def test_o_pyright_estrito_roda_como_robo_sem_rede(repo: Path, tmp_path: Path) -> None:
+    space = await _workshop(repo, tmp_path, sandbox=True).open("office-teste", "pedido-012")
+    await space.write("pyproject.toml", '[tool.pyright]\ntypeCheckingMode = "strict"\n')
+    await space.write("ruim.py", 'def soma(a, b):\n    return a + b\n\n\nx: int = "texto"\n')
+    await space.write("bom.py", "def soma(a: int, b: int) -> int:\n    return a + b\n")
+    args = ["--pythonpath", sys.executable]
+    wrong = await space.run_robot("pyright", [*args, "ruim.py", "bom.py"])
+    assert not wrong.ok, wrong.text
+    assert "reportMissingParameterType" in wrong.text, wrong.text  # o modo estrito do espaço
+    assert "reportAssignmentType" in wrong.text, wrong.text
+    assert "bom.py:" not in wrong.text, wrong.text
+    right = await space.run_robot("pyright", [*args, "bom.py"])
+    assert right.ok, right.text
+    assert "0 errors" in right.text, right.text
 
 
 def test_a_revisao_recusa_a_constituicao_os_testes_e_as_palavras() -> None:

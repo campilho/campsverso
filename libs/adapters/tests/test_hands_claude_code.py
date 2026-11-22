@@ -169,6 +169,53 @@ def test_o_cercado_nega_a_leitura_da_casa_a_escrita_fora_e_a_rede(tmp_path: Path
     assert (root / "ok.txt").read_text() == "dentro\n"
 
 
+# Um erro que só o modo estrito vê (o parâmetro sem tipo) e um que qualquer modo vê.
+WRONG = 'def soma(a, b):\n    return a + b\n\n\nx: int = "texto"\n'
+RIGHT = "def soma(a: int, b: int) -> int:\n    return a + b\n"
+STRICT = '[tool.pyright]\ntypeCheckingMode = "strict"\n'
+
+
+@MACOS
+def test_o_pyright_estrito_roda_no_cercado_sem_rede_e_com_a_casa_fechada(tmp_path: Path) -> None:
+    """O node do pyright vem do lock, dentro do ambiente Python (ADR-0090): no cercado das mãos,
+    sem rede e com a casa de verdade fechada, o `pyright` do terminal roda e acha os erros."""
+    root = (tmp_path / "espaco").resolve()
+    root.mkdir()
+    (root / "pyproject.toml").write_text(STRICT)
+    (root / "ruim.py").write_text(WRONG)
+    (root / "bom.py").write_text(RIGHT)
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    cli = _fake_cli(bin_dir, "pyright ruim.py bom.py; echo saida=$?")
+    # O espaço de verdade tem o próprio `.venv`, que o cercado deixa ler por estar no espaço;
+    # aqui, o do projeto, com o mesmo lock, liberado à parte. O resto, como nas mãos.
+    venv = Path(sys.prefix)
+    local = root / ".oficina"
+    (local / "casa").mkdir(parents=True)
+    (local / "tmp").mkdir()
+    env = {
+        "PATH": f"{venv / 'bin'}:/usr/bin:/bin",
+        "HOME": str(local / "casa"),
+        "TMPDIR": str(local / "tmp"),
+        "PYRIGHT_PYTHON_IGNORE_WARNINGS": "1",
+    }
+    readable = [cli.parent.resolve(), venv.resolve(), Path(sys.base_prefix).resolve()]
+    profile = tmp_path / "perfil.sb"
+    profile.write_text(sandbox_profile(root, "1", Path.home().resolve(), readable))
+    script = tmp_path / "claude.sh"
+    script.write_text(launcher(cli, env, profile))
+    script.chmod(0o755)
+    out = subprocess.run(
+        [str(script)], cwd=root, capture_output=True, text=True, timeout=120, check=False
+    )
+    text = out.stdout + out.stderr
+    assert "reportMissingParameterType" in text, text  # a configuração estrita do espaço
+    assert "reportAssignmentType" in text, text
+    assert "bom.py:" not in text, text
+    assert "nodeenv" not in text, text  # nada de baixar o node
+    assert "saida=1" in text, text
+
+
 # ------------------------------------------------------------------ uma sessão de verdade
 
 

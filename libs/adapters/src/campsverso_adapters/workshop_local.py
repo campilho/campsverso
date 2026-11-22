@@ -341,6 +341,8 @@ class LocalWorkspace:
             # Largo: o resumo do pytest corta a mensagem na largura, e um caminho cortado escapava
             # da troca por `.` (`_plain`).
             "COLUMNS": "240",
+            # O pyright de um robô não pergunta ao PyPI por uma versão nova (ADR-0090).
+            "PYRIGHT_PYTHON_IGNORE_WARNINGS": "1",
         }
         command = [str(self._python), "-m", module, *given]
         if self._sandbox:
