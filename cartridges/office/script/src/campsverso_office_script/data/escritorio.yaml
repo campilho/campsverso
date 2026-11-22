@@ -19,6 +19,7 @@ dev:
     restroom_per_day: 2
     videogame_per_day: 1 # no sofá, à tarde (ADR-0082)
     spread_minutes: 20
+    stale_minutes: 60 # a pausa com mais de uma hora de atraso fica para outro dia
   lines:
     morning: "Bom dia!"
     took: "Peguei o pedido {number}: {title}."

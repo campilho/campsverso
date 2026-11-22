@@ -355,6 +355,25 @@ def test_sem_pedido_a_rotina_vai_ate_a_coisa_e_faz_a_pausa() -> None:
     assert again["action"] != action  # cada pausa uma vez
 
 
+def test_o_dev_convocado_nao_faz_as_pausas_que_ficaram_e_a_pausa_velha_fica_para_outro_dia() -> (
+    None
+):
+    """O primeiro pedido do dev convocado (21/nov): ele chegou à noite e fez as pausas do dia que
+    tinham ficado para trás, o videogame com elas, antes de olhar o quadro."""
+    dev = _dev()
+    assert dev.routine is not None
+    plan = dev.routine.plan("camps", 1)
+    night = _view(at=(4, 5), hhmm="20:30", copa=True)
+    summoned = next(e for e in night["entities"] if e["entity_id"] == "camps")
+    summoned["attributes"] = {**summoned["attributes"], "convocado_por": "gerente"}
+    stay = dev.decide(night)
+    assert not stay["intent"].startswith("rotina: ir"), stay  # nada de pausa: espera o pedido
+    # Num dia normal, à noite sem convocação, as pausas do dia já passaram da hora: nenhuma vale.
+    late = dev.decide(_view(at=(4, 5), hhmm="20:30", copa=True))
+    assert not late["intent"].startswith("rotina: ir"), late
+    assert dev.routine.done[1] == set(range(len(plan)))  # e ficam para outro dia
+
+
 def test_na_hora_do_almoco_o_dev_vai_para_a_copa_mesmo_com_pedido() -> None:
     """O almoço em etapas (ADR-0082): a geladeira, o micro-ondas, a mesinha (sentado na cadeira de
     lado) e o lixo; depois, de volta ao pedido."""

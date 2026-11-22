@@ -203,11 +203,22 @@ class Routine:
         return None
 
     def pause(self, view: View) -> Proposal | None:
-        """A próxima pausa vencida: ir até a coisa e fazer a pausa."""
+        """A próxima pausa vencida: ir até a coisa e fazer a pausa. O dev convocado fora do
+        expediente veio trabalhar e não faz pausa nenhuma; num dia normal, a pausa com mais de
+        `stale_minutes` de atraso fica para outro dia. Antes, o dev que chegava à noite fazia as
+        pausas do dia que tinham ficado para trás, o videogame de 15 minutos com elas, antes de
+        olhar o quadro (o primeiro pedido do dev convocado, 21/nov)."""
         mine, day, now = me(view), day_of(view), minute_of(view)
+        myself = entity(view, mine)
+        if myself is not None and attrs(myself).get("convocado_por") is not None:
+            return None
+        stale = int(self.config.get("stale_minutes", 60))
         done = self.done.setdefault(day, set())
         for index, (minute, action) in enumerate(self.plan(mine, day)):
             if index in done or minute > now:
+                continue
+            if now - minute > stale:
+                done.add(index)
                 continue
             thing = next(iter(entities(view, BREAK_PLACES[action])), None)
             if thing is None:
