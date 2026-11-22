@@ -122,6 +122,8 @@ class Pipeline:
         codehost: bool = False,
         hands: Callable[[CallMeter], Mapping[str, Hands]] | None = None,
         helper_config: Mapping[str, Mapping[str, Any]] | None = None,
+        workshop_root: Path | None = None,
+        python_env: bool = False,
     ) -> None:
         """`memory=True` dá à mente um caderno SQLite em memória (ADR-0060); `False` é o M10;
         uma porta pronta (um arquivo) serve ao teste de reinício. `cartridge` escolhe o mundo
@@ -134,7 +136,9 @@ class Pipeline:
         repositório da oficina do dev, e `effort` o esforço da sessão (o dos mundos do
         escritório); `hands` recebe o medidor da mente e devolve as mãos de fora (ADR-0089), e
         `helper_config` troca chaves da configuração do script de um ajudante (o roteiro do
-        gerente-script)."""
+        gerente-script). A oficina fica ao lado do repositório, ou em `workshop_root`; com
+        `python_env`, cada espaço ganha o ambiente Python dele (`uv sync`, sem rede), como no
+        escritório vivo (a comparação das mãos)."""
         worldid, default_script, default_mind = WORLDS[cartridge]
         script = script or default_script
         self.worldid, self.cartridge = worldid, cartridge
@@ -147,6 +151,8 @@ class Pipeline:
         validator = ContractValidator()
         world_file = load_world(REPO / "config" / "worlds" / f"{worldid}.yaml", REPO)
         office = cartridge.startswith("office")
+        self._workshop_root = workshop_root
+        self._python_env = python_env
         core = make_core(
             seed,
             river_bonus=river_bonus,
@@ -347,7 +353,10 @@ class Pipeline:
     def _workshop(self, worldid: str, repo: Path) -> WorkshopSession:
         """A oficina do dev num clone do repositório dado, com as entregas em `deliveries`."""
         shop = LocalWorkshop(
-            repo, repo.parent / "oficina", python_env=False, python=Path(sys.executable)
+            repo,
+            self._workshop_root or repo.parent / "oficina",
+            python_env=self._python_env,
+            python=None if self._python_env else Path(sys.executable),
         )
         return WorkshopSession(
             worldid, "camps", shop, self.deliveries, lambda diff: review(diff, [])

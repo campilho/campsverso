@@ -6,6 +6,7 @@ mãos. A entrega passa pela revisão da oficina e vira um PR no GitHub falso, co
 harness. No Linux (o CI), sem o `sandbox-exec`: valem o gancho e a porta.
 """
 
+import json
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -23,6 +24,7 @@ from campsverso_ports import (
     ModelResponse,
     ModelUsage,
 )
+from campsverso_testkit.maos import BEGIN, END, FABLE, OPUS, RUNS, TICKETS, write_report
 from campsverso_testkit.oficina import example_office_repo
 from campsverso_testkit.pipeline import Pipeline
 
@@ -151,3 +153,63 @@ async def test_o_pedido_pelo_claude_code_vira_um_pr(tmp_path: Path) -> None:
     assert pipeline.host is not None
     commit = pipeline.host.branches["dev/pedido-1"][-1]
     assert sorted(commit.files) == ["ferramentas/linhas.py", "tests/test_linhas.py"]
+
+
+# ---------------------------------------------------------------- a comparação (ADR-0089)
+
+
+def _fact(kind: str, **data: Any) -> dict[str, Any]:
+    return {"type": f"campsverso.{kind}", "data": data}
+
+
+def test_a_comparacao_alterna_as_maos_e_o_relatorio_le_os_fatos(tmp_path: Path) -> None:
+    for ticket in TICKETS.values():
+        compile(ticket.hidden, f"aceite-{ticket.slug}", "exec")  # o aceite escondido é Python
+    pairs = [
+        [r.harness for r in RUNS if r.ticket is t and r.model == OPUS] for t in TICKETS.values()
+    ]
+    assert pairs == [["api", "claude_code"], ["claude_code", "api"], ["api", "claude_code"]]
+    assert [r.model for r in RUNS].count(FABLE) == 1
+    run = tmp_path / "2-contador-claude_code-opus-5-5"
+    run.mkdir()
+    result = {
+        "run": 2,
+        "ticket": "contador",
+        "harness": "claude_code",
+        "model": "claude-opus-5-5",
+        "delivered": True,
+        "files": ["tools/robos/contador.py", "tools/robos/tests/test_contador.py"],
+        "added": 80,
+        "removed": 0,
+        "static": {"ruff": True, "pyright": False},
+        "bench_tests": {"ok": True},
+        "acceptance": {"ok": True},
+    }
+    (run / "resultado.json").write_text(json.dumps(result), encoding="utf-8")
+    facts = [
+        _fact("workshop.step.v2", tool="Bash"),
+        _fact("workshop.step.v2", tool="Write"),
+        _fact("workshop.robot_called.v1", robot_id="robo-briefing"),
+        _fact("workshop.robot_called.v1", robot_id="robo-testador"),
+        _fact(
+            "workshop.session_finished.v1",
+            reason="pronto",
+            turns=12,
+            steps=9,
+            cost_usd=1.234,
+            duration_ms=330000,
+        ),
+    ]
+    (run / "fatos.jsonl").write_text("\n".join(json.dumps(f) for f in facts), encoding="utf-8")
+    target = tmp_path / "relatorio.md"
+    target.write_text(f"# A comparação\n\nA leitura.\n\n{BEGIN}\nvelha\n{END}\n\nO fim.\n")
+    write_report(tmp_path, target)
+    text = target.read_text(encoding="utf-8")
+    assert text.startswith("# A comparação\n\nA leitura.\n\n")
+    assert text.endswith("\n\nO fim.\n")  # o texto fora dos marcadores fica
+    assert "velha" not in text
+    assert (
+        "| 2 | contador | Claude Code | opus-5-5 | sim | 12 | 9 | 1 | US$ 1,23 | 5,5 min "
+        "| 2 arq., +80 -0 | não (ruff sim, pyright não, bancada sim) | sim |"
+    ) in text
+    assert "- 2 (contador, Claude Code, opus-5-5): Bash 1, Write 1." in text
