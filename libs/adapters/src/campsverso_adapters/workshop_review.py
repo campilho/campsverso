@@ -40,6 +40,12 @@ DISABLES = (
     "@ts-ignore",
     "@ts-expect-error",
 )
+# Uma chave ou um segredo numa linha nova (ADR-0089, decisão 6): a das APIs de modelo, a do GitHub,
+# a do Slack e uma chave privada. A chave da sessão de um harness (`sessao-…`) não vale fora dela.
+_SECRET = re.compile(
+    r"(sk-ant-|sk-or-v1-|sk-proj-|ghp_|github_pat_|xox[abp]-)[A-Za-z0-9_\-]{16,}"
+    r"|-----BEGIN [A-Z ]*PRIVATE KEY-----"
+)
 _TEST_DEF = re.compile(r"^\s*(async\s+)?def\s+test_\w*|^\s*(it|test)\(")
 
 
@@ -111,6 +117,8 @@ def review(diff: str, forbidden: Sequence[str] = ()) -> list[str]:
             if hit is not None:
                 reasons.append(f"{f.path}: desliga uma verificação ({hit})")
                 break
+        if any(_SECRET.search(line) for line in f.added):
+            reasons.append(f"{f.path}: parece trazer uma chave ou um segredo")
         haystack = "\n".join([f.path, *f.added]).lower()
         if any(word in haystack for word in words):
             reasons.append(f"{f.path}: tem uma palavra da lista proibida")

@@ -197,6 +197,14 @@ def test_a_revisao_recusa_a_constituicao_os_testes_e_as_palavras() -> None:
     assert review(skip) == ["tools/c.py: desliga uma verificação (noqa)"]
     words = review(diff("tools/d.py", "nome = 'Palavrona'"), ["palavrona"])
     assert words == ["tools/d.py: tem uma palavra da lista proibida"]
+    # Uma chave ou um segredo no patch (ADR-0089, decisão 6); o fragmento é montado aqui, para o
+    # próprio teste não trazer o formato inteiro.
+    fake_key = "sk-" + "ant-" + "a1B2" * 6
+    secret = review(diff("tools/e.py", f"CHAVE = '{fake_key}'"))
+    assert secret == ["tools/e.py: parece trazer uma chave ou um segredo"]
+    private = review(diff("tools/f.pem", "-----BEGIN " + "RSA PRIVATE KEY-----"))
+    assert private == ["tools/f.pem: parece trazer uma chave ou um segredo"]
+    assert review(diff("tools/g.py", "TOKEN = 'sessao-0123456789abcdef'")) == []
 
 
 async def test_a_raiz_relativa_vira_absoluta(
