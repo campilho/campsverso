@@ -120,6 +120,21 @@ class MeteredModel:
                 },
             )
             raise
+        await self._completed(request, response)
+        return response
+
+    async def observed(
+        self, request: ModelRequest, response: ModelResponse, *, harness: str
+    ) -> float:
+        """Uma chamada que um harness de fora fez pela porta das mãos (ADR-0089): o mesmo evento
+        das nossas, com o campo `harness`. Devolve o custo."""
+        if request.model not in self._prices:
+            raise LookupError(f"modelo sem preço na tabela do ambiente: {request.model}")
+        return await self._completed(request, response, harness=harness)
+
+    async def _completed(
+        self, request: ModelRequest, response: ModelResponse, *, harness: str | None = None
+    ) -> float:
         cost = (
             round(response.usage.cost_usd, 8)
             if response.usage.cost_usd is not None
@@ -159,8 +174,10 @@ class MeteredModel:
             data["effort"] = request.effort
         if advised is not None:
             data["advisor"] = advised
+        if harness is not None:
+            data["harness"] = harness
         await self._publish(COMPLETED, request, response.latency_ms, data)
-        return response
+        return cost
 
     async def count_tokens(self, request: ModelRequest) -> int:
         return await self._inner.count_tokens(request)  # contar não custa nem vira evento

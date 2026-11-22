@@ -1839,6 +1839,12 @@ class LlmCallCompletedV1(BaseModel):
     Como o modelo parou: end_turn, tool_use, max_tokens, refusal…
     """
     effort: Literal["low", "medium", "high", "xhigh", "max"] | None = None
+    harness: Annotated[
+        str | None, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")
+    ] = None
+    """
+    Quem chamou o modelo, quando não foi a nossa porta de modelo (ADR-0089): o harness de fora que trabalhou pelo dev, como claude_code, pela porta das mãos. Sem o campo, a chamada foi nossa.
+    """
 
 
 class LlmCallFailedV1(BaseModel):

@@ -17,6 +17,7 @@ dependencies = [
   "websockets>=17.2",
   "anthropic>=1.15",
   "httpx2>=2.13",
+  "claude-agent-sdk==0.2.187",
 ]
 
 [build-system]

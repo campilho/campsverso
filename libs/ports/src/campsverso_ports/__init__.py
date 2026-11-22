@@ -21,6 +21,17 @@ from campsverso_ports.codehost import (
     PullRequestState,
 )
 from campsverso_ports.flags import FlagPort, RuleConfig
+from campsverso_ports.hands import (
+    HARNESSES,
+    CallMeter,
+    Hands,
+    HandsJob,
+    HandsLimits,
+    HandsResult,
+    HandsStep,
+    HandsWorld,
+    Robot,
+)
 from campsverso_ports.ids import IdGenerator
 from campsverso_ports.memory import (
     Belief,
@@ -83,6 +94,7 @@ from campsverso_ports.workshop import (
 )
 
 __all__ = [
+    "HARNESSES",
     "RETRYABLE_ERRORS",
     "TOOLS",
     "BatchHandler",
@@ -92,6 +104,7 @@ __all__ = [
     "BeliefStatus",
     "BlobStore",
     "BusUnavailableError",
+    "CallMeter",
     "ChangeKind",
     "CiState",
     "CodeHostError",
@@ -110,6 +123,12 @@ __all__ = [
     "Experiment",
     "FlagPort",
     "Handler",
+    "Hands",
+    "HandsJob",
+    "HandsLimits",
+    "HandsResult",
+    "HandsStep",
+    "HandsWorld",
     "IdGenerator",
     "InputKind",
     "InputRow",
@@ -134,6 +153,7 @@ __all__ = [
     "RealtimeConnection",
     "RealtimeGateway",
     "Reflection",
+    "Robot",
     "RuleConfig",
     "SnapshotRef",
     "SourceKind",

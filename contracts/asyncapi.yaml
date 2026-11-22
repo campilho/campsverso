@@ -3806,6 +3806,11 @@ components:
           - high
           - xhigh
           - max
+        harness:
+          $ref: '#/components/schemas/Token'
+          description: 'Quem chamou o modelo, quando não foi a nossa porta de modelo (ADR-0089): o harness
+            de fora que trabalhou pelo dev, como claude_code, pela porta das mãos. Sem o campo, a chamada
+            foi nossa.'
     LlmCallFailedV1:
       title: LlmCallFailedV1
       description: 'Uma chamada de modelo falhou (ADR-0058): o erro classificado, se vale repetir, e a

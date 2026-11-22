@@ -134,6 +134,10 @@
         "xhigh",
         "max"
       ]
+    },
+    "harness": {
+      "$ref": "contracts://common/defs.v1#/$defs/token",
+      "description": "Quem chamou o modelo, quando não foi a nossa porta de modelo (ADR-0089): o harness de fora que trabalhou pelo dev, como claude_code, pela porta das mãos. Sem o campo, a chamada foi nossa."
     }
   }
 }

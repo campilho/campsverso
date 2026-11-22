@@ -1362,6 +1362,7 @@ export interface LlmCallCompletedV1 {
   charged: boolean;
   stop_reason: Token;
   effort?: "low" | "medium" | "high" | "xhigh" | "max";
+  harness?: Token;
 }
 /**
  * Uma chamada de modelo falhou (ADR-0058): o erro classificado, se vale repetir, e a latência até a falha.

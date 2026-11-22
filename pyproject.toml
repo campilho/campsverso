@@ -138,6 +138,8 @@ known-first-party = ["campsverso_*"]
 "sqlite3".msg = "SDK externo: só em libs/adapters ou no main.py do serviço (princípio 3)."
 "anthropic".msg = "SDK externo: só em libs/adapters ou no main.py do serviço (princípio 3)."
 "httpx2".msg = "SDK externo: só em libs/adapters ou no main.py do serviço (princípio 3)."
+"claude_agent_sdk".msg = "SDK externo: só em libs/adapters ou no main.py do serviço (princípio 3; ADR-0089)."
+"mcp".msg = "SDK externo: só em libs/adapters ou no main.py do serviço (princípio 3; ADR-0089)."
 
 [tool.ruff.lint.per-file-ignores]
 "libs/adapters/**" = ["TID251"]

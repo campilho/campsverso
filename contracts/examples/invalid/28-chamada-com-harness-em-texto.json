@@ -1,0 +1,46 @@
+{
+  "expect_error": "payload_schema",
+  "description": "Uma chamada pela porta das mãos com o harness em texto livre: o `harness` é um token (`claude_code`), não o nome do produto.",
+  "event": {
+    "specversion": "1.0",
+    "id": "01a12d2b-6c61-7c00-8e10-5a6b7c8d9e02",
+    "source": "/controller-runner/llm/camps",
+    "type": "campsverso.llm.call.completed.v1",
+    "time": "2026-11-22T13:20:00Z",
+    "datacontenttype": "application/json",
+    "dataschema": "contracts://events/llm/call.completed.v1",
+    "worldid": "office-campsverso-01",
+    "cartridge": "office_campsverso",
+    "tick": 1288800,
+    "simtime": "2026-11-22T10:20:00-03:00",
+    "seq": 212,
+    "provenance": "simulated",
+    "visibility": "observer",
+    "actor": "system/controller-runner",
+    "data": {
+      "controller": {
+        "type": "llm",
+        "id": "llm/camps"
+      },
+      "purpose": "workshop",
+      "avatar_id": "camps",
+      "ticket_id": "pedido-7",
+      "provider": "anthropic",
+      "model": "claude-opus-5-5",
+      "request_id": "msg_01Hx9QmB3cTzK7v2LpN4aWdE",
+      "prompt_sha256": "7d3e7d3e7d3e7d3e7d3e7d3e7d3e7d3e7d3e7d3e7d3e7d3e7d3e7d3e7d3e7d3e",
+      "latency_ms": 6120,
+      "usage": {
+        "input_tokens": 3,
+        "output_tokens": 410,
+        "cache_read_input_tokens": 21500,
+        "cache_creation_input_tokens": 1200
+      },
+      "cost_usd": 0.018512,
+      "charged": true,
+      "stop_reason": "tool_use",
+      "response_model": "claude-opus-5-5",
+      "harness": "Claude Code"
+    }
+  }
+}

@@ -4,6 +4,10 @@ Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão 
 
 ## Em andamento: v0.4
 
+### M26
+
+- **A porta das mãos** (ADR-0089): o `llm.call.completed.v1` ganha o campo opcional `harness`, um token: quem chamou o modelo quando não foi a nossa porta de modelo, como o Claude Code (`claude_code`), que chama pela porta das mãos. Sem o campo, a chamada foi nossa.
+
 ### M25
 
 - **O PR do dev** (ADR-0083, ADR-0084): o comando novo `campsverso.cmd.office.pull_request.report.v1` (o pedido, o número do PR, o estado `opened`, `updated`, `merged` ou `closed`, e o endereço, o ramo sob `dev/`, o commit do topo e o CI, opcionais), num produtor novo, `codehost`: o vigia do GitHub o manda ao kernel a cada mudança num PR, e o cartucho do escritório confere e publica os fatos. O comando é do domínio do cartucho (`office`), o primeiro comando declarado por um cartucho (ADR-0084). E quatro tipos novos do domínio `office`, de visibilidade `world`, produtor `kernel`:

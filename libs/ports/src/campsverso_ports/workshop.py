@@ -11,6 +11,7 @@ texto limitado em tamanho, com um resumo de uma linha para a tela (o `workshop.s
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Protocol
 
 # As ferramentas, pelos nomes que a mente vê (o plano do M24, §3.2).
@@ -65,6 +66,11 @@ class Workspace(Protocol):
     @property
     def base(self) -> str:
         """O commit de onde o espaço saiu."""
+        ...
+
+    @property
+    def root(self) -> Path:
+        """A pasta do espaço: onde um harness de fora trabalha (ADR-0089)."""
         ...
 
     async def list_files(self, path: str = ".") -> ToolResult: ...
