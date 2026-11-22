@@ -284,8 +284,7 @@ class ClaudeCodeHands:
         self._sandbox = sys.platform == "darwin" if sandbox is None else sandbox
         self._upstream = upstream
         self._transport = transport
-        self._tape = tape
-        self._tape_mode = tape_mode
+        self._reel = None if tape is None or tape_mode is None else Tape(tape, tape_mode)
         self._warn: Warn = warn or _no_warning
         self._user_home = (user_home or Path.home()).resolve()
         self.sessions = 0
@@ -384,11 +383,7 @@ class ClaudeCodeHands:
         self.sessions += 1
         folder = self._home / job.ticket_id
         transcript = folder / f"sessao-{self.sessions}-{int(time.time())}.jsonl"
-        tape = (
-            None
-            if self._tape is None or self._tape_mode is None
-            else Tape(self._tape, self._tape_mode, root)
-        )
+        tape = None if self._reel is None else self._reel.at(root)
 
         async def guard(hook_input: Any, _tool_use_id: str | None, _context: Any) -> HookJSONOutput:
             data = cast(Mapping[str, Any], hook_input)

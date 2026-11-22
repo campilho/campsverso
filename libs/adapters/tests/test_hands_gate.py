@@ -161,7 +161,7 @@ async def test_a_fita_grava_magra_e_responde_na_ordem_noutro_espaco(tmp_path: Pa
     reader.feed(again_first.content)
     assert reader.content[0]["input"] == {"file_path": f"{there}/a.py"}  # o espaço de agora
     assert again_second.json()["content"] == second.json()["content"]
-    assert exhausted.status_code == 500
+    assert exhausted.status_code == 400  # o harness não repete
     assert [r.replayed for _, r, _ in replay_meter.calls] == [True, True]
     assert replay_meter.calls[0][1].tool_uses()[0]["name"] == "Read"
 

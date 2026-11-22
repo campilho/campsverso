@@ -23,6 +23,7 @@ from campsverso_ports import (
     ModelUsage,
 )
 from campsverso_testkit.conformidade import (
+    HANDS_MODEL,
     TASKS,
     ProbeMeter,
     Tally,
@@ -33,6 +34,8 @@ from campsverso_testkit.conformidade import (
 )
 
 PRICES = ModelPrices(2.0, 10.0, 0.1, 2.5)
+# A prova paga de 22/nov (o plano do M26, parte 2): o Opus 5.5 pelo Claude Code, magra.
+CLAUDE_CODE_TAPE = Path(__file__).parents[1] / "fixtures" / "llm" / "conformidade-claude-code.jsonl"
 
 
 def use(name: str, **given: Any) -> dict[str, Any]:
@@ -235,6 +238,38 @@ async def test_o_claude_code_faz_os_dois_pedidos_pela_porta_e_passa(tmp_path: Pa
     system = str(fake.seen[0]["body"]["system"])
     assert "Aqui não há o `pronto`" in system
     assert "Você é o Camps" in system
+
+
+async def test_a_fita_do_opus_pelo_claude_code_passa_de_novo_sem_a_api(tmp_path: Path) -> None:
+    """O Claude Code de verdade, o gancho e a conferência por fora, com as respostas da fita: a
+    segunda sessão continua de onde a primeira parou, no espaço de agora."""
+    try:
+        cli = bundled_cli()
+    except FileNotFoundError:
+        pytest.skip("o SDK veio sem o Claude Code nesta plataforma")
+
+    def hands_of(meter: CallMeter) -> Hands:
+        return ClaudeCodeHands(
+            meter,
+            api_key="sem-chave",
+            home=tmp_path / "maos",
+            cli=cli,
+            upstream="http://sem-rede.invalid",
+            tape=CLAUDE_CODE_TAPE,
+            tape_mode="replay",
+        )
+
+    prices = {HANDS_MODEL: PRICES}
+    verdict = await asyncio.wait_for(prove_hands(HANDS_MODEL, hands_of, prices, tmp_path), 600)
+    escrever, consertar = verdict.tasks
+    assert (escrever.correct, consertar.correct) == (True, True), verdict.as_dict()
+    assert escrever.files == ["calc/saudacao.py", "tests/test_saudacao.py"]
+    assert consertar.files == ["calc/media.py"]
+    assert [s.split(":")[0] for s in consertar.trail] == ["Bash", "Edit", "Bash"]
+    assert consertar.summary.startswith("Corrigi a média")
+    assert verdict.tally.responses == 6
+    assert verdict.tally.format_errors == []
+    assert verdict.passed
 
 
 async def test_o_medidor_da_prova_conta_pela_porta() -> None:

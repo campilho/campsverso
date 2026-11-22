@@ -262,19 +262,17 @@ class Tape:
 
     O caminho do espaço vira `{espaco}` na gravação e volta, no espaço de agora, na reprodução: a
     fita toca em outra pasta e em outra máquina. No modo `replay`, responde na ordem, pela primeira
-    resposta ainda não usada do mesmo caminho, com ou sem ferramentas e do mesmo modelo (as chamadas
-    auxiliares de um harness não tiram a ordem das principais)."""
+    resposta ainda não usada do mesmo caminho e do mesmo tipo (com ferramentas ou sem), de
+    preferência do mesmo modelo: as chamadas auxiliares de um harness nunca gastam as respostas das
+    principais."""
 
     def __init__(self, path: Path, mode: str, space: Path | None = None) -> None:
         if mode not in ("record", "replay"):
             raise ValueError(f"modo da fita desconhecido: {mode}")
         self.path = path
         self.mode = mode
-        self._space = (
-            []
-            if space is None
-            else sorted({str(space), str(space.resolve())}, key=len, reverse=True)
-        )
+        self._space: list[str] = []
+        self.at(space)
         self._entries: list[dict[str, Any]] = []
         self._used: set[int] = set()
         if mode == "replay":
@@ -283,6 +281,16 @@ class Tape:
                     self._entries.append(cast(dict[str, Any], json.loads(line)))
         else:
             path.parent.mkdir(parents=True, exist_ok=True)
+
+    def at(self, space: Path | None) -> Tape:
+        """O espaço da sessão de agora. A mesma fita segue de uma sessão para a outra: a segunda
+        sessão de uma prova continua de onde a primeira parou."""
+        self._space = (
+            []
+            if space is None
+            else sorted({str(space), str(space.resolve())}, key=len, reverse=True)
+        )
+        return self
 
     def write(self, path: str, body: Mapping[str, Any], message: Mapping[str, Any]) -> None:
         entry = {
@@ -301,7 +309,7 @@ class Tape:
         ]
         same_kind = [i for i in same_path if bool(self._entries[i].get("tools")) == tools]
         exact = [i for i in same_kind if self._entries[i].get("model") == model]
-        chosen = (exact or same_kind or same_path or [None])[0]
+        chosen = (exact or same_kind or [None])[0]
         if chosen is None:
             return None
         self._used.add(chosen)
@@ -500,7 +508,8 @@ class HandsGate:
         assert self._tape is not None
         message = self._tape.next(path, model, bool(body.get("tools")))
         if message is None:
-            return _error(500, "api_error", "a fita acabou: não há resposta gravada para isto")
+            # Um 400 não é repetido pelo harness: a sessão termina, em vez de esperar a fita.
+            return _error(400, "invalid_request_error", "a fita acabou: não há resposta para isto")
         started = time.monotonic()
         reader = UsageReader()
         reader.message(message)
