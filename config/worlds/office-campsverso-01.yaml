@@ -59,10 +59,11 @@ minds:  # a mente com rotina do dev (ADR-0080): `make sandbox MENTE=camps_escrit
   camps:
     id: llm/camps
     mind: camps_escritorio  # entry point do grupo campsverso.minds (cartridges/office_campsverso/mind)
-    model: claude-sonnet-5-5  # a sessão na oficina; a prova de conformidade escolhe o da criação
-    # Quem programa os pedidos sem escolha na prancheta (ADR-0089, decisão 3): o nosso harness com o
-    # Sonnet 5.5 até o relatório da comparação das mãos; o pedido pode escolher o Claude Code.
-    hands: api
+    model: claude-opus-5-5  # a sessão na oficina e a conversa (a prova escolhe o da criação)
+    # Quem programa os pedidos sem escolha na prancheta (ADR-0089, decisão 3): desde 22/nov, o Claude
+    # Code com o Opus 5.5, como recomendou a comparação das mãos (docs/arena/m26-as-maos.md); o
+    # pedido pode escolher o nosso harness. Sem a chave da Anthropic, o nosso harness.
+    hands: claude_code
     effort: medium
     max_tokens: 8192
     cassette: {path: data/llm/office-campsverso-01.jsonl, mode: record}

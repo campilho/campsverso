@@ -96,7 +96,15 @@ def test_o_orcamento_do_escritorio() -> None:
         # Os tetos do M26 (ADR-0089, decisão 8): US$ 5 por pedido e US$ 10 por dia.
         assert (budget.usd_per_ticket, budget.usd_per_sim_day) == (5.0, 10.0)
         assert budget.on_exceeded == "mind_off"
-        assert world.minds["camps"].hands == "api"  # o padrão até a comparação das mãos
+    # Quem programa sem escolha na prancheta: no escritório vivo, o Claude Code com o Opus 5.5, como
+    # recomendou a comparação das mãos (22/nov); na demonstração, o nosso harness.
+    live = load_world(REPO / "config" / "worlds" / "office-campsverso-01.yaml", root=REPO)
+    assert (live.minds["camps"].hands, live.minds["camps"].model) == (
+        "claude_code",
+        "claude-opus-5-5",
+    )
+    demo = load_world(REPO / "config" / "worlds" / "office-campsverso-demo.yaml", root=REPO)
+    assert demo.minds["camps"].hands == "api"
 
 
 def test_as_maos_do_mundo(tmp_path: Path) -> None:
