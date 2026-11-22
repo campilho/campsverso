@@ -55,11 +55,11 @@ def _delivered() -> KernelCore:
     _act(core, "gerente", "move", {"near": "quadro"}, HUMAN["id"])
     ticket = {"title": "Briefing", "description": "Montar.", "acceptance": "Passa.", "size": "P"}
     _act(core, "gerente", "write_ticket", ticket, HUMAN["id"])
-    _act(core, "camps", "move", {"near": "quadro"}, DEV)
-    _act(core, "camps", "take_ticket", {}, DEV)
-    _act(core, "camps", "move", {"target": {"x": 4, "y": 5}}, DEV)
-    _act(core, "camps", "work", {}, DEV)
-    _act(core, "camps", "deliver", {}, DEV)
+    _act(core, "tiago", "move", {"near": "quadro"}, DEV)
+    _act(core, "tiago", "take_ticket", {}, DEV)
+    _act(core, "tiago", "move", {"target": {"x": 4, "y": 5}}, DEV)
+    _act(core, "tiago", "work", {}, DEV)
+    _act(core, "tiago", "deliver", {}, DEV)
     core.drain()
     return core
 

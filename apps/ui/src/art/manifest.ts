@@ -147,6 +147,10 @@ export interface AvatarArt {
   readonly carry?: Readonly<Record<string, { readonly walk: string; readonly idle: string }>>;
   /** Um recorte de um quadro da folha, para o HUD. */
   readonly portrait?: { readonly frame: number; readonly x: number; readonly y: number; readonly size: number };
+  /** O busto de frente numa folha de retratos (ADR-0092; docs/design/briefing-tela-2.md, §2): a coluna
+   * do personagem, com o rosto parado na linha 0 e piscando na linha 1. Os chips o mostram inteiro, e
+   * a conversa, o recorte do rosto; sem ele, a tela volta ao recorte do sprite (`portrait`). */
+  readonly face?: { readonly sheet: string; readonly column: number };
   /** Dormindo numa cama: só a cabeça (um recorte de um quadro) no travesseiro, `dy` abaixo do topo da cama. */
   readonly in_bed?: {
     readonly frame: number;

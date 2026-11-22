@@ -19,7 +19,7 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   // comando de soltar e o Sobre, que abre e fecha.
   await expect(page.locator("body")).toHaveClass(/retro/);
   await expect(page.getByRole("img", { name: "online" })).toBeVisible();
-  await expect(page.locator(".retro-chip", { hasText: "Gerente" })).toContainText("você");
+  await expect(page.locator(".retro-chip", { hasText: "Camps" })).toContainText("você"); // o gerente é o Camps (ADR-0092)
   await expect(page.getByRole("button", { name: "Soltar o gerente" })).toBeEnabled();
   await page.getByRole("button", { name: "Sobre o Campsverso" }).click();
   const about = page.getByRole("dialog", { name: "Sobre o Campsverso" });
@@ -82,33 +82,33 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
 
   // O dev trabalha sentado: com o pedido em "Fazendo", o desenho dele chega na cadeira da mesa.
   await expect(board.getByRole("tab", { name: "Fazendo, 1 pedido" })).toBeVisible({ timeout: 60_000 });
-  const camps = (): Promise<{ x: number; y: number } | undefined> =>
+  const dev = (): Promise<{ x: number; y: number } | undefined> =>
     page.evaluate(() => {
       type Hook = { drawn(id: string): { x: number; y: number } | undefined };
-      return (window as unknown as { campsverso: Hook }).campsverso.drawn("camps");
+      return (window as unknown as { campsverso: Hook }).campsverso.drawn("tiago");
     });
-  await expect.poll(camps, { timeout: 20_000 }).toEqual({ x: 4, y: 5 }); // o cubículo de cima (ADR-0082)
+  await expect.poll(dev, { timeout: 20_000 }).toEqual({ x: 4, y: 5 }); // o cubículo de cima (ADR-0082)
 
   // A fala que interrompe (ADR-0080): o dev para o bloco de trabalho e responde ao gerente.
   const said = (): Promise<string[]> =>
-    page.evaluate(() => (window as unknown as { campsverso: { said(id: string): string[] } }).campsverso.said("camps"));
+    page.evaluate(() => (window as unknown as { campsverso: { said(id: string): string[] } }).campsverso.said("tiago"));
   // A conversa (docs/design/briefing-tela.md, §3.5): o @ abre as sugestões de quem está na sala, o
   // Enter escolhe, e a fala vai com a menção; a resposta do dev aparece no registro.
   const heardBefore = (await said()).length;
   const talk = page.locator(".retro-talk");
   const speech = talk.getByRole("textbox", { name: "Falar" });
-  await speech.pressSequentially("@Ca");
-  await expect(talk.getByRole("option", { name: /@Camps/ })).toBeVisible();
+  await speech.pressSequentially("@Ti");
+  await expect(talk.getByRole("option", { name: /@Tiago/ })).toBeVisible();
   await speech.press("Enter");
-  await expect(speech).toHaveValue("@Camps ");
+  await expect(speech).toHaveValue("@Tiago ");
   await speech.pressSequentially("como vai a busca?");
   await speech.press("Enter");
   await expect(speech).toHaveValue("");
   const log = talk.getByRole("log");
-  await expect(log.locator(".retro-say.mine")).toContainText("@Camps como vai a busca?");
+  await expect(log.locator(".retro-say.mine")).toContainText("@Tiago como vai a busca?");
   await expect.poll(async () => (await said()).slice(heardBefore), { timeout: 20_000 }).toContain("Anotado.");
   await expect(log).toContainText("Anotado.");
-  await expect(log).toContainText("Camps pegou o pedido 1"); // a linha do quadro
+  await expect(log).toContainText("Tiago pegou o pedido 1"); // a linha do quadro
   await talk.getByRole("button", { name: "Aumentar a conversa" }).click();
   await expect(page.locator(".retro-right")).toHaveClass(/talk-big/);
   await talk.getByRole("button", { name: "Diminuir a conversa" }).click();
@@ -127,10 +127,10 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   await delivered.click();
   await page.screenshot({ path: `${SHOTS}/escritorio.png` });
 
-  // A tela do dev (ADR-0089): com uma sessão na oficina, o chip do Camps abre a tela dele, com o
+  // A tela do dev (ADR-0089): com uma sessão na oficina, o chip do Tiago abre a tela dele, com o
   // pedido, as mãos e os passos; a conversa conta o começo. Sem modelo, as mãos são a rotina.
-  await page.getByRole("button", { name: /Ver a tela de Camps/ }).click();
-  const devScreen = page.getByRole("dialog", { name: "Tela do Camps" });
+  await page.getByRole("button", { name: /Ver a tela de Tiago/ }).click();
+  const devScreen = page.getByRole("dialog", { name: "Tela do Tiago" });
   await expect(devScreen).toBeVisible();
   await expect(devScreen).toContainText("Pedido 1 · Ferramenta de busca");
   await expect(devScreen).toContainText("rotina");
@@ -139,7 +139,7 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   await page.screenshot({ path: `${SHOTS}/escritorio-tela-do-dev.png` });
   await devScreen.getByRole("button", { name: "Fechar" }).click();
   await expect(devScreen).toBeHidden();
-  await expect(log).toContainText("Camps começou a programar o pedido 1: rotina");
+  await expect(log).toContainText("Tiago começou a programar o pedido 1: rotina");
 
   // A ficha aberta, na prancheta em leitura, e o "ver o patch" (ADR-0080): sem modelo, a sessão fixa
   // do dev-script na oficina registra o pedido num arquivo, e o patch vai ao depósito de entregas.
@@ -203,7 +203,7 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   const lightSwitch = await tile(page, 10, 13);
   await page.mouse.click(lightSwitch.x, lightSwitch.y, { button: "right" });
   await page.locator(".action-menu").getByRole("button", { name: "Acender a luz" }).click();
-  await expect(page.locator(".retro-talk").getByRole("log")).toContainText("Gerente acendeu a luz da sala", { timeout: 30_000 });
+  await expect(page.locator(".retro-talk").getByRole("log")).toContainText("Camps acendeu a luz da sala", { timeout: 30_000 });
 
   // A pausa do gerente (ADR-0082): o menu da máquina de café, na copa, e o café no HUD dele.
   const machine = await tile(page, 13, 9);

@@ -1,11 +1,12 @@
 # Mundo office-campsverso-demo: o escritório numa segunda-feira de manhã, para ver o dev em
 # qualquer dia (o sandbox o roda a 72×) e para o teste no navegador (ADR-0078). O escritório de
-# verdade é o office-campsverso-01, em tempo real.
+# verdade é o office-campsverso-02, em tempo real.
 
 worldid: office-campsverso-demo
 cartridge: office_campsverso
 script: dev
 player: gerente
+avatar: tiago  # o avatar do dev-script e da mente: o dev, que nenhum humano assume (ADR-0092)
 seed: 20261116
 start: "2026-11-16T08:59:00-03:00"  # um minuto antes de o dev chegar
 
@@ -37,10 +38,10 @@ workshop: true
 perception:
   snapshot_events: true
 
-minds:  # a mente com rotina do dev (ADR-0080): `make sandbox MENTE=camps_escritorio`
-  camps:
-    id: llm/camps
-    mind: camps_escritorio  # entry point do grupo campsverso.minds (cartridges/office_campsverso/mind)
+minds:  # a mente com rotina do dev (ADR-0080): `make sandbox MENTE=tiago_escritorio`
+  tiago:
+    id: llm/tiago
+    mind: tiago_escritorio  # entry point do grupo campsverso.minds (cartridges/office_campsverso/mind)
     model: claude-sonnet-5-5  # a sessão na oficina; a prova de conformidade escolhe o da criação
     # Quem programa os pedidos sem escolha na prancheta (ADR-0089, decisão 3): o nosso harness com o
     # Sonnet 5.5 até o relatório da comparação das mãos; o pedido pode escolher o Claude Code.

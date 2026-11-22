@@ -57,7 +57,7 @@ def test_o_vigia_so_esta_quando_o_dev_nao_esta(day: Pipeline) -> None:
             inside.add(str(data["avatar_id"]))
         elif envelope["type"] == "campsverso.avatar.left.v1":
             inside.discard(str(data["avatar_id"]))
-        assert not {"camps", "vigia"} <= inside, f"os dois no escritório no tick {envelope['tick']}"
+        assert not {"tiago", "vigia"} <= inside, f"os dois no escritório no tick {envelope['tick']}"
 
 
 async def test_o_mesmo_dia_duas_vezes_da_os_mesmos_fatos(day: Pipeline) -> None:

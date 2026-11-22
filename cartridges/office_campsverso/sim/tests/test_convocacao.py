@@ -37,8 +37,8 @@ def _minutes(core: KernelCore, count: float) -> list[Fact]:
     for _ in range(round(count * TICKS_PER_MINUTE)):
         core.step()
         facts += core.drain()
-        inside = {a for a in ("camps", "vigia") if core.world.avatar_map[a].present}
-        assert inside != {"camps", "vigia"}, f"os dois no escritório no tick {core.tick}"
+        inside = {a for a in ("tiago", "vigia") if core.world.avatar_map[a].present}
+        assert inside != {"tiago", "vigia"}, f"os dois no escritório no tick {core.tick}"
     return facts
 
 
@@ -84,14 +84,14 @@ def _present(core: KernelCore, avatar: str) -> bool:
     return core.world.avatar_map[avatar].present
 
 
-def test_o_gerente_entra_no_sabado_e_o_camps_vem_pelo_chamado() -> None:
+def test_o_gerente_entra_no_sabado_e_o_tiago_vem_pelo_chamado() -> None:
     core = _core()
     assert _present(core, "vigia")
     _possess(core)
     facts = _minutes(core, 1.1)
     (summoned,) = _only(facts, "office.staff.summoned")
     assert (summoned["avatar_id"], summoned["by"], summoned["origin"]) == (
-        "camps",
+        "tiago",
         "gerente",
         "entrada",
     )
@@ -99,13 +99,13 @@ def test_o_gerente_entra_no_sabado_e_o_camps_vem_pelo_chamado() -> None:
     assert summoned["until_tick"] - summoned["arrives_tick"] == 6 * 60 * TICKS_PER_MINUTE - (
         2 * TICKS_PER_MINUTE
     )
-    assert not _present(core, "camps")  # ainda a caminho
+    assert not _present(core, "tiago")  # ainda a caminho
     facts = _minutes(core, 2)
-    entered = [d for d in _only(facts, "avatar.entered") if d["avatar_id"] == "camps"]
+    entered = [d for d in _only(facts, "avatar.entered") if d["avatar_id"] == "tiago"]
     assert [d["reason"] for d in entered] == ["convocacao"]
     left = _only(facts, "avatar.left")
     assert [(d["avatar_id"], d["reason"]) for d in left] == [("vigia", "plantao")]
-    assert _present(core, "camps")
+    assert _present(core, "tiago")
     assert not _present(core, "vigia")
 
 
@@ -113,22 +113,22 @@ def test_dispensado_ele_vai_embora_e_so_o_botao_o_chama_de_novo() -> None:
     core = _core()
     _possess(core)
     _minutes(core, 3.1)
-    assert _present(core, "camps")
+    assert _present(core, "tiago")
     _propose(core, "dismiss")
     facts = _minutes(core, 1.1)
     (dismissed,) = _only(facts, "office.staff.dismissed")
-    assert dismissed == {"avatar_id": "camps", "reason": "dispensado", "by": "gerente"}
+    assert dismissed == {"avatar_id": "tiago", "reason": "dispensado", "by": "gerente"}
     assert [(d["avatar_id"], d["reason"]) for d in _only(facts, "avatar.left")] == [
-        ("camps", "convocacao")
+        ("tiago", "convocacao")
     ]
     assert _present(core, "vigia")  # o vigia volta
     _jump(core, 30)
-    assert not _present(core, "camps")  # com o gerente lá, ele não volta sozinho
+    assert not _present(core, "tiago")  # com o gerente lá, ele não volta sozinho
     _propose(core, "summon")
     facts = _minutes(core, 3.1)
     (summoned,) = _only(facts, "office.staff.summoned")
     assert summoned["origin"] == "gerente"
-    assert _present(core, "camps")
+    assert _present(core, "tiago")
     _propose(core, "summon")  # de novo: já está convocado
     (rejected,) = _only(_minutes(core, 0.1), "action.rejected")
     assert "já foi convocado" in rejected["detail"]
@@ -140,12 +140,12 @@ def test_o_gerente_sai_e_a_convocacao_acaba() -> None:
     _minutes(core, 3.1)
     _release(core)
     facts = _minutes(core, 1.1)
-    assert _only(facts, "office.staff.dismissed") == [{"avatar_id": "camps", "reason": "saida"}]
-    assert not _present(core, "camps")
+    assert _only(facts, "office.staff.dismissed") == [{"avatar_id": "tiago", "reason": "saida"}]
+    assert not _present(core, "tiago")
     assert _present(core, "vigia")
     _possess(core)  # a visita nova chama de novo, mesmo depois de uma dispensa
     _minutes(core, 3.1)
-    assert _present(core, "camps")
+    assert _present(core, "tiago")
 
 
 def test_o_teto_de_horas_encerra_a_convocacao() -> None:
@@ -153,27 +153,27 @@ def test_o_teto_de_horas_encerra_a_convocacao() -> None:
     _possess(core)
     _minutes(core, 3.1)
     facts = _jump(core, 6 * 60)
-    assert _only(facts, "office.staff.dismissed") == [{"avatar_id": "camps", "reason": "teto"}]
-    assert not _present(core, "camps")
+    assert _only(facts, "office.staff.dismissed") == [{"avatar_id": "tiago", "reason": "teto"}]
+    assert not _present(core, "tiago")
     _jump(core, 60)
-    assert not _present(core, "camps")  # o teto não chama de novo sozinho
+    assert not _present(core, "tiago")  # o teto não chama de novo sozinho
 
 
 def test_a_janela_do_dia_comeca_as_8_e_acaba_as_23() -> None:
     core = _core(datetime(2026, 11, 21, 22, 50, tzinfo=SAO_PAULO))
     _possess(core)
     _minutes(core, 3.1)
-    assert _present(core, "camps")
+    assert _present(core, "tiago")
     facts = _jump(core, 10)
-    assert _only(facts, "office.staff.dismissed") == [{"avatar_id": "camps", "reason": "janela"}]
-    assert not _present(core, "camps")
+    assert _only(facts, "office.staff.dismissed") == [{"avatar_id": "tiago", "reason": "janela"}]
+    assert not _present(core, "tiago")
     _propose(core, "summon")
     (rejected,) = _only(_minutes(core, 0.1), "action.rejected")
     assert rejected["detail"] == "a convocação vale das 08:00 às 23:00"
     late = _core(datetime(2026, 11, 22, 6, 0, tzinfo=SAO_PAULO))  # domingo cedo, fora da janela
     _possess(late)
     _minutes(late, 3.1)
-    assert not _present(late, "camps")
+    assert not _present(late, "tiago")
 
 
 def test_no_dia_util_o_botao_espera_o_fim_do_expediente_e_o_expediente_assume() -> None:
@@ -182,17 +182,17 @@ def test_no_dia_util_o_botao_espera_o_fim_do_expediente_e_o_expediente_assume() 
     _jump(weekday, 1)
     _propose(weekday, "summon")
     (rejected,) = _only(_minutes(weekday, 0.1), "action.rejected")
-    assert rejected["detail"] == "o Camps está no expediente"
+    assert rejected["detail"] == "o Tiago está no expediente"
     early = _core(datetime(2026, 11, 23, 8, 0, tzinfo=SAO_PAULO))  # segunda cedo
     _possess(early)
     _minutes(early, 3.1)
-    assert _present(early, "camps")
+    assert _present(early, "tiago")
     facts = _jump(early, 60)  # as 09:00: o expediente assume, e o dev fica
     assert _only(facts, "office.staff.dismissed") == [
-        {"avatar_id": "camps", "reason": "expediente"}
+        {"avatar_id": "tiago", "reason": "expediente"}
     ]
-    assert not [d for d in _only(facts, "avatar.left") if d["avatar_id"] == "camps"]
-    assert _present(early, "camps")
+    assert not [d for d in _only(facts, "avatar.left") if d["avatar_id"] == "tiago"]
+    assert _present(early, "tiago")
 
 
 def test_a_bancada_segue_o_registro_num_mundo_retomado() -> None:

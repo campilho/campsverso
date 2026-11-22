@@ -56,6 +56,8 @@ export interface FrameInput {
 }
 
 const TELA = "/tela";
+/** O retrato do chip: o busto de 40 x 40 em 1x (briefing-tela-2.md, §2). */
+const FACE_PX = 40;
 
 function pressed(node: HTMLElement, on: boolean): void {
   node.setAttribute("aria-pressed", on ? "true" : "false");
@@ -381,7 +383,7 @@ export class RetroFrame {
     }
     let picture = this.portraits.get(chip.id);
     if (picture === undefined) {
-      picture = new Portrait();
+      picture = new Portrait(FACE_PX);
       this.portraits.set(chip.id, picture);
       if (this.art !== undefined) {
         picture.setArt(this.art, chip.id);

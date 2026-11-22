@@ -61,7 +61,7 @@ gerente:
       description: "Rodar os testes de um caminho e dizer o resultado."
       acceptance: "Mostra quantos passaram e quantos falharam."
       size: P
-  greeting: "Bom dia, Camps! Deixei pedidos no quadro."
+  greeting: "Bom dia, Tiago! Deixei pedidos no quadro."
   return_every: 3
   return_comment: "Falta o teste de aceite. Pode refazer?"
   wait_seconds: 60

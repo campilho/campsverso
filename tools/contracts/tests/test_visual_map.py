@@ -191,7 +191,7 @@ def test_os_manifestos_do_escritorio_apontam_para_quadros_que_existem() -> None:
     objects = next(layer for layer in logic["layers"] if layer["type"] == "objectgroup")
     assert {o["type"] for o in objects["objects"]} <= set(manifests["office"]["kinds"])
     cast = scenario["avatars"]
-    assert set(cast) == {"camps", "gerente", "vigia"}
+    assert set(cast) == {"tiago", "gerente", "vigia"}
     for name, avatar in cast.items():
         columns, rows = sheets[avatar["sheet"]]
         for animation in avatar["animations"].values():

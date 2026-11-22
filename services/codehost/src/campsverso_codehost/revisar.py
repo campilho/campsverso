@@ -33,7 +33,7 @@ def _parse(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument("--pr", type=int, required=True, help="o número do PR")
     parser.add_argument("--env", type=Path, default=Path("config/env/local.yaml"))
     parser.add_argument(
-        "--world", type=Path, default=Path("config/worlds/office-campsverso-01.yaml")
+        "--world", type=Path, default=Path("config/worlds/office-campsverso-02.yaml")
     )
     parser.add_argument("--data-dir", type=Path, help="a pasta de dados do mundo (o vivo)")
     parser.add_argument("--dry-run", action="store_true", help="imprime o comentário, sem postar")

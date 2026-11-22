@@ -1,7 +1,7 @@
 """Raiz de composição do publicador e do vigia do GitHub (ADR-0083).
 
     uv run python -m campsverso_codehost.main --env config/env/local.yaml \
-        --world config/worlds/office-campsverso-01.yaml [--key privado/<chave>.pem]
+        --world config/worlds/office-campsverso-02.yaml [--key privado/<chave>.pem]
 
 Num mundo sem `codehost`, o processo só espera, como os ajudantes num mundo sem ajudantes. Com o
 GitHub, a chave do App fica num arquivo fora do git, que só o `openssl` lê para assinar, e a lista
@@ -53,7 +53,7 @@ def _parse(argv: Sequence[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="campsverso_codehost.main")
     parser.add_argument("--env", type=Path, default=Path("config/env/local.yaml"))
     parser.add_argument(
-        "--world", type=Path, default=Path("config/worlds/office-campsverso-01.yaml")
+        "--world", type=Path, default=Path("config/worlds/office-campsverso-02.yaml")
     )
     parser.add_argument("--data-dir", type=Path, help="substitui data_dir do ambiente (o sandbox)")
     parser.add_argument("--nats-url", help="substitui nats.url do ambiente")

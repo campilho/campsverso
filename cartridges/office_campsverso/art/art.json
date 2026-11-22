@@ -3,9 +3,10 @@
   "credits": "CREDITS.csv",
   "visual_map": "map-visual.tmj",
   "sheets": {
-    "camps": { "image": "camps.png", "frame_width": 64, "frame_height": 64 },
-    "gerente": { "image": "gerente.png", "frame_width": 64, "frame_height": 64 },
-    "vigia": { "image": "vigia.png", "frame_width": 64, "frame_height": 64 }
+    "tiago": { "image": "tiago.png", "frame_width": 64, "frame_height": 64 },
+    "gerente_blazer": { "image": "gerente_blazer.png", "frame_width": 64, "frame_height": 64 },
+    "vigia": { "image": "vigia.png", "frame_width": 64, "frame_height": 64 },
+    "retratos": { "image": "retratos.png", "frame_width": 40, "frame_height": 40 }
   },
   "lights": {
     "schedule": [
@@ -49,8 +50,8 @@
     "text": { "x": 13, "y": 14, "width": 70, "color": "#26222f" }
   },
   "avatars": {
-    "camps": {
-      "sheet": "camps",
+    "tiago": {
+      "sheet": "tiago",
       "feet": 0,
       "label_above": 62,
       "animations": {
@@ -85,10 +86,11 @@
       "sit_on": { "tv": "sofa", "videogame": "sofa" },
       "carry": { "marmita": { "walk": "carry", "idle": "carry_idle" } },
       "hidden": ["restroom"],
-      "portrait": { "frame": 48, "x": 16, "y": 14, "size": 32 }
+      "portrait": { "frame": 48, "x": 16, "y": 14, "size": 32 },
+      "face": { "sheet": "retratos", "column": 4 }
     },
     "gerente": {
-      "sheet": "gerente",
+      "sheet": "gerente_blazer",
       "feet": 0,
       "label_above": 62,
       "animations": {
@@ -123,7 +125,8 @@
       "sit_on": { "tv": "sofa", "videogame": "sofa" },
       "carry": { "marmita": { "walk": "carry", "idle": "carry_idle" } },
       "hidden": ["restroom"],
-      "portrait": { "frame": 48, "x": 16, "y": 14, "size": 32 }
+      "portrait": { "frame": 48, "x": 16, "y": 14, "size": 32 },
+      "face": { "sheet": "retratos", "column": 1 }
     },
     "vigia": {
       "sheet": "vigia",
@@ -139,7 +142,8 @@
       "asleep": "idle",
       "seated": "sit",
       "hidden": ["restroom"],
-      "portrait": { "frame": 48, "x": 16, "y": 14, "size": 32 }
+      "portrait": { "frame": 48, "x": 16, "y": 14, "size": 32 },
+      "face": { "sheet": "retratos", "column": 3 }
     }
   }
 }

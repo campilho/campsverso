@@ -26,6 +26,7 @@ def test_ambiente_local() -> None:
 def test_mundo_da_fazenda() -> None:
     world = load_world(REPO / "config" / "worlds" / "farm-camps-01.yaml", root=REPO)
     assert (world.worldid, world.cartridge, world.seed) == ("farm-camps-01", "farm_camps", 20261010)
+    assert (world.player, world.avatar) == ("camps", "camps")  # o script conduz o próprio Camps
     assert world.start.isoformat() == "2026-10-10T06:00:00-03:00"
     assert (world.mode, world.scale, world.paused, world.rules_file) == (
         "continuous",
@@ -89,7 +90,7 @@ def test_o_relogio_ancorado_no_real(tmp_path: Path) -> None:
 def test_o_orcamento_do_escritorio() -> None:
     """ADR-0080: o escritório tem teto por pedido e, no teto do dia ou do total, desliga a mente em
     vez de pausar o mundo. Sem orçamento, a guarda não sobe, e o `make escritorio` caía junto."""
-    for name in ("office-campsverso-01", "office-campsverso-demo"):
+    for name in ("office-campsverso-02", "office-campsverso-demo"):
         world = load_world(REPO / "config" / "worlds" / f"{name}.yaml", root=REPO)
         budget = world.budget
         assert budget is not None
@@ -98,13 +99,13 @@ def test_o_orcamento_do_escritorio() -> None:
         assert budget.on_exceeded == "mind_off"
     # Quem programa sem escolha na prancheta: no escritório vivo, o Claude Code com o Opus 5.5, como
     # recomendou a comparação das mãos (22/nov); na demonstração, o nosso harness.
-    live = load_world(REPO / "config" / "worlds" / "office-campsverso-01.yaml", root=REPO)
-    assert (live.minds["camps"].hands, live.minds["camps"].model) == (
+    live = load_world(REPO / "config" / "worlds" / "office-campsverso-02.yaml", root=REPO)
+    assert (live.minds["tiago"].hands, live.minds["tiago"].model) == (
         "claude_code",
         "claude-opus-5-5",
     )
     demo = load_world(REPO / "config" / "worlds" / "office-campsverso-demo.yaml", root=REPO)
-    assert demo.minds["camps"].hands == "api"
+    assert demo.minds["tiago"].hands == "api"
 
 
 def test_as_maos_do_mundo(tmp_path: Path) -> None:
@@ -136,11 +137,12 @@ def test_o_que_fazer_no_teto(tmp_path: Path) -> None:
 
 
 def test_o_codehost_do_escritorio_vivo_e_o_prefixo_dos_ramos(tmp_path: Path) -> None:
-    """ADR-0083: o revisor em ordem (o plano A primeiro) e os ramos do dev sob `dev/`."""
-    live = load_world(REPO / "config" / "worlds" / "office-campsverso-01.yaml", root=REPO).codehost
+    """ADR-0083: o revisor em ordem (o plano A primeiro) e os ramos do dev sob `dev/`; no mundo 02,
+    os do Tiago sob `dev/tiago/`, para não colidir com os do mundo 01 (ADR-0092)."""
+    live = load_world(REPO / "config" / "worlds" / "office-campsverso-02.yaml", root=REPO).codehost
     assert live is not None
     assert live.reviewers == ("openai/gpt-6.2-astra", "google/gemini-4-neon")
-    assert live.branch_prefix == "dev/"
+    assert live.branch_prefix == "dev/tiago/"
     base = "worldid: lab-01\ncartridge: lab\nseed: 1\nstart: 2026-11-16T00:00:00-03:00\n"
     world = tmp_path / "mundo.yaml"
     host = "codehost: {host: memory, repo: a/b, branch_prefix: %s}\n"
@@ -151,3 +153,15 @@ def test_o_codehost_do_escritorio_vivo_e_o_prefixo_dos_ramos(tmp_path: Path) -> 
     world.write_text(base + host % "main/", encoding="utf-8")
     with pytest.raises(ValueError, match="branch_prefix inválido"):
         load_world(world)
+
+
+def test_o_dev_do_escritorio_e_o_tiago() -> None:
+    """ADR-0092: nos mundos do escritório, o script e a mente conduzem o Tiago, e o humano entra
+    como o gerente, o Camps; o mundo vivo é o 02."""
+    for name in ("office-campsverso-02", "office-campsverso-demo", "office-campsverso-teste"):
+        world = load_world(REPO / "config" / "worlds" / f"{name}.yaml", root=REPO)
+        assert (world.player, world.avatar) == ("gerente", "tiago"), name
+    live = load_world(REPO / "config" / "worlds" / "office-campsverso-02.yaml", root=REPO)
+    assert live.worldid == "office-campsverso-02"
+    assert (live.minds["tiago"].id, live.minds["tiago"].mind) == ("llm/tiago", "tiago_escritorio")
+    assert not (REPO / "config" / "worlds" / "office-campsverso-01.yaml").exists()

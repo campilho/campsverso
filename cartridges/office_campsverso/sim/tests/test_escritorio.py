@@ -94,18 +94,18 @@ def _write(core: KernelCore, title: str = "Busca por nome", size: str = "P") -> 
 def test_o_dia_util_do_dev_e_do_vigia() -> None:
     core = _core()
     assert core.world.avatar_map["vigia"].present  # meia-noite de segunda: o plantão
-    assert not core.world.avatar_map["camps"].present
+    assert not core.world.avatar_map["tiago"].present
     facts = _until(core, "09:00")
     assert _only(facts, "avatar.entered") == [
-        {"avatar_id": "camps", "position": {"x": 9, "y": 15}, "reason": "expediente"}
+        {"avatar_id": "tiago", "position": {"x": 9, "y": 15}, "reason": "expediente"}
     ]
     assert _only(facts, "avatar.left")[0]["avatar_id"] == "vigia"
     assert not _only(_until(core, "12:00"), "avatar.left")  # o almoço é na copa (ADR-0080)
-    assert core.world.avatar_map["camps"].present
+    assert core.world.avatar_map["tiago"].present
     assert not core.world.avatar_map["vigia"].present  # o vigia não vem no almoço
     facts = _until(core, "18:00")
     assert _only(facts, "avatar.left")[0] == {
-        "avatar_id": "camps",
+        "avatar_id": "tiago",
         "reason": "expediente",
         "position": {"x": 9, "y": 15},
     }
@@ -119,7 +119,7 @@ def test_no_fim_de_semana_e_no_feriado_o_dev_nao_vem(day: datetime) -> None:
     """Um sábado, e a sexta-feira da Consciência Negra."""
     core = _core(day)
     _until(core, "10:00")
-    assert not core.world.avatar_map["camps"].present
+    assert not core.world.avatar_map["tiago"].present
     assert core.world.avatar_map["vigia"].present
 
 
@@ -190,8 +190,8 @@ def test_cada_papel_faz_o_que_e_dele_e_perto_do_lugar_certo() -> None:
     _write(core)
     taken = _act(core, "gerente", "take_ticket", {}, HUMAN["id"])
     assert _only(taken, "action.rejected")[0]["reason"] == "not_allowed"
-    _act(core, "camps", "move", {"near": "quadro"}, DEV)
-    wrote = _act(core, "camps", "write_ticket", {"title": "x"}, DEV)
+    _act(core, "tiago", "move", {"near": "quadro"}, DEV)
+    wrote = _act(core, "tiago", "write_ticket", {"title": "x"}, DEV)
     assert _only(wrote, "action.rejected")[0]["reason"] == "not_allowed"
 
 
@@ -202,7 +202,7 @@ def test_nenhum_humano_assume_o_dev() -> None:
             "id": "cmd-dev",
             "type": "campsverso.cmd.avatar.possess.v1",
             "actor": "human/operator",
-            "data": {"avatar_id": "camps", "controller": HUMAN},
+            "data": {"avatar_id": "tiago", "controller": HUMAN},
         }
     )
     assert _only(core.drain(), "world.command.rejected")[0]["reason"] == "controller_not_allowed"
@@ -213,33 +213,33 @@ def test_pegar_trabalhar_parar_para_o_almoco_na_copa_e_entregar() -> None:
     _until(core, "11:40")
     _manager_in(core)
     _write(core, size="P")  # 15 minutos de trabalho
-    _act(core, "camps", "move", {"near": "quadro"}, DEV)
-    (taken,) = _only(_act(core, "camps", "take_ticket", {}, DEV), "office.ticket.taken")
+    _act(core, "tiago", "move", {"near": "quadro"}, DEV)
+    (taken,) = _only(_act(core, "tiago", "take_ticket", {}, DEV), "office.ticket.taken")
     assert taken["number"] == 1
-    _act(core, "camps", "move", {"target": {"x": 4, "y": 5}}, DEV)  # a cadeira, junto da mesa
+    _act(core, "tiago", "move", {"target": {"x": 4, "y": 5}}, DEV)  # a cadeira, junto da mesa
     core.submit(
         {
             "id": "cmd-work",
             "type": "campsverso.cmd.action.propose.v1",
             "controllerid": DEV,
-            "data": {"avatar_id": "camps", "action": "work", "params": {}},
+            "data": {"avatar_id": "tiago", "action": "work", "params": {}},
         }
     )
     for _ in range(5 * 60 * TICKS_PER_SECOND):  # cinco minutos de trabalho
         core.step()
-    _act(core, "camps", "move", {"near": "mesa-copa-1"}, DEV)  # para: o trabalho fica guardado
+    _act(core, "tiago", "move", {"near": "mesa-copa-1"}, DEV)  # para: o trabalho fica guardado
     worked = core.world.entity_map["pedido-001"].attributes["trabalho"]
     assert isinstance(worked, int)
     assert 0 < worked < 900
     _until(core, "12:00")
-    (lunch,) = _only(_act(core, "camps", "lunch", {}, DEV), "action.accepted")
+    (lunch,) = _only(_act(core, "tiago", "lunch", {}, DEV), "action.accepted")
     assert lunch["duration_ticks"] == TICKS_PER_HOUR - 5 * 60 * TICKS_PER_SECOND  # até 12:55
-    _act(core, "camps", "move", {"target": {"x": 4, "y": 5}}, DEV)
-    early = _act(core, "camps", "deliver", {}, DEV)
+    _act(core, "tiago", "move", {"target": {"x": 4, "y": 5}}, DEV)
+    early = _act(core, "tiago", "deliver", {}, DEV)
     assert _only(early, "action.rejected")[0]["reason"] == "not_done"
-    (rest,) = _only(_act(core, "camps", "work", {}, DEV), "action.accepted")
+    (rest,) = _only(_act(core, "tiago", "work", {}, DEV), "action.accepted")
     assert rest["duration_ticks"] == (900 - worked) * TICKS_PER_SECOND  # só o que faltava
-    (delivered,) = _only(_act(core, "camps", "deliver", {}, DEV), "office.ticket.delivered")
+    (delivered,) = _only(_act(core, "tiago", "deliver", {}, DEV), "office.ticket.delivered")
     assert delivered["worked_seconds"] == 900
 
 
@@ -247,7 +247,7 @@ def test_as_pausas_da_rotina_ao_lado_de_cada_coisa() -> None:
     """ADR-0080: ilustrativas, de qualquer um, ao lado da coisa; o almoço só na hora dele."""
     core = _core()
     _until(core, "09:00")
-    far = _act(core, "camps", "coffee", {}, DEV)
+    far = _act(core, "tiago", "coffee", {}, DEV)
     assert _only(far, "action.rejected")[0]["reason"] == "not_adjacent"
     for thing, action, seconds in (
         ("bebedouro", "drink", 30),
@@ -257,13 +257,13 @@ def test_as_pausas_da_rotina_ao_lado_de_cada_coisa() -> None:
         ("lixeira", "trash", 5),
         ("porta-banheiro", "restroom", 240),
     ):
-        _act(core, "camps", "move", {"near": thing}, DEV)
-        facts = _act(core, "camps", action, {}, DEV)
+        _act(core, "tiago", "move", {"near": thing}, DEV)
+        facts = _act(core, "tiago", action, {}, DEV)
         (accepted,) = _only(facts, "action.accepted")
         assert accepted["duration_ticks"] == seconds * TICKS_PER_SECOND
         assert _only(facts, "action.completed")
-    _act(core, "camps", "move", {"near": "mesa-copa-1"}, DEV)
-    early = _act(core, "camps", "lunch", {}, DEV)
+    _act(core, "tiago", "move", {"near": "mesa-copa-1"}, DEV)
+    early = _act(core, "tiago", "lunch", {}, DEV)
     assert _only(early, "action.rejected")[0]["reason"] == "invalid_params"  # fora da hora
 
 
@@ -272,15 +272,15 @@ def test_o_banheiro_fica_fora_da_sala() -> None:
     vai pelo corredor até a porta do banheiro e volta pelo mesmo caminho."""
     core = _core()
     _until(core, "09:00")
-    _act(core, "camps", "move", {"target": {"x": 4, "y": 5}}, DEV)
-    facts = _act(core, "camps", "move", {"near": "porta-banheiro"}, DEV)
+    _act(core, "tiago", "move", {"target": {"x": 4, "y": 5}}, DEV)
+    facts = _act(core, "tiago", "move", {"near": "porta-banheiro"}, DEV)
     (moved,) = _only(facts, "world.entity.moved")
     corners = [(p["x"], p["y"]) for p in moved["waypoints"]]
     assert (9, 13) in corners or any(y >= 14 for _, y in corners)  # pela porta, pelo corredor
-    here = core.world.position_of("camps")
+    here = core.world.position_of("tiago")
     assert here is not None
     assert here.y == 14  # no corredor, diante da porta do banheiro
-    assert _only(_act(core, "camps", "restroom", {}, DEV), "action.completed")
+    assert _only(_act(core, "tiago", "restroom", {}, DEV), "action.completed")
 
 
 def test_o_trabalho_em_blocos_soma_cada_bloco() -> None:
@@ -288,11 +288,11 @@ def test_o_trabalho_em_blocos_soma_cada_bloco() -> None:
     _until(core, "09:00")
     _manager_in(core)
     _write(core, size="P")
-    _act(core, "camps", "move", {"near": "quadro"}, DEV)
-    _act(core, "camps", "take_ticket", {}, DEV)
-    _act(core, "camps", "move", {"target": {"x": 4, "y": 5}}, DEV)
+    _act(core, "tiago", "move", {"near": "quadro"}, DEV)
+    _act(core, "tiago", "take_ticket", {}, DEV)
+    _act(core, "tiago", "move", {"target": {"x": 4, "y": 5}}, DEV)
     for done in (60, 120, 180):
-        _act(core, "camps", "work", {"seconds": 60}, DEV)
+        _act(core, "tiago", "work", {"seconds": 60}, DEV)
         assert core.world.entity_map["pedido-001"].attributes["trabalho"] == done
 
 
@@ -301,11 +301,11 @@ def test_o_gerente_aceita_ou_devolve_com_o_comentario() -> None:
     _until(core, "09:00")
     _manager_in(core)
     _write(core, size="P")
-    _act(core, "camps", "move", {"near": "quadro"}, DEV)
-    _act(core, "camps", "take_ticket", {}, DEV)
-    _act(core, "camps", "move", {"target": {"x": 4, "y": 5}}, DEV)
-    _act(core, "camps", "work", {}, DEV)
-    _act(core, "camps", "deliver", {}, DEV)
+    _act(core, "tiago", "move", {"near": "quadro"}, DEV)
+    _act(core, "tiago", "take_ticket", {}, DEV)
+    _act(core, "tiago", "move", {"target": {"x": 4, "y": 5}}, DEV)
+    _act(core, "tiago", "work", {}, DEV)
+    _act(core, "tiago", "deliver", {}, DEV)
     empty = _act(
         core, "gerente", "return_ticket", {"target": "pedido-001", "comment": " "}, HUMAN["id"]
     )
@@ -336,11 +336,11 @@ def test_aceitar_de_novo_diz_que_ja_foi_aceito() -> None:
     _until(core, "09:00")
     _manager_in(core)
     _write(core, size="P")
-    _act(core, "camps", "move", {"near": "quadro"}, DEV)
-    _act(core, "camps", "take_ticket", {}, DEV)
-    _act(core, "camps", "move", {"target": {"x": 4, "y": 5}}, DEV)
-    _act(core, "camps", "work", {}, DEV)
-    _act(core, "camps", "deliver", {}, DEV)
+    _act(core, "tiago", "move", {"near": "quadro"}, DEV)
+    _act(core, "tiago", "take_ticket", {}, DEV)
+    _act(core, "tiago", "move", {"target": {"x": 4, "y": 5}}, DEV)
+    _act(core, "tiago", "work", {}, DEV)
+    _act(core, "tiago", "deliver", {}, DEV)
     accepted = _act(core, "gerente", "accept_ticket", {"target": "pedido-001"}, HUMAN["id"])
     assert _only(accepted, "office.ticket.accepted")
     again = _act(core, "gerente", "accept_ticket", {"target": "pedido-001"}, HUMAN["id"])
@@ -374,10 +374,10 @@ def test_a_entrega_com_o_patch_da_oficina() -> None:
     _until(core, "09:00")
     _manager_in(core)
     _write(core, size="P")
-    _act(core, "camps", "move", {"near": "quadro"}, DEV)
-    _act(core, "camps", "take_ticket", {}, DEV)
-    _act(core, "camps", "move", {"target": {"x": 4, "y": 5}}, DEV)
-    _act(core, "camps", "work", {}, DEV)
+    _act(core, "tiago", "move", {"near": "quadro"}, DEV)
+    _act(core, "tiago", "take_ticket", {}, DEV)
+    _act(core, "tiago", "move", {"target": {"x": 4, "y": 5}}, DEV)
+    _act(core, "tiago", "work", {}, DEV)
     patch = {
         "ref": "office-teste/pedido-001/x.patch",
         "base": "a" * 40,
@@ -385,7 +385,7 @@ def test_a_entrega_com_o_patch_da_oficina() -> None:
         "added": 7,
         "removed": 0,
     }
-    facts = _act(core, "camps", "deliver", {"patch": patch}, DEV)
+    facts = _act(core, "tiago", "deliver", {"patch": patch}, DEV)
     (delivered,) = _only(facts, "office.ticket.delivered")
     assert delivered["patch"] == patch
     assert core.world.entity_map["pedido-001"].attributes["patch"] == patch["ref"]
@@ -403,18 +403,18 @@ def test_o_sofa_a_marmita_e_o_menu_de_pausas() -> None:
     assert menu["videogame"] == ["sofa", "tv"]
     assert set(menu) >= {"drink", "coffee", "fridge", "microwave", "lunch", "trash", "restroom"}
     _until(core, "09:00")
-    _act(core, "camps", "move", {"target": {"x": 12, "y": 6}}, DEV)
-    far = _act(core, "camps", "videogame", {}, DEV)
+    _act(core, "tiago", "move", {"target": {"x": 12, "y": 6}}, DEV)
+    far = _act(core, "tiago", "videogame", {}, DEV)
     assert _only(far, "action.rejected")[0]["reason"] == "not_adjacent"
-    _act(core, "camps", "move", {"target": {"x": 16, "y": 6}}, DEV)
-    (played,) = _only(_act(core, "camps", "videogame", {}, DEV), "action.accepted")
+    _act(core, "tiago", "move", {"target": {"x": 16, "y": 6}}, DEV)
+    (played,) = _only(_act(core, "tiago", "videogame", {}, DEV), "action.accepted")
     assert played["duration_ticks"] == 15 * 60 * TICKS_PER_SECOND
-    _act(core, "camps", "move", {"near": "geladeira"}, DEV)
-    _act(core, "camps", "fridge", {}, DEV)
-    assert core.world.entity_map["camps"].attributes["carregando"] == "marmita"
-    _act(core, "camps", "move", {"near": "lixeira"}, DEV)
-    _act(core, "camps", "trash", {}, DEV)
-    assert core.world.entity_map["camps"].attributes.get("carregando") is None
+    _act(core, "tiago", "move", {"near": "geladeira"}, DEV)
+    _act(core, "tiago", "fridge", {}, DEV)
+    assert core.world.entity_map["tiago"].attributes["carregando"] == "marmita"
+    _act(core, "tiago", "move", {"near": "lixeira"}, DEV)
+    _act(core, "tiago", "trash", {}, DEV)
+    assert core.world.entity_map["tiago"].attributes.get("carregando") is None
 
 
 # ------------------------------------------------------------------ a bancada (o plano do M24, §4)

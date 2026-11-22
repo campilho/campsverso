@@ -12,7 +12,7 @@ office:
     lunch_tail_minutes: 5 # comer acaba às 12:55: jogar fora e voltar à mesa (ADR-0082)
     closes: "18:00"
     # A convocação (a parte 5 do M25): o usuário trabalha nos fins de semana e feriados; ao
-    # entrar como o gerente fora do expediente, o Camps vem. O resto vem do gênero.
+    # entrar como o gerente fora do expediente, o Tiago vem. O resto vem do gênero.
     on_call:
       enabled: true
       on_manager_enter: true
@@ -51,15 +51,17 @@ robos:
     modulo: tools.robos.briefing
     descricao: Monta o briefing de uma sessão do Claude Code a partir do pedido e das notas da memória.
 
-# O elenco (ADR-0077): o dev é sempre um LLM ou um script; o humano entra como o gerente.
+# O elenco (ADR-0077): o dev é sempre um LLM ou um script; o humano entra como o gerente. Desde
+# 22/nov (ADR-0092), o dev é o Tiago, e o gerente se chama Camps: o id dele continua `gerente`, a
+# cadeira do jogador.
 cast:
-  - id: camps
-    name: Camps
+  - id: tiago
+    name: Tiago
     role: dev
     controller: { type: script, id: script/dev }
     accepts: [llm, script, replay]
   - id: gerente
-    name: Gerente
+    name: Camps
     role: gerente
     controller: { type: script, id: script/gerente-fora } # fora do escritório até alguém o assumir
     accepts: [human, script, replay]

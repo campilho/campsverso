@@ -1,10 +1,10 @@
 # Bíblia do escritório do Campsverso
 
-*A v0.4 (ADR-0077), o M23 (ADR-0078); as mãos do dev, no M26 (ADR-0089). As regras e os números do escritório: o gênero `office` e o cenário `office_campsverso`. Os dados ficam em `cartridges/office/sim/.../data/office.yaml` (o gênero) e `cartridges/office_campsverso/sim/.../data/escritorio.yaml` (o cenário); se este texto e os dados discordarem, valem os dados, e o texto se corrige.*
+*A v0.4 (ADR-0077), o M23 (ADR-0078); as mãos do dev, no M26 (ADR-0089); o Tiago e o gerente Camps (ADR-0092). As regras e os números do escritório: o gênero `office` e o cenário `office_campsverso`. Os dados ficam em `cartridges/office/sim/.../data/office.yaml` (o gênero) e `cartridges/office_campsverso/sim/.../data/escritorio.yaml` (o cenário); se este texto e os dados discordarem, valem os dados, e o texto se corrige.*
 
 ## 1. O que é
 
-Um escritório de programação em tempo real. Um dev de IA, o Camps, mora nele; um humano entra como o gerente, escreve os pedidos no quadro, conversa com o dev e aceita ou devolve o que ele entrega. Não há regra oculta: a medida é o pedido (ADR-0077).
+Um escritório de programação em tempo real. Um dev de IA, o Tiago, mora nele; um humano entra como o gerente, o Camps, escreve os pedidos no quadro, conversa com o dev e aceita ou devolve o que ele entrega. Não há regra oculta: a medida é o pedido (ADR-0077).
 
 ## 2. O tempo
 
@@ -28,8 +28,8 @@ Uma sala de 20 × 14 tiles com as paredes, e o corredor embaixo, em duas linhas 
 |---|---|---|
 | Quadro dos pedidos | (3, 1), na parede do fundo; o desenho vai das colunas 2 a 5 | `board` |
 | Os quatro cubículos | divisórias nas linhas 3 e 7 (colunas 2 a 10) e nas colunas 2, 6 e 10 | o tile `partition`, que não deixa passar; abertos para o sul |
-| Mesa do Camps | (4, 4), no cubículo de cima à esquerda; o desenho vai de 3 a 5 | `desk`, bloqueia; `dono: camps` |
-| Cadeira do Camps | (4, 5) | `chair` |
+| Mesa do Tiago | (4, 4), no cubículo de cima à esquerda; o desenho vai de 3 a 5 | `desk`, bloqueia; `dono: tiago` |
+| Cadeira do Tiago | (4, 5) | `chair` |
 | As outras mesas e cadeiras | (8, 4) e (8, 5); (4, 8) e (4, 9); (8, 8) e (8, 9) | `desk` e `chair`, vazias |
 | Arquivos | (12, 2) e (13, 2) | `file_cabinet`, bloqueiam |
 | Sala de descompressão | o tapete de (14, 3) a (18, 6), a TV em (16, 2), o sofá em (16, 5) e os pufes em (14, 3), (18, 3) e (18, 5) | `rug`, `tv`, `sofa` e `puff` |
@@ -48,11 +48,13 @@ Andar: 4 tiles por segundo na tela, em qualquer escala; o kernel converte pela e
 
 | Quem | Papel | Controlador padrão | Aceita | Quando está |
 |---|---|---|---|---|
-| Camps | `dev` | `script/dev` | `llm`, `script`, `replay`: nunca um humano | no expediente, e convocado fora dele (ADR-0086) |
-| Gerente | `gerente` | `script/gerente-fora` (fora do escritório) | `human`, `script`, `replay` | enquanto alguém o assume; entra pela porta e sai quando é devolvido |
+| Tiago | `dev` | `script/dev` | `llm`, `script`, `replay`: nunca um humano | no expediente, e convocado fora dele (ADR-0086) |
+| Camps, o gerente | `gerente` | `script/gerente-fora` (fora do escritório) | `human`, `script`, `replay` | enquanto alguém o assume; entra pela porta e sai quando é devolvido |
 | Vigia | `vigia` | `script/vigia` | `script`, `replay` | sempre que o dev não está: à noite, no fim de semana e nos feriados (não no almoço, nem com o dev convocado) |
 
 A cadeira do jogador é o gerente (`player: gerente`): a tela do jogador o assume, e o gateway recusa qualquer outro avatar.
+
+**Os nomes** (ADR-0092): desde 22/nov, o dev é o Tiago (id `tiago`), e o gerente se chama Camps, de blazer; o id dele continua `gerente`, a cadeira do jogador. Até então, o dev era o Camps (id `camps`), no mundo `office-campsverso-01`, que ficou no arquivo; o escritório vivo é o `office-campsverso-02`.
 
 **A convocação** (ADR-0086): fora do expediente, entre 08:00 e 23:00, o gerente convoca o dev, só de entrar no escritório (uma vez por visita) ou pelo botão "Convocar" do painel.
 - O dev chega pela porta 2 minutos depois e fica até ser dispensado, até o gerente sair, até 6 horas, até as 23:00 ou até o expediente começar, que o assume.

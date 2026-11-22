@@ -120,13 +120,13 @@ def _snapshot(
             "titulo": "Testador",
             "descricao": "Rodar os testes.",
             "estado": estado,
-            "dono": "camps",
+            "dono": "tiago",
             **(chosen or {}),  # as mãos e o modelo da prancheta (ADR-0089)
         },
     }
     view: dict[str, Any] = {
         "clock": {"tick": 5, "sim_time": "2026-11-16T10:00:00-03:00", "day": day},
-        "self": {"entity_id": "camps", "position": {"x": 4, "y": 5}},
+        "self": {"entity_id": "tiago", "position": {"x": 4, "y": 5}},
         "weather": {},
         "entities": [ticket, *extra],
         "containers": [],
@@ -134,7 +134,7 @@ def _snapshot(
     if heard:
         view["heard"] = heard
     return {
-        "avatar_id": "camps",
+        "avatar_id": "tiago",
         "decision": {"reason": "action_completed"},
         "as_of_tick": 5,
         "view": view,
@@ -180,7 +180,7 @@ def _mind(
 
     shop = WorkshopSession(
         "office-teste",
-        "camps",
+        "tiago",
         LocalWorkshop(repo, tmp_path / "oficina", python_env=False, python=Path(sys.executable)),
         MemoryBlobStore(),
         lambda diff: review(diff, []),
@@ -197,8 +197,8 @@ def _mind(
         ),
         port,
         shop,
-        controller_id="llm/camps",
-        avatar_id="camps",
+        controller_id="llm/tiago",
+        avatar_id="tiago",
         model="claude-sonnet-5-5",
         session_tools=TOOLS,
         session_instructions="Trabalhe.",
@@ -267,7 +267,7 @@ async def test_quem_fala_com_o_dev_recebe_a_resposta_do_modelo(repo: Path, tmp_p
     )
     mind, _, _ = _mind(port, repo, tmp_path)
     heard = [
-        {"tick": 4, "avatar_id": "gerente", "text": "Como vai o testador?", "listener_id": "camps"}
+        {"tick": 4, "avatar_id": "gerente", "text": "Como vai o testador?", "listener_id": "tiago"}
     ]
     reply = await mind.decide(_snapshot(heard=heard, estado="a_fazer"))
     assert reply == {
@@ -336,9 +336,9 @@ LESSON = {
 
 def _memory() -> Memory:
     """A memória do dev com o perfil do escritório, e o dia 1 com um pedido devolvido."""
-    profile = load_mind("camps_escritorio").memory
+    profile = load_mind("tiago_escritorio").memory
     assert profile is not None
-    memory = Memory(SqliteMemory(":memory:"), "camps", MemorySettings(profile=profile))
+    memory = Memory(SqliteMemory(":memory:"), "tiago", MemorySettings(profile=profile))
     memory.port.record(
         Episode(100, 1, "17:00 gerente devolveu o pedido 1: falta o caso vazio", 9, "returned")
     )
@@ -346,7 +346,7 @@ def _memory() -> Memory:
 
 
 def test_o_perfil_do_escritorio_tem_o_tick_e_as_ferramentas_do_escritorio() -> None:
-    profile = load_mind("camps_escritorio").memory
+    profile = load_mind("tiago_escritorio").memory
     assert profile is not None
     office = ROOT / "cartridges/office/sim/src/campsverso_office_sim/data/office.yaml"
     sim = yaml.safe_load(office.read_text(encoding="utf-8"))
@@ -434,7 +434,7 @@ async def test_a_conversa_leva_a_memoria(repo: Path, tmp_path: Path) -> None:
     memory = _memory()
     port = Scripted([{"type": "text", "text": "Já vi o caso vazio."}])
     mind, _, _ = _mind(port, repo, tmp_path, memory)
-    heard = [{"tick": 4, "avatar_id": "gerente", "text": "E o caso vazio?", "listener_id": "camps"}]
+    heard = [{"tick": 4, "avatar_id": "gerente", "text": "E o caso vazio?", "listener_id": "tiago"}]
     mind._review_day = 1  # pyright: ignore[reportPrivateUsage]  # sem revisão neste teste
     reply = await mind.decide(_snapshot(heard=heard, estado="a_fazer"))
     assert reply is not None
@@ -460,7 +460,7 @@ async def test_o_dev_chama_o_robo_da_bancada_na_oficina(repo: Path, tmp_path: Pa
     (repo / "tools" / "eco.py").write_text("import sys\n\nprint('eco:', *sys.argv[1:])\n")
     subprocess.run([*GIT, "-C", str(repo), "add", "-A"], check=True)
     subprocess.run([*GIT, "-C", str(repo), "commit", "-q", "-m", "eco"], check=True)
-    template = load_mind("camps_escritorio").robot_tool
+    template = load_mind("tiago_escritorio").robot_tool
     assert template is not None
     port = Scripted(
         [_use("chamar_robo", nome="eco", argumentos=["tools", "tests"])],
@@ -487,7 +487,7 @@ async def test_o_dev_chama_o_robo_da_bancada_na_oficina(repo: Path, tmp_path: Pa
 
 
 async def test_sem_robo_na_bancada_nao_ha_chamar_robo(repo: Path, tmp_path: Path) -> None:
-    template = load_mind("camps_escritorio").robot_tool
+    template = load_mind("tiago_escritorio").robot_tool
     port = Scripted([_use("pronto", resumo="Nada.")])
     mind, _, _ = _mind(port, repo, tmp_path, robot_tool=template)
     await mind.decide(_snapshot())

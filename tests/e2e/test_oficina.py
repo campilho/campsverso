@@ -59,7 +59,7 @@ async def test_a_entrega_vira_um_ramo(
 
     session = WorkshopSession(
         "office-teste",
-        "camps",
+        "tiago",
         LocalWorkshop(repo, tmp_path / "oficina", python_env=False, python=Path(sys.executable)),
         DiskBlobStore(deliveries),
         lambda diff: review(diff, []),

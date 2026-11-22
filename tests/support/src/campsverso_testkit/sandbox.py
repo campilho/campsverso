@@ -46,7 +46,7 @@ from campsverso_testkit.nats_server import nats_server
 from campsverso_testkit.soak import WORLD, Processes
 
 PORT = 8765
-LIVE_OFFICE = WORLD.parent / "office-campsverso-01.yaml"  # o `codehost` do escritório vivo
+LIVE_OFFICE = WORLD.parent / "office-campsverso-02.yaml"  # o `codehost` do escritório vivo
 
 
 def _world_file(

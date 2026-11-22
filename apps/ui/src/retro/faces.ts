@@ -1,9 +1,15 @@
-/** Os retratos pequenos da conversa (as falas, a pilha do cabeçalho, as sugestões): o mesmo recorte
- * do `Portrait`, desenhado uma vez por avatar e guardado como imagem, para não abrir a folha de
- * sprites a cada fala. */
+/** Os retratos pequenos da conversa (as falas, a pilha do cabeçalho, as sugestões), desenhados uma
+ * vez por avatar e guardados como imagem, para não abrir a folha a cada fala. Com o busto da folha
+ * de retratos (`face`, ADR-0092), o recorte do rosto: 24 x 24 a partir de (8, 4), como no canvas do
+ * Claude Design (briefing-tela-2.md, §2); sem ele, o mesmo recorte do sprite do `Portrait`. */
 import type { ArtManifest } from "../art/manifest.ts";
+import { faceCell, faceSheet } from "../panels/portrait.ts";
 
 const SIZE = 48;
+/** O rosto dentro do busto de 40 x 40. */
+const FACE = 24;
+const FACE_X = 8;
+const FACE_Y = 4;
 
 export class FaceCache {
   private readonly urls = new Map<string, string>();
@@ -37,10 +43,8 @@ export class FaceCache {
   }
 
   private load(art: ArtManifest, id: string): void {
-    const avatar = art.avatars?.[id] ?? art.avatars?.["*"];
-    const crop = avatar?.portrait;
-    const sheet = avatar === undefined ? undefined : art.sheets?.[avatar.sheet];
-    if (crop === undefined || sheet === undefined) {
+    const src = faceSheet(art, id);
+    if (src === undefined) {
       return;
     }
     const image = new Image();
@@ -48,22 +52,22 @@ export class FaceCache {
       if (this.art !== art) {
         return; // a arte mudou no meio do caminho
       }
+      const where = faceCell(art, id, image);
       const canvas = document.createElement("canvas");
       canvas.width = SIZE;
       canvas.height = SIZE;
       const context = canvas.getContext("2d");
-      if (context === null) {
+      if (where === undefined || context === null) {
         return;
       }
-      const columns = Math.max(1, Math.floor(image.width / sheet.frame_width));
-      const sx = (crop.frame % columns) * sheet.frame_width + crop.x;
-      const sy = Math.floor(crop.frame / columns) * sheet.frame_height + crop.y;
+      // O busto tem a linha do piscar (`blinkDy`): dele sai só o rosto.
+      const [sx, sy, size] = where.blinkDy === undefined ? [where.sx, where.sy, where.size] : [where.sx + FACE_X, where.sy + FACE_Y, FACE];
       context.imageSmoothingEnabled = false;
-      context.drawImage(image, sx, sy, crop.size, crop.size, 0, 0, SIZE, SIZE);
+      context.drawImage(image, sx, sy, size, size, 0, 0, SIZE, SIZE);
       this.urls.set(id, canvas.toDataURL());
       this.version++;
       this.changed();
     };
-    image.src = sheet.image;
+    image.src = src;
   }
 }

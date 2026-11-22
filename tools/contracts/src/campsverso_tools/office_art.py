@@ -13,12 +13,13 @@ saem, para os cartuchos:
   o que o mapa visual ou outra peça já desenha (o quadro na parede, o micro-ondas no balcão); a
   mesinha da copa sai com dois quadros, o segundo com a marmita aberta em cima, para quem come;
 - a folha das fichas do quadro dos pedidos, que a tela pendura pelo estado de cada pedido;
-- as folhas dos três personagens, copiadas para `cartridges/office_campsverso/art/`;
+- as folhas dos três personagens e a dos retratos, copiadas para
+  `cartridges/office_campsverso/art/`;
 - as folhas dos balões, dos ícones e da fonte (o pedido de arte de 18/nov), copiadas, e a geometria
   delas em `baloes.json`, que o `art.json` do gênero inclui: as peças, as molduras em nove fatias, o
   fio do progresso, a fonte com a largura de cada glifo e as cores da paleta em hex;
 - na folha dos ícones, os dois dos chips da tela retrô (`docs/design/briefing-tela.md`), que vieram
-  soltos em `escritorio-arte/tela/`: colados nas casas livres da folha.
+  soltos em `escritorio-arte/tela/`: colados numa linha a mais, embaixo da folha.
 
 O mapa visual sai depois, por `make mapa-visual`. Com `--check`, só confere se está tudo em dia.
 """
@@ -63,7 +64,11 @@ FURNITURE = (
     "robo_publicador",
     "robo_briefing",  # o robô do briefing (M25): a criação do dev, na bancada
 )
-CHARACTERS = ("camps", "gerente", "vigia")
+# O elenco do escritório (ADR-0092): o Tiago, o dev; o Camps, o gerente, de blazer; e o vigia. Os
+# retratos são os bustos de 40 x 40 dos chips e da conversa, uma coluna por personagem. As outras
+# folhas da pasta (o Camps de óculos, o senhor de terno, a camisa do gerente e o elenco novo)
+# ficam lá, guardadas para outros lugares.
+CHARACTERS = ("tiago", "gerente_blazer", "vigia", "retratos")
 # Soltas: as fichas do quadro, que a tela pendura pelo estado (10 x 10), os selos do PR nelas
 # (6 x 6) e a placa da versão na parede numa linha, com o commit e o dia escritos pela tela (96 x
 # 64; a placa de duas linhas do M25 saiu em 21/nov).

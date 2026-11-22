@@ -2,7 +2,7 @@
 
 Antes de um modelo trabalhar como o dev, ele faz dois pedidos curtos num repositório de exemplo,
 pelo mesmo caminho do escritório: a sessão da oficina (`WorkSession`), as instruções e o cartão do
-dev (`camps_escritorio`), as ferramentas da oficina e a de anotar, a memória vazia na abertura.
+dev (`tiago_escritorio`), as ferramentas da oficina e a de anotar, a memória vazia na abertura.
 
 - **Escrever:** um arquivo pequeno com o teste.
 - **Consertar:** um teste falha por um defeito no código; o conserto é no código, sem mudar o teste.
@@ -81,7 +81,7 @@ MODELS = (
     "claude-fable-5-2",
     "openai/gpt-6-astra",
 )
-MIND = "camps_escritorio"
+MIND = "tiago_escritorio"
 WORLD = "conformidade"
 NO_ACTION_LIMIT = 0.05
 FORMAT_LIMIT = 2
@@ -420,7 +420,7 @@ def api_session(port: ModelPort, mind: Mind, model: str) -> Session:
             model=model,
             system=system_of(mind),
             tools=tools,
-            avatar_id="camps",
+            avatar_id="tiago",
             ticket_id=task.ticket_id,
             max_steps=MAX_STEPS,
             effort=EFFORT,
@@ -519,7 +519,7 @@ def hands_session(hands: Hands, mind: Mind, model: str, tally: Tally) -> Session
             opening(mind, task),
             system_of(mind, hands.harness),
             model,
-            "camps",
+            "tiago",
             EFFORT,
             HandsLimits(MAX_STEPS, CAP_USD, SESSION_SECONDS),
         )

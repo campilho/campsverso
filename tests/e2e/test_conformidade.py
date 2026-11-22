@@ -237,7 +237,7 @@ async def test_o_claude_code_faz_os_dois_pedidos_pela_porta_e_passa(tmp_path: Pa
     # As instruções do Claude Code são as das mãos de fora: sem o `pronto` do nosso harness.
     system = str(fake.seen[0]["body"]["system"])
     assert "Aqui não há o `pronto`" in system
-    assert "Você é o Camps" in system
+    assert "Você é o Tiago" in system
 
 
 async def test_a_fita_do_opus_pelo_claude_code_passa_de_novo_sem_a_api(tmp_path: Path) -> None:

@@ -70,14 +70,15 @@ REPLAY_ID = "replay/teste"
 LLM_ID = "llm/camps"
 MODEL = "claude-haiku-5-5"
 ENV = REPO / "config" / "env" / "local.yaml"
-# Os mundos de teste por cartucho (ADR-0062): o id do mundo, o fazendeiro-script e a mente.
-WORLDS: dict[str, tuple[str, str, str]] = {
-    "farm_camps": (WORLD, "farmer", "camps"),
-    "farm_boavista": ("farm-boavista-01", "farmer2", "camps_boavista"),
-    "farm_morada_do_sol": ("farm-morada-do-sol-01", "farmer2", "camps_morada"),
+# Os mundos de teste por cartucho (ADR-0062): o id do mundo, o fazendeiro-script, a mente e o avatar
+# que o script ou a mente conduz.
+WORLDS: dict[str, tuple[str, str, str, str]] = {
+    "farm_camps": (WORLD, "farmer", "camps", "camps"),
+    "farm_boavista": ("farm-boavista-01", "farmer2", "camps_boavista", "camps"),
+    "farm_morada_do_sol": ("farm-morada-do-sol-01", "farmer2", "camps_morada", "camps"),
     # O escritório de teste (ADR-0078): o dev-script, o vigia e o gerente-script; com o modelo, a
-    # mente com rotina do M24 (ADR-0080).
-    "office_campsverso": ("office-campsverso-teste", "dev", "camps_escritorio"),
+    # mente com rotina do M24 (ADR-0080). O dev é o Tiago desde 22/nov (ADR-0092).
+    "office_campsverso": ("office-campsverso-teste", "dev", "tiago_escritorio", "tiago"),
 }
 
 type ControllerKind = Literal["script", "replay", "none", "llm"]
@@ -139,9 +140,10 @@ class Pipeline:
         gerente-script). A oficina fica ao lado do repositório, ou em `workshop_root`; com
         `python_env`, cada espaço ganha o ambiente Python dele (`uv sync`, sem rede), como no
         escritório vivo (a comparação das mãos)."""
-        worldid, default_script, default_mind = WORLDS[cartridge]
+        worldid, default_script, default_mind, avatar = WORLDS[cartridge]
         script = script or default_script
         self.worldid, self.cartridge = worldid, cartridge
+        self.avatar, self.llm_id = avatar, f"llm/{avatar}"
         mind = mind or default_mind
         self.inner = InMemoryBus()
         self.bus = ValidatingBus(self.inner)
@@ -164,9 +166,9 @@ class Pipeline:
         # Um dia em ticks pelo relógio do cartucho: 1.440 na fazenda, 43.200 no escritório.
         self.day = core.calendar.ticks_per_minute * DAY
         if controller == "replay":
-            core.configure_controllers({"camps": ControllerRef("replay", REPLAY_ID)})
+            core.configure_controllers({self.avatar: ControllerRef("replay", REPLAY_ID)})
         if controller == "llm":
-            core.configure_controllers({"camps": ControllerRef("llm", LLM_ID)})
+            core.configure_controllers({self.avatar: ControllerRef("llm", self.llm_id)})
             core.configure_clock("continuous", None, False)
         else:
             core.configure_clock("max", None, False)
@@ -196,10 +198,10 @@ class Pipeline:
                 farmer = cast(Controller, configured(script_config))
             self.script = farmer
             # O avatar nasce com o script do cartucho; outro script (o 3, o oráculo) pede a posse.
-            core.configure_controllers({"camps": ControllerRef("script", farmer.controller_id)})
+            core.configure_controllers({self.avatar: ControllerRef("script", farmer.controller_id)})
             self.runner = ControllerRunner(
                 worldid,
-                "camps",
+                self.avatar,
                 farmer,
                 self.bus,
                 self.ids,
@@ -210,7 +212,7 @@ class Pipeline:
         elif controller == "replay":
             self.runner = ReplayRunner(
                 worldid,
-                "camps",
+                self.avatar,
                 REPLAY_ID,
                 recording,
                 self.bus,
@@ -227,7 +229,7 @@ class Pipeline:
                 bus=self.bus,
                 worldid=worldid,
                 cartridge=cartridge,
-                controller={"type": "llm", "id": LLM_ID},
+                controller={"type": "llm", "id": self.llm_id},
                 prices=load_env(ENV).models,
                 clock=self.clock,
                 ids=self.ids,
@@ -247,7 +249,7 @@ class Pipeline:
                     full_notebook=full_notebook,
                     profile=package.memory or MemoryProfile(),  # o do escritório, ou o da fazenda
                 )
-                notebook = Memory(store, "camps", settings)
+                notebook = Memory(store, self.avatar, settings)
             elif compare or advisor or full_notebook:
                 raise ValueError(
                     "a comparação, o conselheiro e o caderno completo são da reflexão: precisam "
@@ -262,12 +264,12 @@ class Pipeline:
                     raise ValueError("o escritório precisa de um repositório: workshop_repo")
                 workshop = self._workshop(worldid, workshop_repo)
                 brain = self.office_mind = OfficeMind(
-                    load_controller(script, "camps"),
+                    load_controller(script, self.avatar),
                     package,
                     metered,
                     workshop,
-                    controller_id=LLM_ID,
-                    avatar_id="camps",
+                    controller_id=self.llm_id,
+                    avatar_id=self.avatar,
                     model=model,
                     session_tools=package.workshop,
                     session_instructions=package.session,
@@ -284,8 +286,8 @@ class Pipeline:
                 brain = self.mind = LlmController(
                     package,
                     metered,
-                    controller_id=LLM_ID,
-                    avatar_id="camps",
+                    controller_id=self.llm_id,
+                    avatar_id=self.avatar,
                     model=model,
                     telemetry=self.telemetry,
                     memory=notebook,
@@ -293,7 +295,7 @@ class Pipeline:
                 )
             runner = ControllerRunner(
                 worldid,
-                "camps",
+                self.avatar,
                 brain,
                 self.bus,
                 self.ids,
@@ -359,7 +361,7 @@ class Pipeline:
             python=None if self._python_env else Path(sys.executable),
         )
         return WorkshopSession(
-            worldid, "camps", shop, self.deliveries, lambda diff: review(diff, [])
+            worldid, self.avatar, shop, self.deliveries, lambda diff: review(diff, [])
         )
 
     async def start(self) -> None:

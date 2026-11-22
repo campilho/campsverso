@@ -80,7 +80,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="campsverso_testkit.aplicar")
     parser.add_argument("--pedido", type=int, required=True, help="o número do pedido")
     parser.add_argument(
-        "--world", type=Path, default=REPO / "config/worlds/office-campsverso-01.yaml"
+        "--world", type=Path, default=REPO / "config/worlds/office-campsverso-02.yaml"
     )
     parser.add_argument("--data-dir", type=Path, help="a pasta de dados (a de um sandbox)")
     args = parser.parse_args(argv)

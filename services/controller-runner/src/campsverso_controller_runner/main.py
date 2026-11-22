@@ -61,7 +61,9 @@ def _parse(argv: Sequence[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="campsverso_controller_runner.main")
     parser.add_argument("--env", type=Path, default=Path("config/env/local.yaml"))
     parser.add_argument("--world", type=Path, default=Path("config/worlds/farm-camps-01.yaml"))
-    parser.add_argument("--avatar", default="camps")
+    parser.add_argument(
+        "--avatar", help="o avatar conduzido (padrão: o `avatar` do arquivo do mundo; ADR-0092)"
+    )
     parser.add_argument("--nats-url", help="substitui nats.url do ambiente")
     parser.add_argument(
         "--data-dir",
@@ -99,6 +101,7 @@ async def _until_stopped(
 async def run(args: argparse.Namespace) -> int:
     telemetry = JsonTelemetry("controller-runner")
     env, world = load_env(args.env), load_world(args.world)
+    args.avatar = args.avatar or world.avatar  # o dev no escritório, o Camps na fazenda (ADR-0092)
     if args.helpers and not world.helpers:
         # O Procfile sobe o processo em todo mundo; sem ajudantes, ele só espera o fim.
         telemetry.info("helpers.none", world=world.worldid)

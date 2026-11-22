@@ -1,7 +1,7 @@
 [project]
 name = "campsverso-office-campsverso-mind"
 version = "0.1.0.dev0"
-description = "A mente do Camps no escritório: o cartão de identidade do cenário office_campsverso sobre a mente do gênero office (ADR-0080)."
+description = "A mente do Tiago, o dev do escritório: o cartão de identidade do cenário office_campsverso sobre a mente do gênero office (ADR-0080)."
 requires-python = ">=3.14"
 license = "MIT"
 dependencies = [
@@ -10,7 +10,7 @@ dependencies = [
 ]
 
 [project.entry-points."campsverso.minds"]
-camps_escritorio = "campsverso_office_campsverso_mind:mind"
+tiago_escritorio = "campsverso_office_campsverso_mind:mind"
 
 [build-system]
 requires = ["uv_build>=0.13,<0.14"]

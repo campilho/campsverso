@@ -1,12 +1,14 @@
-# Mundo office-campsverso-01: o escritório do Campsverso, a v0.4 (ADR-0077, ADR-0078).
+# Mundo office-campsverso-02: o escritório do Campsverso, a v0.4 (ADR-0077, ADR-0078).
 # O escritório vivo: roda a 1×, no relógio de São Paulo, e ao subir salta até agora. O humano entra
-# como o gerente pela tela do jogador; o dev é o dev-script no M23 (a mente chega no M24).
+# como o gerente, o Camps, pela tela do jogador; o dev é o Tiago (ADR-0092). O mundo 01, com o dev
+# Camps e os pedidos 1 a 3 (os PRs #2 a #5), ficou no arquivo do escritório vivo.
 
-worldid: office-campsverso-01
+worldid: office-campsverso-02
 cartridge: office_campsverso
 script: dev
 player: gerente  # a cadeira do jogador: o humano entra como o gerente (ADR-0077)  # o dev-script (cartridges/office/script): o controlador que o make run sobe
-seed: 20261116
+avatar: tiago  # o avatar do dev-script e da mente: o dev, que nenhum humano assume (ADR-0092)
+seed: 20261122
 start: "2026-11-09T00:00:00-03:00"  # uma segunda-feira no passado: ao subir, a âncora salta até agora
 
 clock:  # estado inicial do relógio; depois, só por comandos
@@ -49,16 +51,19 @@ codehost:
   # Neon, os dois pela OpenRouter. A calibração de 21/nov inverteu a ordem do plano: os dois acharam
   # os três defeitos, e só o Astra não pediu nada no caso limpo. Ele comenta no PR e só aconselha.
   reviewers: [openai/gpt-6.2-astra, google/gemini-4-neon]
+  # Os ramos do Tiago (ADR-0092): o quadro do mundo 02 recomeça no pedido 1, e o prefixo próprio
+  # não deixa o dev/tiago/pedido-1 colidir com os ramos do mundo 01 no GitHub.
+  branch_prefix: dev/tiago/
 
 # A foto da percepção leva o que aconteceu desde a entrega anterior (ADR-0080): a memória do dev
 # não perde, a cada 20 deltas, o que houve no meio-tempo (a devolução de um pedido).
 perception:
   snapshot_events: true
 
-minds:  # a mente com rotina do dev (ADR-0080): `make sandbox MENTE=camps_escritorio`
-  camps:
-    id: llm/camps
-    mind: camps_escritorio  # entry point do grupo campsverso.minds (cartridges/office_campsverso/mind)
+minds:  # a mente com rotina do dev (ADR-0080): `make sandbox MENTE=tiago_escritorio`
+  tiago:
+    id: llm/tiago
+    mind: tiago_escritorio  # entry point do grupo campsverso.minds (cartridges/office_campsverso/mind)
     model: claude-opus-5-5  # a sessão na oficina e a conversa (a prova escolhe o da criação)
     # Quem programa os pedidos sem escolha na prancheta (ADR-0089, decisão 3): desde 22/nov, o Claude
     # Code com o Opus 5.5, como recomendou a comparação das mãos (docs/arena/m26-as-maos.md); o
@@ -66,5 +71,5 @@ minds:  # a mente com rotina do dev (ADR-0080): `make sandbox MENTE=camps_escrit
     hands: claude_code
     effort: medium
     max_tokens: 8192
-    cassette: {path: data/llm/office-campsverso-01.jsonl, mode: record}
+    cassette: {path: data/llm/office-campsverso-02.jsonl, mode: record}
     memory: {enabled: true}  # a memória do escritório e a revisão da manhã (o plano do M24, §2.3)
