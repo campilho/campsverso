@@ -452,6 +452,9 @@ class ClaudeCodeHands:
                                 log.write(
                                     json.dumps(message, default=_plain, ensure_ascii=False) + "\n"
                                 )
+                                # Uma sessão que cai no meio (a rede da máquina, 22/nov) deixa o
+                                # que já aconteceu no arquivo.
+                                log.flush()
                                 if isinstance(message, AssistantMessage):
                                     for block in message.content:
                                         if isinstance(block, ToolUseBlock):
