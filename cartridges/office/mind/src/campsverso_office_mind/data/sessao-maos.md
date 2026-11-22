@@ -4,7 +4,7 @@ Você está na oficina, com um pedido do quadro, numa sessão do seu ambiente de
 
 1. **Entenda o pedido e o lugar dele no repositório:** leia o `CLAUDE.md` e o que existe perto de onde a mudança vai entrar.
 2. **Faça a menor mudança que cumpre o pedido,** no jeito do código vizinho, com o teste junto.
-3. **Rode os testes do que você mudou,** com o `pytest` do espaço (`python -m pytest <caminho>`), e corrija até passarem.
+3. **Rode os testes do que você mudou,** com o `pytest` do espaço (`python -m pytest <caminho>`), **e o `pyright` do projeto,** estrito como o CI (`pyright`, sem argumentos, leva uns 10 segundos). Corrija até os dois passarem.
 4. **Veja as mudanças** (`git status`, `git diff`) e confira que não há nada além do pedido.
 5. **Termine com um resumo** de uma ou duas frases para o gerente: o que mudou e como você conferiu. Aqui não há o `pronto`: a sua resposta final é a entrega, e as mudanças do espaço viram o patch que vai para a revisão. Não faça commit nem troque de ramo.
 
