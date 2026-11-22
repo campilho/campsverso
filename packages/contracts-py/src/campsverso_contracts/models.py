@@ -4634,6 +4634,81 @@ class ObserverWorkshopStep(BaseModel):
     """
 
 
+class ObserverWorkshopSessionStep(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+    tool: Annotated[str, Field(max_length=64, min_length=1)]
+    """
+    A ferramenta pelo nome das mãos, ou `robô` para uma chamada da bancada.
+    """
+    summary: Annotated[str, Field(max_length=200)]
+    ok: bool
+    path: Annotated[str | None, Field(max_length=300)] = None
+
+
+class ObserverWorkshopSessionEnd(BaseModel):
+    """
+    O fim da sessão (workshop.session_finished.v1); sem ele, a sessão está em curso ou caiu sem o fato.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    Tick do kernel (1 minuto simulado na fazenda).
+    """
+    done: bool
+    reason: Annotated[str, Field(max_length=80, min_length=1)]
+    turns: Annotated[int, Field(ge=0)]
+    steps: Annotated[int, Field(ge=0)]
+    cost_usd: Annotated[float | None, Field(ge=0.0)] = None
+    duration_ms: Annotated[int, Field(ge=0)]
+
+
+class ObserverWorkshopSession(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    ticket_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    harness: Annotated[
+        str | None, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")
+    ] = None
+    """
+    As mãos; sem o campo, ainda não houve passo (só o briefing).
+    """
+    model: Annotated[str | None, Field(max_length=128, pattern="^[a-z0-9][a-z0-9._:/-]*$")] = None
+    started_tick: Annotated[int, Field(ge=0, title="Tick")]
+    """
+    O tick do primeiro fato da sessão (o briefing ou o primeiro passo).
+    """
+    count: Annotated[int, Field(ge=0)]
+    """
+    Quantos passos a sessão teve, contando os robôs; a lista guarda só os últimos.
+    """
+    cost_usd: Annotated[float, Field(ge=0.0)]
+    """
+    O custo das chamadas da oficina do pedido até agora; no fim, o do fato do fim.
+    """
+    steps: Annotated[list[ObserverWorkshopSessionStep], Field(max_length=50)]
+    finished: Annotated[
+        ObserverWorkshopSessionEnd | None, Field(title="ObserverWorkshopSessionEnd")
+    ] = None
+    """
+    O fim da sessão (workshop.session_finished.v1); sem ele, a sessão está em curso ou caiu sem o fato.
+    """
+
+
 class ObserverWorkshopRobot(BaseModel):
     model_config = ConfigDict(
         extra="ignore",
@@ -4665,6 +4740,10 @@ class ObserverWorkshop(BaseModel):
     steps: dict[str, ObserverWorkshopStep] | None = None
     """
     Por avatar: o último passo dele na oficina.
+    """
+    sessions: dict[str, ObserverWorkshopSession] | None = None
+    """
+    Por dev: a sessão na oficina em curso, ou a última (ADR-0089), para a tela acompanhar o trabalho: o pedido, as mãos, o modelo, os últimos passos, o custo e o fim.
     """
     robots: dict[str, ObserverWorkshopRobot] | None = None
     """

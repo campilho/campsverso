@@ -3,11 +3,18 @@
  * sugestões. A menção só escolhe o `to` do `say`; quem decide se a fala vale é o kernel. */
 import type { EnvelopeV1, EventLabel, ObserverState } from "@campsverso/contracts";
 
+import { choiceName } from "../locale.ts";
+import { ticketsOf } from "../panels/office.ts";
 import { clockText } from "../simclock.ts";
 import { describe } from "../timeline.ts";
+import { handsName } from "../workshop.ts";
 
 const SPOKE = "campsverso.avatar.spoke.v1";
 const ROBOT_CALLED = "campsverso.workshop.robot_called.v1";
+// Os marcos da sessão do dev na oficina (ADR-0089): o começo, os testes e o fim, e não cada passo.
+const STEP = "campsverso.workshop.step.v2";
+const FINISHED = "campsverso.workshop.session_finished.v1";
+const TESTS = /pytest|\btests?\b/i;
 // Os fatos que viram uma linha do sistema na conversa: o quadro, o PR, a convocação e os robôs.
 const SYSTEM = /^campsverso\.office\.(ticket|staff|light)\.[a-z_]+\.v1$/;
 const LIGHT = "campsverso.office.light.switched.v1";
@@ -139,6 +146,71 @@ function robotName(state: ObserverState, id: unknown): string {
   return `o ${name.toLowerCase()}`;
 }
 
+/** O número do pedido pela ficha, ou pelo id ("pedido-002" é o 2). */
+function ticketNumber(state: ObserverState, ticketId: unknown): string {
+  const ticket = ticketsOf(state).find((t) => t.id === ticketId);
+  if (ticket !== undefined) {
+    return String(ticket.number);
+  }
+  const digits = /(\d+)$/.exec(String(ticketId))?.[1];
+  return digits === undefined ? String(ticketId) : String(Number(digits));
+}
+
+/** Os passos que abrem uma sessão: o primeiro de um pedido, para cada dev, na ordem dos fatos. */
+function sessionStarts(timeline: readonly EnvelopeV1[]): Set<string> {
+  const open = new Map<string, unknown>();
+  const starts = new Set<string>();
+  for (const event of timeline) {
+    const data = event.data as Record<string, unknown>;
+    if (typeof data.avatar_id !== "string") {
+      continue;
+    }
+    if (event.type === STEP && open.get(data.avatar_id) !== data.ticket_id) {
+      starts.add(event.id);
+      open.set(data.avatar_id, data.ticket_id);
+    } else if (event.type === FINISHED) {
+      open.delete(data.avatar_id);
+    }
+  }
+  return starts;
+}
+
+function money(value: unknown): string | undefined {
+  return typeof value === "number" ? `US$ ${value.toFixed(2).replace(".", ",")}` : undefined;
+}
+
+/** A linha de um passo que vira marco: o primeiro da sessão e os testes; os outros, nenhuma. */
+function stepLine(state: ObserverState, data: Record<string, unknown>, first: boolean): string | undefined {
+  const who = nameOf(state, data.avatar_id) ?? "O dev";
+  if (first) {
+    const hands = handsName(typeof data.harness === "string" ? data.harness : undefined, (id) => choiceName("hands", id));
+    const model = typeof data.model === "string" ? ` (${choiceName("models", data.model)})` : "";
+    return `${who} começou a programar o pedido ${ticketNumber(state, data.ticket_id)}: ${hands}${model}`;
+  }
+  const summary = typeof data.summary === "string" ? data.summary : "";
+  if (data.tool === "rodar_testes") {
+    return `${who} rodou os testes: ${summary.split(": ").slice(1).join(": ") || (data.ok === true ? "passaram" : "falharam")}`;
+  }
+  if (data.tool === "Bash" && TESTS.test(summary)) {
+    return `${who} rodou os testes: ${data.ok === true ? "passaram" : "falharam"}`;
+  }
+  return undefined;
+}
+
+/** O fim da sessão: o motivo, as voltas, o custo e o tempo. */
+function finishedLine(state: ObserverState, data: Record<string, unknown>): string {
+  const who = nameOf(state, data.avatar_id) ?? "O dev";
+  const parts = [String(data.reason), `${String(data.turns)} voltas`];
+  const cost = money(data.cost_usd);
+  if (cost !== undefined) {
+    parts.push(cost);
+  }
+  if (typeof data.duration_ms === "number") {
+    parts.push(`${(data.duration_ms / 60000).toFixed(1).replace(".", ",")} min`);
+  }
+  return `${who} terminou a sessão do pedido ${ticketNumber(state, data.ticket_id)}: ${parts.join(", ")}`;
+}
+
 /** As últimas `limit` linhas da conversa, da mais antiga para a mais nova. */
 export function linesOf(
   timeline: readonly EnvelopeV1[],
@@ -148,6 +220,7 @@ export function linesOf(
   limit = 80,
 ): TalkLine[] {
   const lines: TalkLine[] = [];
+  const starts = sessionStarts(timeline);
   for (let i = timeline.length - 1; i >= 0 && lines.length < limit; i--) {
     const event = timeline[i];
     if (event === undefined) {
@@ -165,8 +238,17 @@ export function linesOf(
         mine: data.avatar_id === me,
         time,
       });
+    } else if (event.type === STEP) {
+      const text = stepLine(state, data, starts.has(event.id));
+      if (text !== undefined) {
+        lines.push({ kind: "system", id: event.id, text, time });
+      }
+    } else if (event.type === FINISHED) {
+      lines.push({ kind: "system", id: event.id, text: finishedLine(state, data), time });
     } else if (event.type === ROBOT_CALLED) {
-      const summary = typeof data.summary === "string" && data.summary !== "" ? `: ${data.summary}` : "";
+      // "chamando o robô ...: saída 0" não diz nada a quem lê; o resumo do testador, sim.
+      const said = typeof data.summary === "string" && !data.summary.startsWith("chamando o robô") ? data.summary : "";
+      const summary = said !== "" ? `: ${said}` : "";
       lines.push({ kind: "system", id: event.id, text: `${robotName(state, data.robot_id)} ${data.ok === true ? "passou" : "falhou"}${summary}`, time });
     } else if (SYSTEM.test(event.type)) {
       const text = describe(event, labels);

@@ -124,6 +124,20 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   await delivered.click();
   await page.screenshot({ path: `${SHOTS}/escritorio.png` });
 
+  // A tela do dev (ADR-0089): com uma sessão na oficina, o chip do Camps abre a tela dele, com o
+  // pedido, as mãos e os passos; a conversa conta o começo. Sem modelo, as mãos são a rotina.
+  await page.getByRole("button", { name: /Ver a tela de Camps/ }).click();
+  const devScreen = page.getByRole("dialog", { name: "Tela do Camps" });
+  await expect(devScreen).toBeVisible();
+  await expect(devScreen).toContainText("Pedido 1 · Ferramenta de busca");
+  await expect(devScreen).toContainText("rotina");
+  await expect(devScreen).toContainText("fim: o pedido está entregue");
+  await expect(devScreen.locator(".retro-devscreen-lines li")).not.toHaveCount(0);
+  await page.screenshot({ path: `${SHOTS}/escritorio-tela-do-dev.png` });
+  await devScreen.getByRole("button", { name: "Fechar" }).click();
+  await expect(devScreen).toBeHidden();
+  await expect(log).toContainText("Camps começou a programar o pedido 1: rotina");
+
   // A ficha aberta, na prancheta em leitura, e o "ver o patch" (ADR-0080): sem modelo, a sessão fixa
   // do dev-script na oficina registra o pedido num arquivo, e o patch vai ao depósito de entregas.
   await board.getByRole("button", { name: /#1.*Ferramenta de busca/ }).click();

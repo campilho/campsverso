@@ -3460,6 +3460,12 @@ export interface ObserverWorkshop {
     [k: string]: ObserverWorkshopStep | undefined;
   };
   /**
+   * Por dev: a sessão na oficina em curso, ou a última (ADR-0089), para a tela acompanhar o trabalho: o pedido, as mãos, o modelo, os últimos passos, o custo e o fim.
+   */
+  sessions?: {
+    [k: string]: ObserverWorkshopSession | undefined;
+  };
+  /**
    * Por robô da bancada: a última chamada dele.
    */
   robots?: {
@@ -3479,6 +3485,47 @@ export interface ObserverWorkshopStep {
    * O modelo da sessão do passo (workshop.step.v2).
    */
   model?: string;
+}
+export interface ObserverWorkshopSession {
+  ticket_id: EntityId;
+  harness?: Token;
+  model?: string;
+  started_tick: Tick;
+  /**
+   * Quantos passos a sessão teve, contando os robôs; a lista guarda só os últimos.
+   */
+  count: number;
+  /**
+   * O custo das chamadas da oficina do pedido até agora; no fim, o do fato do fim.
+   */
+  cost_usd: number;
+  /**
+   * @maxItems 50
+   */
+  steps: ObserverWorkshopSessionStep[];
+  finished?: ObserverWorkshopSessionEnd;
+}
+export interface ObserverWorkshopSessionStep {
+  tick: Tick;
+  /**
+   * A ferramenta pelo nome das mãos, ou `robô` para uma chamada da bancada.
+   */
+  tool: string;
+  summary: string;
+  ok: boolean;
+  path?: string;
+}
+/**
+ * O fim da sessão (workshop.session_finished.v1); sem ele, a sessão está em curso ou caiu sem o fato.
+ */
+export interface ObserverWorkshopSessionEnd {
+  tick: Tick;
+  done: boolean;
+  reason: string;
+  turns: number;
+  steps: number;
+  cost_usd?: number;
+  duration_ms: number;
 }
 export interface ObserverWorkshopRobot {
   /**

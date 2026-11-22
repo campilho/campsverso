@@ -10,6 +10,7 @@ Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão 
 - **O pedido escolhe as mãos** (ADR-0089, a parte 3): o `office.ticket.created.v1` ganha os campos opcionais `harness` (um token: `api`, o nosso harness, ou `claude_code`) e `model`, escolhidos na prancheta; sem eles, vale o padrão do mundo.
 - **Os passos das mãos** (ADR-0089): o tipo novo `campsverso.workshop.step.v2`, do domínio `workshop` (visibilidade `observer`, produtor `controller`): o passo com a ferramenta pelo nome que o harness usa (`Read`, `Bash`), as mãos (`harness`, obrigatório) e o modelo (opcional). O v1, que só conhecia as oito ferramentas do nosso harness, fica para os dias antigos, e a tela lê os dois. A sessão da tela (`realtime/welcome.v1`, `state.workshop.steps`) ganha `harness` e `model`, opcionais.
 - **O fim da sessão** (ADR-0089): o tipo novo `campsverso.workshop.session_finished.v1`, do mesmo domínio: o pedido, as mãos, o modelo, se chegou ao fim normal, o motivo, as voltas, os passos, o custo (opcional) e o tempo de relógio. É a fonte da comparação das mãos.
+- **Acompanhar o dev** (ADR-0089): a sessão da tela (`realtime/welcome.v1`, `state.workshop`) ganha `sessions`, opcional: por dev, a sessão na oficina em curso ou a última, com o pedido, as mãos, o modelo, o início, quantos passos, os últimos 50, o custo até agora e o fim. A tela do gerente passa a receber também os fatos `workshop.*`, que a conversa conta.
 
 ### M25
 

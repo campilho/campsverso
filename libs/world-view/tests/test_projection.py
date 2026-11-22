@@ -4,6 +4,7 @@ import json
 from typing import Any
 
 from campsverso_world_view import Projection, diff_views, path_from
+from campsverso_world_view.projection import SESSION_STEPS_KEPT
 
 SCRIPT = {"type": "script", "id": "script/farmer-v1"}
 HUMAN = {"type": "human", "id": "human/camps-browser"}
@@ -591,12 +592,13 @@ def test_a_oficina_acende_o_monitor_e_anima_o_robo() -> None:
     p.apply("observer", ev(11, 104, "workshop.step.v1", tool="rodar_testes", ok=False, **step))
     robot = {"avatar_id": "camps", "ticket_id": "pedido-001", "robot_id": "robo-testador"}
     p.apply("observer", ev(12, 110, "workshop.robot_started.v1", args=["tests"], **robot))
-    assert p.workshop == {
+    assert {k: v for k, v in p.workshop.items() if k != "sessions"} == {
         "steps": {
             "camps": {"ticket_id": "pedido-001", "tool": "rodar_testes", "ok": False, "tick": 104}
         },
         "robots": {"robo-testador": {"state": "working", "avatar_id": "camps", "tick": 110}},
     }
+    assert p.workshop["sessions"]["camps"]["harness"] == "api"  # o v1 é o do nosso harness
     called = {"summary": "saída 0", "duration_ms": 900, **robot}
     p.apply("observer", ev(13, 114, "workshop.robot_called.v1", ok=True, **called))
     assert p.workshop["robots"]["robo-testador"] == {
@@ -622,6 +624,67 @@ def test_a_oficina_acende_o_monitor_e_anima_o_robo() -> None:
         "harness": "claude_code",
         "model": "claude-opus-5-5",
     }
+
+
+def test_a_sessao_do_dev_guarda_os_passos_o_custo_e_o_fim() -> None:
+    """ADR-0089: a sessão de cada dev na oficina, para a tela acompanhar o trabalho: começa com o
+    briefing, guarda os últimos passos, soma o custo das chamadas da oficina e termina no fato do
+    fim; o pedido seguinte abre outra."""
+    p = started()
+    who = {"avatar_id": "camps", "ticket_id": "pedido-002"}
+    p.apply(
+        "observer",
+        ev(1, 100, "workshop.robot_called.v1", robot_id="robo-briefing", ok=True, args=[], **who),
+    )
+    hands = {"harness": "claude_code", "model": "claude-opus-5-5"}
+    for n in range(SESSION_STEPS_KEPT + 3):
+        step: dict[str, Any] = {"tool": "Edit", "summary": f"Edit: a{n}.py", "ok": True}
+        step.update(path=f"a{n}.py", duration_ms=5)
+        p.apply("observer", ev(2 + n, 101 + n, "workshop.step.v2", **hands, **step, **who))
+    mind = {"type": "llm", "id": "llm/camps"}
+    call = {"purpose": "workshop", "charged": True, "controller": mind}
+    model = {"model": "claude-opus-5-5", "cost_usd": 0.25}
+    p.apply("observer", ev(90, 200, "llm.call.completed.v1", **call, **model, **who))
+    p.apply("observer", ev(91, 201, "llm.call.completed.v1", **call, **model, **who))
+    session = p.workshop["sessions"]["camps"]
+    assert (session["ticket_id"], session["started_tick"]) == ("pedido-002", 100)
+    assert (session["harness"], session["model"]) == ("claude_code", "claude-opus-5-5")
+    assert session["count"] == SESSION_STEPS_KEPT + 4  # o briefing e os passos
+    assert len(session["steps"]) == SESSION_STEPS_KEPT
+    assert session["steps"][-1] == {
+        "tick": 101 + SESSION_STEPS_KEPT + 2,
+        "tool": "Edit",
+        "summary": f"Edit: a{SESSION_STEPS_KEPT + 2}.py",
+        "ok": True,
+        "path": f"a{SESSION_STEPS_KEPT + 2}.py",
+    }
+    assert session["cost_usd"] == 0.5
+    end = {"done": True, "reason": "pronto", "turns": 19, "steps": 18, "cost_usd": 0.503}
+    p.apply(
+        "observer",
+        ev(92, 210, "workshop.session_finished.v1", duration_ms=324071, **hands, **end, **who),
+    )
+    assert p.workshop["sessions"]["camps"]["finished"] == {
+        "tick": 210,
+        "done": True,
+        "reason": "pronto",
+        "turns": 19,
+        "steps": 18,
+        "duration_ms": 324071,
+        "cost_usd": 0.503,
+    }
+    assert p.workshop["sessions"]["camps"]["cost_usd"] == 0.503  # o do fato vale
+    copy = Projection(json.loads(json.dumps(p.export())))
+    assert copy.workshop == p.workshop
+    # A devolução abre outra sessão do mesmo pedido, do zero.
+    p.apply(
+        "observer",
+        ev(93, 300, "workshop.robot_called.v1", robot_id="robo-briefing", ok=True, args=[], **who),
+    )
+    again = p.workshop["sessions"]["camps"]
+    assert (again["started_tick"], again["count"], again["cost_usd"]) == (300, 1, 0.0)
+    briefing = {"tick": 300, "tool": "robô", "summary": "briefing passou", "ok": True}
+    assert again["steps"] == [briefing]
 
 
 def test_lotes_com_validade_seguem_os_itens() -> None:

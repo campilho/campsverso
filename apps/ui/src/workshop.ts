@@ -90,3 +90,63 @@ export function workshopState(
 export function workshopFrame(art: WorkshopArt | undefined, look: string | undefined, seconds: number): number | undefined {
   return look === undefined ? undefined : loopFrame(art?.frames[look], seconds);
 }
+
+// ---------------------------------------------------------------- acompanhar o dev (ADR-0089)
+
+type Session = NonNullable<NonNullable<NonNullable<ObserverState["workshop"]>["sessions"]>[string]>;
+type SessionStep = Session["steps"][number];
+
+/** A sessão na oficina de um dev, em curso ou a última, como a projeção a guarda. */
+export function sessionOf(state: ObserverState, avatarId: string): Session | undefined {
+  return state.workshop?.sessions?.[avatarId];
+}
+
+/** O estado do pedido da sessão, pela ficha ("fazendo", "entregue"...), se a visão a traz. */
+export function sessionTicketState(state: ObserverState, session: Session): string | undefined {
+  const estado = state.entities[session.ticket_id]?.attributes.estado;
+  return typeof estado === "string" ? estado : undefined;
+}
+
+/** A sessão em curso: sem o fim, com o pedido ainda em "fazendo" (a sessão fixa da rotina não
+ * publica o fim) e com o último passo valendo (2 horas do mundo, como o monitor). */
+export function activeSession(state: ObserverState, avatarId: string, tick: number): Session | undefined {
+  const session = sessionOf(state, avatarId);
+  if (session === undefined || session.finished !== undefined) {
+    return undefined;
+  }
+  const estado = sessionTicketState(state, session);
+  if (estado !== undefined && estado !== "fazendo") {
+    return undefined;
+  }
+  const last = session.steps.at(-1)?.tick ?? session.started_tick;
+  return age(state, tick, last) > STEP_SECONDS ? undefined : session;
+}
+
+/** O nome das mãos para quem lê: o do locale da prancheta; a sessão fixa da reserva, "rotina". */
+export function handsName(harness: string | undefined, name: (id: string) => string): string {
+  if (harness === undefined) {
+    return "oficina";
+  }
+  return harness === "script" ? "rotina" : name(harness);
+}
+
+function basename(path: string): string {
+  return path.split("/").at(-1) ?? path;
+}
+
+/** Um passo numa linha curta: a ferramenta e o arquivo, ou o que ele fez, até `limit` letras. */
+export function stepShort(step: SessionStep, limit = 48): string {
+  const tool = step.tool;
+  const text = step.path !== undefined ? `${tool} ${basename(step.path)}` : step.summary.startsWith(`${tool}:`) ? step.summary : `${tool}: ${step.summary}`;
+  return text.length > limit ? `${text.slice(0, limit - 1)}…` : text;
+}
+
+/** A linha sobre o dev que programa: "passo 23 · Edit hands_codex.py". */
+export function sessionLine(state: ObserverState, avatarId: string, tick: number): string | undefined {
+  const session = activeSession(state, avatarId, tick);
+  const last = session?.steps.at(-1);
+  if (session === undefined || last === undefined) {
+    return undefined;
+  }
+  return `passo ${String(session.count)} · ${stepShort(last, 36)}`;
+}

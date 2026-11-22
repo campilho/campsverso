@@ -14,6 +14,7 @@ NOTES_KEPT = 20  # anotações do caderno que a tela guarda (ADR-0060)
 BELIEFS_KEPT = 50
 UNKNOWN_PHASE = "desconhecida"
 METRIC_DAYS = 8  # hoje e os 7 anteriores (ADR-0054)
+SESSION_STEPS_KEPT = 50  # os últimos passos da sessão de um dev que a tela mostra (ADR-0089)
 # Do stream observer, o que entra na projeção: o caderno (ADR-0060), o custo das chamadas de
 # modelo com os avisos do orçamento (ADR-0074) e a oficina do dev (ADR-0080). O resto só vai para a
 # linha do tempo.
@@ -138,7 +139,8 @@ class Projection:
         # ops.budget.* (observer): também só o gateway o preenche.
         self.costs: dict[str, Any] = dict(raw.get("costs", {}))
         # A oficina (ADR-0080), dos eventos workshop.* (observer): o último passo de cada dev, que
-        # acende o monitor da mesa, e a última chamada de cada robô, que o anima na bancada.
+        # acende o monitor da mesa, a última chamada de cada robô, que o anima na bancada, e a
+        # sessão de cada dev, com os últimos passos e o custo, que a tela mostra (ADR-0089).
         self.workshop: dict[str, dict[str, dict[str, Any]]] = {
             k: {kk: dict(vv) for kk, vv in v.items()} for k, v in raw.get("workshop", {}).items()
         }
@@ -600,7 +602,16 @@ class Projection:
     # ------------------------------------------------------------- o custo (ADR-0074)
 
     def _on_llm_call_completed(self, data: Mapping[str, Any]) -> None:
-        """Uma chamada cobrada soma no dia e no total do controlador; a da fita não custou nada."""
+        """Uma chamada cobrada soma no dia e no total do controlador; a da fita não custou nada. A
+        da oficina soma também na sessão do pedido, como o fim da sessão conta (ADR-0089)."""
+        session = self.workshop.get("sessions", {}).get(str(data.get("avatar_id") or ""))
+        if (
+            session is not None
+            and data.get("purpose") == "workshop"
+            and data.get("ticket_id") == session["ticket_id"]
+            and "finished" not in session
+        ):
+            session["cost_usd"] = round(float(session["cost_usd"]) + float(data["cost_usd"]), 6)
         if not data.get("charged"):
             return
         controller = cast(Mapping[str, Any], data["controller"])
@@ -659,6 +670,19 @@ class Projection:
             if data.get(key):
                 step[key] = str(data[key])
         self.workshop.setdefault("steps", {})[avatar_id] = step
+        session = self._session(avatar_id, str(data["ticket_id"]))
+        session["harness"] = str(data.get("harness") or session.get("harness") or "api")
+        if data.get("model"):
+            session["model"] = str(data["model"])
+        entry: dict[str, Any] = {
+            "tick": self._event_tick,
+            "tool": str(data["tool"]),
+            "summary": str(data["summary"]),
+            "ok": bool(data["ok"]),
+        }
+        if data.get("path"):
+            entry["path"] = str(data["path"])
+        self._session_entry(session, entry)
         robots = self.workshop.get("robots", {})
         for robot_id in sorted(robots):
             robot = robots[robot_id]
@@ -677,6 +701,53 @@ class Projection:
 
     def _on_workshop_robot_called(self, data: Mapping[str, Any]) -> None:
         self._robot(data, "passed" if data["ok"] else "failed")
+        session = self._session(str(data["avatar_id"]), str(data["ticket_id"]))
+        name = str(data["robot_id"]).removeprefix("robo-")
+        result = "passou" if data["ok"] else "falhou"
+        entry = {"tick": self._event_tick, "tool": "robô", "summary": f"{name} {result}"}
+        self._session_entry(session, {**entry, "ok": bool(data["ok"])})
+
+    def _session(self, avatar_id: str, ticket_id: str) -> dict[str, Any]:
+        """A sessão de um dev na oficina (ADR-0089): a do pedido em curso, ou uma nova quando o
+        pedido muda ou a anterior terminou. O briefing chega antes do primeiro passo."""
+        sessions = self.workshop.setdefault("sessions", {})
+        current = sessions.get(avatar_id)
+        if current is None or current["ticket_id"] != ticket_id or "finished" in current:
+            steps: list[dict[str, Any]] = []
+            current = {
+                "ticket_id": ticket_id,
+                "started_tick": self._event_tick,
+                "count": 0,
+                "cost_usd": 0.0,
+                "steps": steps,
+            }
+            sessions[avatar_id] = current
+        return current
+
+    @staticmethod
+    def _session_entry(session: dict[str, Any], entry: dict[str, Any]) -> None:
+        steps = cast(list[dict[str, Any]], session["steps"])
+        steps.append(entry)
+        del steps[:-SESSION_STEPS_KEPT]
+        session["count"] = int(session["count"]) + 1
+
+    def _on_workshop_session_finished(self, data: Mapping[str, Any]) -> None:
+        """O fim da sessão: o motivo, as voltas, os passos, o custo e o tempo."""
+        session = self._session(str(data["avatar_id"]), str(data["ticket_id"]))
+        finished: dict[str, Any] = {
+            "tick": self._event_tick,
+            "done": bool(data["done"]),
+            "reason": str(data["reason"]),
+            "turns": int(data["turns"]),
+            "steps": int(data["steps"]),
+            "duration_ms": int(data["duration_ms"]),
+        }
+        if data.get("cost_usd") is not None:
+            finished["cost_usd"] = float(data["cost_usd"])
+            session["cost_usd"] = round(float(data["cost_usd"]), 6)
+        session["harness"] = str(data["harness"])
+        session["model"] = str(data["model"])
+        session["finished"] = finished
 
     # ------------------------------------------------------------- o caderno (ADR-0060)
 

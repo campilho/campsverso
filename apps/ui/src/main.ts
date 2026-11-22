@@ -47,6 +47,7 @@ import { Store } from "./store.ts";
 import { AboutDialog } from "./retro/about.ts";
 import { RetroBoard } from "./retro/board.ts";
 import { Clipboard, type ClipboardContext } from "./retro/clipboard.ts";
+import { DevScreen } from "./retro/devscreen.ts";
 import { RetroTalk } from "./retro/conversation.ts";
 import { FaceCache } from "./retro/faces.ts";
 import { PHONE, RetroFrame, type Camera } from "./retro/frame.ts";
@@ -254,6 +255,7 @@ function leaveOffice(): void {
 // escritório e reorganiza as peças de sempre dentro dela; o quadro de cortiça e a prancheta tomam o
 // lugar do quadro e do novo pedido do painel de hoje.
 const about = new AboutDialog(document.body, () => { void credits.open(art?.credits ?? []); });
+const devScreen = new DevScreen(document.body);
 const clipboard = new Clipboard(document.body, {
   ...ticketSteps,
   patch: (heading, ref) => { office.openPatch(heading, ref); },
@@ -308,6 +310,11 @@ const retro = new RetroFrame(view, debug, {
   camera: (mode) => {
     camera = mode;
     fitScreen();
+  },
+  screen: (devId) => {
+    if (store.state !== undefined) {
+      devScreen.open(devId, store.state, shownTick);
+    }
   },
   about: () => {
     const state = store.state;
@@ -1043,6 +1050,7 @@ function frame(now: number): void {
       if (retro.isMounted) {
         board.render({ state, tickets: ticketsOf(state), ghosts: ghostsOf(queue.list, state, avatarId()) });
         clipboard.update(clipboardContext(state));
+        devScreen.update(state, shownTick);
         const lines = linesOf(store.timeline, state, avatarId(), state.session?.labels ?? []);
         talkCount = lines.filter((line) => line.kind === "speech").length;
         talk.render({

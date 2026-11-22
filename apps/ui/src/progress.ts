@@ -7,6 +7,7 @@ import type { ObserverState } from "@campsverso/contracts";
 
 import { actionName } from "./locale.ts";
 import { clockText, tickSeconds } from "./simclock.ts";
+import { sessionLine } from "./workshop.ts";
 
 export interface Progress {
   readonly label: string;
@@ -53,9 +54,17 @@ export function progressOf(state: ObserverState, avatarId: string, tick: number)
  * que não tem o que mostrar; e falar, que tem o balão da fala. O retrato do HUD continua dizendo. */
 const QUIET: ReadonlySet<string> = new Set(["move", "wait", "say"]);
 
-/** O que vai sobre a cabeça do avatar: o progresso da ação, menos o das ações óbvias. O sono aparece. */
+/** O que vai sobre a cabeça do avatar: o progresso da ação, menos o das ações óbvias. O sono aparece.
+ * O dev na mesa com uma sessão na oficina mostra o último passo, e não a barra do bloco de
+ * trabalho, que enche e recomeça (ADR-0089). */
 export function overHead(state: ObserverState, avatarId: string, tick: number): Progress | undefined {
   const action = state.actions[avatarId];
+  if (action !== undefined && (action.action === "work" || action.action === "wait")) {
+    const line = sessionLine(state, avatarId, tick);
+    if (line !== undefined) {
+      return { label: line };
+    }
+  }
   if (state.asleep[avatarId] !== true && action !== undefined && QUIET.has(action.action)) {
     return undefined;
   }

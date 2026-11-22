@@ -8,7 +8,9 @@ import { choicesOf, setLocale } from "./locale.ts";
 import { summonsOf, type TicketView } from "./panels/office.ts";
 import type { Step } from "./queue.ts";
 import { chipsOf, clockView, lightOf, robotLine, summonShort, versionLine } from "./retro/model.ts";
+import { overHead } from "./progress.ts";
 import { handsLine } from "./retro/clipboard.ts";
+import { screenView } from "./retro/devscreen.ts";
 import { prsText, systemOf } from "./retro/system.ts";
 import {
   completeMention,
@@ -402,6 +404,91 @@ describe("a conversa (§3.5)", () => {
       "Gerente acendeu a luz da sala",
       "O temporizador apagou a luz da sala",
     ]);
+  });
+
+  it("conta os marcos da sessão do dev: o começo, os testes e o fim, e não cada passo (ADR-0089)", () => {
+    setLocale([{ choices: { hands: { claude_code: "Claude Code" }, models: { "claude-opus-5-5": "Opus 5.5" } } }]);
+    const at = (type: string, data: Record<string, unknown>, tick: number, id: string): EnvelopeV1 =>
+      ({ id, type, data, tick, visibility: "observer" }) as unknown as EnvelopeV1;
+    const who = { avatar_id: "camps", ticket_id: "pedido-002", harness: "claude_code", model: "claude-opus-5-5" };
+    const timeline = [
+      at("campsverso.workshop.robot_called.v1", { ...who, robot_id: "robo-testador", ok: true, summary: "chamando o robô tools.robos.testador: saída 0" }, 16200, "w1"),
+      at("campsverso.workshop.step.v2", { ...who, tool: "Read", summary: "Read: a.py", ok: true }, 16210, "w2"),
+      at("campsverso.workshop.step.v2", { ...who, tool: "Edit", summary: "Edit: a.py", ok: true }, 16220, "w3"),
+      at("campsverso.workshop.step.v2", { ...who, tool: "Bash", summary: "Bash: python -m pytest -q tests", ok: false }, 16230, "w4"),
+      at("campsverso.workshop.session_finished.v1", { ...who, done: true, reason: "pronto", turns: 19, steps: 18, cost_usd: 0.5032, duration_ms: 324000 }, 16290, "w5"),
+      at("campsverso.workshop.step.v2", { ...who, tool: "Read", summary: "Read: a.py", ok: true }, 16300, "w6"),
+    ];
+    expect(linesOf(timeline, room, "gerente", []).map((l) => (l.kind === "system" ? l.text : ""))).toEqual([
+      "o testador passou", // a linha da tela do robô não diz nada a quem lê
+      "Camps começou a programar o pedido 2: Claude Code (Opus 5.5)",
+      "Camps rodou os testes: falharam",
+      "Camps terminou a sessão do pedido 2: pronto, 19 voltas, US$ 0,50, 5,4 min",
+      "Camps começou a programar o pedido 2: Claude Code (Opus 5.5)", // a devolução abre outra
+    ]);
+    setLocale([]);
+  });
+});
+
+describe("a tela do dev (ADR-0089)", () => {
+  const session = {
+    ticket_id: "pedido-002",
+    harness: "claude_code",
+    model: "claude-opus-5-5",
+    started_tick: 16200,
+    count: 23,
+    cost_usd: 0.614,
+    steps: [
+      { tick: 16200, tool: "robô", summary: "briefing passou", ok: true },
+      { tick: 16260, tool: "Write", summary: "Write: libs/adapters/src/campsverso_adapters/hands_codex.py", ok: true, path: "libs/adapters/src/campsverso_adapters/hands_codex.py" },
+      { tick: 16300, tool: "Bash", summary: "Bash: pytest libs/adapters/tests", ok: false },
+    ],
+  };
+  const working = state({
+    entities: {
+      camps: { kind: "avatar", display_name: "Camps", position: { x: 4, y: 5 }, attributes: { papel: "dev" } },
+      "pedido-002": { kind: "ticket", display_name: "Conector do Codex", attributes: { numero: 2, titulo: "Conector do Codex", estado: "fazendo" } },
+    },
+    actions: { camps: { action: "work", intent: "o pedido 2" } } as unknown as ObserverState["actions"],
+    workshop: { sessions: { camps: session } },
+  });
+
+  it("mostra o pedido, as mãos, o andamento e os passos, e no fim o motivo e o custo", () => {
+    setLocale([{ choices: { hands: { claude_code: "Claude Code" }, models: { "claude-opus-5-5": "Opus 5.5" } } }]);
+    const view = screenView(working, "camps", 16200 + 18 * 60 / 2);
+    expect(view).toMatchObject({
+      heading: "Tela do Camps",
+      title: "Pedido 2 · Conector do Codex",
+      hands: "Claude Code · Opus 5.5",
+      status: "começou 09:00 · 18 min · 23 passos · US$ 0,61",
+      end: undefined,
+    });
+    expect(view?.lines).toEqual([
+      { time: "09:00", text: "robô: briefing passou", ok: true },
+      { time: "09:02", text: "Write hands_codex.py", ok: true },
+      { time: "09:03", text: "Bash: pytest libs/adapters/tests", ok: false },
+    ]);
+    const done = state({ ...working, workshop: { sessions: { camps: { ...session, finished: { tick: 16400, done: true, reason: "pronto", turns: 19, steps: 18, cost_usd: 0.5032, duration_ms: 324000 } } } } });
+    expect(screenView(done, "camps", 99999)?.end).toBe("terminou: pronto · 19 voltas · US$ 0,50 · 5,4 min");
+    expect(screenView(working, "vigia", 16300)).toBeUndefined();
+    // A sessão fixa da rotina não publica o fim: a ficha entregue a encerra, e o tempo para.
+    const entregue = state({
+      ...working,
+      entities: { ...working.entities, "pedido-002": { kind: "ticket", display_name: "x", attributes: { numero: 2, titulo: "x", estado: "entregue" } } },
+    });
+    expect(screenView(entregue, "camps", 99999)).toMatchObject({ end: "fim: o pedido está entregue" });
+    expect(screenView(entregue, "camps", 99999)?.status).toContain("começou 09:00 · 3,3 min");
+    expect(overHead(entregue, "camps", 16300)?.label ?? "").not.toContain("passo");
+    setLocale([]);
+  });
+
+  it("o chip do dev com sessão abre a tela, e sobre ele vai o último passo, não a barra", () => {
+    const camps = chipsOf(working, "gerente", 16300).find((c) => c.id === "camps");
+    expect(camps?.screen).toBe(true);
+    expect(chipsOf(state({ entities: working.entities }), "gerente", 16300).find((c) => c.id === "camps")?.screen).toBeUndefined();
+    expect(overHead(working, "camps", 16300)).toEqual({ label: "passo 23 · Bash: pytest libs/adapters/tests" });
+    const ended = state({ ...working, workshop: { sessions: { camps: { ...session, finished: { tick: 16400, done: true, reason: "pronto", turns: 1, steps: 1, duration_ms: 1 } } } } });
+    expect(overHead(ended, "camps", 16410)?.label).not.toContain("passo");
   });
 });
 

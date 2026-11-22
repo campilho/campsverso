@@ -6822,6 +6822,107 @@ components:
                         pattern: ^[a-z0-9][a-z0-9._:/-]*$
                         maxLength: 128
                         description: O modelo da sessão do passo (workshop.step.v2).
+                sessions:
+                  type: object
+                  description: 'Por dev: a sessão na oficina em curso, ou a última (ADR-0089), para a
+                    tela acompanhar o trabalho: o pedido, as mãos, o modelo, os últimos passos, o custo
+                    e o fim.'
+                  additionalProperties:
+                    type: object
+                    title: ObserverWorkshopSession
+                    additionalProperties: false
+                    required:
+                    - ticket_id
+                    - started_tick
+                    - count
+                    - cost_usd
+                    - steps
+                    properties:
+                      ticket_id:
+                        $ref: '#/components/schemas/EntityId'
+                      harness:
+                        $ref: '#/components/schemas/Token'
+                        description: As mãos; sem o campo, ainda não houve passo (só o briefing).
+                      model:
+                        type: string
+                        pattern: ^[a-z0-9][a-z0-9._:/-]*$
+                        maxLength: 128
+                      started_tick:
+                        $ref: '#/components/schemas/Tick'
+                        description: O tick do primeiro fato da sessão (o briefing ou o primeiro passo).
+                      count:
+                        type: integer
+                        minimum: 0
+                        description: Quantos passos a sessão teve, contando os robôs; a lista guarda só
+                          os últimos.
+                      cost_usd:
+                        type: number
+                        minimum: 0
+                        description: O custo das chamadas da oficina do pedido até agora; no fim, o do
+                          fato do fim.
+                      steps:
+                        type: array
+                        maxItems: 50
+                        items:
+                          type: object
+                          title: ObserverWorkshopSessionStep
+                          additionalProperties: false
+                          required:
+                          - tick
+                          - tool
+                          - summary
+                          - ok
+                          properties:
+                            tick:
+                              $ref: '#/components/schemas/Tick'
+                            tool:
+                              type: string
+                              minLength: 1
+                              maxLength: 64
+                              description: A ferramenta pelo nome das mãos, ou `robô` para uma chamada
+                                da bancada.
+                            summary:
+                              type: string
+                              maxLength: 200
+                            ok:
+                              type: boolean
+                            path:
+                              type: string
+                              maxLength: 300
+                      finished:
+                        type: object
+                        title: ObserverWorkshopSessionEnd
+                        description: O fim da sessão (workshop.session_finished.v1); sem ele, a sessão
+                          está em curso ou caiu sem o fato.
+                        additionalProperties: false
+                        required:
+                        - tick
+                        - done
+                        - reason
+                        - turns
+                        - steps
+                        - duration_ms
+                        properties:
+                          tick:
+                            $ref: '#/components/schemas/Tick'
+                          done:
+                            type: boolean
+                          reason:
+                            type: string
+                            minLength: 1
+                            maxLength: 80
+                          turns:
+                            type: integer
+                            minimum: 0
+                          steps:
+                            type: integer
+                            minimum: 0
+                          cost_usd:
+                            type: number
+                            minimum: 0
+                          duration_ms:
+                            type: integer
+                            minimum: 0
                 robots:
                   type: object
                   description: 'Por robô da bancada: a última chamada dele.'

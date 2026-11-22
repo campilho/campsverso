@@ -89,6 +89,7 @@ QUEUE_LIMIT = 2000  # mensagens esperando uma UI lenta; acima disso, a conexão 
 PULSE = "campsverso.live.kernel.v1"
 GUARD_PULSE = "campsverso.live.budget.v1"
 COMMAND_REJECTED = "campsverso.world.command.rejected.v1"
+WORKSHOP = "campsverso.workshop."  # os fatos da oficina, que o jogador também vê (ADR-0089)
 PULSES_TO_SILENCE = 3  # pulsos perdidos até o kernel ficar "sem sinal" (ADR-0051)
 # Uma sessão na oficina conta como em andamento até 5 minutos simulados depois do último passo que
 # não foi a entrega: a troca de versão espera o dev terminar (ADR-0083).
@@ -110,11 +111,14 @@ class _Client:
 
     def sees(self, envelope: Envelope) -> bool:
         """O que a visão vê, mais a recusa dos próprios comandos: quem joga precisa saber por que
-        o kernel não aceitou o seu "Assumir", mesmo sem ver os eventos `observer` (ADR-0051)."""
+        o kernel não aceitou o seu "Assumir", mesmo sem ver os eventos `observer` (ADR-0051). E a
+        oficina: o computador do dev fica na sala, e o gerente acompanha o trabalho (ADR-0089)."""
         data: Mapping[str, Any] = envelope["data"]
         if envelope["visibility"] in VISIBLE[self.view]:
             mine = data.get("avatar_id") in (None, self.avatar_id)
             return self.view == "operator" or envelope["visibility"] != "agent" or mine
+        if str(envelope["type"]).startswith(WORKSHOP):
+            return True
         return envelope["type"] == COMMAND_REJECTED and data.get("command_id") in self.sent
 
 

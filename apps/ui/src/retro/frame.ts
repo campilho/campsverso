@@ -24,6 +24,8 @@ export interface FrameActions {
   about(): void;
   /** A câmera do celular: a sala inteira, ou seguindo o gerente (§4). */
   camera(mode: Camera): void;
+  /** A tela do dev: a sessão dele na oficina (ADR-0089). */
+  screen(devId: string): void;
 }
 
 export type Camera = "sala" | "seguir";
@@ -345,7 +347,22 @@ export class RetroFrame {
   }
 
   private chip(chip: Chip): HTMLElement {
-    const item = el("li", { className: `retro-chip${chip.away ? " away" : ""}`, title: chip.title });
+    const item = el("li", { className: `retro-chip${chip.away ? " away" : ""}${chip.screen === true ? " has-screen" : ""}`, title: chip.title });
+    if (chip.screen === true) {
+      // O chip do dev com uma sessão na oficina abre a tela dele (ADR-0089).
+      item.tabIndex = 0;
+      item.setAttribute("role", "button");
+      item.setAttribute("aria-label", `Ver a tela de ${chip.name}: ${chip.line}`);
+      const open = (): void => { this.actions.screen(chip.id); };
+      item.addEventListener("click", open);
+      item.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          event.stopPropagation();
+          open();
+        }
+      });
+    }
     item.append(
       this.face(chip),
       el(

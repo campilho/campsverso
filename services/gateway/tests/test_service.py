@@ -247,8 +247,31 @@ async def test_jogador_nunca_recebe_internal_nem_observer(rig: Rig) -> None:
     rig.gateway.flush()
     seen_by_player = {e["visibility"] for e in (await player.receive())["events"]}
     seen_by_operator = {e["visibility"] for e in (await operator.receive())["events"]}
-    assert seen_by_player <= {"world", "agent"}
+    assert seen_by_player <= {"world", "agent"}  # numa fazenda, nem a oficina
     assert "internal" in seen_by_operator
+
+
+async def test_o_jogador_acompanha_a_oficina_do_dev(rig: Rig) -> None:
+    """ADR-0089: o computador do dev fica na sala; o gerente recebe os fatos da oficina, para a
+    tela acompanhar a sessão. O resto do observer (o custo, o caderno) continua só do operador."""
+    player, _ = await rig.connect("player")
+    who = {"avatar_id": "camps", "ticket_id": "pedido-002"}
+    step = {"harness": "claude_code", "tool": "Edit", "summary": "Edit: a.py", "ok": True}
+    batch = [
+        ("x", _observer("id-w1", 1, "workshop.step.v2", duration_ms=5, **step, **who)),
+        ("x", _call("id-w2", 2)),
+    ]
+    await rig.gateway._on_batch("observer", batch)  # pyright: ignore[reportPrivateUsage]
+    rig.gateway.flush()
+    update = await player.receive_until("update")
+    assert "workshop.step.v2" in _types(update)
+    assert "llm.call.completed.v1" not in _types(update)
+    session = update["patch"]["workshop"]["sessions"]["camps"]
+    assert (session["ticket_id"], session["harness"], session["count"]) == (
+        "pedido-002",
+        "claude_code",
+        1,
+    )
 
 
 async def test_operador_pausa_e_o_kernel_responde(rig: Rig) -> None:
