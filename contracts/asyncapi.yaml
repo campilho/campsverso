@@ -554,6 +554,17 @@ channels:
     messages:
       MemoryReflectedV1:
         $ref: '#/components/messages/MemoryReflectedV1'
+  OfficeLightSwitchedV1:
+    address: campsverso.{worldid}.world.office.light.switched.v1
+    title: campsverso.office.light.switched.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      OfficeLightSwitchedV1:
+        $ref: '#/components/messages/OfficeLightSwitchedV1'
   OfficeStaffDismissedV1:
     address: campsverso.{worldid}.world.office.staff.dismissed.v1
     title: campsverso.office.staff.dismissed.v1
@@ -1490,6 +1501,13 @@ operations:
     messages:
     - $ref: '#/channels/MemoryReflectedV1/messages/MemoryReflectedV1'
     x-producer: controller
+  sendOfficeLightSwitchedV1:
+    action: send
+    channel:
+      $ref: '#/channels/OfficeLightSwitchedV1'
+    messages:
+    - $ref: '#/channels/OfficeLightSwitchedV1/messages/OfficeLightSwitchedV1'
+    x-producer: kernel
   sendOfficeStaffDismissedV1:
     action: send
     channel:
@@ -4054,6 +4072,25 @@ components:
           description: 'Os dias revistos de uma vez, do mais antigo ao mais novo, quando a revisão cobre
             mais de um (a revisão da manhã do escritório, ADR-0080): a segunda revê a sexta. `day` é o
             mais novo deles.'
+    OfficeLightSwitchedV1:
+      title: OfficeLightSwitchedV1
+      description: 'A luz da sala mudou no interruptor: alguém acendeu ou apagou (o gerente, o dev ou
+        o vigia), ou o temporizador do prédio, que acende e apaga em horas marcadas.'
+      type: object
+      additionalProperties: false
+      required:
+      - switch_id
+      - 'on'
+      properties:
+        switch_id:
+          $ref: '#/components/schemas/EntityId'
+          description: O interruptor.
+        'on':
+          type: boolean
+          description: A luz ficou acesa (`true`) ou apagada (`false`).
+        by:
+          $ref: '#/components/schemas/EntityId'
+          description: Quem mexeu no interruptor; sem `by`, foi o temporizador do prédio.
     OfficeStaffDismissedV1:
       title: OfficeStaffDismissedV1
       description: 'A convocação de um dev acabou (a parte 5 do M25): ele sai pela porta, se estava lá,
@@ -7131,6 +7168,16 @@ components:
         $ref: '#/components/schemas/MemoryReflectedV1'
       x-visibility: observer
       x-producer: controller
+    OfficeLightSwitchedV1:
+      name: campsverso.office.light.switched.v1
+      title: OfficeLightSwitchedV1
+      summary: 'A luz da sala mudou no interruptor: alguém acendeu ou apagou (o gerente, o dev ou o vigia),
+        ou o temporizador do prédio, que acende e apaga em horas marcadas.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/OfficeLightSwitchedV1'
+      x-visibility: world
+      x-producer: kernel
     OfficeStaffDismissedV1:
       name: campsverso.office.staff.dismissed.v1
       title: OfficeStaffDismissedV1

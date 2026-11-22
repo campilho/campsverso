@@ -300,6 +300,12 @@ export const CONTRACT_TYPES = {
     producer: "controller",
     dataschema: "contracts://events/memory/reflected.v1",
   },
+  "campsverso.office.light.switched.v1": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/office/light.switched.v1",
+  },
   "campsverso.office.staff.dismissed.v1": {
     kind: "event",
     visibility: "world",
@@ -653,6 +659,7 @@ export interface PayloadByType {
   "campsverso.memory.belief.updated.v1": T.MemoryBeliefUpdatedV1;
   "campsverso.memory.noted.v1": T.MemoryNotedV1;
   "campsverso.memory.reflected.v1": T.MemoryReflectedV1;
+  "campsverso.office.light.switched.v1": T.OfficeLightSwitchedV1;
   "campsverso.office.staff.dismissed.v1": T.OfficeStaffDismissedV1;
   "campsverso.office.staff.summoned.v1": T.OfficeStaffSummonedV1;
   "campsverso.office.ticket.accepted.v1": T.OfficeTicketAcceptedV1;

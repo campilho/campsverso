@@ -2744,6 +2744,30 @@
         }
       }
     },
+    "OfficeLightSwitchedV1": {
+      "title": "OfficeLightSwitchedV1",
+      "description": "A luz da sala mudou no interruptor: alguém acendeu ou apagou (o gerente, o dev ou o vigia), ou o temporizador do prédio, que acende e apaga em horas marcadas.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "switch_id",
+        "on"
+      ],
+      "properties": {
+        "switch_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "O interruptor."
+        },
+        "on": {
+          "type": "boolean",
+          "description": "A luz ficou acesa (`true`) ou apagada (`false`)."
+        },
+        "by": {
+          "$ref": "#/$defs/EntityId",
+          "description": "Quem mexeu no interruptor; sem `by`, foi o temporizador do prédio."
+        }
+      }
+    },
     "OfficeStaffDismissedV1": {
       "title": "OfficeStaffDismissedV1",
       "description": "A convocação de um dev acabou (a parte 5 do M25): ele sai pela porta, se estava lá, e o vigia volta.",

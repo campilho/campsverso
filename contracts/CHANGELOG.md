@@ -18,6 +18,7 @@ Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão 
   - `campsverso.office.staff.dismissed.v1`: a convocação acabou, com o motivo (`dispensado`, `saida`, `teto`, `janela` ou `expediente`) e, quando foi o gerente, quem dispensou.
   - O dev entra e sai com o motivo `convocacao`, um token como os outros: o `avatar.entered.v1` e o `avatar.left.v1` não mudam.
 - **A troca avisada** (a parte 5 do M25): a mensagem nova da tela `campsverso.realtime.notice.v1`, do gateway para a UI: o tipo do aviso (`troca`, `espera` ou `volta`), a frase pronta e, opcionais, o commit da versão nova e os PRs que ela traz. O supervisor a pede ao gateway vivo antes de parar a pilha, enquanto espera o dev terminar uma sessão e depois de uma volta. A sessão da tela (`realtime/welcome.v1`) ganha `notice`, opcional: o último aviso, de até dois minutos atrás, para a tela que reconecta no meio de uma troca.
+- **A luz do escritório** (ADR-0088): o tipo novo `campsverso.office.light.switched.v1`, do domínio `office`, de visibilidade `world`, produtor `kernel`: a luz da sala mudou no interruptor, com o interruptor, o estado novo e, opcional, quem mexeu; sem `by`, foi o temporizador do prédio.
 
 ### M24
 

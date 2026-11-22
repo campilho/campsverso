@@ -2095,6 +2095,33 @@ class MemoryReflectedV1(BaseModel):
     """
 
 
+class OfficeLightSwitchedV1(BaseModel):
+    """
+    A luz da sala mudou no interruptor: alguém acendeu ou apagou (o gerente, o dev ou o vigia), ou o temporizador do prédio, que acende e apaga em horas marcadas.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    switch_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O interruptor.
+    """
+    on: bool
+    """
+    A luz ficou acesa (`true`) ou apagada (`false`).
+    """
+    by: Annotated[
+        str | None,
+        Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId"),
+    ] = None
+    """
+    Quem mexeu no interruptor; sem `by`, foi o temporizador do prédio.
+    """
+
+
 class OfficeStaffDismissedV1(BaseModel):
     """
     A convocação de um dev acabou (a parte 5 do M25): ele sai pela porta, se estava lá, e o vigia volta.

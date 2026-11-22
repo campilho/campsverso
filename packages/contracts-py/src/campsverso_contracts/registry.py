@@ -412,6 +412,14 @@ CONTRACT_TYPES: Final[dict[str, ContractType]] = {
             models.MemoryReflectedV1,
         ),
         ContractType(
+            "campsverso.office.light.switched.v1",
+            "event",
+            "world",
+            "kernel",
+            "contracts://events/office/light.switched.v1",
+            models.OfficeLightSwitchedV1,
+        ),
+        ContractType(
             "campsverso.office.staff.dismissed.v1",
             "event",
             "world",

@@ -1,0 +1,25 @@
+{
+  "expect_error": "payload_schema",
+  "description": "Uma luz que não é acesa nem apagada: o `on` é um booleano, não um texto.",
+  "event": {
+    "specversion": "1.0",
+    "id": "01a12d2b-6c60-7a99-8b14-1a2b3c4d5e72",
+    "source": "/kernel/office-campsverso-01",
+    "type": "campsverso.office.light.switched.v1",
+    "time": "2026-11-22T01:00:00Z",
+    "datacontenttype": "application/json",
+    "dataschema": "contracts://events/office/light.switched.v1",
+    "worldid": "office-campsverso-01",
+    "cartridge": "office_campsverso",
+    "tick": 1252800,
+    "simtime": "2026-11-21T22:00:00-03:00",
+    "seq": 9101,
+    "provenance": "simulated",
+    "visibility": "world",
+    "data": {
+      "switch_id": "interruptor",
+      "on": "acesa",
+      "by": "gerente"
+    }
+  }
+}

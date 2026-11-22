@@ -1504,6 +1504,20 @@ export interface MemoryReflectedV1 {
   days?: [Day, ...Day[]];
 }
 /**
+ * A luz da sala mudou no interruptor: alguém acendeu ou apagou (o gerente, o dev ou o vigia), ou o temporizador do prédio, que acende e apaga em horas marcadas.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "OfficeLightSwitchedV1".
+ */
+export interface OfficeLightSwitchedV1 {
+  switch_id: EntityId;
+  /**
+   * A luz ficou acesa (`true`) ou apagada (`false`).
+   */
+  on: boolean;
+  by?: EntityId;
+}
+/**
  * A convocação de um dev acabou (a parte 5 do M25): ele sai pela porta, se estava lá, e o vigia volta.
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
