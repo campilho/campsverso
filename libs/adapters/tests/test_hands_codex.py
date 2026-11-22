@@ -4,6 +4,7 @@
 import asyncio
 import json
 import os
+import subprocess
 import sys
 import time
 from collections.abc import Sequence
@@ -13,6 +14,7 @@ from typing import Any, cast
 import pytest
 
 from campsverso_adapters.hands_codex import (
+    GRACE_SECONDS,
     CodexHands,
     CodexUsage,
     clean_environment,
@@ -229,12 +231,25 @@ def test_o_briefing_entra_dentro_do_limite_de_tempo(space: Space) -> None:
     assert time.monotonic() - began < 15
 
 
+def test_a_espera_do_fim_do_codex_fica_dentro_do_limite_de_tempo(space: Space) -> None:
+    # O Codex fecha a saída depois do exemplo mas não sai: o relógio da sessão o para.
+    began = time.monotonic()
+    result = _run(_hands("--fica", "30"), space, World(), max_seconds=1.0)
+    assert result.reason == "limite de tempo"
+    assert not result.done
+    assert time.monotonic() - began < GRACE_SECONDS
+
+
 def _alive(pid: int) -> bool:
+    """Vivo de verdade: um zumbi (já morto, à espera de quem o colha) não conta."""
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
         return False
-    return True
+    state = subprocess.run(
+        ["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True, check=False
+    ).stdout.strip()
+    return bool(state) and not state.startswith("Z")
 
 
 def test_a_parada_encerra_o_grupo_de_processos(space: Space, tmp_path: Path) -> None:

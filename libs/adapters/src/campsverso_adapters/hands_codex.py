@@ -12,8 +12,10 @@ lê os eventos que ele imprime, um JSON por linha (o formato em `tests/fixtures/
 A sessão para no limite de tempo (que conta desde a entrega do briefing), no de voltas (os itens
 de ferramenta e as mensagens, como as respostas do modelo), no teto da sessão ou quando o mundo
 pede. Os tetos só valem entre uma ferramenta e outra: a mensagem final e o `turn.completed` que
-a segue nunca são cortados. Parada a sessão, o conector ainda lê um pouco a saída, pelo `usage` de
-um `turn.completed` que chegue, e encerra o grupo de processos inteiro (o Codex e o que ele abriu).
+a segue nunca são cortados. A espera do fim do processo, depois da saída, também cabe no limite de
+tempo. Parada a sessão, o conector manda o SIGTERM ao grupo, ainda lê um pouco a saída, pelo
+`usage` de um `turn.completed` que chegue, e encerra o grupo de processos inteiro (o Codex e o que
+ele abriu).
 
 O Codex é achado pelo `PATH` de quem chama, nunca pelo do espaço: um `codex` escrito no espaço não
 roda no lugar dele. O processo recebe um ambiente do zero, sem nenhuma chave: o login e a ponte até
@@ -294,17 +296,21 @@ class CodexHands:
                             stopped = "teto da sessão"
                         if stopped is not None:
                             break
+                if stopped is None:
+                    # A saída acabou; o fim do Codex também cabe no limite de tempo.
+                    await process.wait()
         except TimeoutError:
             stopped = "limite de tempo"
         finally:
-            if stopped is not None and not completed:
+            if stopped is not None:
                 _signal_group(process, signal.SIGTERM)
-                with contextlib.suppress(TimeoutError, ValueError):
-                    async with asyncio.timeout(GRACE_SECONDS):
-                        async for line in stdout:
-                            data = self._parse(line)
-                            if data is not None:
-                                account(data)
+                if not completed:
+                    with contextlib.suppress(TimeoutError, ValueError):
+                        async with asyncio.timeout(GRACE_SECONDS):
+                            async for line in stdout:
+                                data = self._parse(line)
+                                if data is not None:
+                                    account(data)
             await _end(process)
         cost = codex_cost_usd(usage, prices)
         if failed is not None:
