@@ -8,7 +8,8 @@ import { summonLine, summonsOf, type SummonView } from "../panels/office.ts";
 import { actionLabel } from "../progress.ts";
 import { tickSeconds } from "../simclock.ts";
 import type { Status } from "../store.ts";
-import { RESULT_SECONDS } from "../workshop.ts";
+import { choiceName } from "../locale.ts";
+import { RESULT_SECONDS, handsNow } from "../workshop.ts";
 
 /** A luz da barra de cima: verde, âmbar ou vermelha, sempre com o rótulo (nunca só a cor). */
 export interface Light {
@@ -160,6 +161,15 @@ export function chipsOf(state: ObserverState, me: string, tick: number, timeline
     } else if (doing !== undefined) {
       icon = doing.action;
       line = shortAction(state, doing.action);
+      // Na mesa, com uma sessão na oficina: quem programa e o modelo (ADR-0089).
+      const hands = doing.action === "work" ? handsNow(state, id, tick) : undefined;
+      if (hands !== undefined) {
+        const parts = ["programando", choiceName("hands", hands.harness)];
+        if (hands.model !== undefined) {
+          parts.push(choiceName("models", hands.model));
+        }
+        line = parts.join(" · ");
+      }
       title = doing.intent === undefined ? line : `${line} · ${doing.intent}`;
     } else if (role(id) === "vigia") {
       icon = "vigiar";

@@ -52,6 +52,16 @@
     "author": {
       "$ref": "contracts://common/defs.v1#/$defs/entity_id",
       "description": "Quem escreveu: o gerente."
+    },
+    "harness": {
+      "$ref": "contracts://common/defs.v1#/$defs/token",
+      "description": "Quem programa o pedido, escolhido na prancheta (ADR-0089): `api`, o nosso harness, ou `claude_code`. Sem o campo, o padrão do mundo."
+    },
+    "model": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._:/-]*$",
+      "maxLength": 128,
+      "description": "O modelo da sessão do pedido, escolhido na prancheta (ADR-0089; a decisão 14 da ADR-0083). Sem o campo, o padrão do mundo."
     }
   }
 }

@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/workshop/step.v2",
+  "title": "WorkshopStepV2",
+  "description": "Um passo do dev na oficina, pelas mãos que trabalham no pedido (ADR-0089): a ferramenta com o nome que o harness usa (`ler` no nosso, `Read` ou `Bash` no Claude Code), o caminho, uma linha do que aconteceu, as mãos e o modelo. Substitui o v1, que só conhecia as oito ferramentas do nosso harness e fica para os dias antigos. Quem publica é o controlador, e o kernel nunca o vê.",
+  "x-type": "campsverso.workshop.step.v2",
+  "x-visibility": "observer",
+  "x-producer": "controller",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "avatar_id",
+    "ticket_id",
+    "harness",
+    "tool",
+    "summary",
+    "ok",
+    "duration_ms"
+  ],
+  "properties": {
+    "avatar_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "ticket_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "O pedido do espaço de trabalho."
+    },
+    "harness": {
+      "$ref": "contracts://common/defs.v1#/$defs/token",
+      "description": "As mãos (ADR-0089): `api`, o nosso harness; `claude_code`; `script`, a sessão fixa da reserva sem modelo."
+    },
+    "model": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._:/-]*$",
+      "maxLength": 128,
+      "description": "O modelo da sessão; sem ele, a sessão não tem modelo (a reserva)."
+    },
+    "tool": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "A ferramenta, pelo nome que o harness usa, sem o prefixo das ferramentas do mundo (`chamar_robo`, e não `mcp__oficina__chamar_robo`)."
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "description": "O caminho no espaço de trabalho, quando a ferramenta usa um."
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Uma linha do que aconteceu, como \"rodando os testes: 12 passaram\" ou \"Bash: roda os testes\"."
+    },
+    "ok": {
+      "type": "boolean",
+      "description": "Falso quando a ferramenta recusou ou falhou."
+    },
+    "duration_ms": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c62-7d00-8e10-5a6b7c8d9e10",
+  "source": "/kernel/office-campsverso-01",
+  "type": "campsverso.office.ticket.created.v1",
+  "time": "2026-11-23T12:10:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/office/ticket.created.v1",
+  "worldid": "office-campsverso-01",
+  "cartridge": "office_campsverso",
+  "tick": 1290000,
+  "simtime": "2026-11-23T09:10:00-03:00",
+  "seq": 5100,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "ticket_id": "pedido-021",
+    "number": 21,
+    "title": "Conector do Codex",
+    "description": "As mãos do Codex para a oficina: um adaptador que implementa a HandsPort.",
+    "acceptance": "Com um codex falso, a sessão vira os passos na ordem.",
+    "size": "M",
+    "author": "gerente",
+    "harness": "claude_code",
+    "model": "claude-opus-5-5"
+  }
+}

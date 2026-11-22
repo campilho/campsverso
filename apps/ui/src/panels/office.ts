@@ -105,6 +105,9 @@ export interface TicketView {
   readonly patch: string | undefined;
   /** O PR do pedido no GitHub (ADR-0083), quando a entrega virou um. */
   readonly pr: PullRequestView | undefined;
+  /** Quem programa e o modelo, quando o gerente escolheu na prancheta (ADR-0089). */
+  readonly harness: string | undefined;
+  readonly model: string | undefined;
 }
 
 export interface PullRequestView {
@@ -186,6 +189,8 @@ export function ticketsOf(state: ObserverState): TicketView[] {
       comment: typeof a.comentario === "string" ? a.comentario : undefined,
       patch: typeof a.patch === "string" && a.patch !== "" ? a.patch : undefined,
       pr: pullRequestOf(a),
+      harness: typeof a.maos === "string" && a.maos !== "" ? a.maos : undefined,
+      model: typeof a.modelo === "string" && a.modelo !== "" ? a.modelo : undefined,
     });
   }
   return found.sort((a, b) => a.number - b.number);
@@ -196,6 +201,9 @@ export interface NewTicket {
   readonly description: string;
   readonly acceptance: string;
   readonly size: string;
+  /** Quem programa e o modelo (ADR-0089); sem eles, o padrão do mundo. */
+  readonly harness?: string;
+  readonly model?: string;
 }
 
 export interface OfficeActions {

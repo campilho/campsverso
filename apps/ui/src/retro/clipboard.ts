@@ -12,6 +12,7 @@ import type { ObserverState } from "@campsverso/contracts";
 
 import type { ArtManifest } from "../art/manifest.ts";
 import { el } from "../dom.ts";
+import { choiceName, choicesOf } from "../locale.ts";
 import { ACCEPTANCE_MAX, DESCRIPTION_MAX, SPEECH_MAX, TITLE_MAX, ticketsOf, type NewTicket, type TicketView } from "../panels/office.ts";
 import { pullRequestPill } from "./board.ts";
 import { EMPTY_DRAFT, SIZES, counterOf, isSize, nextNumber, parseDraft, stateLabel, type Draft, type Size } from "./tickets.ts";
@@ -92,6 +93,34 @@ function label(text: string, id?: string, extra?: string): HTMLElement {
 
 function strong(text: string): HTMLElement {
   return el("b", {}, text);
+}
+
+/** Uma escolha da prancheta (ADR-0089): a primeira opção, vazia, é o padrão do escritório. */
+function picker(kind: string, chosen: string, labelId: string, onPick: (value: string) => void): HTMLSelectElement | undefined {
+  const options = choicesOf(kind);
+  if (options.length === 0) {
+    return undefined; // um mundo sem a escolha
+  }
+  const select = el("select", { className: "retro-hand retro-pick" });
+  select.setAttribute("aria-labelledby", labelId);
+  for (const [value, name] of [["", "o padrão do escritório"] as const, ...options]) {
+    const option = el("option", {}, name);
+    option.value = value;
+    option.selected = value === chosen;
+    select.append(option);
+  }
+  select.addEventListener("change", () => { onPick(select.value); });
+  return select;
+}
+
+/** "Claude Code · Opus 5.5" (ou o padrão do escritório no que não foi escolhido). */
+export function handsLine(harness: string | undefined, model: string | undefined): string | undefined {
+  if (harness === undefined && model === undefined) {
+    return undefined;
+  }
+  const who = harness === undefined ? "o padrão do escritório" : choiceName("hands", harness);
+  const which = model === undefined ? "o modelo padrão" : choiceName("models", model);
+  return `${who} · ${which}`;
 }
 
 export class Clipboard {
@@ -307,10 +336,15 @@ export class Clipboard {
     const put = el("button", { className: "retro-take retro-put" }, el("i", { className: "retro-pin vermelho" }), "Pôr no quadro");
     put.type = "button";
     let size = this.draft.size;
+    let harness = this.draft.harness;
+    let model = this.draft.model;
     const sizes = this.sizes(size, (picked) => { size = picked; sync(); });
+    // Quem programa e o modelo (ADR-0089): o kernel confere; sem escolha, o padrão do escritório.
+    const hands = picker("hands", harness, "retro-hands-label", (value) => { harness = value; sync(); });
+    const models = picker("models", model, "retro-model-label", (value) => { model = value; sync(); });
     const paper = (): HTMLElement | null => this.element.querySelector(".retro-paper");
     const sync = (): void => {
-      this.draft = { title: title.value, description: description.value, acceptance: acceptance.value, size };
+      this.draft = { title: title.value, description: description.value, acceptance: acceptance.value, size, harness, model };
       saveDraft(this.draft);
       const node = paper();
       if (node !== null) {
@@ -345,6 +379,8 @@ export class Clipboard {
         description: description.value.trim(),
         acceptance: acceptance.value.trim(),
         size,
+        ...(harness === "" ? {} : { harness }),
+        ...(model === "" ? {} : { model }),
       });
       this.sent = JSON.stringify(this.draft);
       this.close();
@@ -364,6 +400,16 @@ export class Clipboard {
           acceptance,
         ),
         el("div", { className: "retro-field" }, label("Tamanho", "retro-size-label"), sizes),
+        ...(hands === undefined || models === undefined
+          ? []
+          : [
+              el(
+                "div",
+                { className: "retro-field retro-hands" },
+                el("div", {}, label("Quem programa", "retro-hands-label"), hands),
+                el("div", {}, label("Modelo", "retro-model-label"), models),
+              ),
+            ]),
         el("div", { className: "retro-signature" }, el("span", { className: "retro-hand" }, manager), el("span", {}, "Assinatura")),
       ],
       [this.closeButton(), el("span", { className: "retro-clip-spacer" }), missing, put],
@@ -392,6 +438,10 @@ export class Clipboard {
       el("div", { className: "retro-field" }, label("Teste de aceite", undefined, "como você vê que ficou pronto"), text(ticket.acceptance, "retro-lined")),
       el("div", { className: "retro-field" }, label("Tamanho", "retro-size-label"), this.sizes(isSize(ticket.size) ? ticket.size : "M", undefined)),
     ];
+    const chosen = handsLine(ticket.harness, ticket.model);
+    if (chosen !== undefined) {
+      paper.push(el("div", { className: "retro-field" }, label("Quem programa"), text(chosen, "retro-rule")));
+    }
     if (ticket.comment !== undefined) {
       paper.push(el("p", { className: "retro-hand retro-returned" }, `Devolvido: ${ticket.comment}`));
     }

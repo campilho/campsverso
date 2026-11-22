@@ -611,6 +611,17 @@ def test_a_oficina_acende_o_monitor_e_anima_o_robo() -> None:
     p.apply("observer", ev(15, 130, "workshop.step.v1", tool="editar", ok=True, **step))
     assert "robo-testador" not in p.workshop["robots"]
     assert p.workshop["steps"]["camps"]["tool"] == "editar"
+    # O v2 (ADR-0089): a ferramenta pelo nome do harness, as mãos e o modelo.
+    hands = {"harness": "claude_code", "model": "claude-opus-5-5"}
+    p.apply("observer", ev(16, 140, "workshop.step.v2", tool="Bash", ok=True, **hands, **step))
+    assert p.workshop["steps"]["camps"] == {
+        "ticket_id": "pedido-001",
+        "tool": "Bash",
+        "ok": True,
+        "tick": 140,
+        "harness": "claude_code",
+        "model": "claude-opus-5-5",
+    }
 
 
 def test_lotes_com_validade_seguem_os_itens() -> None:

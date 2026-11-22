@@ -738,7 +738,7 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 64,
-                    "description": "A ferramenta do passo (as do workshop.step.v1)."
+                    "description": "A ferramenta do passo, pelo nome que as mãos usam (as oito do workshop.step.v1, ou as do harness no v2)."
                   },
                   "ok": {
                     "type": "boolean"
@@ -746,6 +746,16 @@
                   "tick": {
                     "$ref": "contracts://common/defs.v1#/$defs/tick",
                     "description": "O tick em que o passo chegou."
+                  },
+                  "harness": {
+                    "$ref": "contracts://common/defs.v1#/$defs/token",
+                    "description": "As mãos do passo (workshop.step.v2; ADR-0089); sem o campo, um passo do v1."
+                  },
+                  "model": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9._:/-]*$",
+                    "maxLength": 128,
+                    "description": "O modelo da sessão do passo (workshop.step.v2)."
                   }
                 }
               }

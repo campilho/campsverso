@@ -644,15 +644,21 @@ class Projection:
     # ------------------------------------------------------------- a oficina (ADR-0080)
 
     def _on_workshop_step(self, data: Mapping[str, Any]) -> None:
-        """O último passo do dev: a ferramenta e se deu certo. Um passo depois de um robô que
-        começou e não terminou (o processo caiu no meio) o devolve ao parado."""
+        """O último passo do dev, do v1 ou do v2: a ferramenta, se deu certo e, no v2, as mãos e o
+        modelo. Um passo depois de um robô que começou e não terminou (o processo caiu no meio) o
+        devolve ao parado."""
         avatar_id = str(data["avatar_id"])
-        self.workshop.setdefault("steps", {})[avatar_id] = {
+        step: dict[str, Any] = {
             "ticket_id": str(data["ticket_id"]),
             "tool": str(data["tool"]),
             "ok": bool(data["ok"]),
             "tick": self._event_tick,
         }
+        # O v2 (ADR-0089) traz as mãos e o modelo, para o chip "programando · Claude Code".
+        for key in ("harness", "model"):
+            if data.get(key):
+                step[key] = str(data[key])
+        self.workshop.setdefault("steps", {})[avatar_id] = step
         robots = self.workshop.get("robots", {})
         for robot_id in sorted(robots):
             robot = robots[robot_id]

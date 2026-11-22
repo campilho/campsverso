@@ -50,5 +50,16 @@
     "videogame": "Jogando videogame",
     "light_on": "Acendendo a luz",
     "light_off": "Apagando a luz"
+  },
+  "choices": {
+    "hands": {
+      "api": "harness próprio",
+      "claude_code": "Claude Code"
+    },
+    "models": {
+      "claude-sonnet-5-5": "Sonnet 5.5",
+      "claude-opus-5-5": "Opus 5.5",
+      "claude-fable-5-2": "Fable 5.2"
+    }
   }
 }

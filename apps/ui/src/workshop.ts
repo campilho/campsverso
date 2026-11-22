@@ -13,13 +13,25 @@ import { tickSeconds } from "./simclock.ts";
 /** Um passo vale no monitor até 2 horas do mundo: a 72×, uma chamada lenta ao modelo passa de meia
  * hora entre dois passos; depois disso, a sessão acabou sem o `pronto` (o orçamento, uma queda). */
 export const STEP_SECONDS = 2 * 3600;
+/** As mãos e o modelo do dev que programa agora (ADR-0089), pelo último passo dele, enquanto o
+ * passo vale; um passo do v1 não traz as mãos. */
+export function handsNow(state: ObserverState, avatarId: string, tick: number): { readonly harness: string; readonly model: string | undefined } | undefined {
+  const step = state.workshop?.steps?.[avatarId];
+  if (step?.harness === undefined || age(state, tick, step.tick) > STEP_SECONDS) {
+    return undefined;
+  }
+  return { harness: step.harness, model: step.model };
+}
+
 /** O robô mostra o resultado por 15 minutos do mundo e volta ao parado. */
 export const RESULT_SECONDS = 15 * 60;
 /** Um robô roda no máximo 60 s; "trabalhando" por mais de 2 horas do mundo é um que caiu. */
 const WORKING_SECONDS = 2 * 3600;
 
-const READING = new Set(["ver_arquivos", "ler", "buscar", "ver_mudancas"]);
-const WRITING = new Set(["escrever", "editar"]);
+// As do nosso harness e as do Claude Code (o workshop.step.v2, ADR-0089). O `Bash` não muda o
+// monitor: pode ser ler, escrever ou testar.
+const READING = new Set(["ver_arquivos", "ler", "buscar", "ver_mudancas", "Read", "Glob", "Grep"]);
+const WRITING = new Set(["escrever", "editar", "Write", "Edit", "NotebookEdit"]);
 
 /** O que o monitor mostra por um passo: lendo, escrevendo, os testes verdes ou vermelhos; o
  * `pronto` (e o que não se conhece) não muda o monitor. */

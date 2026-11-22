@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts://events/workshop/session_finished.v1",
+  "title": "WorkshopSessionFinishedV1",
+  "description": "Uma sessão do dev na oficina acabou (ADR-0089): o pedido, as mãos e o modelo, as voltas, os passos, o motivo do fim, o custo e o tempo. É a fonte da comparação das mãos. Quem publica é o controlador, nas duas mãos, e o kernel nunca o vê.",
+  "x-type": "campsverso.workshop.session_finished.v1",
+  "x-visibility": "observer",
+  "x-producer": "controller",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "avatar_id",
+    "ticket_id",
+    "harness",
+    "model",
+    "done",
+    "reason",
+    "turns",
+    "steps",
+    "duration_ms"
+  ],
+  "properties": {
+    "avatar_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id"
+    },
+    "ticket_id": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "O pedido da sessão."
+    },
+    "harness": {
+      "$ref": "contracts://common/defs.v1#/$defs/token",
+      "description": "As mãos que trabalharam: `api`, o nosso harness, ou `claude_code`."
+    },
+    "model": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._:/-]*$",
+      "maxLength": 128
+    },
+    "done": {
+      "type": "boolean",
+      "description": "A sessão chegou ao fim normal: o `pronto` do nosso harness ou a resposta final do Claude Code. A entrega ainda passa pela revisão da oficina."
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "description": "O motivo do fim, como as mãos o dão: `pronto`, `parada`, `limite de voltas`, `limite de tempo`."
+    },
+    "turns": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "As voltas: as respostas do modelo, como cada harness as conta."
+    },
+    "steps": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "As ferramentas usadas."
+    },
+    "cost_usd": {
+      "type": "number",
+      "minimum": 0,
+      "description": "O que as chamadas ao modelo da sessão custaram pela tabela de preços, como a guarda soma; sem ele, não foi medido."
+    },
+    "duration_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "O tempo de relógio da sessão, do briefing ao fim."
+    }
+  }
+}

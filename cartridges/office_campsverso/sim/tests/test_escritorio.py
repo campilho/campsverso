@@ -1,11 +1,14 @@
 """O escritório no kernel (M23, ADR-0078): o expediente, o pedido no quadro e quem pode o quê."""
 
+import json
 import re
 from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 
 from campsverso_cartridge_api import Position
 from campsverso_kernel.core import KernelCore, WorldConfig
@@ -141,6 +144,40 @@ def test_o_gerente_escreve_o_pedido_no_quadro() -> None:
     ticket = core.world.entity_map["pedido-001"]
     assert ticket.container_id == "quadro"
     assert ticket.attributes["estado"] == "a_fazer"
+    # Sem escolha na prancheta, o pedido é o de antes do M26: o padrão do mundo programa.
+    assert "maos" not in ticket.attributes
+    assert "modelo" not in ticket.attributes
+
+
+def test_a_prancheta_escolhe_quem_programa_e_o_modelo() -> None:
+    """ADR-0089: as mãos e o modelo do pedido, entre os que o cartucho oferece."""
+    core = _core()
+    _until(core, "09:00")
+    _manager_in(core)
+    _act(core, "gerente", "move", {"near": "quadro"}, HUMAN["id"])
+    chosen = {"title": "Conector do Codex", "harness": "claude_code", "model": "claude-opus-5-5"}
+    facts = _act(core, "gerente", "write_ticket", chosen, HUMAN["id"])
+    (created,) = _only(facts, "office.ticket.created")
+    assert (created["harness"], created["model"]) == ("claude_code", "claude-opus-5-5")
+    attributes = core.world.entity_map["pedido-001"].attributes
+    assert (attributes["maos"], attributes["modelo"]) == ("claude_code", "claude-opus-5-5")
+    # Vazio é o padrão do mundo; o que o cartucho não oferece, o kernel recusa.
+    empty = _act(core, "gerente", "write_ticket", {"title": "x", "harness": ""}, HUMAN["id"])
+    assert "harness" not in _only(empty, "office.ticket.created")[0]
+    for wrong in ({"harness": "codex"}, {"model": "gpt-qualquer"}, {"harness": 3}):
+        refused = _act(core, "gerente", "write_ticket", {"title": "x", **wrong}, HUMAN["id"])
+        assert _only(refused, "action.rejected")[0]["reason"] == "invalid_params"
+
+
+def test_a_tela_mostra_as_escolhas_que_o_cartucho_oferece() -> None:
+    """As escolhas da prancheta no locale do gênero são as do office.yaml, na mesma ordem."""
+    office = Path(__file__).parents[3] / "office"
+    config = yaml.safe_load(
+        (office / "sim/src/campsverso_office_sim/data/office.yaml").read_text(encoding="utf-8")
+    )
+    locale = json.loads((office / "locale/pt-BR.json").read_text(encoding="utf-8"))
+    assert list(locale["choices"]["hands"]) == config["ticket"]["hands"]
+    assert list(locale["choices"]["models"]) == config["ticket"]["models"]
 
 
 def test_cada_papel_faz_o_que_e_dele_e_perto_do_lugar_certo() -> None:

@@ -66,6 +66,10 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   await expect(title).toHaveValue("Ferramenta de busca"); // o rascunho ficou
   await clipboard.getByRole("textbox", { name: "O que fazer" }).fill("Achar um arquivo do repositório pelo nome.");
   await clipboard.getByRole("radio", { name: "P, pequeno" }).check();
+  // Quem programa e o modelo (ADR-0089): o dev-script não usa, mas a ficha guarda.
+  await clipboard.getByRole("combobox", { name: "Quem programa" }).selectOption({ label: "Claude Code" });
+  await clipboard.getByRole("combobox", { name: "Modelo" }).selectOption({ label: "Opus 5.5" });
+  await page.screenshot({ path: `${SHOTS}/escritorio-prancheta.png` });
   await clipboard.getByRole("button", { name: "Pôr no quadro" }).click();
   await expect(clipboard).toBeHidden();
   // Enquanto o gerente vai ao quadro, a ficha fantasma fica em "A fazer"; depois, a de verdade.
@@ -126,6 +130,7 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   const card = page.getByRole("dialog", { name: "Ficha do pedido" });
   await expect(card).toContainText("ENTREGUE");
   await expect(card).toContainText("Achar um arquivo do repositório pelo nome.");
+  await expect(card).toContainText("Claude Code · Opus 5.5");
   await card.getByRole("button", { name: "Ver o patch" }).click();
   const patch = page.locator("dialog.delivery");
   await expect(patch).toContainText("docs/oficina/pedido-001.md", { timeout: 10_000 });

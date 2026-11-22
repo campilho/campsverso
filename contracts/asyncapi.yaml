@@ -822,6 +822,17 @@ channels:
     messages:
       WorkshopRobotStartedV1:
         $ref: '#/components/messages/WorkshopRobotStartedV1'
+  WorkshopSessionFinishedV1:
+    address: campsverso.{worldid}.observer.workshop.session_finished.v1
+    title: campsverso.workshop.session_finished.v1
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorkshopSessionFinishedV1:
+        $ref: '#/components/messages/WorkshopSessionFinishedV1'
   WorkshopStepV1:
     address: campsverso.{worldid}.observer.workshop.step.v1
     title: campsverso.workshop.step.v1
@@ -833,6 +844,17 @@ channels:
     messages:
       WorkshopStepV1:
         $ref: '#/components/messages/WorkshopStepV1'
+  WorkshopStepV2:
+    address: campsverso.{worldid}.observer.workshop.step.v2
+    title: campsverso.workshop.step.v2
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      WorkshopStepV2:
+        $ref: '#/components/messages/WorkshopStepV2'
   WorldClockCaughtUpV1:
     address: campsverso.{worldid}.world.world.clock.caught_up.v1
     title: campsverso.world.clock.caught_up.v1
@@ -1669,12 +1691,26 @@ operations:
     messages:
     - $ref: '#/channels/WorkshopRobotStartedV1/messages/WorkshopRobotStartedV1'
     x-producer: controller
+  sendWorkshopSessionFinishedV1:
+    action: send
+    channel:
+      $ref: '#/channels/WorkshopSessionFinishedV1'
+    messages:
+    - $ref: '#/channels/WorkshopSessionFinishedV1/messages/WorkshopSessionFinishedV1'
+    x-producer: controller
   sendWorkshopStepV1:
     action: send
     channel:
       $ref: '#/channels/WorkshopStepV1'
     messages:
     - $ref: '#/channels/WorkshopStepV1/messages/WorkshopStepV1'
+    x-producer: controller
+  sendWorkshopStepV2:
+    action: send
+    channel:
+      $ref: '#/channels/WorkshopStepV2'
+    messages:
+    - $ref: '#/channels/WorkshopStepV2/messages/WorkshopStepV2'
     x-producer: controller
   sendWorldClockCaughtUpV1:
     action: send
@@ -4217,6 +4253,16 @@ components:
         author:
           $ref: '#/components/schemas/EntityId'
           description: 'Quem escreveu: o gerente.'
+        harness:
+          $ref: '#/components/schemas/Token'
+          description: 'Quem programa o pedido, escolhido na prancheta (ADR-0089): `api`, o nosso harness,
+            ou `claude_code`. Sem o campo, o padrão do mundo.'
+        model:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9._:/-]*$
+          maxLength: 128
+          description: O modelo da sessão do pedido, escolhido na prancheta (ADR-0089; a decisão 14 da
+            ADR-0083). Sem o campo, o padrão do mundo.
     OfficeTicketDeliveredV1:
       title: OfficeTicketDeliveredV1
       description: 'O dev entregou um pedido (ADR-0078): o pedido passa a "entregue" e espera o gerente.'
@@ -5050,6 +5096,63 @@ components:
             type: string
             maxLength: 300
           description: Os argumentos que o dev deu ao robô.
+    WorkshopSessionFinishedV1:
+      title: WorkshopSessionFinishedV1
+      description: 'Uma sessão do dev na oficina acabou (ADR-0089): o pedido, as mãos e o modelo, as voltas,
+        os passos, o motivo do fim, o custo e o tempo. É a fonte da comparação das mãos. Quem publica
+        é o controlador, nas duas mãos, e o kernel nunca o vê.'
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - ticket_id
+      - harness
+      - model
+      - done
+      - reason
+      - turns
+      - steps
+      - duration_ms
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+        ticket_id:
+          $ref: '#/components/schemas/EntityId'
+          description: O pedido da sessão.
+        harness:
+          $ref: '#/components/schemas/Token'
+          description: 'As mãos que trabalharam: `api`, o nosso harness, ou `claude_code`.'
+        model:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9._:/-]*$
+          maxLength: 128
+        done:
+          type: boolean
+          description: 'A sessão chegou ao fim normal: o `pronto` do nosso harness ou a resposta final
+            do Claude Code. A entrega ainda passa pela revisão da oficina.'
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 80
+          description: 'O motivo do fim, como as mãos o dão: `pronto`, `parada`, `limite de voltas`, `limite
+            de tempo`.'
+        turns:
+          type: integer
+          minimum: 0
+          description: 'As voltas: as respostas do modelo, como cada harness as conta.'
+        steps:
+          type: integer
+          minimum: 0
+          description: As ferramentas usadas.
+        cost_usd:
+          type: number
+          minimum: 0
+          description: O que as chamadas ao modelo da sessão custaram pela tabela de preços, como a guarda
+            soma; sem ele, não foi medido.
+        duration_ms:
+          type: integer
+          minimum: 0
+          description: O tempo de relógio da sessão, do briefing ao fim.
     WorkshopStepV1:
       title: WorkshopStepV1
       description: 'Um passo do dev na oficina (ADR-0080): a ferramenta, o caminho e uma linha do que
@@ -5090,6 +5193,61 @@ components:
           minLength: 1
           maxLength: 200
           description: 'Uma linha do que aconteceu, como "rodando os testes: 12 passaram".'
+        ok:
+          type: boolean
+          description: Falso quando a ferramenta recusou ou falhou.
+        duration_ms:
+          type: integer
+          minimum: 0
+    WorkshopStepV2:
+      title: WorkshopStepV2
+      description: 'Um passo do dev na oficina, pelas mãos que trabalham no pedido (ADR-0089): a ferramenta
+        com o nome que o harness usa (`ler` no nosso, `Read` ou `Bash` no Claude Code), o caminho, uma
+        linha do que aconteceu, as mãos e o modelo. Substitui o v1, que só conhecia as oito ferramentas
+        do nosso harness e fica para os dias antigos. Quem publica é o controlador, e o kernel nunca o
+        vê.'
+      type: object
+      additionalProperties: false
+      required:
+      - avatar_id
+      - ticket_id
+      - harness
+      - tool
+      - summary
+      - ok
+      - duration_ms
+      properties:
+        avatar_id:
+          $ref: '#/components/schemas/EntityId'
+        ticket_id:
+          $ref: '#/components/schemas/EntityId'
+          description: O pedido do espaço de trabalho.
+        harness:
+          $ref: '#/components/schemas/Token'
+          description: 'As mãos (ADR-0089): `api`, o nosso harness; `claude_code`; `script`, a sessão
+            fixa da reserva sem modelo.'
+        model:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9._:/-]*$
+          maxLength: 128
+          description: O modelo da sessão; sem ele, a sessão não tem modelo (a reserva).
+        tool:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: A ferramenta, pelo nome que o harness usa, sem o prefixo das ferramentas do mundo
+            (`chamar_robo`, e não `mcp__oficina__chamar_robo`).
+        path:
+          type: string
+          minLength: 1
+          maxLength: 300
+          description: O caminho no espaço de trabalho, quando a ferramenta usa um.
+        summary:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: 'Uma linha do que aconteceu, como "rodando os testes: 12 passaram" ou "Bash: roda
+            os testes".'
         ok:
           type: boolean
           description: Falso quando a ferramenta recusou ou falhou.
@@ -6648,12 +6806,22 @@ components:
                         type: string
                         minLength: 1
                         maxLength: 64
-                        description: A ferramenta do passo (as do workshop.step.v1).
+                        description: A ferramenta do passo, pelo nome que as mãos usam (as oito do workshop.step.v1,
+                          ou as do harness no v2).
                       ok:
                         type: boolean
                       tick:
                         $ref: '#/components/schemas/Tick'
                         description: O tick em que o passo chegou.
+                      harness:
+                        $ref: '#/components/schemas/Token'
+                        description: As mãos do passo (workshop.step.v2; ADR-0089); sem o campo, um passo
+                          do v1.
+                      model:
+                        type: string
+                        pattern: ^[a-z0-9][a-z0-9._:/-]*$
+                        maxLength: 128
+                        description: O modelo da sessão do passo (workshop.step.v2).
                 robots:
                   type: object
                   description: 'Por robô da bancada: a última chamada dele.'
@@ -7414,6 +7582,17 @@ components:
         $ref: '#/components/schemas/WorkshopRobotStartedV1'
       x-visibility: observer
       x-producer: controller
+    WorkshopSessionFinishedV1:
+      name: campsverso.workshop.session_finished.v1
+      title: WorkshopSessionFinishedV1
+      summary: 'Uma sessão do dev na oficina acabou (ADR-0089): o pedido, as mãos e o modelo, as voltas,
+        os passos, o motivo do fim, o custo e o tempo. É a fonte da comparação das mãos. Quem publica
+        é o controlador, nas duas mãos, e o kernel nunca o vê.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorkshopSessionFinishedV1'
+      x-visibility: observer
+      x-producer: controller
     WorkshopStepV1:
       name: campsverso.workshop.step.v1
       title: WorkshopStepV1
@@ -7423,6 +7602,19 @@ components:
       contentType: application/json
       payload:
         $ref: '#/components/schemas/WorkshopStepV1'
+      x-visibility: observer
+      x-producer: controller
+    WorkshopStepV2:
+      name: campsverso.workshop.step.v2
+      title: WorkshopStepV2
+      summary: 'Um passo do dev na oficina, pelas mãos que trabalham no pedido (ADR-0089): a ferramenta
+        com o nome que o harness usa (`ler` no nosso, `Read` ou `Bash` no Claude Code), o caminho, uma
+        linha do que aconteceu, as mãos e o modelo. Substitui o v1, que só conhecia as oito ferramentas
+        do nosso harness e fica para os dias antigos. Quem publica é o controlador, e o kernel nunca o
+        vê.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/WorkshopStepV2'
       x-visibility: observer
       x-producer: controller
     WorldClockCaughtUpV1:

@@ -604,12 +604,28 @@ CONTRACT_TYPES: Final[dict[str, ContractType]] = {
             models.WorkshopRobotStartedV1,
         ),
         ContractType(
+            "campsverso.workshop.session_finished.v1",
+            "event",
+            "observer",
+            "controller",
+            "contracts://events/workshop/session_finished.v1",
+            models.WorkshopSessionFinishedV1,
+        ),
+        ContractType(
             "campsverso.workshop.step.v1",
             "event",
             "observer",
             "controller",
             "contracts://events/workshop/step.v1",
             models.WorkshopStepV1,
+        ),
+        ContractType(
+            "campsverso.workshop.step.v2",
+            "event",
+            "observer",
+            "controller",
+            "contracts://events/workshop/step.v2",
+            models.WorkshopStepV2,
         ),
         ContractType(
             "campsverso.world.clock.caught_up.v1",

@@ -1591,6 +1591,11 @@ export interface OfficeTicketCreatedV1 {
    */
   size: "P" | "M" | "G";
   author: EntityId;
+  harness?: Token;
+  /**
+   * O modelo da sessão do pedido, escolhido na prancheta (ADR-0089; a decisão 14 da ADR-0083). Sem o campo, o padrão do mundo.
+   */
+  model?: string;
 }
 /**
  * O dev entregou um pedido (ADR-0078): o pedido passa a "entregue" e espera o gerente.
@@ -2421,6 +2426,42 @@ export interface WorkshopRobotStartedV1 {
       ];
 }
 /**
+ * Uma sessão do dev na oficina acabou (ADR-0089): o pedido, as mãos e o modelo, as voltas, os passos, o motivo do fim, o custo e o tempo. É a fonte da comparação das mãos. Quem publica é o controlador, nas duas mãos, e o kernel nunca o vê.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "WorkshopSessionFinishedV1".
+ */
+export interface WorkshopSessionFinishedV1 {
+  avatar_id: EntityId;
+  ticket_id: EntityId;
+  harness: Token;
+  model: string;
+  /**
+   * A sessão chegou ao fim normal: o `pronto` do nosso harness ou a resposta final do Claude Code. A entrega ainda passa pela revisão da oficina.
+   */
+  done: boolean;
+  /**
+   * O motivo do fim, como as mãos o dão: `pronto`, `parada`, `limite de voltas`, `limite de tempo`.
+   */
+  reason: string;
+  /**
+   * As voltas: as respostas do modelo, como cada harness as conta.
+   */
+  turns: number;
+  /**
+   * As ferramentas usadas.
+   */
+  steps: number;
+  /**
+   * O que as chamadas ao modelo da sessão custaram pela tabela de preços, como a guarda soma; sem ele, não foi medido.
+   */
+  cost_usd?: number;
+  /**
+   * O tempo de relógio da sessão, do briefing ao fim.
+   */
+  duration_ms: number;
+}
+/**
  * Um passo do dev na oficina (ADR-0080): a ferramenta, o caminho e uma linha do que aconteceu. É o computador do dev, e não o mundo: quem publica é o controlador, e o kernel nunca o vê. A tela mostra o último passo no monitor da mesa; o arquivo guarda todos.
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
@@ -2444,6 +2485,38 @@ export interface WorkshopStepV1 {
   path?: string;
   /**
    * Uma linha do que aconteceu, como "rodando os testes: 12 passaram".
+   */
+  summary: string;
+  /**
+   * Falso quando a ferramenta recusou ou falhou.
+   */
+  ok: boolean;
+  duration_ms: number;
+}
+/**
+ * Um passo do dev na oficina, pelas mãos que trabalham no pedido (ADR-0089): a ferramenta com o nome que o harness usa (`ler` no nosso, `Read` ou `Bash` no Claude Code), o caminho, uma linha do que aconteceu, as mãos e o modelo. Substitui o v1, que só conhecia as oito ferramentas do nosso harness e fica para os dias antigos. Quem publica é o controlador, e o kernel nunca o vê.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "WorkshopStepV2".
+ */
+export interface WorkshopStepV2 {
+  avatar_id: EntityId;
+  ticket_id: EntityId;
+  harness: Token;
+  /**
+   * O modelo da sessão; sem ele, a sessão não tem modelo (a reserva).
+   */
+  model?: string;
+  /**
+   * A ferramenta, pelo nome que o harness usa, sem o prefixo das ferramentas do mundo (`chamar_robo`, e não `mcp__oficina__chamar_robo`).
+   */
+  tool: string;
+  /**
+   * O caminho no espaço de trabalho, quando a ferramenta usa um.
+   */
+  path?: string;
+  /**
+   * Uma linha do que aconteceu, como "rodando os testes: 12 passaram" ou "Bash: roda os testes".
    */
   summary: string;
   /**
@@ -3396,11 +3469,16 @@ export interface ObserverWorkshop {
 export interface ObserverWorkshopStep {
   ticket_id: EntityId;
   /**
-   * A ferramenta do passo (as do workshop.step.v1).
+   * A ferramenta do passo, pelo nome que as mãos usam (as oito do workshop.step.v1, ou as do harness no v2).
    */
   tool: string;
   ok: boolean;
   tick: Tick;
+  harness?: Token;
+  /**
+   * O modelo da sessão do passo (workshop.step.v2).
+   */
+  model?: string;
 }
 export interface ObserverWorkshopRobot {
   /**

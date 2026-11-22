@@ -130,9 +130,12 @@ export interface Draft {
   readonly description: string;
   readonly acceptance: string;
   readonly size: Size;
+  /** Quem programa e o modelo (ADR-0089); vazio é o padrão do escritório. */
+  readonly harness: string;
+  readonly model: string;
 }
 
-export const EMPTY_DRAFT: Draft = { title: "", description: "", acceptance: "", size: "M" };
+export const EMPTY_DRAFT: Draft = { title: "", description: "", acceptance: "", size: "M", harness: "", model: "" };
 
 /** O rascunho guardado, conferido campo a campo: o que vier torto vira o rascunho vazio. */
 export function parseDraft(raw: string | null): Draft {
@@ -142,7 +145,14 @@ export function parseDraft(raw: string | null): Draft {
   try {
     const value = JSON.parse(raw) as Record<string, unknown>;
     const str = (key: string): string => (typeof value[key] === "string" ? value[key] : "");
-    return { title: str("title"), description: str("description"), acceptance: str("acceptance"), size: isSize(value.size) ? value.size : "M" };
+    return {
+      title: str("title"),
+      description: str("description"),
+      acceptance: str("acceptance"),
+      size: isSize(value.size) ? value.size : "M",
+      harness: str("harness"),
+      model: str("model"),
+    };
   } catch {
     return EMPTY_DRAFT;
   }

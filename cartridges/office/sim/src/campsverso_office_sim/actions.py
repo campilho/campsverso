@@ -190,17 +190,28 @@ def _delivered(ctx: ActionContext) -> EntityView | Rejection:
     return found
 
 
+def choice(params: Mapping[str, Any], key: str, allowed: object) -> str | Rejection | None:
+    """Uma escolha da prancheta, entre as que o cartucho oferece; vazia, o padrão do mundo."""
+    raw = params.get(key)
+    if raw is None or raw == "":
+        return None
+    options = [str(o) for o in cast(list[Any], allowed or [])]
+    if raw not in options:
+        return Rejection("invalid_params", f"{key} é um de {options}")
+    return str(raw)
+
+
 @dataclass(frozen=True)
 class WriteTicket(OfficeAction):
     """O gerente escreve um pedido no quadro: o título, a descrição, o teste de aceite e o
-    tamanho."""
+    tamanho; e, se quiser, quem programa e o modelo (ADR-0089)."""
 
     name: str = "write_ticket"
     role: ClassVar[str] = MANAGER
 
-    def _fields(self, ctx: ActionContext) -> dict[str, str] | Rejection:
+    def _fields(self, ctx: ActionContext) -> dict[str, str | None] | Rejection:
         limits = section(ctx.view, "ticket")
-        found: dict[str, str] = {}
+        found: dict[str, str | None] = {}
         for key, limit, required in (
             ("title", "title_max", True),
             ("description", "description_max", False),
@@ -214,6 +225,11 @@ class WriteTicket(OfficeAction):
         if size not in SIZES:
             return Rejection("invalid_params", f"size é um de {list(SIZES)}")
         found["size"] = str(size)
+        for key, allowed in (("harness", "hands"), ("model", "models")):
+            picked = choice(ctx.params, key, limits.get(allowed))
+            if isinstance(picked, Rejection):
+                return picked
+            found[key] = picked
         return found
 
     def check(self, ctx: ActionContext) -> Rejection | None:
@@ -229,39 +245,46 @@ class WriteTicket(OfficeAction):
         assert not isinstance(fields, Rejection)
         number = ops.next_seq("pedido")
         ticket_id = f"pedido-{number:03d}"
+        attributes: dict[str, Any] = {
+            "numero": number,
+            "titulo": fields["title"],
+            "descricao": fields["description"],
+            "aceite": fields["acceptance"],
+            "tamanho": fields["size"],
+            "estado": TODO,
+            "autor": ctx.avatar_id,
+            "dono": None,
+            "trabalho": 0,
+            "comentario": None,
+            "patch": None,  # a referência da entrega da oficina (ADR-0080)
+        }
+        # Quem programa e o modelo (ADR-0089), só quando o gerente escolheu: sem eles, o padrão do
+        # mundo, e o pedido fica igual ao de antes do M26.
+        for key, attribute in (("harness", "maos"), ("model", "modelo")):
+            if fields[key] is not None:
+                attributes[attribute] = fields[key]
         ops.spawn(
             SpawnDef(
                 ticket_id,
                 TICKET,
                 container_id=board.entity_id,
-                display_name=fields["title"],
-                attributes={
-                    "numero": number,
-                    "titulo": fields["title"],
-                    "descricao": fields["description"],
-                    "aceite": fields["acceptance"],
-                    "tamanho": fields["size"],
-                    "estado": TODO,
-                    "autor": ctx.avatar_id,
-                    "dono": None,
-                    "trabalho": 0,
-                    "comentario": None,
-                    "patch": None,  # a referência da entrega da oficina (ADR-0080)
-                },
+                display_name=str(fields["title"]),
+                attributes=attributes,
             )
         )
-        ops.emit(
-            "campsverso.office.ticket.created.v1",
-            {
-                "ticket_id": ticket_id,
-                "number": number,
-                "title": fields["title"],
-                "description": fields["description"],
-                "acceptance": fields["acceptance"],
-                "size": fields["size"],
-                "author": ctx.avatar_id,
-            },
-        )
+        created: dict[str, Any] = {
+            "ticket_id": ticket_id,
+            "number": number,
+            "title": fields["title"],
+            "description": fields["description"],
+            "acceptance": fields["acceptance"],
+            "size": fields["size"],
+            "author": ctx.avatar_id,
+        }
+        for key in ("harness", "model"):
+            if fields[key] is not None:
+                created[key] = fields[key]
+        ops.emit("campsverso.office.ticket.created.v1", created)
 
 
 @dataclass(frozen=True)

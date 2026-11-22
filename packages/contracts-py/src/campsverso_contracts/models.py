@@ -2245,6 +2245,16 @@ class OfficeTicketCreatedV1(BaseModel):
     """
     Quem escreveu: o gerente.
     """
+    harness: Annotated[
+        str | None, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")
+    ] = None
+    """
+    Quem programa o pedido, escolhido na prancheta (ADR-0089): `api`, o nosso harness, ou `claude_code`. Sem o campo, o padrão do mundo.
+    """
+    model: Annotated[str | None, Field(max_length=128, pattern="^[a-z0-9][a-z0-9._:/-]*$")] = None
+    """
+    O modelo da sessão do pedido, escolhido na prancheta (ADR-0089; a decisão 14 da ADR-0083). Sem o campo, o padrão do mundo.
+    """
 
 
 class File(RootModel[str]):
@@ -3086,6 +3096,57 @@ class WorkshopRobotStartedV1(BaseModel):
     """
 
 
+class WorkshopSessionFinishedV1(BaseModel):
+    """
+    Uma sessão do dev na oficina acabou (ADR-0089): o pedido, as mãos e o modelo, as voltas, os passos, o motivo do fim, o custo e o tempo. É a fonte da comparação das mãos. Quem publica é o controlador, nas duas mãos, e o kernel nunca o vê.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    ticket_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O pedido da sessão.
+    """
+    harness: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    As mãos que trabalharam: `api`, o nosso harness, ou `claude_code`.
+    """
+    model: Annotated[str, Field(max_length=128, pattern="^[a-z0-9][a-z0-9._:/-]*$")]
+    done: bool
+    """
+    A sessão chegou ao fim normal: o `pronto` do nosso harness ou a resposta final do Claude Code. A entrega ainda passa pela revisão da oficina.
+    """
+    reason: Annotated[str, Field(max_length=80, min_length=1)]
+    """
+    O motivo do fim, como as mãos o dão: `pronto`, `parada`, `limite de voltas`, `limite de tempo`.
+    """
+    turns: Annotated[int, Field(ge=0)]
+    """
+    As voltas: as respostas do modelo, como cada harness as conta.
+    """
+    steps: Annotated[int, Field(ge=0)]
+    """
+    As ferramentas usadas.
+    """
+    cost_usd: Annotated[float | None, Field(ge=0.0)] = None
+    """
+    O que as chamadas ao modelo da sessão custaram pela tabela de preços, como a guarda soma; sem ele, não foi medido.
+    """
+    duration_ms: Annotated[int, Field(ge=0)]
+    """
+    O tempo de relógio da sessão, do briefing ao fim.
+    """
+
+
 class WorkshopStepV1(BaseModel):
     """
     Um passo do dev na oficina (ADR-0080): a ferramenta, o caminho e uma linha do que aconteceu. É o computador do dev, e não o mundo: quem publica é o controlador, e o kernel nunca o vê. A tela mostra o último passo no monitor da mesa; o arquivo guarda todos.
@@ -3123,6 +3184,53 @@ class WorkshopStepV1(BaseModel):
     summary: Annotated[str, Field(max_length=200, min_length=1)]
     """
     Uma linha do que aconteceu, como "rodando os testes: 12 passaram".
+    """
+    ok: bool
+    """
+    Falso quando a ferramenta recusou ou falhou.
+    """
+    duration_ms: Annotated[int, Field(ge=0)]
+
+
+class WorkshopStepV2(BaseModel):
+    """
+    Um passo do dev na oficina, pelas mãos que trabalham no pedido (ADR-0089): a ferramenta com o nome que o harness usa (`ler` no nosso, `Read` ou `Bash` no Claude Code), o caminho, uma linha do que aconteceu, as mãos e o modelo. Substitui o v1, que só conhecia as oito ferramentas do nosso harness e fica para os dias antigos. Quem publica é o controlador, e o kernel nunca o vê.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    avatar_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    ticket_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O pedido do espaço de trabalho.
+    """
+    harness: Annotated[str, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")]
+    """
+    As mãos (ADR-0089): `api`, o nosso harness; `claude_code`; `script`, a sessão fixa da reserva sem modelo.
+    """
+    model: Annotated[str | None, Field(max_length=128, pattern="^[a-z0-9][a-z0-9._:/-]*$")] = None
+    """
+    O modelo da sessão; sem ele, a sessão não tem modelo (a reserva).
+    """
+    tool: Annotated[str, Field(max_length=64, min_length=1)]
+    """
+    A ferramenta, pelo nome que o harness usa, sem o prefixo das ferramentas do mundo (`chamar_robo`, e não `mcp__oficina__chamar_robo`).
+    """
+    path: Annotated[str | None, Field(max_length=300, min_length=1)] = None
+    """
+    O caminho no espaço de trabalho, quando a ferramenta usa um.
+    """
+    summary: Annotated[str, Field(max_length=200, min_length=1)]
+    """
+    Uma linha do que aconteceu, como "rodando os testes: 12 passaram" ou "Bash: roda os testes".
     """
     ok: bool
     """
@@ -4507,12 +4615,22 @@ class ObserverWorkshopStep(BaseModel):
     """
     tool: Annotated[str, Field(max_length=64, min_length=1)]
     """
-    A ferramenta do passo (as do workshop.step.v1).
+    A ferramenta do passo, pelo nome que as mãos usam (as oito do workshop.step.v1, ou as do harness no v2).
     """
     ok: bool
     tick: Annotated[int, Field(ge=0, title="Tick")]
     """
     O tick em que o passo chegou.
+    """
+    harness: Annotated[
+        str | None, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")
+    ] = None
+    """
+    As mãos do passo (workshop.step.v2; ADR-0089); sem o campo, um passo do v1.
+    """
+    model: Annotated[str | None, Field(max_length=128, pattern="^[a-z0-9][a-z0-9._:/-]*$")] = None
+    """
+    O modelo da sessão do passo (workshop.step.v2).
     """
 
 

@@ -4,9 +4,11 @@ import type { EnvelopeV1, ObserverState } from "@campsverso/contracts";
 import { describe, expect, it } from "vitest";
 
 import { bannerOf, type Banner, type Notice } from "./banner.ts";
+import { choicesOf, setLocale } from "./locale.ts";
 import { summonsOf, type TicketView } from "./panels/office.ts";
 import type { Step } from "./queue.ts";
 import { chipsOf, clockView, lightOf, robotLine, summonShort, versionLine } from "./retro/model.ts";
+import { handsLine } from "./retro/clipboard.ts";
 import { prsText, systemOf } from "./retro/system.ts";
 import {
   completeMention,
@@ -123,6 +125,25 @@ describe("os chips das pessoas", () => {
     expect(dev?.line.charAt(0)).toBe(dev?.line.charAt(0).toLowerCase());
   });
 
+  it("o dev na mesa com uma sessão na oficina diz quem programa e o modelo (ADR-0089)", () => {
+    setLocale([{ choices: { hands: { claude_code: "Claude Code" }, models: { "claude-opus-5-5": "Opus 5.5" } } }]);
+    const step = { ticket_id: "pedido-003", tool: "Edit", ok: true, tick: 16100, harness: "claude_code", model: "claude-opus-5-5" };
+    const office = state({
+      entities: { camps, gerente },
+      actions: { camps: { action: "work", intent: "o pedido 3" } } as unknown as ObserverState["actions"],
+      workshop: { steps: { camps: step } },
+    });
+    const dev = chipsOf(office, "gerente", office.tick).find((c) => c.id === "camps");
+    expect(dev?.line).toBe("programando · Claude Code · Opus 5.5");
+    expect(dev?.title).toBe("programando · Claude Code · Opus 5.5 · o pedido 3");
+    // Um passo velho, ou do v1 (sem as mãos), não muda a linha.
+    const old = state({ ...office, workshop: { steps: { camps: { ...step, tick: 0 } } } });
+    expect(chipsOf(old, "gerente", 16200 + 3 * 3600).find((c) => c.id === "camps")?.line).not.toContain("programando");
+    const v1 = state({ ...office, workshop: { steps: { camps: { ticket_id: "pedido-003", tool: "ler", ok: true, tick: 16100 } } } });
+    expect(chipsOf(v1, "gerente", v1.tick).find((c) => c.id === "camps")?.line).not.toContain("programando");
+    setLocale([]);
+  });
+
   it("quem dorme mostra dormindo, e quem está fora tem a borda tracejada", () => {
     const office = state({
       entities: { camps: out, gerente },
@@ -186,6 +207,8 @@ describe("o quadro de cortiça (§3.4)", () => {
     comment: undefined,
     patch: undefined,
     pr: undefined,
+    harness: undefined,
+    model: undefined,
     ...extra,
   });
   const open = { number: 7, url: "https://github.com/campilho/campsverso/pull/7", state: "aberto", ci: "success" };
@@ -274,7 +297,20 @@ describe("a prancheta (§3.6)", () => {
     expect(parseDraft("{")).toEqual(EMPTY_DRAFT);
     expect(parseDraft(JSON.stringify({ title: "A lousa", description: 3, size: "X" }))).toEqual({ ...EMPTY_DRAFT, title: "A lousa" });
     const draft = { title: "A lousa", description: "Na copa", acceptance: "Entro e vejo", size: "G" };
-    expect(parseDraft(JSON.stringify(draft))).toEqual(draft);
+    expect(parseDraft(JSON.stringify(draft))).toEqual({ ...draft, harness: "", model: "" }); // o rascunho de antes do M26
+    const chosen = { ...draft, harness: "claude_code", model: "claude-opus-5-5" };
+    expect(parseDraft(JSON.stringify(chosen))).toEqual(chosen);
+  });
+
+  it("diz quem programa e o modelo pelos nomes do locale, e o padrão no que não foi escolhido (ADR-0089)", () => {
+    setLocale([{ choices: { hands: { api: "harness próprio", claude_code: "Claude Code" }, models: { "claude-opus-5-5": "Opus 5.5" } } }]);
+    expect(choicesOf("hands")).toEqual([["api", "harness próprio"], ["claude_code", "Claude Code"]]);
+    expect(handsLine(undefined, undefined)).toBeUndefined();
+    expect(handsLine("claude_code", "claude-opus-5-5")).toBe("Claude Code · Opus 5.5");
+    expect(handsLine(undefined, "claude-opus-5-5")).toBe("o padrão do escritório · Opus 5.5");
+    expect(handsLine("api", "claude-haiku-5-5")).toBe("harness próprio · claude-haiku-5-5"); // sem nome, o id
+    setLocale([]);
+    expect(choicesOf("hands")).toEqual([]);
   });
 });
 

@@ -1891,6 +1891,34 @@ textarea.retro-lined {
   margin-top: 6px;
 }
 
+/* Quem programa e o modelo (ADR-0089): duas escolhas lado a lado, na letra de mão, sobre a pauta. */
+.retro-hands {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+select.retro-pick {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 34px;
+  margin-top: 4px;
+  padding: 0 4px;
+  border: 0;
+  border-bottom: 2px solid #a9bad6;
+  border-radius: 0;
+  background-color: transparent;
+  font-size: 20px;
+  outline-offset: 2px;
+}
+
+@media (max-width: 520px) {
+  .retro-hands {
+    grid-template-columns: 1fr;
+  }
+}
+
 .retro-size {
   position: relative;
   display: flex;

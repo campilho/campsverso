@@ -1,0 +1,28 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c62-7d01-8e10-5a6b7c8d9e11",
+  "source": "/controller-runner/llm/camps",
+  "type": "campsverso.workshop.step.v2",
+  "time": "2026-11-23T12:20:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/workshop/step.v2",
+  "worldid": "office-campsverso-01",
+  "cartridge": "office_campsverso",
+  "tick": 1292400,
+  "simtime": "2026-11-23T09:20:00-03:00",
+  "seq": 5120,
+  "provenance": "simulated",
+  "visibility": "observer",
+  "actor": "system/controller-runner",
+  "data": {
+    "avatar_id": "camps",
+    "ticket_id": "pedido-021",
+    "harness": "claude_code",
+    "model": "claude-opus-5-5",
+    "tool": "Edit",
+    "path": "libs/adapters/src/campsverso_adapters/hands_codex.py",
+    "summary": "Edit: libs/adapters/src/campsverso_adapters/hands_codex.py",
+    "ok": true,
+    "duration_ms": 35
+  }
+}

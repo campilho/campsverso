@@ -444,11 +444,23 @@ export const CONTRACT_TYPES = {
     producer: "controller",
     dataschema: "contracts://events/workshop/robot_started.v1",
   },
+  "campsverso.workshop.session_finished.v1": {
+    kind: "event",
+    visibility: "observer",
+    producer: "controller",
+    dataschema: "contracts://events/workshop/session_finished.v1",
+  },
   "campsverso.workshop.step.v1": {
     kind: "event",
     visibility: "observer",
     producer: "controller",
     dataschema: "contracts://events/workshop/step.v1",
+  },
+  "campsverso.workshop.step.v2": {
+    kind: "event",
+    visibility: "observer",
+    producer: "controller",
+    dataschema: "contracts://events/workshop/step.v2",
   },
   "campsverso.world.clock.caught_up.v1": {
     kind: "event",
@@ -683,7 +695,9 @@ export interface PayloadByType {
   "campsverso.rules.toggled.v1": T.RulesToggledV1;
   "campsverso.workshop.robot_called.v1": T.WorkshopRobotCalledV1;
   "campsverso.workshop.robot_started.v1": T.WorkshopRobotStartedV1;
+  "campsverso.workshop.session_finished.v1": T.WorkshopSessionFinishedV1;
   "campsverso.workshop.step.v1": T.WorkshopStepV1;
+  "campsverso.workshop.step.v2": T.WorkshopStepV2;
   "campsverso.world.clock.caught_up.v1": T.WorldClockCaughtUpV1;
   "campsverso.world.clock.jumped.v1": T.WorldClockJumpedV1;
   "campsverso.world.clock.mode_changed.v1": T.WorldClockModeChangedV1;

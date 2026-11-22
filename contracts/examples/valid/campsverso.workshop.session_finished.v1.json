@@ -1,0 +1,29 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c62-7d02-8e10-5a6b7c8d9e12",
+  "source": "/controller-runner/llm/camps",
+  "type": "campsverso.workshop.session_finished.v1",
+  "time": "2026-11-23T12:41:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/workshop/session_finished.v1",
+  "worldid": "office-campsverso-01",
+  "cartridge": "office_campsverso",
+  "tick": 1297440,
+  "simtime": "2026-11-23T09:41:00-03:00",
+  "seq": 5190,
+  "provenance": "simulated",
+  "visibility": "observer",
+  "actor": "system/controller-runner",
+  "data": {
+    "avatar_id": "camps",
+    "ticket_id": "pedido-021",
+    "harness": "claude_code",
+    "model": "claude-opus-5-5",
+    "done": true,
+    "reason": "pronto",
+    "turns": 24,
+    "steps": 31,
+    "cost_usd": 1.2874,
+    "duration_ms": 1260000
+  }
+}

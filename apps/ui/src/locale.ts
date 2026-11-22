@@ -18,17 +18,33 @@ export interface Locale {
   /** O rótulo de uma ação em andamento, para a barra sobre o avatar (`work` vira "Trabalhando",
    * `videogame` vira "Jogando videogame"); vale mais que o rótulo do menu (ADR-0078, ADR-0082). */
   readonly actions?: Readonly<Record<string, string>>;
+  /** As escolhas que a tela oferece (ADR-0089): na prancheta, `hands` (quem programa) e `models`,
+   * do id ao nome, na ordem em que aparecem. O kernel confere a escolha; aqui só se mostra. */
+  readonly choices?: Readonly<Record<string, Readonly<Record<string, string>>>>;
 }
 
 let names: Record<string, string> = {};
 let attributes: Record<string, string> = {};
 let actions: Record<string, string> = {};
+let choices: Record<string, Readonly<Record<string, string>>> = {};
 
 /** Junta os arquivos das camadas, na ordem do índice da arte. */
 export function setLocale(layers: readonly Locale[]): void {
   names = Object.assign({}, ...layers.map((l) => l.names ?? {})) as Record<string, string>;
   attributes = Object.assign({}, ...layers.map((l) => l.attributes ?? {})) as Record<string, string>;
   actions = Object.assign({}, ...layers.map((l) => l.actions ?? {})) as Record<string, string>;
+  // Cada lista inteira: a camada de cima troca a lista, e não junta as opções.
+  choices = Object.assign({}, ...layers.map((l) => l.choices ?? {})) as Record<string, Readonly<Record<string, string>>>;
+}
+
+/** As opções de uma escolha, `[id, nome]`, na ordem do arquivo; sem a lista, nenhuma. */
+export function choicesOf(kind: string): (readonly [string, string])[] {
+  return Object.entries(choices[kind] ?? {});
+}
+
+/** O nome de uma opção; sem ele, o próprio id. */
+export function choiceName(kind: string, id: string): string {
+  return choices[kind]?.[id] ?? id;
 }
 
 /** O rótulo de uma ação pelo arquivo da língua, se a camada o declarou. */

@@ -49,6 +49,10 @@ describe("o monitor da mesa do dev", () => {
     expect(stepLook("ler", true)).toBe("lendo");
     expect(stepLook("buscar", true)).toBe("lendo");
     expect(stepLook("editar", true)).toBe("escrevendo");
+    // As do Claude Code (o workshop.step.v2, ADR-0089); o Bash não muda o monitor.
+    expect(stepLook("Read", true)).toBe("lendo");
+    expect(stepLook("Edit", true)).toBe("escrevendo");
+    expect(stepLook("Bash", true)).toBeUndefined();
     expect(stepLook("rodar_testes", true)).toBe("verde");
     expect(stepLook("rodar_testes", false)).toBe("vermelho");
     expect(stepLook("pronto", true)).toBeUndefined();

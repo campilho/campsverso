@@ -37,6 +37,11 @@ ticket:
     P: 15
     M: 60
     G: 180
+  # Quem programa o pedido e o modelo da sessão, escolhidos na prancheta (ADR-0089; a decisão 14
+  # da ADR-0083). Sem escolha, vale o padrão do mundo (`minds.<dev>.hands` e `model`). A tela mostra
+  # os nomes de `choices` no locale do gênero, na mesma ordem.
+  hands: [api, claude_code]
+  models: [claude-sonnet-5-5, claude-opus-5-5, claude-fable-5-2]
 
 # O expediente do dev, em dias da semana de 1 (segunda) a 7 (domingo). O cenário dá os números.
 schedule:
