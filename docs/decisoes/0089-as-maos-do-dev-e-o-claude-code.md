@@ -59,3 +59,24 @@ O usuário aprovou as 12 decisões em 22/nov, como recomendado.
 - **O CI roda uma sessão do Claude Code sem a API,** com o modelo falso roteirizado. No Linux do CI não há `sandbox-exec`: lá valem o gancho e a rede só pela porta.
 - **Quatro contratos mudam ou nascem:** o pedido com as mãos e o modelo, o `workshop.step.v2`, o `workshop.session_finished.v1` e o campo `harness` no `llm.call.completed.v1`.
 - **Os tetos do escritório sobem** (de US$ 1 para 5 por pedido, e de 3 para 10 por dia), porque o Opus no Claude Code custa mais por pedido que o Sonnet no nosso harness.
+
+## Adendo: o fechamento (22/nov)
+
+O M26 fecha num dia, com as cinco partes do plano e a criação mesclada (o PR #4, o conector do Codex). O "Como ficou" está no plano, §15.
+- **A decisão 3, o padrão:** a comparação recomendou o Claude Code com o Opus 5.5, mais barato nos três pedidos, e desde 22/nov à noite ele é o padrão do escritório vivo para os pedidos sem escolha e para a conversa com o dev. A demonstração continua com o nosso harness.
+- **Acompanhar o dev**, a pedido do usuário, completa a decisão 9:
+  - a tela da sessão, que o gerente abre pelo chip do dev;
+  - o último passo sobre o dev, no lugar da barra;
+  - os marcos na conversa.
+- **O orçamento:** uns US$ 3,6 de API, contra o teto de US$ 30:
+  - a prova: US$ 0,038;
+  - a fita do escritório: US$ 0,041;
+  - a comparação: US$ 1,79;
+  - o escritório vivo: US$ 1,35, com as sessões do dev e as conversas;
+  - o revisor dos PRs #4 e #5: uns US$ 0,4, estimados pelas revisões do M25, porque a fita magra dele não guarda o custo.
+- **Ficam para o `futuro.md`:**
+  - os pontos do revisor no conector do Codex e no testador com o `pyright`;
+  - a devolução que troca quem programa e o comentário cortado sem aviso;
+  - o DNS no sandbox das mãos e o isolamento no Linux;
+  - o briefing por empate alfabético;
+  - o texto do modelo entre os passos, a quarta peça de acompanhar o dev.

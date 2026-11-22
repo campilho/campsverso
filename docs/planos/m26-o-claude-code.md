@@ -316,6 +316,38 @@ No fim de cada sessão, o custo da porta é comparado com a estimativa do SDK. U
 11. **A criação é o conector do Codex,** feito pelo dev com o Claude Code e o Opus 5.5, contra um exemplo do formato que nós pomos antes. Os textos do pedido estão na §8. *Recomendação: sim.*
 12. **O orçamento do M26:** US$ 30, cada passo pago com o seu ok. *Recomendação: sim.*
 
+## 15. Como ficou
+
+Feito em 22/nov, num dia, com as 12 decisões da ADR-0089 como recomendado. No caminho entraram a ADR-0090 (o `pyright` na oficina) e a ADR-0091 (os testes em paralelo).
+
+- **A parte 1, a porta e o cercado** (`d840828`, `0de963e`): a `HandsPort`, com o nosso harness atrás dela sem mudar nada, as mãos do Claude Code pelo SDK, a porta das mãos e o cercado. A revisão da oficina passou a recusar um patch com formato de chave.
+- **A parte 2, a primeira sessão de verdade** (`1d4017b`, `1fee0fa`, `180a6f7`): a prova de conformidade pelo Claude Code com o Opus 5.5 passou, com 6 respostas, US$ 0,038 e 15 s. A fita é tocada no CI pelo Claude Code de verdade. No Linux do CI, a prova não achava o pytest pelo índice e passou a copiá-lo para o espaço.
+- **A parte 3, o pedido escolhe as mãos** (`ec19839`, `d257b83`):
+  - a prancheta com quem programa e o modelo;
+  - o `workshop.step.v2` e o `workshop.session_finished.v1`;
+  - o briefing que abre a sessão;
+  - os tetos de US$ 5 por pedido e US$ 10 por dia;
+  - a fita do escritório regravada: 13 chamadas, US$ 0,041.
+- **A parte 4, a comparação** (`5468bf8`): as 7 corridas entregaram e passaram no aceite escondido, por US$ 1,79. O Claude Code foi mais barato nos três pedidos (`docs/arena/m26-as-maos.md`). Desde 22/nov à noite, o escritório vivo programa com ele e o Opus 5.5 por padrão (`b1eea67`).
+- **A parte 5, a criação** (`a48ea8d`; o PR #4, `03ee185`): o dev fez o conector do Codex pelo Claude Code, em três rodadas, com US$ 0,50, US$ 0,34 e US$ 0,27. Os pontos do revisor que procediam foram resolvidos, o resto ficou para o M27, e o usuário mesclou.
+- **Fora do plano:**
+  - **acompanhar o dev** (`95383ce`), a pedido do usuário: a tela da sessão pelo chip, o último passo sobre o dev no lugar da barra que enchia e recomeçava, e os marcos na conversa. A conversa do Claude Code passou a ser gravada a cada mensagem (`1c56e49`);
+  - **o `pyright` na oficina** (ADR-0090; `3102ecf`, `b2c22a2`, `5604a0e`) e o pedido 3, em que o testador passou a rodar o `pyright` (o PR #5, `6205984`);
+  - **o vaivém do gerente** (`7ac8158`): a parada da seta prendia o desenho no tile, e o trajeto da parada partia do tile de trás;
+  - **os testes em paralelo** (ADR-0091; `1aa55e5`): o `make check` caiu de uns 11 minutos para uns 3, e o `make check-rapido`, de cerca de 1 minuto, passou a valer antes de cada commit;
+  - **os pedidos de tela do Claude Design** (`docs/design/briefing-tela-2.md` a `-4.md`), que ficam para o próximo marco da tela.
+- **O que mudou em relação ao plano:**
+  - o padrão do escritório vivo: o plano deixava o nosso harness até a comparação, e ela recomendou o Claude Code;
+  - o custo: uns US$ 3,6, contra US$ 7 a 25 previstos e o teto de US$ 30.
+- **O que se achou no caminho:**
+  - a queda de rede das 14h18, causada pelos processos de uso do computador de um app de fora; ela derrubou a 2ª chamada da sessão do dev;
+  - o PR #4 vermelho no `pyright` estrito, que o dev não tinha como rodar na oficina;
+  - o comentário da devolução cortado em 280 caracteres sem aviso: no pedido 3, o dev fez só o que chegou;
+  - a fita do escritório, que quebra quando muda a descrição da bancada;
+  - o DNS que passa no sandbox do Claude Code, e o isolamento que só existe no macOS;
+  - o briefing, que escolhe os arquivos por empate alfabético;
+  - a barra de progresso, que não dizia nada do que o dev fazia.
+
 ## Fontes
 
 - O Claude Agent SDK: a [referência do Python](https://code.claude.com/docs/en/agent-sdk/python), o [acompanhamento de custo](https://code.claude.com/docs/en/agent-sdk/cost-tracking), a [visão geral](https://code.claude.com/docs/en/agent-sdk/overview) e a [implantação segura](https://code.claude.com/docs/en/agent-sdk/secure-deployment), lidos em 21/nov/2026.

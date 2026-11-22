@@ -1,6 +1,6 @@
 # Bíblia do escritório do Campsverso
 
-*A v0.4 (ADR-0077), o M23 (ADR-0078). As regras e os números do escritório: o gênero `office` e o cenário `office_campsverso`. Os dados ficam em `cartridges/office/sim/.../data/office.yaml` (o gênero) e `cartridges/office_campsverso/sim/.../data/escritorio.yaml` (o cenário); se este texto e os dados discordarem, valem os dados, e o texto se corrige.*
+*A v0.4 (ADR-0077), o M23 (ADR-0078); as mãos do dev, no M26 (ADR-0089). As regras e os números do escritório: o gênero `office` e o cenário `office_campsverso`. Os dados ficam em `cartridges/office/sim/.../data/office.yaml` (o gênero) e `cartridges/office_campsverso/sim/.../data/escritorio.yaml` (o cenário); se este texto e os dados discordarem, valem os dados, e o texto se corrige.*
 
 ## 1. O que é
 
@@ -74,6 +74,7 @@ Uma entidade `ticket` guardada no quadro, com os atributos:
 | `autor`, `dono` | quem escreveu e quem está fazendo |
 | `trabalho` | os segundos de trabalho já feitos |
 | `comentario` | o que o gerente disse ao devolver |
+| `maos`, `modelo` | quem programa e com que modelo, escolhidos na prancheta (ADR-0089); sem escolha, valem os do mundo |
 
 ## 6. As ações
 
@@ -120,6 +121,28 @@ Fora do papel, a ação é recusada (`not_allowed`); longe do lugar, `not_adjace
   - cumprimenta o dev;
   - aceita os entregues e devolve um de cada três, na primeira entrega.
 
-## 9. As métricas do dia
+## 9. As mãos do dev
+
+O dev programa na oficina por uma de duas mãos (ADR-0089), atrás da mesma porta (`HandsPort`):
+- **o nosso harness:** a sessão da mente, com as oito ferramentas da oficina (`api`);
+- **o Claude Code:** pelo Claude Agent SDK, no mesmo espaço, com as ferramentas dele (`claude_code`).
+
+**A escolha:**
+- **Na prancheta,** o pedido escolhe quem programa e o modelo, dentro das listas do `office.yaml` (`hands` e `models`): o Sonnet 5.5, o Opus 5.5 ou o Fable 5.2.
+- **Sem escolha,** valem as do mundo (`minds.<dev>.hands` e `model`). No escritório vivo, desde 22/nov, é o Claude Code com o Opus 5.5, a recomendação da comparação das mãos (`docs/arena/m26-as-maos.md`). Sem a chave da Anthropic, vale o nosso harness.
+
+**A sessão:**
+- **O briefing abre a sessão** nas duas mãos (a criação do M25).
+- **Ela termina** em 80 voltas, US$ 4 ou 45 minutos, o que vier primeiro.
+- **Cada chamada ao modelo** passa pela porta das mãos, que põe a chave, mede o custo e recusa acima do teto. O teto é de US$ 5 por pedido e US$ 10 por dia (`budget`, no mundo).
+- **O isolamento:** o Claude Code só escreve no espaço do pedido. Ele não lê o `.env`, o `privado/` nem o `data/`, e só fala com a rede pela porta.
+
+**Na tela:**
+- os passos das duas mãos (`workshop.step.v2`) e o fim da sessão (`workshop.session_finished.v1`), com o motivo, as voltas, o custo e o tempo;
+- **o último passo,** sobre o dev, no lugar da barra;
+- **os marcos na conversa:** o começo, cada robô chamado e o fim;
+- **a tela da sessão,** que o gerente abre pelo chip do dev: o pedido, as mãos e o modelo, o tempo, os passos, o custo e os últimos passos, um por linha.
+
+## 10. As métricas do dia
 
 Os pedidos escritos, entregues, aceitos e devolvidos; os segundos de trabalho entregues; as falas.
