@@ -335,6 +335,38 @@ def _talk(tmp_path: Path) -> Path:
     return example
 
 
+NOTICE = (
+    "Code Mode is unavailable because failed to spawn code-mode host: "
+    "host executable was not found."
+)
+
+
+def test_um_item_de_erro_do_codex_vira_um_aviso(space: Space, kit: Kit, tmp_path: Path) -> None:
+    """O Codex avisa num item `error` e segue (o modo código sem o programa dele, no ensaio de
+    23/nov): a sessão acaba bem, e o aviso chega a quem roda as mãos."""
+    events = [
+        {"type": "thread.started", "thread_id": "t-1"},
+        {"type": "item.completed", "item": {"id": "item_0", "type": "error", "message": NOTICE}},
+        {"type": "turn.started"},
+        {
+            "type": "item.completed",
+            "item": {"id": "item_1", "type": "agent_message", "text": "Ok."},
+        },
+        {"type": "turn.completed", "usage": {"input_tokens": 10, "output_tokens": 5}},
+    ]
+    example = tmp_path / "aviso.jsonl"
+    example.write_text("\n".join(json.dumps(e) for e in events) + "\n", encoding="utf-8")
+    warnings: list[tuple[str, dict[str, Any]]] = []
+
+    def warn(event: str, fields: Mapping[str, Any]) -> None:
+        warnings.append((event, dict(fields)))
+
+    hands = _hands(kit, "--exemplo", str(example), warn=warn)
+    result = _run(hands, space, World())
+    assert (result.done, result.reason, result.summary) == (True, "pronto", "Ok.")
+    assert warnings == [("hands.codex_notice", {"message": NOTICE})]
+
+
 def test_o_limite_de_voltas_vale_numa_mensagem_do_meio(
     space: Space, kit: Kit, tmp_path: Path
 ) -> None:

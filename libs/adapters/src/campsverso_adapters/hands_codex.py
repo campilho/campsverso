@@ -165,9 +165,14 @@ class CodexStream:
         self.usage = CodexUsage()
         self.completed = False
         self.failed: str | None = None
+        # Os itens `error`: o Codex avisa e segue (o modo código sem o programa dele, no ensaio de
+        # 23/nov); as mãos repassam o aviso.
+        self.notices: list[str] = []
 
     def account(self, data: Mapping[str, Any]) -> None:
         kind = data.get("type")
+        if kind == "item.completed" and _item(data).get("type") == "error":
+            self.notices.append(str(_item(data).get("message") or "erro sem mensagem"))
         if kind == "turn.completed":
             raw_usage = data.get("usage")
             if isinstance(raw_usage, Mapping):
@@ -240,3 +245,5 @@ class CodexHands(ProcessHands):
     def finished(self, stream: Stream) -> None:
         if isinstance(stream, CodexStream):
             self.last_usage = stream.usage
+            for notice in stream.notices:
+                self._warn("hands.codex_notice", {"message": notice[:500]})
