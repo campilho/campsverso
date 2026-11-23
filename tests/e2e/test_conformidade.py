@@ -24,10 +24,13 @@ from campsverso_ports import (
 )
 from campsverso_testkit.conformidade import (
     HANDS_MODEL,
+    HANDS_MODELS,
     TASKS,
     ProbeMeter,
     Tally,
     format_problem,
+    outside_hands,
+    priced_name,
     prove,
     prove_hands,
     report,
@@ -297,3 +300,17 @@ async def test_o_medidor_da_prova_conta_pela_porta() -> None:
     assert (tally.auxiliary, tally.responses) == (1, 2)
     assert tally.format_errors == ["Read: falta file_path", "ferramenta que não existe: Apagar"]
     assert tally.cost_usd == pytest.approx(3 * (1000 * 2.0 + 100 * 10.0) / 1_000_000)
+
+
+def test_cada_mao_de_fora_vem_com_o_modelo_e_o_preco_do_laboratorio(tmp_path: Path) -> None:
+    """O Codex com o Astra e o Antigravity com o Neon (ADR-0093), pelo nome da tabela de preços."""
+    names = {h: priced_name(m, h) for h, m in HANDS_MODELS.items()}
+    assert names == {
+        "claude_code": "claude-opus-5-5",
+        "codex": "openai/gpt-6.2-astra",
+        "antigravity": "google/gemini-4-neon",
+    }
+    meter = ProbeMeter(Tally(), {})
+    tape = tmp_path / "fita.jsonl"
+    made = {h: outside_hands(h, "chave", tmp_path, tape)(meter).harness for h in HANDS_MODELS}
+    assert made == {h: h for h in HANDS_MODELS}

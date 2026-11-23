@@ -130,7 +130,7 @@ maos: ## a comparação das mãos (ADR-0089, decisão 10): três pedidos de rob�
 maos-relatorio: ## a tabela da comparação das mãos em docs/arena/m26-as-maos.md, lida dos fatos de cada corrida (PASTA=data/maos/<data>; o padrão é a de hoje); não chama a API
 	uv run --locked python -m campsverso_testkit.maos --relatorio $(if $(PASTA),--out $(PASTA),)
 
-conformidade: ## a prova de conformidade do escritório (ADR-0077, decisão 11): dois pedidos curtos num repositório de exemplo, para cada modelo; chama a API. MODELOS=claude-sonnet-5-5,claude-opus-5-5 escolhe; MAOS=claude_code faz a prova pelo Claude Code (ADR-0089), com o Opus 5.5
+conformidade: ## a prova de conformidade do escritório (ADR-0077, decisão 11): dois pedidos curtos num repositório de exemplo, para cada modelo; chama a API. MODELOS=claude-sonnet-5-5,claude-opus-5-5 escolhe; MAOS=claude_code faz a prova pelo Claude Code (ADR-0089), com o Opus 5.5; MAOS=codex pelo Codex, com o GPT-6.2 Astra e a OPENAI_API_KEY; MAOS=antigravity pelo Antigravity, com o Gemini 4 Neon e a GEMINI_API_KEY (ADR-0093)
 	uv run --locked --env-file .env python -m campsverso_testkit.conformidade $(if $(MODELOS),--modelos $(MODELOS),) $(if $(MAOS),--maos $(MAOS),)
 
 DIAS ?= 1

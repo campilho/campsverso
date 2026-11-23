@@ -10,19 +10,21 @@ dev (`tiago_escritorio`), as ferramentas da oficina e a de anotar, a memória va
 Depois do `pronto`, a prova confere por fora: os testes de novo, sob o mesmo `sandbox-exec`, e um
 teste escondido que o modelo nunca viu; a revisão da oficina olha o patch.
 
-**As mãos** (ADR-0089): a prova roda pelo nosso harness (`api`, o padrão) ou por um harness de fora,
-como o Claude Code (`--maos claude_code`). Com as mãos de fora, as chamadas ao modelo passam pela
-porta das mãos e são contadas lá (`ProbeMeter`): a resposta final do harness é o `pronto`, as
-chamadas sem ferramentas (as auxiliares dele) contam só no custo, e o formato é conferido contra as
-ferramentas que o próprio harness ofereceu. O espaço ganha um ambiente Python com o `pytest`, que o
-terminal do harness usa.
+**As mãos** (ADR-0089, ADR-0093): a prova roda pelo nosso harness (`api`, o padrão) ou por um
+harness de fora: o Claude Code (`--maos claude_code`), o Codex (`--maos codex`) ou o Antigravity
+(`--maos antigravity`), cada um com o modelo do próprio laboratório e a chave dele no `.env`
+(`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`). Com as mãos de fora, as chamadas ao
+modelo passam pela porta das mãos e são contadas lá (`ProbeMeter`): a resposta final do harness é o
+`pronto`, as chamadas sem ferramentas (as auxiliares dele) contam só no custo, e o formato é
+conferido contra as ferramentas que o próprio harness ofereceu. O espaço ganha um ambiente Python
+com o `pytest`, que o terminal do harness usa.
 
 **Os limites** (o plano macro da v0.4, decisão 11): nenhuma recusa, no máximo 5% de respostas
 sem ação e no máximo dois erros de formato (uma ferramenta que não existe, um argumento que falta
 ou de tipo errado, uma resposta cortada). Passa quem respeita os limites e faz os dois pedidos.
 
     uv run --env-file .env python -m campsverso_testkit.conformidade [--modelos a,b] [--out pasta]
-        [--maos claude_code]
+        [--maos claude_code|codex|antigravity]
 
 Cada modelo grava a fita dele (`<modelo>.jsonl`, ou `<modelo>--<mãos>.jsonl`, magra) e o resultado
 vai em `resultado.json` e `relatorio.md` na pasta da prova. O CI nunca chama a API: os testes usam
@@ -48,7 +50,9 @@ from typing import Any, cast
 from packaging.requirements import Requirement
 
 from campsverso_adapters import ModelPrices, RecordingModel, SystemWallClock, cost_usd, load_env
+from campsverso_adapters.hands_antigravity import AntigravityHands
 from campsverso_adapters.hands_claude_code import ClaudeCodeHands
+from campsverso_adapters.hands_codex import CodexHands
 from campsverso_adapters.model_routes import model_port
 from campsverso_adapters.workshop_local import LocalWorkshop, sync_env
 from campsverso_adapters.workshop_review import review
@@ -88,8 +92,23 @@ FORMAT_LIMIT = 2
 CAP_USD = 1.50  # por modelo: a prova para no meio se passar disto
 MAX_STEPS = 30
 EFFORT: Effort = "medium"  # o do escritório (config/worlds/office-campsverso-*.yaml)
-HANDS = ("api", "claude_code")
-HANDS_MODEL = "claude-opus-5-5"  # o modelo da prova das mãos de fora (o plano do M26, §9)
+HANDS = ("api", "claude_code", "codex", "antigravity")
+HANDS_MODEL = "claude-opus-5-5"  # o modelo da prova do Claude Code (o plano do M26, §9)
+# O modelo de cada mão de fora (ADR-0093, decisão 1), a chave dela no `.env` e o prefixo do nome
+# dele na tabela de preços, que segue os nomes da OpenRouter.
+HANDS_MODELS: Mapping[str, str] = {
+    "claude_code": HANDS_MODEL,
+    "codex": "gpt-6.2-astra",
+    "antigravity": "gemini-4-neon",
+}
+HANDS_KEYS: Mapping[str, str] = {
+    "claude_code": "ANTHROPIC_API_KEY",
+    "codex": "OPENAI_API_KEY",
+    "antigravity": "GEMINI_API_KEY",
+}
+PRICE_PREFIXES: Mapping[str, str] = {"codex": "openai/", "antigravity": "google/"}
+# O esforço de cada mão, quando não é o do escritório: o Neon no `high` (ADR-0093).
+HANDS_EFFORTS: Mapping[str, Effort] = {"antigravity": "high"}
 SESSION_SECONDS = 15 * 60  # por pedido, com as mãos de fora
 NOTED = "anotado: você vai rever isso de manhã"
 
@@ -520,7 +539,7 @@ def hands_session(hands: Hands, mind: Mind, model: str, tally: Tally) -> Session
             system_of(mind, hands.harness),
             model,
             "tiago",
-            EFFORT,
+            HANDS_EFFORTS.get(hands.harness, EFFORT),
             HandsLimits(MAX_STEPS, CAP_USD, SESSION_SECONDS),
         )
         ran = await hands.run(space, job, ProofWorld(result, should_stop))
@@ -652,13 +671,40 @@ def _warn(event: str, fields: Mapping[str, Any]) -> None:
     print(f"{event}: {json.dumps(dict(fields), ensure_ascii=False)[:600]}", file=sys.stderr)
 
 
+def priced_name(model: str, harness: str) -> str:
+    """O nome do modelo na tabela de preços: o das mãos de fora da OpenAI e do Google leva o
+    prefixo do laboratório, como na OpenRouter."""
+    prefix = PRICE_PREFIXES.get(harness, "")
+    return model if "/" in model else f"{prefix}{model}"
+
+
+def outside_hands(harness: str, key: str, out: Path, tape: Path) -> Callable[[CallMeter], Hands]:
+    """As mãos de fora de uma prova, que gravam a fita da porta e medem pelo medidor dela."""
+
+    def hands_of(meter: CallMeter) -> Hands:
+        common: dict[str, Any] = {
+            "api_key": key,
+            "home": out / "maos",
+            "tape": tape,
+            "tape_mode": "record",
+            "warn": _warn,
+        }
+        if harness == "codex":
+            return CodexHands(meter, **common)
+        if harness == "antigravity":
+            return AntigravityHands(meter, **common)
+        return ClaudeCodeHands(meter, **common)
+
+    return hands_of
+
+
 async def run(models: Sequence[str], out: Path, harness: str = "api") -> int:
     out.mkdir(parents=True, exist_ok=True)
     env = load_env(ENV)
     clock = SystemWallClock()
     verdicts: list[Verdict] = []
     for model in models:
-        prices = env.models.get(model)
+        prices = env.models.get(priced_name(model, harness))
         if prices is None:
             print(f"{model}: sem preço na tabela (config/env/local.yaml)", flush=True)
             return 2
@@ -671,21 +717,15 @@ async def run(models: Sequence[str], out: Path, harness: str = "api") -> int:
             finally:
                 await api.aclose()
         else:
-            key = os.environ.get("ANTHROPIC_API_KEY", "")
-            if model in env.routes or not key:
-                print(f"{model}: as mãos de fora falam só com a Anthropic, pela chave do .env")
+            # As mãos de fora falam direto com o laboratório delas, pela chave do `.env`, nunca
+            # pela OpenRouter (ADR-0093, decisão 2).
+            name = HANDS_KEYS[harness]
+            key = os.environ.get(name, "")
+            if not key or (harness == "claude_code" and model in env.routes):
+                print(f"{model} ({harness}): falta a chave {name} no .env, ou o modelo não é dele")
                 return 2
-
-            def hands_of(meter: CallMeter, model: str = model, key: str = key) -> Hands:
-                return ClaudeCodeHands(
-                    meter,
-                    api_key=key,
-                    home=out / "maos",
-                    tape=out / f"{label(model, harness)}.jsonl",
-                    tape_mode="record",
-                    warn=_warn,
-                )
-
+            tape_path = out / f"{label(model, harness)}.jsonl"
+            hands_of = outside_hands(harness, key, out, tape_path)
             verdict = await prove_hands(model, hands_of, env.models, out)
         verdicts.append(verdict)
         t = verdict.tally
@@ -708,7 +748,7 @@ async def run(models: Sequence[str], out: Path, harness: str = "api") -> int:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="campsverso_testkit.conformidade")
     parser.add_argument(
-        "--modelos", help="separados por vírgula; padrão: os cinco, ou o Opus 5.5 com mãos de fora"
+        "--modelos", help="separados por vírgula; padrão: os cinco, ou o modelo das mãos de fora"
     )
     parser.add_argument("--maos", choices=HANDS, default="api", help="quem programa (ADR-0089)")
     parser.add_argument("--out", type=Path, help="padrão: data/conformidade/<data-hora>")
@@ -716,7 +756,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
     out = args.out or REPO / "data" / "conformidade" / stamp
     harness = str(args.maos)
-    given = str(args.modelos or ",".join(MODELS if harness == "api" else (HANDS_MODEL,)))
+    given = str(args.modelos or ",".join(MODELS if harness == "api" else (HANDS_MODELS[harness],)))
     models = [m.strip() for m in given.split(",") if m.strip()]
     return asyncio.run(run(models, out, harness))
 
