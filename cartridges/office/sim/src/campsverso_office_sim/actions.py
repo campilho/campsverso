@@ -268,7 +268,7 @@ class WriteTicket(OfficeAction):
                 ticket_id,
                 TICKET,
                 container_id=board.entity_id,
-                display_name=str(fields["title"]),
+                display_name=_name(str(fields["title"])),
                 attributes=attributes,
             )
         )
@@ -483,6 +483,17 @@ class AcceptTicket(OfficeAction):
                 "by": ctx.avatar_id,
             },
         )
+
+
+# O nome de uma entidade no contrato (`entity.spawned.v1`) vai até 64 caracteres; o título do
+# pedido, até 80 (`ticket.title_max`). Um título longo publicava um evento inválido, e o kernel
+# parava (achado em 22/nov, ADR-0092). O título inteiro fica no atributo `titulo`.
+NAME_MAX = 64
+
+
+def _name(title: str) -> str:
+    """O nome da ficha: o título, abreviado com reticências quando passa do limite do contrato."""
+    return title if len(title) <= NAME_MAX else title[: NAME_MAX - 1].rstrip() + "…"
 
 
 @dataclass(frozen=True)

@@ -296,6 +296,22 @@ def test_o_trabalho_em_blocos_soma_cada_bloco() -> None:
         assert core.world.entity_map["pedido-001"].attributes["trabalho"] == done
 
 
+def test_um_titulo_longo_cabe_no_nome_da_ficha() -> None:
+    """O título vai até 80 caracteres, e o nome da entidade no contrato, até 64: o nome sai
+    abreviado, e o título inteiro fica no atributo (o kernel parava com o evento inválido)."""
+    core = _core()
+    _until(core, "09:00")
+    _manager_in(core)
+    title = "Um relatório da semana no quadro com os pedidos aceitos, devolvidos e o tempo"
+    assert 64 < len(title) <= 80
+    facts = _write(core, title=title)
+    (spawned,) = _only(facts, "world.entity.spawned")
+    assert len(spawned["display_name"]) <= 64
+    assert spawned["display_name"].endswith("…")
+    assert core.world.entity_map["pedido-001"].attributes["titulo"] == title
+    assert _only(facts, "office.ticket.created")[0]["title"] == title
+
+
 def test_o_gerente_aceita_ou_devolve_com_o_comentario() -> None:
     core = _core()
     _until(core, "09:00")
