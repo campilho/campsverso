@@ -106,6 +106,7 @@ export const FONTS = [
   { name: "Inter", authors: "Rasmus Andersson" },
   { name: "JetBrains Mono", authors: "JetBrains" },
   { name: "Patrick Hand", authors: "Patrick Wagesreiter" },
+  { name: "VT323", authors: "Peter Hull" }, // a tela do dev, o terminal de fósforo verde (ADR-0092)
 ] as const;
 
 function fontsCredits(): HTMLElement {

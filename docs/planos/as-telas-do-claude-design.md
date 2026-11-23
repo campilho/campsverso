@@ -208,3 +208,10 @@ O desenho fica conosco, no estilo que a prancheta já tem: não precisa do Claud
    - a ficha aberta na prancheta de 660 px, com o carimbo do estado, o "escrito no Dia 11 · 09:12" (pelo fato `ticket.created` da linha do tempo, quando ele ainda está lá), a pílula "com Tiago" e o PR grampeado;
    - a devolução maior: o `office.ticket.returned.v2`, até 1.000 caracteres, nas duas portas da devolução (o gerente no quadro e o PR fechado sem mesclar); o "O que falta" no papel, na tinta vermelha, com "faltam 412 de 1.000";
    - **um defeito antigo, achado ao testar:** o título do pedido vai até 80 caracteres, e o nome da entidade no contrato, até 64. Um título longo publicava um `entity.spawned.v1` inválido, e o kernel parava; no escritório vivo, cairia de novo a cada volta. O nome da ficha agora sai abreviado com reticências, e o título inteiro fica no atributo.
+4. **A tela do dev (22/nov):**
+   - o terminal de fósforo verde num gabinete bege, com a VT323 (`@fontsource/vt323` 5.3.0, OFL 1.1, nos créditos): a tela de entrada, os passos como comandos com o selo `[  OK  ]`, `[FALHOU]` ou `[ ROBÔ ]`, o fim da sessão, o cursor e a barra de status em vídeo invertido;
+   - o modelo do terminal é puro (`terminalOf`, `stepCommand`, `fitCommand`), por cima do `screenView`, que não mudou;
+   - abre pelo computador do dev na sala (a mesa com a oficina do dono, ou o tile de cima, onde está o monitor), com o contorno amarelo ao passar o mouse e a entrada "Ver a tela" no menu, mesmo sem o gerente; e pelo monitorzinho no chip do dev, com ou sem sessão;
+   - a animação só acrescenta: o passo novo entra deslizando e o comando se digita; a história aparece pronta ao abrir; com a pessoa lendo lá em cima, a pílula "▼ N linhas novas";
+   - a VT323 é pedida quando a tela nasce: sem isso, a régua do `ch` media a fonte reserva na primeira abertura, e o comando era cortado cedo;
+   - a mesa do dev no mapa passou a se chamar "Mesa do Tiago" (a fase 1 tinha trocado só o dono); o mundo 02 do escritório vivo guarda o nome antigo, porque a mesa nasceu com ele.

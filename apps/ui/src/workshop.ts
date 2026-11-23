@@ -7,7 +7,7 @@
  */
 import type { ObserverState } from "@campsverso/contracts";
 
-import { loopFrame, type WorkshopArt } from "./art/manifest.ts";
+import { loopFrame, type KindArt, type WorkshopArt } from "./art/manifest.ts";
 import { tickSeconds } from "./simclock.ts";
 
 /** Um passo vale no monitor até 2 horas do mundo: a 72×, uma chamada lenta ao modelo passa de meia
@@ -149,4 +149,28 @@ export function sessionLine(state: ObserverState, avatarId: string, tick: number
     return undefined;
   }
   return `passo ${String(session.count)} · ${stepShort(last, 36)}`;
+}
+
+/** As mesas com a oficina do dono (`workshop` com `of: owner` no manifesto): o computador de cada dev
+ * na sala (briefing-tela-3.md, §1), pela ordem dos ids. */
+export function devDesks(
+  state: ObserverState,
+  kinds: Readonly<Record<string, KindArt>> | undefined,
+): { readonly id: string; readonly owner: string; readonly x: number; readonly y: number }[] {
+  return Object.entries(state.entities)
+    .flatMap(([id, entity]) => {
+      const owner = entity?.attributes.dono;
+      const at = entity?.position;
+      if (entity === undefined || typeof owner !== "string" || at === undefined || kinds?.[entity.kind]?.workshop?.of !== "owner") {
+        return [];
+      }
+      return [{ id, owner, x: at.x, y: at.y }];
+    })
+    .sort((a, b) => (a.id < b.id ? -1 : 1));
+}
+
+/** O dev cujo computador está no tile: a mesa, ou o tile de cima, onde o monitor é desenhado. O
+ * clique ali abre a tela dele, e não anda. */
+export function screenAt(state: ObserverState, kinds: Readonly<Record<string, KindArt>> | undefined, x: number, y: number): string | undefined {
+  return devDesks(state, kinds).find((desk) => desk.x === x && (desk.y === y || desk.y - 1 === y))?.owner;
 }

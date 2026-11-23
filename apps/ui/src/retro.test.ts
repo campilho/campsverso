@@ -10,7 +10,7 @@ import type { Step } from "./queue.ts";
 import { chipsOf, clockView, lightOf, robotLine, summonShort, versionLine } from "./retro/model.ts";
 import { overHead } from "./progress.ts";
 import { handsLine } from "./retro/clipboard.ts";
-import { screenView } from "./retro/devscreen.ts";
+import { BADGE_SAID, badgeText, fitCommand, screenView, stepCommand, terminalOf } from "./retro/devscreen.ts";
 import { prsText, systemOf } from "./retro/system.ts";
 import {
   completeMention,
@@ -559,9 +559,83 @@ describe("a tela do dev (ADR-0089)", () => {
     setLocale([]);
   });
 
-  it("o chip do dev com sessão abre a tela, e sobre ele vai o último passo, não a barra", () => {
+  it("cada passo vira um comando com o selo: com o caminho, sem ele e o do robô (briefing-tela-3.md, §3.3)", () => {
+    expect(stepCommand({ tool: "Edit", summary: "+24 -6", ok: true, path: "libs/adapters/hands_codex.py" })).toEqual({
+      command: "Edit libs/adapters/hands_codex.py",
+      badge: "ok",
+      result: "+24 -6",
+    });
+    // Sem o caminho, o resumo é o comando, sem repetir a ferramenta; o resultado é só o selo.
+    expect(stepCommand({ tool: "Bash", summary: "Bash: uv run pytest tests/test_hands_codex.py", ok: false })).toEqual({
+      command: "Bash uv run pytest tests/test_hands_codex.py",
+      badge: "falhou",
+      result: "",
+    });
+    expect(stepCommand({ tool: "robô", summary: "testador passou", ok: true })).toEqual({ command: "robô testador", badge: "robo", result: "passou" });
+    expect([badgeText("ok"), badgeText("falhou"), badgeText("robo")]).toEqual(["  OK  ", "FALHOU", " ROBÔ "]);
+    expect(BADGE_SAID).toEqual({ ok: "ok", falhou: "falhou", robo: "robô" }); // por extenso, para o leitor de tela
+  });
+
+  it("corta o comando com reticências no que cabe na linha, em letras", () => {
+    expect(fitCommand("Edit libs/adapters/hands_codex.py", 40)).toBe("Edit libs/adapters/hands_codex.py");
+    expect(fitCommand("Edit libs/adapters/hands_codex.py", 20)).toBe("Edit libs/adapters/…");
+    expect(fitCommand("Edit libs/adapters/hands_codex.py", 20)).toHaveLength(20);
+    expect(fitCommand("Edit libs", 1)).toBe("Edi…"); // nunca menos de 4
+  });
+
+  it("monta o terminal: a entrada, os passos numerados, o fim e a barra; sem sessão, o vazio", () => {
+    setLocale([{ choices: { hands: { claude_code: "Claude Code" }, models: { "claude-opus-5-5": "Opus 5.5" } } }]);
+    const live = terminalOf(working, "camps", 16200 + 18 * 60 / 2);
+    expect(live.state).toBe("live");
+    expect(live.heading).toBe("Tela do Camps");
+    expect(live.boot.map((line) => line.text)).toEqual([
+      "Campsverso OS 0.4 (oficina-1) tty1",
+      "login: camps",
+      "Bem-vindo, Camps. Mãos: Claude Code · modelo: Opus 5.5",
+      "Pedido #2 · Conector do Codex · sessão desde 09:00",
+    ]);
+    expect(live.boot.map((line) => line.dim)).toEqual([true, true, false, false]);
+    expect(live.prompt).toBe("camps@oficina:~/pedido-2$");
+    // A sessão teve 23 passos e guarda os 3 últimos: os números são 21, 22 e 23.
+    expect(live.entries.map((entry) => [entry.key, entry.command, entry.badge])).toEqual([
+      [21, "robô briefing", "robo"],
+      [22, "Write libs/adapters/src/campsverso_adapters/hands_codex.py", "ok"],
+      [23, "Bash pytest libs/adapters/tests", "falhou"],
+    ]);
+    expect(live.end).toEqual([]);
+    expect(live.bar).toEqual({ who: "[camps]", ticket: "#2 Conector do Codex", right: ["Claude Code · Opus 5.5", "18 min", "23 passos", "US$ 0,61"], state: "AO VIVO" });
+    // No fim: o resumo e o pedido entregue, com o PR.
+    const pr = { pr: 4, pr_url: "https://github.com/campilho/campsverso/pull/4", pr_estado: "aberto", pr_ci: "success" };
+    const done = terminalOf(
+      state({
+        ...working,
+        entities: { ...working.entities, "pedido-002": { kind: "ticket", display_name: "x", attributes: { numero: 2, titulo: "Conector do Codex", estado: "entregue", ...pr } } },
+        workshop: { sessions: { camps: { ...session, finished: { tick: 16400, done: true, reason: "pronto", turns: 19, steps: 18, cost_usd: 0.5032, duration_ms: 900000 } } } },
+      }),
+      "camps",
+      99999,
+    );
+    expect(done.state).toBe("done");
+    expect(done.end).toEqual(["pronto · 19 voltas · 23 passos · US$ 0,50 · 15 min", "o pedido #2 foi entregue: PR #4 · aberto · CI verde"]);
+    expect(done.bar.state).toBe("TERMINOU · pronto");
+    // Sem sessão: a tela de entrada diz que a tela acende quando o dev sentar.
+    const empty = terminalOf(state({ entities: working.entities }), "camps", 16300);
+    expect(empty.state).toBe("empty");
+    expect(empty.boot.map((line) => line.text)).toEqual([
+      "Campsverso OS 0.4 (oficina-1) tty1",
+      "login: camps",
+      "Nenhuma sessão na oficina ainda.",
+      "A tela acende quando o Camps sentar para trabalhar num pedido.",
+    ]);
+    expect(empty.prompt).toBe("camps@oficina:~$");
+    expect(empty.bar.state).toBe("SEM SESSÃO");
+    setLocale([]);
+  });
+
+  it("o chip do dev com sessão acende a borda, e sobre ele vai o último passo, não a barra", () => {
     const camps = chipsOf(working, "gerente", 16300).find((c) => c.id === "camps");
     expect(camps?.screen).toBe(true);
+    expect(camps?.dev).toBe(true); // o monitorzinho que abre a tela, com ou sem sessão
     expect(chipsOf(state({ entities: working.entities }), "gerente", 16300).find((c) => c.id === "camps")?.screen).toBeUndefined();
     expect(overHead(working, "camps", 16300)).toEqual({ label: "passo 23 · Bash: pytest libs/adapters/tests" });
     const ended = state({ ...working, workshop: { sessions: { camps: { ...session, finished: { tick: 16400, done: true, reason: "pronto", turns: 1, steps: 1, duration_ms: 1 } } } } });

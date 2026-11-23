@@ -81,8 +81,10 @@ export interface Chip {
   /** Fora da sala (sem posição): a borda tracejada. */
   readonly away: boolean;
   readonly robot: boolean;
-  /** O dev tem uma sessão na oficina: o chip abre a tela dele (ADR-0089). */
+  /** O dev tem uma sessão na oficina: o chip acende a borda verde (ADR-0089). */
   readonly screen?: true;
+  /** Um dev: o chip tem o botão do monitorzinho, que abre a tela dele (ADR-0092). */
+  readonly dev?: true;
 }
 
 const ROBOT_LINE: Readonly<Record<string, string>> = {
@@ -188,7 +190,7 @@ export function chipsOf(state: ObserverState, me: string, tick: number, timeline
       title = line;
     }
     const name = entity?.display_name ?? summons.get(id)?.name ?? (id.charAt(0).toUpperCase() + id.slice(1));
-    const chip: Chip = { id, name, tag, icon, line, title, away, robot: false };
+    const chip: Chip = { id, name, tag, icon, line, title, away, robot: false, ...(role(id) === "dev" ? { dev: true as const } : {}) };
     chips.push(sessionOf(state, id) === undefined ? chip : { ...chip, screen: true });
   }
   const robots = Object.entries(state.entities)

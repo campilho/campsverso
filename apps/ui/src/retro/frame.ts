@@ -441,21 +441,6 @@ export class RetroFrame {
 
   private chip(chip: Chip, action: HTMLButtonElement | undefined): HTMLElement {
     const item = el("li", { className: `retro-chip${chip.away ? " away" : ""}${chip.screen === true ? " has-screen" : ""}`, title: chip.title });
-    if (chip.screen === true) {
-      // O chip do dev com uma sessão na oficina abre a tela dele (ADR-0089).
-      item.tabIndex = 0;
-      item.setAttribute("role", "button");
-      item.setAttribute("aria-label", `Ver a tela de ${chip.name}: ${chip.line}`);
-      const open = (): void => { this.actions.screen(chip.id); };
-      item.addEventListener("click", open);
-      item.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          event.stopPropagation();
-          open();
-        }
-      });
-    }
     item.append(
       this.face(chip),
       el(
@@ -471,6 +456,15 @@ export class RetroFrame {
         ),
       ),
     );
+    if (chip.dev === true) {
+      // O monitorzinho do chip do dev abre a tela dele (briefing-tela-3.md, §1), com ou sem sessão.
+      const open = el("button", { className: "retro-chip-screen" }, el("i"));
+      open.type = "button";
+      open.setAttribute("aria-label", `Ver a tela do ${chip.name}`);
+      open.title = `Ver a tela do ${chip.name}`;
+      open.addEventListener("click", () => { this.actions.screen(chip.id); });
+      item.append(open);
+    }
     return item;
   }
 

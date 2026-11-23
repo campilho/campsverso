@@ -12,6 +12,7 @@ import "@fontsource/inter/400.css";
 import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
 import "@fontsource/jetbrains-mono/400.css";
+import "@fontsource/vt323/400.css";
 import "@fontsource/jetbrains-mono/600.css";
 import "@fontsource/patrick-hand/400.css";
 import "./style.css";
@@ -58,6 +59,7 @@ import { systemOf } from "./retro/system.ts";
 import { linesOf, peopleOf } from "./retro/talk.ts";
 import { ghostsOf } from "./retro/tickets.ts";
 import { parseTiledMap, tileAt as terrainAt, type TileGrid } from "./tiled.ts";
+import { devDesks, screenAt } from "./workshop.ts";
 
 const NOTICE_MS = 6000;
 const PANEL_EVERY_MS = 150;
@@ -749,11 +751,57 @@ function avatarTile(state: ObserverState): { x: number; y: number } | undefined 
   return at === undefined ? undefined : { x: Math.round(at.x), y: Math.round(at.y) };
 }
 
+// O computador do dev na sala (briefing-tela-3.md, §1): o clique abre a tela dele, com o gerente
+// assumido ou não; o computador não é chão, e andar até ele continua pelo menu.
+const SCREEN_ACTION = "ver_tela"; // só da tela: o menu não manda isto ao kernel
+const screenHover = el("div", { className: "retro-screen-hover" });
+screenHover.hidden = true;
+world.append(screenHover);
+
+function screenOf(state: ObserverState, tile: Tile): string | undefined {
+  return retro.isMounted ? screenAt(state, art?.manifest.kinds, tile.x, tile.y) : undefined;
+}
+
+/** O contorno amarelo sobre o monitor da mesa, quando o mouse passa pelo computador do dev. */
+function hoverScreen(dev: string | undefined, tile: Tile | undefined, state: ObserverState | undefined): void {
+  const at = dev === undefined || tile === undefined || state === undefined ? undefined : devDesks(state, art?.manifest.kinds).find((desk) => desk.owner === dev);
+  const center = at === undefined ? undefined : map.clientOf?.(at.x, at.y - 1);
+  const next = at === undefined ? undefined : map.clientOf?.(at.x + 1, at.y - 1);
+  if (dev === undefined || center === undefined || next === undefined) {
+    screenHover.hidden = true;
+    map.element.title = "";
+    map.element.classList.remove("over-screen");
+    return;
+  }
+  const tilePx = next.x - center.x; // um tile na tela, pela câmera e pela escala da sala
+  const box = world.getBoundingClientRect();
+  screenHover.style.left = `${String(center.x - box.left - tilePx * 0.62)}px`;
+  screenHover.style.top = `${String(center.y - box.top - tilePx * 0.5)}px`;
+  screenHover.style.width = `${String(tilePx * 1.24)}px`;
+  screenHover.style.height = `${String(tilePx * 0.95)}px`;
+  screenHover.hidden = false;
+  const name = state?.entities[dev]?.display_name ?? dev.charAt(0).toUpperCase() + dev.slice(1);
+  map.element.title = `Ver a tela do ${name}`;
+  map.element.classList.add("over-screen");
+}
+
+map.element.addEventListener("pointermove", (event) => {
+  const state = store.state;
+  const tile = map.tileAt(event.clientX, event.clientY);
+  hoverScreen(state === undefined || tile === undefined ? undefined : screenOf(state, tile), tile, state);
+});
+map.element.addEventListener("pointerleave", () => { hoverScreen(undefined, undefined, undefined); });
+
 map.element.addEventListener("click", (event) => {
   menu.close();
   const state = store.state;
   const tile = map.tileAt(event.clientX, event.clientY);
   if (state === undefined || tile === undefined) {
+    return;
+  }
+  const dev = screenOf(state, tile);
+  if (dev !== undefined) {
+    devScreen.open(dev, state, shownTick);
     return;
   }
   if (!inControl(state, avatarId())) {
@@ -769,6 +817,14 @@ map.element.addEventListener("contextmenu", (event) => {
   const state = store.state;
   const tile = map.tileAt(event.clientX, event.clientY);
   if (state === undefined || tile === undefined) {
+    return;
+  }
+  const dev = screenOf(state, tile);
+  if (dev !== undefined && !inControl(state, avatarId())) {
+    // Sem o gerente, o computador do dev ainda abre a tela pelo menu: ver não é jogar.
+    menu.open(event.pageX, event.pageY, state.entities[thingAt(state, tile.x, tile.y) ?? ""]?.display_name ?? "O computador do dev", [screenEntry(dev)], () => {
+      devScreen.open(dev, state, shownTick);
+    });
     return;
   }
   if (!inControl(state, avatarId())) {
@@ -788,8 +844,13 @@ function openMenu(state: ObserverState, tile: Tile, pageX: number, pageY: number
     act(walkStep(state, tile), queued); // sob a nuvem não há menu: o jogador não sabe o que tem lá
     return;
   }
-  const clicked = mine ? "self" : thingAt(state, tile.x, tile.y);
+  const screen = mine ? undefined : screenOf(state, tile);
+  const clicked = mine ? "self" : (thingAt(state, tile.x, tile.y) ?? (screen === undefined ? undefined : deskOf(state, screen)));
   const choose = (entry: MenuEntry, chosen: Record<string, string | number>): void => {
+    if (entry.action === SCREEN_ACTION && screen !== undefined) {
+      devScreen.open(screen, state, shownTick); // só da tela, não é uma proposta
+      return;
+    }
     act(stepFor(state, entry, chosen), queued);
   };
   const suffix = queued ? " · entra na fila" : "";
@@ -810,13 +871,27 @@ function openMenu(state: ObserverState, tile: Tile, pageX: number, pageY: number
   const title = [thing === undefined ? undefined : (state.entities[thing]?.display_name ?? thing), clicked === "self" ? self : undefined]
     .filter((part) => part !== undefined)
     .join(" · ");
-  const entries = [...(thing === undefined ? [] : menuFor(state, avatarId(), thing)), ...(clicked === "self" ? menuFor(state, avatarId(), "self") : [])];
+  const entries = [
+    ...(screen === undefined ? [] : [screenEntry(screen)]),
+    ...(thing === undefined ? [] : menuFor(state, avatarId(), thing)),
+    ...(clicked === "self" ? menuFor(state, avatarId(), "self") : []),
+  ];
   const contents = thing === undefined ? undefined : contentsOf(state, thing);
   menu.open(pageX, pageY, `${title}${suffix}`, entries, choose, {
     ...(contents === undefined ? {} : { contents }),
     icon: (item) => icons.url(item),
     portrait: (option) => portraitOf(option),
   });
+}
+
+/** A entrada "Ver a tela" do menu do computador do dev: só da tela. */
+function screenEntry(dev: string): MenuEntry {
+  return { action: SCREEN_ACTION, label: "Ver a tela", target: dev, params: [], ready: true };
+}
+
+/** A mesa com a oficina de um dev. */
+function deskOf(state: ObserverState, dev: string): string | undefined {
+  return devDesks(state, art?.manifest.kinds).find((desk) => desk.owner === dev)?.id;
 }
 
 // ---------------------------------------------------------------- o teclado (ADR-0068)
@@ -1090,6 +1165,7 @@ void loadArt().then((loaded) => {
   });
   map.setArt(loaded.manifest);
   retro.setArt(loaded.manifest);
+  devScreen.setArt(loaded.manifest);
   board.setArt(loaded.manifest);
   faces.setArt(loaded.manifest);
   icons.setArt(loaded.manifest);

@@ -2930,135 +2930,594 @@ textarea.retro-missing {
   }
 }
 
-/* A tela do dev (ADR-0089): o monitor da mesa em tamanho de ler, com o texto verde sobre o escuro. */
+/* ------------------------------------------------------------------ a tela do dev (ADR-0089, ADR-0092) */
+
+/* O computador do dev na sala, sob o mouse: o contorno amarelo tracejado e o fundo a 12%. */
+.retro-screen-hover {
+  position: absolute;
+  z-index: 5;
+  box-sizing: border-box;
+  border: 2px dashed var(--amarelo);
+  border-radius: 3px;
+  background: rgb(242 201 76 / 12%);
+  pointer-events: none;
+}
+
+.retro-screen-hover[hidden] {
+  display: none;
+}
+
+body.retro .world canvas.over-screen,
+body.retro .over-screen canvas {
+  cursor: pointer;
+}
+
+/* O monitorzinho do chip do dev, 30 x 26, escuro com a borda verde. */
+.retro-chip-screen {
+  flex: none;
+  width: 30px;
+  height: 26px;
+  margin-left: 4px;
+  padding: 0;
+  border: 2px solid var(--contorno);
+  border-radius: 4px;
+  background: var(--creme);
+  cursor: pointer;
+}
+
+.retro-chip-screen i {
+  display: block;
+  width: 20px;
+  height: 14px;
+  margin: 0 auto;
+  border: 2px solid var(--telaTexto);
+  border-radius: 2px;
+  background: #050a06;
+  box-shadow: inset 0 -3px 0 rgb(63 209 122 / 25%);
+}
+
+.retro-chip-screen:hover i,
+.retro-chip-screen:focus-visible i {
+  border-color: #a8f5c4;
+}
+
+/* O próprio computador do dev (briefing-tela-3.md): um terminal antigo de fósforo verde num gabinete
+   bege, por cima de tudo, com o escritório andando atrás. */
 .retro-devscreen-dialog {
-  max-width: 100vw;
-  max-height: 100vh;
-  padding: 24px 16px 16px;
+  --term-bg: #050a06;
+  --term-text: var(--telaTexto);
+  --term-bright: #a8f5c4;
+  --term-dim: #4c9a3f;
+  --term-red: var(--ledVerm);
+  --term-amber: var(--ledAmbar);
+  --term-rule: var(--verdeEsc);
+  width: min(940px, calc(100vw - 48px));
+  max-width: none;
+  height: min(720px, calc(100vh - 48px));
+  max-height: none;
+  padding: 0;
   border: 0;
   background: transparent;
   overflow: visible;
-  color: var(--telaTexto);
-  font-family: var(--mono);
+  color: var(--escuro);
+  font-family: var(--texto);
 }
 
 .retro-devscreen-dialog::backdrop {
-  background: rgb(23 20 31 / 72%);
+  background: rgb(23 20 31 / 78%);
 }
 
-.retro-devscreen-panel {
-  width: 680px;
-  max-width: calc(100vw - 32px);
+/* O gabinete: a borda, o bisel e a sombra. */
+.retro-term-cabinet {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   box-sizing: border-box;
-  padding: 14px 16px 12px;
+  padding: 26px 28px 0;
   border: 3px solid var(--contorno);
-  border-radius: 14px;
-  background: var(--bege);
-  box-shadow: 0 6px 0 var(--begeSomb), 0 12px 24px rgb(0 0 0 / 40%);
+  border-radius: 30px;
+  background: var(--creme);
+  box-shadow: inset 5px 5px 0 var(--cremeCl), inset -6px -7px 0 var(--begeSomb), 0 30px 80px rgb(0 0 0 / 70%);
 }
 
-.retro-devscreen-head {
+/* A moldura do vidro. */
+.retro-term-glass {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 6px;
+  border-radius: 34px / 28px;
+  background: var(--escuro);
+  box-shadow: 0 0 0 3px var(--bege), inset 0 3px 0 var(--contorno);
+}
+
+/* O tubo: o fósforo, a varredura, a vinheta e uma tremida leve a cada 7 s. */
+.retro-term-tube {
+  position: relative;
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
-  margin-bottom: 10px;
-  padding: 0;
-  border: 0;
-  color: var(--madMEsc);
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 28px / 24px;
+  background: var(--term-bg);
+  box-shadow: inset 0 0 60px rgb(0 0 0 / 90%);
+  color: var(--term-text);
+  font: 22px/25px "VT323", ui-monospace, monospace;
+  text-shadow: 0 0 3px rgb(63 209 122 / 55%), 0 0 12px rgb(63 209 122 / 18%);
+  animation: retro-term-flicker 7s infinite;
 }
 
-.retro-devscreen-heading {
-  margin: 0;
-  font: 700 18px var(--pixel);
+.retro-term-tube::before,
+.retro-term-tube::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
 }
 
-.retro-devscreen-hands {
-  font: 600 13px var(--texto);
+.retro-term-tube::before {
+  background: repeating-linear-gradient(to bottom, rgb(0 0 0 / 30%) 0 1px, transparent 1px 3px);
 }
 
-.retro-devscreen-screen {
-  padding: 12px 14px;
-  border: 3px solid var(--contorno);
-  border-radius: 8px;
-  background: var(--contorno);
-  box-shadow: inset 0 0 24px rgb(63 209 122 / 12%);
+.retro-term-tube::after {
+  background: radial-gradient(ellipse at center, rgb(63 209 122 / 4%) 0%, transparent 60%, rgb(0 0 0 / 62%) 100%);
 }
 
-.retro-devscreen-title {
-  margin: 0;
-  font-weight: 700;
-  font-size: 14px;
-  color: var(--cremeCl);
+@keyframes retro-term-flicker {
+  0%,
+  96%,
+  100% {
+    opacity: 1;
+  }
+
+  97% {
+    opacity: 0.9;
+  }
+
+  98% {
+    opacity: 0.95;
+  }
 }
 
-.retro-devscreen-status {
-  margin: 4px 0 10px;
-  font-size: 12px;
-  color: var(--bege);
-}
-
-.retro-devscreen-lines {
-  max-height: min(52vh, 440px);
-  margin: 0;
-  padding: 0;
+/* O registro: segue o fim enquanto ninguém subiu; a barra de rolagem fina, verde-escura. */
+.retro-term-log {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
-  list-style: none;
-  font-size: 13px;
-  line-height: 1.55;
+  padding: 14px 24px 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--term-rule) transparent;
+  outline: none;
 }
 
-.retro-devscreen-lines li {
+.retro-term-log:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--term-dim);
+}
+
+/* A régua do `ch`, para o corte do comando. */
+.retro-term-measure {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  white-space: pre;
+}
+
+.retro-term-dim {
+  color: var(--term-dim);
+}
+
+.retro-term-bright {
+  color: var(--term-bright);
+}
+
+.retro-term-divider {
+  margin: 6px 0 10px;
+  border-top: 2px solid var(--term-rule);
+}
+
+.retro-term-entries {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.retro-term-line {
   display: flex;
-  gap: 10px;
+  white-space: pre;
+}
+
+.retro-term-prompt-long {
+  color: var(--term-bright);
+}
+
+.retro-term-prompt-short {
+  display: none;
+  color: var(--term-bright);
+}
+
+.retro-term-cmd {
+  overflow: hidden;
+  white-space: pre;
+}
+
+.retro-term-time {
+  flex: none;
+  margin-left: auto;
+  padding-left: 2ch;
+  color: var(--term-dim);
+}
+
+.retro-term-time-short {
+  display: none;
+}
+
+/* O resultado, com recuo de 2 `ch`, e o selo como o da inicialização do Linux. */
+.retro-term-result {
+  padding-left: 2ch;
+  white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
-.retro-devscreen-lines time {
-  flex: none;
-  color: var(--begeEsc);
+.retro-term-bracket {
+  color: var(--term-dim);
 }
 
-.retro-devscreen-lines li.falhou span {
-  color: var(--vermCl);
+.retro-term-badge.falhou,
+.retro-term-failed {
+  color: var(--term-red);
 }
 
-.retro-devscreen-end {
-  margin: 10px 0 0;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--amarelo);
+.retro-term-badge.robo {
+  color: var(--term-amber);
 }
 
-.retro-devscreen-end.live::before {
-  content: "▌ ";
-  animation: retro-devscreen-cursor 1s steps(1) infinite;
+/* O selo por extenso, só para o leitor de tela. */
+.retro-term-said {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
-@keyframes retro-devscreen-cursor {
+/* O fim: "──── fim da sessão ────" e o resumo, em telaBrilho. */
+.retro-term-fim {
+  display: flex;
+  align-items: center;
+  gap: 1ch;
+  margin-top: 12px;
+  color: var(--term-bright);
+}
+
+.retro-term-fim::before,
+.retro-term-fim::after {
+  content: "";
+  flex: 0 1 8ch;
+  border-top: 2px solid var(--term-bright);
+}
+
+.retro-term-fim::after {
+  flex-grow: 1;
+}
+
+.retro-term-prompt {
+  margin-top: 2px;
+  white-space: pre;
+}
+
+/* O cursor: um bloco de 11 x 19, piscando a cada 1 s ao vivo; parado no fim. */
+.retro-term-cursor {
+  display: inline-block;
+  width: 11px;
+  height: 19px;
+  vertical-align: -3px;
+  background: var(--term-text);
+  box-shadow: 0 0 6px rgb(63 209 122 / 60%);
+  animation: retro-term-blink 1s step-end infinite;
+}
+
+.retro-devscreen-dialog[data-state="done"] .retro-term-cursor {
+  animation: none;
+}
+
+@keyframes retro-term-blink {
   50% {
     opacity: 0;
   }
 }
 
-.retro-devscreen-bar {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 10px;
+/* Um passo novo entra deslizando, e o comando se digita: a largura vai de 0 a N `ch` em N passos.
+   O texto inteiro está no DOM desde o começo; o efeito é só o recorte. */
+.retro-term-entry.entering {
+  overflow: hidden;
+  animation: retro-term-slide 300ms ease-out backwards;
+  animation-delay: var(--start);
 }
 
-@media (max-width: 520px) {
-  .retro-devscreen-dialog {
-    padding: 16px 8px 8px;
+@keyframes retro-term-slide {
+  from {
+    max-height: 0;
+    opacity: 0;
   }
 
-  .retro-devscreen-lines {
-    font-size: 12px;
+  to {
+    max-height: 90px;
+    opacity: 1;
+  }
+}
+
+.retro-term-entry.entering .retro-term-cmd {
+  display: inline-block;
+  width: calc(var(--n) * 1ch);
+  animation: retro-term-type var(--type) steps(var(--n)) backwards;
+  animation-delay: calc(var(--start) + 300ms);
+}
+
+@keyframes retro-term-type {
+  from {
+    width: 0;
+  }
+}
+
+.retro-term-entry.entering .retro-term-result {
+  animation: retro-term-show 1ms backwards;
+  animation-delay: calc(var(--start) + 300ms + var(--type) + 400ms);
+}
+
+@keyframes retro-term-show {
+  from {
+    opacity: 0;
+  }
+}
+
+/* "▼ 3 linhas novas", quando a pessoa subiu para reler. */
+.retro-term-pill {
+  position: absolute;
+  right: 24px;
+  bottom: 46px;
+  z-index: 3;
+  padding: 2px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--term-text);
+  color: var(--term-bg);
+  font: 18px/22px "VT323", ui-monospace, monospace;
+  text-shadow: none;
+  cursor: pointer;
+}
+
+.retro-term-pill[hidden] {
+  display: none;
+}
+
+/* A barra de status, em vídeo invertido, como a de um tmux; sem aria-live. */
+.retro-term-bar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: none;
+  margin: 0 14px 10px;
+  background: var(--term-text);
+  color: var(--term-bg);
+  font: 20px/26px "VT323", ui-monospace, monospace;
+  text-shadow: none;
+  white-space: nowrap;
+}
+
+.retro-term-bar-left {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 8px;
+}
+
+.retro-term-bar-seg {
+  flex: none;
+  padding: 0 10px;
+  border-left: 2px solid var(--term-bg);
+}
+
+.retro-term-bar-state {
+  flex: none;
+  padding: 0 10px;
+  background: var(--term-bg);
+  color: var(--term-text);
+}
+
+.retro-term-bar-state.live::before {
+  content: "● ";
+  animation: retro-term-blink 1.6s step-end infinite;
+}
+
+.retro-term-bar-state.done {
+  color: var(--term-amber);
+}
+
+.retro-term-bar-state.empty {
+  color: var(--term-dim);
+}
+
+/* O queixo do gabinete: a marca, as frestas, a plaqueta de quem é a tela, a luz e o "Fechar". */
+.retro-term-chin {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex: none;
+  height: 72px;
+}
+
+.retro-term-brand {
+  display: flex;
+  flex-direction: column;
+  color: var(--begeEsc);
+}
+
+.retro-term-brand-name {
+  font: 700 15px var(--pixel);
+  letter-spacing: 3px;
+}
+
+.retro-term-brand-model {
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+.retro-term-slits {
+  display: flex;
+  gap: 3px;
+}
+
+.retro-term-slits i {
+  display: block;
+  width: 3px;
+  height: 16px;
+  border-radius: 1px;
+  background: var(--begeSomb);
+}
+
+.retro-term-plate {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 auto;
+  padding: 5px 14px 5px 6px;
+  border: 2px solid var(--contorno);
+  border-radius: 4px;
+  background: #c9ced4;
+  box-shadow: inset 2px 2px 0 var(--branco), inset -2px -2px 0 #9aa1ab;
+}
+
+.retro-term-face {
+  width: 32px;
+  height: 32px;
+  border-radius: 3px;
+  background: #86a2cb;
+  image-rendering: pixelated;
+}
+
+.retro-term-heading {
+  margin: 0;
+  font: 700 16px var(--pixel);
+  color: var(--escuro);
+}
+
+.retro-term-plate-sub {
+  font-size: 11px;
+  color: var(--grafite);
+}
+
+.retro-term-light {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.retro-term-led {
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--contorno);
+  border-radius: 50%;
+  background: var(--grafite);
+}
+
+.retro-devscreen-dialog[data-state="live"] .retro-term-led {
+  background: var(--telaTexto);
+  animation: retro-term-blink 1.6s step-end infinite;
+}
+
+.retro-devscreen-dialog[data-state="done"] .retro-term-led {
+  background: var(--ledAmbar);
+}
+
+.retro-devscreen-close {
+  height: 40px;
+}
+
+/* No celular, em tela cheia: o prompt curto, o comando quebra a linha, sem digitar, e a hora vai
+   para o fim do resultado (§6). */
+@media (max-width: 759px) {
+  .retro-devscreen-dialog {
+    width: 100vw;
+    height: 100dvh;
+    margin: 0;
+  }
+
+  .retro-term-cabinet {
+    padding: 10px 8px 0;
+    border-radius: 18px;
+  }
+
+  .retro-term-chin {
+    gap: 10px;
+    height: 60px;
+  }
+
+  .retro-term-brand,
+  .retro-term-slits {
+    display: none;
+  }
+
+  .retro-term-plate {
+    margin: 0 auto 0 0;
+  }
+
+  .retro-term-tube {
+    font-size: 19px;
+    line-height: 22px;
+  }
+
+  .retro-term-log {
+    padding: 10px 12px 6px;
+  }
+
+  .retro-term-prompt-long {
+    display: none;
+  }
+
+  .retro-term-prompt-short {
+    display: inline;
+  }
+
+  .retro-term-line,
+  .retro-term-cmd {
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .retro-term-time {
+    display: none;
+  }
+
+  .retro-term-time-short {
+    display: inline;
+    margin-left: 1ch;
+    color: var(--term-dim);
+  }
+
+  .retro-term-bar {
+    margin: 0 6px 6px;
+    font-size: 17px;
+  }
+
+  /* A barra: "[camps] #2 … 23 passos ● AO VIVO": dos segmentos, só os passos. */
+  .retro-term-bar-seg:not(:nth-child(4)) {
+    display: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .retro-devscreen-end.live::before {
+  .retro-term-tube,
+  .retro-term-cursor,
+  .retro-term-bar-state.live::before,
+  .retro-term-entry.entering,
+  .retro-term-entry.entering .retro-term-cmd,
+  .retro-term-entry.entering .retro-term-result,
+  .retro-devscreen-dialog[data-state="live"] .retro-term-led {
     animation: none;
   }
 }

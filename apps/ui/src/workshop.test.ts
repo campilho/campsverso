@@ -1,8 +1,8 @@
 import type { ObserverState } from "@campsverso/contracts";
 import { describe, expect, it } from "vitest";
 
-import type { WorkshopArt } from "./art/manifest.ts";
-import { RESULT_SECONDS, STEP_SECONDS, stepLook, workshopFrame, workshopState } from "./workshop.ts";
+import type { KindArt, WorkshopArt } from "./art/manifest.ts";
+import { RESULT_SECONDS, STEP_SECONDS, devDesks, screenAt, stepLook, workshopFrame, workshopState } from "./workshop.ts";
 
 // O escritório: o tick de 250 ms (ADR-0081); 4 ticks por segundo do mundo.
 const TICKS_PER_SECOND = 4;
@@ -90,5 +90,30 @@ describe("o robô e a bancada", () => {
     const later = 1000 + RESULT_SECONDS * TICKS_PER_SECOND + 1;
     expect(workshopState(ROBOT, "robo-testador", {}, s, later, [])).toBeUndefined();
     expect(workshopState(BENCH, "bancada", {}, s, 1000, [])).toBeUndefined();
+  });
+});
+
+describe("o computador do dev na sala (briefing-tela-3.md, §1)", () => {
+  const kinds = { desk: { sheet: "mesa_dev", workshop: DESK }, chair: { sheet: "cadeira" } } as unknown as Readonly<Record<string, KindArt>>;
+  const room: ObserverState = {
+    ...state(undefined),
+    entities: {
+      mesa: { kind: "desk", display_name: "Mesa do Tiago", position: { x: 4, y: 4 }, attributes: { dono: "tiago" } },
+      cadeira: { kind: "chair", display_name: "Cadeira do Tiago", position: { x: 4, y: 5 }, attributes: { dono: "tiago" } },
+      outra: { kind: "desk", display_name: "Mesa vaga", position: { x: 8, y: 4 }, attributes: {} },
+    },
+  };
+
+  it("é a mesa com a oficina do dono, e não a cadeira dele nem a mesa sem dono", () => {
+    expect(devDesks(room, kinds)).toEqual([{ id: "mesa", owner: "tiago", x: 4, y: 4 }]);
+  });
+
+  it("o clique na mesa ou no monitor, o tile de cima, é do dev; ao lado, não", () => {
+    expect(screenAt(room, kinds, 4, 4)).toBe("tiago");
+    expect(screenAt(room, kinds, 4, 3)).toBe("tiago"); // o monitor
+    expect(screenAt(room, kinds, 4, 5)).toBeUndefined(); // a cadeira
+    expect(screenAt(room, kinds, 5, 4)).toBeUndefined();
+    expect(screenAt(room, kinds, 8, 4)).toBeUndefined(); // a mesa vaga
+    expect(screenAt(room, undefined, 4, 4)).toBeUndefined(); // sem a arte, nada
   });
 });

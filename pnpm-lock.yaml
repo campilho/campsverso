@@ -205,6 +205,9 @@ importers:
       '@fontsource/pixelify-sans':
         specifier: 5.3.0
         version: 5.3.0
+      '@fontsource/vt323':
+        specifier: 5.3.0
+        version: 5.3.0
       phaser:
         specifier: 4.2.1
         version: 4.2.1
@@ -310,6 +313,9 @@ packages:
 
   '@fontsource/pixelify-sans@5.3.0':
     resolution: {integrity: sha512-4RCe9nXbi7wUu5+H0FNX1sgPZ2kJ1MmY1uTkEfvQIzzqhoS8zGKJaJfdK8oreE0OU+5gM+NdurFi3H3FJRBvyw==}
+
+  '@fontsource/vt323@5.3.0':
+    resolution: {integrity: sha512-3w33Rg/0+R1587HQfz4t7Q7e0GGeCqr3wmzIwqdGInUnrGEwMA5eX39GP4Z9wpTQnwfhVOhYuxuRwRUeIcicbw==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -2082,6 +2088,8 @@ snapshots:
   '@fontsource/patrick-hand@5.3.0': {}
 
   '@fontsource/pixelify-sans@5.3.0': {}
+
+  '@fontsource/vt323@5.3.0': {}
 
   '@humanfs/core@0.19.2':
     dependencies:

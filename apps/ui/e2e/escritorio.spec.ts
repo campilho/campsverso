@@ -128,15 +128,17 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   await delivered.click();
   await page.screenshot({ path: `${SHOTS}/escritorio.png` });
 
-  // A tela do dev (ADR-0089): com uma sessão na oficina, o chip do Tiago abre a tela dele, com o
-  // pedido, as mãos e os passos; a conversa conta o começo. Sem modelo, as mãos são a rotina.
-  await page.getByRole("button", { name: /Ver a tela de Tiago/ }).click();
+  // A tela do dev (ADR-0089), o terminal de fósforo verde (ADR-0092): o monitorzinho do chip do
+  // Tiago abre a tela dele, com a entrada, os passos como comandos e o fim; a conversa conta o
+  // começo. Sem modelo, as mãos são a rotina.
+  await page.getByRole("button", { name: "Ver a tela do Tiago" }).click();
   const devScreen = page.getByRole("dialog", { name: "Tela do Tiago" });
   await expect(devScreen).toBeVisible();
-  await expect(devScreen).toContainText("Pedido 1 · Ferramenta de busca");
-  await expect(devScreen).toContainText("rotina");
-  await expect(devScreen).toContainText("fim: o pedido está entregue");
-  await expect(devScreen.locator(".retro-devscreen-lines li")).not.toHaveCount(0);
+  await expect(devScreen).toContainText("Pedido #1 · Ferramenta de busca");
+  await expect(devScreen).toContainText("Mãos: rotina");
+  await expect(devScreen).toContainText("o pedido #1 foi entregue");
+  await expect(devScreen.locator(".retro-term-entry")).not.toHaveCount(0);
+  await expect(devScreen.locator(".retro-term-bar")).toContainText("TERMINOU");
   await page.screenshot({ path: `${SHOTS}/escritorio-tela-do-dev.png` });
   await devScreen.getByRole("button", { name: "Fechar" }).click();
   await expect(devScreen).toBeHidden();
@@ -265,6 +267,35 @@ test("a ficha aberta: a devolução de 1.000 caracteres chega inteira ao quadro 
   await clipboard.getByRole("textbox", { name: "O que fazer" }).fill("Um contador na copa, que zera à meia-noite.");
   await clipboard.getByRole("radio", { name: "P, pequeno" }).check();
   await clipboard.getByRole("button", { name: "Pôr no quadro" }).click();
+  // A tela do dev pelo computador da sala (briefing-tela-3.md, §1): o clique no monitor da mesa do
+  // Tiago, o tile de cima da mesa, abre a tela, e não anda. Com o pedido em "Fazendo", um passo novo
+  // entra e se digita, e os que já estavam não são redesenhados (§4).
+  await expect(board.getByRole("tab", { name: "Fazendo, 1 pedido" })).toBeVisible({ timeout: 60_000 });
+  const monitor = await tile(page, 4, 3);
+  await page.mouse.move(monitor.x, monitor.y);
+  await expect(page.locator(".retro-screen-hover")).toBeVisible();
+  const standing = await page.evaluate(() => (window as unknown as { campsverso: { drawn(id: string): unknown } }).campsverso.drawn("gerente"));
+  await page.mouse.click(monitor.x, monitor.y);
+  const devScreen = page.getByRole("dialog", { name: "Tela do Tiago" });
+  await expect(devScreen).toBeVisible();
+  // O Tiago ainda anda até a mesa: até a sessão nova começar, a tela mostra a do pedido 1, e troca
+  // sozinha quando ela começa.
+  await expect(devScreen).toContainText("Pedido #2 · Contar os cafés do dia", { timeout: 30_000 });
+  await devScreen.locator(".retro-term-entry").evaluateAll((nodes) => {
+    for (const node of nodes) {
+      node.setAttribute("data-velha", "1");
+    }
+  });
+  const old = await devScreen.locator(".retro-term-entry[data-velha]").count();
+  await expect(devScreen.locator(".retro-term-entry.entering").first()).toBeAttached({ timeout: 30_000 });
+  expect(await devScreen.locator(".retro-term-entry[data-velha]").count()).toBe(old); // os antigos ficam
+  // Com a tela aberta, o teclado é dela: o gerente não anda; o Esc fecha.
+  await page.keyboard.press("ArrowUp");
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => (window as unknown as { campsverso: { drawn(id: string): unknown } }).campsverso.drawn("gerente"))).toEqual(standing);
+  await page.screenshot({ path: `${SHOTS}/escritorio-tela-do-dev-ao-vivo.png` });
+  await page.keyboard.press("Escape");
+  await expect(devScreen).toBeHidden();
   // O dev-script pega, trabalha e entrega; a ficha entregue abre com o "O que falta" no papel.
   const delivered = board.getByRole("tab", { name: "Entregue, 1 pedido" });
   await expect(delivered).toBeVisible({ timeout: 100_000 });
