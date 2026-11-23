@@ -2,7 +2,9 @@
 modelo.
 
 O Claude Code chama o modelo sozinho, por HTTP. Em vez da API, ele recebe o endereço desta porta
-(`ANTHROPIC_BASE_URL`) e uma chave falsa, que só vale para a sessão. A porta:
+(`ANTHROPIC_BASE_URL`) e uma chave falsa, que só vale para a sessão. Desde o M27 (ADR-0093), a porta
+fala três línguas, uma por sessão (`Dialect`): a da Anthropic, a da OpenAI, que o Codex usa, e a do
+Gemini, que o Antigravity usa (`hands_dialects.py`). A porta:
 
 - **confere a chave da sessão** e põe a chave de verdade, que nunca entra no processo do dev;
 - **repassa a chamada** ao modelo e devolve a resposta como veio, em streaming;
@@ -23,7 +25,7 @@ import time
 from collections.abc import AsyncIterator, Callable, Generator, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, Protocol, cast
 
 import httpx2
 import uvicorn
@@ -42,6 +44,9 @@ FORWARDED = ("anthropic-version", "anthropic-beta", "content-type", "accept")
 TIMEOUT_SECONDS = 600.0
 
 type Refuse = Callable[[], str | None]
+# O que a porta faz com uma rota: a chamada ao modelo, medida; ou só repassa, sem custo (contar os
+# tokens, a lista dos modelos).
+type Route_ = Literal["call", "pass"]
 
 
 def _error(status: int, kind: str, message: str) -> JSONResponse:
@@ -49,6 +54,83 @@ def _error(status: int, kind: str, message: str) -> JSONResponse:
     return JSONResponse(
         {"type": "error", "error": {"type": kind, "message": message}}, status_code=status
     )
+
+
+def _spent(usage: ModelUsage) -> bool:
+    """A resposta já gastou alguma coisa: entrou ou saiu um token."""
+    return any(
+        (
+            usage.input_tokens,
+            usage.output_tokens,
+            usage.cache_read_input_tokens,
+            usage.cache_creation_input_tokens,
+        )
+    )
+
+
+class Reader(Protocol):
+    """Quem lê uma resposta de um dialeto: em streaming (`feed`, e `finish` no fim) ou inteira
+    (`message`). Dá à medida os tokens no sentido da Anthropic (a entrada sem o cache), o modelo, o
+    motivo do fim e os blocos."""
+
+    model: str
+    stop_reason: str
+    request_id: str | None
+
+    def feed(self, chunk: bytes) -> None: ...
+
+    def finish(self) -> None: ...
+
+    def message(self, data: Any) -> None: ...
+
+    @property
+    def content(self) -> tuple[dict[str, Any], ...]: ...
+
+    @property
+    def tokens(self) -> ModelUsage: ...
+
+    @property
+    def complete(self) -> bool: ...
+
+
+class Dialect(Protocol):
+    """A língua de um provedor na porta: as rotas, onde vem a chave da sessão, como vai a de
+    verdade, o modelo e o nome dele na tabela de preços, o leitor e o formato do erro.
+
+    `lean`: a fita guarda a resposta magra e a refaz em streaming (a Anthropic, desde o M26); sem
+    ele, a fita guarda a resposta como veio e a devolve igual."""
+
+    name: str
+    upstream: str
+    lean: bool
+
+    def route(self, method: str, path: str) -> Route_ | None: ...
+
+    def session_key(self, request: Request) -> str: ...
+
+    def headers(self, request: Request, key: str) -> dict[str, str]: ...
+
+    def target(self, request: Request) -> str: ...
+
+    def model(self, path: str, body: Mapping[str, Any]) -> str: ...
+
+    def priced(self, model: str) -> str: ...
+
+    def streaming(self, request: Request, body: Mapping[str, Any]) -> bool: ...
+
+    def parts(
+        self, body: Mapping[str, Any]
+    ) -> tuple[list[Mapping[str, Any]], Any, list[Mapping[str, Any]], int]:
+        """As mensagens, o sistema, as ferramentas e o teto de saída, para o evento da medida."""
+        ...
+
+    def reader(self) -> Reader: ...
+
+    def error(self, status: int, kind: str, message: str) -> Response: ...
+
+    def stub(self, path: str) -> Response:
+        """A resposta de uma rota `pass` na reprodução da fita, sem a API."""
+        ...
 
 
 TOOL_BLOCKS = ("tool_use", "server_tool_use", "mcp_tool_use")
@@ -138,6 +220,9 @@ class UsageReader:
                 if line.startswith(b"data:"):
                     with contextlib.suppress(ValueError):
                         self.event(cast(Mapping[str, Any], json.loads(line[5:].strip())))
+
+    def finish(self) -> None:
+        """O fim do streaming: na Messages API, cada evento já foi lido."""
 
     def message(self, data: Mapping[str, Any]) -> None:
         """Uma resposta inteira, sem streaming."""
@@ -241,6 +326,69 @@ def sse_of(message: Mapping[str, Any]) -> bytes:
     return out + _sse("message_stop", {"type": "message_stop"})
 
 
+class AnthropicDialect:
+    """A língua da Anthropic (a Messages API), a do Claude Code, desde o M26."""
+
+    name = "anthropic"
+    upstream = ANTHROPIC
+    lean = True
+
+    def route(self, method: str, path: str) -> Route_ | None:
+        if method != "POST":
+            return None
+        return "call" if path == MESSAGES else "pass" if path == COUNT_TOKENS else None
+
+    def session_key(self, request: Request) -> str:
+        given = request.headers.get("x-api-key") or ""
+        bearer = request.headers.get("authorization") or ""
+        if bearer.lower().startswith("bearer "):
+            given = given or bearer[7:]
+        return given
+
+    def headers(self, request: Request, key: str) -> dict[str, str]:
+        headers = {k: v for k in FORWARDED if (v := request.headers.get(k)) is not None}
+        headers["x-api-key"] = key
+        return headers
+
+    def target(self, request: Request) -> str:
+        query = request.url.query
+        return request.url.path + (f"?{query}" if query else "")
+
+    def model(self, path: str, body: Mapping[str, Any]) -> str:
+        return str(body.get("model") or "")
+
+    def priced(self, model: str) -> str:
+        return model
+
+    def streaming(self, request: Request, body: Mapping[str, Any]) -> bool:
+        return bool(body.get("stream"))
+
+    def parts(
+        self, body: Mapping[str, Any]
+    ) -> tuple[list[Mapping[str, Any]], Any, list[Mapping[str, Any]], int]:
+        return (
+            cast(list[Mapping[str, Any]], body.get("messages") or []),
+            body.get("system"),
+            cast(list[Mapping[str, Any]], body.get("tools") or []),
+            int(body.get("max_tokens") or 0),
+        )
+
+    def reader(self) -> Reader:
+        return UsageReader()
+
+    def error(self, status: int, kind: str, message: str) -> Response:
+        kinds = {
+            "auth": "authentication_error",
+            "not_found": "not_found_error",
+            "bad_request": "invalid_request_error",
+            "refused": "permission_error",
+        }
+        return _error(status, kinds.get(kind, "api_error"), message)
+
+    def stub(self, path: str) -> Response:
+        return JSONResponse({"input_tokens": 0})
+
+
 SPACE = "{espaco}"
 
 
@@ -302,8 +450,16 @@ class Tape:
         with self.path.open("a", encoding="utf-8") as tape:
             tape.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
-    def next(self, path: str, model: str, tools: bool) -> dict[str, Any] | None:
-        """A próxima resposta gravada, com o espaço de agora no lugar de `{espaco}`."""
+    def write_raw(self, path: str, model: str, tools: bool, raw: bytes, *, stream: bool) -> None:
+        """A resposta como veio (o streaming inteiro, ou o JSON), nos dialetos sem a resposta magra
+        (ADR-0093): a reprodução a devolve igual, na língua do harness."""
+        text = _swap(raw.decode("utf-8", errors="replace"), self._space, SPACE)
+        entry = {"path": path, "model": model, "tools": tools, "stream": stream, "raw": text}
+        with self.path.open("a", encoding="utf-8") as tape:
+            tape.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+    def next_entry(self, path: str, model: str, tools: bool) -> dict[str, Any] | None:
+        """A próxima entrada gravada, inteira, com o espaço de agora no lugar de `{espaco}`."""
         same_path = [
             i for i, e in enumerate(self._entries) if i not in self._used and e["path"] == path
         ]
@@ -314,7 +470,12 @@ class Tape:
             return None
         self._used.add(chosen)
         here = self._space[-1] if self._space else SPACE
-        return cast(dict[str, Any], _swap(self._entries[chosen]["message"], [SPACE], here))
+        return cast(dict[str, Any], _swap(self._entries[chosen], [SPACE], here))
+
+    def next(self, path: str, model: str, tools: bool) -> dict[str, Any] | None:
+        """A próxima resposta magra gravada (a Anthropic)."""
+        entry = self.next_entry(path, model, tools)
+        return None if entry is None else cast(dict[str, Any], entry.get("message"))
 
 
 class _QuietServer(uvicorn.Server):
@@ -337,9 +498,10 @@ class HandsGate:
         avatar_id: str,
         ticket_id: str,
         refuse: Refuse = lambda: None,
-        upstream: str = ANTHROPIC,
+        upstream: str | None = None,
         transport: httpx2.AsyncBaseTransport | None = None,
         tape: Tape | None = None,
+        dialect: Dialect | None = None,
     ) -> None:
         self._meter = meter
         self._key = api_key
@@ -347,7 +509,8 @@ class HandsGate:
         self._avatar = avatar_id
         self._ticket = ticket_id
         self._refuse = refuse
-        self._upstream = upstream.rstrip("/")
+        self._dialect: Dialect = dialect or AnthropicDialect()
+        self._upstream = (upstream or self._dialect.upstream).rstrip("/")
         self._transport = transport
         self._tape = tape
         self.token = f"sessao-{secrets.token_hex(16)}"
@@ -394,58 +557,52 @@ class HandsGate:
     # ------------------------------------------------------------- as chamadas
 
     def _authorized(self, request: Request) -> bool:
-        given = request.headers.get("x-api-key") or ""
-        bearer = request.headers.get("authorization") or ""
-        if bearer.lower().startswith("bearer "):
-            given = given or bearer[7:]
-        return secrets.compare_digest(given, self.token)
+        return secrets.compare_digest(self._dialect.session_key(request), self.token)
 
     async def _handle(self, request: Request) -> Response:
+        dialect = self._dialect
         if not self._authorized(request):
-            return _error(401, "authentication_error", "chave da sessão inválida")
+            return dialect.error(401, "auth", "chave da sessão inválida")
         path = request.url.path
-        if request.method != "POST" or path not in (MESSAGES, COUNT_TOKENS):
-            return _error(404, "not_found_error", f"a porta das mãos não serve {path}")
+        route = dialect.route(request.method, path)
+        if route is None:
+            return dialect.error(404, "not_found", f"a porta das mãos não serve {path}")
         raw = await request.body()
+        if route == "pass":
+            return await self._pass(request, raw)
         try:
             body = cast(dict[str, Any], json.loads(raw or b"{}"))
         except ValueError:
-            return _error(400, "invalid_request_error", "o corpo não é JSON")
-        model = str(body.get("model") or "")
-        if path == COUNT_TOKENS:
-            return await self._count(request, raw)
+            return dialect.error(400, "bad_request", "o corpo não é JSON")
+        model = dialect.priced(dialect.model(path, body))
         try:
             self._meter.assert_priced(model)
         except LookupError as error:
-            return _error(400, "invalid_request_error", str(error))
+            return dialect.error(400, "bad_request", str(error))
         reason = self._refuse()
         if reason:
             self.refused += 1
             # Um 403 não é repetido pelo harness: a sessão termina com o motivo.
-            return _error(403, "permission_error", f"a porta das mãos recusou: {reason}")
+            return dialect.error(403, "refused", f"a porta das mãos recusou: {reason}")
         self.calls += 1
+        stream = dialect.streaming(request, body)
         if self._tape is not None and self._tape.mode == "replay":
-            return await self._replay(path, model, body)
-        if body.get("stream"):
-            return await self._stream(request, raw, body)
-        return await self._once(request, raw, body)
+            return await self._replay(path, model, body, stream)
+        if stream:
+            return await self._stream(request, raw, body, model)
+        return await self._once(request, raw, body, model)
 
-    def _headers(self, request: Request) -> dict[str, str]:
-        headers = {k: v for k in FORWARDED if (v := request.headers.get(k)) is not None}
-        headers["x-api-key"] = self._key
-        return headers
-
-    def _target(self, request: Request) -> str:
-        query = request.url.query
-        return request.url.path + (f"?{query}" if query else "")
-
-    async def _count(self, request: Request, raw: bytes) -> Response:
-        """Contar tokens não custa nem vira evento; na fita, não há o que contar."""
+    async def _pass(self, request: Request, raw: bytes) -> Response:
+        """O que não custa nem vira evento (contar os tokens, a lista dos modelos): repassa; na
+        fita, a resposta de sempre do dialeto."""
         if self._tape is not None and self._tape.mode == "replay":
-            return JSONResponse({"input_tokens": 0})
+            return self._dialect.stub(request.url.path)
         assert self._client is not None
-        response = await self._client.post(
-            self._target(request), content=raw, headers=self._headers(request)
+        response = await self._client.request(
+            request.method,
+            self._dialect.target(request),
+            content=raw or None,
+            headers=self._dialect.headers(request, self._key),
         )
         return Response(
             response.content,
@@ -453,29 +610,38 @@ class HandsGate:
             media_type=response.headers.get("content-type"),
         )
 
-    async def _once(self, request: Request, raw: bytes, body: Mapping[str, Any]) -> Response:
+    async def _once(
+        self, request: Request, raw: bytes, body: Mapping[str, Any], model: str
+    ) -> Response:
         assert self._client is not None
         started = time.monotonic()
         response = await self._client.post(
-            self._target(request), content=raw, headers=self._headers(request)
+            self._dialect.target(request),
+            content=raw,
+            headers=self._dialect.headers(request, self._key),
         )
         if response.status_code == 200:
-            reader = UsageReader()
+            reader = self._dialect.reader()
             with contextlib.suppress(ValueError):
-                reader.message(cast(Mapping[str, Any], response.json()))
-            await self._measure(body, reader, started, replayed=False)
-            self._record(request.url.path, body, reader)
+                reader.message(response.json())
+            await self._measure(body, reader, started, replayed=False, model=model)
+            self._record(request.url.path, body, model, reader, response.content, stream=False)
         return Response(
             response.content,
             status_code=response.status_code,
             media_type=response.headers.get("content-type"),
         )
 
-    async def _stream(self, request: Request, raw: bytes, body: Mapping[str, Any]) -> Response:
+    async def _stream(
+        self, request: Request, raw: bytes, body: Mapping[str, Any], model: str
+    ) -> Response:
         assert self._client is not None
         started = time.monotonic()
         upstream = self._client.build_request(
-            "POST", self._target(request), content=raw, headers=self._headers(request)
+            "POST",
+            self._dialect.target(request),
+            content=raw,
+            headers=self._dialect.headers(request, self._key),
         )
         response = await self._client.send(upstream, stream=True)
         if response.status_code != 200:
@@ -486,54 +652,96 @@ class HandsGate:
                 status_code=response.status_code,
                 media_type=response.headers.get("content-type"),
             )
-        reader = UsageReader()
+        reader = self._dialect.reader()
         path = request.url.path
+        media = response.headers.get("content-type") or "text/event-stream"
+        seen: list[bytes] = []
 
         async def relay() -> AsyncIterator[bytes]:
             try:
                 async for chunk in response.aiter_raw():
                     reader.feed(chunk)
+                    seen.append(chunk)
                     yield chunk
             finally:
                 await response.aclose()
+                reader.finish()
                 # O que passou foi cobrado, mesmo que o harness tenha largado a resposta no meio.
-                if reader.usage:
-                    await self._measure(body, reader, started, replayed=False)
+                if _spent(reader.tokens):
+                    await self._measure(body, reader, started, replayed=False, model=model)
                     if reader.complete:
-                        self._record(path, body, reader)
+                        self._record(path, body, model, reader, b"".join(seen), stream=True)
 
-        return StreamingResponse(relay(), media_type="text/event-stream")
+        return StreamingResponse(relay(), media_type=media)
 
-    async def _replay(self, path: str, model: str, body: Mapping[str, Any]) -> Response:
+    async def _replay(
+        self, path: str, model: str, body: Mapping[str, Any], stream: bool
+    ) -> Response:
         assert self._tape is not None
-        message = self._tape.next(path, model, bool(body.get("tools")))
-        if message is None:
-            # Um 400 não é repetido pelo harness: a sessão termina, em vez de esperar a fita.
-            return _error(400, "invalid_request_error", "a fita acabou: não há resposta para isto")
+        dialect = self._dialect
+        tools = bool(body.get("tools"))
+        if dialect.lean:
+            message = self._tape.next(path, model, tools)
+            if message is None:
+                # Um 400 não é repetido pelo harness: a sessão termina, em vez de esperar a fita.
+                return dialect.error(400, "bad_request", "a fita acabou: não há resposta para isto")
+            started = time.monotonic()
+            reader = UsageReader()
+            reader.message(message)
+            await self._measure(body, reader, started, replayed=True, model=model)
+            if stream:
+                return Response(sse_of(message), media_type="text/event-stream")
+            whole = {"type": "message", "role": "assistant", "stop_sequence": None, **message}
+            return JSONResponse(whole)
+        entry = self._tape.next_entry(path, model, tools)
+        if entry is None or "raw" not in entry:
+            return dialect.error(400, "bad_request", "a fita acabou: não há resposta para isto")
         started = time.monotonic()
-        reader = UsageReader()
-        reader.message(message)
-        await self._measure(body, reader, started, replayed=True)
-        if body.get("stream"):
-            return Response(sse_of(message), media_type="text/event-stream")
-        whole = {"type": "message", "role": "assistant", "stop_sequence": None, **message}
-        return JSONResponse(whole)
+        raw = str(entry["raw"]).encode()
+        reader = dialect.reader()
+        if entry.get("stream"):
+            reader.feed(raw)
+            reader.finish()
+        else:
+            with contextlib.suppress(ValueError):
+                reader.message(json.loads(raw))
+        await self._measure(body, reader, started, replayed=True, model=model)
+        media = "text/event-stream" if entry.get("stream") else "application/json"
+        return Response(raw, media_type=media)
 
-    def _record(self, path: str, body: Mapping[str, Any], reader: UsageReader) -> None:
+    def _record(
+        self,
+        path: str,
+        body: Mapping[str, Any],
+        model: str,
+        reader: Reader,
+        raw: bytes,
+        *,
+        stream: bool,
+    ) -> None:
         if self._tape is None or self._tape.mode != "record":
             return
-        self._tape.write(path, body, reader.as_message())
+        if self._dialect.lean and isinstance(reader, UsageReader):
+            self._tape.write(path, body, reader.as_message())
+        else:
+            self._tape.write_raw(path, model, bool(body.get("tools")), raw, stream=stream)
 
     async def _measure(
-        self, body: Mapping[str, Any], reader: UsageReader, started: float, *, replayed: bool
+        self,
+        body: Mapping[str, Any],
+        reader: Reader,
+        started: float,
+        *,
+        replayed: bool,
+        model: str,
     ) -> None:
-        model = str(body.get("model") or "")
+        messages, system, tools, max_tokens = self._dialect.parts(body)
         request = ModelRequest(
             model=model,
-            messages=cast(list[Mapping[str, Any]], body.get("messages") or []),
-            system=cast(Any, body.get("system")),
-            tools=cast(list[Mapping[str, Any]], body.get("tools") or []),
-            max_tokens=int(body.get("max_tokens") or 0),
+            messages=messages,
+            system=system,
+            tools=tools,
+            max_tokens=max_tokens,
             purpose="workshop",
             avatar_id=self._avatar,
             ticket_id=self._ticket,
