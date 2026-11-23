@@ -70,9 +70,10 @@ FURNITURE = (
 # ficam lá, guardadas para outros lugares.
 CHARACTERS = ("tiago", "gerente_blazer", "vigia", "retratos")
 # Soltas: as fichas do quadro, que a tela pendura pelo estado (10 x 10), os selos do PR nelas
-# (6 x 6) e a placa da versão na parede numa linha, com o commit e o dia escritos pela tela (96 x
-# 64; a placa de duas linhas do M25 saiu em 21/nov).
-LOOSE = ("fichas", "selos", "placa_versao_linha")
+# (6 x 6), a placa da versão na parede numa linha, com o commit e o dia escritos pela tela (96 x
+# 64; a placa de duas linhas do M25 saiu em 21/nov), e o interruptor da luz (ADR-0088), apagado e
+# aceso, redesenhado pelo Claude Design (briefing-tela-4.md, §6) no lugar do que se gerava aqui.
+LOOSE = ("fichas", "selos", "placa_versao_linha", "interruptor")
 # O que fica sobre a cabeça (o pedido de arte de 18/nov): os balões, copiados; os ícones saem de
 # `icons_sheet`, com os dois dos chips; a fonte sai de `font_sheet`, com cada glifo colado à
 # esquerda da célula.
@@ -173,37 +174,6 @@ def copa_table() -> Img:
     paste(sheet, table, 0, 0)
     paste(sheet, table, T, 0)
     paste_over(sheet, box, T + LUNCHBOX_AT[0], LUNCHBOX_AT[1])
-    return sheet
-
-
-def _hex(color: str) -> tuple[int, int, int, int]:
-    return (int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16), 255)
-
-
-def switch_sheet() -> Img:
-    """O interruptor da luz da sala (ADR-0088), desenhado aqui, no estilo da sala: um espelho creme
-    de 10 x 12 na face da parede de baixo, com a tecla. Dois quadros: apagado (a tecla embaixo) e
-    aceso (a tecla em cima e o ponto âmbar)."""
-    ink, plate, shade, key, amber = (
-        _hex("#1b1726"),
-        _hex("#f4ead0"),
-        _hex("#ae9b72"),
-        _hex("#e7d9b4"),
-        _hex("#f2c94c"),
-    )
-    sheet = blank(2 * T, T)
-    for frame in (0, 1):
-        left, top = frame * T + 11, 6  # o espelho, centrado na largura do tile
-        for y in range(12):
-            for x in range(10):
-                edge = x in (0, 9) or y in (0, 11)
-                sheet[top + y][left + x] = ink if edge else (shade if y == 10 or x == 8 else plate)
-        key_top = top + (3 if frame == 1 else 6)  # a tecla: em cima acesa, embaixo apagada
-        for y in range(3):
-            for x in range(4):
-                sheet[key_top + y][left + 3 + x] = ink if y == 0 or x in (0, 3) else key
-        if frame == 1:
-            sheet[top + 2][left + 7] = amber
     return sheet
 
 
@@ -341,7 +311,6 @@ def outputs() -> dict[Path, bytes]:
     text = json.dumps(bubbles(), indent=2, ensure_ascii=False) + "\n"
     files[GENRE / "baloes.json"] = text.encode()
     files[GENRE / "mesa_copa.png"] = encode_png(copa_table())
-    files[GENRE / "interruptor.png"] = encode_png(switch_sheet())
     for name in CHARACTERS:
         files[SCENARIO / f"{name}.png"] = (SOURCE / f"{name}.png").read_bytes()
     return files

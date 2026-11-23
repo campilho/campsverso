@@ -36,7 +36,7 @@
     "column_width": 32,
     "first_inset": 6,
     "inset": 3,
-    "columns": { "a_fazer": 0, "fazendo": 1, "entregue": 2, "aceito": 2 },
+    "columns": { "a_fazer": 0, "fazendo": 1, "entregue": 2, "aceito": 3 },
     "state_frames": { "aceito": 4 },
     "size_frames": { "P": 2, "M": 1, "G": 0 },
     "frame": 3,

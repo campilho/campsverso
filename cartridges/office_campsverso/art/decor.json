@@ -1,9 +1,10 @@
 {
-  "about": "O que fica pendurado na parede do fundo do escritório (ADR-0082), como na prévia do Claude Design: o quadro dos pedidos em três colunas (a fazer, fazendo, feito), a janela com a cidade e o relógio. Peças de dois tiles de altura, desenhadas por cima do mapa visual (make mapa-visual).",
+  "about": "O que fica pendurado na parede do fundo do escritório (ADR-0082), como na prévia do Claude Design: o quadro dos pedidos em quatro colunas (a fazer, fazendo, entregue, aceito; briefing-tela-4.md, §5), a janela com a cidade e o relógio. Peças de dois tiles de altura, desenhadas por cima do mapa visual (make mapa-visual).",
   "pieces": [
     { "tile": "quadro-comeco", "x": 2, "y": 0 },
     { "tile": "quadro-meio", "x": 3, "y": 0 },
-    { "tile": "quadro-fim", "x": 4, "y": 0 },
+    { "tile": "quadro-meio", "x": 4, "y": 0 },
+    { "tile": "quadro-fim", "x": 5, "y": 0 },
     { "tile": "janela-comeco", "x": 7, "y": 0 },
     { "tile": "janela-meioA", "x": 8, "y": 0 },
     { "tile": "janela-meioB", "x": 9, "y": 0 },

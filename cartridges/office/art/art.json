@@ -22,7 +22,9 @@
         "trash": "lixo",
         "tv": "tv",
         "videogame": "videogame",
-        "sleep": "dormir"
+        "sleep": "dormir",
+        "light_on": "acender",
+        "light_off": "apagar"
       }
     },
     "speech": { "max_width": 150 }
