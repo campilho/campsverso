@@ -5,7 +5,7 @@ import { el } from "../dom.ts";
 
 /** A versão da UI: muda a cada versão do projeto. */
 export const UI_VERSION = "v0.4 · o escritório que constrói a si mesmo";
-export const UI_MILESTONE = "v0.4, em curso · marco M25";
+export const UI_MILESTONE = "v0.4, em curso · depois do M26, as telas do Claude Design";
 
 export interface AboutInfo {
   /** O commit curto e a data do que roda (o `welcome.build`), ou nada fora do escritório vivo. */

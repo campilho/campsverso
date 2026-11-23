@@ -29,10 +29,10 @@ import { fogKey } from "./fog.ts";
 import { loadLocale } from "./locale.ts";
 import { pathFrom, stepsAt } from "./motion.ts";
 import { bannerOf } from "./banner.ts";
-import { CreditsDialog } from "./panels/credits.ts";
+import { CreditsDialog, RetroCredits } from "./panels/credits.ts";
 import { CommandsHelp } from "./panels/help.ts";
 import { renderHud } from "./panels/hud.ts";
-import { ActionMenu } from "./panels/menu.ts";
+import { ActionMenu, type MenuExtras } from "./panels/menu.ts";
 import { OfficePanel, isOffice, ticketsOf, type NewTicket } from "./panels/office.ts";
 import { OperatorPanel } from "./panels/operator.ts";
 import { Portrait } from "./panels/portrait.ts";
@@ -155,7 +155,17 @@ officeAside.hidden = true;
 app.replaceChildren(header, el("main", {}, world, officeAside, view === "operator" && aside));
 
 const menu = new ActionMenu(document.body);
-const help = new CommandsHelp(world); // sobre o mapa, sem cobrir o painel do operador
+// Sobre o mapa, sem cobrir o painel do operador; no escritório, uma janela retrô. Só os comandos que
+// valem aqui: a grama na fazenda, arrastar e o espaço num mapa maior que a tela, o P no sandbox.
+const help = new CommandsHelp(world, () => {
+  const state = store.state;
+  const larger = grid !== undefined && (grid.width > 32 || grid.height > 18); // a VIEW do Phaser
+  return {
+    farm: state === undefined || !isOffice(state),
+    scrolls: larger || (retro.isMounted && retro.isPhone),
+    pausable: state !== undefined && playerClock(),
+  };
+});
 const queue = new ActionQueue();
 const portrait = new Portrait();
 const icons = new ItemIcons(() => {
@@ -257,7 +267,28 @@ function leaveOffice(): void {
 // A tela retrô do escritório (docs/design/briefing-tela.md): a moldura entra no primeiro estado do
 // escritório e reorganiza as peças de sempre dentro dela; o quadro de cortiça e a prancheta tomam o
 // lugar do quadro e do novo pedido do painel de hoje.
-const about = new AboutDialog(document.body, () => { void credits.open(art?.credits ?? []); });
+// O Sobre e os créditos: no escritório, a janela retrô dos créditos, com o "Voltar ao Sobre"
+// (briefing-tela-4.md, §4); nas fazendas, a lista de sempre.
+const retroCredits = new RetroCredits(document.body, () => { openAbout(); });
+const about = new AboutDialog(document.body, () => {
+  const state = store.state;
+  if (state !== undefined && isOffice(state)) {
+    void retroCredits.open(art?.credits ?? [], "o escritório");
+  } else {
+    void credits.open(art?.credits ?? []);
+  }
+});
+
+function openAbout(): void {
+  const state = store.state;
+  const build = store.welcome?.build;
+  about.open({
+    running: build === undefined ? undefined : `${build.commit.slice(0, 7)} · ${build.date.slice(8, 10)}/${build.date.slice(5, 7)}/${build.date.slice(0, 4)}`,
+    world: `${store.welcome?.worldid ?? "?"} · ${state?.cartridge ?? "?"}`,
+    clock: state === undefined ? "?" : `Dia ${String(state.day)} · ${clockText(state, shownTick).slice(0, 5)} · ${String(state.clock.scale ?? 1)}× · ${store.status === "open" ? "ao vivo" : "sem conexão"}`,
+    debug,
+  });
+}
 const devScreen = new DevScreen(document.body);
 // Os rostos pequenos (a conversa, a ficha quadrada e a ficha aberta), desenhados uma vez por avatar.
 const faces = new FaceCache(() => { dirty = true; });
@@ -325,16 +356,7 @@ const retro = new RetroFrame(view, debug, {
       devScreen.open(devId, store.state, shownTick);
     }
   },
-  about: () => {
-    const state = store.state;
-    const build = store.welcome?.build;
-    about.open({
-      running: build === undefined ? undefined : `${build.commit.slice(0, 7)} · ${build.date.slice(8, 10)}/${build.date.slice(5, 7)}/${build.date.slice(0, 4)}`,
-      world: `${store.welcome?.worldid ?? "?"} · ${state?.cartridge ?? "?"}`,
-      clock: state === undefined ? "?" : `Dia ${String(state.day)} · ${clockText(state, shownTick).slice(0, 5)} · ${String(state.clock.scale ?? 1)}× · ${store.status === "open" ? "ao vivo" : "sem conexão"}`,
-      debug,
-    });
-  },
+  about: () => { openAbout(); },
 });
 
 // A gaveta do operador (§3.8): o painel de hoje, com a versão ao lado do caderno e as métricas
@@ -822,9 +844,17 @@ map.element.addEventListener("contextmenu", (event) => {
   const dev = screenOf(state, tile);
   if (dev !== undefined && !inControl(state, avatarId())) {
     // Sem o gerente, o computador do dev ainda abre a tela pelo menu: ver não é jogar.
-    menu.open(event.pageX, event.pageY, state.entities[thingAt(state, tile.x, tile.y) ?? ""]?.display_name ?? "O computador do dev", [screenEntry(dev)], () => {
-      devScreen.open(dev, state, shownTick);
-    });
+    const desk = deskOf(state, dev);
+    menu.open(
+      event.pageX,
+      event.pageY,
+      state.entities[desk ?? ""]?.display_name ?? "O computador do dev",
+      [screenEntry(dev)],
+      () => {
+        devScreen.open(dev, state, shownTick);
+      },
+      menuExtras(state, desk),
+    );
     return;
   }
   if (!inControl(state, avatarId())) {
@@ -846,12 +876,12 @@ function openMenu(state: ObserverState, tile: Tile, pageX: number, pageY: number
   }
   const screen = mine ? undefined : screenOf(state, tile);
   const clicked = mine ? "self" : (thingAt(state, tile.x, tile.y) ?? (screen === undefined ? undefined : deskOf(state, screen)));
-  const choose = (entry: MenuEntry, chosen: Record<string, string | number>): void => {
+  const choose = (entry: MenuEntry, chosen: Record<string, string | number>, shift?: boolean): void => {
     if (entry.action === SCREEN_ACTION && screen !== undefined) {
       devScreen.open(screen, state, shownTick); // só da tela, não é uma proposta
       return;
     }
-    act(stepFor(state, entry, chosen), queued);
+    act(stepFor(state, entry, chosen), queued || shift === true);
   };
   const suffix = queued ? " · entra na fila" : "";
   if (clicked === undefined) {
@@ -860,7 +890,7 @@ function openMenu(state: ObserverState, tile: Tile, pageX: number, pageY: number
       act(walkStep(state, tile), queued); // chão sem ação: só andar
       return;
     }
-    menu.open(pageX, pageY, `(${String(tile.x)}, ${String(tile.y)})${suffix}`, entries, choose);
+    menu.open(pageX, pageY, `(${String(tile.x)}, ${String(tile.y)})${suffix}`, entries, choose, menuExtras(state, undefined));
     return;
   }
   // Em cima de uma coisa (o canteiro), o clique cai no avatar: o menu junta as ações dela às dele
@@ -878,10 +908,60 @@ function openMenu(state: ObserverState, tile: Tile, pageX: number, pageY: number
   ];
   const contents = thing === undefined ? undefined : contentsOf(state, thing);
   menu.open(pageX, pageY, `${title}${suffix}`, entries, choose, {
+    ...menuExtras(state, thing),
     ...(contents === undefined ? {} : { contents }),
     icon: (item) => icons.url(item),
     portrait: (option) => portraitOf(option),
   });
+}
+
+// O contorno da coisa clicada, enquanto o menu do escritório está aberto (briefing-tela-4.md, §2).
+const menuTarget = el("div", { className: "retro-menu-target" });
+menuTarget.hidden = true;
+document.body.append(menuTarget);
+
+/** O que o menu do escritório precisa da tela: a arte dos ícones, a tela do monitor de onde ele
+ * não sai e o contorno da coisa clicada, apagado quando ele fecha. */
+function menuExtras(state: ObserverState, thing: string | undefined): MenuExtras {
+  if (!retro.isMounted) {
+    return {};
+  }
+  const screen = world.parentElement?.getBoundingClientRect();
+  const box = thing === undefined ? undefined : spriteBox(state, thing);
+  if (box !== undefined) {
+    menuTarget.style.left = `${String(box.left)}px`;
+    menuTarget.style.top = `${String(box.top)}px`;
+    menuTarget.style.width = `${String(box.width)}px`;
+    menuTarget.style.height = `${String(box.height)}px`;
+    menuTarget.hidden = false;
+  }
+  return {
+    ...(art === undefined ? {} : { art: art.manifest }),
+    ...(screen === undefined
+      ? {}
+      : { bounds: { left: screen.left + scrollX, top: screen.top + scrollY, right: screen.right + scrollX, bottom: screen.bottom + scrollY } }),
+    onClose: () => { menuTarget.hidden = true; },
+  };
+}
+
+/** O retângulo do desenho de uma coisa na página: a folha dela, presa pelo pé no tile (como o
+ * Phaser a desenha), na escala da sala. */
+function spriteBox(state: ObserverState, id: string): { left: number; top: number; width: number; height: number } | undefined {
+  const entity = state.entities[id];
+  const at = entity?.position;
+  const kind = entity === undefined ? undefined : art?.manifest.kinds?.[entity.kind];
+  const sheet = kind?.sheet === undefined ? undefined : art?.manifest.sheets?.[kind.sheet];
+  const center = at === undefined ? undefined : map.clientOf?.(at.x, at.y);
+  const next = at === undefined ? undefined : map.clientOf?.(at.x + 1, at.y);
+  if (center === undefined || next === undefined) {
+    return undefined;
+  }
+  const scale = (next.x - center.x) / 32; // pixels da página por pixel da arte
+  const width = (sheet?.frame_width ?? 32) * scale;
+  const height = (sheet?.frame_height ?? 32) * scale;
+  const footX = center.x + (kind?.dx ?? 0) * scale;
+  const footY = center.y + (16 + (kind?.dy ?? 0)) * scale;
+  return { left: footX - width / 2 + scrollX, top: footY - height + scrollY, width, height };
 }
 
 /** A entrada "Ver a tela" do menu do computador do dev: só da tela. */

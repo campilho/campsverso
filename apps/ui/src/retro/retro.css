@@ -585,8 +585,41 @@ body.retro .dot.off {
   width: 16px;
   height: 16px;
   flex: 0 0 auto;
+}
+
+.retro-ic-cell {
+  display: block;
+  width: 16px;
+  height: 16px;
   background-repeat: no-repeat;
   image-rendering: pixelated;
+  transform-origin: 0 0;
+}
+
+/* Em 2x (o menu do clique direito): a mesma célula, ampliada sem borrar. */
+.retro-ic.x2 {
+  width: 32px;
+  height: 32px;
+}
+
+.retro-ic.x2 .retro-ic-cell {
+  transform: scale(2);
+}
+
+/* No menu, sem ícone: uma bolinha vazada de 8 px, como no "Andar até aqui". */
+.retro-menu .retro-ic.empty::before {
+  content: "";
+  display: block;
+  width: 8px;
+  height: 8px;
+  margin: 4px;
+  box-sizing: border-box;
+  border: 2px solid var(--begeEsc);
+  border-radius: 50%;
+}
+
+.retro-menu .retro-ic.x2.empty::before {
+  margin: 12px;
 }
 
 .retro-commands {
@@ -817,6 +850,683 @@ body.retro aside.office h2 {
   gap: 10px;
   justify-content: flex-end;
   margin-top: 18px;
+}
+
+/* ------------------------------------------------------------------ os comandos (o "?") */
+
+/* A janela "Comandos" (briefing-tela-4.md, §3), sobre a tela escurecida, em duas colunas. */
+.retro-commands-dialog::backdrop {
+  background: rgb(23 20 31 / 62%);
+}
+
+.retro-commands-window {
+  width: 660px;
+}
+
+.retro-commands-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.retro-commands-columns h3 {
+  margin: 0 0 10px;
+  padding-bottom: 4px;
+  border-bottom: 2px solid var(--begeSomb);
+  font: 700 13px var(--pixel);
+  color: var(--madMEsc);
+}
+
+.retro-commands-columns ul {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.retro-commands-columns li {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.retro-commands-how {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.retro-gesture {
+  font: 11px var(--mono);
+  color: var(--madMEsc);
+}
+
+.retro-plus {
+  font-size: 12px;
+  color: var(--grafite);
+}
+
+/* O mouse de 20 x 28: os dois botões em cima, o da vez em amarelo; o arrastar, com as setas. */
+.retro-mouse {
+  position: relative;
+  display: inline-flex;
+  width: 20px;
+  height: 28px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 2px solid var(--contorno);
+  border-radius: 10px 10px 9px 9px;
+  background: var(--branco);
+}
+
+.retro-mouse i {
+  width: 50%;
+  height: 11px;
+  border-bottom: 2px solid var(--contorno);
+}
+
+.retro-mouse i.left {
+  border-right: 1px solid var(--contorno);
+}
+
+.retro-mouse.clique i.left,
+.retro-mouse.direito i.right,
+.retro-mouse.arrastar i.left {
+  background: var(--amarelo);
+}
+
+.retro-mouse.arrastar::after {
+  content: "↔";
+  position: absolute;
+  left: 100%;
+  top: 6px;
+  margin-left: 2px;
+  font-size: 11px;
+}
+
+/* As teclas de 28 px: a borda de 2 px, o fundo claro e a sombra de baixo. */
+.retro-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  box-sizing: border-box;
+  padding: 0 6px;
+  border: 2px solid var(--contorno);
+  border-radius: 4px;
+  background: var(--branco);
+  box-shadow: 0 3px 0 var(--bege);
+  color: var(--escuro);
+  font: 700 12px var(--mono);
+}
+
+.retro-arrows {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.retro-arrows > span {
+  display: flex;
+  gap: 3px;
+}
+
+.retro-commands-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  font-size: 12px;
+  color: var(--grafite);
+}
+
+.retro-entendi {
+  height: 40px;
+  padding: 0 20px;
+}
+
+@media (max-width: 759px) {
+  .retro-commands-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ------------------------------------------------------------------ os créditos (pelo Sobre) */
+
+/* A janela dos créditos (briefing-tela-4.md, §4): 740 px, com a altura da tela no máximo e o meio
+   rolando; um bloco por grupo de autores, as licenças em selos e as peças como fichinhas. */
+.retro-credits-window {
+  display: flex;
+  flex-direction: column;
+  width: 740px;
+  max-height: calc(100vh - 48px);
+}
+
+.retro-credits-window .retro-window-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: 14px;
+}
+
+.retro-credits-head {
+  display: flex;
+  gap: 16px;
+}
+
+.retro-credits-icon {
+  width: 64px;
+  height: 64px;
+  flex: none;
+  padding: 6px;
+  border: 3px solid var(--contorno);
+  border-radius: 6px;
+  background: var(--cremeCl);
+  image-rendering: pixelated;
+}
+
+.retro-credits-head h3 {
+  margin: 0;
+  font: 700 22px var(--pixel);
+}
+
+.retro-credits-head p {
+  margin: 4px 0 8px;
+  font-size: 13px;
+}
+
+.retro-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.retro-pill {
+  padding: 1px 10px;
+  border: 2px solid var(--contorno);
+  border-radius: 12px;
+  background: var(--cremeCl);
+  font: 12px var(--mono);
+}
+
+.retro-credits-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.retro-credit {
+  padding: 12px 14px;
+  border: 2px solid var(--begeSomb);
+  border-radius: 6px;
+  background: var(--cremeCl);
+  font-size: 13px;
+}
+
+.retro-credit-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.retro-seals {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* Os selos: MIT verde, CC-BY-SA amarelo, GPL laranja, CC0 cinza, OFL azul. */
+.retro-license {
+  padding: 0 6px;
+  border: 2px solid var(--contorno);
+  border-radius: 3px;
+  font: 700 11px var(--mono);
+  white-space: nowrap;
+}
+
+.retro-license.mit {
+  background: var(--verdeCl);
+}
+
+.retro-license.ccbysa {
+  background: var(--amarelo);
+}
+
+.retro-license.gpl {
+  background: var(--madCl);
+}
+
+.retro-license.cc0 {
+  background: var(--bege);
+}
+
+.retro-license.ofl {
+  background: #a9c2ea;
+}
+
+.retro-license.outra {
+  background: var(--branco);
+}
+
+.retro-credit-source {
+  margin: 4px 0 8px;
+  font-size: 12px;
+  color: var(--grafite);
+}
+
+.retro-credit-source a {
+  font: 11px var(--mono);
+  color: var(--azulEsc);
+}
+
+.retro-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.retro-file {
+  padding: 1px 6px;
+  border: 1px solid var(--begeEsc);
+  border-radius: 3px;
+  background: var(--branco);
+  font: 12px var(--mono);
+}
+
+.retro-credit details {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.retro-credit summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.retro-credit details ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.retro-fonts {
+  border-style: dashed;
+}
+
+.retro-fonts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+  margin-top: 8px;
+}
+
+.retro-font-use {
+  font-size: 11px;
+  color: var(--grafite);
+}
+
+.retro-credits-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--grafite);
+}
+
+.retro-credits-foot > span {
+  flex: 1 1 auto;
+}
+
+@media (max-width: 759px) {
+  .retro-fonts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ------------------------------------------------------------------ o menu do clique direito */
+
+/* A janelinha colada ao clique (briefing-tela-4.md, §2): o bisel creme, a barra listrada, um ícone
+   por ação e o porquê do que não vale agora. As fazendas seguem com o menu de sempre. */
+body.retro .action-menu.retro-menu {
+  z-index: 30;
+  display: block;
+  width: 300px;
+  min-width: 0;
+  max-width: calc(100vw - 16px);
+  padding: 0;
+  border: 3px solid var(--contorno);
+  border-radius: 8px;
+  background: var(--creme);
+  box-shadow: inset 3px 3px 0 var(--cremeCl), inset -4px -4px 0 var(--begeSomb), 0 18px 44px rgb(0 0 0 / 55%);
+  color: var(--escuro);
+  font-family: var(--texto);
+}
+
+body.retro .action-menu.retro-menu.small {
+  width: 220px;
+}
+
+.retro-menu .retro-window-bar {
+  height: 28px;
+  border-radius: 5px 5px 0 0;
+}
+
+.retro-menu .retro-window-title {
+  font: 700 14px var(--pixel);
+}
+
+.retro-menu .retro-close {
+  left: 8px;
+  width: 18px;
+  height: 18px;
+}
+
+.retro-menu-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+/* Cada linha é um botão de 44 px: o ícone de 32, o rótulo e o detalhe; o foco e o mouse em
+   cima, em amarelo com a borda escura e o ↵. */
+.retro-menu-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 4px 10px 4px 6px;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--escuro);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.retro-menu-row:hover,
+.retro-menu-row:focus-visible {
+  border-color: var(--contorno);
+  background: var(--amarelo);
+  outline: none;
+}
+
+.retro-menu-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.retro-menu-label {
+  font: 600 14px var(--texto);
+}
+
+.retro-menu-detail {
+  font-size: 12px;
+  color: var(--madMEsc);
+}
+
+.retro-menu-enter {
+  font-size: 13px;
+  visibility: hidden;
+}
+
+.retro-menu-row:hover .retro-menu-enter,
+.retro-menu-row:focus-visible .retro-menu-enter {
+  visibility: visible;
+}
+
+/* O que não vale agora: na lista, apagado, com o motivo em itálico. */
+.retro-menu-row.blocked {
+  cursor: not-allowed;
+}
+
+.retro-menu-row.blocked:hover {
+  border-color: transparent;
+  background: transparent;
+}
+
+.retro-menu-row.blocked .retro-menu-enter {
+  visibility: hidden;
+}
+
+.retro-menu-row.blocked .retro-ic {
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+
+.retro-menu-row.blocked .retro-menu-label {
+  color: var(--begeEsc);
+}
+
+.retro-menu-why {
+  font: italic 12px var(--texto);
+  color: var(--madEsc);
+}
+
+/* A ação com o que escolher vira um bloco, com os campos recuados 48 px. */
+.retro-menu-block {
+  padding-bottom: 8px;
+  border-radius: 6px;
+  background: var(--cremeCl);
+  box-shadow: 0 0 0 2px var(--bege);
+}
+
+.retro-menu-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 10px 0 48px;
+}
+
+.retro-menu-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.retro-menu-field-label {
+  min-width: 58px;
+  font: 600 12px var(--texto);
+  color: var(--madMEsc);
+}
+
+.retro-menu-select {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 30px;
+  padding: 0 26px 0 8px;
+  border: 2px solid var(--contorno);
+  border-radius: 4px;
+  appearance: none;
+  background:
+    linear-gradient(45deg, transparent 50%, var(--contorno) 50%) calc(100% - 14px) 12px / 5px 5px no-repeat,
+    linear-gradient(135deg, var(--contorno) 50%, transparent 50%) calc(100% - 9px) 12px / 5px 5px no-repeat,
+    var(--branco);
+  color: var(--escuro);
+  font: 13px var(--texto);
+}
+
+.retro-menu-stepper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.retro-menu-stepper button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 2px solid var(--contorno);
+  border-radius: 4px;
+  background: var(--cremeCl);
+  color: var(--escuro);
+  font: 700 15px var(--texto);
+  cursor: pointer;
+}
+
+.retro-menu-number {
+  width: 54px;
+  height: 28px;
+  box-sizing: border-box;
+  border: 2px solid var(--contorno);
+  border-radius: 4px;
+  background: var(--branco);
+  color: var(--escuro);
+  font: 13px var(--mono);
+  text-align: center;
+}
+
+body.retro .retro-menu-sheet {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border: 2px solid var(--bege);
+  border-radius: 4px;
+  background: var(--branco);
+  color: var(--escuro);
+  font-size: 12px;
+}
+
+/* "Dentro": a régua de 12 células e a lista. */
+.retro-menu-contents {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 6px 8px;
+  border-bottom: 2px solid var(--begeSomb);
+}
+
+.retro-menu-contents-head {
+  display: flex;
+  justify-content: space-between;
+  font: 600 12px var(--texto);
+}
+
+.retro-menu-takes {
+  margin-left: auto;
+  font: 11px var(--mono);
+  color: var(--begeEsc);
+}
+
+.retro-menu-ruler {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 2px;
+  height: 14px;
+  padding: 3px;
+  border: 2px solid var(--contorno);
+  border-radius: 3px;
+  background: var(--escuro);
+}
+
+.retro-menu-ruler span {
+  background: var(--cremeCl);
+}
+
+.retro-menu-contents-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.retro-menu-contents-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.retro-menu-contents-list .swatch {
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--contorno);
+}
+
+.retro-menu-empty {
+  margin: 4px 6px;
+  font: italic 13px var(--texto);
+  color: var(--madEsc);
+}
+
+.retro-menu-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 10px;
+  border-top: 2px solid var(--begeSomb);
+  font-size: 11px;
+  color: var(--grafite);
+}
+
+.retro-menu-foot b {
+  font-family: var(--mono);
+  color: var(--escuro);
+}
+
+/* O rabicho de 13 px, apontando para o clique; vira junto com o menu. */
+.retro-menu-tail {
+  position: absolute;
+  width: 0;
+  height: 0;
+  margin-top: -9px;
+  border-top: 9px solid transparent;
+  border-bottom: 9px solid transparent;
+}
+
+.retro-menu[data-side="right"] .retro-menu-tail {
+  left: -16px;
+  border-right: 13px solid var(--contorno);
+}
+
+.retro-menu[data-side="left"] .retro-menu-tail {
+  right: -16px;
+  border-left: 13px solid var(--contorno);
+}
+
+/* A bolinha amarela no ponto do clique e o contorno tracejado da coisa clicada. */
+.retro-menu-dot {
+  position: absolute;
+  z-index: 29;
+  width: 8px;
+  height: 8px;
+  margin: -5px 0 0 -5px;
+  border: 1px solid var(--contorno);
+  border-radius: 50%;
+  background: var(--amarelo);
+  pointer-events: none;
+}
+
+.retro-menu-target {
+  position: absolute;
+  z-index: 28;
+  box-sizing: border-box;
+  border: 2px dashed var(--amarelo);
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+.retro-menu-dot[hidden],
+.retro-menu-target[hidden] {
+  display: none;
 }
 
 /* ------------------------------------------------------------------ o quadro (§3.4) */

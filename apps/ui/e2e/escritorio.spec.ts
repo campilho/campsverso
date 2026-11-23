@@ -206,14 +206,14 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   // a conversa conta quem acendeu. De dia a sala não muda; à noite, o interruptor manda.
   const lightSwitch = await tile(page, 10, 13);
   await page.mouse.click(lightSwitch.x, lightSwitch.y, { button: "right" });
-  await page.locator(".action-menu").getByRole("button", { name: "Acender a luz" }).click();
+  await page.getByRole("menu", { name: "Interruptor" }).getByRole("menuitem", { name: /Acender a luz/ }).click();
   await expect(page.locator(".retro-talk").getByRole("log")).toContainText("Camps acendeu a luz da sala", { timeout: 30_000 });
 
   // A pausa do gerente (ADR-0082): o menu da máquina de café, na copa, e o café no HUD dele.
   const machine = await tile(page, 13, 9);
   await page.mouse.click(machine.x, machine.y, { button: "right" });
-  const menu = page.locator(".action-menu");
-  await menu.getByRole("button", { name: "Tomar um café" }).click();
+  const menu = page.getByRole("menu");
+  await menu.getByRole("menuitem", { name: /Tomar um café/ }).click();
   await expect(hud).toContainText("fazendo: coffee", { timeout: 30_000 });
   await page.screenshot({ path: `${SHOTS}/escritorio-cafe.png` });
 
@@ -350,6 +350,55 @@ test("o monitor maior: a sala na altura toda, o relógio de 7 segmentos e o pedi
     await expect(page.locator(".retro-board-head").getByRole("button", { name: "Escrever pedido" })).toBeVisible();
     await page.screenshot({ path: `${SHOTS}/escritorio-grande-${String(width)}.png` });
   }
+});
+
+test("as janelas no padrão da tela: o menu colado ao clique, os comandos e os créditos (ADR-0092)", async ({ page }) => {
+  await page.goto("/?assumir=1");
+  await expect(page.getByRole("button", { name: "Soltar o gerente" })).toBeEnabled({ timeout: 45_000 });
+  const understood = page.getByRole("button", { name: "Entendi" });
+  if (await understood.isVisible()) {
+    await understood.click();
+  }
+  // O menu do sofá (briefing-tela-4.md, §2): colado ao clique, com o rabicho, um ícone por ação, o
+  // foco na primeira linha pronta e o contorno da coisa clicada; ↓ anda, e o Esc fecha.
+  const sofa = await tile(page, 16, 5);
+  await page.mouse.click(sofa.x, sofa.y, { button: "right" });
+  const menu = page.getByRole("menu", { name: "Sofá" });
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole("menuitem", { name: /Ver TV/ })).toBeFocused();
+  await expect(menu.locator(".retro-ic:not(.empty)")).not.toHaveCount(0);
+  const box = await menu.boundingBox();
+  expect(box).not.toBeNull();
+  const gap = box === null ? Infinity : Math.min(Math.abs(box.x - sofa.x), Math.abs(box.x + box.width - sofa.x));
+  expect(gap).toBeLessThanOrEqual(16); // o rabicho de 13 px entre o clique e a janela
+  await expect(page.locator(".retro-menu-target")).toBeVisible();
+  await page.screenshot({ path: `${SHOTS}/escritorio-menu.png` });
+  await page.keyboard.press("ArrowDown");
+  await expect(menu.getByRole("menuitem", { name: /Jogar videogame/ })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeHidden();
+  await expect(page.locator(".retro-menu-target")).toBeHidden();
+  // Os comandos (§3): só o que vale no escritório; o P porque o sandbox pode pausar.
+  await page.getByRole("button", { name: "Os comandos" }).click();
+  const commands = page.getByRole("dialog", { name: "Comandos" });
+  await expect(commands).toBeVisible();
+  await expect(commands).not.toContainText("grama");
+  await expect(commands).not.toContainText("rola o mapa");
+  await expect(commands).toContainText("pausa e retoma o relógio");
+  await page.screenshot({ path: `${SHOTS}/escritorio-comandos.png` });
+  await commands.getByRole("button", { name: "Entendi" }).click();
+  await expect(commands).toBeHidden();
+  // Os créditos pelo Sobre (§4): um bloco só, de desenho próprio, as fontes e o "Voltar ao Sobre".
+  await page.getByRole("button", { name: "Sobre o Campsverso" }).click();
+  await page.getByRole("dialog", { name: "Sobre o Campsverso" }).getByRole("button", { name: "Créditos" }).click();
+  const credits = page.getByRole("dialog", { name: "Créditos" });
+  await expect(credits).toContainText("Quem fez o escritório");
+  await expect(credits).toContainText("Toda a arte deste mundo é desenho próprio");
+  await expect(credits.locator(".retro-credit:not(.retro-fonts)")).toHaveCount(1);
+  await expect(credits).toContainText("VT323");
+  await page.screenshot({ path: `${SHOTS}/escritorio-creditos.png` });
+  await credits.getByRole("button", { name: "Voltar ao Sobre" }).click();
+  await expect(page.getByRole("dialog", { name: "Sobre o Campsverso" })).toBeVisible();
 });
 
 test("no celular, a câmera segue o gerente num recorte da sala, e as abas trocam o painel (§4)", async ({ page }) => {

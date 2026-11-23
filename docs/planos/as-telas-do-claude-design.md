@@ -215,3 +215,8 @@ O desenho fica conosco, no estilo que a prancheta já tem: não precisa do Claud
    - a animação só acrescenta: o passo novo entra deslizando e o comando se digita; a história aparece pronta ao abrir; com a pessoa lendo lá em cima, a pílula "▼ N linhas novas";
    - a VT323 é pedida quando a tela nasce: sem isso, a régua do `ch` media a fonte reserva na primeira abertura, e o comando era cortado cedo;
    - a mesa do dev no mapa passou a se chamar "Mesa do Tiago" (a fase 1 tinha trocado só o dono); o mundo 02 do escritório vivo guarda o nome antigo, porque a mesa nasceu com ele.
+5. **As janelas (22/nov):**
+   - o menu do clique direito, no escritório, é uma janelinha colada ao clique, com o rabicho, a bolinha no ponto do clique e o contorno tracejado da coisa clicada; um ícone por ação (o mapa dos balões, em 2x; sem ícone, a bolinha vazada), o porquê do que não vale agora, os campos num bloco recuado, o "Dentro" com a régua de 12 células, o teclado (↑ ↓, Enter, shift + Enter na fila, sem fechar) e o rodapé; a conta de onde ele abre é pura (`placeMenu`);
+   - os comandos são uma função do mundo, da câmera e do poder de pausar (`commandsFor`): no escritório, sem a grama, sem arrastar e sem o espaço; a janela tem o mouse e as teclas desenhados;
+   - os créditos do escritório vêm em blocos por grupo de autores (`creditBlocks`), com a frase de abertura tirada dos dados (desenho próprio, e não o LPC), as licenças em selos, as peças em fichinhas e as cinco fontes da tela; "Voltar ao Sobre" volta;
+   - **as fazendas seguem com as janelas de sempre:** o desenho novo vale com a tela retrô, e a fazenda não é retrô. O conteúdo dos comandos da fazenda passou a sair da mesma função, com os textos novos.

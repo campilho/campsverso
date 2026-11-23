@@ -15,6 +15,7 @@ import type { ArtManifest } from "../art/manifest.ts";
 import { el } from "../dom.ts";
 import { summonsOf } from "../panels/office.ts";
 import { Portrait } from "../panels/portrait.ts";
+import { actionIcon } from "./icons.ts";
 import { BIG, roomLayout } from "./layout.ts";
 import type { Chip, ClockView, Light } from "./model.ts";
 import { SevenSeg } from "./sevenseg.ts";
@@ -494,20 +495,9 @@ export class RetroFrame {
     return box;
   }
 
-  /** O ícone de 16 px da ação, ou o dos chips ("fora", "vigiar"): a folha `icones` pelo mapa de
-   * ações do `art.json`, ou pelo nome. */
+  /** O ícone de 16 px da ação, ou o dos chips ("fora", "vigiar"). */
   private icon(name: string | undefined): HTMLElement {
-    const span = el("span", { className: "retro-ic" });
-    const icons = this.art?.bubbles?.icons;
-    const frame = name === undefined || icons === undefined ? undefined : (icons.frames[icons.actions?.[name] ?? name]);
-    const sheet = icons === undefined ? undefined : this.art?.sheets?.[icons.sheet];
-    if (frame === undefined || sheet === undefined) {
-      span.classList.add("empty");
-      return span;
-    }
-    span.style.backgroundImage = `url(${sheet.image})`;
-    span.style.backgroundPosition = `-${String(frame[0] * 16)}px -${String(frame[1] * 16)}px`;
-    return span;
+    return actionIcon(this.art, name);
   }
 
   private renderCommands(input: FrameInput, summon: Summon | undefined): void {
