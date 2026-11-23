@@ -23,7 +23,8 @@ def sandbox_profile(space: Path, port_hint: str, home: Path, readable: Sequence[
     """O perfil do `sandbox-exec`: rede só para a porta das mãos, escrita só no espaço, e o conteúdo
     da casa do usuário fechado, menos o que o harness e o Python do espaço precisam ler.
 
-    O nome dos arquivos continua visível (o `stat`); o conteúdo e a listagem, não."""
+    O nome dos arquivos continua visível (o `stat`); o conteúdo e a listagem, não. O `/dev/ptmx`
+    abre um terminal novo (o `agy` roda cada comando num), sem tocar nos que já existem."""
     allowed = " ".join(f'(subpath "{p}")' for p in (space, *readable))
     return (
         "(version 1)\n"
@@ -33,7 +34,7 @@ def sandbox_profile(space: Path, port_hint: str, home: Path, readable: Sequence[
         "(allow network-outbound (remote unix-socket))\n"
         "(deny file-write*)\n"
         f'(allow file-write* (subpath "{space}") (literal "/dev/null") (literal "/dev/tty")'
-        ' (subpath "/dev/fd") (regex #"^/dev/ttys"))\n'
+        ' (literal "/dev/ptmx") (subpath "/dev/fd") (regex #"^/dev/ttys"))\n'
         f'(deny file-read-data (subpath "{home}") (subpath "/private/tmp") (subpath "/tmp"))\n'
         f"(allow file-read-data {allowed})\n"
     )

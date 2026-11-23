@@ -5,6 +5,7 @@ e a casa da sessão, e o cercado."""
 
 import asyncio
 import json
+import subprocess
 import sys
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
@@ -27,6 +28,7 @@ from campsverso_adapters.hands_antigravity import (
     slug_of,
     step_of,
 )
+from campsverso_adapters.hands_fence import sandbox_profile
 from campsverso_ports import (
     HandsJob,
     HandsLimits,
@@ -206,17 +208,19 @@ def test_uma_sessao_vira_os_passos_na_ordem(space: Space, kit: Kit) -> None:
     result = _run(_hands(kit), space, world)
     assert [(s.tool, s.path, s.ok) for s in world.steps] == [
         ("run_command", None, True),
-        ("view_file", "tools/robos/testador.py", True),
-        ("write_to_file", "tools/robos/eco.py", True),
-        ("write_to_file", "tools/robos/tests/test_eco.py", True),
-        ("run_command", None, True),
-        ("view_file", "tools/robos/eco_antigo.py", False),
-        ("replace_file_content", "tools/robos/eco.py", True),
+        ("read_file", "tools/robos/testador.py", True),
+        ("write_file", "tools/robos/eco.py", True),
+        ("write_file", "tools/robos/tests/test_eco.py", True),
+        ("run_command", None, False),  # o pytest que falha sai com 1
+        ("read_file", "tools/robos/eco_antigo.py", False),
+        ("edit_file", "tools/robos/eco.py", True),
         ("run_command", None, True),
     ]
     assert world.steps[0].summary == "run_command: ls tools/robos tools/robos/tests"
     assert world.steps[0].duration_ms == 70
-    assert "o arquivo não existe" in world.steps[5].summary
+    assert world.steps[5].summary == (
+        "read_file: tools/robos/eco_antigo.py (erro: file does not exist)"
+    )
     assert result.done
     assert result.reason == "pronto"
     assert (result.steps, result.turns) == (8, 10)  # oito ferramentas e duas respostas
@@ -274,7 +278,7 @@ def test_a_conversa_fica_num_arquivo_fora_do_espaco(space: Space, kit: Kit) -> N
 def test_o_agy_conta_os_proprios_tokens_para_conferir_com_a_porta(space: Space, kit: Kit) -> None:
     hands = _hands(kit)
     _run(hands, space, World())
-    assert hands.last_usage == AntigravityUsage(52310, 2104, 1630, 38912, 56044)
+    assert hands.last_usage == AntigravityUsage(52310, 3734, 1630, 38912, 56044)
 
 
 # ------------------------------------------------------------------ a porta
@@ -391,19 +395,86 @@ def test_o_slug_leva_o_esforco_e_a_tabela_fica_com_o_modelo() -> None:
 
 def test_o_passo_de_uma_ferramenta(tmp_path: Path) -> None:
     update = {
-        "tool_name": "write_to_file",
+        "state": "ERROR",
+        "tool_name": "write_file",
         "tool_info": {
-            "name": "write_to_file",
-            "parameters": {"CodeContent": "x", "TargetFile": str(tmp_path / "a" / "b.py")},
-            "error": {"type": "DENIED", "message": "negado\noutra linha"},
+            "name": "write_file",
+            "parameters": {"Path": str(tmp_path / "a" / "b.py")},
+            "error": {"type": "TOOL_ERROR", "message": "negado\noutra linha"},
         },
     }
     step = step_of(update, tmp_path, 5)
-    assert (step.tool, step.path, step.ok) == ("write_to_file", "a/b.py", False)
+    assert (step.tool, step.path, step.ok) == ("write_file", "a/b.py", False)
     assert step.duration_ms == 5
-    assert step.summary == "write_to_file: a/b.py (erro: negado)"
+    assert step.summary == "write_file: a/b.py (erro: negado)"
     bare = step_of({"tool_info": {"name": "list_dir", "parameters": {}}}, tmp_path, 0)
     assert (bare.summary, bare.path, bare.ok) == ("list_dir", None, True)
+    # O estado `ERROR` sem a mensagem também é uma falha.
+    assert not step_of({"state": "ERROR", "tool_name": "read_file"}, tmp_path, 0).ok
+
+
+def _command(output: str) -> Mapping[str, Any]:
+    info = {"name": "run_command", "parameters": {"CommandLine": "pytest -q"}, "output": output}
+    return {"state": "DONE", "tool_name": "run_command", "tool_info": info}
+
+
+HEAD = "Created At: 2026-11-23T07:15:17-03:00\nCompleted At: 2026-11-23T07:15:17-03:00\n"
+
+
+def test_o_comando_vale_pelo_codigo_de_saida(tmp_path: Path) -> None:
+    passed = step_of(
+        _command(HEAD + "Command exited with code 0.\n\nCommand output:\nok"), tmp_path, 0
+    )
+    assert (passed.ok, passed.summary) == (True, "run_command: pytest -q")
+    failed = step_of(
+        _command(HEAD + "Command exited with code 1.\n\nNo output from the command."), tmp_path, 0
+    )
+    assert (failed.ok, failed.summary) == (False, "run_command: pytest -q")
+    refused = step_of(
+        _command(HEAD + "Command failed to run: failed to create PTY: operation not permitted.\n"),
+        tmp_path,
+        0,
+    )
+    assert not refused.ok
+    assert refused.summary == (
+        "run_command: pytest -q (erro: failed to create PTY: operation not permitted.)"
+    )
+
+
+SESSION = Path(__file__).parents[3] / "tests" / "fixtures" / "antigravity" / "sessao-1.5.14.jsonl"
+
+
+def test_a_sessao_do_agy_de_verdade_vira_os_passos(tmp_path: Path) -> None:
+    """A saída do `agy` 1.5.14 no cercado, diante de um Gemini falso que pede seis ferramentas
+    (o ensaio de 23/nov): um comando, escrever, ler e editar arquivos, ler um que não existe e um
+    comando que sai com 1."""
+    stream = AntigravityStream(tmp_path)
+    steps: list[HandsStep] = []
+    turns: list[str] = []
+    for line in SESSION.read_text(encoding="utf-8").splitlines():
+        data = json.loads(line.replace("{espaco}", str(tmp_path)))
+        stream.account(data)
+        read = stream.read(data)
+        steps.extend(read.steps)
+        if read.turn is not None:
+            turns.append(read.turn)
+        assert stream.closes(data) == (data["event"] == "result")
+    assert [(s.tool, s.path, s.ok) for s in steps] == [
+        ("run_command", None, True),
+        ("write_file", "notas/ensaio.md", True),
+        ("read_file", "README.md", True),
+        ("edit_file", "README.md", True),
+        ("read_file", "nao-existe.md", False),
+        ("run_command", None, False),
+    ]
+    assert steps[0].summary == "run_command: ls -a"
+    assert steps[4].summary == "read_file: nao-existe.md (erro: file does not exist)"
+    assert turns.count("message") == 7
+    assert turns.count("tool") == 6
+    assert stream.completed
+    assert stream.failed is None
+    assert stream.response.startswith("Ensaio pronto")
+    assert stream.usage == AntigravityUsage(4200, 350, 70, 2800, 4550)
 
 
 def test_a_resposta_soma_os_pedacos_ate_o_done(tmp_path: Path) -> None:
@@ -434,3 +505,24 @@ def test_no_cercado_o_agy_chama_a_porta_e_nao_escreve_fora(
     assert result.reason == "pronto", result
     assert len(kit.meter.calls) == CALLS
     assert not outside.exists()
+
+
+@MACOS
+def test_o_cercado_deixa_abrir_um_terminal_novo(tmp_path: Path) -> None:
+    """O `agy` roda cada comando num terminal novo, tirado do `/dev/ptmx`: sem ele no cercado, o
+    comando nem roda ("failed to create PTY", o ensaio de 23/nov)."""
+    root = tmp_path / "espaco"
+    root.mkdir()
+    readable = [Path(sys.prefix).resolve(), Path(sys.base_prefix).resolve()]
+    profile = tmp_path / "perfil.sb"
+    profile.write_text(sandbox_profile(root.resolve(), "1", Path.home().resolve(), readable))
+    code = "import os; _, s = os.openpty(); print('terminal', os.ttyname(s))"
+    out = subprocess.run(
+        ["/usr/bin/sandbox-exec", "-f", str(profile), sys.executable, "-I", "-c", code],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    assert out.returncode == 0, out.stderr
+    assert out.stdout.startswith("terminal /dev/ttys"), out.stdout

@@ -2,9 +2,11 @@
 stream-json`) no espaço de um pedido, pelo motor comum dos harnesses de fora (`hands_process.py`).
 
 O briefing vai no `-p`, e a saída é um JSON por linha (o formato em
-`tests/fixtures/antigravity/README.md`, montado da documentação oficial de 22/nov):
-- cada `step_update` de ferramenta concluída (`state` `DONE`) vira um passo para a tela, com o
-  caminho quando um parâmetro trouxer um, e conta uma volta;
+`tests/fixtures/antigravity/README.md`, da documentação oficial e do ensaio do `agy` 1.5.14 no
+cercado, em 23/nov):
+- cada `step_update` de ferramenta que acabou (`state` `DONE`, ou `ERROR` quando ela falha) vira
+  um passo para a tela, com o caminho quando um parâmetro trouxer um, e conta uma volta; o comando
+  que sai com código diferente de zero, ou que nem roda, é um passo que falhou;
 - cada resposta do modelo concluída conta uma volta;
 - o `result` fecha a sessão, com o `response` (o resumo da entrega) e o `usage`, que fica em
   `last_usage` para conferir com a porta.
@@ -15,12 +17,13 @@ endereço do `GOOGLE_GEMINI_BASE_URL`. A casa fica dentro do espaço, a chave é
 endereço é o da porta. O `agy` roda sem o `--sandbox` dele e com o `--dangerously-skip-permissions`:
 sem interface, o que pediria aprovação seria negado em silêncio, e a cerca é o nosso `sandbox-exec`.
 
-O que a documentação não confere (os nomes das ferramentas de arquivo, o modelo que o `agy` pede à
-API) a primeira sessão de verdade mostra, na prova de conformidade.
+O `agy` roda um servidor de linguagem dentro dele e conversa com ele por uma porta local que ele
+mesmo escolhe: o cercado precisa deixá-lo abrir e chamar portas locais (o ensaio de 23/nov).
 """
 
 import json
 import math
+import re
 import time
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -49,11 +52,18 @@ SLUG_EFFORTS = {"low": "low", "medium": "medium", "high": "high", "xhigh": "xhig
 # O briefing vai como um argumento: abaixo do limite de um argumento no Linux (128 KiB).
 MAX_PROMPT_BYTES = 120 * 1024
 SETTINGS = Path(".gemini") / "antigravity-cli" / "settings.json"
+# Os estados de um passo que acabou: o `DONE` e, na ferramenta que falha, o `ERROR`.
+ENDED = ("DONE", "ERROR")
+# A saída de um `run_command`: o código de saída, ou o motivo de o comando nem rodar.
+EXIT_CODE = re.compile(r"^Command exited with code (-?\d+)\.", re.MULTILINE)
+NOT_RUN = re.compile(r"^Command failed to run: (.+)$", re.MULTILINE)
 
 
 @dataclass(frozen=True, slots=True)
 class AntigravityUsage:
-    """Os tokens do `result`, como o `agy` os conta, somados na sessão."""
+    """Os tokens do `result`, como o `agy` 1.5.14 os conta, somados na sessão: a entrada sem o
+    que veio do cache (`cache_read_tokens`), a saída com o pensamento (`thinking_tokens`), e o
+    total, a entrada mais a saída."""
 
     input_tokens: int = 0
     output_tokens: int = 0
@@ -95,7 +105,7 @@ def _mapping(value: object) -> Mapping[str, Any]:
 
 def _path_of(parameters: Mapping[str, Any], root: Path) -> str | None:
     """O caminho de uma ferramenta: o primeiro parâmetro cujo nome termina em `path` ou `file`
-    (`AbsolutePath`, `TargetFile`, `DirectoryPath`), relativo ao espaço."""
+    (o `Path` do `read_file`, do `write_file` e do `edit_file`), relativo ao espaço."""
     for name, value in parameters.items():
         if name.lower().endswith(("path", "file")) and isinstance(value, str) and value:
             return relative(root, value)
@@ -103,8 +113,9 @@ def _path_of(parameters: Mapping[str, Any], root: Path) -> str | None:
 
 
 def step_of(update: Mapping[str, Any], root: Path, ms: int) -> HandsStep:
-    """O passo de uma ferramenta concluída, para a tela: o nome, o comando ou o caminho numa
-    linha e, na falha, a mensagem do erro."""
+    """O passo de uma ferramenta que acabou, para a tela: o nome, o comando ou o caminho numa
+    linha e, na falha, a mensagem do erro. Falha a ferramenta com erro ou no estado `ERROR`, e o
+    comando que sai com código diferente de zero ou que nem roda."""
     info = _mapping(update.get("tool_info"))
     name = str(update.get("tool_name") or info.get("name") or "ferramenta")
     parameters = _mapping(info.get("parameters"))
@@ -114,9 +125,22 @@ def step_of(update: Mapping[str, Any], root: Path, ms: int) -> HandsStep:
     what = first_line(command) if shown and isinstance(command, str) else path or ""
     summary = f"{name}: {what}" if what else name
     error = _mapping(info.get("error"))
-    if error:
-        summary = f"{summary} (erro: {first_line(str(error.get('message') or ''), 120)})"
-    return HandsStep(name, summary[:MAX_SUMMARY], not error, ms, path)
+    output = info.get("output")
+    text = output if isinstance(output, str) else ""
+    not_run = NOT_RUN.search(text)
+    exited = EXIT_CODE.search(text)
+    message = str(error.get("message") or "") if error else ""
+    if not message and not_run:
+        message = not_run.group(1)
+    if message:
+        summary = f"{summary} (erro: {first_line(message, 120)})"
+    ok = (
+        not error
+        and not_run is None
+        and update.get("state") != "ERROR"
+        and (exited is None or exited.group(1) == "0")
+    )
+    return HandsStep(name, summary[:MAX_SUMMARY], ok, ms, path)
 
 
 class AntigravityStream:
@@ -154,7 +178,7 @@ class AntigravityStream:
         index = update.get("step_index")
         number = index if isinstance(index, int) else -1
         kind = update.get("step_type")
-        done = update.get("state") == "DONE"
+        done = update.get("state") in ENDED
         if kind == "agent_response":
             text = self._texts.get(number, "") + str(update.get("text_delta") or "")
             if not done:

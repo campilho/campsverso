@@ -1,32 +1,41 @@
-# O exemplo do Antigravity
+# As sessões do Antigravity
 
-O `exemplo.jsonl` é o que o `agy -p … --output-format stream-json` imprime numa sessão curta, **montado à mão em 22/nov/2026** para o conector do Antigravity (o plano do M27, §5; ADR-0093). Ele não foi gravado de uma sessão de verdade: a primeira sessão da prova de conformidade (`make conformidade MAOS=antigravity`) grava a fita que o substitui.
+Duas saídas do `agy -p … --output-format stream-json`, para o conector do Antigravity (o plano do M27, §5; ADR-0093):
 
-Ele segue a documentação oficial, lida em 22/nov:
+- **`sessao-1.5.14.jsonl`** é uma sessão de verdade do Antigravity CLI 1.5.14 (o `make tools-maos`), **gravada no ensaio de 23/nov/2026**: o `agy` no nosso cercado, chamando o modelo pela porta das mãos, diante de um Gemini falso que pedia seis ferramentas e depois respondia. Um comando, escrever, ler e editar arquivos, ler um que não existe e um comando que sai com 1. O modelo era falso, então o texto e os tokens são os dele; o formato, os nomes e os estados são os do `agy`.
+- **`exemplo.jsonl`** é uma sessão mais longa, **montada à mão em 22/nov** da documentação oficial e posta, em 23/nov, no formato do ensaio. É ela que o `agy_falso.py` imprime nos testes das mãos.
+
+A primeira sessão da prova de conformidade (`make conformidade MAOS=antigravity`) grava a fita com o modelo de verdade.
+
+O `{espaco}` das duas vira a pasta do espaço, como o caminho absoluto que o `agy` dá.
+
+As fontes da documentação, lidas em 22/nov:
 - o modo sem interface, `https://antigravity.google/docs/cli/headless/` (as seções do JSON em streaming e das ferramentas no streaming);
 - a referência da CLI, `https://antigravity.google/docs/cli/reference/`;
 - a autenticação, `https://antigravity.google/docs/install/`.
 
-O `{espaco}` do exemplo vira a pasta onde o `agy_falso.py` roda, como o caminho absoluto que o `agy` dá.
-
 ## O formato
 
 Cada linha é um objeto com o campo `event`, que dá o tipo, e o corpo numa chave de mesmo nome:
-- **`init`**, uma vez, no começo: `cwd`, `tools`, `permission_mode` (`always-proceed` com o `--dangerously-skip-permissions`) e o `model`, quando dado. O `conversation_id` fica fora do corpo.
-- **`step_update`**, a cada mudança de um passo: `conversation_id`, `step_index` (a partir de zero), `state` (`ACTIVE` ou `DONE`), `step_type` (`user_input`, `agent_response`, `tool`, `checkpoint`), e ainda:
-  - `text_delta`: o pedaço novo do texto de uma resposta. Uma resposta sai em um ou mais `ACTIVE` e um `DONE`; a curta, num `DONE` só;
-  - `tool_name` e `tool_info`, num passo de ferramenta: `name`, `parameters`, `output` e, só quando a ferramenta falha, `error` (com `type` e `message`);
-  - `duration_seconds` e `usage`, quando conhecidos.
-- **`result`**, uma vez, no fim: `conversation_id`, `status` (`SUCCESS`, `ERROR`, `CANCELED`, `INTERRUPTED`, `INVALID`, `WAITING`, `RUNNING`), `response`, `error` (só na falha), `duration_seconds`, `num_turns` e o `usage`, plano: `input_tokens`, `output_tokens`, `thinking_tokens`, `cache_read_tokens` e `total_tokens`.
+- **`init`**, uma vez, no começo: `cwd`, `tools` (a lista interna, de umas sessenta), `permission_mode` (`always-proceed` com o `--dangerously-skip-permissions`) e o `model`. O `conversation_id` fica fora do corpo.
+- **`step_update`**, a cada mudança de um passo: `conversation_id`, `step_index` (a partir de zero), `state`, `step_type` (`user_input`, `agent_response`, `tool`, `checkpoint`), e ainda:
+  - o `state` é `ACTIVE` enquanto o passo corre e `DONE` quando acaba; a ferramenta que falha acaba em `ERROR`;
+  - `text_delta`: o texto de uma resposta. A resposta curta sai inteira num `DONE` só;
+  - `tool_name` e `tool_info`, num passo de ferramenta: `name`, `parameters` (só o principal: o `CommandLine` ou o `Path`, nunca o conteúdo escrito), `output` e, na falha, `error` (com `type` e `message`);
+  - `duration_seconds` e, na resposta, o `usage` da chamada.
+- **`result`**, uma vez, no fim: `conversation_id`, `status` (`SUCCESS`, `ERROR`, `CANCELED`, `INTERRUPTED`, `INVALID`, `WAITING`, `RUNNING`), `response`, `error` (só na falha), `duration_seconds`, `num_turns` (os pedidos do usuário, não as chamadas) e o `usage` da sessão.
 
-A documentação não traz um evento de erro: a falha é um `result` com o `status` `ERROR`. Também não há id de chamada de ferramenta: o passo é o `step_index`.
+## O que o ensaio confirmou (o `agy` 1.5.14)
 
-## O que o exemplo não confere
+- **As ferramentas que o modelo vê** são catorze. As de arquivo são o `read_file`, o `write_file` e o `edit_file`, com o caminho absoluto no `Path`. O `run_command` pede o `CommandLine`, o `toolSummary` e o `WaitMsBeforeAsync`. O `tool_name` do passo é o mesmo nome.
+- **A saída de um comando** é `Created At: …`, `Completed At: …`, e `Command exited with code N.` antes da saída, ou `Command failed to run: …` quando ele nem roda. Um comando que sai com 1 é um `DONE` sem `error`: o conector lê o código.
+- **A saída das ferramentas de arquivo** não traz o conteúdo: o `read_file` diz `1 lines, 9 bytes`, e o `write_file` e o `edit_file`, nada.
+- **Os tokens:** o `input_tokens` não conta o cache (`cache_read_tokens`), o `output_tokens` já conta o pensamento (`thinking_tokens`), e o `total_tokens` é a entrada mais a saída.
+- **O modelo:** com `--model gemini-4-neon-high`, o `agy` pede o `gemini-4-neon` no `streamGenerateContent` do `GOOGLE_GEMINI_BASE_URL`, com o `thinkingLevel` `HIGH`, e a chave no `x-goog-api-key`. O `--model gemini-4-neon --effort high` dá o mesmo pedido.
+- **O cercado:** o `agy` roda um servidor de linguagem dentro dele, numa porta local que ele mesmo escolhe, e roda cada comando num terminal novo (o `/dev/ptmx`). Ele também tenta mandar telemetria ao Google, que o cercado barra.
 
-- **Os nomes das ferramentas de arquivo e dos parâmetros.** A documentação só mostra o `run_command`, com o `CommandLine`. O `view_file` (`AbsolutePath`), o `write_to_file` e o `replace_file_content` (`TargetFile`) vêm da família do Antigravity e são palpite. O conector pega como caminho o primeiro parâmetro cujo nome termina em `path` ou `file`.
-- **O texto de uma resposta.** O exemplo trata o `text_delta` do `DONE` como o último pedaço, somado aos dos `ACTIVE`. Se o `DONE` trouxer o texto inteiro, o resumo sai repetido; o resumo da entrega usa o `response` do `result`, que não depende disso.
-- **Os tokens.** O exemplo trata o `cache_read_tokens` como parte do `input_tokens` (o `total_tokens` é a entrada, a saída e o pensamento), como na API do Gemini.
-- **O comando que falha.** A documentação não diz se um comando com saída diferente de zero traz o `error`; no exemplo, o pytest que falha traz só a saída.
+## O que ainda não confere
+
+- **O texto em pedaços.** No ensaio, cada resposta veio inteira num `DONE`. O conector soma os `text_delta` dos `ACTIVE` com o do `DONE`; se o `DONE` de uma resposta longa trouxer o texto inteiro, o texto da volta sai repetido. O resumo da entrega usa o `response` do `result`, que não depende disso.
 - **O SIGTERM.** O falso entrega um `result` `CANCELED` com os tokens; o `agy` de verdade não foi visto parando.
-- **O slug do modelo.** O `agy models` lista o modelo com o esforço no fim (`gemini-4-neon-high`); o conector manda o slug e não o `--effort`. Que modelo o `agy` pede à API pelo `GOOGLE_GEMINI_BASE_URL` (o falso pede o `gemini-4-neon`) só a primeira sessão mostra.
 - **O pedido pela linha de comando.** O briefing vai no `-p`. A documentação não dá limite; o conector recusa um briefing maior que 120 KB, abaixo do limite de um argumento no Linux.
