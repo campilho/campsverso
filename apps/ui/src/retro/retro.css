@@ -1217,6 +1217,12 @@ body.retro .action-menu.retro-menu.small {
   width: 220px;
 }
 
+/* Fechado, o menu some: o `display: block` acima venceria o `[hidden]` de sempre, e o menu vazio
+   ficava na sala como uma barrinha escura de 300 px (achado do usuário em 22/nov). */
+body.retro .action-menu.retro-menu[hidden] {
+  display: none;
+}
+
 .retro-menu .retro-window-bar {
   height: 28px;
   border-radius: 5px 5px 0 0;

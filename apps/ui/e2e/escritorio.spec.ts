@@ -377,6 +377,9 @@ test("as janelas no padrão da tela: o menu colado ao clique, os comandos e os c
   await expect(menu.getByRole("menuitem", { name: /Jogar videogame/ })).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(menu).toBeHidden();
+  // Fechado, nada do menu fica na sala: nem a janela vazia, nem o contorno (22/nov).
+  await expect(page.locator(".action-menu")).toBeHidden();
+  expect(await page.locator(".action-menu").evaluate((node) => getComputedStyle(node).display)).toBe("none");
   await expect(page.locator(".retro-menu-target")).toBeHidden();
   // Os comandos (§3): só o que vale no escritório; o P porque o sandbox pode pausar.
   await page.getByRole("button", { name: "Os comandos" }).click();
