@@ -97,6 +97,9 @@ def readable_for(command: Sequence[str], home: Path) -> list[Path]:
     home = home.resolve()
     found: list[Path] = []
     for given in command:
+        # Um argumento longo ou de várias linhas (o pedido, no `-p` do Antigravity) não é arquivo.
+        if "\n" in given or len(given) > 1024:
+            continue
         path = Path(given)
         if not path.is_absolute() or not path.is_file():
             continue

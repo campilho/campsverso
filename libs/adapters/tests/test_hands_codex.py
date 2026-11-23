@@ -23,7 +23,6 @@ from starlette.responses import Response
 from starlette.routing import Route
 
 from campsverso_adapters.hands_codex import (
-    GRACE_SECONDS,
     SESSION_VARIABLE,
     CodexHands,
     CodexUsage,
@@ -33,6 +32,7 @@ from campsverso_adapters.hands_codex import (
     steps_of,
 )
 from campsverso_adapters.hands_fence import readable_for
+from campsverso_adapters.hands_process import GRACE_SECONDS
 from campsverso_ports import (
     HandsJob,
     HandsLimits,
