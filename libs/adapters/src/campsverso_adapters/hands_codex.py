@@ -1,58 +1,90 @@
-"""As mãos do Codex (ADR-0089, decisão 11): uma sessão do `codex exec --json` no espaço de um
-pedido.
+"""As mãos do Codex (ADR-0089, decisão 11; ADR-0093): uma sessão do `codex exec --json` no espaço de
+um pedido.
 
 O conector abre o Codex como um processo, na pasta do espaço, com o briefing na entrada padrão, e
 lê os eventos que ele imprime, um JSON por linha (o formato em `tests/fixtures/codex/README.md`):
 
 - cada item de ferramenta concluído (`command_execution`, `file_change`, `mcp_tool_call`,
   `web_search`) vira um passo para a tela, com o caminho quando houver;
-- o `usage` de cada `turn.completed` soma nos tokens, e o custo sai da tabela de preços;
-- a última `agent_message` é o resumo da entrega.
+- a última `agent_message` é o resumo da entrega;
+- a conversa inteira fica num arquivo fora do espaço, para a análise.
+
+**O modelo passa pela porta das mãos** (`HandsGate`, na língua da OpenAI): a configuração da sessão
+(`config.toml`, na casa do Codex dentro do espaço) aponta um provedor próprio para a porta, com uma
+chave que só vale para a sessão. A porta põe a chave de verdade do lado de fora, mede cada chamada
+(o custo da sessão é o dela) e recusa a chamada seguinte quando o teto do pedido, o do dia ou o da
+sessão estourou. O `usage` do `turn.completed` fica em `last_usage`, para conferir com a porta.
+
+**A cerca é o nosso `sandbox-exec`** (ADR-0093, decisão 5): o do Codex fica desligado
+(`danger-full-access`, sem aprovações), porque o macOS não deixa um sandbox dentro do outro.
 
 A sessão para no limite de tempo (que conta desde a entrega do briefing), no de voltas (os itens
 de ferramenta e as mensagens, como as respostas do modelo), no teto da sessão ou quando o mundo
-pede. Os tetos só valem entre uma ferramenta e outra: a mensagem final e o `turn.completed` que
-a segue nunca são cortados. A espera do fim do processo, depois da saída, também cabe no limite de
-tempo. Parada a sessão, o conector manda o SIGTERM ao grupo, ainda lê um pouco a saída, pelo
-`usage` de um `turn.completed` que chegue, e encerra o grupo de processos inteiro (o Codex e o que
-ele abriu).
+pede. Os tetos valem depois de cada ferramenta e depois de cada mensagem que não é a última: a
+mensagem final e o `turn.completed` que a segue nunca são cortados. A espera do fim do processo,
+depois da saída, também cabe no limite de tempo. Parada a sessão, o conector manda o SIGTERM ao
+grupo, ainda lê um pouco a saída, pelo `usage` de um `turn.completed` que chegue, e encerra o grupo
+de processos inteiro (o Codex e o que ele abriu).
 
 O Codex é achado pelo `PATH` de quem chama, nunca pelo do espaço: um `codex` escrito no espaço não
-roda no lugar dele. O processo recebe um ambiente do zero, sem nenhuma chave: o login e a ponte até
-o modelo são do M27, que liga o Codex de verdade.
+roda no lugar dele, e o interpretador de um lançador do `env` também vem de fora. O processo recebe
+um ambiente do zero, sem nenhuma chave.
 """
 
 import asyncio
 import contextlib
 import json
 import os
-import shutil
 import signal
+import sys
 import time
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import IO, Any, cast
 
-from campsverso_adapters.model_metered import ModelPrices
-from campsverso_ports import HandsJob, HandsResult, HandsStep, HandsWorld, Workspace
+from campsverso_adapters.hands_dialects import OpenAIDialect
+from campsverso_adapters.hands_fence import (
+    SANDBOX_EXEC,
+    readable_for,
+    resolve_program,
+    sandbox_profile,
+    workspace_python,
+)
+from campsverso_adapters.hands_gate import HandsGate, Tape
+from campsverso_ports import (
+    CallMeter,
+    HandsJob,
+    HandsResult,
+    HandsStep,
+    HandsWorld,
+    Workspace,
+)
 
 HARNESS = "codex"
 TOOL_ITEMS = ("command_execution", "file_change", "mcp_tool_call", "web_search")
+# Os eventos que fecham a volta: uma mensagem seguida de um deles era a resposta final.
+TURN_ENDS = ("turn.completed", "turn.failed")
 MAX_SUMMARY = 200
 MAX_RESULT = 500
 # Depois de parar, quanto tempo ainda ler a saída pelo `usage`, e esperar o processo acabar.
 GRACE_SECONDS = 5.0
 # Nenhuma variável com estes pedaços no nome entra no processo do Codex.
 SECRET_MARKERS = ("KEY", "TOKEN", "SECRET", "PASSWORD")
+# O provedor da sessão no `config.toml` e a variável com a chave da sessão (que não é segredo: só
+# vale na porta, enquanto a sessão dura).
+PROVIDER = "campsverso"
+SESSION_VARIABLE = "CAMPSVERSO_SESSAO"
+# O esforço do escritório no do Codex, que não tem o `max`.
+EFFORTS = {"low": "low", "medium": "medium", "high": "high", "xhigh": "xhigh", "max": "xhigh"}
 
 type Warn = Callable[[str, Mapping[str, Any]], None]
 
 
 @dataclass(frozen=True, slots=True)
 class CodexUsage:
-    """Os tokens no sentido da OpenAI: `input_tokens` já inclui o que veio do cache, e
-    `output_tokens` já inclui o raciocínio; o custo conta cada token uma vez só."""
+    """Os tokens no sentido da OpenAI, como o Codex os conta: `input_tokens` já inclui o que veio
+    do cache, e `output_tokens` já inclui o raciocínio."""
 
     input_tokens: int = 0
     cached_input_tokens: int = 0
@@ -72,18 +104,6 @@ class CodexUsage:
             self.output_tokens + get("output_tokens"),
             self.reasoning_output_tokens + get("reasoning_output_tokens"),
         )
-
-
-def codex_cost_usd(usage: CodexUsage, prices: ModelPrices) -> float:
-    """O custo pela tabela: a entrada sem cache, o cache lido, o cache gravado e a saída."""
-    fresh = max(0, usage.input_tokens - usage.cached_input_tokens - usage.cache_write_input_tokens)
-    total = (
-        fresh * prices.input_per_mtok
-        + usage.cached_input_tokens * prices.cache_read_per_mtok
-        + usage.cache_write_input_tokens * prices.cache_write_per_mtok
-        + usage.output_tokens * prices.output_per_mtok
-    )
-    return round(total / 1_000_000, 8)
 
 
 def clean_environment(root: Path) -> dict[str, str]:
@@ -106,20 +126,39 @@ def clean_environment(root: Path) -> dict[str, str]:
     return {k: v for k, v in environment.items() if not any(m in k.upper() for m in SECRET_MARKERS)}
 
 
+def codex_config(gate_url: str, model: str, effort: str | None) -> str:
+    """O `config.toml` da sessão: o provedor na porta das mãos, na língua da Responses API, e o
+    sandbox e as aprovações do Codex desligados (a cerca é a nossa)."""
+
+    def quoted(value: str) -> str:
+        return json.dumps(value, ensure_ascii=False)  # uma string do TOML, com os mesmos escapes
+
+    lines = [
+        "# A configuração do Codex numa sessão da oficina (ADR-0093): gerada a cada sessão.",
+        f"model = {quoted(model)}",
+        f"model_provider = {quoted(PROVIDER)}",
+        'approval_policy = "never"',
+        'sandbox_mode = "danger-full-access"',
+    ]
+    if effort is not None and effort in EFFORTS:
+        lines.append(f"model_reasoning_effort = {quoted(EFFORTS[effort])}")
+    lines += [
+        "",
+        f"[model_providers.{PROVIDER}]",
+        'name = "a porta das mãos do Campsverso"',
+        f"base_url = {quoted(gate_url.rstrip('/') + '/v1')}",
+        f"env_key = {quoted(SESSION_VARIABLE)}",
+        'wire_api = "responses"',
+        "",
+    ]
+    return "\n".join(lines)
+
+
 def resolve_command(command: Sequence[str], root: Path) -> list[str]:
-    """O comando do Codex com o programa pelo caminho absoluto, achado no `PATH` de quem chama.
-    Recusa um programa que não existe ou que mora dentro do espaço."""
-    if not command:
-        raise ValueError("o comando do Codex está vazio")
-    program, *rest = command
-    found = shutil.which(program, path=os.environ.get("PATH", os.defpath))
-    if found is None:
-        raise FileNotFoundError(f"o Codex não foi achado: {program}")
-    real = Path(found).resolve()
-    space = root.resolve()
-    if real == space or space in real.parents:
-        raise ValueError(f"o Codex não pode vir do espaço do pedido: {found}")
-    return [str(Path(found).absolute()), *rest]
+    """O comando do Codex com o programa pelo caminho absoluto, achado no `PATH` de quem chama, e o
+    interpretador à frente quando ele é um lançador do `env`. Recusa um programa que não existe ou
+    que mora dentro do espaço."""
+    return resolve_program(command, root, "o Codex")
 
 
 def _relative(root: Path, given: str) -> str:
@@ -172,19 +211,40 @@ def steps_of(item: Mapping[str, Any], root: Path, ms: int) -> list[HandsStep]:
 
 class CodexHands:
     """As mãos do Codex. `command` é como abrir o Codex (o binário, ou um falso nos testes); o
-    conector acrescenta `exec --json`, o modelo, a pasta e o `-` da entrada padrão."""
+    conector acrescenta `exec --json`, o modelo, a pasta e o `-` da entrada padrão. `home` é a pasta
+    das sessões, fora dos espaços: o perfil do cercado e a conversa de cada uma. `readable` é o que
+    o cercado ainda deixa ler fora do espaço, além do Codex e do Python do espaço."""
 
     def __init__(
         self,
-        prices: Mapping[str, ModelPrices],
+        meter: CallMeter,
         *,
+        api_key: str,
+        home: Path,
         command: Sequence[str] = ("codex",),
+        sandbox: bool | None = None,
+        upstream: str | None = None,
+        transport: Any = None,
+        tape: Path | None = None,
+        tape_mode: str | None = None,
+        readable: Sequence[Path] = (),
         warn: Warn | None = None,
+        user_home: Path | None = None,
     ) -> None:
-        self._prices = dict(prices)
+        self._meter = meter
+        self._key = api_key
+        self._home = home
         self._command = list(command)
+        self._sandbox = sys.platform == "darwin" if sandbox is None else sandbox
+        self._upstream = upstream
+        self._transport = transport
+        self._reel = None if tape is None or tape_mode is None else Tape(tape, tape_mode)
+        self._readable = [p.resolve() for p in readable]
         self._warn: Warn = warn or _no_warning
+        self._user_home = (user_home or Path.home()).resolve()
+        self.sessions = 0
         self.last_environment: dict[str, str] = {}
+        self.last_usage = CodexUsage()
 
     @property
     def harness(self) -> str:
@@ -206,18 +266,102 @@ class CodexHands:
             return None
         return cast(Mapping[str, Any], event) if isinstance(event, Mapping) else None
 
+    def _fence(self, folder: Path, root: Path, gate: HandsGate, argv: list[str]) -> list[str]:
+        """O comando sob o `sandbox-exec`, com o perfil da sessão fora do espaço; sem o cercado
+        (fora do macOS, ou nos testes), o comando como está."""
+        if not self._sandbox:
+            return argv
+        port = gate.url.rsplit(":", 1)[-1]
+        readable = [*readable_for(argv, self._user_home), *workspace_python(root), *self._readable]
+        profile = folder / "sandbox.sb"
+        profile.write_text(
+            sandbox_profile(root.resolve(), port, self._user_home, readable), encoding="utf-8"
+        )
+        return [SANDBOX_EXEC, "-f", str(profile), *argv]
+
     async def run(self, space: Workspace, job: HandsJob, world: HandsWorld) -> HandsResult:
-        if job.model not in self._prices:
-            raise ValueError(f"o modelo {job.model} não tem preço na tabela")
-        prices = self._prices[job.model]
+        priced = OpenAIDialect().priced(job.model)
+        try:
+            self._meter.assert_priced(priced)
+        except LookupError as error:
+            raise ValueError(f"o modelo {job.model} não tem preço na tabela") from error
         root = space.root
         argv = self.argv(root, job)
-        environment = clean_environment(root)
-        self.last_environment = dict(environment)
+        self.sessions += 1
+        folder = self._home / job.ticket_id
+        folder.mkdir(parents=True, exist_ok=True)
+        transcript = folder / f"codex-{self.sessions}-{int(time.time())}.jsonl"
+        tape = None if self._reel is None else self._reel.at(root)
+        refused: str | None = None
+
+        def refuse() -> str | None:
+            """A recusa da porta: o teto do pedido ou do dia (o mundo pede para parar) e o da
+            sessão, que só a porta vê a cada chamada."""
+            nonlocal refused
+            if world.should_stop():
+                refused = "parada"
+            elif gate.cost_usd >= job.limits.max_usd:
+                refused = "teto da sessão"
+            else:
+                return None
+            return refused
+
+        gate = HandsGate(
+            self._meter,
+            api_key=self._key,
+            harness=HARNESS,
+            avatar_id=job.avatar_id,
+            ticket_id=job.ticket_id,
+            refuse=refuse,
+            upstream=self._upstream,
+            transport=self._transport,
+            tape=tape,
+            dialect=OpenAIDialect(),
+        )
+        async with gate:
+            environment = clean_environment(root)
+            environment[SESSION_VARIABLE] = gate.token
+            self.last_environment = dict(environment)
+            config = Path(environment["CODEX_HOME"]) / "config.toml"
+            config.write_text(codex_config(gate.url, job.model, job.effort), encoding="utf-8")
+            with transcript.open("wb") as log:
+                fenced = self._fence(folder, root, gate, argv)
+                outcome = await self._session(fenced, root, environment, job, world, gate, log)
+        stopped, failed, completed, returncode, turns, steps, last_text = outcome
+        if failed is not None:
+            self._warn("hands.codex_failed", {"error": failed[:500]})
+        if stopped is not None:
+            reason = stopped
+        elif refused is not None:
+            reason = refused
+        elif failed is not None:
+            reason = "erro na sessão"
+        elif not completed:
+            reason = "sem resposta final"
+        elif returncode != 0:
+            reason = "o Codex falhou"
+        else:
+            reason = "pronto"
+        done = reason == "pronto"
+        summary = last_text.strip()[:MAX_RESULT]
+        return HandsResult(done, summary, turns, steps, reason, round(gate.cost_usd, 8))
+
+    async def _session(
+        self,
+        argv: list[str],
+        root: Path,
+        environment: Mapping[str, str],
+        job: HandsJob,
+        world: HandsWorld,
+        gate: HandsGate,
+        log: IO[bytes],
+    ) -> tuple[str | None, str | None, bool, int | None, int, int, str]:
+        """Roda o processo e lê a saída: o motivo da parada, a falha, se a volta fechou, o código de
+        saída, as voltas, os passos e a última mensagem."""
         process = await asyncio.create_subprocess_exec(
             *argv,
             cwd=str(root),
-            env=environment,
+            env=dict(environment),
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.DEVNULL,
@@ -238,6 +382,26 @@ class CodexHands:
         completed = False
         failed: str | None = None
         stopped: str | None = None
+        # Um teto alcançado numa mensagem: só vale se a sessão seguir depois dela.
+        held: str | None = None
+
+        def over() -> str | None:
+            if world.should_stop():
+                return "parada"
+            if turns >= job.limits.max_turns:
+                return "limite de voltas"
+            if gate.cost_usd >= job.limits.max_usd:
+                return "teto da sessão"
+            return None
+
+        def read(line: bytes) -> Mapping[str, Any] | None:
+            log.write(line if line.endswith(b"\n") else line + b"\n")
+            # Uma sessão que cai no meio deixa no arquivo o que já aconteceu.
+            log.flush()
+            data = self._parse(line)
+            if data is not None:
+                account(data)
+            return data
 
         def account(data: Mapping[str, Any]) -> None:
             """O que vale mesmo depois de parar: o `usage`, a falha e o fim da volta."""
@@ -266,14 +430,19 @@ class CodexHands:
                     await stdin.drain()
                 stdin.close()
                 async for line in stdout:
-                    data = self._parse(line)
+                    data = read(line)
                     if data is None:
                         continue
-                    account(data)
-                    if data.get("type") != "item.completed":
-                        if data.get("type") == "item.started":
-                            started: Mapping[str, Any] = _item(data)
-                            began.setdefault(str(started.get("id") or ""), time.monotonic())
+                    event = data.get("type")
+                    if held is not None and event not in TURN_ENDS:
+                        # A mensagem não era a final: a sessão seguiu depois dela.
+                        stopped = held
+                        break
+                    if event == "item.started":
+                        started: Mapping[str, Any] = _item(data)
+                        began.setdefault(str(started.get("id") or ""), time.monotonic())
+                        continue
+                    if event != "item.completed":
                         continue
                     item: Mapping[str, Any] = _item(data)
                     start = began.pop(str(item.get("id") or ""), None)
@@ -285,15 +454,11 @@ class CodexHands:
                     if kind == "agent_message":
                         turns += 1
                         last_text = str(item.get("text") or "") or last_text
+                        # A resposta final nunca é cortada: o teto espera o que vem depois.
+                        held = over()
                     elif kind in TOOL_ITEMS:
                         turns += 1
-                        # Os tetos valem entre uma ferramenta e outra, nunca na resposta final.
-                        if world.should_stop():
-                            stopped = "parada"
-                        elif turns >= job.limits.max_turns:
-                            stopped = "limite de voltas"
-                        elif codex_cost_usd(usage, prices) >= job.limits.max_usd:
-                            stopped = "teto da sessão"
+                        stopped = over()
                         if stopped is not None:
                             break
                 if stopped is None:
@@ -308,26 +473,10 @@ class CodexHands:
                     with contextlib.suppress(TimeoutError, ValueError):
                         async with asyncio.timeout(GRACE_SECONDS):
                             async for line in stdout:
-                                data = self._parse(line)
-                                if data is not None:
-                                    account(data)
+                                read(line)
             await _end(process)
-        cost = codex_cost_usd(usage, prices)
-        if failed is not None:
-            self._warn("hands.codex_failed", {"error": failed[:500]})
-        if stopped is not None:
-            reason = stopped
-        elif failed is not None:
-            reason = "erro na sessão"
-        elif not completed:
-            reason = "sem resposta final"
-        elif process.returncode != 0:
-            reason = "o Codex falhou"
-        else:
-            reason = "pronto"
-        done = reason == "pronto"
-        summary = last_text.strip()[:MAX_RESULT]
-        return HandsResult(done, summary, turns, steps, reason, cost)
+            self.last_usage = usage
+        return stopped, failed, completed, process.returncode, turns, steps, last_text
 
 
 def _item(data: Mapping[str, Any]) -> Mapping[str, Any]:

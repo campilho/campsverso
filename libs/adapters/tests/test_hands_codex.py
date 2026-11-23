@@ -1,5 +1,7 @@
-"""As mãos do Codex (ADR-0089, decisão 11): uma sessão com um Codex falso que imprime o exemplo do
-`codex exec --json`, os passos, o custo pela tabela, os limites e o ambiente sem chaves."""
+"""As mãos do Codex (ADR-0089, decisão 11; ADR-0093): uma sessão com um Codex falso que imprime o
+exemplo do `codex exec --json` e chama o modelo pela porta das mãos, como o de verdade, diante de um
+provedor falso da OpenAI. Os passos, o custo medido pela porta, os tetos (o da sessão também na
+porta), o ambiente sem chaves, o `config.toml` da sessão e o cercado."""
 
 import asyncio
 import json
@@ -7,27 +9,121 @@ import os
 import subprocess
 import sys
 import time
-from collections.abc import Sequence
+import tomllib
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, cast
 
+import httpx2
 import pytest
+from starlette.applications import Starlette
+from starlette.requests import Request
+from starlette.responses import Response
+from starlette.routing import Route
 
 from campsverso_adapters.hands_codex import (
     GRACE_SECONDS,
+    SESSION_VARIABLE,
     CodexHands,
     CodexUsage,
     clean_environment,
-    codex_cost_usd,
+    codex_config,
     resolve_command,
     steps_of,
 )
-from campsverso_adapters.model_metered import ModelPrices
-from campsverso_ports import HandsJob, HandsLimits, HandsStep, Robot, ToolResult, Workspace
+from campsverso_adapters.hands_fence import readable_for
+from campsverso_ports import (
+    HandsJob,
+    HandsLimits,
+    HandsStep,
+    ModelRequest,
+    ModelResponse,
+    Robot,
+    ToolResult,
+    Workspace,
+)
 
 FAKE = Path(__file__).parents[3] / "tests" / "fixtures" / "codex" / "codex_falso.py"
-MODEL = "gpt-codex-teste"
-PRICES = {MODEL: ModelPrices(1.0, 10.0, 0.1, 2.0)}
+MODEL = "gpt-6.2-astra"
+PRICED = "openai/gpt-6.2-astra"
+KEY = "chave-de-verdade"
+PRICES = {PRICED: (8.0, 40.0)}
+# Cada chamada do provedor falso: 1000 de entrada, 400 delas do cache, e 200 de saída.
+PER_CALL = (600 * 8.0 + 200 * 40.0) / 1_000_000
+# O exemplo tem nove itens, e o falso chama o modelo antes de cada um.
+CALLS = 9
+MACOS = pytest.mark.skipif(sys.platform != "darwin", reason="o sandbox-exec é do macOS")
+
+RESPONSE_EVENTS: list[Mapping[str, Any]] = [
+    {"type": "response.created", "response": {"id": "resp_1", "model": MODEL}},
+    {
+        "type": "response.output_item.done",
+        "item": {"type": "function_call", "name": "shell", "arguments": '{"command": ["ls"]}'},
+    },
+    {
+        "type": "response.completed",
+        "response": {
+            "id": "resp_1",
+            "model": MODEL,
+            "status": "completed",
+            "usage": {
+                "input_tokens": 1000,
+                "input_tokens_details": {"cached_tokens": 400},
+                "output_tokens": 200,
+            },
+        },
+    },
+]
+
+
+class Meter:
+    """O medidor dos testes: guarda o que a porta mediu e cobra pela tabela."""
+
+    def __init__(self, prices: Mapping[str, tuple[float, float]] = PRICES) -> None:
+        self.prices = dict(prices)
+        self.calls: list[tuple[ModelRequest, ModelResponse, str]] = []
+
+    def assert_priced(self, model: str) -> None:
+        if model not in self.prices:
+            raise LookupError(f"modelo sem preço na tabela do ambiente: {model}")
+
+    async def observed(
+        self, request: ModelRequest, response: ModelResponse, *, harness: str
+    ) -> float:
+        self.calls.append((request, response, harness))
+        price_in, price_out = self.prices[request.model]
+        usage = response.usage
+        return (usage.input_tokens * price_in + usage.output_tokens * price_out) / 1_000_000
+
+
+class Provider:
+    """A OpenAI falsa, atrás da porta: guarda os cabeçalhos e devolve sempre a mesma resposta."""
+
+    def __init__(self) -> None:
+        self.seen: list[dict[str, str]] = []
+        self.body = b"".join(
+            f"event: {e['type']}\ndata: {json.dumps(e)}\n\n".encode() for e in RESPONSE_EVENTS
+        )
+
+    def app(self) -> Starlette:
+        async def handle(request: Request) -> Response:
+            self.seen.append(dict(request.headers))
+            return Response(self.body, media_type="text/event-stream")
+
+        return Starlette(routes=[Route("/{path:path}", handle, methods=["GET", "POST"])])
+
+
+@dataclass
+class Kit:
+    home: Path
+    meter: Meter = field(default_factory=Meter)
+    provider: Provider = field(default_factory=Provider)
+
+
+@pytest.fixture
+def kit(tmp_path: Path) -> Kit:
+    return Kit(tmp_path / "sessoes")
 
 
 class World:
@@ -66,28 +162,37 @@ def space(tmp_path: Path) -> Space:
     return Space(root)
 
 
-def _job(**limits: Any) -> HandsJob:
+def _job(model: str = MODEL, **limits: Any) -> HandsJob:
     return HandsJob(
         ticket_id="pedido-2",
         opening="Pedido 2: o robô eco.",
         system="Você é o Camps.",
-        model=MODEL,
+        model=model,
         avatar_id="camps",
         limits=HandsLimits(**limits),
     )
 
 
-def _hands(*options: str) -> CodexHands:
-    return CodexHands(PRICES, command=(sys.executable, str(FAKE), *options))
+def _hands(kit: Kit, *options: str, **kwargs: Any) -> CodexHands:
+    kwargs.setdefault("sandbox", False)
+    return CodexHands(
+        kit.meter,
+        api_key=KEY,
+        home=kit.home,
+        command=(sys.executable, str(FAKE), *options),
+        upstream="http://provedor-falso",
+        transport=httpx2.ASGITransport(app=kit.provider.app()),
+        **kwargs,
+    )
 
 
 def _run(hands: CodexHands, space: Space, world: World, **limits: Any) -> Any:
     return asyncio.run(hands.run(cast(Workspace, space), _job(**limits), world))
 
 
-def test_uma_sessao_vira_os_passos_na_ordem(space: Space) -> None:
+def test_uma_sessao_vira_os_passos_na_ordem(space: Space, kit: Kit) -> None:
     world = World()
-    result = _run(_hands(), space, world)
+    result = _run(_hands(kit), space, world)
     assert [(s.tool, s.path, s.ok) for s in world.steps] == [
         ("command_execution", None, True),
         ("command_execution", None, True),
@@ -105,66 +210,233 @@ def test_uma_sessao_vira_os_passos_na_ordem(space: Space) -> None:
     assert result.summary.startswith("Escrevi o robô tools/robos/eco.py")
 
 
-def test_o_custo_sai_dos_tokens_pela_tabela(space: Space) -> None:
-    result = _run(_hands(), space, World())
-    # 48213 de entrada, 41984 do cache: 6229 frescos; 1873 de saída, o raciocínio dentro dela.
-    expected = round((6229 * 1.0 + 41984 * 0.1 + 1873 * 10.0) / 1_000_000, 8)
-    assert result.cost_usd == expected
+# ------------------------------------------------------------------ a porta
 
 
-def test_o_custo_conta_o_cache_e_o_raciocinio_uma_vez_so() -> None:
-    usage = CodexUsage().plus(
-        {"input_tokens": 1000, "cached_input_tokens": 600, "output_tokens": 100}
-    )
-    usage = usage.plus({"input_tokens": 1000, "cache_write_input_tokens": 400})
-    assert usage.input_tokens == 2000
-    prices = ModelPrices(1.0, 10.0, 0.1, 2.0)
-    assert codex_cost_usd(usage, prices) == round((1000 + 60 + 800 + 1000) / 1_000_000, 8)
+def test_o_modelo_passa_pela_porta_e_o_custo_e_o_que_ela_mediu(space: Space, kit: Kit) -> None:
+    result = _run(_hands(kit, "--chama-porta", "1"), space, World())
+    assert result.reason == "pronto"
+    assert len(kit.meter.calls) == CALLS
+    assert {(r.model, h, r.avatar_id, r.ticket_id) for r, _, h in kit.meter.calls} == {
+        (PRICED, "codex", "camps", "pedido-2")
+    }
+    assert result.cost_usd == pytest.approx(CALLS * PER_CALL)
+    # A chave de verdade só sai da porta; a da sessão nunca chega ao provedor.
+    assert {h["authorization"] for h in kit.provider.seen} == {f"Bearer {KEY}"}
 
 
-def test_um_modelo_sem_preco_e_recusado_antes_de_abrir_o_codex(space: Space) -> None:
-    hands = CodexHands({}, command=(sys.executable, str(FAKE)))
-    with pytest.raises(ValueError, match="preço"):
-        asyncio.run(hands.run(cast(Workspace, space), _job(), World()))
+def test_o_codex_conta_os_proprios_tokens_para_conferir_com_a_porta(space: Space, kit: Kit) -> None:
+    hands = _hands(kit)
+    _run(hands, space, World())
+    assert hands.last_usage == CodexUsage(48213, 41984, 0, 1873, 512)
 
 
-def test_uma_sessao_que_passa_do_limite_de_tempo_e_parada(space: Space) -> None:
+def test_o_teto_da_sessao_vale_pela_porta_entre_as_ferramentas(space: Space, kit: Kit) -> None:
+    # Três chamadas antes da primeira ferramenta passam do teto: a sessão para depois dela.
     world = World()
-    result = _run(_hands("--dorme", "30"), space, world, max_seconds=0.5)
+    result = _run(_hands(kit, "--chama-porta", "1"), space, world, max_usd=2.5 * PER_CALL)
+    assert result.reason == "teto da sessão"
+    assert not result.done
+    assert len(world.steps) == 1
+    assert len(kit.meter.calls) == 3
+
+
+def test_a_porta_recusa_a_chamada_acima_do_teto_da_sessao(space: Space, kit: Kit) -> None:
+    # Uma chamada só já passa do teto: a porta recusa a segunda, e o Codex encerra a volta.
+    result = _run(_hands(kit, "--chama-porta", "1"), space, World(), max_usd=0.5 * PER_CALL)
+    assert result.reason == "teto da sessão"
+    assert len(kit.meter.calls) == 1
+    assert result.cost_usd == pytest.approx(PER_CALL)
+
+
+def test_a_porta_recusa_quando_o_mundo_pede_para_parar(space: Space, kit: Kit) -> None:
+    result = _run(_hands(kit, "--chama-porta", "1"), space, World(stop_after=0))
+    assert result.reason == "parada"
+    assert kit.meter.calls == []
+    assert result.cost_usd == 0
+
+
+def test_um_modelo_sem_preco_e_recusado_antes_de_abrir_o_codex(space: Space, kit: Kit) -> None:
+    hands = _hands(kit)
+    with pytest.raises(ValueError, match="preço"):
+        asyncio.run(hands.run(cast(Workspace, space), _job("gpt-sem-preco"), World()))
+    assert hands.sessions == 0
+
+
+def test_o_config_da_sessao_aponta_o_provedor_para_a_porta() -> None:
+    config = tomllib.loads(codex_config("http://127.0.0.1:5123", MODEL, "max"))
+    provider = config["model_providers"][config["model_provider"]]
+    assert provider == {
+        "name": "a porta das mãos do Campsverso",
+        "base_url": "http://127.0.0.1:5123/v1",
+        "env_key": SESSION_VARIABLE,
+        "wire_api": "responses",
+    }
+    assert (config["model"], config["model_reasoning_effort"]) == (MODEL, "xhigh")
+    # A cerca é a nossa: o sandbox e as aprovações do Codex ficam desligados.
+    assert (config["sandbox_mode"], config["approval_policy"]) == ("danger-full-access", "never")
+    assert "model_reasoning_effort" not in tomllib.loads(codex_config("http://x", MODEL, None))
+
+
+# ------------------------------------------------------------------ os tetos
+
+
+def test_uma_sessao_que_passa_do_limite_de_tempo_e_parada(space: Space, kit: Kit) -> None:
+    world = World()
+    result = _run(_hands(kit, "--dorme", "30"), space, world, max_seconds=0.5)
     assert not result.done
     assert result.reason == "limite de tempo"
     assert world.steps == []
 
 
-def test_a_sessao_para_no_limite_de_voltas(space: Space) -> None:
+def test_a_sessao_para_no_limite_de_voltas(space: Space, kit: Kit) -> None:
     world = World()
-    result = _run(_hands(), space, world, max_turns=2)
+    result = _run(_hands(kit), space, world, max_turns=2)
     assert not result.done
     assert result.reason == "limite de voltas"
     assert len(world.steps) == 2
 
 
-def test_a_sessao_para_quando_o_mundo_pede(space: Space) -> None:
+def test_a_sessao_para_quando_o_mundo_pede(space: Space, kit: Kit) -> None:
     world = World(stop_after=1)
-    result = _run(_hands(), space, world)
+    result = _run(_hands(kit), space, world)
     assert not result.done
     assert result.reason == "parada"
     assert len(world.steps) == 1
 
 
+TALK = [
+    {"type": "thread.started", "thread_id": "t-1"},
+    {"type": "turn.started"},
+    {"type": "item.completed", "item": {"id": "i0", "type": "agent_message", "text": "Vou olhar."}},
+    {"type": "item.completed", "item": {"id": "i1", "type": "agent_message", "text": "Ainda."}},
+    {
+        "type": "item.started",
+        "item": {"id": "i2", "type": "command_execution", "command": "ls", "status": "in_progress"},
+    },
+    {
+        "type": "item.completed",
+        "item": {
+            "id": "i2",
+            "type": "command_execution",
+            "command": "ls",
+            "exit_code": 0,
+            "status": "completed",
+        },
+    },
+    {"type": "item.completed", "item": {"id": "i3", "type": "agent_message", "text": "Pronto."}},
+    {"type": "turn.completed", "usage": {"input_tokens": 10, "output_tokens": 5}},
+]
+
+
+def _talk(tmp_path: Path) -> Path:
+    example = tmp_path / "conversa.jsonl"
+    example.write_text("\n".join(json.dumps(e) for e in TALK) + "\n", encoding="utf-8")
+    return example
+
+
+def test_o_limite_de_voltas_vale_numa_mensagem_do_meio(
+    space: Space, kit: Kit, tmp_path: Path
+) -> None:
+    # Duas mensagens antes da ferramenta: com uma volta, a segunda mensagem já não sai.
+    world = World()
+    result = _run(_hands(kit, "--exemplo", str(_talk(tmp_path))), space, world, max_turns=1)
+    assert result.reason == "limite de voltas"
+    assert result.summary == "Vou olhar."
+    assert world.steps == []
+
+
+def test_o_limite_de_voltas_nao_corta_a_resposta_final(
+    space: Space, kit: Kit, tmp_path: Path
+) -> None:
+    # Duas mensagens, a ferramenta e a resposta final: com quatro voltas, a sessão acaba bem.
+    result = _run(_hands(kit, "--exemplo", str(_talk(tmp_path))), space, World(), max_turns=4)
+    assert result.done
+    assert result.reason == "pronto"
+    assert result.summary == "Pronto."
+    hands = _hands(kit)
+    assert _run(hands, space, World(), max_turns=7).reason == "pronto"  # seis ferramentas e a final
+    assert hands.last_usage.output_tokens == 1873
+
+
+def test_parada_no_meio_ainda_conta_o_usage_que_chega(space: Space, kit: Kit) -> None:
+    hands = _hands(kit)
+    result = _run(hands, space, World(), max_turns=2)
+    assert result.reason == "limite de voltas"
+    assert hands.last_usage.input_tokens == 48213
+
+
+def test_o_briefing_entra_dentro_do_limite_de_tempo(space: Space, kit: Kit) -> None:
+    # Um Codex que nunca lê a entrada: o briefing grande enche o cano, e o relógio para a sessão.
+    hands = _hands(kit, "--sem-ler", "1")
+    job = HandsJob(
+        ticket_id="pedido-2",
+        opening="x" * (4 * 1024 * 1024),
+        system="",
+        model=MODEL,
+        avatar_id="camps",
+        limits=HandsLimits(max_seconds=0.5),
+    )
+    began = time.monotonic()
+    result = asyncio.run(hands.run(cast(Workspace, space), job, World()))
+    assert result.reason == "limite de tempo"
+    assert time.monotonic() - began < 15
+
+
+def test_a_espera_do_fim_do_codex_fica_dentro_do_limite_de_tempo(space: Space, kit: Kit) -> None:
+    # O Codex fecha a saída depois do exemplo mas não sai: o relógio da sessão o para.
+    began = time.monotonic()
+    result = _run(_hands(kit, "--fica", "30"), space, World(), max_seconds=1.0)
+    assert result.reason == "limite de tempo"
+    assert not result.done
+    assert time.monotonic() - began < GRACE_SECONDS + 2
+
+
+def _alive(pid: int) -> bool:
+    """Vivo de verdade: um zumbi (já morto, à espera de quem o colha) não conta."""
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    state = subprocess.run(
+        ["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True, check=False
+    ).stdout.strip()
+    return bool(state) and not state.startswith("Z")
+
+
+def test_a_parada_encerra_o_grupo_de_processos(space: Space, kit: Kit, tmp_path: Path) -> None:
+    grandchild = tmp_path / "neto.txt"
+    result = _run(
+        _hands(kit, "--neto", str(grandchild), "--dorme", "30"), space, World(), max_seconds=1.0
+    )
+    assert result.reason == "limite de tempo"
+    pid = int(grandchild.read_text(encoding="utf-8"))
+    deadline = time.monotonic() + 5
+    while _alive(pid) and time.monotonic() < deadline:
+        time.sleep(0.05)
+    assert not _alive(pid)
+
+
+# ------------------------------------------------------------------ o ambiente e o cercado
+
+
 def test_o_ambiente_do_processo_nao_tem_chave(
-    space: Space, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    space: Space, kit: Kit, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("ANTHROPIC_API_KEY", "chave-de-verdade")
     monkeypatch.setenv("OPENAI_API_KEY", "outra-chave")
     monkeypatch.setenv("GITHUB_TOKEN", "um-token")
     dump = tmp_path / "ambiente.json"
     briefing = tmp_path / "entrada.txt"
-    _run(_hands("--ambiente", str(dump), "--entrada", str(briefing)), space, World())
+    _run(_hands(kit, "--ambiente", str(dump), "--entrada", str(briefing)), space, World())
     seen: dict[str, str] = json.loads(dump.read_text(encoding="utf-8"))
     assert [k for k in seen if "KEY" in k.upper() or "TOKEN" in k.upper()] == []
-    assert "chave-de-verdade" not in seen.values()
+    assert KEY not in seen.values()
     assert seen["HOME"].startswith(str(space.root))
+    # Só a chave da sessão, que vale na porta enquanto a sessão dura.
+    assert seen[SESSION_VARIABLE].startswith("sessao-")
+    config = Path(seen["CODEX_HOME"]) / "config.toml"
+    assert KEY not in config.read_text(encoding="utf-8")
     assert briefing.read_text(encoding="utf-8") == "Você é o Camps.\n\nPedido 2: o robô eco."
 
 
@@ -179,6 +451,15 @@ def test_o_ambiente_limpo_nao_herda_nada(tmp_path: Path, monkeypatch: pytest.Mon
         "LANG",
         "PYTHONDONTWRITEBYTECODE",
     }
+
+
+def test_a_conversa_fica_num_arquivo_fora_do_espaco(space: Space, kit: Kit) -> None:
+    _run(_hands(kit), space, World())
+    [transcript] = (kit.home / "pedido-2").glob("codex-1-*.jsonl")
+    lines = transcript.read_text(encoding="utf-8").splitlines()
+    assert json.loads(lines[0])["type"] == "thread.started"
+    assert json.loads(lines[-1])["type"] == "turn.completed"
+    assert not transcript.resolve().is_relative_to(space.root.resolve())
 
 
 def test_os_passos_aceitam_o_caminho_absoluto_e_ignoram_o_que_nao_e_ferramenta(
@@ -198,77 +479,38 @@ def test_os_passos_aceitam_o_caminho_absoluto_e_ignoram_o_que_nao_e_ferramenta(
     assert steps_of(mcp, tmp_path, 0)[0].summary == "mcp_tool_call: oficina.anotar"
 
 
-def test_o_limite_de_voltas_nao_corta_a_resposta_final(space: Space) -> None:
-    # Seis ferramentas e a mensagem final: com sete voltas, a sessão acaba no turn.completed.
-    world = World()
-    result = _run(_hands(), space, world, max_turns=7)
-    assert result.done
-    assert result.reason == "pronto"
-    assert result.cost_usd is not None
-    assert result.cost_usd > 0
-
-
-def test_parada_no_meio_ainda_conta_o_usage_que_chega(space: Space) -> None:
-    result = _run(_hands(), space, World(), max_turns=2)
-    assert result.reason == "limite de voltas"
-    assert result.cost_usd == round((6229 * 1.0 + 41984 * 0.1 + 1873 * 10.0) / 1_000_000, 8)
-
-
-def test_o_briefing_entra_dentro_do_limite_de_tempo(space: Space) -> None:
-    # Um Codex que nunca lê a entrada: o briefing grande enche o cano, e o relógio para a sessão.
-    hands = _hands("--sem-ler", "1")
-    job = HandsJob(
-        ticket_id="pedido-2",
-        opening="x" * (4 * 1024 * 1024),
-        system="",
-        model=MODEL,
-        avatar_id="camps",
-        limits=HandsLimits(max_seconds=0.5),
+def test_o_usage_do_codex_soma_cada_campo() -> None:
+    usage = CodexUsage().plus(
+        {"input_tokens": 1000, "cached_input_tokens": 600, "output_tokens": 100}
     )
-    began = time.monotonic()
-    result = asyncio.run(hands.run(cast(Workspace, space), job, World()))
-    assert result.reason == "limite de tempo"
-    assert time.monotonic() - began < 15
+    usage = usage.plus({"input_tokens": 1000, "cache_write_input_tokens": 400, "x": "y"})
+    assert usage == CodexUsage(2000, 600, 400, 100, 0)
 
 
-def test_a_espera_do_fim_do_codex_fica_dentro_do_limite_de_tempo(space: Space) -> None:
-    # O Codex fecha a saída depois do exemplo mas não sai: o relógio da sessão o para.
-    began = time.monotonic()
-    result = _run(_hands("--fica", "30"), space, World(), max_seconds=1.0)
-    assert result.reason == "limite de tempo"
-    assert not result.done
-    assert time.monotonic() - began < GRACE_SECONDS
-
-
-def _alive(pid: int) -> bool:
-    """Vivo de verdade: um zumbi (já morto, à espera de quem o colha) não conta."""
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    state = subprocess.run(
-        ["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True, check=False
-    ).stdout.strip()
-    return bool(state) and not state.startswith("Z")
-
-
-def test_a_parada_encerra_o_grupo_de_processos(space: Space, tmp_path: Path) -> None:
-    grandchild = tmp_path / "neto.txt"
-    result = _run(
-        _hands("--neto", str(grandchild), "--dorme", "30"), space, World(), max_seconds=1.0
+@MACOS
+def test_no_cercado_o_codex_chama_a_porta_e_nao_escreve_fora(
+    space: Space, kit: Kit, tmp_path: Path
+) -> None:
+    outside = tmp_path / "fora.txt"
+    # O Python do projeto (o `.venv` e a instalação de base) e o falso moram na casa do usuário.
+    readable = [Path(sys.prefix), Path(sys.base_prefix), FAKE.parent]
+    hands = _hands(
+        kit, "--chama-porta", "1", "--escreve-fora", str(outside), sandbox=True, readable=readable
     )
-    assert result.reason == "limite de tempo"
-    pid = int(grandchild.read_text(encoding="utf-8"))
-    deadline = time.monotonic() + 5
-    while _alive(pid) and time.monotonic() < deadline:
-        time.sleep(0.05)
-    assert not _alive(pid)
+    result = _run(hands, space, World())
+    assert result.reason == "pronto", result
+    assert len(kit.meter.calls) == CALLS
+    assert not outside.exists()
+    assert (kit.home / "pedido-2" / "sandbox.sb").exists()
 
 
-def _program(folder: Path) -> Path:
+# ------------------------------------------------------------------ o programa
+
+
+def _program(folder: Path, first: str = "#!/bin/sh") -> Path:
     folder.mkdir(parents=True, exist_ok=True)
     program = folder / "codex"
-    program.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    program.write_text(f"{first}\nexit 0\n", encoding="utf-8")
     program.chmod(0o755)
     return program
 
@@ -293,3 +535,44 @@ def test_um_codex_dentro_do_espaco_ou_ausente_e_recusado(
     monkeypatch.setenv("PATH", str(tmp_path / "vazio"))
     with pytest.raises(FileNotFoundError):
         resolve_command(("codex",), space.root)
+
+
+def _interpreter(folder: Path) -> Path:
+    folder.mkdir(parents=True, exist_ok=True)
+    node = folder / "node-falso"
+    node.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    node.chmod(0o755)
+    return node
+
+
+def test_o_interpretador_de_um_lancador_do_env_vem_de_fora_do_espaco(
+    space: Space, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # O `.venv/bin` do espaço vem à frente no PATH do processo; o `env` acharia ali o plantado.
+    _interpreter(space.root / ".venv" / "bin")
+    node = _interpreter(tmp_path / "node")
+    program = _program(tmp_path / "pacote", "#!/usr/bin/env -S node-falso --sem-aviso")
+    monkeypatch.setenv("PATH", f"{program.parent}{os.pathsep}{node.parent}")
+    assert resolve_command(("codex", "exec"), space.root) == [
+        str(node),
+        "--sem-aviso",
+        str(program),
+        "exec",
+    ]
+    # Achado só no espaço, o interpretador é recusado como o próprio Codex.
+    monkeypatch.setenv("PATH", f"{program.parent}{os.pathsep}{space.root / '.venv' / 'bin'}")
+    with pytest.raises(ValueError, match="espaço"):
+        resolve_command(("codex",), space.root)
+
+
+def test_o_cercado_le_a_instalacao_de_cada_programa_menos_a_casa(tmp_path: Path) -> None:
+    home = tmp_path / "casa"
+    node = _interpreter(tmp_path / "opt" / "node" / "bin")
+    agy = _interpreter(home / ".local" / "bin")
+    tool = _interpreter(tmp_path / "ferramentas" / "codex-1.0")
+    found = readable_for([str(node), str(agy), str(tool), "exec", "--json"], home)
+    assert found == [
+        (tmp_path / "opt" / "node").resolve(),
+        agy.parent.resolve(),
+        tool.parent.resolve(),
+    ]

@@ -17,9 +17,9 @@ from campsverso_adapters.hands_claude_code import (
     bundled_cli,
     launcher,
     refusal,
-    sandbox_profile,
     step_of,
 )
+from campsverso_adapters.hands_fence import sandbox_profile
 from campsverso_adapters.model_fake_http import FakeModel, text, use
 from campsverso_ports import (
     HandsJob,

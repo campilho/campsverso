@@ -33,7 +33,7 @@ import shlex
 import stat
 import sys
 import time
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any, cast
 
@@ -53,6 +53,7 @@ from claude_agent_sdk import (
     tool,
 )
 
+from campsverso_adapters.hands_fence import sandbox_profile
 from campsverso_adapters.hands_gate import ANTHROPIC, HandsGate, Tape
 from campsverso_ports import (
     CallMeter,
@@ -135,26 +136,6 @@ def refusal(root: Path, tool_name: str, tool_input: Mapping[str, Any]) -> str | 
 
 
 # ------------------------------------------------------------------ o lançador
-
-
-def sandbox_profile(space: Path, port_hint: str, home: Path, readable: Sequence[Path]) -> str:
-    """O perfil do `sandbox-exec`: rede só para a porta das mãos, escrita só no espaço, e o conteúdo
-    da casa do usuário fechado, menos o que o Claude Code e o Python do espaço precisam ler.
-
-    O nome dos arquivos continua visível (o `stat`); o conteúdo e a listagem, não."""
-    allowed = " ".join(f'(subpath "{p}")' for p in (space, *readable))
-    return (
-        "(version 1)\n"
-        "(allow default)\n"
-        "(deny network*)\n"
-        f'(allow network-outbound (remote ip "localhost:{port_hint}"))\n'
-        "(allow network-outbound (remote unix-socket))\n"
-        "(deny file-write*)\n"
-        f'(allow file-write* (subpath "{space}") (literal "/dev/null") (literal "/dev/tty")'
-        ' (subpath "/dev/fd") (regex #"^/dev/ttys"))\n'
-        f'(deny file-read-data (subpath "{home}") (subpath "/private/tmp") (subpath "/tmp"))\n'
-        f"(allow file-read-data {allowed})\n"
-    )
 
 
 # As variáveis que o SDK põe e o Claude Code lê; passam pelo lançador só se existirem.
