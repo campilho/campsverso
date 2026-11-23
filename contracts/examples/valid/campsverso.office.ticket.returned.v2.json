@@ -1,0 +1,22 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c70-7a05-8b15-1a2b3c4d5e06",
+  "source": "/kernel/office-campsverso-02",
+  "type": "campsverso.office.ticket.returned.v2",
+  "time": "2026-11-23T13:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/office/ticket.returned.v2",
+  "worldid": "office-campsverso-02",
+  "cartridge": "office_campsverso",
+  "tick": 19200,
+  "simtime": "2026-11-23T10:00:00-03:00",
+  "seq": 5004,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "ticket_id": "pedido-003",
+    "number": 3,
+    "by": "gerente",
+    "comment": "A busca acha o texto, mas falta o que o teste de aceite pedia: sem diferenciar maiúsculas de minúsculas e ignorando os acentos. Procure \"cafe\" e veja se acha \"Café\". Mostre também em que arquivo e em que linha cada resultado está, e pare depois de 50 resultados, com um aviso de que há mais. O teste novo precisa cobrir esses três casos, e o testador tem que passar antes da entrega."
+  }
+}

@@ -12,8 +12,12 @@ from campsverso_testkit.pipeline import Pipeline
 REPORT = "campsverso.cmd.office.pull_request.report.v1"
 
 
+# A devolução está na v2 desde a ADR-0092 (o comentário até 1.000 caracteres); o resto, na v1.
+VERSIONS = {"returned": 2}
+
+
 def _facts(pipeline: Pipeline, name: str) -> list[dict[str, Any]]:
-    return pipeline.of_type(f"office.ticket.{name}.v1")
+    return pipeline.of_type(f"office.ticket.{name}.v{VERSIONS.get(name, 1)}")
 
 
 async def _until(pipeline: Pipeline, name: str, count: int) -> None:

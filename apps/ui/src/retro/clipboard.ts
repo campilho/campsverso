@@ -4,18 +4,34 @@
  * - **O novo pedido:** os campos de hoje, com os mesmos limites, em letra de mão. Fechar (Esc ou o
  *   botão) guarda o rascunho; "Pôr no quadro" chama a mesma ação de hoje (o gerente anda até o
  *   quadro), e o rascunho só some quando a ficha de verdade nasce.
- * - **A ficha aberta:** o pedido em leitura, com o PR, o patch e, entregue e com o gerente, o aceitar
- *   e o devolver. As regras são as do cartão de hoje; só a forma muda.
+ * - **A ficha aberta** (briefing-tela-2.md, §7; ADR-0092): o pedido em leitura, numa prancheta de
+ *   660 px, com o carimbo do estado, o PR grampeado e o patch. Entregue e com o gerente, o "O que
+ *   falta" em papel pautado, na tinta vermelha, com o contador (até 1.000, nunca cortado escondido),
+ *   e o aceitar e o devolver na barra. As regras são as do cartão de hoje; só a forma muda.
  *
  * Nada aqui decide coisa do mundo: cada botão vira uma proposta, e o kernel decide. */
-import type { ObserverState } from "@campsverso/contracts";
+import type { EnvelopeV1, ObserverState } from "@campsverso/contracts";
 
 import type { ArtManifest } from "../art/manifest.ts";
 import { el } from "../dom.ts";
 import { choiceName, choicesOf } from "../locale.ts";
-import { ACCEPTANCE_MAX, DESCRIPTION_MAX, SPEECH_MAX, TITLE_MAX, ticketsOf, type NewTicket, type TicketView } from "../panels/office.ts";
-import { pullRequestPill } from "./board.ts";
-import { EMPTY_DRAFT, SIZES, counterOf, isSize, nextNumber, parseDraft, stateLabel, type Draft, type Size } from "./tickets.ts";
+import { ACCEPTANCE_MAX, COMMENT_MAX, DESCRIPTION_MAX, PR_URL, TITLE_MAX, ticketsOf, type NewTicket, type PullRequestView, type TicketView } from "../panels/office.ts";
+import { sealOf } from "./board.ts";
+import type { FaceCache } from "./faces.ts";
+import {
+  EMPTY_DRAFT,
+  SIZES,
+  badgeOfPullRequest,
+  counterOf,
+  isSize,
+  nextNumber,
+  parseDraft,
+  remainingOf,
+  stateLabel,
+  writtenOf,
+  type Draft,
+  type Size,
+} from "./tickets.ts";
 
 const DRAFT_KEY = "campsverso.prancheta.v1";
 const LINE = 28; // a entrelinha da pauta, em px
@@ -38,6 +54,16 @@ export interface ClipboardContext {
   /** A hora do mundo agora: "Dia 13 · 10:59". */
   readonly when: string;
   readonly art: ArtManifest | undefined;
+  /** Os fatos recentes: o "escrito no Dia 11 · 09:12" da ficha aberta. */
+  readonly timeline: readonly EnvelopeV1[];
+}
+
+const CI_SHORT: Readonly<Record<string, string>> = { pending: "CI rodando", success: "CI verde", failure: "CI vermelho" };
+
+/** "PR #11 · CI verde" no papel grampeado: aberto, o CI; senão, o estado. */
+function stapleLine(pr: PullRequestView): string {
+  const tail = pr.state === "aberto" ? (CI_SHORT[pr.ci] ?? "aberto") : pr.state;
+  return `PR #${String(pr.number)} · ${tail}`;
 }
 
 type Mode = { readonly kind: "new" } | { readonly kind: "read"; readonly ticketId: string };
@@ -135,10 +161,13 @@ export class Clipboard {
   private ctx: ClipboardContext | undefined;
   /** O "O que falta" da ficha aberta: o mesmo campo entre um desenho e outro, para não perder o que
    * o gerente escreve enquanto o mundo anda. */
-  private readonly comment = el("input", { className: "retro-missing" });
+  private readonly comment = el("textarea", { className: "retro-hand retro-lined retro-missing" });
+  private readonly commentCounter = el("span", { className: "retro-counter retro-remaining" });
+  private readonly faces: FaceCache | undefined;
 
-  constructor(parent: HTMLElement, actions: ClipboardActions) {
+  constructor(parent: HTMLElement, actions: ClipboardActions, faces?: FaceCache) {
     this.actions = actions;
+    this.faces = faces;
     this.element = el("dialog", { className: "retro-clipboard-dialog" });
     this.element.setAttribute("aria-modal", "true");
     // O teclado anda com o avatar: dentro da prancheta, ele escreve.
@@ -148,9 +177,17 @@ export class Clipboard {
       this.shown = "";
       this.returnTo?.focus();
     });
-    this.comment.maxLength = SPEECH_MAX;
-    this.comment.placeholder = "O que falta (para devolver)";
-    this.comment.setAttribute("aria-label", "O que falta");
+    this.comment.maxLength = COMMENT_MAX;
+    this.comment.placeholder = "O que o dev precisa refazer, para devolver";
+    this.comment.setAttribute("aria-labelledby", "retro-missing-label");
+    this.comment.setAttribute("aria-describedby", "retro-missing-count");
+    this.commentCounter.id = "retro-missing-count";
+    this.commentCounter.setAttribute("aria-live", "polite");
+    this.comment.addEventListener("input", () => {
+      grow(this.comment, 3, 8);
+      this.countComment();
+    });
+    this.countComment();
     parent.append(this.element);
   }
 
@@ -180,6 +217,7 @@ export class Clipboard {
     }
     this.begin({ kind: "read", ticketId });
     this.comment.value = "";
+    this.countComment();
     this.update(ctx);
     this.element.showModal();
     this.element.querySelector<HTMLElement>(".retro-clip-close")?.focus();
@@ -205,7 +243,8 @@ export class Clipboard {
       return;
     }
     const underway = ctx.underway.has(ticket.id);
-    const key = JSON.stringify([ticket, ctx.manager, underway, ctx.art === undefined]);
+    const written = writtenOf(ctx.state, ctx.timeline, ticket.id);
+    const key = JSON.stringify([ticket, ctx.manager, underway, ctx.art === undefined, written, this.faces?.version]);
     if (key !== this.shown) {
       this.shown = key;
       this.renderRead(ticket, ctx, underway);
@@ -241,8 +280,14 @@ export class Clipboard {
     this.shown = "";
   }
 
-  /** A madeira, o prendedor, a caneta e o papel com a faixa da cor do tamanho. */
-  private board(size: string, paper: HTMLElement[], bar: HTMLElement[]): HTMLElement {
+  /** "faltam 412 de 1.000", sempre à vista: o campo para no limite, nunca corta escondido. */
+  private countComment(): void {
+    this.commentCounter.textContent = remainingOf(this.comment.value.length, COMMENT_MAX);
+  }
+
+  /** A madeira, o prendedor, a caneta e o papel com a faixa da cor do tamanho. Lendo uma ficha, a
+   * prancheta é maior (660 px; a do novo pedido continua com 580). */
+  private board(size: string, paper: HTMLElement[], bar: HTMLElement[], reading = false): HTMLElement {
     const clip = el("img", { className: "retro-clip-clamp" });
     clip.src = "/tela/prendedor.png";
     clip.alt = "";
@@ -251,7 +296,7 @@ export class Clipboard {
     pen.alt = "";
     return el(
       "div",
-      { className: "retro-clipboard" },
+      { className: `retro-clipboard${reading ? " read" : ""}` },
       clip,
       pen,
       el("div", { className: `retro-paper tam-${size}` }, el("div", { className: "retro-paper-stripe" }), ...paper),
@@ -426,17 +471,44 @@ export class Clipboard {
     const text = (value: string, className: string): HTMLElement =>
       el("div", { className: `retro-hand ${className}${value === "" ? " empty" : ""}` }, value === "" ? "—" : value);
     const from = nameOf(state, ticket.author, "Gerente");
-    const routeLine = el("p", { className: "retro-paper-route" }, ...route(state, from, ticket.owner ?? devOf(state)));
-    if (ticket.owner !== undefined) {
-      routeLine.append(" Está com ", strong(nameOf(state, ticket.owner, "o dev")), ".");
+    // O cabeçalho: "Pedido #11", o carimbo do estado e, se a tela sabe, quando foi escrito.
+    const title = el("h2", { className: "retro-paper-title" }, `Pedido ${number}`);
+    title.id = "retro-clip-title";
+    this.element.setAttribute("aria-labelledby", title.id);
+    const written = writtenOf(state, ctx.timeline, ticket.id);
+    const head = el(
+      "header",
+      { className: "retro-paper-head" },
+      el("div", {}, el("div", { className: "retro-paper-kicker" }, "Campsverso · ficha de pedido"), title),
+      el(
+        "div",
+        { className: "retro-paper-number" },
+        el("span", { className: `retro-stamp ${ticket.state}` }, stateLabel(ticket.state)),
+        written === undefined ? undefined : el("span", { className: "retro-paper-when" }, written),
+      ),
+    );
+    // De quem para quem e, à direita, com quem está.
+    const owner = ticket.owner;
+    const route_ = el("div", { className: "retro-paper-route" }, el("p", {}, ...route(state, from, owner ?? devOf(state))));
+    if (owner !== undefined) {
+      const face = this.faces?.url(owner);
+      const pill = el("span", { className: "retro-with" });
+      if (face !== undefined) {
+        const picture = el("img", { className: "retro-with-face" });
+        picture.src = face;
+        picture.alt = "";
+        pill.append(picture);
+      }
+      pill.append(`com ${nameOf(state, owner, "o dev")}`);
+      route_.append(pill);
     }
     const paper: HTMLElement[] = [
-      this.header("Ficha do pedido", number, el("span", { className: `retro-paper-state ${ticket.state}` }, stateLabel(ticket.state))),
-      routeLine,
+      head,
+      route_,
       el("div", { className: "retro-field" }, label("Título"), text(ticket.title, "retro-rule")),
       el("div", { className: "retro-field" }, label("O que fazer"), text(ticket.description, "retro-lined")),
       el("div", { className: "retro-field" }, label("Teste de aceite", undefined, "como você vê que ficou pronto"), text(ticket.acceptance, "retro-lined")),
-      el("div", { className: "retro-field" }, label("Tamanho", "retro-size-label"), this.sizes(isSize(ticket.size) ? ticket.size : "M", undefined)),
+      el("div", { className: "retro-field retro-field-row" }, label("Tamanho", "retro-size-label"), this.sizes(isSize(ticket.size) ? ticket.size : "M", undefined)),
     ];
     const chosen = handsLine(ticket.harness, ticket.model);
     if (chosen !== undefined) {
@@ -445,26 +517,26 @@ export class Clipboard {
     if (ticket.comment !== undefined) {
       paper.push(el("p", { className: "retro-hand retro-returned" }, `Devolvido: ${ticket.comment}`));
     }
-    const extras: HTMLElement[] = [];
-    if (ticket.pr !== undefined) {
-      extras.push(pullRequestPill(ticket.pr, ctx.art));
-    }
-    const ref = ticket.patch;
-    if (ref !== undefined && (ticket.state === "entregue" || ticket.state === "aceito")) {
-      const see = el("button", { className: "retro-button" }, "Ver o patch");
-      see.type = "button";
-      see.addEventListener("click", () => { this.actions.patch(`Pedido ${number}: ${ticket.title}`, ref); });
-      extras.push(see);
-    }
-    if (extras.length > 0) {
-      paper.push(el("div", { className: "retro-paper-extras" }, ...extras));
+    // O PR e o patch num recorte grampeado no papel.
+    const staple = this.staple(ticket, number, ctx.art);
+    if (staple !== undefined) {
+      paper.push(staple);
     }
     const bar: HTMLElement[] = [this.closeButton(), el("span", { className: "retro-clip-spacer" })];
     if (ctx.manager && ticket.state === "entregue" && underway) {
       bar.push(el("span", { className: "retro-clip-note" }, "O gerente está indo ao quadro."));
     } else if (ctx.manager && ticket.state === "entregue") {
+      // A devolução maior (ADR-0092): o "O que falta" no papel, do tamanho do pedido.
+      paper.push(
+        el(
+          "div",
+          { className: "retro-field retro-giveback" },
+          el("div", { className: "retro-field-top" }, label("O que falta", "retro-missing-label", "para devolver"), this.commentCounter),
+          this.comment,
+        ),
+      );
       const pr = ticket.pr;
-      const give = el("button", { className: "retro-button" }, "Devolver");
+      const give = el("button", { className: "retro-button retro-give" }, "Devolver");
       give.type = "button";
       give.addEventListener("click", () => {
         const comment = this.comment.value.trim();
@@ -475,12 +547,12 @@ export class Clipboard {
         this.actions.giveBack(ticket.id, comment);
         this.close();
       });
-      bar.push(this.comment, give);
+      bar.push(give);
       // Com o PR aberto, aceitar é mesclar no GitHub (ADR-0083): o quadro não aceita.
       if (pr?.state === "aberto") {
-        bar.push(el("span", { className: "retro-clip-note" }, `Aceite mesclando o PR #${String(pr.number)}`));
+        bar.push(el("span", { className: "retro-clip-note retro-clip-merge" }, "Aceite mesclando o PR no GitHub: o quadro só acompanha."));
       } else {
-        const accept = el("button", { className: "retro-take retro-put" }, "Aceitar");
+        const accept = el("button", { className: "retro-take retro-put retro-accept" }, "Aceitar");
         accept.type = "button";
         accept.addEventListener("click", () => {
           this.actions.accept(ticket.id);
@@ -489,12 +561,54 @@ export class Clipboard {
         bar.push(accept);
       }
     }
-    this.element.replaceChildren(this.board(ticket.size, paper, bar));
+    const scroll = this.element.querySelector(".retro-paper")?.scrollTop ?? 0;
+    this.element.replaceChildren(this.board(ticket.size, paper, bar, true));
+    const sheet = this.element.querySelector(".retro-paper");
+    if (sheet !== null) {
+      sheet.scrollTop = scroll; // o mundo andou; o papel fica onde o gerente lia
+    }
+    grow(this.comment, 3, 8);
     // O desenho novo não tira o foco de quem escrevia o que falta.
     if (focused === this.comment) {
       this.comment.focus();
     } else if (this.element.open && !this.element.contains(focused)) {
       this.element.querySelector<HTMLElement>(".retro-clip-close")?.focus();
     }
+  }
+
+  /** O recorte grampeado: o selo do PR em 4x, o link para o GitHub e o "Ver o patch". */
+  private staple(ticket: TicketView, number: string, art: ArtManifest | undefined): HTMLElement | undefined {
+    const pr = ticket.pr;
+    const ref = ticket.patch;
+    const patch = ref !== undefined && (ticket.state === "entregue" || ticket.state === "aceito");
+    if (pr === undefined && !patch) {
+      return undefined;
+    }
+    const parts: HTMLElement[] = [];
+    if (pr !== undefined) {
+      const badge = badgeOfPullRequest(pr);
+      const seal = badge === undefined ? undefined : sealOf(badge, art, 4);
+      if (seal !== undefined) {
+        parts.push(seal);
+      }
+      const line = stapleLine(pr);
+      if (PR_URL.test(pr.url)) {
+        const link = el("a", { className: "retro-staple-link" }, line);
+        link.href = pr.url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        parts.push(link, el("span", { className: "retro-staple-where" }, "no GitHub"));
+      } else {
+        parts.push(el("span", { className: "retro-staple-link" }, line));
+      }
+    }
+    parts.push(el("span", { className: "retro-clip-spacer" }));
+    if (patch) {
+      const see = el("button", { className: "retro-button" }, "Ver o patch");
+      see.type = "button";
+      see.addEventListener("click", () => { this.actions.patch(`Pedido ${number}: ${ticket.title}`, ref); });
+      parts.push(see);
+    }
+    return el("div", { className: "retro-staple" }, ...parts);
   }
 }

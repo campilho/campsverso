@@ -2467,6 +2467,34 @@ class OfficeTicketReturnedV1(BaseModel):
     """
 
 
+class OfficeTicketReturnedV2(BaseModel):
+    """
+    O gerente devolveu um pedido entregue (ADR-0078), ou o PR dele foi fechado sem mesclar (ADR-0083): o pedido volta para "a fazer", com o comentário. Igual ao v1, com o comentário até 1.000 caracteres, o mesmo da descrição do pedido (ADR-0092): a ficha aberta tem um campo do tamanho do pedido. O v1, até 280, fica para os dias antigos.
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    ticket_id: Annotated[
+        str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")
+    ]
+    """
+    O pedido: a entidade no quadro.
+    """
+    number: Annotated[int, Field(ge=1)]
+    """
+    O número do pedido, na ordem em que foi escrito.
+    """
+    by: Annotated[str, Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId")]
+    """
+    Id legível e estável de uma entidade: camps, plot-e-03, bed.
+    """
+    comment: Annotated[str, Field(max_length=1000, min_length=1)]
+    """
+    O que falta, nas palavras do gerente.
+    """
+
+
 class OfficeTicketTakenV1(BaseModel):
     """
     O dev pegou um pedido do quadro (ADR-0078): o pedido passa a "fazendo".

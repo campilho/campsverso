@@ -675,6 +675,17 @@ channels:
     messages:
       OfficeTicketReturnedV1:
         $ref: '#/components/messages/OfficeTicketReturnedV1'
+  OfficeTicketReturnedV2:
+    address: campsverso.{worldid}.world.office.ticket.returned.v2
+    title: campsverso.office.ticket.returned.v2
+    servers:
+    - $ref: '#/servers/local'
+    parameters:
+      worldid:
+        $ref: '#/components/parameters/worldid'
+    messages:
+      OfficeTicketReturnedV2:
+        $ref: '#/components/messages/OfficeTicketReturnedV2'
   OfficeTicketTakenV1:
     address: campsverso.{worldid}.world.office.ticket.taken.v1
     title: campsverso.office.ticket.taken.v1
@@ -1599,6 +1610,13 @@ operations:
       $ref: '#/channels/OfficeTicketReturnedV1'
     messages:
     - $ref: '#/channels/OfficeTicketReturnedV1/messages/OfficeTicketReturnedV1'
+    x-producer: kernel
+  sendOfficeTicketReturnedV2:
+    action: send
+    channel:
+      $ref: '#/channels/OfficeTicketReturnedV2'
+    messages:
+    - $ref: '#/channels/OfficeTicketReturnedV2/messages/OfficeTicketReturnedV2'
     x-producer: kernel
   sendOfficeTicketTakenV1:
     action: send
@@ -4464,6 +4482,34 @@ components:
           type: string
           minLength: 1
           maxLength: 280
+          description: O que falta, nas palavras do gerente.
+    OfficeTicketReturnedV2:
+      title: OfficeTicketReturnedV2
+      description: 'O gerente devolveu um pedido entregue (ADR-0078), ou o PR dele foi fechado sem mesclar
+        (ADR-0083): o pedido volta para "a fazer", com o comentário. Igual ao v1, com o comentário até
+        1.000 caracteres, o mesmo da descrição do pedido (ADR-0092): a ficha aberta tem um campo do tamanho
+        do pedido. O v1, até 280, fica para os dias antigos.'
+      type: object
+      additionalProperties: false
+      required:
+      - ticket_id
+      - number
+      - by
+      - comment
+      properties:
+        ticket_id:
+          $ref: '#/components/schemas/EntityId'
+          description: 'O pedido: a entidade no quadro.'
+        number:
+          type: integer
+          minimum: 1
+          description: O número do pedido, na ordem em que foi escrito.
+        by:
+          $ref: '#/components/schemas/EntityId'
+        comment:
+          type: string
+          minLength: 1
+          maxLength: 1000
           description: O que falta, nas palavras do gerente.
     OfficeTicketTakenV1:
       title: OfficeTicketTakenV1
@@ -7548,6 +7594,18 @@ components:
       contentType: application/json
       payload:
         $ref: '#/components/schemas/OfficeTicketReturnedV1'
+      x-visibility: world
+      x-producer: kernel
+    OfficeTicketReturnedV2:
+      name: campsverso.office.ticket.returned.v2
+      title: OfficeTicketReturnedV2
+      summary: 'O gerente devolveu um pedido entregue (ADR-0078), ou o PR dele foi fechado sem mesclar
+        (ADR-0083): o pedido volta para "a fazer", com o comentário. Igual ao v1, com o comentário até
+        1.000 caracteres, o mesmo da descrição do pedido (ADR-0092): a ficha aberta tem um campo do tamanho
+        do pedido. O v1, até 280, fica para os dias antigos.'
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/OfficeTicketReturnedV2'
       x-visibility: world
       x-producer: kernel
     OfficeTicketTakenV1:

@@ -33,7 +33,7 @@ def test_um_dia_de_pedidos_do_quadro_a_entrega(day: Pipeline) -> None:
     pipeline = day
     # O roteiro do gerente: três pedidos; o terceiro volta uma vez e é refeito.
     assert _count(pipeline, "campsverso.office.ticket.created.v1") == 3
-    assert _count(pipeline, "campsverso.office.ticket.returned.v1") == 1
+    assert _count(pipeline, "campsverso.office.ticket.returned.v2") == 1
     assert _count(pipeline, "campsverso.office.ticket.delivered.v1") == 4
     assert _count(pipeline, "campsverso.office.ticket.accepted.v1") == 3
     assert pipeline.of_type("action.rejected.v1") == []

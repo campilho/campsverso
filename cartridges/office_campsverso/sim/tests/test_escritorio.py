@@ -326,11 +326,17 @@ def test_o_gerente_aceita_ou_devolve_com_o_comentario() -> None:
         core, "gerente", "return_ticket", {"target": "pedido-001", "comment": " "}, HUMAN["id"]
     )
     assert _only(empty, "action.rejected")[0]["reason"] == "invalid_params"
-    comment = "Falta achar sem diferenciar maiúsculas."
+    # A devolução maior (ADR-0092): até 1.000 caracteres, o mesmo da descrição; acima, recusa.
+    too_long = {"target": "pedido-001", "comment": "x" * 1001}
+    long = _act(core, "gerente", "return_ticket", too_long, HUMAN["id"])
+    assert _only(long, "action.rejected")[0]["reason"] == "invalid_params"
+    comment = "Falta achar sem diferenciar maiúsculas. " * 20
+    comment = comment[:1000].strip()
     returned = _act(
         core, "gerente", "return_ticket", {"target": "pedido-001", "comment": comment}, HUMAN["id"]
     )
-    assert _only(returned, "office.ticket.returned")[0]["comment"] == comment
+    assert _only(returned, "office.ticket.returned.v2")[0]["comment"] == comment
+    assert _only(returned, "office.ticket.returned.v1") == []
     attributes = core.world.entity_map["pedido-001"].attributes
     assert (attributes["estado"], attributes["dono"], attributes["trabalho"]) == (
         "a_fazer",

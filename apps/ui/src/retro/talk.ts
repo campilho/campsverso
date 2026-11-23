@@ -16,7 +16,9 @@ const STEP = "campsverso.workshop.step.v2";
 const FINISHED = "campsverso.workshop.session_finished.v1";
 const TESTS = /pytest|\btests?\b/i;
 // Os fatos que viram uma linha do sistema na conversa: o quadro, o PR, a convocação e os robôs.
-const SYSTEM = /^campsverso\.office\.(ticket|staff|light)\.[a-z_]+\.v1$/;
+// Os fatos do quadro, da convocação e da luz, em qualquer versão: o `ticket.returned.v2` (ADR-0092)
+// entra como o v1 dos dias antigos.
+const SYSTEM = /^campsverso\.office\.(ticket|staff|light)\.[a-z_]+\.v\d+$/;
 const LIGHT = "campsverso.office.light.switched.v1";
 
 /** Quem está na conversa: os avatares na sala, menos quem joga. */

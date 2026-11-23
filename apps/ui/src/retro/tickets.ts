@@ -2,10 +2,11 @@
  * funções puras: as abas, o cabeçalho, as fichas fantasmas, o número de prévia, a linha de cada
  * ficha, o selo do PR e o rascunho. Nada aqui decide coisa do mundo: quem numera e quem aceita é o
  * kernel. */
-import type { ObserverState } from "@campsverso/contracts";
+import type { EnvelopeV1, ObserverState } from "@campsverso/contracts";
 
-import { COLUMNS, type PullRequestView, type TicketView } from "../panels/office.ts";
+import { COLUMNS, pullRequestLine, type PullRequestView, type TicketView } from "../panels/office.ts";
 import type { Step } from "../queue.ts";
+import { clockText, tickSeconds } from "../simclock.ts";
 
 export type Size = "P" | "M" | "G";
 
@@ -117,6 +118,72 @@ export function pinOf(n: number): "vermelho" | "azul" {
 /** O contador do campo, só depois de 80% do limite: "812/1000". */
 export function counterOf(length: number, max: number): string | undefined {
   return length > max * 0.8 ? `${String(length)}/${String(max)}` : undefined;
+}
+
+/** A ficha quadrada da cortiça (briefing-tela-2.md, §7): o número, o tamanho, o título e, embaixo,
+ * só ícones. O resto (a descrição, o aceite, o PR por extenso, os botões) fica na ficha aberta. */
+export interface SquareCard {
+  readonly number: string;
+  readonly size: string;
+  readonly title: string;
+  /** O que o leitor de tela diz da ficha, que é um botão só. */
+  readonly label: string;
+  /** O dono, cujo rosto vai embaixo. */
+  readonly owner: string | undefined;
+  /** O selo do PR (a folha `selos`) e o texto dele, no `title`. */
+  readonly seal: string | undefined;
+  readonly sealTitle: string | undefined;
+  /** O pedido voltou do gerente e ainda não foi aceito: "devolvido", em letra de mão vermelha. */
+  readonly returned: boolean;
+}
+
+export function squareOf(ticket: TicketView): SquareCard {
+  const name = SIZES.find(([size]) => size === ticket.size)?.[1];
+  const number = `#${String(ticket.number)}`;
+  const returned = ticket.comment !== undefined && ticket.state !== "aceito";
+  const parts = [`Pedido ${String(ticket.number)}: ${ticket.title}`, name === undefined ? undefined : `tamanho ${name}`, returned ? "devolvido" : undefined];
+  return {
+    number,
+    size: ticket.size,
+    title: ticket.title,
+    label: parts.filter((part) => part !== undefined).join(", "),
+    owner: ticket.owner,
+    seal: badgeOfPullRequest(ticket.pr),
+    sealTitle: ticket.pr === undefined ? undefined : pullRequestLine(ticket.pr),
+    returned,
+  };
+}
+
+const THOUSANDS = new Intl.NumberFormat("pt-BR");
+
+/** O contador da devolução (ADR-0092), sempre à vista: "faltam 412 de 1.000". */
+export function remainingOf(length: number, max: number): string {
+  const left = Math.max(0, max - length);
+  return `${left === 1 ? "falta" : "faltam"} ${THOUSANDS.format(left)} de ${THOUSANDS.format(max)}`;
+}
+
+/** "escrito no Dia 11 · 09:12", pelo fato de quando o pedido nasceu, se ele ainda está na linha do
+ * tempo da tela; sem ele, nada (o pedido não guarda a hora em que foi escrito). */
+export function writtenOf(state: ObserverState, timeline: readonly EnvelopeV1[], ticketId: string): string | undefined {
+  const created = timeline.find(
+    (event) => event.type === "campsverso.office.ticket.created.v1" && (event.data as { ticket_id?: unknown }).ticket_id === ticketId,
+  );
+  const tick = created?.tick;
+  const hour = tick === undefined ? "--:--" : clockText(state, tick).slice(0, 5);
+  if (tick === undefined || hour === "--:--") {
+    return undefined;
+  }
+  // O dia do mundo de então: o de hoje menos as viradas de meia-noite entre os dois ticks.
+  const since = (state.tick - tick) * tickSeconds(state.session);
+  const today = secondsOfDay(state);
+  const back = since <= today ? 0 : Math.ceil((since - today) / 86_400);
+  return `escrito no Dia ${String(state.day - back)} · ${hour}`;
+}
+
+/** Quantos segundos do dia de hoje já passaram no tick do estado. */
+function secondsOfDay(state: ObserverState): number {
+  const [h = 0, m = 0, sec = 0] = clockText(state, state.tick).split(":").map(Number);
+  return h * 3600 + m * 60 + sec;
 }
 
 /** O estado do pedido na etiqueta da ficha aberta, em caixa alta: "ENTREGUE". */

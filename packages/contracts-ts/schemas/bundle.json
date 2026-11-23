@@ -3179,6 +3179,38 @@
         }
       }
     },
+    "OfficeTicketReturnedV2": {
+      "title": "OfficeTicketReturnedV2",
+      "description": "O gerente devolveu um pedido entregue (ADR-0078), ou o PR dele foi fechado sem mesclar (ADR-0083): o pedido volta para \"a fazer\", com o comentário. Igual ao v1, com o comentário até 1.000 caracteres, o mesmo da descrição do pedido (ADR-0092): a ficha aberta tem um campo do tamanho do pedido. O v1, até 280, fica para os dias antigos.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticket_id",
+        "number",
+        "by",
+        "comment"
+      ],
+      "properties": {
+        "ticket_id": {
+          "$ref": "#/$defs/EntityId",
+          "description": "O pedido: a entidade no quadro."
+        },
+        "number": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "O número do pedido, na ordem em que foi escrito."
+        },
+        "by": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "comment": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "description": "O que falta, nas palavras do gerente."
+        }
+      }
+    },
     "OfficeTicketTakenV1": {
       "title": "OfficeTicketTakenV1",
       "description": "O dev pegou um pedido do quadro (ADR-0078): o pedido passa a \"fazendo\".",

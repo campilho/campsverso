@@ -1,15 +1,15 @@
 /** O quadro dos pedidos da tela retrô (docs/design/briefing-tela.md, §3.4): a moldura de madeira, o
- * cabeçalho, as quatro abas e as fichas na cortiça. Cada ficha é um botão que abre a prancheta em
- * leitura; a pílula do PR, ao lado dele, é o link para o GitHub. A ficha fantasma é o pedido que o
- * gerente está indo escrever, até o kernel o publicar. */
+ * cabeçalho, as quatro abas e as fichas na cortiça. Desde a ADR-0092 (briefing-tela-2.md, §7), as
+ * fichas são quadradas: o número, o tamanho, o título e, embaixo, só ícones (o rosto do dono, o selo
+ * do PR, "devolvido"). A ficha inteira é um botão que abre a ficha aberta, onde fica o resto, com o
+ * link do PR. A ficha fantasma é o pedido que o gerente está indo escrever, até o kernel o publicar. */
 import type { ObserverState } from "@campsverso/contracts";
 
 import type { ArtManifest } from "../art/manifest.ts";
 import { el } from "../dom.ts";
-import { PR_URL, pullRequestLine, type TicketView } from "../panels/office.ts";
-import { badgeOfPullRequest, boardSummary, nextTab, pinOf, tabsOf, whoLine, type Ghost } from "./tickets.ts";
-
-const BADGE_SCALE = 3;
+import type { TicketView } from "../panels/office.ts";
+import type { FaceCache } from "./faces.ts";
+import { boardSummary, nextTab, pinOf, squareOf, tabsOf, type Ghost } from "./tickets.ts";
 
 export interface BoardInput {
   readonly state: ObserverState;
@@ -26,14 +26,16 @@ export class RetroBoard {
   private readonly panel = el("div", { className: "retro-cork" });
   private readonly cards = el("ul", { className: "retro-cards" });
   private readonly open: (ticketId: string) => void;
+  private readonly faces: FaceCache;
   private active = "a_fazer";
   private shown = "";
   private ghostsShown = 0;
   private art: ArtManifest | undefined;
   private last: BoardInput | undefined;
 
-  constructor(open: (ticketId: string) => void) {
+  constructor(open: (ticketId: string) => void, faces: FaceCache) {
     this.open = open;
+    this.faces = faces;
     this.tablist.setAttribute("role", "tablist");
     this.tablist.setAttribute("aria-label", "As colunas do quadro");
     this.panel.setAttribute("role", "tabpanel");
@@ -76,20 +78,16 @@ export class RetroBoard {
       this.active = "a_fazer";
     }
     this.ghostsShown = input.ghosts.length;
-    const names = input.tickets.map((t) => whoLine(t, input.state));
-    const key = JSON.stringify([this.active, input.tickets, input.ghosts, names]);
+    const key = JSON.stringify([this.active, input.tickets, input.ghosts, this.faces.version]);
     if (key === this.shown) {
       return;
     }
     this.shown = key;
     this.summary.textContent = boardSummary(input.tickets);
     this.renderTabs(input.tickets);
-    const mine = input.tickets
-      .map((ticket, i) => ({ ticket, who: names[i] ?? "" }))
-      .filter(({ ticket }) => ticket.state === this.active)
-      .reverse(); // a mais nova em cima
+    const mine = input.tickets.filter((ticket) => ticket.state === this.active).reverse(); // a mais nova em cima
     const ghosts = this.active === "a_fazer" ? input.ghosts.map((ghost) => this.ghost(ghost)) : [];
-    const cards = mine.map(({ ticket, who }) => this.card(ticket, who));
+    const cards = mine.map((ticket) => this.card(ticket));
     this.cards.replaceChildren(...ghosts, ...cards);
     if (ghosts.length === 0 && cards.length === 0) {
       this.cards.append(el("li", { className: "retro-cards-empty" }, "Nenhum pedido aqui."));
@@ -132,66 +130,67 @@ export class RetroBoard {
     }
   }
 
-  private card(ticket: TicketView, who: string): HTMLElement {
-    const number = `#${String(ticket.number)}`;
+  private card(ticket: TicketView): HTMLElement {
+    const square = squareOf(ticket);
+    const icons: HTMLElement[] = [];
+    const face = square.owner === undefined ? undefined : this.faces.url(square.owner);
+    if (face !== undefined) {
+      const picture = el("img", { className: "retro-ficha-face" });
+      picture.src = face;
+      picture.alt = "";
+      icons.push(picture);
+    }
+    const seal = square.seal === undefined ? undefined : sealOf(square.seal, this.art, 3);
+    if (seal !== undefined) {
+      seal.title = square.sealTitle ?? "";
+      icons.push(seal);
+    }
+    if (square.returned) {
+      icons.push(el("span", { className: "retro-hand retro-ficha-returned" }, "devolvido"));
+    }
     const open = el(
       "button",
       { className: "retro-ficha-open" },
-      el("span", { className: "retro-ficha-top" }, el("span", {}, number), el("span", {}, ticket.size)),
-      el("span", { className: "retro-ficha-title" }, ticket.title),
-      who === "" ? undefined : el("span", { className: "retro-ficha-who" }, who),
+      el("span", { className: "retro-ficha-top" }, el("span", { className: "retro-ficha-no" }, square.number), el("span", { className: "retro-ficha-size" }, square.size)),
+      el("span", { className: "retro-ficha-title" }, square.title),
+      el("span", { className: "retro-ficha-icons" }, ...icons),
     );
     open.type = "button";
     open.setAttribute("aria-haspopup", "dialog");
+    open.setAttribute("aria-label", square.label);
     open.addEventListener("click", () => { this.open(ticket.id); });
-    const item = el("li", { className: `retro-ficha tam-${ticket.size}` }, el("i", { className: `retro-pin ${pinOf(ticket.number)}` }), open);
-    const pr = ticket.pr;
-    if (pr !== undefined) {
-      item.append(pullRequestPill(pr, this.art));
-    }
-    return item;
+    return el("li", { className: `retro-ficha tam-${ticket.size}` }, el("i", { className: `retro-pin ${pinOf(ticket.number)}` }), open);
   }
 
   private ghost(ghost: Ghost): HTMLElement {
-    return el(
+    const card = el(
       "li",
-      { className: `retro-ficha fantasma tam-${ghost.size}` },
+      { className: `retro-ficha fantasma tam-${ghost.size}`, title: "o gerente está indo ao quadro" },
       el(
         "div",
         { className: "retro-ficha-open" },
-        el("span", { className: "retro-ficha-top" }, el("span", {}, "#…"), el("span", {}, ghost.size)),
+        el("span", { className: "retro-ficha-top" }, el("span", { className: "retro-ficha-no" }, "#…"), el("span", { className: "retro-ficha-size" }, ghost.size)),
         el("span", { className: "retro-ficha-title" }, ghost.title),
-        el("span", { className: "retro-ficha-who" }, "o gerente está indo ao quadro"),
       ),
     );
+    return card;
   }
 }
 
-/** A pílula do PR: o selo da folha `selos` em 3x e o texto de `pullRequestLine`, como link quando o
- * endereço é de um PR no GitHub. Escura com o PR aberto, azul com ele mesclado. */
-export function pullRequestPill(pr: TicketView["pr"] & object, art: ArtManifest | undefined): HTMLElement {
-  const line = pullRequestLine(pr);
-  const badge = badgeOfPullRequest(pr);
-  const parts: HTMLElement[] = [];
+/** O selo do PR, da folha `selos` (6 x 6), na escala dada: 3x na ficha quadrada, 4x na aberta. */
+export function sealOf(badge: string, art: ArtManifest | undefined, scale: number): HTMLElement | undefined {
   const spec = art?.cards?.badge;
   const sheet = spec === undefined ? undefined : art?.sheets?.[spec.sheet];
-  const frame = badge === undefined ? undefined : spec?.frames[badge];
-  if (sheet !== undefined && frame !== undefined) {
-    const seal = el("span", { className: "retro-seal" });
-    const size = 6 * BADGE_SCALE;
-    seal.style.backgroundImage = `url(${sheet.image})`;
-    seal.style.backgroundSize = `auto ${String(size)}px`;
-    seal.style.backgroundPosition = `-${String(frame * size)}px 0`;
-    parts.push(seal);
+  const frame = spec?.frames[badge];
+  if (sheet === undefined || frame === undefined) {
+    return undefined;
   }
-  parts.push(el("span", {}, line));
-  const className = `retro-pr ${pr.state}`;
-  if (PR_URL.test(pr.url)) {
-    const anchor = el("a", { className }, ...parts);
-    anchor.href = pr.url;
-    anchor.target = "_blank";
-    anchor.rel = "noopener noreferrer";
-    return anchor;
-  }
-  return el("span", { className }, ...parts);
+  const size = 6 * scale;
+  const seal = el("span", { className: "retro-seal" });
+  seal.style.width = `${String(size)}px`;
+  seal.style.height = `${String(size)}px`;
+  seal.style.backgroundImage = `url(${sheet.image})`;
+  seal.style.backgroundSize = `auto ${String(size)}px`;
+  seal.style.backgroundPosition = `-${String(frame * size)}px 0`;
+  return seal;
 }

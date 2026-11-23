@@ -25,9 +25,10 @@ def test_catalogo_tem_77_eventos_e_11_comandos(contracts: catalog.Contracts) -> 
     tick em milissegundos (ADR-0081), e o passo na oficina e o robô da bancada, que começa e
     termina (ADR-0080), e os quatro do PR do dev, com o comando do vigia (ADR-0083, ADR-0084), e a
     troca de versão, com o comando dela (ADR-0083), e os dois da convocação (a parte 5 do M25), e a
-    luz da sala (ADR-0088), e o passo das mãos e o fim da sessão (ADR-0089)."""
+    luz da sala (ADR-0088), e o passo das mãos e o fim da sessão (ADR-0089), e a devolução maior
+    (ADR-0092)."""
     kinds = [f.kind for f in contracts.by_type.values()]
-    assert kinds.count("event") == 88
+    assert kinds.count("event") == 89
     assert kinds.count("command") == 13
 
 

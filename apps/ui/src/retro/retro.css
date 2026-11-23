@@ -958,9 +958,10 @@ body.retro .retro-board-write .retro-write:disabled .retro-pin {
   image-rendering: pixelated;
 }
 
+/* As fichas quadradas (briefing-tela-2.md, §7): 3 por linha a 522 px, 4 a 570. */
 .retro-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(196px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
   gap: 16px 12px;
   margin: 0;
   padding: 18px 12px 14px;
@@ -978,14 +979,15 @@ body.retro .retro-board-write .retro-write:disabled .retro-pin {
   color: var(--grafite);
 }
 
-/* A ficha compacta: o papel, o pino, a faixa da cor do tamanho. */
+/* A ficha quadrada: o papel, o pino, a faixa da cor do tamanho; a ficha inteira é o botão. */
 .retro-ficha {
   --tamanho: var(--amarelo);
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 0 0 10px;
+  aspect-ratio: 1;
+  min-width: 0;
+  padding: 0;
   border: 2px solid var(--contorno);
   border-top: 8px solid var(--tamanho);
   border-radius: 3px;
@@ -1030,9 +1032,12 @@ body.retro .retro-board-write .retro-write:disabled .retro-pin {
 .retro-ficha-open {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   width: 100%;
-  padding: 8px 12px 0;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  padding: 8px 10px;
   border: 0;
   background: transparent;
   color: var(--escuro);
@@ -1044,20 +1049,66 @@ body.retro .retro-board-write .retro-write:disabled .retro-pin {
 .retro-ficha-top {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+}
+
+.retro-ficha-no {
   font: 400 12px var(--mono);
   color: var(--grafite);
 }
 
+/* O tamanho num quadradinho de 18 px da cor dele, com a letra em Inter 800. */
+.retro-ficha-size {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  box-sizing: border-box;
+  border: 2px solid var(--contorno);
+  border-radius: 3px;
+  background: var(--tamanho);
+  font: 800 11px var(--texto);
+  color: var(--escuro);
+}
+
+/* O título: no máximo 3 linhas, sem encolher. */
 .retro-ficha-title {
-  font-size: 14px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  font-size: 12.5px;
   font-weight: 600;
   line-height: 1.3;
   overflow-wrap: anywhere;
 }
 
-.retro-ficha-who {
-  font-size: 12px;
-  color: var(--grafite);
+/* Embaixo, só ícones: o rosto do dono, o selo do PR e "devolvido". */
+.retro-ficha-icons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 20px;
+  margin-top: auto;
+}
+
+.retro-ficha-icons:empty {
+  display: none;
+}
+
+.retro-ficha-face {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  background: #86a2cb;
+  image-rendering: pixelated;
+}
+
+.retro-ficha-returned {
+  font-size: 15px;
+  line-height: 1;
+  color: var(--verm);
 }
 
 .retro-ficha.fantasma {
@@ -1071,30 +1122,6 @@ body.retro .retro-board-write .retro-write:disabled .retro-pin {
   cursor: default;
 }
 
-/* A pílula do PR, com o selo de 6 x 6 em 3x. */
-.retro-pr {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  align-self: flex-start;
-  margin: 0 12px;
-  padding: 3px 10px 3px 4px;
-  border-radius: 13px;
-  background: var(--escuro);
-  color: var(--cremeCl);
-  font-size: 12px;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.retro-pr.mesclado {
-  background: var(--azulEsc);
-}
-
-a.retro-pr:hover {
-  text-decoration: underline;
-}
-
 .retro-seal {
   flex: none;
   width: 18px;
@@ -1103,8 +1130,8 @@ a.retro-pr:hover {
   image-rendering: pixelated;
 }
 
-/* Com a conversa aumentada, o quadro vira uma fileira só, com rolagem de lado, e as fichas ficam
-   com o número, o tamanho e o título. */
+/* Com a conversa aumentada, o quadro vira uma fileira só de quadrados de 112 px, com rolagem de
+   lado. */
 .retro-right.talk-big .retro-board {
   flex: 0 0 auto; /* a altura de uma fileira; quem cede é a conversa */
   min-height: 0;
@@ -1112,7 +1139,7 @@ a.retro-pr:hover {
 
 .retro-right.talk-big .retro-cork {
   flex: none;
-  min-height: 108px; /* uma fileira, mesmo com a aba vazia */
+  min-height: 140px; /* uma fileira, mesmo com a aba vazia */
   overflow-x: auto;
   overflow-y: hidden;
 }
@@ -1120,22 +1147,9 @@ a.retro-pr:hover {
 .retro-right.talk-big .retro-cards {
   grid-template-columns: none;
   grid-auto-flow: column;
-  grid-auto-columns: 210px;
+  grid-auto-columns: 112px;
   width: max-content;
   padding: 14px 10px 10px;
-}
-
-.retro-right.talk-big .retro-ficha-title {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  min-height: 2.6em;
-  overflow: hidden;
-}
-
-.retro-right.talk-big .retro-ficha-who,
-.retro-right.talk-big .retro-pr {
-  display: none;
 }
 
 /* ------------------------------------------------------------------ a conversa (§3.5) */
@@ -1838,6 +1852,11 @@ body.retro:has(.retro-drawer.open) .retro-toasts {
   box-shadow: inset 0 4px 0 var(--madCl), inset 0 -5px 0 var(--madEsc), 0 6px 0 var(--contorno);
 }
 
+/* A ficha aberta (briefing-tela-2.md, §7): a prancheta maior. */
+.retro-clipboard.read {
+  width: 660px;
+}
+
 .retro-clip-clamp {
   position: absolute;
   top: -24px;
@@ -1931,11 +1950,89 @@ body.retro:has(.retro-drawer.open) .retro-toasts {
   background: var(--verdeEsc);
 }
 
+/* O carimbo do estado na ficha aberta: uma caixa de 3 px, em Pixelify 16, caixa alta e espaçado. */
+.retro-stamp {
+  --carimbo: var(--madMEsc);
+  padding: 2px 10px;
+  border: 3px solid var(--carimbo);
+  border-radius: 3px;
+  color: var(--carimbo);
+  font: 700 16px var(--pixel);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.retro-stamp.fazendo {
+  --carimbo: var(--madEsc);
+}
+
+.retro-stamp.entregue {
+  --carimbo: var(--verdeEsc);
+}
+
+.retro-stamp.aceito {
+  --carimbo: var(--azulEsc);
+}
+
+.retro-paper-when {
+  font-size: 12px;
+  color: var(--grafite);
+}
+
 .retro-paper-route {
   margin: 10px 0 12px;
   padding-bottom: 8px;
   border-bottom: 2px solid var(--contorno);
   font-size: 14px;
+}
+
+div.retro-paper-route {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+div.retro-paper-route p {
+  margin: 0;
+}
+
+/* "com Camps", com o rosto, à direita da linha de quem para quem. */
+.retro-with {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  padding: 2px 10px 2px 3px;
+  border: 2px solid var(--contorno);
+  border-radius: 14px;
+  background: var(--cremeCl);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.retro-with-face {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #86a2cb;
+  image-rendering: pixelated;
+}
+
+.retro-clipboard.read .retro-rule {
+  font-size: 24px;
+}
+
+.retro-field-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.retro-field-row .retro-sizes {
+  flex: 1 1 auto;
+  margin-top: 0;
 }
 
 .retro-field {
@@ -2132,22 +2229,64 @@ select.retro-pick {
   text-transform: none;
 }
 
+/* "Devolvido: …", em letra de mão vermelha, com uma faixa vermelha à esquerda. */
 .retro-returned {
   margin: 14px 0 0;
+  padding: 2px 0 2px 12px;
+  border-left: 4px solid var(--verm);
   font-size: 19px;
+  color: var(--verm);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* O PR e o patch num recorte tracejado, como um papel grampeado. */
+.retro-staple {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 10px 12px;
+  border: 2px dashed var(--begeEsc);
+  border-radius: 4px;
+  background: #f1e8cf;
+}
+
+.retro-staple-link {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--azulEsc);
+}
+
+.retro-staple-where {
+  font-size: 12px;
+  color: var(--grafite);
+}
+
+.retro-staple .retro-button {
+  height: 34px;
+  border-width: 2px;
+}
+
+/* A devolução maior (ADR-0092): o "O que falta" do tamanho do pedido, em papel pautado e na tinta
+   vermelha, com o contador sempre à vista. */
+.retro-giveback {
+  margin-top: 18px;
+  padding-top: 10px;
+  border-top: 2px dashed var(--vermCl);
+}
+
+.retro-giveback .retro-field-label {
   color: var(--verm);
 }
 
-.retro-paper-extras {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  margin-top: 14px;
+textarea.retro-missing {
+  --tinta: var(--verm);
+  min-height: 84px;
 }
 
-.retro-paper-extras .retro-pr {
-  margin: 0;
+.retro-remaining {
+  font-variant-numeric: tabular-nums;
 }
 
 .retro-clip-bar {
@@ -2188,17 +2327,20 @@ select.retro-pick {
   font-size: 17px;
 }
 
-.retro-missing {
-  flex: 1 1 160px;
-  min-width: 0;
-  height: 40px;
-  box-sizing: border-box;
-  padding: 0 10px;
-  border: 2px solid var(--contorno);
-  border-radius: 6px;
-  background: var(--cremeCl);
-  color: var(--escuro);
-  font: 14px var(--texto);
+/* Na barra: o "Devolver" num rosa claro, o "Aceitar" em verde e, com o PR aberto, a frase no lugar
+   do "Aceitar". */
+.retro-clip-bar .retro-give {
+  background: #f6d3cf;
+}
+
+.retro-accept {
+  background: var(--verdeCl);
+  box-shadow: inset 0 -4px 0 var(--verdeEsc), 0 3px 0 var(--contorno);
+}
+
+.retro-clip-merge {
+  flex: 1 0 100%;
+  text-align: right;
 }
 
 @media (max-width: 899px) {

@@ -75,7 +75,7 @@ Uma entidade `ticket` guardada no quadro, com os atributos:
 | `estado` | `a_fazer`, `fazendo`, `entregue` ou `aceito` |
 | `autor`, `dono` | quem escreveu e quem está fazendo |
 | `trabalho` | os segundos de trabalho já feitos |
-| `comentario` | o que o gerente disse ao devolver |
+| `comentario` | o que o gerente disse ao devolver, até 1.000 caracteres (ADR-0092; eram 280) |
 | `maos`, `modelo` | quem programa e com que modelo, escolhidos na prancheta (ADR-0089); sem escolha, valem os do mundo |
 
 ## 6. As ações
@@ -88,7 +88,7 @@ Uma entidade `ticket` guardada no quadro, com os atributos:
 | `work` | dev | ao lado da mesa | o que falta, ou um bloco (`seconds`) | trabalha; `partial`: parar guarda o feito |
 | `deliver` | dev | ao lado da mesa | 6 s | entrega o pedido terminado |
 | `accept_ticket` | gerente | ao lado do quadro | 6 s | aceita o entregue |
-| `return_ticket` | gerente | ao lado do quadro | 10 s | devolve com o comentário; o pedido volta a "a fazer" e o trabalho recomeça |
+| `return_ticket` | gerente | ao lado do quadro | 10 s | devolve com o comentário, até 1.000 caracteres; o pedido volta a "a fazer" e o trabalho recomeça (o `office.ticket.returned.v2`, ADR-0092) |
 | `drink` | todos | ao lado do bebedouro | 30 s | uma pausa da rotina, ilustrativa (ADR-0080) |
 | `coffee` | todos | ao lado da máquina de café | 2 min | um café, ilustrativo |
 | `restroom` | todos | ao lado da porta do banheiro, no corredor | 4 min | some atrás da porta, ilustrativo |

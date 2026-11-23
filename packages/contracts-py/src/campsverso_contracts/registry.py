@@ -500,6 +500,14 @@ CONTRACT_TYPES: Final[dict[str, ContractType]] = {
             models.OfficeTicketReturnedV1,
         ),
         ContractType(
+            "campsverso.office.ticket.returned.v2",
+            "event",
+            "world",
+            "kernel",
+            "contracts://events/office/ticket.returned.v2",
+            models.OfficeTicketReturnedV2,
+        ),
+        ContractType(
             "campsverso.office.ticket.taken.v1",
             "event",
             "world",

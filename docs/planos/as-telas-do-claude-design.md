@@ -202,3 +202,9 @@ O desenho fica conosco, no estilo que a prancheta já tem: não precisa do Claud
    - o relógio do sandbox (pausar e as velocidades) foi para a barra de cima, porque o painel não tem lugar para ele;
    - **a convocação no chip só aparece quando o dev está na visão:** na visão do operador, ou depois da convocação. Na visão do jogador, o dev fora da sala não vem no estado (o princípio 5), então o "Convocar o dev" fica ao lado do "Assumir";
    - no iPad e no celular, só o relógio mudou.
+3. **O quadro (22/nov):**
+   - a parede com quatro colunas (`decor.json`) e as fichas aceitas na quarta (`"aceito": 3`); os ícones da luz no balão; o interruptor do Claude Design no lugar do que o `office_art.py` desenhava;
+   - as fichas quadradas: a ficha inteira é um botão, com o rosto do dono, o selo do PR e "devolvido" embaixo; o link do PR foi para a ficha aberta;
+   - a ficha aberta na prancheta de 660 px, com o carimbo do estado, o "escrito no Dia 11 · 09:12" (pelo fato `ticket.created` da linha do tempo, quando ele ainda está lá), a pílula "com Tiago" e o PR grampeado;
+   - a devolução maior: o `office.ticket.returned.v2`, até 1.000 caracteres, nas duas portas da devolução (o gerente no quadro e o PR fechado sem mesclar); o "O que falta" no papel, na tinta vermelha, com "faltam 412 de 1.000";
+   - **um defeito antigo, achado ao testar:** o título do pedido vai até 80 caracteres, e o nome da entidade no contrato, até 64. Um título longo publicava um `entity.spawned.v1` inválido, e o kernel parava; no escritório vivo, cairia de novo a cada volta. O nome da ficha agora sai abreviado com reticências, e o título inteiro fica no atributo.

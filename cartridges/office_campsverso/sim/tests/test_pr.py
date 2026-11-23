@@ -1,6 +1,7 @@
 """O PR do dev no mundo (ADR-0083, ADR-0084): o vigia do GitHub relata cada mudança num PR, e o
 cartucho do escritório confere e muda o pedido. O aceite é mesclar."""
 
+import re
 from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -19,7 +20,8 @@ HEAD = "7c6b8ac0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6"
 
 
 def _only(facts: Sequence[Fact], event: str) -> list[dict[str, Any]]:
-    return [dict(f.data) for f in facts if f.type == f"campsverso.{event}.v1"]
+    wanted = f"campsverso.{event}" if re.search(r"\.v\d+$", event) else f"campsverso.{event}.v1"
+    return [dict(f.data) for f in facts if f.type == wanted]
 
 
 def _act(core: KernelCore, avatar: str, action: str, params: dict[str, Any], who: str) -> None:
@@ -131,7 +133,7 @@ def test_fechar_sem_mesclar_devolve_o_pedido() -> None:
     _opened(core)
     facts = _report(core, "closed")
     assert _only(facts, "office.ticket.pr_closed")
-    (returned,) = _only(facts, "office.ticket.returned")
+    (returned,) = _only(facts, "office.ticket.returned.v2")
     assert returned["comment"] == "O PR #12 foi fechado sem mesclar."
     attributes = core.world.entity_map["pedido-001"].attributes
     assert (attributes["estado"], attributes["dono"], attributes["pr_estado"]) == (

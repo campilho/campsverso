@@ -77,7 +77,8 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   await expect(clipboard).toBeHidden();
   // Enquanto o gerente vai ao quadro, a ficha fantasma fica em "A fazer"; depois, a de verdade.
   await expect(board.locator(".retro-ficha.fantasma")).toContainText("Ferramenta de busca");
-  await expect(board.getByRole("button", { name: /#1.*Ferramenta de busca/ })).toBeVisible({ timeout: 60_000 });
+  // A ficha quadrada é um botão só, com o número, o título e o tamanho no nome (ADR-0092).
+  await expect(board.getByRole("button", { name: /^Pedido 1: Ferramenta de busca, tamanho pequeno/ })).toBeVisible({ timeout: 60_000 });
   await expect(board.locator(".retro-ficha.fantasma")).toHaveCount(0);
 
   // O dev trabalha sentado: com o pedido em "Fazendo", o desenho dele chega na cadeira da mesa.
@@ -143,9 +144,10 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
 
   // A ficha aberta, na prancheta em leitura, e o "ver o patch" (ADR-0080): sem modelo, a sessão fixa
   // do dev-script na oficina registra o pedido num arquivo, e o patch vai ao depósito de entregas.
-  await board.getByRole("button", { name: /#1.*Ferramenta de busca/ }).click();
-  const card = page.getByRole("dialog", { name: "Ficha do pedido" });
-  await expect(card).toContainText("ENTREGUE");
+  await board.getByRole("button", { name: /^Pedido 1: Ferramenta de busca/ }).click();
+  const card = page.getByRole("dialog", { name: "Pedido #1" });
+  await expect(card.locator(".retro-stamp")).toHaveText("ENTREGUE"); // o carimbo do estado
+  await expect(card).toContainText("com Tiago");
   await expect(card).toContainText("Achar um arquivo do repositório pelo nome.");
   await expect(card).toContainText("Claude Code · Opus 5.5");
   await card.getByRole("button", { name: "Ver o patch" }).click();
@@ -245,6 +247,50 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   await page.screenshot({ path: `${SHOTS}/escritorio-operador.png` });
   await drawer.getByRole("button", { name: "Fechar o painel do operador" }).click();
   await expect(page).toHaveURL(/view=player/);
+});
+
+test("a ficha aberta: a devolução de 1.000 caracteres chega inteira ao quadro e ao dev (ADR-0092)", async ({ page }) => {
+  test.setTimeout(150_000);
+  await page.goto("/?assumir=1");
+  const board = page.locator(".retro-board");
+  await expect(page.getByRole("button", { name: "Soltar o gerente" })).toBeEnabled({ timeout: 45_000 });
+  const understood = page.getByRole("button", { name: "Entendi" });
+  if (await understood.isVisible()) {
+    await understood.click();
+  }
+  await page.getByRole("button", { name: "72×", exact: true }).click(); // o teste de antes deixou a 1×
+  await page.getByRole("button", { name: "Escrever pedido" }).click();
+  const clipboard = page.getByRole("dialog", { name: "Novo pedido" });
+  await clipboard.getByRole("textbox", { name: "Título" }).fill("Contar os cafés do dia");
+  await clipboard.getByRole("textbox", { name: "O que fazer" }).fill("Um contador na copa, que zera à meia-noite.");
+  await clipboard.getByRole("radio", { name: "P, pequeno" }).check();
+  await clipboard.getByRole("button", { name: "Pôr no quadro" }).click();
+  // O dev-script pega, trabalha e entrega; a ficha entregue abre com o "O que falta" no papel.
+  const delivered = board.getByRole("tab", { name: "Entregue, 1 pedido" });
+  await expect(delivered).toBeVisible({ timeout: 100_000 });
+  await delivered.click();
+  await board.getByRole("button", { name: /^Pedido 2: Contar os cafés do dia/ }).click();
+  const card = page.getByRole("dialog", { name: "Pedido #2" });
+  const missing = card.getByRole("textbox", { name: /O que falta/ });
+  await expect(card).toContainText("faltam 1.000 de 1.000");
+  const long = "Falta zerar o contador à meia-noite do mundo, e não à do computador. ".repeat(20).slice(0, 999) + ".";
+  expect(long).toHaveLength(1000);
+  await missing.fill(long);
+  await expect(card).toContainText("faltam 0 de 1.000"); // o contador, nunca o corte escondido
+  await page.screenshot({ path: `${SHOTS}/escritorio-ficha-aberta.png` });
+  await card.getByRole("button", { name: "Devolver" }).click();
+  await expect(card).toBeHidden();
+  // O fato chega inteiro à conversa, e a ficha volta com o "devolvido" e o comentário inteiro.
+  await expect(page.locator(".retro-talk").getByRole("log")).toContainText(`devolveu o pedido 2: ${long}`, { timeout: 30_000 });
+  const returned = board.getByRole("button", { name: /^Pedido 2: Contar os cafés do dia, tamanho pequeno, devolvido/ });
+  for (const tab of ["A fazer", "Fazendo"]) {
+    await board.getByRole("tab", { name: new RegExp(`^${tab},`) }).click();
+    if (await returned.isVisible()) {
+      break;
+    }
+  }
+  await returned.click();
+  await expect(page.getByRole("dialog", { name: "Pedido #2" }).locator(".retro-returned")).toHaveText(`Devolvido: ${long}`);
 });
 
 test("o monitor maior: a sala na altura toda, o relógio de 7 segmentos e o pedido no quadro (ADR-0092)", async ({ page }) => {

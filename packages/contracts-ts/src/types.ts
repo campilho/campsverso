@@ -1744,6 +1744,24 @@ export interface OfficeTicketReturnedV1 {
   comment: string;
 }
 /**
+ * O gerente devolveu um pedido entregue (ADR-0078), ou o PR dele foi fechado sem mesclar (ADR-0083): o pedido volta para "a fazer", com o comentário. Igual ao v1, com o comentário até 1.000 caracteres, o mesmo da descrição do pedido (ADR-0092): a ficha aberta tem um campo do tamanho do pedido. O v1, até 280, fica para os dias antigos.
+ *
+ * This interface was referenced by `ContractsBundle`'s JSON-Schema
+ * via the `definition` "OfficeTicketReturnedV2".
+ */
+export interface OfficeTicketReturnedV2 {
+  ticket_id: EntityId;
+  /**
+   * O número do pedido, na ordem em que foi escrito.
+   */
+  number: number;
+  by: EntityId;
+  /**
+   * O que falta, nas palavras do gerente.
+   */
+  comment: string;
+}
+/**
  * O dev pegou um pedido do quadro (ADR-0078): o pedido passa a "fazendo".
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema

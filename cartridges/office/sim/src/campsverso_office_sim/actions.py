@@ -527,7 +527,7 @@ class ReturnTicket(OfficeAction):
             visible={"estado": TODO, "dono": None, "trabalho": 0, "comentario": comment},
         )
         ops.emit(
-            "campsverso.office.ticket.returned.v1",
+            "campsverso.office.ticket.returned.v2",
             {
                 "ticket_id": found.entity_id,
                 "number": int(cast(int, found.attributes["numero"])),

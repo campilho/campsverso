@@ -30,7 +30,7 @@ ticket:
   title_max: 80
   description_max: 1000
   acceptance_max: 500
-  comment_max: 280
+  comment_max: 1000 # o mesmo da descrição: a ficha aberta tem um campo do tamanho do pedido (ADR-0092)
   # O tamanho, em minutos de trabalho simulado: no M23, só o dev-script trabalha assim
   # (ADR-0078, decisão 11). A partir do M24 o trabalho é de verdade.
   sizes:
@@ -102,7 +102,9 @@ labels:
     text: "entregou o pedido {number}"
   - event: campsverso.office.ticket.accepted.v1
     text: "aceitou o pedido {number}"
-  - event: campsverso.office.ticket.returned.v1
+  - event: campsverso.office.ticket.returned.v2
+    text: "devolveu o pedido {number}: {comment}"
+  - event: campsverso.office.ticket.returned.v1 # os dias de antes da ADR-0092
     text: "devolveu o pedido {number}: {comment}"
   # O PR do dev no GitHub (ADR-0083): o publicador abre, o vigia relata.
   - event: campsverso.office.ticket.pr_opened.v1
@@ -240,6 +242,6 @@ metrics:
   - { id: pedidos_escritos, label: "pedidos escritos", kind: count, event: campsverso.office.ticket.created.v1 }
   - { id: pedidos_entregues, label: "pedidos entregues", kind: count, event: campsverso.office.ticket.delivered.v1 }
   - { id: pedidos_aceitos, label: "pedidos aceitos", kind: count, event: campsverso.office.ticket.accepted.v1 }
-  - { id: pedidos_devolvidos, label: "pedidos devolvidos", kind: count, event: campsverso.office.ticket.returned.v1 }
+  - { id: pedidos_devolvidos, label: "pedidos devolvidos", kind: count, event: campsverso.office.ticket.returned.v2 }
   - { id: trabalho, label: "segundos de trabalho entregues", kind: count, event: campsverso.office.ticket.delivered.v1, field: worked_seconds }
   - { id: falas, label: "falas", kind: count, event: campsverso.avatar.spoke.v1 }

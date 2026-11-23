@@ -4,6 +4,10 @@ Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão 
 
 ## Em andamento: v0.4
 
+### As telas do Claude Design (ADR-0092)
+
+- **A devolução maior** (ADR-0092, decisão 6): o tipo novo `campsverso.office.ticket.returned.v2`, igual ao v1 com o comentário até 1.000 caracteres (era 280), o mesmo da descrição do pedido. A ficha aberta ganha um campo do tamanho do pedido, com o contador, e nunca corta escondido. O kernel passa a publicar só o v2, nas duas portas da devolução (o gerente no quadro e o PR fechado sem mesclar); o v1 fica para os dias antigos, e a linha do tempo e a memória do dev leem os dois.
+
 ### M26
 
 - **A porta das mãos** (ADR-0089): o `llm.call.completed.v1` ganha o campo opcional `harness`, um token: quem chamou o modelo quando não foi a nossa porta de modelo, como o Claude Code (`claude_code`), que chama pela porta das mãos. Sem o campo, a chamada foi nossa.

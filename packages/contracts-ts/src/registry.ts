@@ -366,6 +366,12 @@ export const CONTRACT_TYPES = {
     producer: "kernel",
     dataschema: "contracts://events/office/ticket.returned.v1",
   },
+  "campsverso.office.ticket.returned.v2": {
+    kind: "event",
+    visibility: "world",
+    producer: "kernel",
+    dataschema: "contracts://events/office/ticket.returned.v2",
+  },
   "campsverso.office.ticket.taken.v1": {
     kind: "event",
     visibility: "world",
@@ -682,6 +688,7 @@ export interface PayloadByType {
   "campsverso.office.ticket.pr_opened.v1": T.OfficeTicketPrOpenedV1;
   "campsverso.office.ticket.pr_updated.v1": T.OfficeTicketPrUpdatedV1;
   "campsverso.office.ticket.returned.v1": T.OfficeTicketReturnedV1;
+  "campsverso.office.ticket.returned.v2": T.OfficeTicketReturnedV2;
   "campsverso.office.ticket.taken.v1": T.OfficeTicketTakenV1;
   "campsverso.ops.budget.exceeded.v1": T.OpsBudgetExceededV1;
   "campsverso.ops.budget.exceeded.v2": T.OpsBudgetExceededV2;

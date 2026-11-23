@@ -33,7 +33,8 @@ importance:
     campsverso.office.ticket.taken.v1: 3
     campsverso.office.ticket.delivered.v1: 6
     campsverso.office.ticket.accepted.v1: 8
-    campsverso.office.ticket.returned.v1: 9 # o comentário do gerente é o que mais ensina
+    campsverso.office.ticket.returned.v2: 9 # o comentário do gerente é o que mais ensina
+    campsverso.office.ticket.returned.v1: 9 # os dias de antes da devolução maior (ADR-0092)
     campsverso.world.version.changed.v1: 8 # o escritório trocou de versão (ADR-0083)
     campsverso.office.staff.summoned.v1: 7 # convocado fora do expediente (a parte 5 do M25)
     campsverso.office.staff.dismissed.v1: 4
@@ -50,6 +51,7 @@ lines:
   campsverso.office.ticket.delivered.v1: "{when} {by} entregou o pedido {number}"
   "campsverso.office.ticket.delivered.v1:self": "{when} entreguei o pedido {number}"
   campsverso.office.ticket.accepted.v1: "{when} {by} aceitou o pedido {number}"
+  campsverso.office.ticket.returned.v2: "{when} {by} devolveu o pedido {number}: {comment}"
   campsverso.office.ticket.returned.v1: "{when} {by} devolveu o pedido {number}: {comment}"
   campsverso.world.version.changed.v1: "{when} o escritório reiniciou numa versão nova do código"
   campsverso.office.staff.summoned.v1: "{when} {by} convocou {avatar_id} fora do expediente"

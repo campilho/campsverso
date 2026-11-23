@@ -33,9 +33,12 @@ import {
   nextTab,
   parseDraft,
   pinOf,
+  remainingOf,
+  squareOf,
   stateLabel,
   tabsOf,
   whoLine,
+  writtenOf,
 } from "./retro/tickets.ts";
 
 function state(overrides: Partial<ObserverState> = {}): ObserverState {
@@ -287,6 +290,66 @@ describe("o quadro de cortiça (§3.4)", () => {
   });
 });
 
+describe("a ficha quadrada e a ficha aberta (briefing-tela-2.md, §7; ADR-0092)", () => {
+  const base: TicketView = {
+    id: "pedido-017",
+    number: 17,
+    title: "Um relatório da semana no quadro",
+    description: "Toda sexta.",
+    acceptance: "",
+    size: "M",
+    state: "a_fazer",
+    owner: undefined,
+    author: "gerente",
+    comment: undefined,
+    patch: undefined,
+    pr: undefined,
+    harness: undefined,
+    model: undefined,
+  };
+  const open = { number: 11, url: "https://github.com/campilho/campsverso/pull/11", state: "aberto", ci: "success" };
+
+  it("mostra o número, o tamanho e o título, e embaixo só os ícones de cada estado", () => {
+    expect(squareOf(base)).toEqual({
+      number: "#17",
+      size: "M",
+      title: "Um relatório da semana no quadro",
+      label: "Pedido 17: Um relatório da semana no quadro, tamanho médio",
+      owner: undefined,
+      seal: undefined,
+      sealTitle: undefined,
+      returned: false,
+    });
+    // Fazendo, com o rosto do dono.
+    expect(squareOf({ ...base, state: "fazendo", owner: "tiago" }).owner).toBe("tiago");
+    // Entregue, com o PR: o selo do CI e o texto do PR no `title`.
+    const delivered = squareOf({ ...base, state: "entregue", owner: "tiago", pr: open });
+    expect([delivered.seal, delivered.sealTitle]).toEqual(["ci_verde", "PR #11 · aberto · CI verde"]);
+    // Devolvido: "devolvido" até ser aceito, também no nome que o leitor de tela diz.
+    const back = squareOf({ ...base, comment: "Falta o caso vazio." });
+    expect(back.returned).toBe(true);
+    expect(back.label).toBe("Pedido 17: Um relatório da semana no quadro, tamanho médio, devolvido");
+    expect(squareOf({ ...base, state: "aceito", comment: "Falta o caso vazio." }).returned).toBe(false);
+  });
+
+  it("conta o que falta da devolução, sempre à vista, até 1.000", () => {
+    expect(remainingOf(0, 1000)).toBe("faltam 1.000 de 1.000");
+    expect(remainingOf(588, 1000)).toBe("faltam 412 de 1.000");
+    expect(remainingOf(999, 1000)).toBe("falta 1 de 1.000");
+    expect(remainingOf(1000, 1000)).toBe("faltam 0 de 1.000");
+  });
+
+  it("diz quando o pedido foi escrito pelo fato da linha do tempo; sem ele, nada", () => {
+    const now = state({ tick: 100_000, day: 3 }); // 09:00 do dia 3, num tick de 2 s
+    const created = (tick: number): EnvelopeV1 =>
+      ({ type: "campsverso.office.ticket.created.v1", tick, data: { ticket_id: "pedido-017" } }) as unknown as EnvelopeV1;
+    expect(writtenOf(now, [created(100_000 - 1800)], "pedido-017")).toBe("escrito no Dia 3 · 08:00");
+    expect(writtenOf(now, [created(100_000 - 23 * 1800)], "pedido-017")).toBe("escrito no Dia 2 · 10:00");
+    expect(writtenOf(now, [created(100_000 - 1800)], "pedido-018")).toBeUndefined();
+    expect(writtenOf(now, [], "pedido-017")).toBeUndefined();
+  });
+});
+
 describe("a prancheta (§3.6)", () => {
   it("mostra o contador só depois de 80% do limite", () => {
     expect(counterOf(800, 1000)).toBeUndefined();
@@ -403,6 +466,20 @@ describe("a conversa (§3.5)", () => {
     expect(linesOf(switched, room, "gerente", light).map((l) => (l.kind === "system" ? l.text : ""))).toEqual([
       "Gerente acendeu a luz da sala",
       "O temporizador apagou a luz da sala",
+    ]);
+    // A devolução maior (ADR-0092): o v2 conta como o v1 dos dias antigos, com o comentário inteiro.
+    const comment = "Falta o caso vazio. ".repeat(50).trim();
+    const back = [
+      { event: "campsverso.office.ticket.returned.v2", text: "devolveu o pedido {number}: {comment}" },
+      { event: "campsverso.office.ticket.returned.v1", text: "devolveu o pedido {number}: {comment}" },
+    ] as unknown as Parameters<typeof linesOf>[3];
+    const returned = [
+      at("campsverso.office.ticket.returned.v1", { ticket_id: "pedido-001", number: 1, by: "gerente", comment: "curto" }, 16200, "r1"),
+      at("campsverso.office.ticket.returned.v2", { ticket_id: "pedido-002", number: 2, by: "gerente", comment }, 16230, "r2"),
+    ];
+    expect(linesOf(returned, room, "gerente", back).map((l) => (l.kind === "system" ? l.text : ""))).toEqual([
+      "Gerente devolveu o pedido 1: curto",
+      `Gerente devolveu o pedido 2: ${comment}`,
     ]);
   });
 

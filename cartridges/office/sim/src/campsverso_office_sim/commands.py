@@ -150,7 +150,7 @@ class PullRequestReport:
         event = {"ticket_id": found.entity_id, "number": number, "pull_request": pr}
         ops.emit(f"{PR}closed.v1", event)
         ops.emit(
-            "campsverso.office.ticket.returned.v1",
+            "campsverso.office.ticket.returned.v2",
             {
                 "ticket_id": found.entity_id,
                 "number": number,

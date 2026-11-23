@@ -149,6 +149,8 @@ export const TITLE_MAX = 80;
 export const DESCRIPTION_MAX = 1000;
 export const ACCEPTANCE_MAX = 500;
 export const SPEECH_MAX = 280;
+/** A devolução (ADR-0092): o mesmo limite da descrição, o `comment_max` do cartucho. */
+export const COMMENT_MAX = 1000;
 
 /** Um mundo com quadro de pedidos: o escritório. */
 export function isOffice(state: ObserverState): boolean {
@@ -377,7 +379,7 @@ export class OfficePanel {
     } else if (manager && ticket.state === "entregue") {
       const comment = el("input");
       comment.placeholder = "O que falta (para devolver)";
-      comment.maxLength = SPEECH_MAX;
+      comment.maxLength = COMMENT_MAX;
       comment.addEventListener("keydown", (event) => { event.stopPropagation(); });
       details.open = true;
       details.append(

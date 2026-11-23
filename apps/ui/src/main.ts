@@ -257,10 +257,16 @@ function leaveOffice(): void {
 // lugar do quadro e do novo pedido do painel de hoje.
 const about = new AboutDialog(document.body, () => { void credits.open(art?.credits ?? []); });
 const devScreen = new DevScreen(document.body);
-const clipboard = new Clipboard(document.body, {
-  ...ticketSteps,
-  patch: (heading, ref) => { office.openPatch(heading, ref); },
-});
+// Os rostos pequenos (a conversa, a ficha quadrada e a ficha aberta), desenhados uma vez por avatar.
+const faces = new FaceCache(() => { dirty = true; });
+const clipboard = new Clipboard(
+  document.body,
+  {
+    ...ticketSteps,
+    patch: (heading, ref) => { office.openPatch(heading, ref); },
+  },
+  faces,
+);
 
 function clipboardContext(state: ObserverState): ClipboardContext {
   return {
@@ -270,6 +276,7 @@ function clipboardContext(state: ObserverState): ClipboardContext {
     underway: ticketsUnderway(state),
     when: `Dia ${String(state.day)} · ${clockText(state, shownTick).slice(0, 5)}`,
     art: art?.manifest,
+    timeline: store.timeline,
   };
 }
 
@@ -277,7 +284,6 @@ function clipboardContext(state: ObserverState): ClipboardContext {
 const system = new SystemMessages(document.body, () => { connection.retryNow(); });
 
 // A conversa (§3.5), no lugar do cartão "Falar": a primeira menção vira o `to`; sem ela, o dev.
-const faces = new FaceCache(() => { dirty = true; });
 const talk = new RetroTalk(faces, (text, to) => {
   const state = store.state;
   const target = to ?? (state === undefined ? undefined : devOf(state));
@@ -288,7 +294,7 @@ const board = new RetroBoard((ticketId) => {
   if (store.state !== undefined) {
     clipboard.openTicket(ticketId, clipboardContext(store.state));
   }
-});
+}, faces);
 const retro = new RetroFrame(view, debug, {
   assume: () => {
     if (store.state !== undefined) {
