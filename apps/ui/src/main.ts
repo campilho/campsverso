@@ -38,7 +38,7 @@ import { OperatorPanel } from "./panels/operator.ts";
 import { Portrait } from "./panels/portrait.ts";
 import { contentsOf, holdTarget, inControl, menuFor, proposal, refusalText, thingAt, tileMenu, walkTo, type MenuEntry, type Tile } from "./play.ts";
 import { busyText, progressOf } from "./progress.ts";
-import { ActionQueue, idle, pendingTargets, type Step } from "./queue.ts";
+import { ActionQueue, idle, pendingTargets, replacedText, type Step } from "./queue.ts";
 import { MapCanvas } from "./render/canvas.ts";
 import { PhaserRenderer } from "./render/phaser.ts";
 import type { WorldRenderer } from "./render/renderer.ts";
@@ -740,7 +740,12 @@ function seatFor(state: ObserverState, thing: string): Tile | undefined {
  * como o clique esquerdo: troca o trajeto em andamento. */
 function act(step: Step, queued: boolean): void {
   if (!queued) {
+    // Sem o shift, o passo novo troca a fila: quem joga é avisado de quantos passos saíram.
+    const replaced = queue.list.length;
     queue.clear();
+    if (replaced > 0) {
+      say(replacedText(replaced));
+    }
     if (step.proposal.action === "move") {
       connection.send(PROPOSE, { ...step.proposal });
       return;

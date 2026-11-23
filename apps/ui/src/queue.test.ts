@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { weatherText } from "./panels/hud.ts";
 import { approach, menuFor, proposal, tileMenu } from "./play.ts";
-import { ActionQueue, pendingTargets } from "./queue.ts";
+import { ActionQueue, pendingTargets, readyFor, replacedText } from "./queue.ts";
 
 const AFFORDANCES: Affordance[] = [
   { action: "water", label: "Regar", on: ["plot"], target: true },
@@ -142,6 +142,33 @@ describe("a fila de ações (ADR-0068)", () => {
     const busy = state({ actions: { camps: { action_id: "a-1", action: "dig", params: {}, end_tick: 20 } } });
     expect(queue.next(busy, "camps")).toBeUndefined();
     expect(queue.next(state(), "camps")?.action).toBe("deposit");
+  });
+
+  it("um passo do quadro interrompe a TV e o videogame; o resto espera o lazer acabar (ADR-0092)", () => {
+    const accept = { label: "Aceitar pedido-001", proposal: { avatar_id: "camps", action: "accept_ticket", params: { target: "pedido-001" } }, near: "chest" };
+    const tv = state({ actions: { camps: { action_id: "a-1", action: "tv", params: {}, end_tick: 900 } } });
+    expect(readyFor(accept, tv, "camps")).toBe(true);
+    expect(readyFor(deposit, tv, "camps")).toBe(false); // guardar no baú espera a TV
+    const coffee = state({ actions: { camps: { action_id: "a-1", action: "coffee", params: {}, end_tick: 900 } } });
+    expect(readyFor(accept, coffee, "camps")).toBe(false); // só o lazer do sofá
+    expect(readyFor(accept, state({ ...tv, asleep: { camps: true } }), "camps")).toBe(false);
+    // A fila manda o passo do quadro no meio da TV, e o cancelamento dela não esvazia a fila.
+    const queue = new ActionQueue();
+    queue.push(accept);
+    queue.push(water);
+    expect(queue.next(tv, "camps")?.action).toBe("accept_ticket"); // perto do quadro: vai direto
+    const cancelled = { type: "campsverso.action.failed.v1", data: { avatar_id: "camps", action: "tv", reason: "cancelled" } } as unknown as EnvelopeV1;
+    expect(queue.settle(cancelled, "camps")).toBeUndefined();
+    expect(queue.list.map((step) => step.label)).toEqual(["Regar · plot-001"]); // a fila seguiu
+    expect(queue.next(state(), "camps")).toBeUndefined(); // o aceitar ainda em voo
+    // A falha da própria proposta em voo, essa sim, esvazia.
+    const failed = { type: "campsverso.action.failed.v1", data: { avatar_id: "camps", action: "accept_ticket", reason: "cancelled" } } as unknown as EnvelopeV1;
+    expect(queue.settle(failed, "camps")).toBe("A fila foi esvaziada.");
+  });
+
+  it("o clique que troca a fila avisa quantos passos saíram", () => {
+    expect(replacedText(3)).toBe("a fila de 3 passos foi trocada");
+    expect(replacedText(1)).toBe("a fila de 1 passo foi trocada");
   });
 
   it("uma recusa esvazia a fila e avisa; o fato de outro avatar não conta", () => {

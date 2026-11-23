@@ -4,7 +4,10 @@
  * - Um passo com alvo longe do avatar ganha antes um `move {near}` até o lado dele; com um assento
  *   virado para o alvo, um `move {target}` até o assento (ADR-0082).
  * - Uma recusa, ou uma ação que falha, esvazia a fila; quem joga é avisado.
- * - O shift com o clique enfileira; sem o shift, o passo novo substitui a fila. O Esc a esvazia.
+ * - O shift com o clique enfileira; sem o shift, o passo novo substitui a fila, e a tela avisa
+ *   quantos passos foram trocados (ADR-0092). O Esc a esvazia.
+ * - Um passo do quadro (escrever, aceitar ou devolver uma ficha) não espera o lazer acabar: ele
+ *   interrompe a TV e o videogame no sofá, que o kernel cancela (`interrupt: cancel`; ADR-0092).
  */
 import type { EnvelopeV1, ObserverState } from "@campsverso/contracts";
 
@@ -29,9 +32,31 @@ export function idle(state: ObserverState, avatarId: string): boolean {
   return state.actions[avatarId] === undefined && state.asleep[avatarId] !== true;
 }
 
+/** O lazer no sofá, que o kernel cancela quando chega outra ação (`interrupt: cancel`). */
+export const LEISURE: readonly string[] = ["tv", "videogame"];
+/** Os passos do quadro, que não esperam o lazer acabar: escrever, pegar, aceitar ou devolver uma
+ * ficha (o plano das telas, fase 6). */
+export const BOARD_STEPS: readonly string[] = ["write_ticket", "take_ticket", "accept_ticket", "return_ticket"];
+
+/** O avatar pode começar o passo: livre, ou no lazer que um passo do quadro interrompe. */
+export function readyFor(step: Step, state: ObserverState, avatarId: string): boolean {
+  if (idle(state, avatarId)) {
+    return true;
+  }
+  const doing = state.actions[avatarId]?.action;
+  return state.asleep[avatarId] !== true && doing !== undefined && LEISURE.includes(doing) && BOARD_STEPS.includes(step.proposal.action);
+}
+
+/** O aviso de quando um clique troca a fila: "a fila de 3 passos foi trocada". */
+export function replacedText(count: number): string {
+  return `a fila de ${String(count)} ${count === 1 ? "passo" : "passos"} foi trocada`;
+}
+
 export class ActionQueue {
   private steps: Step[] = [];
   private inFlight = false;
+  /** A ação da proposta em voo: o cancelamento de outra (o lazer que ela interrompeu) não conta. */
+  private flying: string | undefined;
   private walked = false;
   /** Muda a cada mudança da fila, para a tela redesenhar só quando precisa. */
   version = 0;
@@ -50,6 +75,7 @@ export class ActionQueue {
     const had = this.steps.length > 0;
     this.steps = [];
     this.inFlight = false;
+    this.flying = undefined;
     this.walked = false;
     this.version++;
     return had;
@@ -58,17 +84,19 @@ export class ActionQueue {
   /** A próxima proposta a mandar, ou nada: com uma em voo, a fila vazia ou o avatar ocupado. */
   next(state: ObserverState, avatarId: string): Proposal | undefined {
     const step = this.steps[0];
-    if (this.inFlight || step === undefined || !idle(state, avatarId)) {
+    if (this.inFlight || step === undefined || !readyFor(step, state, avatarId)) {
       return undefined;
     }
     this.inFlight = true;
     const walk = this.walked ? undefined : sitDown(state, avatarId, step.seat) ?? approach(state, avatarId, step.near);
     if (walk !== undefined) {
       this.walked = true; // depois de andar, a ação vai de qualquer jeito: o kernel decide
+      this.flying = walk.action;
       return walk;
     }
     this.steps.shift();
     this.walked = false;
+    this.flying = step.proposal.action;
     this.version++;
     return step.proposal;
   }
@@ -79,8 +107,13 @@ export class ActionQueue {
     if (!SETTLED.has(event.type) || data.avatar_id !== avatarId) {
       return undefined;
     }
+    // O lazer que a proposta em voo interrompeu falha como "cancelled": não é a proposta da fila.
+    if (event.type === "campsverso.action.failed.v1" && data.reason === "cancelled" && this.inFlight && data.action !== this.flying) {
+      return undefined;
+    }
     const was = this.inFlight;
     this.inFlight = false;
+    this.flying = undefined;
     if (BROKEN.has(event.type) && was && this.clear()) {
       return "A fila foi esvaziada.";
     }

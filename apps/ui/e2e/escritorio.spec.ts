@@ -398,7 +398,24 @@ test("as janelas no padrão da tela: o menu colado ao clique, os comandos e os c
   await expect(credits).toContainText("VT323");
   await page.screenshot({ path: `${SHOTS}/escritorio-creditos.png` });
   await credits.getByRole("button", { name: "Voltar ao Sobre" }).click();
-  await expect(page.getByRole("dialog", { name: "Sobre o Campsverso" })).toBeVisible();
+  const aboutAgain = page.getByRole("dialog", { name: "Sobre o Campsverso" });
+  await expect(aboutAgain).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(aboutAgain).toBeHidden();
+
+  // A fila (o plano das telas, fase 6): com o shift, os passos entram na fila; um clique sem o
+  // shift troca a fila, e a tela avisa quantos passos saíram.
+  const spots = [await tile(page, 14, 12), await tile(page, 16, 12), await tile(page, 15, 13)];
+  await page.keyboard.down("Shift");
+  for (const spot of spots.slice(0, 2)) {
+    await page.mouse.click(spot.x, spot.y);
+  }
+  await page.keyboard.up("Shift");
+  const last = spots[2];
+  if (last !== undefined) {
+    await page.mouse.click(last.x, last.y);
+  }
+  await expect(page.locator(".notice")).toContainText(/a fila de \d+ passos? foi trocada/);
 });
 
 test("no celular, a câmera segue o gerente num recorte da sala, e as abas trocam o painel (§4)", async ({ page }) => {
