@@ -14,3 +14,5 @@ data,provedor,movimento,usd,brl,iof_brl,saldo_usd,nota
 2026-11-07,Anthropic,assinatura,,589.17,19.92,,"a renovação do plano Max"
 2026-11-07,Anthropic,plano,100.00,,,,"crédito do plano Max, da renovação de 7/nov; vence em 10/12/2026"
 2026-11-08,Anthropic,saldo,,,,195.07,"97,44 comprados e 97,62 do crédito do plano, com a rodada do procedimento rodando"
+2026-11-22,OpenRouter,saldo,,,,69.67,"informado pelo usuário em 22/nov, à noite, antes do M27"
+2026-11-22,Anthropic,saldo,,,,72.97,"na Claude Platform, informado pelo usuário em 22/nov, à noite, depois do M26 e do bloco das telas"
