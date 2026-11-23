@@ -678,8 +678,15 @@ def priced_name(model: str, harness: str) -> str:
     return model if "/" in model else f"{prefix}{model}"
 
 
+def pinned(program: str, tools: Path = REPO / ".tools" / "bin") -> list[str] | None:
+    """O programa que o `make tools-maos` instalou com a versão fixa; sem ele, o do `PATH`."""
+    path = tools / program
+    return [str(path)] if path.exists() else None
+
+
 def outside_hands(harness: str, key: str, out: Path, tape: Path) -> Callable[[CallMeter], Hands]:
-    """As mãos de fora de uma prova, que gravam a fita da porta e medem pelo medidor dela."""
+    """As mãos de fora de uma prova, que gravam a fita da porta e medem pelo medidor dela. O Codex
+    e o Antigravity vêm do `.tools/bin`, com a versão fixa, quando estão lá."""
 
     def hands_of(meter: CallMeter) -> Hands:
         common: dict[str, Any] = {
@@ -690,9 +697,9 @@ def outside_hands(harness: str, key: str, out: Path, tape: Path) -> Callable[[Ca
             "warn": _warn,
         }
         if harness == "codex":
-            return CodexHands(meter, **common)
+            return CodexHands(meter, command=pinned("codex"), **common)
         if harness == "antigravity":
-            return AntigravityHands(meter, **common)
+            return AntigravityHands(meter, command=pinned("agy"), **common)
         return ClaudeCodeHands(meter, **common)
 
     return hands_of

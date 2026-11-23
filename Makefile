@@ -20,6 +20,18 @@ NATS_SHA256_darwin-arm64 := e54a183a09ffca0e0d9ae1631ebabfbf466dea0945362ad7ad71
 NATS_SHA256_linux-amd64 := c60504071c86bced5fc1d89410cee2b319a07e01ee64cb14f5934a2238022021
 NATS_DIR := .tools/nats-server-v$(NATS_VERSION)
 NATS_BIN := .tools/bin/nats-server
+# As mãos de fora do M27 (ADR-0093, decisão 6): o Codex do GitHub da OpenAI e o Antigravity CLI do
+# Google, com a versão e o hash fixados aqui (lidos dos metadados publicados em 22/nov). O agy se
+# atualiza sozinho ao rodar; no cercado das mãos, sem rede nem escrita fora do espaço, não consegue.
+CODEX_VERSION := 0.171.0
+CODEX_SHA256_darwin-arm64 := 9414c8c967f110b11e8324c0cfa2b20f012094ef890110a561c92ee535a2681a
+CODEX_SHA256_linux-amd64 := 01baa2e47809f8597be5b2f8abd4e4dfe3fb5bcb6e504c2fbaaad97056c15e8d
+CODEX_DIR := .tools/codex-v$(CODEX_VERSION)
+AGY_VERSION := 1.5.14
+AGY_BUILD := 1.5.14-5302690847260672
+AGY_SHA512_darwin-arm64 := 26830fd46bfb9200d073cf3e71bf94b707552557b4380ec01afd6e99f3a2b030e65422dab1867f77318078692defc859a7547d17ec4b0b1e9369f13c9c3caea6
+AGY_SHA512_linux-amd64 := 83311d3f354567612dc16c1ae2ea9b503d6f6833aa4e138d39aa229da3f3bb99b0e4d7cca0bce4796b0060d6a51d8113eb7449ed5dc0e7900bf217107ea5bff9
+AGY_DIR := .tools/agy-v$(AGY_VERSION)
 NATS_PID := data/nats/nats-server.pid
 NATS_LOG := data/nats/nats-server.log
 NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR BUDGET MIND HELPERS CODEHOST
@@ -27,7 +39,8 @@ NATS_ROLES := KERNEL ARCHIVER PERCEPTION CONTROLLER GATEWAY OPERATOR BUDGET MIND
 .DEFAULT_GOAL := help
 .PHONY: help setup contracts check check-rapido lint fmt types test arch contracts-check compat escritorio aplicar \
         up stop run ui ui-build sandbox jogar escritorio-aqui soak replay metrics ui-e2e mapa-visual mapa-variantes arte-escritorio sessoes tools secrets fita corrida \
-        arena arena-report arena-humano assistir juiz conformidade maos maos-relatorio revisar revisor-calibrar
+        arena arena-report arena-humano assistir juiz conformidade maos maos-relatorio revisar revisor-calibrar \
+        tools-maos
 
 help: ## lista os alvos
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-16s %s\n", $$1, $$2}'
@@ -231,6 +244,8 @@ secrets: ## gera em .env (fora do git) as senhas do NATS que ainda faltam
 	done
 	@grep -q "ANTHROPIC_API_KEY=" .env || { echo "# ANTHROPIC_API_KEY=cole-aqui-a-chave-da-console (ADR-0058; o make llm-smoke, o CONTAR=20, o make fita e o sandbox com MENTE usam)" >> .env; echo "aviso: ANTHROPIC_API_KEY ausente em .env; o make llm-smoke precisa dela"; }
 	@grep -q "OPENROUTER_API_KEY=" .env || echo "# OPENROUTER_API_KEY=cole-aqui-a-chave-da-openrouter (ADR-0074; o GPT-6 Astra e o Gemini 4 Argon)" >> .env
+	@grep -q "OPENAI_API_KEY=" .env || echo "# OPENAI_API_KEY=cole-aqui-a-chave-da-openai, com limite de gasto no painel (ADR-0093; as mãos do Codex)" >> .env
+	@grep -q "GEMINI_API_KEY=" .env || echo "# GEMINI_API_KEY=cole-aqui-a-chave-do-google-ai-studio, com limite de gasto no painel (ADR-0093; as mãos do Antigravity)" >> .env
 
 tools: $(NATS_DIR)/nats-server ## baixa ferramentas locais com versão fixa (nats-server), conferindo o sha256
 
@@ -255,3 +270,48 @@ $(NATS_DIR)/nats-server:
 	tar -xzf .tools/download/$$name.tar.gz -C $(NATS_DIR) --strip-components=1; \
 	ln -sf ../nats-server-v$(NATS_VERSION)/nats-server $(NATS_BIN); \
 	echo "nats-server $(NATS_VERSION) em $(NATS_BIN)"
+
+# A pasta de cada mão leva a versão no nome e o `.pronto` marca a instalação inteira. Um download com
+# o hash errado fica em .tools/download e é sobrescrito na próxima tentativa.
+tools-maos: $(CODEX_DIR)/.pronto $(AGY_DIR)/.pronto ## baixa o Codex e o Antigravity CLI com versão fixa (ADR-0093), conferindo o hash; fora do make setup e do CI
+
+$(CODEX_DIR)/.pronto:
+	@set -euo pipefail; \
+	case "$$(uname -s)-$$(uname -m)" in \
+	  Darwin-arm64) name=codex-aarch64-apple-darwin; expected=$(CODEX_SHA256_darwin-arm64) ;; \
+	  Linux-x86_64) name=codex-x86_64-unknown-linux-musl; expected=$(CODEX_SHA256_linux-amd64) ;; \
+	  *) echo "sem Codex fixado para $$(uname -s)-$$(uname -m)"; exit 1 ;; \
+	esac; \
+	file=.tools/download/$$name-$(CODEX_VERSION).tar.gz; \
+	mkdir -p .tools/download .tools/bin $(CODEX_DIR); \
+	echo "baixando $$name.tar.gz ($(CODEX_VERSION)) do GitHub da OpenAI"; \
+	curl -fsSL -o $$file https://github.com/openai/codex/releases/download/rust-v$(CODEX_VERSION)/$$name.tar.gz; \
+	actual=$$( (command -v sha256sum >/dev/null && sha256sum $$file || shasum -a 256 $$file) | cut -d' ' -f1); \
+	if [ "$$actual" != "$$expected" ]; then echo "sha256 não confere: $$actual (esperado $$expected)"; exit 1; fi; \
+	tar -xzf $$file -C $(CODEX_DIR); \
+	program=$$(find $(CODEX_DIR) -type f -name 'codex*' -perm -u+x | head -1); \
+	if [ -z "$$program" ]; then echo "o pacote do Codex veio sem o programa"; exit 1; fi; \
+	ln -sf "../$${program#.tools/}" .tools/bin/codex; \
+	touch $@; \
+	echo "Codex $(CODEX_VERSION) em .tools/bin/codex"
+
+$(AGY_DIR)/.pronto:
+	@set -euo pipefail; \
+	case "$$(uname -s)-$$(uname -m)" in \
+	  Darwin-arm64) path=darwin-arm/cli_mac_arm64.tar.gz; expected=$(AGY_SHA512_darwin-arm64) ;; \
+	  Linux-x86_64) path=linux-x64/cli_linux_x64.tar.gz; expected=$(AGY_SHA512_linux-amd64) ;; \
+	  *) echo "sem Antigravity CLI fixado para $$(uname -s)-$$(uname -m)"; exit 1 ;; \
+	esac; \
+	file=.tools/download/agy-$(AGY_VERSION).tar.gz; \
+	mkdir -p .tools/download .tools/bin $(AGY_DIR); \
+	echo "baixando o Antigravity CLI $(AGY_VERSION) do armazenamento público do Google"; \
+	curl -fsSL -o $$file https://storage.googleapis.com/antigravity-public/antigravity-cli/$(AGY_BUILD)/$$path; \
+	actual=$$( (command -v sha512sum >/dev/null && sha512sum $$file || shasum -a 512 $$file) | cut -d' ' -f1); \
+	if [ "$$actual" != "$$expected" ]; then echo "sha512 não confere: $$actual (esperado $$expected)"; exit 1; fi; \
+	tar -xzf $$file -C $(AGY_DIR); \
+	program=$$(find $(AGY_DIR) -type f -name antigravity | head -1); \
+	if [ -z "$$program" ]; then echo "o pacote do Antigravity CLI veio sem o programa"; exit 1; fi; \
+	chmod +x "$$program"; \
+	ln -sf "../$${program#.tools/}" .tools/bin/agy; \
+	touch $@; \
+	echo "Antigravity CLI $(AGY_VERSION) em .tools/bin/agy (sem o agy install: nada muda no shell)"

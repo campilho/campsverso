@@ -30,6 +30,7 @@ from campsverso_testkit.conformidade import (
     Tally,
     format_problem,
     outside_hands,
+    pinned,
     priced_name,
     prove,
     prove_hands,
@@ -314,3 +315,9 @@ def test_cada_mao_de_fora_vem_com_o_modelo_e_o_preco_do_laboratorio(tmp_path: Pa
     tape = tmp_path / "fita.jsonl"
     made = {h: outside_hands(h, "chave", tmp_path, tape)(meter).harness for h in HANDS_MODELS}
     assert made == {h: h for h in HANDS_MODELS}
+
+
+def test_o_programa_fixado_vem_do_tools_quando_existe(tmp_path: Path) -> None:
+    assert pinned("codex", tmp_path) is None
+    (tmp_path / "codex").write_text("#!/bin/sh\n", encoding="utf-8")
+    assert pinned("codex", tmp_path) == [str(tmp_path / "codex")]
