@@ -54,3 +54,11 @@ O plano está em `docs/planos/as-telas-do-claude-design.md`.
 - **Um contrato novo:** o `office.ticket.returned.v2`. A v1 continua para os dias antigos.
 - **O comando do escritório vivo muda:** `make escritorio MENTE=tiago_escritorio`, no mundo 02.
 - **Os títulos "Pedido 1" a "Pedido 3"** vão se repetir no GitHub, com números de PR e ramos diferentes.
+
+## Adendo: como ficou (22/nov)
+
+As seis fases foram feitas no mesmo dia, cada uma no `main` com o CI verde; o "Como ficou" fase a fase está no plano (§10). O que mudou em relação ao decidido:
+- **O kernel e as fazendas seguem sem mudança, com uma exceção no cartucho:** um título de pedido de 65 a 80 caracteres publicava um `entity.spawned.v1` inválido, e o kernel parava. A correção ficou no cartucho do escritório: o nome da ficha sai abreviado até os 64 do contrato, e o título inteiro fica no atributo.
+- **As janelas novas (o menu, os comandos e os créditos) valem só com a tela retrô.** As fazendas seguem com as de sempre; o conteúdo dos comandos delas passou a sair da mesma função.
+- **O mundo vivo guarda o que nasceu com ele:** no mundo 02, a mesa do dev ainda se chama "Mesa do Camps", porque nasceu antes da correção do nome no mapa.
+- **A troca de mundo do escritório vivo** pede guardar o `estado.json` do supervisor com outro nome, para ele instalar o `main` do zero.

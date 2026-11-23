@@ -220,3 +220,9 @@ O desenho fica conosco, no estilo que a prancheta já tem: não precisa do Claud
    - os comandos são uma função do mundo, da câmera e do poder de pausar (`commandsFor`): no escritório, sem a grama, sem arrastar e sem o espaço; a janela tem o mouse e as teclas desenhados;
    - os créditos do escritório vêm em blocos por grupo de autores (`creditBlocks`), com a frase de abertura tirada dos dados (desenho próprio, e não o LPC), as licenças em selos, as peças em fichinhas e as cinco fontes da tela; "Voltar ao Sobre" volta;
    - **as fazendas seguem com as janelas de sempre:** o desenho novo vale com a tela retrô, e a fazenda não é retrô. O conteúdo dos comandos da fazenda passou a sair da mesma função, com os textos novos.
+6. **A fila (22/nov):**
+   - um passo do quadro (escrever, pegar, aceitar ou devolver uma ficha) não espera mais o lazer acabar: com o gerente vendo TV ou jogando videogame, a fila manda o passo, e o kernel cancela o lazer (`interrupt: cancel`), como já cancelava para um clique;
+   - o lazer interrompido publica `action.failed` com o motivo "cancelled", e a fila tratava isso como a falha dela e se esvaziava: agora ela guarda qual ação está em voo e ignora o cancelamento de outra;
+   - um clique sem o shift que troca a fila avisa na tela: "a fila de 3 passos foi trocada".
+
+**O bloco fechou em 22/nov, no mesmo dia em que começou:** as seis fases foram para o `main` uma a uma, cada uma com o `make check` e o `make ui-e2e` verdes, e o escritório vivo trocou sozinho para cada uma com o CI verde. A API custou só a fita regravada do escritório (US$ 0,046).
