@@ -34,6 +34,7 @@ import stat
 import sys
 import time
 from collections.abc import Callable, Mapping
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, cast
 
@@ -71,6 +72,7 @@ from campsverso_ports import (
     HandsWorld,
     ToolResult,
     Workspace,
+    note_of,
 )
 
 HARNESS = "claude_code"
@@ -401,7 +403,12 @@ class ClaudeCodeHands:
                 hooks={"PreToolUse": [HookMatcher(hooks=[guard], on_failure="block")]},
                 stderr=lambda line: errors.append(line[-500:]) if len(errors) < 50 else None,
             )
-            pending: dict[str, tuple[str, Mapping[str, Any], float]] = {}
+            # Cada ferramenta pedida, com o texto do modelo antes dela na mesma resposta (ADR-0093,
+            # decisão 12): o passo o mostra como um comentário.
+            pending: dict[str, tuple[str, Mapping[str, Any], float, str]] = {}
+            # O Claude Code manda cada bloco da resposta numa mensagem: o texto fica até a
+            # ferramenta seguinte o levar.
+            said = ""
             steps = 0
             final: ResultMessage | None = None
             last_text = ""
@@ -424,9 +431,12 @@ class ClaudeCodeHands:
                                                 block.name,
                                                 block.input,
                                                 time.monotonic(),
+                                                said,
                                             )
+                                            said = ""
                                         elif isinstance(block, TextBlock) and block.text.strip():
                                             last_text = block.text
+                                            said = f"{said} {block.text}".strip()
                                 elif isinstance(message, UserMessage) and isinstance(
                                     message.content, list
                                 ):
@@ -435,19 +445,20 @@ class ClaudeCodeHands:
                                             isinstance(block, ToolResultBlock)
                                             and block.tool_use_id in pending
                                         ):
-                                            name, given, began = pending.pop(block.tool_use_id)
+                                            name, given, began, before = pending.pop(
+                                                block.tool_use_id
+                                            )
                                             ms = round((time.monotonic() - began) * 1000)
                                             steps += 1
-                                            await world.step(
-                                                step_of(
-                                                    name,
-                                                    given,
-                                                    block.content,
-                                                    bool(block.is_error),
-                                                    root,
-                                                    ms,
-                                                )
+                                            step = step_of(
+                                                name,
+                                                given,
+                                                block.content,
+                                                bool(block.is_error),
+                                                root,
+                                                ms,
                                             )
+                                            await world.step(replace(step, note=note_of(before)))
                                 elif isinstance(message, ResultMessage):
                                     final = message
                                 if world.should_stop() and stopped is None and final is None:

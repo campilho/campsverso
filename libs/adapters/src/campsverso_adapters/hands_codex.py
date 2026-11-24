@@ -23,7 +23,7 @@ import re
 import shlex
 import time
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, cast
 
@@ -40,7 +40,7 @@ from campsverso_adapters.hands_process import (
 )
 from campsverso_adapters.hands_process import clean_environment as _clean
 from campsverso_adapters.hands_world_tools import ROBOT, SERVER
-from campsverso_ports import HandsJob, HandsStep
+from campsverso_ports import HandsJob, HandsStep, note_of
 
 HARNESS = "codex"
 TOOL_ITEMS = ("command_execution", "file_change", "mcp_tool_call", "web_search")
@@ -210,6 +210,9 @@ class CodexStream:
         # Os itens `error`: o Codex avisa e segue (o modo código sem o programa dele, no ensaio de
         # 23/nov); as mãos repassam o aviso.
         self.notices: list[str] = []
+        # A última mensagem do modelo antes de uma ferramenta: vai no primeiro passo dela, como o
+        # texto entre os passos (ADR-0093, decisão 12).
+        self._said = ""
 
     def account(self, data: Mapping[str, Any]) -> None:
         kind = data.get("type")
@@ -244,7 +247,11 @@ class CodexStream:
         steps = tuple(steps_of(item, self._root, ms))
         kind = item.get("type")
         if kind == "agent_message":
-            return Read(steps, "message", str(item.get("text") or ""))
+            self._said = str(item.get("text") or "")
+            return Read(steps, "message", self._said)
+        if steps and self._said:
+            steps = (replace(steps[0], note=note_of(self._said)), *steps[1:])
+            self._said = ""
         if kind in TOOL_ITEMS:
             return Read(steps, "tool")
         return Read(steps)

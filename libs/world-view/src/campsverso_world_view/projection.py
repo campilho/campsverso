@@ -682,6 +682,8 @@ class Projection:
         }
         if data.get("path"):
             entry["path"] = str(data["path"])
+        if data.get("note"):  # o texto do modelo antes do passo (ADR-0093, decisão 12)
+            entry["note"] = str(data["note"])
         self._session_entry(session, entry)
         robots = self.workshop.get("robots", {})
         for robot_id in sorted(robots):

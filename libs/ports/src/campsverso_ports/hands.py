@@ -49,15 +49,30 @@ class HandsJob:
     limits: HandsLimits = HandsLimits()
 
 
+# O texto do modelo entre os passos (ADR-0093, decisão 12): até 200 letras, numa linha.
+NOTE_MAX = 200
+
+
+def note_of(text: str | None) -> str | None:
+    """O que o modelo escreveu antes de um passo, numa linha e no tamanho do contrato; sem texto,
+    nada."""
+    line = " ".join((text or "").split())
+    if not line:
+        return None
+    return line if len(line) <= NOTE_MAX else line[: NOTE_MAX - 1].rstrip() + "…"
+
+
 @dataclass(frozen=True, slots=True)
 class HandsStep:
-    """Um passo das mãos, para a tela: a ferramenta pelo nome que o harness usa."""
+    """Um passo das mãos, para a tela: a ferramenta pelo nome que o harness usa e, quando há, o
+    que o modelo escreveu antes dele (`note`)."""
 
     tool: str
     summary: str
     ok: bool
     duration_ms: int
     path: str | None = None
+    note: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

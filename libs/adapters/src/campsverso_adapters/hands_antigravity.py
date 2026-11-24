@@ -26,7 +26,7 @@ import math
 import re
 import time
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, cast
 
@@ -43,7 +43,7 @@ from campsverso_adapters.hands_process import (
     first_line,
     relative,
 )
-from campsverso_ports import HandsJob, HandsStep
+from campsverso_ports import HandsJob, HandsStep, note_of
 
 HARNESS = "antigravity"
 # O esforço no fim do slug do `agy models` (`gemini-4-neon-high`); o `max` do escritório é o
@@ -153,6 +153,9 @@ class AntigravityStream:
         self._began: dict[int, float] = {}
         self.usage = AntigravityUsage()
         self.response = ""
+        # A última resposta do modelo antes de uma ferramenta, para o passo dela (ADR-0093,
+        # decisão 12).
+        self._said = ""
         self.completed = False
         self.failed: str | None = None
 
@@ -185,6 +188,7 @@ class AntigravityStream:
                 self._texts[number] = text
                 return Read()
             self._texts.pop(number, None)
+            self._said = text
             return Read((), "message", text)
         if kind != "tool":
             return Read()
@@ -197,7 +201,11 @@ class AntigravityStream:
             ms = round(seconds * 1000)
         else:
             ms = 0 if start is None else round((time.monotonic() - start) * 1000)
-        return Read((step_of(update, self._root, ms),), "tool")
+        step = step_of(update, self._root, ms)
+        if self._said:
+            step = replace(step, note=note_of(self._said))
+            self._said = ""
+        return Read((step,), "tool")
 
     def closes(self, data: Mapping[str, Any]) -> bool:
         return data.get("event") == "result"

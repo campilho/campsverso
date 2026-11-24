@@ -21,6 +21,7 @@ from campsverso_ports import (
     WorkshopError,
     WorkshopPort,
     Workspace,
+    note_of,
 )
 
 type Review = Callable[[str], list[str]]
@@ -101,8 +102,10 @@ class WorkshopSession:
         *,
         harness: str,
         model: str | None = None,
+        note: str | None = None,
     ) -> ToolResult:
-        """Um passo do nosso harness (ou da sessão fixa): a ferramenta pela porta e o passo dele."""
+        """Um passo do nosso harness (ou da sessão fixa): a ferramenta pela porta e o passo dele,
+        com o que o modelo escreveu antes dele (`note`)."""
         started = time.monotonic()
         result = await call(space, tool, args)
         if tool in TOOLS:
@@ -114,6 +117,7 @@ class WorkshopSession:
                     result.ok,
                     int((time.monotonic() - started) * 1000),
                     result.path,
+                    note_of(note),
                 ),
                 harness=harness,
                 model=model,
@@ -140,6 +144,8 @@ class WorkshopSession:
             data["model"] = model[:128]
         if step.path:
             data["path"] = step.path[:300]
+        if step.note:  # o texto do modelo antes do passo (ADR-0093, decisão 12)
+            data["note"] = step.note[:200]
         await self.publish(STEP, data)
 
     async def finished(

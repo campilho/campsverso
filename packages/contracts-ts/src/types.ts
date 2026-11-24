@@ -3543,6 +3543,10 @@ export interface ObserverWorkshopSessionStep {
   summary: string;
   ok: boolean;
   path?: string;
+  /**
+   * O que o modelo escreveu antes do passo (o note do workshop.step.v2; ADR-0093, decisão 12): a tela o mostra como um comentário do shell.
+   */
+  note?: string;
 }
 /**
  * O fim da sessão (workshop.session_finished.v1); sem ele, a sessão está em curso ou caiu sem o fato.

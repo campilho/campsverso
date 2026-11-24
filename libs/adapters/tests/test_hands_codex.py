@@ -416,6 +416,16 @@ def test_um_item_de_erro_do_codex_vira_um_aviso(space: Space, kit: Kit, tmp_path
     assert warnings == [("hands.codex_notice", {"message": NOTICE})]
 
 
+def test_a_mensagem_antes_da_ferramenta_vai_no_passo(tmp_path: Path) -> None:
+    """ADR-0093, decisão 12: o que o modelo escreveu antes da ferramenta vai no passo dela, uma
+    vez; a mensagem final não vira passo."""
+    stream = CodexStream(tmp_path)
+    steps: list[HandsStep] = []
+    for event in TALK:
+        steps.extend(stream.read(event).steps)
+    assert [(s.tool, s.note) for s in steps] == [("command_execution", "Ainda.")]
+
+
 def test_o_limite_de_voltas_vale_numa_mensagem_do_meio(
     space: Space, kit: Kit, tmp_path: Path
 ) -> None:

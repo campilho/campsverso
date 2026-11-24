@@ -156,11 +156,17 @@ class ApiHands:
                 texto = args.get("texto")
                 result = await world.note("" if texto is None else str(texto))
                 return StepOutcome(result.text, result.ok)
+            # O que o modelo escreveu antes da ferramenta (ADR-0093, decisão 12).
+            note = session.said
             if tool == "pronto":
                 summary = str(args.get("resumo") or "")
-                await self._workshop.step(space, tool, args, harness="api", model=job.model)
+                await self._workshop.step(
+                    space, tool, args, harness="api", model=job.model, note=note
+                )
                 return StepOutcome("pronto: a entrega vai para a revisão", True, True)
-            result = await self._workshop.step(space, tool, args, harness="api", model=job.model)
+            result = await self._workshop.step(
+                space, tool, args, harness="api", model=job.model, note=note
+            )
             if tool == "rodar_testes":
                 tests = (result.text.splitlines() or [""])[0][:160]
             return StepOutcome(result.text, result.ok)

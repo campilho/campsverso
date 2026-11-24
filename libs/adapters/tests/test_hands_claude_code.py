@@ -20,7 +20,7 @@ from campsverso_adapters.hands_claude_code import (
     step_of,
 )
 from campsverso_adapters.hands_fence import sandbox_profile
-from campsverso_adapters.model_fake_http import FakeModel, text, use
+from campsverso_adapters.model_fake_http import FakeModel, said, text, use
 from campsverso_ports import (
     HandsJob,
     HandsLimits,
@@ -303,7 +303,10 @@ async def test_uma_sessao_do_claude_code_escreve_no_espaco_chama_o_robo_e_termin
     root.mkdir()
     fake = FakeModel(
         [
-            use("Write", file_path=str(root / "ola.py"), content="print('olá')\n"),
+            said(
+                "Vou escrever o ola.py.",
+                use("Write", file_path=str(root / "ola.py"), content="print('olá')\n"),
+            ),
             use("Read", file_path="/etc/hosts"),
             use("mcp__oficina__chamar_robo", nome="testador", argumentos=["ola.py"]),
             use("mcp__oficina__anotar", texto="o pedido 7 era só um arquivo"),
@@ -320,6 +323,8 @@ async def test_uma_sessao_do_claude_code_escreve_no_espaco_chama_o_robo_e_termin
     assert (root / "ola.py").read_text() == "print('olá')\n"
     assert [s.tool for s in world.steps] == ["Write", "Read", "chamar_robo", "anotar"]
     assert [s.ok for s in world.steps] == [True, False, True, True]
+    # O texto do modelo antes da ferramenta (ADR-0093, decisão 12), só no passo dela.
+    assert [s.note for s in world.steps] == ["Vou escrever o ola.py.", None, None, None]
     assert "fora do espaço" in world.steps[1].summary  # o gancho recusou, com o motivo
     assert world.robots_called == [("testador", ["ola.py"])]
     assert world.notes == ["o pedido 7 era só um arquivo"]

@@ -31,6 +31,7 @@ from campsverso_ports.hands import (
     HandsStep,
     HandsWorld,
     Robot,
+    note_of,
 )
 from campsverso_ports.ids import IdGenerator
 from campsverso_ports.memory import (
@@ -170,5 +171,6 @@ __all__ = [
     "Workspace",
     "WorldStore",
     "canonical_request",
+    "note_of",
     "request_sha256",
 ]

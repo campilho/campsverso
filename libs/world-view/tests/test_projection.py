@@ -659,6 +659,11 @@ def test_a_sessao_do_dev_guarda_os_passos_o_custo_e_o_fim() -> None:
         "path": f"a{SESSION_STEPS_KEPT + 2}.py",
     }
     assert session["cost_usd"] == 0.5
+    # O texto do modelo antes do passo (ADR-0093, decisão 12) vai junto, quando há.
+    said = {"tool": "Bash", "summary": "Bash: pytest", "ok": True, "duration_ms": 9}
+    note = "Vou rodar os testes antes de mexer."
+    p.apply("observer", ev(80, 150, "workshop.step.v2", **hands, **said, note=note, **who))
+    assert session["steps"][-1]["note"] == note
     end = {"done": True, "reason": "pronto", "turns": 19, "steps": 18, "cost_usd": 0.503}
     p.apply(
         "observer",

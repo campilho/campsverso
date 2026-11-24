@@ -607,6 +607,21 @@ async def test_um_modelo_que_a_porta_nao_atende_vira_o_da_mente(repo: Path, tmp_
     assert "mind.model_unavailable" in set(telemetry.events())
 
 
+async def test_o_texto_do_modelo_antes_da_ferramenta_vai_no_passo(
+    repo: Path, tmp_path: Path
+) -> None:
+    """ADR-0093, decisão 12: no nosso harness, o texto da resposta vai no passo da primeira
+    ferramenta dela, como o comentário da tela do dev."""
+    said = {"type": "text", "text": "Vou criar o a.py\ncom a constante."}
+    port = Scripted([said, _use("escrever", path="a.py", content="A = 1\n")], [_use("pronto")])
+    events: list[tuple[str, Mapping[str, Any]]] = []
+    mind, _, _ = _mind(port, repo, tmp_path, background=False, events=events)
+    deliver = await mind.decide(_snapshot())
+    assert deliver is not None
+    notes = [d.get("note") for kind, d in events if kind == "campsverso.workshop.step.v2"]
+    assert notes == ["Vou criar o a.py com a constante.", None]
+
+
 # O elenco do M27 e um dev só de teste, cada um com a mente e o sistema padrão dele.
 DEVS: dict[str, dict[str, Any]] = {
     "tiago": {"model": "claude-opus-5-5", "default_harness": "claude_code"},

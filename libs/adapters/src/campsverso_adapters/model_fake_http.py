@@ -36,6 +36,12 @@ def use(tool: str, **given: Any) -> dict[str, Any]:
     return {"tool": tool, "input": given}
 
 
+def said(value: str, step: Mapping[str, Any]) -> dict[str, Any]:
+    """Um passo de ferramenta do roteiro com um texto antes dela, na mesma resposta (o texto entre
+    os passos, ADR-0093, decisão 12)."""
+    return {**step, "said": value}
+
+
 @dataclass
 class FakeModel:
     """O falso, com o roteiro e o que ele viu: cada pedido, os cabeçalhos e as ferramentas."""
@@ -76,10 +82,11 @@ class FakeModel:
         else:
             block = {"type": "text", "text": step["text"]}
             stop = "end_turn"
+        before = [{"type": "text", "text": str(step["said"])}] if "said" in step else []
         message: dict[str, Any] = {
             "id": f"msg_{len(self.seen):04d}",
             "model": str(body.get("model") or "x"),
-            "content": [block],
+            "content": [*before, block],
             "stop_reason": stop,
             "usage": dict(self.usage),
         }

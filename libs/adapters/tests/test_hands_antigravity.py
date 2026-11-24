@@ -217,6 +217,9 @@ def test_uma_sessao_vira_os_passos_na_ordem(space: Space, kit: Kit) -> None:
         ("run_command", None, True),
     ]
     assert world.steps[0].summary == "run_command: ls tools/robos tools/robos/tests"
+    # O texto do modelo antes do passo (ADR-0093, decisão 12), só no primeiro depois dele.
+    assert world.steps[0].note == "Vou ler os robôs da bancada antes de escrever o eco."
+    assert world.steps[1].note is None
     assert world.steps[0].duration_ms == 70
     assert world.steps[5].summary == (
         "read_file: tools/robos/eco_antigo.py (erro: file does not exist)"

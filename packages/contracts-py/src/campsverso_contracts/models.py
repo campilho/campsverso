@@ -4705,6 +4705,10 @@ class ObserverWorkshopSessionStep(BaseModel):
     summary: Annotated[str, Field(max_length=200)]
     ok: bool
     path: Annotated[str | None, Field(max_length=300)] = None
+    note: Annotated[str | None, Field(max_length=200)] = None
+    """
+    O que o modelo escreveu antes do passo (o note do workshop.step.v2; ADR-0093, decisão 12): a tela o mostra como um comentário do shell.
+    """
 
 
 class ObserverWorkshopSessionEnd(BaseModel):

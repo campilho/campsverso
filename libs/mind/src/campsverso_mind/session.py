@@ -62,6 +62,9 @@ class WorkSession:
         self._effort: Effort | None = effort
         self._max_failures = max_failures
         self.messages: list[dict[str, Any]] = []
+        # O texto da resposta que pediu a ferramenta em curso (ADR-0093, decisão 12): só a primeira
+        # ferramenta de cada resposta o leva; a tela o mostra como um comentário.
+        self.said = ""
 
     def _request(self) -> ModelRequest:
         messages = [dict(m) for m in self.messages]
@@ -113,6 +116,7 @@ class WorkSession:
             no_tool = 0
             results: list[dict[str, Any]] = []
             done = False
+            said = " ".join(str(b.get("text") or "") for b in answer if b.get("type") == "text")
             for use in uses:
                 if done:  # depois do pronto, nada mais roda
                     results.append(
@@ -125,6 +129,7 @@ class WorkSession:
                     )
                     continue
                 given = cast(Mapping[str, Any], use.get("input") or {})
+                self.said, said = said.strip(), ""
                 outcome = await execute(str(use["name"]), given)
                 block: dict[str, Any] = {
                     "type": "tool_result",

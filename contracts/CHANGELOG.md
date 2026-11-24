@@ -8,7 +8,7 @@ Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão 
 
 - **O "Para quem" e o "Para todos"** (decisão 8): o `office.ticket.created.v1` ganha dois campos opcionais. O `assignee` é o dev a quem o pedido é dado; um dev só pega o que é dele ou o que não é de ninguém. O `group` liga as fichas de um "Para todos": o gerente escreve uma vez, e o kernel cria uma ficha por dev, com o mesmo texto, o `assignee` de cada um e o mesmo grupo. O `harness` passa a ser um harness do catálogo dos sistemas do cartucho (decisão 18), como `codex`, e vem com o `model` como um par que o kernel confere.
 - **A devolução troca quem programa** (decisão 12): o `office.ticket.returned.v2` ganha `harness` e `model`, opcionais: o sistema da volta, escolhido pelo gerente ao devolver. Sem eles, o mesmo de antes.
-- **O texto do modelo entre os passos** (decisão 12): o `workshop.step.v2` ganha `note`, opcional, até 200 caracteres: o que o modelo escreveu antes do passo, que a tela do dev mostra como um comentário do shell.
+- **O texto do modelo entre os passos** (decisão 12): o `workshop.step.v2` ganha `note`, opcional, até 200 caracteres: o que o modelo escreveu antes do passo, que a tela do dev mostra como um comentário do shell. A sessão da tela (`realtime/welcome.v1`, `state.workshop.sessions.*.steps`) ganha o mesmo `note`, opcional.
 
 ### As telas do Claude Design (ADR-0092)
 
