@@ -177,15 +177,17 @@ async def run_session(
     stream: Stream,
     log: IO[bytes],
     parse: Callable[[bytes], Mapping[str, Any] | None],
+    errors: IO[bytes] | None = None,
 ) -> Outcome:
-    """Roda o processo de uma sessão e lê a saída até o fim, um teto ou o limite de tempo."""
+    """Roda o processo de uma sessão e lê a saída até o fim, um teto ou o limite de tempo. A saída
+    de erro do harness vai para `errors` (um arquivo ao lado da conversa), quando dado."""
     process = await asyncio.create_subprocess_exec(
         *argv,
         cwd=str(root),
         env=dict(environment),
         stdin=asyncio.subprocess.DEVNULL if briefing is None else asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.DEVNULL,
+        stderr=asyncio.subprocess.DEVNULL if errors is None else errors,
         limit=16 * 1024 * 1024,
         start_new_session=True,
     )
@@ -322,7 +324,9 @@ class ProcessHands:
     ) -> None:
         self._meter = meter
         self._key = api_key
-        self._home = home
+        # Absoluta: o harness roda com o diretório no espaço, e o perfil do cercado e a conversa
+        # ficam aqui (uma pasta relativa, como o `PASTA=` da comparação, não era achada; 23/nov).
+        self._home = home.resolve()
         self._command = list(command or (self.program,))
         self._sandbox = sys.platform == "darwin" if sandbox is None else sandbox
         self._upstream = upstream
@@ -385,7 +389,8 @@ class ProcessHands:
             self._meter.assert_priced(self.priced_model(job))
         except LookupError as error:
             raise ValueError(f"o modelo {job.model} não tem preço na tabela") from error
-        root = space.root
+        # O espaço absoluto: a casa do harness, o `--cd` e o cercado valem de qualquer diretório.
+        root = space.root.resolve()
         argv = self.argv(root, job)
         self.sessions += 1
         folder = self._home / job.ticket_id
@@ -412,7 +417,9 @@ class ProcessHands:
             environment = self.prepare(root, gate, job)
             self.last_environment = dict(environment)
             fenced = self._fence(folder, root, gate, argv)
-            with transcript.open("wb") as log:
+            # A saída de erro do harness, ao lado da conversa: a sessão que cai sem dizer nada na
+            # saída deixa ali o porquê (a prova de 23/nov).
+            with transcript.open("wb") as log, transcript.with_suffix(".stderr").open("wb") as err:
                 outcome = await run_session(
                     fenced,
                     root=root,
@@ -424,6 +431,7 @@ class ProcessHands:
                     stream=stream,
                     log=log,
                     parse=lambda line: parse_line(line, self._warn, self.harness),
+                    errors=err,
                 )
         self.finished(stream)
         # A falha que vem da nossa parada é a própria parada.

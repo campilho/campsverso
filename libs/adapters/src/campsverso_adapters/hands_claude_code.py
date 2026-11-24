@@ -267,7 +267,7 @@ class ClaudeCodeHands:
     ) -> None:
         self._meter = meter
         self._key = api_key
-        self._home = home
+        self._home = home.resolve()  # o cercado e a conversa, de qualquer diretório
         self._cli = cli
         self._sandbox = sys.platform == "darwin" if sandbox is None else sandbox
         self._upstream = upstream
@@ -345,7 +345,7 @@ class ClaudeCodeHands:
         return create_sdk_mcp_server(SERVER, tools=[wrapped(s) for s in world_tools(world)])
 
     async def run(self, space: Workspace, job: HandsJob, world: HandsWorld) -> HandsResult:
-        root = space.root
+        root = space.root.resolve()
         cli = self._cli or bundled_cli()
         self.sessions += 1
         folder = self._home / job.ticket_id

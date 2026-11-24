@@ -265,6 +265,30 @@ def test_um_modelo_sem_preco_e_recusado_antes_de_abrir_o_codex(space: Space, kit
     assert hands.sessions == 0
 
 
+@MACOS
+def test_com_a_pasta_das_sessoes_relativa_o_cercado_acha_o_perfil(
+    space: Space, kit: Kit, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """O `PASTA=data/maos/...` da comparação de 23/nov: a pasta das sessões relativa, e o harness
+    rodando com o diretório no espaço. O perfil do cercado tem de ser achado, e a saída de erro do
+    harness fica ao lado da conversa."""
+    monkeypatch.chdir(tmp_path)
+    space.root = space.root.relative_to(tmp_path)  # o espaço relativo, como o da comparação
+    hands = CodexHands(
+        kit.meter,
+        api_key=KEY,
+        home=Path("sessoes-relativas"),
+        command=(sys.executable, str(FAKE)),
+        upstream="http://provedor-falso",
+        transport=httpx2.ASGITransport(app=kit.provider.app()),
+        readable=[Path(sys.prefix), Path(sys.base_prefix), FAKE.parent],
+    )
+    result = _run(hands, space, World())
+    assert result.reason == "pronto", result
+    (errors,) = (tmp_path / "sessoes-relativas" / "pedido-2").glob("codex-*.stderr")
+    assert "No such file" not in errors.read_text()
+
+
 def test_o_config_da_sessao_aponta_o_provedor_para_a_porta() -> None:
     config = tomllib.loads(codex_config("http://127.0.0.1:5123", MODEL, "max"))
     provider = config["model_providers"][config["model_provider"]]
