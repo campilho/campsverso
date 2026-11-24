@@ -139,11 +139,11 @@ sandbox: tools ui-build ## mundo descartável com tudo ligado, em data/sandbox/<
 jogar: tools ui-build ## o sandbox de quem joga: começa pausado e a tela do jogador assume o Camps ao abrir; make jogar MUNDO=farm-morada-do-sol-04; RETOMAR=data/sandbox/<pasta> continua de onde parou (pause antes do Ctrl+C)
 	$(PY) python -m campsverso_testkit.sandbox --world config/worlds/$(MUNDO).yaml --out $(or $(RETOMAR),data/sandbox/$$(date +%Y%m%d-%H%M%S)) $(if $(RETOMAR),--retomar,) --jogar
 
-maos: ## a comparação das mãos (ADR-0089, decisão 10): três pedidos de robô pelo nosso harness e pelo Claude Code com o Opus 5.5, e o Fable 5.2 no Claude Code num deles, em data/maos/<data>; chama a API; SO=1,2 escolhe as corridas
-	uv run --locked --env-file .env python -m campsverso_testkit.maos $(if $(SO),--so $(SO),)
+maos: ## a comparação das mãos (ADR-0089, decisão 10): três pedidos de robô pelo nosso harness e pelo Claude Code com o Opus 5.5, e o Fable 5.2 no Claude Code num deles, em data/maos/<data>; as corridas 8 a 10 são o Codex com o GPT-6.2 Astra (ADR-0093, decisão 17); chama a API; SO=1,2 escolhe as corridas; PASTA= escolhe a pasta
+	uv run --locked --env-file .env python -m campsverso_testkit.maos $(if $(SO),--so $(SO),) $(if $(PASTA),--out $(PASTA),)
 
-maos-relatorio: ## a tabela da comparação das mãos em docs/arena/m26-as-maos.md, lida dos fatos de cada corrida (PASTA=data/maos/<data>; o padrão é a de hoje); não chama a API
-	uv run --locked python -m campsverso_testkit.maos --relatorio $(if $(PASTA),--out $(PASTA),)
+maos-relatorio: ## a tabela da comparação das mãos em docs/arena/m26-as-maos.md, lida dos fatos de cada corrida (PASTA=data/maos/<data>; o padrão é a de hoje); DESTINO=docs/arena/m27-os-sistemas.md escreve a do M27; não chama a API
+	uv run --locked python -m campsverso_testkit.maos --relatorio $(if $(PASTA),--out $(PASTA),) $(if $(DESTINO),--destino $(DESTINO),)
 
 conformidade: ## a prova de conformidade do escritório (ADR-0077, decisão 11): dois pedidos curtos num repositório de exemplo, para cada modelo; chama a API. MODELOS=claude-sonnet-5-5,claude-opus-5-5 escolhe; MAOS=claude_code faz a prova pelo Claude Code (ADR-0089), com o Opus 5.5; MAOS=codex pelo Codex, com o GPT-6.2 Astra e a OPENAI_API_KEY; MAOS=antigravity pelo Antigravity, com o Gemini 4 Neon e a GEMINI_API_KEY (ADR-0093)
 	uv run --locked --env-file .env python -m campsverso_testkit.conformidade $(if $(MODELOS),--modelos $(MODELOS),) $(if $(MAOS),--maos $(MAOS),)

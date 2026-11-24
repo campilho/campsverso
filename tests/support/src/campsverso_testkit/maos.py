@@ -45,6 +45,7 @@ from typing import Any, cast
 
 from campsverso_adapters import RecordingModel, SystemWallClock, load_env
 from campsverso_adapters.hands_claude_code import ClaudeCodeHands
+from campsverso_adapters.hands_outside import outside_hands
 from campsverso_adapters.model_routes import ANTHROPIC_KEY, model_port
 from campsverso_adapters.workshop_local import LocalWorkshop
 from campsverso_ports import (
@@ -66,6 +67,10 @@ TICKET_ID = "pedido-001"
 HIDDEN = "tools/robos/tests/test_aceite_escondido.py"
 OPUS = "claude-opus-5-5"
 FABLE = "claude-fable-5-2"
+# O M27 (ADR-0093, decisão 17): o sistema da OpenAI, o Codex com o GPT-6.2 Astra, nos mesmos três
+# pedidos, ao lado do Claude Code com o Opus que o M26 mediu.
+ASTRA = "gpt-6.2-astra"
+OPENAI_KEY = "OPENAI_API_KEY"
 FACTS = (
     "campsverso.office.ticket.",
     "campsverso.workshop.",
@@ -273,6 +278,9 @@ RUNS = (
     Run(5, APONTA, "api", OPUS),
     Run(6, APONTA, "claude_code", OPUS),
     Run(7, HISTORIA, "claude_code", FABLE),
+    Run(8, CONTADOR, "codex", ASTRA),
+    Run(9, HISTORIA, "codex", ASTRA),
+    Run(10, APONTA, "codex", ASTRA),
 )
 
 
@@ -426,20 +434,37 @@ async def run_one(run: Run, out: Path, commit: str) -> dict[str, Any]:
         calls = pipeline.of_type("llm.call.completed.v1")
         return sum(float(c["cost_usd"]) for c in calls if c["charged"])
 
-    api = model_port(run.model, routes=env.routes, clock=clock)
+    # A mente do dev (a conversa e o plano) fica no Opus; o sistema do pedido é o da corrida. Nas
+    # mãos da Anthropic e no nosso harness, o modelo da corrida é o mesmo da mente, como no M26.
+    mind_model = OPUS if run.harness == "codex" else run.model
+    api = model_port(mind_model, routes=env.routes, clock=clock)
     capped = Capped(api, CAP_USD)
     port: ModelPort = RecordingModel(capped, out / "nosso.jsonl", "record", clock=clock)
 
+    def warn(event: str, fields: Mapping[str, Any]) -> None:
+        print(f"{event}: {dict(fields)}", file=sys.stderr)
+
     def hands(meter: CallMeter) -> Mapping[str, Hands]:
+        capped_meter = CappedMeter(meter, spent, CAP_USD)
         return {
             "claude_code": ClaudeCodeHands(
-                CappedMeter(meter, spent, CAP_USD),
+                capped_meter,
                 api_key=key,
                 home=out / "maos",
                 tape=out / "claude-code.jsonl",
                 tape_mode="record",
-                warn=lambda event, fields: print(f"{event}: {dict(fields)}", file=sys.stderr),
-            )
+                warn=warn,
+            ),
+            "codex": outside_hands(
+                "codex",
+                capped_meter,
+                api_key=os.environ.get(OPENAI_KEY, ""),
+                home=out / "maos",
+                tools=REPO / ".tools" / "bin",
+                tape=out / "codex.jsonl",
+                tape_mode="record",
+                warn=warn,
+            ),
         }
 
     ticket = run.ticket
@@ -450,8 +475,9 @@ async def run_one(run: Run, out: Path, commit: str) -> dict[str, Any]:
         workshop_repo=REPO,
         workshop_root=out / "oficina",
         python_env=True,
-        model=run.model,
+        model=mind_model,
         hands=hands,
+        devs=("tiago",),  # o pedido é do Tiago; o Kenji fica parado (ADR-0093)
         helper_config={
             "gerente": {
                 "tickets": [
@@ -463,6 +489,7 @@ async def run_one(run: Run, out: Path, commit: str) -> dict[str, Any]:
                         "size": ticket.size,
                         "harness": run.harness,
                         "model": run.model,
+                        "assignee": "tiago",
                     }
                 ]
             }
@@ -543,7 +570,7 @@ def headline(result: Mapping[str, Any], facts: Sequence[Mapping[str, Any]]) -> s
 REPORT = REPO / "docs" / "arena" / "m26-as-maos.md"
 BEGIN = "<!-- tabela: make maos-relatorio -->"
 END = "<!-- /tabela -->"
-HANDS_NAME = {"api": "nosso harness", "claude_code": "Claude Code"}
+HANDS_NAME = {"api": "nosso harness", "claude_code": "Claude Code", "codex": "Codex"}
 
 
 def _load(folder: Path) -> tuple[dict[str, Any], list[dict[str, Any]]] | None:
@@ -663,9 +690,11 @@ async def run(selected: Sequence[int], out: Path) -> int:
         ["git", "-C", str(REPO), "rev-parse", "HEAD"], capture_output=True, text=True, check=True
     ).stdout.strip()
     print(f"a comparação no commit {commit[:12]}, em {out}", flush=True)
-    for item in RUNS:
-        if selected and item.number not in selected:
-            continue
+    chosen = [item for item in RUNS if not selected or item.number in selected]
+    if any(item.harness == "codex" for item in chosen) and not os.environ.get(OPENAI_KEY):
+        print(f"{OPENAI_KEY} ausente: o Codex chama a OpenAI (ADR-0093)", file=sys.stderr)
+        return 2
+    for item in chosen:
         folder = out / item.label
         print(f"{item.label}: correndo...", flush=True)
         result = await run_one(item, folder, commit)
@@ -688,6 +717,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--reconferir", action="store_true", help="refaz a conferência por fora, sem a API"
     )
+    parser.add_argument(
+        "--destino",
+        type=Path,
+        help="o relatório (padrão: docs/arena/m26-as-maos.md; o M27, m27-os-sistemas.md)",
+    )
     args = parser.parse_args(argv)
     selected = [int(x) for x in str(args.so).split(",") if x.strip()]
     out = args.out or REPO / "data" / "maos" / datetime.now(UTC).strftime("%Y%m%d")
@@ -695,7 +729,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         asyncio.run(recheck(out))
         return 0
     if args.relatorio:
-        print(write_report(out), flush=True)
+        print(write_report(out, args.destino or REPORT), flush=True)
         return 0
     return asyncio.run(run(selected, out))
 
