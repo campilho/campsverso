@@ -11,6 +11,7 @@ import pytest
 
 from campsverso_adapters import ModelPrices
 from campsverso_adapters.hands_claude_code import ClaudeCodeHands, bundled_cli
+from campsverso_adapters.hands_codex import CodexHands
 from campsverso_adapters.model_fake_http import FakeModel
 from campsverso_adapters.model_fake_http import text as say
 from campsverso_adapters.model_fake_http import use as act
@@ -40,6 +41,8 @@ from campsverso_testkit.conformidade import (
 PRICES = ModelPrices(2.0, 10.0, 0.1, 2.5)
 # A prova paga de 22/nov (o plano do M26, parte 2): o Opus 5.5 pelo Claude Code, magra.
 CLAUDE_CODE_TAPE = Path(__file__).parents[1] / "fixtures" / "llm" / "conformidade-claude-code.jsonl"
+# A prova paga de 23/nov (ADR-0093): o GPT-6.2 Astra pelo Codex 0.171.0, sem o eco das ferramentas.
+CODEX_TAPE = Path(__file__).parents[1] / "fixtures" / "llm" / "conformidade-codex.jsonl"
 
 
 def use(name: str, **given: Any) -> dict[str, Any]:
@@ -272,6 +275,34 @@ async def test_a_fita_do_opus_pelo_claude_code_passa_de_novo_sem_a_api(tmp_path:
     assert [s.split(":")[0] for s in consertar.trail] == ["Bash", "Edit", "Bash"]
     assert consertar.summary.startswith("Corrigi a média")
     assert verdict.tally.responses == 6
+    assert verdict.tally.format_errors == []
+    assert verdict.passed
+
+
+async def test_a_fita_do_astra_pelo_codex_passa_de_novo_sem_a_api(tmp_path: Path) -> None:
+    """O Codex de verdade (o pacote do `make tools-maos`), o cercado e a conferência por fora, com
+    as respostas da fita da prova paga de 23/nov. Sem o Codex fixado, como no CI, fica de fora."""
+    command = pinned("codex")
+    if command is None:
+        pytest.skip("sem o Codex fixado (make tools-maos)")
+
+    def hands_of(meter: CallMeter) -> Hands:
+        return CodexHands(
+            meter,
+            api_key="sem-chave",
+            home=tmp_path / "maos",
+            command=command,
+            upstream="http://sem-rede.invalid",
+            tape=CODEX_TAPE,
+            tape_mode="replay",
+        )
+
+    prices = {"openai/gpt-6.2-astra": PRICES}
+    verdict = await asyncio.wait_for(prove_hands("gpt-6.2-astra", hands_of, prices, tmp_path), 600)
+    escrever, consertar = verdict.tasks
+    assert (escrever.correct, consertar.correct) == (True, True), verdict.as_dict()
+    assert consertar.files == ["calc/media.py"]
+    assert verdict.tally.responses > 0
     assert verdict.tally.format_errors == []
     assert verdict.passed
 
