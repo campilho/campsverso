@@ -42,7 +42,7 @@ def _parse(argv: Sequence[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="campsverso_supervisor.main")
     parser.add_argument("--repo", type=Path, default=Path.cwd(), help="o repositório de trabalho")
     parser.add_argument("--home", type=Path, help="a pasta do escritório vivo")
-    parser.add_argument("--world", default="config/worlds/office-campsverso-02.yaml")
+    parser.add_argument("--world", default="config/worlds/office-campsverso-03.yaml")
     parser.add_argument("--port", type=int, default=8765, help="a porta do gateway")
     parser.add_argument("--nats-port", type=int, default=4232, help="a porta do NATS da pilha")
     parser.add_argument("--poll", type=float, default=60.0, help="segundos entre as voltas")

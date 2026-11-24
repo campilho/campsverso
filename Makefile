@@ -118,14 +118,14 @@ stop: ## derruba o NATS que o make up subiu
 run: up ui-build ## sobe os cinco processos com o honcho (Procfile); UI em http://127.0.0.1:8765/?view=operator
 	$(PY) honcho start -f Procfile
 
-escritorio: tools secrets ## o escritório vivo sob o supervisor (ADR-0083): numa pasta só dele (../campsverso-vivo; CASA= troca), preso no origin/main, que ele testa numa cópia e troca sozinho a cada mesclagem, e volta se falhar; entre como o gerente em http://127.0.0.1:8765/?assumir=1; o diário da troca em ../campsverso-vivo/versoes/supervisor.jsonl; MENTE=tiago_escritorio põe o modelo no dev (sem ela, o dev-script)
+escritorio: tools secrets ## o escritório vivo sob o supervisor (ADR-0083): numa pasta só dele (../campsverso-vivo; CASA= troca), preso no origin/main, que ele testa numa cópia e troca sozinho a cada mesclagem, e volta se falhar; entre como o gerente em http://127.0.0.1:8765/?assumir=1; o diário da troca em ../campsverso-vivo/versoes/supervisor.jsonl; MENTE=tiago_escritorio,kenji_escritorio põe o modelo nos dois devs do mundo 03, uma mente por dev (ADR-0093; sem ela, o dev-script)
 	uv run --locked --env-file .env python -m campsverso_supervisor.main $(if $(CASA),--home $(CASA),) $(if $(MENTE),--mind $(MENTE),)
 
 escritorio-aqui: up ui-build ## o escritório vivo a partir desta pasta, sem o supervisor (o de antes do M25), para ver uma mudança antes de publicá-la: a 1×, no relógio de São Paulo
-	MUNDO=office-campsverso-02 SCRIPT=dev $(PY) honcho start -f Procfile
+	MUNDO=office-campsverso-03 SCRIPT=dev $(PY) honcho start -f Procfile
 
 aplicar: ## a entrega do dev num ramo (ADR-0080): make aplicar PEDIDO=1 [MUNDO=office-campsverso-demo DADOS=data/sandbox/<pasta>/data]; confere de novo e cria dev/pedido-N, sem mexer no seu checkout
-	$(PY) python -m campsverso_testkit.aplicar --pedido $(PEDIDO) --world config/worlds/$(or $(MUNDO),office-campsverso-02).yaml $(if $(DADOS),--data-dir $(DADOS),)
+	$(PY) python -m campsverso_testkit.aplicar --pedido $(PEDIDO) --world config/worlds/$(or $(MUNDO),office-campsverso-03).yaml $(if $(DADOS),--data-dir $(DADOS),)
 
 ui-build: ## compila a UI em apps/ui/dist, que o gateway serve
 	$(PNPM) -s --filter @campsverso/ui build
