@@ -47,6 +47,12 @@ def free_port() -> int:
         return int(sock.getsockname()[1])
 
 
+def mind_names(text: str | None) -> list[str]:
+    """As mentes de `--mind`, separadas por vírgula (ADR-0093): uma por dev, cada uma no processo
+    dela."""
+    return [name.strip() for name in (text or "").split(",") if name.strip()]
+
+
 @dataclass(frozen=True)
 class StackConfig:
     world: str  # o arquivo do mundo, relativo à worktree
@@ -185,8 +191,11 @@ class ProcessStack:
         if self._codehost:
             key = () if self._config.key is None else ("--key", str(self._config.key))
             self._service("codehost", "campsverso_codehost.main", *key)
-        if self._mind is not None:
-            self._service("mind", "campsverso_controller_runner.main", "--mind", self._mind)
+        # As mentes dos devs (ADR-0093): uma por processo, pela vírgula de `--mind`.
+        minds = mind_names(self._mind)
+        for name in minds:
+            label = "mind" if len(minds) == 1 else f"mind-{name}"
+            self._service(label, "campsverso_controller_runner.main", "--mind", name)
         if archiver:
             await self.start_archiver()
 

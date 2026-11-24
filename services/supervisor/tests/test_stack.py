@@ -9,7 +9,14 @@ from datetime import UTC, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
-from campsverso_supervisor.stack import DirVault, ProcessStack, StackConfig, free_port, reap
+from campsverso_supervisor.stack import (
+    DirVault,
+    ProcessStack,
+    StackConfig,
+    free_port,
+    mind_names,
+    reap,
+)
 
 
 def test_a_copia_guarda_e_devolve_os_dados_e_o_nats_sem_a_oficina(tmp_path: Path) -> None:
@@ -115,3 +122,13 @@ async def test_o_aviso_vai_ao_gateway_da_pilha_e_nunca_derruba(tmp_path: Path) -
         assert not await stack(free_port()).notify(notice, tries=2)  # ninguém ouvindo: só avisa
     finally:
         server.shutdown()
+
+
+def test_as_mentes_dos_devs_vem_pela_virgula() -> None:
+    """ADR-0093: `--mind tiago_escritorio,kenji_escritorio` sobe uma mente por dev."""
+    assert mind_names(None) == []
+    assert mind_names("tiago_escritorio") == ["tiago_escritorio"]
+    assert mind_names("tiago_escritorio, kenji_escritorio,") == [
+        "tiago_escritorio",
+        "kenji_escritorio",
+    ]

@@ -38,6 +38,25 @@ def test_o_sandbox_com_github_publica_em_ramos_so_dele(tmp_path: Path) -> None:
     assert world["codehost"]["branch_prefix"] == "dev/sandbox-20261121-103000/"
 
 
+def test_o_sandbox_com_duas_mentes_da_uma_fita_a_cada_uma(tmp_path: Path) -> None:
+    """ADR-0093: no mundo 03, `MENTE=tiago_escritorio,kenji_escritorio` sobe as duas mentes, cada
+    uma com a fita dela; com uma só, o outro dev fica com o dev-script."""
+    office = Path(__file__).parents[2] / "config" / "worlds" / "office-campsverso-03.yaml"
+    write = sandbox._world_file  # pyright: ignore[reportPrivateUsage]
+    both = yaml.safe_load(
+        write(tmp_path, "tiago_escritorio,kenji_escritorio", source=office).read_text("utf-8")
+    )
+    tapes = {a: Path(m["cassette"]["path"]).name for a, m in both["minds"].items()}
+    assert tapes == {"tiago": "llm-tiago.jsonl", "kenji": "llm-kenji.jsonl"}
+    one = yaml.safe_load(write(tmp_path, "kenji_escritorio", source=office).read_text("utf-8"))
+    assert list(one["minds"]) == ["kenji"]
+    assert Path(one["minds"]["kenji"]["cassette"]["path"]).name == "llm.jsonl"
+    assert sandbox.mind_names(" tiago_escritorio, kenji_escritorio ,") == [
+        "tiago_escritorio",
+        "kenji_escritorio",
+    ]
+
+
 def test_retomar_pede_uma_pasta_com_mundo(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError, match="não tem um mundo"):
         sandbox.world_of(tmp_path, resume=True)

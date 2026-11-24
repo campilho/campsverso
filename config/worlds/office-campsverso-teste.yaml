@@ -7,6 +7,7 @@ cartridge: office_campsverso
 script: dev
 player: gerente
 avatar: tiago  # o avatar do dev-script e da mente: o dev, que nenhum humano assume (ADR-0092)
+devs: [tiago, kenji]  # os devs do dev-script, um runner para cada (ADR-0093)
 seed: 20261116
 start: "2026-11-16T00:00:00-03:00"  # uma segunda-feira
 

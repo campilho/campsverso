@@ -139,6 +139,8 @@ class CodeHostSettings:
     # O começo dos ramos do dev: `dev/` no escritório vivo (`dev/pedido-N`); o sandbox usa um só
     # dele (`dev/sandbox-<pasta>/`), para os pedidos de números iguais não caírem no mesmo ramo.
     branch_prefix: str = "dev/"
+    # O dev no ramo, num escritório com vários devs (ADR-0093): `dev/m03/kenji/pedido-1`.
+    branch_by_dev: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -191,6 +193,9 @@ class WorldSettings:
     # O avatar que o script do mundo e a mente conduzem (ADR-0092): na fazenda, o próprio Camps, a
     # cadeira do jogador; no escritório, o dev (o Tiago), que nenhum humano assume.
     avatar: str = "camps"
+    # Os devs que o script do mundo conduz, um runner para cada (ADR-0093): no escritório do M27, o
+    # Tiago e o Kenji. Sem a lista, só o `avatar`. Cada mente acha o dela pela seção `minds`.
+    devs: tuple[str, ...] = ()
     # A foto com o que aconteceu no meio-tempo (`perception.snapshot_events`, ADR-0080): a memória
     # do dev do escritório não perde o que houve entre o último delta e a foto.
     snapshot_events: bool = False
@@ -340,12 +345,14 @@ def load_world(path: Path, root: Path | None = None) -> WorldSettings:
     if anchor == "wall" and mode != "continuous":
         raise ValueError("clock.anchor: wall pede o modo contínuo (o mundo em tempo real)")
     perception = cast(Mapping[str, Any], doc.get("perception") or {})
+    avatar = str(doc.get("avatar") or doc.get("player") or "camps")
     return WorldSettings(
         anchor=anchor,
         workshop=bool(doc.get("workshop", False)),
         snapshot_events=bool(perception.get("snapshot_events", False)),
         player=str(doc.get("player") or "camps"),
-        avatar=str(doc.get("avatar") or doc.get("player") or "camps"),
+        avatar=avatar,
+        devs=tuple(str(a) for a in cast(list[Any], doc.get("devs") or [avatar])),
         helpers=tuple(str(a) for a in cast(list[Any], helpers.get("avatars") or [])),
         helper_script=str(helpers.get("script") or "ajudante"),
         worldid=str(doc["worldid"]),
@@ -394,6 +401,7 @@ def _codehost(raw: Any, base: Path) -> CodeHostSettings | None:
         poll_seconds=float(doc.get("poll_seconds", 60)),
         reviewers=tuple(str(m) for m in cast(list[Any], doc.get("reviewers") or [])),
         branch_prefix=_branch_prefix(str(doc.get("branch_prefix", "dev/"))),
+        branch_by_dev=bool(doc.get("branch_by_dev", False)),
     )
 
 

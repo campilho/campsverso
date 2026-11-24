@@ -101,7 +101,13 @@ async def _until_stopped(
 async def run(args: argparse.Namespace) -> int:
     telemetry = JsonTelemetry("controller-runner")
     env, world = load_env(args.env), load_world(args.world)
-    args.avatar = args.avatar or world.avatar  # o dev no escritório, o Camps na fazenda (ADR-0092)
+    # Os avatares do processo: o dado; a mente, o dela na seção `minds` (ADR-0093); o script, os
+    # devs do mundo, um runner para cada; sem nada disso, o avatar do mundo (ADR-0092).
+    chosen = args.avatar
+    if chosen is None and args.mind is not None:
+        chosen = next((a for a, m in world.minds.items() if m.mind == args.mind), None)
+    devs = [chosen] if chosen is not None else list(world.devs or (world.avatar,))
+    args.avatar = chosen or world.avatar
     if args.helpers and not world.helpers:
         # O Procfile sobe o processo em todo mundo; sem ajudantes, ele só espera o fim.
         telemetry.info("helpers.none", world=world.worldid)
@@ -271,15 +277,16 @@ async def run(args: argparse.Namespace) -> int:
             mode=settings.cassette_mode,
         )
     else:
-        controller = load_controller(args.controller, args.avatar)
-        session = _workshop(env, world, args.avatar, args.data_dir)
-        runner = ControllerRunner(
-            world.worldid, args.avatar, controller, bus, ids, clock, telemetry, workshop=session
-        )
-        if session is not None:
-            session.publish = runner.publish_observed
-            telemetry.info("controller.workshop", world=world.worldid)
-        runners = [runner]
+        for dev in devs:
+            controller = load_controller(args.controller, dev)
+            session = _workshop(env, world, dev, args.data_dir)
+            runner = ControllerRunner(
+                world.worldid, dev, controller, bus, ids, clock, telemetry, workshop=session
+            )
+            if session is not None:
+                session.publish = runner.publish_observed
+                telemetry.info("controller.workshop", world=world.worldid, avatar=dev)
+            runners.append(runner)
     try:
         for each in runners:
             await each.start()

@@ -106,6 +106,8 @@ def test_o_orcamento_do_escritorio() -> None:
     )
     demo = load_world(REPO / "config" / "worlds" / "office-campsverso-demo.yaml", root=REPO)
     assert demo.minds["tiago"].hands == "api"
+    # Sem a lista dos devs, só o avatar do mundo (ADR-0093): o mundo 02 é do Tiago.
+    assert live.devs == ("tiago",)
 
 
 def test_as_maos_do_mundo(tmp_path: Path) -> None:

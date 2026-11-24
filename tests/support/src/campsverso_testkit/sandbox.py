@@ -49,6 +49,12 @@ PORT = 8765
 LIVE_OFFICE = WORLD.parent / "office-campsverso-02.yaml"  # o `codehost` do escritório vivo
 
 
+def mind_names(text: str | None) -> list[str]:
+    """As mentes de `--mind`, separadas por vírgula (ADR-0093): uma por dev, cada uma no processo
+    dela."""
+    return [name.strip() for name in (text or "").split(",") if name.strip()]
+
+
 def _world_file(
     out: Path,
     mind: str | None = None,
@@ -71,11 +77,14 @@ def _world_file(
     else:
         world["clock"] = {"mode": "continuous", "scale": 72, "paused": paused}
     minds = cast(dict[str, dict[str, Any]], world.get("minds") or {})
+    wanted = mind_names(mind)
     for avatar, settings in list(minds.items()):
-        if mind is not None and settings.get("mind") == mind:
-            settings["cassette"] = {"path": str(out / "llm.jsonl"), "mode": "record"}
-        elif mind is None:
-            minds.pop(avatar)  # sem mente, a seção some: o sandbox fica igual ao de sempre
+        if settings.get("mind") in wanted:
+            # Uma fita por mente; com uma só, a de sempre (ADR-0093).
+            tape = "llm.jsonl" if len(wanted) == 1 else f"llm-{avatar}.jsonl"
+            settings["cassette"] = {"path": str(out / tape), "mode": "record"}
+        else:
+            minds.pop(avatar)  # a mente que não sobe sai da seção: o dev fica com o dev-script
     path = out / "world.yaml"
     path.write_text(yaml.safe_dump(world, allow_unicode=True), encoding="utf-8")
     return path
@@ -135,7 +144,8 @@ def run(
             str(port),
             "--relogio-do-jogador",  # quem joga o sandbox também pausa (ADR-0074)
         )
-        if mind is not None:
+        wanted = mind_names(mind)
+        if wanted:
             processes.spawn(
                 "budget",
                 "campsverso_budget.main",
@@ -144,20 +154,18 @@ def run(
                 "--data-dir",
                 str(out / "data"),
             )
-            processes.spawn(
-                "mind",
-                "campsverso_controller_runner.main",
-                "--world",
-                str(world),
-                "--mind",
-                mind,
-                "--data-dir",  # a oficina e as entregas da mente do escritório (ADR-0080)
-                str(out / "data"),
-            )
-            print(
-                f"  mente: {mind} assume o Camps ao conectar (fita em {out / 'llm.jsonl'})",
-                flush=True,
-            )
+            for name in wanted:
+                processes.spawn(
+                    "mind" if len(wanted) == 1 else f"mind-{name}",
+                    "campsverso_controller_runner.main",
+                    "--world",
+                    str(world),
+                    "--mind",
+                    name,
+                    "--data-dir",  # a oficina e as entregas da mente do escritório (ADR-0080)
+                    str(out / "data"),
+                )
+                print(f"  mente: {name} assume o dev dela ao conectar (fitas em {out})", flush=True)
         if publishes:  # o publicador e o vigia do GitHub (ADR-0083)
             chave = () if key is None else ("--key", str(key.resolve()))
             processes.spawn(
@@ -187,7 +195,8 @@ def run(
                 time.sleep(0.5)
         finally:
             processes.stop("kernel")  # parada elegante primeiro: o último snapshot vai ao arquivo
-            processes.stop(*[n for n in ("mind", "budget", "codehost") if n in processes.running])
+            minds = [n for n in processes.running if n == "mind" or n.startswith("mind-")]
+            processes.stop(*minds, *[n for n in ("budget", "codehost") if n in processes.running])
             processes.stop(*[n for n in ("helpers",) if n in processes.running])
             processes.stop("gateway", "controller", "perception", "archiver")
     return code
@@ -197,7 +206,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="campsverso_testkit.sandbox")
     parser.add_argument("--out", type=Path, required=True, help="pasta do mundo descartável")
     parser.add_argument("--port", type=int, default=PORT, help="porta do gateway")
-    parser.add_argument("--mind", help="a mente que assume o Camps, ex.: camps (ADR-0059)")
+    parser.add_argument(
+        "--mind",
+        help="as mentes, separadas por vírgula: camps na fazenda (ADR-0059); no escritório,"
+        " tiago_escritorio,kenji_escritorio (ADR-0093)",
+    )
     parser.add_argument("--world", type=Path, default=WORLD, help="o arquivo do mundo")
     parser.add_argument("--pausado", action="store_true", help="o relógio começa parado")
     parser.add_argument(

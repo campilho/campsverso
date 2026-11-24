@@ -49,6 +49,7 @@ TICKET = {
     "size": "P",
     "harness": "claude_code",
     "model": "claude-opus-5-5",
+    "assignee": "tiago",  # o pedido é do Tiago, a mente do teste; o Kenji é o dev-script (ADR-0093)
 }
 
 

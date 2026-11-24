@@ -207,7 +207,9 @@ class Pipeline:
                 self.ids,
                 self.clock,
                 self.telemetry,
-                workshop=None if workshop_repo is None else self._workshop(worldid, workshop_repo),
+                workshop=None
+                if workshop_repo is None
+                else self._workshop(worldid, workshop_repo, self.avatar),
             )
         elif controller == "replay":
             self.runner = ReplayRunner(
@@ -262,7 +264,7 @@ class Pipeline:
             if office:
                 if workshop_repo is None:
                     raise ValueError("o escritório precisa de um repositório: workshop_repo")
-                workshop = self._workshop(worldid, workshop_repo)
+                workshop = self._workshop(worldid, workshop_repo, self.avatar)
                 brain = self.office_mind = OfficeMind(
                     load_controller(script, self.avatar),
                     package,
@@ -315,6 +317,24 @@ class Pipeline:
                 for avatar, (kind, cid) in world_file.controllers.items()
             }
         )
+        # Os outros devs do mundo (ADR-0093), como o processo `controller`: o dev-script de cada um,
+        # com a oficina dele. O avatar principal fica com o controlador escolhido acima.
+        self.devs = [
+            ControllerRunner(
+                worldid,
+                dev,
+                load_controller(world_file.script, dev),
+                self.bus,
+                self.ids,
+                self.clock,
+                self.telemetry,
+                workshop=None
+                if workshop_repo is None
+                else self._workshop(worldid, workshop_repo, dev),
+            )
+            for dev in world_file.devs
+            if dev != self.avatar
+        ]
         # Os ajudantes (ADR-0072), como o processo `helpers`: um runner e um script por avatar.
         self.helpers = [
             ControllerRunner(
@@ -352,8 +372,8 @@ class Pipeline:
                 self.telemetry,
             )
 
-    def _workshop(self, worldid: str, repo: Path) -> WorkshopSession:
-        """A oficina do dev num clone do repositório dado, com as entregas em `deliveries`."""
+    def _workshop(self, worldid: str, repo: Path, avatar: str) -> WorkshopSession:
+        """A oficina de um dev num clone do repositório dado, com as entregas em `deliveries`."""
         shop = LocalWorkshop(
             repo,
             self._workshop_root or repo.parent / "oficina",
@@ -361,7 +381,7 @@ class Pipeline:
             python=None if self._python_env else Path(sys.executable),
         )
         return WorkshopSession(
-            worldid, self.avatar, shop, self.deliveries, lambda diff: review(diff, [])
+            worldid, avatar, shop, self.deliveries, lambda diff: review(diff, [])
         )
 
     async def start(self) -> None:
@@ -372,6 +392,8 @@ class Pipeline:
         await self.perception.start()
         if self.runner is not None:
             await self.runner.start()
+        for dev in self.devs:
+            await dev.start()
         for helper in self.helpers:
             await helper.start()
         await self.kernel.start()

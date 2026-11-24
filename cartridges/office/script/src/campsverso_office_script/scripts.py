@@ -610,16 +610,18 @@ class ManagerScript:
                 return self._review(delivered[0])
             plan = due[written_today]
             title = f"{plan['title']} (dia {day_of(view)})"
-            params = {
+            params: dict[str, Any] = {
                 "title": title,
                 "description": str(plan["description"]),
                 "acceptance": str(plan["acceptance"]),
                 "size": str(plan["size"]),
             }
-            # Quem programa e o modelo (ADR-0089), quando o roteiro escolhe.
-            for key in ("harness", "model"):
+            # Quem programa e o modelo (ADR-0089), e para quem (ADR-0093), quando o roteiro escolhe.
+            for key in ("harness", "model", "assignee"):
                 if plan.get(key):
                     params[key] = str(plan[key])
+            if plan.get("everyone"):
+                params["everyone"] = True
             return {"action": "write_ticket", "params": params, "intent": "escrever um pedido"}
         return wait(int(self.config["wait_seconds"]), "esperar")
 

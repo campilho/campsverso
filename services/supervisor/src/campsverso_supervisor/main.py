@@ -48,7 +48,11 @@ def _parse(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument("--poll", type=float, default=60.0, help="segundos entre as voltas")
     parser.add_argument("--health", type=float, default=120.0, help="segundos de saúde na troca")
     parser.add_argument("--smoke", type=float, default=50.0, help="segundos de fumaça na cópia")
-    parser.add_argument("--mind", help="a mente do dev, que chama o modelo (sem ela, o dev-script)")
+    parser.add_argument(
+        "--mind",
+        help="as mentes dos devs, que chamam o modelo, separadas por vírgula (sem elas, o"
+        " dev-script)",
+    )
     parser.add_argument(
         "--offline", action="store_true", help="preparar as worktrees sem rede (uv e pnpm)"
     )
