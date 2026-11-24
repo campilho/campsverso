@@ -100,6 +100,46 @@ def doing_ticket(view: Mapping[str, Any]) -> Mapping[str, Any] | None:
     return None
 
 
+# A ferramenta da conversa (ADR-0093, decisão 10): o que o dev pode fazer agora na sala, quando
+# combina na conversa. Cada ação vira o desejo que a rotina cumpre (o `wish` do dev-script).
+AGIR = "agir"
+AGREED = "Combinado."
+
+
+def actions_now(view: Mapping[str, Any], working: bool) -> dict[str, str]:
+    """As ações da conversa que cabem agora, do nome que o modelo vê à ação do kernel: ir para casa,
+    só convocado e sem sessão; uma pausa, sem pedido em andamento; a luz, para o lado contrário ao
+    dela."""
+    mine = _me(view)
+    myself = next((e for e in _entities(view) if e.get("entity_id") == mine), None)
+    attrs = cast(Mapping[str, Any], (myself or {}).get("attributes") or {})
+    found: dict[str, str] = {}
+    if attrs.get("convocado_por") is not None and not working:
+        found["ir_para_casa"] = "go_home"
+    if doing_ticket(view) is None and not working:
+        found.update({"cafe": "coffee", "tv": "tv", "videogame": "videogame"})
+    switch = next((e for e in _entities(view) if e.get("kind") == "light_switch"), None)
+    if switch is not None:
+        lit = bool(cast(Mapping[str, Any], switch.get("attributes") or {}).get("acesa"))
+        found["apagar_luz" if lit else "acender_luz"] = "light_off" if lit else "light_on"
+    return found
+
+
+def agir_tool(actions: Mapping[str, str]) -> dict[str, Any]:
+    return {
+        "name": AGIR,
+        "description": (
+            "Faz agora, na sala, o que você combinou na conversa: ir para casa, uma pausa ou a luz."
+            " Use só quando for fazer de verdade; o que não está aqui, você não pode fazer agora."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {"acao": {"type": "string", "enum": sorted(actions)}},
+            "required": ["acao"],
+        },
+    }
+
+
 def robots_in(view: Mapping[str, Any]) -> list[BenchRobot]:
     """Os robôs da bancada, na ordem dos apoios."""
     found: list[BenchRobot] = []
@@ -571,12 +611,14 @@ class OfficeMind:
         user = f"Agora: {str(clock.get('sim_time', ''))[11:16]}. {status}\n\nOuviu:\n{said}"
         if self._memory is not None and self._memory.clock is not None:
             user = f"{self._memory.block(self._memory.clock)}\n\n{user}"
+        actions = actions_now(view, self.working)
         request = ModelRequest(
             model=self._model,
             messages=[{"role": "user", "content": [{"type": "text", "text": user}]}],
             system=[
                 {"type": "text", "text": self._chat_system, "cache_control": {"type": "ephemeral"}}
             ],
+            tools=[agir_tool(actions)] if actions else [],
             max_tokens=1024,
             effort="low",
             purpose="conversation",
@@ -589,6 +631,21 @@ class OfficeMind:
             self._warn("mind.reply_failed", kind=error.kind)
             return None
         text = " ".join(response.text().split())
+        # O que ele combinou e vai fazer (ADR-0093, decisão 10): o desejo que a rotina cumpre.
+        chosen = next(
+            (
+                str(cast(Mapping[str, Any], use.get("input") or {}).get("acao") or "")
+                for use in response.tool_uses()
+                if use.get("name") == AGIR
+            ),
+            "",
+        )
+        if chosen in actions and hasattr(self._script, "wish"):
+            routine: Any = self._script  # o dev-script, com o `wish` que ele cumpre
+            routine.wish = actions[chosen]
+            if self._telemetry is not None:
+                self._telemetry.info("mind.agreed", action=actions[chosen])
+            text = text or AGREED
         if not text:
             return None
         self.replies += 1

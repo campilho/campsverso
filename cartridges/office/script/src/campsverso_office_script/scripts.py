@@ -335,6 +335,9 @@ class DevScript:
     greeted: int = 0  # o dia do último bom-dia
     lunched: int = 0  # o dia do último aviso do almoço
     routine: Routine | None = None
+    # O que o dev prometeu na conversa e a rotina cumpre (ADR-0093, decisão 10): uma ação de
+    # `WISHES`, que a mente põe aqui; a rotina anda até a coisa e faz, e o desejo some.
+    wish: str | None = None
 
     def __post_init__(self) -> None:
         if self.routine is None:
@@ -373,6 +376,12 @@ class DevScript:
                 self.greeted = day_of(view)
             line = self._line("morning" if hello else "noted")
             return say(line, str(last["avatar_id"]), "responder a quem falou comigo")
+        if self.wish is not None:
+            promised, done = wish_step(view, self.wish)
+            if done:
+                self.wish = None
+            if promised is not None:
+                return promised
         if manager_id is not None and present(view, manager_id) and self.greeted != day_of(view):
             self.greeted = day_of(view)
             return say(self._line("morning"), manager_id, "cumprimentar o gerente")
@@ -557,6 +566,52 @@ class GuardScript:
             "params": {},
             "intent": "acender a luz" if on else "apagar a luz",
         }
+
+
+# ---------------------------------------------------------------------------------- o desejo
+
+# O que o dev pode prometer na conversa e cumprir na hora (ADR-0093, decisão 10): a ação do kernel
+# e a coisa da sala onde ela se faz (sem coisa, ali mesmo).
+WISHES: Mapping[str, str | None] = {
+    "go_home": None,
+    "coffee": COFFEE,
+    "tv": SOFA,
+    "videogame": SOFA,
+    "light_on": LIGHT_SWITCH,
+    "light_off": LIGHT_SWITCH,
+}
+WISH_LABELS = {
+    "go_home": "ir para casa",
+    "coffee": "tomar um café",
+    "tv": "ver TV",
+    "videogame": "jogar videogame",
+    "light_on": "acender a luz",
+    "light_off": "apagar a luz",
+}
+
+
+def wish_step(view: View, wish: str) -> tuple[Proposal | None, bool]:
+    """O passo do que o dev prometeu na conversa: andar até a coisa e fazer. Devolve a proposta e
+    se ela é a última (a própria ação); sem a coisa na sala, ou um desejo que não existe, nada."""
+    if wish not in WISHES:
+        return None, True
+    kind = WISHES[wish]
+    label = WISH_LABELS[wish]
+    done: Proposal = {"action": wish, "params": {}, "intent": f"prometi: {label}"}
+    if kind is None:
+        return done, True
+    thing = next(iter(entities(view, kind)), None)
+    if thing is None:
+        return None, True
+    here = position(view)
+    if kind == SOFA:  # no tapete, logo abaixo do sofá, como as pausas da rotina
+        spot = cast(Mapping[str, int], thing.get("position") or {})
+        below = (int(spot.get("x", 0)), int(spot.get("y", 0)) + 1)
+        if not at(here, *below):
+            return go_to(*below, f"prometi: {label}"), False
+    elif not adjacent(here, thing.get("position")):
+        return go_near(str(thing["entity_id"]), f"prometi: {label}"), False
+    return done, True
 
 
 # ---------------------------------------------------------------------------------- o gerente

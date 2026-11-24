@@ -87,6 +87,7 @@ actions:
   # A convocação (a parte 5 do M25): o gerente liga para o dev, ou o dispensa, de onde estiver.
   summon: { seconds: 5, interrupt: cancel }
   dismiss: { seconds: 3, interrupt: cancel }
+  go_home: { seconds: 3, interrupt: cancel } # o dev convocado se dispensa (ADR-0093, decisão 10)
   # A luz da sala (ADR-0088): no interruptor, ao lado da porta.
   light_on: { seconds: 2, interrupt: cancel }
   light_off: { seconds: 2, interrupt: cancel }

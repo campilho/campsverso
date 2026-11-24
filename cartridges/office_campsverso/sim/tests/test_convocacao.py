@@ -213,3 +213,26 @@ def test_a_bancada_segue_o_registro_num_mundo_retomado() -> None:
     assert core.world.position_of("robo-briefing") == Position(8, 4)
     assert core.world.entity_map["robo-briefing"].attributes["modulo"] == "tools.robos.briefing"
     assert not _only(_minutes(core, 1.1), "world.entity.spawned")  # em dia: nada mais muda
+
+
+def test_o_dev_convocado_vai_para_casa_por_conta_dele() -> None:
+    """ADR-0093, decisão 10: o dev convocado se dispensa, com ele no `by`; sem convocação, não."""
+    core = _core()
+    _possess(core)
+    _minutes(core, 3.1)
+    assert _present(core, "tiago")
+    core.submit(
+        {
+            "id": f"cmd-tiago-go_home-{core.tick}",
+            "type": "campsverso.cmd.action.propose.v1",
+            "controllerid": "script/dev",
+            "data": {"avatar_id": "tiago", "action": "go_home", "params": {}},
+        }
+    )
+    facts = _minutes(core, 1.1)
+    (dismissed,) = _only(facts, "office.staff.dismissed")
+    assert dismissed == {"avatar_id": "tiago", "reason": "dispensado", "by": "tiago"}
+    assert [(d["avatar_id"], d["reason"]) for d in _only(facts, "avatar.left")] == [
+        ("tiago", "convocacao")
+    ]
+    assert not _present(core, "tiago")

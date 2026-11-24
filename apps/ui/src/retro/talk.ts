@@ -32,6 +32,25 @@ export interface Person {
 
 const ROLE_ORDER = ["dev", "vigia", "gerente"];
 
+
+const STAFF = /^campsverso\.office\.staff\.[a-z_]+\.v\d+$/;
+
+/** A convocação com o nome do dev (ADR-0093: com dois devs, "o dev" não diz qual): "dispensou o
+ * Kenji"; e a dispensa pelo próprio dev, que foi para casa depois de combinar na conversa. */
+function staffLine(state: ObserverState, event: EnvelopeV1, text: string | undefined): string | undefined {
+  if (text === undefined || !STAFF.test(event.type)) {
+    return text;
+  }
+  const data = event.data as { avatar_id?: unknown; by?: unknown };
+  const dev = typeof data.avatar_id === "string" ? nameOf(state, data.avatar_id) : undefined;
+  if (dev === undefined) {
+    return text;
+  }
+  if (event.type.endsWith(".dismissed.v1") && data.by === data.avatar_id) {
+    return "foi para casa";
+  }
+  return text.replace(/\bdo dev\b/g, `do ${dev}`).replace(/\bo dev\b/g, `o ${dev}`);
+}
 export function peopleOf(state: ObserverState, me: string): Person[] {
   return Object.entries(state.entities)
     .filter(([id, e]) => id !== me && e?.kind === "avatar" && e.position !== undefined)
@@ -253,7 +272,7 @@ export function linesOf(
       const summary = said !== "" ? `: ${said}` : "";
       lines.push({ kind: "system", id: event.id, text: `${robotName(state, data.robot_id)} ${data.ok === true ? "passou" : "falhou"}${summary}`, time });
     } else if (SYSTEM.test(event.type)) {
-      const text = describe(event, labels);
+      const text = staffLine(state, event, describe(event, labels));
       if (text !== undefined) {
         // A luz que o temporizador do prédio acende ou apaga não tem quem (ADR-0088).
         const actor = nameOf(state, data.by ?? data.author) ?? (event.type === LIGHT ? "O temporizador" : undefined);

@@ -5,7 +5,7 @@ import subprocess
 import sys
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 import yaml
@@ -13,7 +13,7 @@ import yaml
 from campsverso_adapters import MemoryBlobStore, MemoryTelemetry, SqliteMemory
 from campsverso_adapters.workshop_local import LocalWorkshop
 from campsverso_adapters.workshop_review import review
-from campsverso_controller_runner.office_mind import OfficeMind
+from campsverso_controller_runner.office_mind import OfficeMind, actions_now
 from campsverso_controller_runner.runner import load_mind
 from campsverso_controller_runner.workshop import WorkshopSession
 from campsverso_mind import Memory, MemorySettings, Mind
@@ -86,6 +86,7 @@ class Routine:
 
     def __init__(self) -> None:
         self.views: list[Mapping[str, Any]] = []
+        self.wish: str | None = None  # o que o dev combinou na conversa (ADR-0093)
 
     def decide(self, view: Mapping[str, Any]) -> Mapping[str, Any]:
         self.views.append(view)
@@ -260,6 +261,39 @@ async def test_fora_do_mundo_vivo_o_mundo_espera_a_sessao(repo: Path, tmp_path: 
     assert not mind.working
     assert proposed == []  # nada sai por fora da decisão
     assert mind.sessions == 1
+
+
+async def test_o_dev_combina_na_conversa_e_a_rotina_faz(repo: Path, tmp_path: Path) -> None:
+    """ADR-0093, decisão 10: o dev convocado, à noite, sem pedido: o gerente diz que ele pode ir, e
+    ele responde e vai. A ferramenta só oferece o que cabe agora."""
+    go = {"type": "tool_use", "id": "t-agir", "name": "agir", "input": {"acao": "ir_para_casa"}}
+    port = Scripted([{"type": "text", "text": "Valeu, até amanhã!"}, go])
+    mind, _, _ = _mind(port, repo, tmp_path)
+    me = {"entity_id": "tiago", "kind": "avatar", "attributes": {"papel": "dev"}}
+    summoned = {**me, "attributes": {"papel": "dev", "convocado_por": "gerente"}}
+    switch = {"entity_id": "interruptor", "kind": "light_switch", "attributes": {"acesa": True}}
+    heard = [
+        {"tick": 4, "avatar_id": "gerente", "text": "Pode ir para casa.", "listener_id": "tiago"}
+    ]
+    reply = await mind.decide(_snapshot(heard=heard, estado="a_fazer", extra=[summoned, switch]))
+    assert reply is not None
+    assert reply["params"] == {"text": "Valeu, até amanhã!", "to": "gerente"}
+    routine = cast(Routine, mind._script)  # pyright: ignore[reportPrivateUsage]
+    assert routine.wish == "go_home"
+    (tool,) = port.requests[0].tools
+    offered = tool["input_schema"]["properties"]["acao"]["enum"]
+    assert offered == ["apagar_luz", "cafe", "ir_para_casa", "tv", "videogame"]
+
+
+async def test_com_pedido_em_andamento_nao_ha_pausa_e_so_quem_foi_convocado_vai_para_casa(
+    repo: Path, tmp_path: Path
+) -> None:
+    me = {"entity_id": "tiago", "kind": "avatar", "attributes": {"papel": "dev"}}
+    working = _snapshot(extra=[me])["view"]
+    assert actions_now(working, working=False) == {}  # pedido em fazendo e luz nenhuma
+    free = _snapshot(estado="a_fazer", extra=[me])["view"]
+    assert set(actions_now(free, working=False)) == {"cafe", "tv", "videogame"}
+    assert actions_now(free, working=True) == {}
 
 
 async def test_quem_fala_com_o_dev_recebe_a_resposta_do_modelo(repo: Path, tmp_path: Path) -> None:

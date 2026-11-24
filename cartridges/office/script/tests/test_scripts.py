@@ -134,6 +134,29 @@ def test_o_dev_so_pega_o_pedido_dele_ou_o_de_ninguem() -> None:
     assert _dev().decide(_view(tickets=[mine]))["params"] == {"target": "pedido-001"}
 
 
+def test_o_dev_cumpre_o_que_prometeu_na_conversa() -> None:
+    """ADR-0093, decisão 10: o café prometido na conversa: andar até a máquina e tomar; ir para casa
+    é na hora; sem a coisa na sala, o desejo some."""
+    dev = _dev()
+    machine = {"entity_id": "cafeteira", "kind": "coffee_machine", "position": {"x": 12, "y": 3}}
+    far = _view(at=(4, 5))
+    far["entities"].append(machine)
+    dev.wish = "coffee"
+    walk = dev.decide(far)
+    assert (walk["action"], walk["params"]) == ("move", {"near": "cafeteira"})
+    assert dev.wish == "coffee"
+    near = _view(at=(11, 3))
+    near["entities"].append(machine)
+    coffee = dev.decide(near)
+    assert coffee["action"] == "coffee"
+    assert dev.wish is None
+    dev.wish = "go_home"
+    assert dev.decide(_view(at=(4, 5)))["action"] == "go_home"
+    dev.wish = "videogame"  # sem sofá na sala
+    assert dev.decide(_view(at=(4, 5)))["action"] != "videogame"
+    assert dev.wish is None
+
+
 def test_o_dev_avisa_trabalha_em_blocos_e_entrega() -> None:
     dev = _dev()
     doing = [_ticket(1, "fazendo", "camps")]

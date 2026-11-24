@@ -698,6 +698,26 @@ class DismissDev(OfficeAction):
 
 
 @dataclass(frozen=True)
+class GoHome(OfficeAction):
+    """O dev convocado vai para casa (ADR-0093, decisão 10), quando o gerente diz que pode ir e ele
+    concorda na conversa: a dispensa pelo próprio dev, como o "Dispensar" do chip, com ele no
+    `by`. Só fora do expediente, e só convocado."""
+
+    name: str = "go_home"
+    role: ClassVar[str] = DEV
+
+    def check(self, ctx: ActionContext) -> Rejection | None:
+        if summon_of(ctx.view, ctx.avatar_id) is None:
+            return Rejection("wrong_state", "só vai para casa assim quem foi convocado")
+        return None
+
+    def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
+        end_summon(ops, ctx.avatar_id, "dispensado", ctx.avatar_id)
+        if ctx.view.present(ctx.avatar_id):
+            ops.leave(ctx.avatar_id, SUMMON_REASON)
+
+
+@dataclass(frozen=True)
 class Break(OfficeAction):
     """Uma pausa da rotina (ADR-0080): beber água, um café, o banheiro, as etapas do almoço. É
     ilustrativa: não mexe em nada do mundo, e qualquer um faz, ao lado da coisa."""
@@ -814,6 +834,7 @@ ALL_ACTIONS: tuple[OfficeAction, ...] = (
     ReturnTicket(),
     SummonDev(),
     DismissDev(),
+    GoHome(),
     SwitchLight("light_on", on=True),
     SwitchLight("light_off", on=False),
     *BREAKS,

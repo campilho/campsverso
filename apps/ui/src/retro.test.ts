@@ -488,6 +488,24 @@ describe("a conversa (§3.5)", () => {
       "Gerente acendeu a luz da sala",
       "O temporizador apagou a luz da sala",
     ]);
+    // A convocação com o nome do dev (ADR-0093), e o dev que vai para casa por conta dele.
+    const staff = [
+      { event: "campsverso.office.staff.summoned.v1", text: "convocou o dev" },
+      { event: "campsverso.office.staff.dismissed.v1", where: { reason: "dispensado" }, text: "dispensou o dev" },
+      { event: "campsverso.office.staff.dismissed.v1", where: { reason: "saida" }, text: "a convocação do dev acabou: o gerente saiu" },
+    ] as unknown as Parameters<typeof linesOf>[3];
+    const calls = [
+      at("campsverso.office.staff.summoned.v1", { avatar_id: "kenji", by: "gerente", origin: "botao" }, 16200, "s1"),
+      at("campsverso.office.staff.dismissed.v1", { avatar_id: "kenji", reason: "dispensado", by: "kenji" }, 16210, "s2"),
+      at("campsverso.office.staff.dismissed.v1", { avatar_id: "kenji", reason: "dispensado", by: "gerente" }, 16220, "s3"),
+      at("campsverso.office.staff.dismissed.v1", { avatar_id: "kenji", reason: "saida" }, 16230, "s4"),
+    ];
+    expect(linesOf(calls, room, "gerente", staff).map((l) => (l.kind === "system" ? l.text : ""))).toEqual([
+      "Gerente convocou o Kenji",
+      "Kenji foi para casa",
+      "Gerente dispensou o Kenji",
+      "a convocação do Kenji acabou: o gerente saiu",
+    ]);
     // A devolução maior (ADR-0092): o v2 conta como o v1 dos dias antigos, com o comentário inteiro.
     const comment = "Falta o caso vazio. ".repeat(50).trim();
     const back = [
