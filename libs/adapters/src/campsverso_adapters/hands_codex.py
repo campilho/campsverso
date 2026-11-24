@@ -19,6 +19,8 @@ roda no lugar dele, e o interpretador de um lançador do `env` também vem de fo
 """
 
 import json
+import re
+import shlex
 import time
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -118,6 +120,23 @@ def resolve_command(command: Sequence[str], root: Path) -> list[str]:
     return resolve_program(command, root, "o Codex")
 
 
+# O Codex roda cada comando num shell de login (`/bin/zsh -lc 'ls -a'`, no ensaio de 23/nov).
+SHELL_WRAPPER = re.compile(r"^(?:\S*/)?(?:ba|z)?sh -l?c (.+)$", re.DOTALL)
+
+
+def shown_command(command: str) -> str:
+    """O comando como o dev o escreveu, sem o shell que o Codex põe em volta."""
+    wrapped = SHELL_WRAPPER.match(command.strip())
+    if wrapped is None:
+        return command
+    inner = wrapped.group(1)
+    try:
+        parts = shlex.split(inner)
+    except ValueError:
+        return inner
+    return parts[0] if len(parts) == 1 else inner
+
+
 def steps_of(item: Mapping[str, Any], root: Path, ms: int) -> list[HandsStep]:
     """Os passos de um item concluído: um por mudança de arquivo, um para cada outra ferramenta,
     nenhum para o raciocínio, as mensagens e a lista de tarefas."""
@@ -136,7 +155,7 @@ def steps_of(item: Mapping[str, Any], root: Path, ms: int) -> list[HandsStep]:
         return found
     if kind == "command_execution":
         ok = status == "completed" and item.get("exit_code") == 0
-        what = first_line(str(item.get("command") or ""))
+        what = first_line(shown_command(str(item.get("command") or "")))
     elif kind == "mcp_tool_call":
         ok = status == "completed" and not item.get("error")
         tool = str(item.get("tool") or "")

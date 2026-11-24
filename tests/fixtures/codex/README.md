@@ -1,8 +1,11 @@
-# O exemplo do Codex
+# As sessões do Codex
 
-O `exemplo.jsonl` é o que o `codex exec --json` imprime numa sessão curta, montado à mão em 22/nov/2026 para o conector do Codex, a criação do M26 (o plano do M26, §8; ADR-0089). O dev não tem rede nem o Codex na oficina: ele escreve o conector contra este exemplo, e o M27 liga o Codex de verdade, com a prova de conformidade.
+Duas saídas do `codex exec --json`, para o conector do Codex (o plano do M26, §8; ADR-0089; o M27, ADR-0093):
 
-**O exemplo não foi gravado de uma sessão de verdade.** Ele segue duas fontes, lidas em 22/nov:
+- **`sessao-0.171.0.jsonl`** é uma sessão de verdade do Codex 0.171.0, o pacote completo do `make tools-maos`, **gravada no ensaio de 23/nov/2026**. O Codex rodou no nosso cercado, chamando o modelo pela porta das mãos, diante de uma OpenAI falsa que pedia três ferramentas e depois respondia: um `ls`, um patch que cria um arquivo e um comando que sai com 1. O modelo era falso, então o texto e os tokens são os dele; o formato é o do Codex.
+- **`exemplo.jsonl`** é uma sessão mais longa, **montada à mão em 22/nov** para a criação do M26, quando o dev não tinha rede nem o Codex na oficina. É ela que o `codex_falso.py` imprime nos testes das mãos.
+
+As fontes do exemplo, lidas em 22/nov:
 - a página do modo não interativo, `https://learn.chatgpt.com/docs/non-interactive-mode.md` (o endereço `https://developers.openai.com/codex/noninteractive.md` redireciona para ela): os tipos de evento e uma amostra de cinco linhas;
 - o código dos eventos no repositório público `openai/codex`, `codex-rs/exec/src/exec_events.rs`, no `main` do dia: os campos de cada evento e de cada item.
 
@@ -27,8 +30,12 @@ Cada linha é um evento, com o campo `type`:
 
 O código traz também o `collab_tool_call` (os subagentes do Codex), que a oficina não usa.
 
-## O que o exemplo não confere
+## O que o ensaio confirmou (o Codex 0.171.0)
 
-- **O caminho do `file_change`:** aqui é relativo à pasta da sessão. O Codex de verdade pode dar o caminho absoluto; o conector deve aceitar os dois.
-- **Os tokens:** pela amostra da página, `cached_input_tokens` é parte de `input_tokens` (24.448 de 24.763), como na API da OpenAI. O custo deve contar o cache uma vez só.
-- **O número da versão:** o app do Codex traz a CLI 0.171.0-alpha.13 (22/nov), que não foi rodada para montar o exemplo.
+- **O modo código.** O modelo não recebe o `exec_command` nem o `apply_patch` direto: recebe a ferramenta `exec`, que roda um JavaScript num isolado V8, e o JavaScript chama `tools.exec_command({cmd})` e `tools.apply_patch(texto)`. O `exec` precisa do `codex-code-mode-host` ao lado do `codex`, que o binário avulso do release não traz e o pacote (`codex-package-<alvo>.tar.gz`) traz. Sem ele, o Codex avisa num item `error` e segue sem ferramenta nenhuma.
+- **Os itens.** As chamadas de dentro do JavaScript saem como os itens de sempre: o `command_execution` (com `item.started` e `item.completed`) e o `file_change`, que também tem `item.started`. O `exec` em si não vira item.
+- **O comando** vem num shell de login, `/bin/zsh -lc 'ls -a'`; o passo mostra só o `ls -a`. O comando que sai com 1 acaba com `status` `failed` e o `exit_code`.
+- **O caminho do `file_change`** é absoluto.
+- **Os tokens:** o `cached_input_tokens` é parte do `input_tokens`, como na API da OpenAI.
+- **O cercado:** o Codex roda com o sandbox dele desligado (`danger-full-access`, `"sandbox":"none"` no pedido) e guarda o estado na casa da sessão (`.oficina/casa-codex`: as sessões, as memórias, os bancos SQLite), que fica fora da entrega.
+- **O pedido ao modelo** é um `POST /v1/responses`, com `stream`, `store: false`, o `reasoning.effort` da sessão e as ferramentas num item `additional_tools` da entrada, não no campo `tools`.

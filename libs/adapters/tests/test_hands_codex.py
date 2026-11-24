@@ -25,10 +25,12 @@ from starlette.routing import Route
 from campsverso_adapters.hands_codex import (
     SESSION_VARIABLE,
     CodexHands,
+    CodexStream,
     CodexUsage,
     clean_environment,
     codex_config,
     resolve_command,
+    shown_command,
     steps_of,
 )
 from campsverso_adapters.hands_fence import readable_for
@@ -333,6 +335,44 @@ def _talk(tmp_path: Path) -> Path:
     example = tmp_path / "conversa.jsonl"
     example.write_text("\n".join(json.dumps(e) for e in TALK) + "\n", encoding="utf-8")
     return example
+
+
+def test_o_passo_mostra_o_comando_sem_o_shell_em_volta() -> None:
+    assert shown_command("/bin/zsh -lc 'ls -a'") == "ls -a"
+    assert shown_command("/bin/zsh -lc false") == "false"
+    assert shown_command("bash -lc 'python -m pytest -q'") == "python -m pytest -q"
+    assert shown_command("sh -c 'echo \"oi\"' && ls") == "'echo \"oi\"' && ls"
+    assert shown_command("bash -lc 'aspas sem fim") == "'aspas sem fim"
+    assert shown_command("python -m pytest") == "python -m pytest"
+
+
+SESSION = Path(__file__).parents[3] / "tests" / "fixtures" / "codex" / "sessao-0.171.0.jsonl"
+
+
+def test_a_sessao_do_codex_de_verdade_vira_os_passos(tmp_path: Path) -> None:
+    """A saída do Codex 0.171.0 (o pacote, com o modo código) no cercado, diante de uma OpenAI
+    falsa que pede três ferramentas pelo `exec` (o ensaio de 23/nov): as chamadas de dentro do
+    JavaScript saem como os itens de sempre."""
+    stream = CodexStream(tmp_path)
+    steps: list[HandsStep] = []
+    turns: list[str] = []
+    for line in SESSION.read_text(encoding="utf-8").splitlines():
+        data = json.loads(line.replace("{espaco}", str(tmp_path)))
+        stream.account(data)
+        read = stream.read(data)
+        steps.extend(read.steps)
+        if read.turn is not None:
+            turns.append(read.turn)
+    assert [(s.tool, s.summary, s.path, s.ok) for s in steps] == [
+        ("command_execution", "command_execution: ls -a", None, True),
+        ("file_change", "file_change: add notas/ensaio.md", "notas/ensaio.md", True),
+        ("command_execution", "command_execution: false", None, False),
+    ]
+    assert turns == ["tool", "tool", "tool", "message"]
+    assert stream.completed
+    assert stream.failed is None
+    assert stream.notices == []
+    assert stream.usage == CodexUsage(4000, 1600, 0, 200, 0)
 
 
 NOTICE = (
