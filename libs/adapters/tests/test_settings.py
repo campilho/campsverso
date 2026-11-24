@@ -119,7 +119,16 @@ def test_as_maos_do_mundo(tmp_path: Path) -> None:
     assert load_world(world).minds["camps"].hands == "api"
     world.write_text(base + ", hands: claude_code}\n", encoding="utf-8")
     assert load_world(world).minds["camps"].hands == "claude_code"
-    world.write_text(base + ", hands: codex}\n", encoding="utf-8")
+    assert load_world(world).minds["camps"].hands_model is None  # o modelo da mente
+    # A mente e o sistema são independentes (ADR-0093, decisão 18).
+    world.write_text(base + ", hands: codex, hands_model: gpt-6.2-astra}\n", encoding="utf-8")
+    camps = load_world(world).minds["camps"]
+    assert (camps.model, camps.hands, camps.hands_model) == (
+        "claude-opus-5-5",
+        "codex",
+        "gpt-6.2-astra",
+    )
+    world.write_text(base + ", hands: cursor}\n", encoding="utf-8")
     with pytest.raises(ValueError, match="hands inválido"):
         load_world(world)
 

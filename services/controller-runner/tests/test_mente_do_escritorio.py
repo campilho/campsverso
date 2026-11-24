@@ -160,6 +160,8 @@ def _mind(
     robot_tool: Mapping[str, Any] | None = None,
     background: bool = True,
     events: list[tuple[str, Mapping[str, Any]]] | None = None,
+    model: str = "claude-sonnet-5-5",
+    card: str = "Você é o Camps.",
     **extra: Any,
 ) -> tuple[OfficeMind, list[Mapping[str, Any]], list[str]]:
     proposed: list[Mapping[str, Any]] = []
@@ -190,7 +192,7 @@ def _mind(
         Routine(),
         Mind(
             "office",
-            card="Você é o Camps.",
+            card=card,
             notes="O escritório.",
             tools=(),
             robot_tool=robot_tool,
@@ -199,7 +201,7 @@ def _mind(
         shop,
         controller_id="llm/tiago",
         avatar_id="tiago",
-        model="claude-sonnet-5-5",
+        model=model,
         session_tools=TOOLS,
         session_instructions="Trabalhe.",
         chat_instructions="Responda curto.",
@@ -502,16 +504,15 @@ async def test_sem_robo_na_bancada_nao_ha_chamar_robo(repo: Path, tmp_path: Path
 class FakeHands:
     """Umas mãos de fora de mentira: escrevem um arquivo, mostram um passo e terminam."""
 
-    harness = "claude_code"
-
-    def __init__(self) -> None:
+    def __init__(self, harness: str = "claude_code") -> None:
+        self.harness = harness
         self.jobs: list[HandsJob] = []
 
     async def run(self, space: Workspace, job: HandsJob, world: HandsWorld) -> HandsResult:
         self.jobs.append(job)
         (space.root / "ola.py").write_text("print('olá')\n")
         await world.step(HandsStep("Write", "Write: ola.py", True, 12, "ola.py"))
-        return HandsResult(True, "Escrevi o ola.py pelo Claude Code.", 3, 1, "pronto", 0.42)
+        return HandsResult(True, f"Escrevi o ola.py pelo {self.harness}.", 3, 1, "pronto", 0.42)
 
 
 async def test_o_pedido_escolhe_as_maos_e_o_modelo(repo: Path, tmp_path: Path) -> None:
@@ -553,26 +554,108 @@ def _not_outside(model: str) -> bool:
     return model != "gpt-de-fora"
 
 
-async def test_maos_ou_modelo_que_nao_estao_ligados_viram_o_padrao(
+async def test_maos_que_nao_estao_ligadas_viram_o_sistema_padrao_do_dev(
+    repo: Path, tmp_path: Path
+) -> None:
+    """O Codex escolhido sem a chave da OpenAI: o pedido vai ao sistema padrão do dev, com o modelo
+    dele, e nunca ao par que não fecha (o Claude Code com o Astra)."""
+    hands = FakeHands()
+    telemetry = MemoryTelemetry()
+    mind, _, steps = _mind(
+        Scripted(),
+        repo,
+        tmp_path,
+        background=False,
+        telemetry=telemetry,
+        hands={"claude_code": hands},
+        default_harness="claude_code",
+        hands_model="claude-opus-5-5",
+    )
+    deliver = await mind.decide(_snapshot(chosen={"maos": "codex", "modelo": "gpt-6.2-astra"}))
+    assert deliver is not None
+    assert deliver["action"] == "deliver"
+    assert hands.jobs[0].model == "claude-opus-5-5"
+    assert steps[-1] == "fim:claude_code:pronto"
+    assert "mind.hands_unavailable" in set(telemetry.events())
+
+
+async def test_sem_o_padrao_ligado_o_nosso_harness_com_o_modelo_da_mente(
     repo: Path, tmp_path: Path
 ) -> None:
     port = Scripted([_use("escrever", path="a.py", content="A = 1\n")], [_use("pronto")])
     telemetry = MemoryTelemetry()
     mind, _, steps = _mind(
-        port,
-        repo,
-        tmp_path,
-        background=False,
-        telemetry=telemetry,
-        model_ok=_not_outside,
+        port, repo, tmp_path, background=False, telemetry=telemetry, default_harness="codex"
     )
-    chosen = {"maos": "claude_code", "modelo": "gpt-de-fora"}
+    deliver = await mind.decide(_snapshot())
+    assert deliver is not None
+    assert steps == ["escrever", "pronto", "fim:api:pronto"]
+    assert port.requests[0].model == "claude-sonnet-5-5"
+    assert "mind.hands_unavailable" in set(telemetry.events())
+
+
+async def test_um_modelo_que_a_porta_nao_atende_vira_o_da_mente(repo: Path, tmp_path: Path) -> None:
+    port = Scripted([_use("escrever", path="a.py", content="A = 1\n")], [_use("pronto")])
+    telemetry = MemoryTelemetry()
+    mind, _, steps = _mind(
+        port, repo, tmp_path, background=False, telemetry=telemetry, model_ok=_not_outside
+    )
+    deliver = await mind.decide(_snapshot(chosen={"maos": "api", "modelo": "gpt-de-fora"}))
+    assert deliver is not None
+    assert steps == ["escrever", "pronto", "fim:api:pronto"]
+    assert port.requests[0].model == "claude-sonnet-5-5"
+    assert "mind.model_unavailable" in set(telemetry.events())
+
+
+# O elenco do M27 e um dev só de teste, cada um com a mente e o sistema padrão dele.
+DEVS: dict[str, dict[str, Any]] = {
+    "tiago": {"model": "claude-opus-5-5", "default_harness": "claude_code"},
+    "kenji": {
+        "model": "openai/gpt-6.2-astra",
+        "default_harness": "codex",
+        "hands_model": "gpt-6.2-astra",
+    },
+}
+# Os sistemas do catálogo do escritório (o office.yaml), e o padrão do dev (None).
+SYSTEMS: list[tuple[str, str] | None] = [
+    None,
+    ("api", "claude-sonnet-5-5"),
+    ("claude_code", "claude-opus-5-5"),
+    ("codex", "gpt-6.2-astra"),
+]
+
+
+@pytest.mark.parametrize("system", SYSTEMS, ids=lambda s: "padrao" if s is None else s[0])
+@pytest.mark.parametrize("dev", list(DEVS))
+async def test_cada_dev_programa_com_cada_sistema(
+    repo: Path, tmp_path: Path, dev: str, system: tuple[str, str] | None
+) -> None:
+    """A ADR-0093, decisão 18: o dev e o sistema são independentes. Cada dev, com a mente e o
+    cartão dele, programa por qualquer sistema do catálogo; sem escolha, pelo padrão dele."""
+    settings = DEVS[dev]
+    outside = {"claude_code": FakeHands("claude_code"), "codex": FakeHands("codex")}
+    port = Scripted([_use("escrever", path="a.py", content="A = 1\n")], [_use("pronto")])
+    card = f"Você é o {dev.capitalize()}."
+    mind, _, steps = _mind(
+        port, repo, tmp_path, background=False, card=card, hands=outside, **settings
+    )
+    chosen = None if system is None else {"maos": system[0], "modelo": system[1]}
     deliver = await mind.decide(_snapshot(chosen=chosen))
     assert deliver is not None
     assert deliver["action"] == "deliver"
-    assert steps == ["escrever", "pronto", "fim:api:pronto"]
-    assert port.requests[0].model == "claude-sonnet-5-5"
-    assert {"mind.hands_unavailable", "mind.model_unavailable"} <= set(telemetry.events())
+    default = (settings["default_harness"], settings.get("hands_model", settings["model"]))
+    harness, model = default if system is None else system
+    assert steps[-1] == f"fim:{harness}:pronto"
+    for name, hands in outside.items():
+        assert len(hands.jobs) == (1 if name == harness else 0)
+    if harness == "api":
+        assert port.requests[0].model == model
+        assert card in str(port.requests[0].system)
+    else:
+        (job,) = outside[harness].jobs
+        assert job.model == model
+        assert job.system.startswith(card)
+        assert port.requests == []
 
 
 BRIEFING_ROBOT = {

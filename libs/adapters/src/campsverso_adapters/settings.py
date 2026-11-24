@@ -157,9 +157,11 @@ class MindSettings:
     reflection_model: str | None = None  # None: o modelo das decisões
     reflection_effort: Effort | None = "medium"
     reflection_max_tokens: int = 16384
-    # Quem programa os pedidos sem escolha na prancheta (ADR-0089): o nosso harness (`api`) ou o
-    # Claude Code (`claude_code`).
+    # O sistema padrão do dev, quem programa os pedidos sem escolha na prancheta (ADR-0089;
+    # ADR-0093, decisão 18): o harness (`api`, `claude_code`, `codex`) e o modelo dele. A mente
+    # (`model`) e o sistema são independentes; sem `hands_model`, o sistema usa o modelo da mente.
     hands: str = "api"
+    hands_model: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -316,6 +318,7 @@ def _mind(avatar: str, raw: Mapping[str, Any], base: Path) -> MindSettings:
         reflection_effort=reflection_effort,
         reflection_max_tokens=int(reflection.get("max_tokens", 16384)),
         hands=hands,
+        hands_model=cast(str | None, raw.get("hands_model")),
     )
 
 

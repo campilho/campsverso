@@ -19,8 +19,10 @@ from typing import Protocol
 from campsverso_ports.model import Effort, ModelRequest, ModelResponse
 from campsverso_ports.workshop import ToolResult, Workspace
 
-# As mãos que o escritório conhece, pelo nome dos contratos (o campo `harness`).
-HARNESSES = ("api", "claude_code")
+# As mãos que a plataforma conhece, pelo nome dos contratos (o campo `harness`): o nosso harness, o
+# Claude Code (M26), o Codex e o Antigravity (ADR-0093). O que cada escritório oferece ao pedido é o
+# catálogo dos sistemas do cartucho; o Antigravity entra no M28 (a emenda da ADR-0093).
+HARNESSES = ("api", "claude_code", "codex", "antigravity")
 
 
 @dataclass(frozen=True, slots=True)

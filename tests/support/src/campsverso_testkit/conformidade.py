@@ -50,9 +50,8 @@ from typing import Any, cast
 from packaging.requirements import Requirement
 
 from campsverso_adapters import ModelPrices, RecordingModel, SystemWallClock, cost_usd, load_env
-from campsverso_adapters.hands_antigravity import AntigravityHands
-from campsverso_adapters.hands_claude_code import ClaudeCodeHands
-from campsverso_adapters.hands_codex import CodexHands
+from campsverso_adapters.hands_outside import OUTSIDE_KEYS, pinned_program
+from campsverso_adapters.hands_outside import outside_hands as build_outside_hands
 from campsverso_adapters.model_routes import model_port
 from campsverso_adapters.workshop_local import LocalWorkshop, sync_env
 from campsverso_adapters.workshop_review import review
@@ -101,11 +100,7 @@ HANDS_MODELS: Mapping[str, str] = {
     "codex": "gpt-6.2-astra",
     "antigravity": "gemini-4-neon",
 }
-HANDS_KEYS: Mapping[str, str] = {
-    "claude_code": "ANTHROPIC_API_KEY",
-    "codex": "OPENAI_API_KEY",
-    "antigravity": "GEMINI_API_KEY",
-}
+HANDS_KEYS: Mapping[str, str] = OUTSIDE_KEYS
 PRICE_PREFIXES: Mapping[str, str] = {"codex": "openai/", "antigravity": "google/"}
 # O esforço de cada mão, quando não é o do escritório: o Neon no `high` (ADR-0093).
 HANDS_EFFORTS: Mapping[str, Effort] = {"antigravity": "high"}
@@ -679,12 +674,9 @@ def priced_name(model: str, harness: str) -> str:
 
 
 def pinned(program: str, tools: Path = REPO / ".tools" / "bin") -> list[str] | None:
-    """O programa que o `make tools-maos` instalou com a versão fixa; sem ele, o do `PATH`.
-
-    O `.tools/bin` só tem atalhos: o programa vai pelo endereço real, onde ele acha o que veio no
-    pacote ao lado dele (o `codex-code-mode-host` do Codex, no ensaio de 23/nov)."""
-    path = tools / program
-    return [str(path.resolve())] if path.exists() else None
+    """O programa que o `make tools-maos` instalou com a versão fixa, pelo endereço real; sem ele,
+    o do `PATH`."""
+    return pinned_program(program, tools)
 
 
 def outside_hands(harness: str, key: str, out: Path, tape: Path) -> Callable[[CallMeter], Hands]:
@@ -692,18 +684,16 @@ def outside_hands(harness: str, key: str, out: Path, tape: Path) -> Callable[[Ca
     e o Antigravity vêm do `.tools/bin`, com a versão fixa, quando estão lá."""
 
     def hands_of(meter: CallMeter) -> Hands:
-        common: dict[str, Any] = {
-            "api_key": key,
-            "home": out / "maos",
-            "tape": tape,
-            "tape_mode": "record",
-            "warn": _warn,
-        }
-        if harness == "codex":
-            return CodexHands(meter, command=pinned("codex"), **common)
-        if harness == "antigravity":
-            return AntigravityHands(meter, command=pinned("agy"), **common)
-        return ClaudeCodeHands(meter, **common)
+        return build_outside_hands(
+            harness,
+            meter,
+            api_key=key,
+            home=out / "maos",
+            tools=REPO / ".tools" / "bin",
+            tape=tape,
+            tape_mode="record",
+            warn=_warn,
+        )
 
     return hands_of
 

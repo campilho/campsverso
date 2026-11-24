@@ -60,7 +60,12 @@ API = "api"  # o nosso harness, sempre presente
 BRIEFING = "briefing"  # o robô da bancada que abre a sessão (ADR-0089, decisão 4)
 BRIEFING_INPUTS = (".oficina/pedido.md", ".oficina/notas.md")
 # Como a memória diz as mãos de uma sessão, na voz do dev.
-HANDS_SAID = {API: "com as ferramentas de sempre", "claude_code": "pelo Claude Code"}
+HANDS_SAID = {
+    API: "com as ferramentas de sempre",
+    "claude_code": "pelo Claude Code",
+    "codex": "pelo Codex",
+    "antigravity": "pelo Antigravity",
+}
 
 DOING = "fazendo"
 # Sem o sinal de vida da guarda por este tempo, a mente desliga (ADR-0080, decisão 16): três sinais
@@ -149,6 +154,7 @@ class OfficeMind:
         background: bool = True,
         hands: Mapping[str, Hands] | None = None,
         default_harness: str = API,
+        hands_model: str | None = None,
         hands_instructions: str = "",
         model_ok: Callable[[str], bool] | None = None,
         spent: Callable[[str], float] | None = None,
@@ -180,6 +186,9 @@ class OfficeMind:
             **dict(hands or {}),
         }
         self._default_harness = default_harness
+        # O sistema padrão do dev (ADR-0093, decisão 18): o harness e o modelo dele, que pode não
+        # ser o da mente (o Kenji conversa pelo Astra da OpenRouter e programa pelo do Codex).
+        self._hands_model = hands_model or model
         self._hands_system = f"{self._identity}\n\n{hands_instructions.strip()}"
         self._model_ok: Callable[[str], bool] = model_ok or _any_model
         self._spent = spent
@@ -329,16 +338,20 @@ class OfficeMind:
             await self.propose(outcome)
 
     def _choose(self, ticket: Mapping[str, Any]) -> tuple[str, str]:
-        """As mãos e o modelo do pedido (ADR-0089): os da prancheta, ou o padrão do mundo. Mãos que
-        não estão ligadas, ou um modelo que a porta não atende, viram o padrão, com um aviso."""
+        """O sistema do pedido (ADR-0089; ADR-0093, decisão 18): o da prancheta, que o kernel já
+        conferiu como par, ou o padrão do dev. Qualquer dev usa qualquer sistema. Mãos que não
+        estão ligadas viram o padrão do dev (ou o nosso harness, com o modelo da mente), e um
+        modelo que a porta não atende no nosso harness vira o da mente, com um aviso."""
         a = cast(Mapping[str, Any], ticket.get("attributes") or {})
         ticket_id = str(ticket["entity_id"])
         harness = str(a.get("maos") or self._default_harness)
+        model = str(a.get("modelo") or self._hands_model)
         if harness not in self._hands:
             self._warn("mind.hands_unavailable", ticket=ticket_id, hands=harness)
-            harness = self._default_harness if self._default_harness in self._hands else API
-        model = str(a.get("modelo") or self._model)
-        if model != self._model and not self._model_ok(model):
+            fallback = self._default_harness in self._hands and harness != self._default_harness
+            harness = self._default_harness if fallback else API
+            model = self._hands_model if fallback else self._model
+        if harness == API and model != self._model and not self._model_ok(model):
             self._warn("mind.model_unavailable", ticket=ticket_id, model=model)
             model = self._model
         return harness, model

@@ -20,8 +20,9 @@ import contextlib
 import os
 import signal
 import sys
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
+from typing import Any
 
 from campsverso_adapters import (
     DiskBlobStore,
@@ -39,8 +40,7 @@ from campsverso_adapters import (
     model_port,
     read_world_archive,
 )
-from campsverso_adapters.hands_claude_code import ClaudeCodeHands
-from campsverso_adapters.model_routes import ANTHROPIC_KEY
+from campsverso_adapters.hands_outside import OUTSIDE_KEYS, outside_hands
 from campsverso_adapters.settings import EnvSettings, MindSettings, WorldSettings
 from campsverso_adapters.workshop_local import LocalWorkshop
 from campsverso_adapters.workshop_review import review
@@ -227,6 +227,7 @@ async def run(args: argparse.Namespace) -> int:
                     settings, port, (args.data_dir or env.data_dir) / world.worldid, telemetry
                 ),
                 default_harness=settings.hands,
+                hands_model=settings.hands_model,
                 hands_instructions=mind.hands_session,
                 model_ok=lambda model: (
                     model in env.models and (model in env.routes) == (settings.model in env.routes)
@@ -298,25 +299,39 @@ async def run(args: argparse.Namespace) -> int:
 def _outside_hands(
     settings: MindSettings, meter: MeteredModel, data: Path, telemetry: Telemetry
 ) -> dict[str, Hands]:
-    """As mãos de fora (ADR-0089): o Claude Code, que chama o modelo pela porta das mãos com a
-    chave da Anthropic, que só a porta vê. A conversa de cada sessão fica em `<dados>/maos/`; com a
-    fita do mundo, a da porta fica ao lado dela (`<fita>-maos.jsonl`), e na reprodução ela basta."""
-    key = os.environ.get(ANTHROPIC_KEY, "")
+    """As mãos de fora (ADR-0089; ADR-0093): o Claude Code, o Codex e o Antigravity, cada um com a
+    chave do laboratório dele, que só a porta das mãos vê, e o programa fixado no `.tools/bin`
+    desta pasta. Sem a chave, aquela mão fica de fora, e o pedido que a escolher vai ao sistema
+    padrão do dev. A conversa de cada sessão fica em `<dados>/maos/`; com a fita do mundo, a da
+    porta de cada mão fica ao lado dela (a do Claude Code em `<fita>-maos.jsonl`, as outras em
+    `<fita>-maos-<harness>.jsonl`), e na reprodução ela basta."""
     mode = settings.cassette_mode
-    if not key and mode != "replay":
-        telemetry.info("mind.hands", available=["api"], hint=f"{ANTHROPIC_KEY} liga o Claude Code")
-        return {}
-    tape = settings.cassette_path.with_name(f"{settings.cassette_path.stem}-maos.jsonl")
-    return {
-        "claude_code": ClaudeCodeHands(
+    stem = settings.cassette_path.stem
+    built: dict[str, Hands] = {}
+    missing: list[str] = []
+
+    def warn(event: str, fields: Mapping[str, Any]) -> None:
+        telemetry.warning(event, **fields)
+
+    for harness, variable in OUTSIDE_KEYS.items():
+        key = os.environ.get(variable, "")
+        if not key and mode != "replay":
+            missing.append(variable)
+            continue
+        suffix = "maos" if harness == "claude_code" else f"maos-{harness}"
+        tape = settings.cassette_path.with_name(f"{stem}-{suffix}.jsonl")
+        built[harness] = outside_hands(
+            harness,
             meter,
             api_key=key,
             home=data / "maos",
+            tools=Path.cwd() / ".tools" / "bin",
             tape=None if mode == "live" else tape,
             tape_mode=None if mode == "live" else mode,
-            warn=lambda event, fields: telemetry.warning(event, **fields),
+            warn=warn,
         )
-    }
+    telemetry.info("mind.hands", available=["api", *built], missing=missing)
+    return built
 
 
 def _workshop(
