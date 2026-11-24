@@ -120,7 +120,8 @@ export class RetroFrame {
   private readonly takeSlot = el("div", { className: "retro-panel-take" });
   private readonly topClock = el("div", { className: "retro-top-clock" });
   private writeSlot: HTMLElement | undefined;
-  private summonButton: HTMLButtonElement | undefined;
+  /** O botão de convocar ou dispensar de cada dev (ADR-0093): no chip dele, ou ao lado do "Assumir". */
+  private summonButtons = new Map<string, HTMLButtonElement>();
   private last: FrameInput | undefined;
   // As peças do celular (§4): a faixa, as abas, o painel das pessoas e a barra de ação.
   private readonly cameraButtons: Record<Camera, HTMLButtonElement>;
@@ -412,15 +413,15 @@ export class RetroFrame {
       this.shownClock = input.clockKey;
       this.footClock.replaceChildren(...input.clockButtons());
     }
-    const summon = this.summonOf(input);
-    this.renderCommands(input, summon);
-    this.renderChips(input.chips, summon);
+    const summons = this.summonsOf(input);
+    this.renderCommands(input, summons);
+    this.renderChips(input.chips, summons);
   }
 
-  /** A convocação do dev, quando o gerente é de quem joga e o dev está fora ou convocado. */
-  private summonOf(input: FrameInput): Summon | undefined {
-    const [dev] = summonsOf(input.state, input.timeline);
-    return input.mine && dev !== undefined && (dev.summoned || !dev.present) ? dev : undefined;
+  /** As convocações dos devs (ADR-0093: um por dev), quando o gerente é de quem joga e o dev está
+   * fora ou convocado. */
+  private summonsOf(input: FrameInput): Summon[] {
+    return input.mine ? summonsOf(input.state, input.timeline).filter((dev) => dev.summoned || !dev.present) : [];
   }
 
   /** No monitor maior, a convocação cabe no chip do dev ("fora · Convocar"); sem o dev na visão
@@ -429,14 +430,14 @@ export class RetroFrame {
     return this.arrangement() === "grande" && summon !== undefined && summon.id !== "";
   }
 
-  private renderChips(chips: readonly Chip[], summon: Summon | undefined): void {
-    const host = this.summonInChip(summon) ? summon?.id : undefined;
-    const key = JSON.stringify([chips, host, this.shownCommands]);
+  private renderChips(chips: readonly Chip[], summons: readonly Summon[]): void {
+    const hosts = new Set(summons.filter((s) => this.summonInChip(s)).map((s) => s.id));
+    const key = JSON.stringify([chips, [...hosts], this.shownCommands]);
     if (key === this.shownChips) {
       return;
     }
     this.shownChips = key;
-    this.people.replaceChildren(...chips.map((chip) => this.chip(chip, chip.id === host ? this.summonButton : undefined)));
+    this.people.replaceChildren(...chips.map((chip) => this.chip(chip, hosts.has(chip.id) ? this.summonButtons.get(chip.id) : undefined)));
     this.renderTabs(); // "Pessoas · n"
   }
 
@@ -500,9 +501,9 @@ export class RetroFrame {
     return actionIcon(this.art, name);
   }
 
-  private renderCommands(input: FrameInput, summon: Summon | undefined): void {
+  private renderCommands(input: FrameInput, summons: readonly Summon[]): void {
     const arrangement = this.arrangement();
-    const key = JSON.stringify([input.mine, input.connected, summon?.id, summon?.summoned, summon?.name, arrangement]);
+    const key = JSON.stringify([input.mine, input.connected, summons.map((s) => [s.id, s.summoned, s.name]), arrangement]);
     if (key === this.shownCommands) {
       return; // refazer o botão sem mudança engoliria cliques
     }
@@ -512,18 +513,18 @@ export class RetroFrame {
       : button("Assumir o gerente", "retro-take", () => { this.actions.assume(); }, input.connected);
     pressed(take, input.mine);
     const write = button("Escrever pedido", "retro-small retro-write", () => { this.actions.write(); }, input.mine && input.connected);
-    this.summonButton = summon === undefined ? undefined : this.summonAction(summon, input.connected);
+    this.summonButtons = new Map(summons.map((s) => [s.id, this.summonAction(s, input.connected)]));
+    const loose = summons.filter((s) => !this.summonInChip(s)).map((s) => this.summonButtons.get(s.id)).filter((b) => b !== undefined);
     if (arrangement === "grande") {
       // O pino vermelho do "Escrever pedido" no cabeçalho do quadro (§6).
       write.prepend(el("i", { className: "retro-pin" }));
-      const beside = this.summonInChip(summon) || this.summonButton === undefined ? [] : [this.summonButton];
-      this.takeSlot.replaceChildren(...beside, take);
+      this.takeSlot.replaceChildren(...loose, take);
       this.writeSlot?.replaceChildren(write);
       this.commands.replaceChildren();
     } else {
       this.takeSlot.replaceChildren();
       this.writeSlot?.replaceChildren();
-      this.commands.replaceChildren(take, write, ...(this.summonButton === undefined ? [] : [this.summonButton]));
+      this.commands.replaceChildren(take, write, ...this.summonButtons.values());
     }
   }
 

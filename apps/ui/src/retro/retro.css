@@ -1695,9 +1695,10 @@ body.retro .retro-board-write .retro-write:disabled .retro-pin {
   color: var(--grafite);
 }
 
-/* A ficha quadrada: o papel, o pino, a faixa da cor do tamanho; a ficha inteira é o botão. */
+/* A ficha quadrada: o papel, o pino, a faixa da cor do dev (ADR-0093, decisão 11), neutra para quem
+   estiver livre; a ficha inteira é o botão. A tela põe o `--faixa` do dev, da arte. */
 .retro-ficha {
-  --tamanho: var(--amarelo);
+  --faixa: var(--bege);
   position: relative;
   display: flex;
   flex-direction: column;
@@ -1705,25 +1706,10 @@ body.retro .retro-board-write .retro-write:disabled .retro-pin {
   min-width: 0;
   padding: 0;
   border: 2px solid var(--contorno);
-  border-top: 8px solid var(--tamanho);
+  border-top: 8px solid var(--faixa);
   border-radius: 3px;
   background: var(--branco);
   box-shadow: 3px 3px 0 var(--contorno);
-}
-
-.tam-P {
-  --tamanho: var(--verdeCl);
-  --tingido: #dcefd3;
-}
-
-.tam-M {
-  --tamanho: var(--amarelo);
-  --tingido: #f8ecbf;
-}
-
-.tam-G {
-  --tamanho: var(--vermCl);
-  --tingido: #f6d3cf;
 }
 
 .retro-pin {
@@ -1771,21 +1757,6 @@ body.retro .retro-board-write .retro-write:disabled .retro-pin {
 .retro-ficha-no {
   font: 400 12px var(--mono);
   color: var(--grafite);
-}
-
-/* O tamanho num quadradinho de 18 px da cor dele, com a letra em Inter 800. */
-.retro-ficha-size {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  box-sizing: border-box;
-  border: 2px solid var(--contorno);
-  border-radius: 3px;
-  background: var(--tamanho);
-  font: 800 11px var(--texto);
-  color: var(--escuro);
 }
 
 /* O título: no máximo 3 linhas, sem encolher. */
@@ -2608,7 +2579,7 @@ body.retro:has(.retro-drawer.open) .retro-toasts {
 .retro-paper-stripe {
   height: 10px;
   margin: 0 -20px 14px;
-  background: var(--tamanho);
+  background: var(--faixa, var(--bege));
 }
 
 .retro-paper-head {
@@ -2746,11 +2717,6 @@ div.retro-paper-route p {
   gap: 16px;
 }
 
-.retro-field-row .retro-sizes {
-  flex: 1 1 auto;
-  margin-top: 0;
-}
-
 .retro-field {
   margin-top: 12px;
 }
@@ -2836,18 +2802,37 @@ textarea.retro-lined {
   color: var(--begeEsc);
 }
 
-.retro-sizes {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-top: 6px;
-}
-
 /* Quem programa e o modelo (ADR-0089): duas escolhas lado a lado, na letra de mão, sobre a pauta. */
 .retro-hands {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+
+/* Para quem e para todos (ADR-0093, decisão 8): o seletor do dev e a caixinha ao lado. */
+.retro-assign {
+  align-items: end;
+}
+
+.retro-everyone {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  font: 600 14px var(--texto);
+  color: var(--escuro);
+  cursor: pointer;
+}
+
+.retro-everyone-box {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--azulEsc);
+}
+
+select.retro-pick:disabled {
+  opacity: 0.55;
 }
 
 select.retro-pick {
@@ -2869,59 +2854,6 @@ select.retro-pick {
   .retro-hands {
     grid-template-columns: 1fr;
   }
-}
-
-.retro-size {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 46px;
-  box-sizing: border-box;
-  padding: 0 10px;
-  border: 2px solid var(--contorno);
-  border-top: 6px solid var(--tamanho);
-  background: var(--branco);
-  cursor: pointer;
-}
-
-.retro-size.on {
-  background: var(--tingido);
-}
-
-.retro-size input {
-  position: absolute;
-  opacity: 0;
-  inset: 0;
-  margin: 0;
-  cursor: pointer;
-}
-
-.retro-size input:disabled {
-  cursor: default;
-}
-
-.retro-size:has(input:focus-visible) {
-  outline: 3px solid var(--azulEsc);
-  outline-offset: 2px;
-}
-
-.retro-size-box {
-  width: 20px;
-  height: 20px;
-  box-sizing: border-box;
-  border: 2px solid var(--contorno);
-  font: 22px/16px "Patrick Hand", var(--texto);
-  color: var(--tinta, #2b3f6e);
-  text-align: center;
-}
-
-.retro-size b {
-  font: 700 18px var(--pixel);
-}
-
-.retro-size-name {
-  font-size: 12px;
 }
 
 .retro-signature {
@@ -3061,12 +2993,6 @@ textarea.retro-missing {
 
 @media (max-width: 899px) {
   .retro-clip-pen {
-    display: none;
-  }
-}
-
-@media (max-width: 479px) {
-  .retro-size-name {
     display: none;
   }
 }
@@ -3839,6 +3765,12 @@ body.retro .over-screen canvas {
   list-style: none;
 }
 
+/* O texto do modelo antes do passo (ADR-0093, decisão 12): um comentário do shell, apagado. */
+.retro-term-note {
+  overflow-wrap: anywhere;
+  color: var(--term-dim);
+}
+
 .retro-term-line {
   display: flex;
   white-space: pre;
@@ -4119,6 +4051,33 @@ body.retro .over-screen canvas {
   margin: 0;
   font: 700 16px var(--pixel);
   color: var(--escuro);
+}
+
+/* O seletor da plaqueta: a tela de cada dev (ADR-0093). */
+.retro-term-devs {
+  display: flex;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.retro-term-dev {
+  padding: 2px 6px;
+  border: 1px solid var(--begeSomb);
+  border-radius: 2px;
+  background: transparent;
+  font: 600 11px var(--texto);
+  color: var(--begeEsc);
+  cursor: pointer;
+}
+
+.retro-term-dev[aria-pressed="true"] {
+  background: var(--escuro);
+  color: var(--telaTexto);
+}
+
+.retro-term-dev:focus-visible {
+  outline: 2px solid var(--amarelo);
+  outline-offset: 1px;
 }
 
 .retro-term-plate-sub {

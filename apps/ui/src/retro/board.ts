@@ -7,6 +7,7 @@ import type { ObserverState } from "@campsverso/contracts";
 
 import type { ArtManifest } from "../art/manifest.ts";
 import { el } from "../dom.ts";
+import { choicesOf } from "../locale.ts";
 import type { TicketView } from "../panels/office.ts";
 import type { FaceCache } from "./faces.ts";
 import { boardSummary, nextTab, pinOf, squareOf, tabsOf, type Ghost } from "./tickets.ts";
@@ -130,8 +131,17 @@ export class RetroBoard {
     }
   }
 
+  /** A faixa na cor do dev (ADR-0093, decisão 11): da arte; sem dev, a neutra do CSS. */
+  private paint(node: HTMLElement, dev: string | undefined): HTMLElement {
+    const color = dev === undefined ? undefined : this.art?.avatars?.[dev]?.color;
+    if (color !== undefined) {
+      node.style.setProperty("--faixa", color);
+    }
+    return node;
+  }
+
   private card(ticket: TicketView): HTMLElement {
-    const square = squareOf(ticket);
+    const square = squareOf(ticket, (id) => choicesOf("assignee").find(([dev]) => dev === id)?.[1] ?? id);
     const icons: HTMLElement[] = [];
     const face = square.owner === undefined ? undefined : this.faces.url(square.owner);
     if (face !== undefined) {
@@ -151,7 +161,7 @@ export class RetroBoard {
     const open = el(
       "button",
       { className: "retro-ficha-open" },
-      el("span", { className: "retro-ficha-top" }, el("span", { className: "retro-ficha-no" }, square.number), el("span", { className: "retro-ficha-size" }, square.size)),
+      el("span", { className: "retro-ficha-top" }, el("span", { className: "retro-ficha-no" }, square.number)),
       el("span", { className: "retro-ficha-title" }, square.title),
       el("span", { className: "retro-ficha-icons" }, ...icons),
     );
@@ -159,21 +169,21 @@ export class RetroBoard {
     open.setAttribute("aria-haspopup", "dialog");
     open.setAttribute("aria-label", square.label);
     open.addEventListener("click", () => { this.open(ticket.id); });
-    return el("li", { className: `retro-ficha tam-${ticket.size}` }, el("i", { className: `retro-pin ${pinOf(ticket.number)}` }), open);
+    return this.paint(el("li", { className: "retro-ficha" }, el("i", { className: `retro-pin ${pinOf(ticket.number)}` }), open), square.dev);
   }
 
   private ghost(ghost: Ghost): HTMLElement {
     const card = el(
       "li",
-      { className: `retro-ficha fantasma tam-${ghost.size}`, title: "o gerente está indo ao quadro" },
+      { className: "retro-ficha fantasma", title: "o gerente está indo ao quadro" },
       el(
         "div",
         { className: "retro-ficha-open" },
-        el("span", { className: "retro-ficha-top" }, el("span", { className: "retro-ficha-no" }, "#…"), el("span", { className: "retro-ficha-size" }, ghost.size)),
+        el("span", { className: "retro-ficha-top" }, el("span", { className: "retro-ficha-no" }, "#…")),
         el("span", { className: "retro-ficha-title" }, ghost.title),
       ),
     );
-    return card;
+    return this.paint(card, ghost.dev);
   }
 }
 

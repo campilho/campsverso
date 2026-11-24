@@ -33,7 +33,7 @@ import { CreditsDialog, RetroCredits } from "./panels/credits.ts";
 import { CommandsHelp } from "./panels/help.ts";
 import { renderHud } from "./panels/hud.ts";
 import { ActionMenu, type MenuExtras } from "./panels/menu.ts";
-import { OfficePanel, isOffice, ticketsOf, type NewTicket } from "./panels/office.ts";
+import { OfficePanel, isOffice, ticketsOf, type NewTicket, type System } from "./panels/office.ts";
 import { OperatorPanel } from "./panels/operator.ts";
 import { Portrait } from "./panels/portrait.ts";
 import { contentsOf, holdTarget, inControl, menuFor, proposal, refusalText, thingAt, tileMenu, walkTo, type MenuEntry, type Tile } from "./play.ts";
@@ -232,8 +232,9 @@ const ticketSteps = {
   accept: (ticketId: string): void => {
     officeStep(`Aceitar ${ticketId}`, "accept_ticket", { target: ticketId });
   },
-  giveBack: (ticketId: string, comment: string): void => {
-    officeStep(`Devolver ${ticketId}`, "return_ticket", { target: ticketId, comment });
+  giveBack: (ticketId: string, comment: string, system?: System): void => {
+    // A volta pode trocar quem programa (ADR-0093, decisão 12): o kernel confere o par.
+    officeStep(`Devolver ${ticketId}`, "return_ticket", { target: ticketId, comment, ...(system ?? {}) });
   },
 };
 

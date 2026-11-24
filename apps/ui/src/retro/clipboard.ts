@@ -15,22 +15,19 @@ import type { EnvelopeV1, ObserverState } from "@campsverso/contracts";
 import type { ArtManifest } from "../art/manifest.ts";
 import { el } from "../dom.ts";
 import { choiceName, choicesOf } from "../locale.ts";
-import { ACCEPTANCE_MAX, COMMENT_MAX, DESCRIPTION_MAX, PR_URL, TITLE_MAX, ticketsOf, type NewTicket, type PullRequestView, type TicketView } from "../panels/office.ts";
+import { ACCEPTANCE_MAX, COMMENT_MAX, DESCRIPTION_MAX, PR_URL, TITLE_MAX, ticketsOf, type NewTicket, type PullRequestView, type System, type TicketView } from "../panels/office.ts";
 import { sealOf } from "./board.ts";
 import type { FaceCache } from "./faces.ts";
 import {
   EMPTY_DRAFT,
-  SIZES,
   badgeOfPullRequest,
   counterOf,
-  isSize,
   nextNumber,
   parseDraft,
   remainingOf,
   stateLabel,
   writtenOf,
   type Draft,
-  type Size,
 } from "./tickets.ts";
 
 const DRAFT_KEY = "campsverso.prancheta.v1";
@@ -39,7 +36,7 @@ const LINE = 28; // a entrelinha da pauta, em px
 export interface ClipboardActions {
   write(ticket: NewTicket): void;
   accept(ticketId: string): void;
-  giveBack(ticketId: string, comment: string): void;
+  giveBack(ticketId: string, comment: string, system?: System): void;
   patch(heading: string, ref: string): void;
 }
 
@@ -92,15 +89,34 @@ function nameOf(state: ObserverState, id: string | undefined, fallback: string):
   return id === undefined ? fallback : (state.entities[id]?.display_name ?? id.charAt(0).toUpperCase() + id.slice(1));
 }
 
-/** O dev do elenco que a visão conhece; fora da sala, a visão do jogador não o traz. */
-function devOf(state: ObserverState): string | undefined {
-  return Object.entries(state.entities).find(([, e]) => e?.kind === "avatar" && e.attributes.papel === "dev")?.[0];
+/** Os devs do elenco, do locale do cenário (`choices.assignee`; ADR-0093): fora da sala, a visão do
+ * jogador não os traz. */
+export function devsOf(): (readonly [string, string])[] {
+  return choicesOf("assignee");
 }
 
-/** "De Gerente para Camps, o dev." (ou "para o dev", sem o dev na visão). */
-function route(state: ObserverState, from: string, to: string | undefined): (Node | string)[] {
+/** O nome de um dev pelo locale; sem ele, pela visão, ou o id. */
+function devName(state: ObserverState, id: string): string {
+  return devsOf().find(([dev]) => dev === id)?.[1] ?? nameOf(state, id, "o dev");
+}
+
+/** "De Camps para o Kenji." / "para quem estiver livre." / "para todos os devs, uma ficha para cada." */
+export function routeOf(from: string, to: string | undefined, everyone: boolean): (Node | string)[] {
   const head = ["De ", strong(from)];
-  return to === undefined ? [...head, " para o dev."] : [...head, " para ", strong(nameOf(state, to, "o dev")), ", o dev."];
+  if (everyone) {
+    return [...head, " para ", strong("todos os devs"), ", uma ficha para cada."];
+  }
+  return to === undefined ? [...head, " para quem estiver livre."] : [...head, " para ", strong(to), "."];
+}
+
+/** A cor da faixa (ADR-0093, decisão 11): a do dev, da arte; sem dev, a neutra do CSS. */
+function paint(node: HTMLElement, art: ArtManifest | undefined, dev: string | undefined): void {
+  const color = dev === undefined ? undefined : art?.avatars?.[dev]?.color;
+  if (color === undefined) {
+    node.style.removeProperty("--faixa");
+  } else {
+    node.style.setProperty("--faixa", color);
+  }
 }
 
 /** A `textarea` pautada cresce de `min` a `max` linhas, e depois rola. */
@@ -191,6 +207,8 @@ export class Clipboard {
    * o gerente escreve enquanto o mundo anda. */
   private readonly comment = el("textarea", { className: "retro-hand retro-lined retro-missing" });
   private readonly commentCounter = el("span", { className: "retro-counter retro-remaining" });
+  /** O sistema da volta escolhido na ficha aberta (ADR-0093, decisão 12). */
+  private swap = { harness: "", model: "" };
   private readonly faces: FaceCache | undefined;
 
   constructor(parent: HTMLElement, actions: ClipboardActions, faces?: FaceCache) {
@@ -245,6 +263,7 @@ export class Clipboard {
     }
     this.begin({ kind: "read", ticketId });
     this.comment.value = "";
+    this.swap = { harness: "", model: "" };
     this.countComment();
     this.update(ctx);
     this.element.showModal();
@@ -313,23 +332,18 @@ export class Clipboard {
     this.commentCounter.textContent = remainingOf(this.comment.value.length, COMMENT_MAX);
   }
 
-  /** A madeira, o prendedor, a caneta e o papel com a faixa da cor do tamanho. Lendo uma ficha, a
-   * prancheta é maior (660 px; a do novo pedido continua com 580). */
-  private board(size: string, paper: HTMLElement[], bar: HTMLElement[], reading = false): HTMLElement {
+  /** A madeira, o prendedor, a caneta e o papel com a faixa da cor do dev (ADR-0093, decisão 11).
+   * Lendo uma ficha, a prancheta é maior (660 px; a do novo pedido continua com 580). */
+  private board(dev: string | undefined, paper: HTMLElement[], bar: HTMLElement[], reading = false): HTMLElement {
     const clip = el("img", { className: "retro-clip-clamp" });
     clip.src = "/tela/prendedor.png";
     clip.alt = "";
     const pen = el("img", { className: "retro-clip-pen" });
     pen.src = "/tela/caneta.png";
     pen.alt = "";
-    return el(
-      "div",
-      { className: `retro-clipboard${reading ? " read" : ""}` },
-      clip,
-      pen,
-      el("div", { className: `retro-paper tam-${size}` }, el("div", { className: "retro-paper-stripe" }), ...paper),
-      el("div", { className: "retro-clip-bar" }, ...bar),
-    );
+    const sheet = el("div", { className: "retro-paper" }, el("div", { className: "retro-paper-stripe" }), ...paper);
+    paint(sheet, this.ctx?.art, dev);
+    return el("div", { className: `retro-clipboard${reading ? " read" : ""}` }, clip, pen, sheet, el("div", { className: "retro-clip-bar" }, ...bar));
   }
 
   private header(heading: string, number: string, right: HTMLElement): HTMLElement {
@@ -351,39 +365,33 @@ export class Clipboard {
     return node;
   }
 
-  /** Os três quadrados do tamanho, com o "X" no escolhido. Em leitura, desabilitados. */
-  private sizes(chosen: Size, onPick: ((size: Size) => void) | undefined): HTMLElement {
-    const group = el("div", { className: "retro-sizes" });
-    group.setAttribute("role", "radiogroup");
-    group.setAttribute("aria-labelledby", "retro-size-label");
-    const boxes: [HTMLInputElement, HTMLElement, HTMLElement][] = [];
-    const refresh = (): void => {
-      for (const [input, box, item] of boxes) {
-        box.textContent = input.checked ? "X" : "";
-        item.classList.toggle("on", input.checked);
-      }
-    };
-    for (const [size, name] of SIZES) {
-      const input = el("input");
-      input.type = "radio";
-      input.name = "retro-tamanho";
-      input.value = size;
-      input.checked = size === chosen;
-      input.disabled = onPick === undefined;
-      input.setAttribute("aria-label", `${size}, ${name}`);
-      input.addEventListener("change", () => {
-        refresh();
-        if (input.checked) {
-          onPick?.(size);
-        }
-      });
-      const box = el("span", { className: "retro-size-box" });
-      const item = el("label", { className: `retro-size tam-${size}` }, input, box, el("b", {}, size), el("span", { className: "retro-size-name" }, name));
-      boxes.push([input, box, item]);
-      group.append(item);
+  /** Para quem (ADR-0093, decisão 8): um dev do elenco, ou quem estiver livre; e o "Para todos",
+   * que põe uma ficha para cada dev e trava o "para quem". */
+  private assignees(assignee: string, everyone: boolean, onPick: (assignee: string, everyone: boolean) => void): HTMLElement | undefined {
+    const devs = devsOf();
+    if (devs.length === 0) {
+      return undefined; // um mundo sem a lista dos devs
     }
-    refresh();
-    return group;
+    const select = el("select", { className: "retro-hand retro-pick" });
+    select.setAttribute("aria-labelledby", "retro-assignee-label");
+    fill(select, [["", "quem estiver livre"], ...devs], assignee);
+    select.disabled = everyone;
+    const all = el("input");
+    all.type = "checkbox";
+    all.checked = everyone;
+    all.className = "retro-everyone-box";
+    const pick = (): void => {
+      select.disabled = all.checked;
+      onPick(all.checked ? "" : select.value, all.checked);
+    };
+    select.addEventListener("change", pick);
+    all.addEventListener("change", pick);
+    return el(
+      "div",
+      { className: "retro-field retro-hands retro-assign" },
+      el("div", {}, label("Para quem", "retro-assignee-label"), select),
+      el("label", { className: "retro-everyone" }, all, el("span", {}, "Para todos")),
+    );
   }
 
   private renderNew(ctx: ClipboardContext): HTMLInputElement {
@@ -408,10 +416,16 @@ export class Clipboard {
     const missing = el("span", { className: "retro-clip-missing" }, "Falta o título");
     const put = el("button", { className: "retro-take retro-put" }, el("i", { className: "retro-pin vermelho" }), "Pôr no quadro");
     put.type = "button";
-    let size = this.draft.size;
     let harness = this.draft.harness;
     let model = this.draft.model;
-    const sizes = this.sizes(size, (picked) => { size = picked; sync(); });
+    let assignee = this.draft.assignee;
+    let everyone = this.draft.everyone;
+    const routeLine = el("p", { className: "retro-paper-route" });
+    const assign = this.assignees(assignee, everyone, (to, all) => {
+      assignee = to;
+      everyone = all;
+      sync();
+    });
     // Quem programa e o modelo (ADR-0089; ADR-0093, decisão 18): o kernel confere o par; sem
     // escolha, o padrão do dev. O modelo segue o harness.
     const models = picker("models", model, "retro-model-label", (value) => { model = value; sync(); });
@@ -427,12 +441,18 @@ export class Clipboard {
     }
     const paper = (): HTMLElement | null => this.element.querySelector(".retro-paper");
     const sync = (): void => {
-      this.draft = { title: title.value, description: description.value, acceptance: acceptance.value, size, harness, model };
+      this.draft = { title: title.value, description: description.value, acceptance: acceptance.value, size: "M", harness, model, assignee, everyone };
       saveDraft(this.draft);
       const node = paper();
       if (node !== null) {
-        node.className = `retro-paper tam-${size}`;
+        paint(node, ctx.art, assignee === "" ? undefined : assignee);
       }
+      routeLine.replaceChildren(
+        ...routeOf(manager, assignee === "" ? undefined : devName(state, assignee), everyone),
+        " A ficha entra no quadro em ",
+        strong("A fazer"),
+        ".",
+      );
       [[title.value.length, TITLE_MAX], [description.value.length, DESCRIPTION_MAX], [acceptance.value.length, ACCEPTANCE_MAX]].forEach(([length = 0, max = 0], i) => {
         const counter = counters[i];
         if (counter !== undefined) {
@@ -457,23 +477,25 @@ export class Clipboard {
         title.focus();
         return;
       }
+      // O tamanho saiu da tela (ADR-0093, decisão 11): o contrato pede um, e vai o "M".
       this.actions.write({
         title: title.value.trim(),
         description: description.value.trim(),
         acceptance: acceptance.value.trim(),
-        size,
+        size: "M",
         ...(harness === "" ? {} : { harness }),
         ...(model === "" ? {} : { model }),
+        ...(everyone ? { everyone: true } : assignee === "" ? {} : { assignee }),
       });
       this.sent = JSON.stringify(this.draft);
       this.close();
     });
     const tickets = ticketsOf(state);
     const content = this.board(
-      size,
+      assignee === "" ? undefined : assignee,
       [
         this.header("Novo pedido", `#${String(nextNumber(tickets))}`, el("span", { className: "retro-paper-when" }, ctx.when)),
-        el("p", { className: "retro-paper-route" }, ...route(state, manager, devOf(state)), " A ficha entra no quadro em ", strong("A fazer"), "."),
+        routeLine,
         el("div", { className: "retro-field" }, el("div", { className: "retro-field-top" }, label("Título", "retro-title-label"), counters[0]), title),
         el("div", { className: "retro-field" }, el("div", { className: "retro-field-top" }, label("O que fazer", "retro-description-label"), counters[1]), description),
         el(
@@ -482,7 +504,7 @@ export class Clipboard {
           el("div", { className: "retro-field-top" }, label("Teste de aceite", "retro-acceptance-label", "como você vê que ficou pronto"), counters[2]),
           acceptance,
         ),
-        el("div", { className: "retro-field" }, label("Tamanho", "retro-size-label"), sizes),
+        ...(assign === undefined ? [] : [assign]),
         ...(hands === undefined || models === undefined
           ? []
           : [
@@ -527,7 +549,8 @@ export class Clipboard {
     );
     // De quem para quem e, à direita, com quem está.
     const owner = ticket.owner;
-    const route_ = el("div", { className: "retro-paper-route" }, el("p", {}, ...route(state, from, owner ?? devOf(state))));
+    const to = ticket.assignee === undefined ? undefined : devName(state, ticket.assignee);
+    const route_ = el("div", { className: "retro-paper-route" }, el("p", {}, ...routeOf(from, to, ticket.group !== undefined)));
     if (owner !== undefined) {
       const face = this.faces?.url(owner);
       const pill = el("span", { className: "retro-with" });
@@ -546,7 +569,6 @@ export class Clipboard {
       el("div", { className: "retro-field" }, label("Título"), text(ticket.title, "retro-rule")),
       el("div", { className: "retro-field" }, label("O que fazer"), text(ticket.description, "retro-lined")),
       el("div", { className: "retro-field" }, label("Teste de aceite", undefined, "como você vê que ficou pronto"), text(ticket.acceptance, "retro-lined")),
-      el("div", { className: "retro-field retro-field-row" }, label("Tamanho", "retro-size-label"), this.sizes(isSize(ticket.size) ? ticket.size : "M", undefined)),
     ];
     const chosen = handsLine(ticket.harness, ticket.model);
     if (chosen !== undefined) {
@@ -564,7 +586,8 @@ export class Clipboard {
     if (ctx.manager && ticket.state === "entregue" && underway) {
       bar.push(el("span", { className: "retro-clip-note" }, "O gerente está indo ao quadro."));
     } else if (ctx.manager && ticket.state === "entregue") {
-      // A devolução maior (ADR-0092): o "O que falta" no papel, do tamanho do pedido.
+      // A devolução maior (ADR-0092): o "O que falta" no papel, do tamanho do pedido. A volta pode
+      // trocar quem programa (ADR-0093, decisão 12): sem escolha, o sistema de antes.
       paper.push(
         el(
           "div",
@@ -573,6 +596,10 @@ export class Clipboard {
           this.comment,
         ),
       );
+      const swap = this.swapper();
+      if (swap !== undefined) {
+        paper.push(swap.node);
+      }
       const pr = ticket.pr;
       const give = el("button", { className: "retro-button retro-give" }, "Devolver");
       give.type = "button";
@@ -582,7 +609,7 @@ export class Clipboard {
           this.comment.focus();
           return;
         }
-        this.actions.giveBack(ticket.id, comment);
+        this.actions.giveBack(ticket.id, comment, swap?.system());
         this.close();
       });
       bar.push(give);
@@ -600,7 +627,7 @@ export class Clipboard {
       }
     }
     const scroll = this.element.querySelector(".retro-paper")?.scrollTop ?? 0;
-    this.element.replaceChildren(this.board(ticket.size, paper, bar, true));
+    this.element.replaceChildren(this.board(ticket.assignee ?? owner, paper, bar, true));
     const sheet = this.element.querySelector(".retro-paper");
     if (sheet !== null) {
       sheet.scrollTop = scroll; // o mundo andou; o papel fica onde o gerente lia
@@ -612,6 +639,43 @@ export class Clipboard {
     } else if (this.element.open && !this.element.contains(focused)) {
       this.element.querySelector<HTMLElement>(".retro-clip-close")?.focus();
     }
+  }
+
+  /** Quem programa a volta (ADR-0093, decisão 12): o harness e o modelo, como na prancheta; vazio,
+   * o sistema de antes. Guarda a escolha entre um desenho e outro, como o "O que falta". */
+  private swapper(): { node: HTMLElement; system: () => System | undefined } | undefined {
+    const hands = choicesOf("hands");
+    if (hands.length === 0) {
+      return undefined;
+    }
+    const harness = el("select", { className: "retro-hand retro-pick" });
+    harness.setAttribute("aria-labelledby", "retro-swap-label");
+    fill(harness, [["", "o mesmo de antes"], ...hands], this.swap.harness);
+    const model = el("select", { className: "retro-hand retro-pick" });
+    model.setAttribute("aria-labelledby", "retro-swap-model-label");
+    this.swap.model = harness.value === "" ? "" : syncModels(model, harness.value, this.swap.model);
+    if (harness.value === "") {
+      fill(model, [["", "o de antes"]], "");
+      model.disabled = true;
+    }
+    harness.addEventListener("change", () => {
+      this.swap.harness = harness.value;
+      this.swap.model = harness.value === "" ? "" : syncModels(model, harness.value, this.swap.model);
+      if (harness.value === "") {
+        fill(model, [["", "o de antes"]], "");
+        model.disabled = true;
+      }
+    });
+    model.addEventListener("change", () => { this.swap.model = model.value; });
+    const node = el(
+      "div",
+      { className: "retro-field retro-hands" },
+      el("div", {}, label("Quem programa a volta", "retro-swap-label"), harness),
+      el("div", {}, label("Modelo", "retro-swap-model-label"), model),
+    );
+    const system = (): System | undefined =>
+      this.swap.harness === "" ? undefined : { harness: this.swap.harness, ...(this.swap.model === "" ? {} : { model: this.swap.model }) };
+    return { node, system };
   }
 
   /** O recorte grampeado: o selo do PR em 4x, o link para o GitHub e o "Ver o patch". */

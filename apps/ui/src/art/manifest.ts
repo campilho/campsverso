@@ -151,6 +151,8 @@ export interface AvatarArt {
    * do personagem, com o rosto parado na linha 0 e piscando na linha 1. Os chips o mostram inteiro, e
    * a conversa, o recorte do rosto; sem ele, a tela volta ao recorte do sprite (`portrait`). */
   readonly face?: { readonly sheet: string; readonly column: number };
+  /** A cor do dev na faixa das fichas e da prancheta (ADR-0093, decisão 11): um CSS `#rrggbb`. */
+  readonly color?: string;
   /** Dormindo numa cama: só a cabeça (um recorte de um quadro) no travesseiro, `dy` abaixo do topo da cama. */
   readonly in_bed?: {
     readonly frame: number;

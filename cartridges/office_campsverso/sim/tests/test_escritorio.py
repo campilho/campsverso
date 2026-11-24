@@ -199,6 +199,18 @@ def test_a_tela_mostra_as_escolhas_que_o_cartucho_oferece() -> None:
     assert list(locale["choices"]["models"]) == every
 
 
+def test_o_para_quem_da_tela_e_o_elenco_dos_devs() -> None:
+    """ADR-0093, decisão 8: o "para quem" da prancheta, no locale do cenário, são os devs do
+    elenco, na mesma ordem e com os mesmos nomes."""
+    scenario = Path(__file__).parents[2]
+    data = scenario / "sim/src/campsverso_office_campsverso_sim/data/escritorio.yaml"
+    cast = yaml.safe_load(data.read_text(encoding="utf-8"))["cast"]
+    devs = {m["id"]: m["name"] for m in cast if m["role"] == "dev"}
+    locale = json.loads((scenario / "locale/pt-BR.json").read_text(encoding="utf-8"))
+    assert locale["choices"]["assignee"] == devs
+    assert list(locale["choices"]["assignee"]) == list(devs)
+
+
 def test_cada_papel_faz_o_que_e_dele_e_perto_do_lugar_certo() -> None:
     core = _core()
     _until(core, "09:00")

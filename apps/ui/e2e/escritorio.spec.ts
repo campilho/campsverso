@@ -6,6 +6,9 @@ import { expect, test } from "@playwright/test";
 import { SHOTS, tile } from "./tela.ts";
 
 test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a entrega", async ({ page }) => {
+  // O tamanho saiu da tela (ADR-0093, decisão 11): o pedido é "M", e o dev-script trabalha 60
+  // minutos do mundo, uns 50 s a 72×.
+  test.setTimeout(180_000);
   await page.goto("/?assumir=1");
   const hud = page.locator(".hud");
   await expect(hud).toContainText("human/camps-browser", { timeout: 45_000 }); // o gerente é do humano
@@ -68,7 +71,16 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   await write.click();
   await expect(title).toHaveValue("Ferramenta de busca"); // o rascunho ficou
   await clipboard.getByRole("textbox", { name: "O que fazer" }).fill("Achar um arquivo do repositório pelo nome.");
-  await clipboard.getByRole("radio", { name: "P, pequeno" }).check();
+  // Para quem (ADR-0093, decisão 8): o Tiago; o tamanho saiu da tela (decisão 11). O "Para todos"
+  // trava o "para quem".
+  const assignee = clipboard.getByRole("combobox", { name: "Para quem" });
+  await clipboard.getByRole("checkbox", { name: "Para todos" }).check();
+  await expect(assignee).toBeDisabled();
+  await expect(clipboard).toContainText("para todos os devs");
+  await clipboard.getByRole("checkbox", { name: "Para todos" }).uncheck();
+  await assignee.selectOption({ label: "Tiago" });
+  await expect(clipboard).toContainText("para Tiago");
+  await expect(clipboard.getByRole("radio")).toHaveCount(0);
   // Quem programa e o modelo (ADR-0089): o dev-script não usa, mas a ficha guarda. O modelo segue
   // quem programa (ADR-0093, decisão 18): sem harness, só o padrão do dev; no Codex, o Astra.
   const hands = clipboard.getByRole("combobox", { name: "Quem programa" });
@@ -83,8 +95,11 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   await expect(clipboard).toBeHidden();
   // Enquanto o gerente vai ao quadro, a ficha fantasma fica em "A fazer"; depois, a de verdade.
   await expect(board.locator(".retro-ficha.fantasma")).toContainText("Ferramenta de busca");
-  // A ficha quadrada é um botão só, com o número, o título e o tamanho no nome (ADR-0092).
-  await expect(board.getByRole("button", { name: /^Pedido 1: Ferramenta de busca, tamanho pequeno/ })).toBeVisible({ timeout: 60_000 });
+  // A ficha quadrada é um botão só, com o número, o título e para quem no nome (ADR-0092, ADR-0093),
+  // e a faixa na cor do Tiago.
+  const square = board.getByRole("button", { name: /^Pedido 1: Ferramenta de busca, para Tiago/ });
+  await expect(square).toBeVisible({ timeout: 60_000 });
+  await expect(square.locator("..")).toHaveCSS("border-top-color", "rgb(79, 138, 60)");
   await expect(board.locator(".retro-ficha.fantasma")).toHaveCount(0);
 
   // O dev trabalha sentado: com o pedido em "Fazendo", o desenho dele chega na cadeira da mesa.
@@ -126,11 +141,11 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   // resultado. A 72×, os 15 minutos de trabalho do dev passam em uns 13 segundos.
   const look = (id: string): Promise<string | undefined> =>
     page.evaluate((who) => (window as unknown as { campsverso: { look(id: string): string | undefined } }).campsverso.look(who), id);
-  await expect.poll(() => look("robo-testador"), { intervals: [100], timeout: 60_000 }).toBe("trabalhando");
+  await expect.poll(() => look("robo-testador"), { intervals: [100], timeout: 90_000 }).toBe("trabalhando");
   await expect.poll(() => look("robo-testador"), { timeout: 30_000 }).toBe("passou");
   await page.screenshot({ path: `${SHOTS}/escritorio-bancada.png` });
   const delivered = board.getByRole("tab", { name: "Entregue, 1 pedido" });
-  await expect(delivered).toBeVisible({ timeout: 60_000 });
+  await expect(delivered).toBeVisible({ timeout: 90_000 });
   await delivered.click();
   await page.screenshot({ path: `${SHOTS}/escritorio.png` });
 
@@ -258,7 +273,7 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
 });
 
 test("a ficha aberta: a devolução de 1.000 caracteres chega inteira ao quadro e ao dev (ADR-0092)", async ({ page }) => {
-  test.setTimeout(150_000);
+  test.setTimeout(240_000); // o pedido "M" do dev-script, uns 50 s a 72× (ADR-0093, decisão 11)
   await page.goto("/?assumir=1");
   const board = page.locator(".retro-board");
   await expect(page.getByRole("button", { name: "Soltar o gerente" })).toBeEnabled({ timeout: 45_000 });
@@ -271,7 +286,7 @@ test("a ficha aberta: a devolução de 1.000 caracteres chega inteira ao quadro 
   const clipboard = page.getByRole("dialog", { name: "Novo pedido" });
   await clipboard.getByRole("textbox", { name: "Título" }).fill("Contar os cafés do dia");
   await clipboard.getByRole("textbox", { name: "O que fazer" }).fill("Um contador na copa, que zera à meia-noite.");
-  await clipboard.getByRole("radio", { name: "P, pequeno" }).check();
+  await clipboard.getByRole("combobox", { name: "Para quem" }).selectOption({ label: "Tiago" });
   await clipboard.getByRole("button", { name: "Pôr no quadro" }).click();
   // A tela do dev pelo computador da sala (briefing-tela-3.md, §1): o clique no monitor da mesa do
   // Tiago, o tile de cima da mesa, abre a tela, e não anda. Com o pedido em "Fazendo", um passo novo
@@ -286,7 +301,7 @@ test("a ficha aberta: a devolução de 1.000 caracteres chega inteira ao quadro 
   await expect(devScreen).toBeVisible();
   // O Tiago ainda anda até a mesa: até a sessão nova começar, a tela mostra a do pedido 1, e troca
   // sozinha quando ela começa.
-  await expect(devScreen).toContainText("Pedido #2 · Contar os cafés do dia", { timeout: 30_000 });
+  await expect(devScreen).toContainText("Pedido #2 · Contar os cafés do dia", { timeout: 90_000 });
   await devScreen.locator(".retro-term-entry").evaluateAll((nodes) => {
     for (const node of nodes) {
       node.setAttribute("data-velha", "1");
@@ -314,12 +329,20 @@ test("a ficha aberta: a devolução de 1.000 caracteres chega inteira ao quadro 
   expect(long).toHaveLength(1000);
   await missing.fill(long);
   await expect(card).toContainText("faltam 0 de 1.000"); // o contador, nunca o corte escondido
+  // A volta pode trocar quem programa (ADR-0093, decisão 12): sem escolha, o mesmo de antes; no
+  // Codex, o modelo é o da língua dele.
+  const swap = card.getByRole("combobox", { name: "Quem programa a volta" });
+  await expect(swap).toHaveValue("");
+  await expect(card.getByRole("combobox", { name: "Modelo" })).toBeDisabled();
+  await swap.selectOption({ label: "Codex" });
+  await expect(card.getByRole("combobox", { name: "Modelo" }).locator("option")).toHaveText(["o padrão do Codex", "GPT-6.2 Astra"]);
+  await swap.selectOption({ label: "o mesmo de antes" });
   await page.screenshot({ path: `${SHOTS}/escritorio-ficha-aberta.png` });
   await card.getByRole("button", { name: "Devolver" }).click();
   await expect(card).toBeHidden();
   // O fato chega inteiro à conversa, e a ficha volta com o "devolvido" e o comentário inteiro.
   await expect(page.locator(".retro-talk").getByRole("log")).toContainText(`devolveu o pedido 2: ${long}`, { timeout: 30_000 });
-  const returned = board.getByRole("button", { name: /^Pedido 2: Contar os cafés do dia, tamanho pequeno, devolvido/ });
+  const returned = board.getByRole("button", { name: /^Pedido 2: Contar os cafés do dia, para Tiago, devolvido/ });
   for (const tab of ["A fazer", "Fazendo"]) {
     await board.getByRole("tab", { name: new RegExp(`^${tab},`) }).click();
     if (await returned.isVisible()) {

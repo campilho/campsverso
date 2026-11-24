@@ -53,6 +53,7 @@
   "avatars": {
     "tiago": {
       "sheet": "tiago",
+      "color": "#4f8a3c",
       "feet": 0,
       "label_above": 62,
       "animations": {
@@ -92,6 +93,7 @@
     },
     "kenji": {
       "sheet": "kenji",
+      "color": "#2f6db5",
       "feet": 0,
       "label_above": 62,
       "animations": {

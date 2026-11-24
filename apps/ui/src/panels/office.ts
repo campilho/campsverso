@@ -10,6 +10,7 @@
 import type { EnvelopeV1, ObserverState } from "@campsverso/contracts";
 
 import { button, el } from "../dom.ts";
+import { choicesOf } from "../locale.ts";
 import { clockText } from "../simclock.ts";
 import { DeliveryDialog } from "./delivery.ts";
 
@@ -71,6 +72,12 @@ export function summonsOf(state: ObserverState, timeline: readonly EnvelopeV1[] 
       until: tick("convocado_ate"),
     });
   }
+  // Os devs do elenco que a visão não traz (fora da sala): do locale do cenário (ADR-0093).
+  for (const [id, name] of choicesOf("assignee")) {
+    if (!found.has(id)) {
+      found.set(id, { id, name, present: false, summoned: false, arrives: undefined, until: undefined });
+    }
+  }
   if (found.size === 0) {
     found.set("", { id: "", name: title(""), present: false, summoned: false, arrives: undefined, until: undefined });
   }
@@ -108,6 +115,10 @@ export interface TicketView {
   /** Quem programa e o modelo, quando o gerente escolheu na prancheta (ADR-0089). */
   readonly harness: string | undefined;
   readonly model: string | undefined;
+  /** Para quem (ADR-0093, decisão 8): o dev a quem o pedido foi dado. */
+  readonly assignee: string | undefined;
+  /** O grupo de um "para todos": as fichas do mesmo pedido, uma por dev. */
+  readonly group: string | undefined;
 }
 
 export interface PullRequestView {
@@ -193,6 +204,8 @@ export function ticketsOf(state: ObserverState): TicketView[] {
       pr: pullRequestOf(a),
       harness: typeof a.maos === "string" && a.maos !== "" ? a.maos : undefined,
       model: typeof a.modelo === "string" && a.modelo !== "" ? a.modelo : undefined,
+      assignee: typeof a.para === "string" && a.para !== "" ? a.para : undefined,
+      group: typeof a.grupo === "string" && a.grupo !== "" ? a.grupo : undefined,
     });
   }
   return found.sort((a, b) => a.number - b.number);
@@ -206,12 +219,21 @@ export interface NewTicket {
   /** Quem programa e o modelo (ADR-0089); sem eles, o padrão do mundo. */
   readonly harness?: string;
   readonly model?: string;
+  /** Para quem e para todos (ADR-0093, decisão 8); sem eles, quem estiver livre. */
+  readonly assignee?: string;
+  readonly everyone?: boolean;
+}
+
+/** O sistema da volta, escolhido ao devolver (ADR-0093, decisão 12). */
+export interface System {
+  readonly harness: string;
+  readonly model?: string;
 }
 
 export interface OfficeActions {
   write(ticket: NewTicket): void;
   accept(ticketId: string): void;
-  giveBack(ticketId: string, comment: string): void;
+  giveBack(ticketId: string, comment: string, system?: System): void;
   speak(text: string): void;
   leave(): void;
   summon(devId: string): void;

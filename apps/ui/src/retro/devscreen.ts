@@ -12,7 +12,7 @@ import type { ObserverState } from "@campsverso/contracts";
 
 import type { ArtManifest } from "../art/manifest.ts";
 import { el } from "../dom.ts";
-import { choiceName } from "../locale.ts";
+import { choiceName, choicesOf } from "../locale.ts";
 import { pullRequestLine, ticketsOf } from "../panels/office.ts";
 import { faceCell, faceSheet } from "../panels/portrait.ts";
 import { clockText, tickSeconds } from "../simclock.ts";
@@ -108,6 +108,9 @@ export interface TermEntry {
   readonly badge: Badge;
   /** Depois do selo; vazio quando o comando já é o resumo do passo. */
   readonly result: string;
+  /** O que o modelo escreveu antes do passo (ADR-0093, decisão 12): um comentário do shell,
+   * apagado, acima do comando; vazio sem texto. */
+  readonly note: string;
 }
 
 export type TermState = "live" | "done" | "empty";
@@ -228,6 +231,7 @@ export function terminalOf(state: ObserverState, devId: string, tick: number): T
     key: first + i,
     time: clockText(state, step.tick).slice(0, 5),
     ...stepCommand(step),
+    note: step.note ?? "",
   }));
   const estado = sessionTicketState(state, session);
   const finished = session.finished;
@@ -291,6 +295,10 @@ export class DevScreen {
   // As peças que ficam entre um desenho e outro: o log só acrescenta (§4).
   private readonly heading = el("h2", { className: "retro-term-heading" });
   private readonly plate = el("span", { className: "retro-term-plate-sub" });
+  /** O seletor da plaqueta (ADR-0093; briefing-tela-3.md): a tela de cada dev, sem fechar. */
+  private readonly switcher = el("div", { className: "retro-term-devs" });
+  private shownSwitch = "";
+  private last: { readonly state: ObserverState; readonly tick: number } | undefined;
   private readonly face = el("canvas", { className: "retro-term-face" });
   private readonly led = el("span", { className: "retro-term-led" });
   private readonly ledLabel = el("span", { className: "retro-term-led-label" });
@@ -366,7 +374,7 @@ export class DevScreen {
             el("span", { className: "retro-term-brand-model" }, "OFICINA-1 · 640K"),
           ),
           el("span", { className: "retro-term-slits" }, el("i"), el("i"), el("i"), el("i"), el("i"), el("i")),
-          el("div", { className: "retro-term-plate" }, this.face, el("div", {}, this.heading, this.plate)),
+          el("div", { className: "retro-term-plate" }, this.face, el("div", {}, this.heading, this.plate), this.switcher),
           el("span", { className: "retro-term-light" }, this.led, this.ledLabel),
           close,
         ),
@@ -404,6 +412,8 @@ export class DevScreen {
     if (this.devId === undefined || !this.element.open) {
       return;
     }
+    this.last = { state, tick };
+    this.renderSwitcher();
     const view = terminalOf(state, this.devId, tick);
     const session = `${view.prompt}|${view.state === "empty" ? "" : view.boot.map((b) => b.text).join("\n")}`;
     if (session !== this.session) {
@@ -430,6 +440,36 @@ export class DevScreen {
     if (this.element.open) {
       this.element.close();
     }
+  }
+
+  /** Um botão por dev do elenco (o locale do cenário), o da tela aberta apertado; com um dev só,
+   * nada. Trocar de dev recomeça a tela, como abrir. */
+  private renderSwitcher(): void {
+    const devs = choicesOf("assignee");
+    const key = JSON.stringify([devs, this.devId]);
+    if (key === this.shownSwitch) {
+      return;
+    }
+    this.shownSwitch = key;
+    if (devs.length < 2) {
+      this.switcher.replaceChildren();
+      return;
+    }
+    this.switcher.setAttribute("role", "group");
+    this.switcher.setAttribute("aria-label", "A tela de cada dev");
+    this.switcher.replaceChildren(
+      ...devs.map(([id, name]) => {
+        const node = el("button", { className: "retro-term-dev" }, name);
+        node.type = "button";
+        node.setAttribute("aria-pressed", String(id === this.devId));
+        node.addEventListener("click", () => {
+          if (id !== this.devId && this.last !== undefined) {
+            this.open(id, this.last.state, this.last.tick);
+          }
+        });
+        return node;
+      }),
+    );
   }
 
   private reset(): void {
@@ -549,6 +589,7 @@ export class DevScreen {
     const node = el(
       "li",
       { className: `retro-term-entry ${entry.badge}` },
+      entry.note === "" ? undefined : el("div", { className: "retro-term-note" }, `# ${entry.note}`),
       el(
         "div",
         { className: "retro-term-line" },

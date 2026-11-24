@@ -214,6 +214,8 @@ describe("o quadro de cortiça (§3.4)", () => {
     pr: undefined,
     harness: undefined,
     model: undefined,
+    assignee: undefined,
+    group: undefined,
     ...extra,
   });
   const open = { number: 7, url: "https://github.com/campilho/campsverso/pull/7", state: "aberto", ci: "success" };
@@ -251,18 +253,19 @@ describe("o quadro de cortiça (§3.4)", () => {
   });
 
   it("põe a ficha fantasma do pedido que o gerente está escrevendo e dos que estão na fila", () => {
-    const step = (title: string, size: string): Step => ({
+    const step = (title: string, assignee?: string): Step => ({
       label: `Escrever o pedido "${title}"`,
-      proposal: { avatar_id: "gerente", action: "write_ticket", params: { title, size } },
+      proposal: { avatar_id: "gerente", action: "write_ticket", params: { title, size: "M", ...(assignee === undefined ? {} : { assignee }) } },
       near: "quadro",
     });
     const walk: Step = { label: "Ir até a porta", proposal: { avatar_id: "gerente", action: "move", params: { near: "porta" } } };
     const writing = state({
-      actions: { gerente: { action: "write_ticket", params: { title: "A lousa", size: "G" } } } as unknown as ObserverState["actions"],
+      actions: { gerente: { action: "write_ticket", params: { title: "A lousa", size: "M" } } } as unknown as ObserverState["actions"],
     });
-    expect(ghostsOf([walk, step("O café", "P")], writing, "gerente")).toEqual([
-      { title: "A lousa", size: "G" },
-      { title: "O café", size: "P" },
+    // A faixa da fantasma é a do "para quem" (ADR-0093); sem ele, a neutra.
+    expect(ghostsOf([walk, step("O café", "kenji")], writing, "gerente")).toEqual([
+      { title: "A lousa", dev: undefined },
+      { title: "O café", dev: "kenji" },
     ]);
     expect(ghostsOf([walk], state(), "gerente")).toEqual([]);
     expect(ghostsOf([], writing, "camps")).toEqual([]); // só os passos de quem joga
@@ -306,15 +309,17 @@ describe("a ficha quadrada e a ficha aberta (briefing-tela-2.md, §7; ADR-0092)"
     pr: undefined,
     harness: undefined,
     model: undefined,
+    assignee: undefined,
+    group: undefined,
   };
   const open = { number: 11, url: "https://github.com/campilho/campsverso/pull/11", state: "aberto", ci: "success" };
 
-  it("mostra o número, o tamanho e o título, e embaixo só os ícones de cada estado", () => {
+  it("mostra o número e o título, a faixa do dev e, embaixo, só os ícones de cada estado", () => {
     expect(squareOf(base)).toEqual({
       number: "#17",
-      size: "M",
+      dev: undefined,
       title: "Um relatório da semana no quadro",
-      label: "Pedido 17: Um relatório da semana no quadro, tamanho médio",
+      label: "Pedido 17: Um relatório da semana no quadro",
       owner: undefined,
       seal: undefined,
       sealTitle: undefined,
@@ -322,13 +327,18 @@ describe("a ficha quadrada e a ficha aberta (briefing-tela-2.md, §7; ADR-0092)"
     });
     // Fazendo, com o rosto do dono.
     expect(squareOf({ ...base, state: "fazendo", owner: "tiago" }).owner).toBe("tiago");
+    // A faixa (ADR-0093, decisão 11): o dev do "para quem" ou, sem ele, quem pegou; livre, nenhum.
+    expect(squareOf({ ...base, state: "fazendo", owner: "tiago" }).dev).toBe("tiago");
+    const kenji = squareOf({ ...base, assignee: "kenji" }, (id) => (id === "kenji" ? "Kenji" : id));
+    expect([kenji.dev, kenji.label]).toEqual(["kenji", "Pedido 17: Um relatório da semana no quadro, para Kenji"]);
+    expect(squareOf({ ...base, assignee: "kenji", group: "grupo-017" }).label).toBe("Pedido 17: Um relatório da semana no quadro, para todos");
     // Entregue, com o PR: o selo do CI e o texto do PR no `title`.
     const delivered = squareOf({ ...base, state: "entregue", owner: "tiago", pr: open });
     expect([delivered.seal, delivered.sealTitle]).toEqual(["ci_verde", "PR #11 · aberto · CI verde"]);
     // Devolvido: "devolvido" até ser aceito, também no nome que o leitor de tela diz.
     const back = squareOf({ ...base, comment: "Falta o caso vazio." });
     expect(back.returned).toBe(true);
-    expect(back.label).toBe("Pedido 17: Um relatório da semana no quadro, tamanho médio, devolvido");
+    expect(back.label).toBe("Pedido 17: Um relatório da semana no quadro, devolvido");
     expect(squareOf({ ...base, state: "aceito", comment: "Falta o caso vazio." }).returned).toBe(false);
   });
 
@@ -361,10 +371,12 @@ describe("a prancheta (§3.6)", () => {
     expect(EMPTY_DRAFT.size).toBe("M"); // o padrão é M
     expect(parseDraft("{")).toEqual(EMPTY_DRAFT);
     expect(parseDraft(JSON.stringify({ title: "A lousa", description: 3, size: "X" }))).toEqual({ ...EMPTY_DRAFT, title: "A lousa" });
+    // O tamanho saiu da tela (ADR-0093, decisão 11): o rascunho de antes, com "G", volta com "M".
     const draft = { title: "A lousa", description: "Na copa", acceptance: "Entro e vejo", size: "G" };
-    expect(parseDraft(JSON.stringify(draft))).toEqual({ ...draft, harness: "", model: "" }); // o rascunho de antes do M26
-    const chosen = { ...draft, harness: "claude_code", model: "claude-opus-5-5" };
+    expect(parseDraft(JSON.stringify(draft))).toEqual({ ...EMPTY_DRAFT, ...draft, size: "M" }); // o rascunho de antes do M26
+    const chosen = { ...draft, size: "M", harness: "claude_code", model: "claude-opus-5-5", assignee: "kenji", everyone: false };
     expect(parseDraft(JSON.stringify(chosen))).toEqual(chosen);
+    expect(parseDraft(JSON.stringify({ ...chosen, everyone: "sim" })).everyone).toBe(false);
   });
 
   it("diz quem programa e o modelo pelos nomes do locale, e o padrão no que não foi escolhido (ADR-0089)", () => {
@@ -527,7 +539,7 @@ describe("a tela do dev (ADR-0089)", () => {
     steps: [
       { tick: 16200, tool: "robô", summary: "briefing passou", ok: true },
       { tick: 16260, tool: "Write", summary: "Write: libs/adapters/src/campsverso_adapters/hands_codex.py", ok: true, path: "libs/adapters/src/campsverso_adapters/hands_codex.py" },
-      { tick: 16300, tool: "Bash", summary: "Bash: pytest libs/adapters/tests", ok: false },
+      { tick: 16300, tool: "Bash", summary: "Bash: pytest libs/adapters/tests", ok: false, note: "Vou rodar os testes do conector." },
     ],
   };
   const working = state({
@@ -611,6 +623,8 @@ describe("a tela do dev (ADR-0089)", () => {
       [22, "Write libs/adapters/src/campsverso_adapters/hands_codex.py", "ok"],
       [23, "Bash pytest libs/adapters/tests", "falhou"],
     ]);
+    // O texto do modelo antes do passo (ADR-0093, decisão 12): o comentário acima do comando.
+    expect(live.entries.map((entry) => entry.note)).toEqual(["", "", "Vou rodar os testes do conector."]);
     expect(live.end).toEqual([]);
     expect(live.bar).toEqual({ who: "[camps]", ticket: "#2 Conector do Codex", right: ["Claude Code · Opus 5.5", "18 min", "23 passos", "US$ 0,61"], state: "AO VIVO" });
     // No fim: o resumo e o pedido entregue, com o PR.

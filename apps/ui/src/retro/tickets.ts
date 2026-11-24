@@ -8,18 +8,8 @@ import { COLUMNS, pullRequestLine, type PullRequestView, type TicketView } from 
 import type { Step } from "../queue.ts";
 import { clockText, tickSeconds } from "../simclock.ts";
 
+/** O tamanho do contrato; a tela manda sempre "M" (ADR-0093, decisão 11). */
 export type Size = "P" | "M" | "G";
-
-/** Os tamanhos, na ordem da prancheta, com o nome que a tela mostra. */
-export const SIZES: readonly (readonly [Size, string])[] = [
-  ["P", "pequeno"],
-  ["M", "médio"],
-  ["G", "grande"],
-];
-
-export function isSize(value: unknown): value is Size {
-  return value === "P" || value === "M" || value === "G";
-}
 
 /** O cabeçalho do quadro: "15 pedidos · 1 PR aberto" (sem PR aberto, só os pedidos). */
 export function boardSummary(tickets: readonly TicketView[]): string {
@@ -61,7 +51,8 @@ export function nextTab(index: number, key: string, count: number): number | und
 /** Uma ficha fantasma: o pedido que o gerente está indo escrever, antes de o kernel o publicar. */
 export interface Ghost {
   readonly title: string;
-  readonly size: string;
+  /** O dev da faixa: o do "para quem"; sem ele, a faixa neutra. */
+  readonly dev: string | undefined;
 }
 
 /** As fichas fantasmas, dos passos `write_ticket`: o que está sendo escrito agora e o que está na
@@ -74,7 +65,7 @@ export function ghostsOf(steps: readonly Step[], state: ObserverState, me: strin
   ];
   return params.map((p) => ({
     title: typeof p.title === "string" ? p.title : "",
-    size: typeof p.size === "string" ? p.size : "M",
+    dev: typeof p.assignee === "string" && p.assignee !== "" ? p.assignee : undefined,
   }));
 }
 
@@ -120,11 +111,13 @@ export function counterOf(length: number, max: number): string | undefined {
   return length > max * 0.8 ? `${String(length)}/${String(max)}` : undefined;
 }
 
-/** A ficha quadrada da cortiça (briefing-tela-2.md, §7): o número, o tamanho, o título e, embaixo,
- * só ícones. O resto (a descrição, o aceite, o PR por extenso, os botões) fica na ficha aberta. */
+/** A ficha quadrada da cortiça (briefing-tela-2.md, §7): o número, o título e, embaixo, só ícones;
+ * a faixa na cor do dev (ADR-0093, decisão 11). O resto (a descrição, o aceite, o PR por extenso,
+ * os botões) fica na ficha aberta. */
 export interface SquareCard {
   readonly number: string;
-  readonly size: string;
+  /** O dev da faixa: o do "para quem" ou, sem ele, quem pegou; sem os dois, a faixa neutra. */
+  readonly dev: string | undefined;
   readonly title: string;
   /** O que o leitor de tela diz da ficha, que é um botão só. */
   readonly label: string;
@@ -137,14 +130,15 @@ export interface SquareCard {
   readonly returned: boolean;
 }
 
-export function squareOf(ticket: TicketView): SquareCard {
-  const name = SIZES.find(([size]) => size === ticket.size)?.[1];
+export function squareOf(ticket: TicketView, nameOfDev: (id: string) => string = (id) => id): SquareCard {
   const number = `#${String(ticket.number)}`;
   const returned = ticket.comment !== undefined && ticket.state !== "aceito";
-  const parts = [`Pedido ${String(ticket.number)}: ${ticket.title}`, name === undefined ? undefined : `tamanho ${name}`, returned ? "devolvido" : undefined];
+  const dev = ticket.assignee ?? ticket.owner;
+  const to = ticket.group !== undefined ? "para todos" : ticket.assignee === undefined ? undefined : `para ${nameOfDev(ticket.assignee)}`;
+  const parts = [`Pedido ${String(ticket.number)}: ${ticket.title}`, to, returned ? "devolvido" : undefined];
   return {
     number,
-    size: ticket.size,
+    dev,
     title: ticket.title,
     label: parts.filter((part) => part !== undefined).join(", "),
     owner: ticket.owner,
@@ -196,13 +190,18 @@ export interface Draft {
   readonly title: string;
   readonly description: string;
   readonly acceptance: string;
+  /** O tamanho saiu da tela (ADR-0093, decisão 11): a prancheta manda sempre "M". */
   readonly size: Size;
   /** Quem programa e o modelo (ADR-0089); vazio é o padrão do dev. */
   readonly harness: string;
   readonly model: string;
+  /** Para quem (ADR-0093, decisão 8): um dev; vazio é quem estiver livre. */
+  readonly assignee: string;
+  /** Para todos: uma ficha para cada dev. */
+  readonly everyone: boolean;
 }
 
-export const EMPTY_DRAFT: Draft = { title: "", description: "", acceptance: "", size: "M", harness: "", model: "" };
+export const EMPTY_DRAFT: Draft = { title: "", description: "", acceptance: "", size: "M", harness: "", model: "", assignee: "", everyone: false };
 
 /** O rascunho guardado, conferido campo a campo: o que vier torto vira o rascunho vazio. */
 export function parseDraft(raw: string | null): Draft {
@@ -216,9 +215,11 @@ export function parseDraft(raw: string | null): Draft {
       title: str("title"),
       description: str("description"),
       acceptance: str("acceptance"),
-      size: isSize(value.size) ? value.size : "M",
+      size: "M",
       harness: str("harness"),
       model: str("model"),
+      assignee: str("assignee"),
+      everyone: value.everyone === true,
     };
   } catch {
     return EMPTY_DRAFT;
