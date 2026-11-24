@@ -4,10 +4,11 @@ A fita foi gravada de novo em 23/nov com `make fita CARTUCHO=office_campsverso`,
 (13 chamadas, US$ 0,046), no M27 (ADR-0093): o Kenji entrou na sala (parado nesta manhã, que é a do
 Tiago), o gerente-script dá bom-dia a cada dev, a conversa ganhou a ferramenta `agir` e o cartão do
 Tiago perdeu o "único dev da sala". A de 22/nov, com o Tiago e o Camps (ADR-0092), tinha 14
-chamadas; a de 21/nov, 14, e a de 20/nov, 17. É o bom-dia do gerente e os pedidos das 9:30 e das 10:30 do mundo de teste, com a
-oficina no repositório de exemplo (`tests/fixtures/oficina`). O CI só a reproduz: os mesmos pedidos
-ao modelo, na mesma ordem, sem rede e sem custo. Se a mente, a oficina ou o mundo mudarem o que vai
-ao modelo, a fita deixa de bater, e é preciso gravar de novo (uns centavos).
+chamadas; a de 21/nov, 14, e a de 20/nov, 17. É o bom-dia do gerente e os pedidos das 9:30 e das
+10:30 do mundo de teste, com a oficina no repositório de exemplo (`tests/fixtures/oficina`). O CI
+só a reproduz: os mesmos pedidos ao modelo, na mesma ordem, sem rede e sem custo. Se a mente, a
+oficina ou o mundo mudarem o que vai ao modelo, a fita deixa de bater, e é preciso gravar de novo
+(uns centavos).
 """
 
 from campsverso_adapters import RecordingModel
