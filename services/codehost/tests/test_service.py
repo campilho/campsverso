@@ -317,6 +317,33 @@ async def test_o_prefixo_dos_ramos_vale_para_o_pr() -> None:
     assert _reports(bus)[-1]["branch"] == "dev/sandbox-20261121-103000/pedido-1"
 
 
+async def test_com_varios_devs_o_ramo_leva_o_dev_que_entregou() -> None:
+    """ADR-0093: no mundo 03, o ramo de cada dev fica sob o nome dele, e o prefixo do mundo não
+    deixa colidir com os ramos do mundo 02."""
+    host = MemoryCodeHost()
+    bus, deliveries = InMemoryBus(), MemoryBlobStore()
+    deliveries.put(f"{WORLD}/pedido-001/x.patch", b"diff --git a/docs/a.md b/docs/a.md\n")
+    service = CodeHostService(
+        WORLD,
+        bus,
+        host,
+        deliveries,
+        MemoryBlobStore(),
+        _files,
+        lambda _diff: [],
+        [],
+        FakeWallClock(),
+        SequentialUuid7Ids(),
+        MemoryTelemetry(),
+        branch_prefix="dev/m03/",
+        branch_by_dev=True,
+    )
+    await service.start()
+    await _deliver(bus)
+    assert list(host.branches) == ["dev/m03/camps/pedido-1"]
+    assert _reports(bus)[-1]["branch"] == "dev/m03/camps/pedido-1"
+
+
 async def test_o_pedido_sem_pr_aberto_comeca_da_base_mesmo_com_um_ramo_velho() -> None:
     """O PR #3 (21/nov): o ramo do primeiro PR de todos, fechado, tinha o mesmo nome."""
     host = MemoryCodeHost()

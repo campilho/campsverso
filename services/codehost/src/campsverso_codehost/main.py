@@ -173,6 +173,7 @@ async def run(args: argparse.Namespace) -> int:
         telemetry,
         reviewer=None if built is None else built[0].review,
         branch_prefix=settings.branch_prefix,
+        branch_by_dev=settings.branch_by_dev,
     )
     reviewing: asyncio.Task[int] | None = None
     try:

@@ -81,8 +81,10 @@ class Ticket:
     acceptance: str
 
 
-def branch_of(number: int, prefix: str = "dev/") -> str:
-    return f"{prefix}pedido-{number}"
+def branch_of(number: int, prefix: str = "dev/", dev: str | None = None) -> str:
+    """O ramo do pedido: sob o prefixo do mundo e, num escritório com vários devs (ADR-0093), sob
+    o dev que entregou (`dev/m03/kenji/pedido-1`)."""
+    return f"{prefix}{dev}/pedido-{number}" if dev else f"{prefix}pedido-{number}"
 
 
 class CodeHostService:
@@ -102,6 +104,7 @@ class CodeHostService:
         *,
         reviewer: ReviewFn | None = None,
         branch_prefix: str = "dev/",
+        branch_by_dev: bool = False,
     ) -> None:
         self._worldid = worldid
         self._bus = bus
@@ -116,6 +119,7 @@ class CodeHostService:
         self._telemetry = telemetry
         self._reviewer = reviewer
         self._branch_prefix = branch_prefix
+        self._branch_by_dev = branch_by_dev
         self._key = f"{worldid}/codehost.json"
         self.tickets: dict[str, Ticket] = {}
         self.open: dict[str, OpenPullRequest] = {}
@@ -227,7 +231,8 @@ class CodeHostService:
                 "codehost.refused", ticket_id=ticket_id, number=number, reasons=reasons
             )
             return
-        branch = branch_of(number, self._branch_prefix)
+        dev = str(data.get("by") or "dev") if self._branch_by_dev else None
+        branch = branch_of(number, self._branch_prefix, dev)
         known = self.open.get(ticket_id)
         try:
             files = await self._files(str(patch["base"]), text)

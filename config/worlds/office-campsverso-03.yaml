@@ -1,0 +1,90 @@
+# Mundo office-campsverso-03: o escritório do Campsverso com dois devs, o M27 (ADR-0093).
+# O escritório vivo: roda a 1×, no relógio de São Paulo, e ao subir salta até agora. O humano entra
+# como o gerente, o Camps, pela tela do jogador; os devs são o Tiago e o Kenji. O dev e o sistema
+# são independentes (ADR-0093, decisão 18): cada um tem o sistema padrão dele, e a prancheta escolhe
+# outro quando quer. O mundo 02, só com o Tiago, ficou no arquivo do escritório vivo.
+
+worldid: office-campsverso-03
+cartridge: office_campsverso
+script: dev
+player: gerente  # a cadeira do jogador: o humano entra como o gerente (ADR-0077)  # o dev-script (cartridges/office/script): o controlador que o make run sobe
+avatar: tiago  # o primeiro dev: o avatar padrão dos comandos que não dizem outro (ADR-0092)
+devs: [tiago, kenji]  # os devs do dev-script, um runner para cada; nenhum humano os assume (ADR-0093)
+seed: 20261124
+start: "2026-11-16T00:00:00-03:00"  # uma segunda-feira no passado: ao subir, a âncora salta até agora
+
+clock:  # estado inicial do relógio; depois, só por comandos
+  mode: continuous
+  scale: 1  # tempo real
+  paused: false
+  anchor: wall  # ao subir, o mundo salta até agora (ADR-0078)
+
+helpers:  # o vigia, que fica sempre que o dev não está
+  script: escritorio  # entry point campsverso.controllers (cartridges/office/script)
+  avatars: [vigia]
+
+# Tetos de gasto com modelos (ADR-0058, ADR-0080). No escritório, o teto do dia ou do total desliga
+# a mente e a rotina conduz o dev, sem pausar o mundo; o de um pedido faz a mente largá-lo. Os
+# números são provisórios, até a mente chegar (M24, parte 3); o operador os muda com o mundo vivo.
+budget:
+  usd_per_sim_day: 15.00  # dois devs (ADR-0093); era US$ 10 com o Tiago só
+  usd_per_ticket: 5.00
+  usd_total: 40.00
+  on_exceeded: mind_off
+
+# A oficina do dev (ADR-0080): na entrega, o controlador roda a sessão num clone deste repositório
+# (data/oficina/<mundo>/<pedido>/) e guarda o patch em data/entregas/. `make aplicar PEDIDO=N` o
+# põe num ramo.
+workshop: true
+
+# O repositório de fora (ADR-0083): a entrega do dev vira um PR no ramo dev/pedido-N, aberto pelo
+# publicador como o GitHub App do dev; o vigia relata o CI, a mesclagem (o aceite) e o fechamento
+# sem mesclar (a devolução). A chave do App fica em privado/, fora do git, e só o openssl a lê.
+# Sem a chave ou sem a lista de palavras proibidas, o processo só espera, e a entrega fica no
+# depósito, como no M24.
+codehost:
+  host: github
+  repo: campilho/campsverso
+  app_id: 5854989
+  installation_id: 184174558
+  key: privado/campsverso-dev.2026-11-20.private-key.pem
+  poll_seconds: 60
+  # O revisor de outra família (ADR-0083, parte 3): o GPT-6.2 Astra e, se ele falhar, o Gemini 4
+  # Neon, os dois pela OpenRouter. A calibração de 21/nov inverteu a ordem do plano: os dois acharam
+  # os três defeitos, e só o Astra não pediu nada no caso limpo. Ele comenta no PR e só aconselha.
+  reviewers: [openai/gpt-6.2-astra, google/gemini-4-neon]
+  # Os ramos de cada dev (ADR-0093): o quadro do mundo 03 recomeça no pedido 1, e o prefixo do
+  # mundo não deixa o dev/m03/tiago/pedido-1 colidir com os ramos do mundo 02 (dev/tiago/pedido-N).
+  branch_prefix: dev/m03/
+  branch_by_dev: true
+
+# A foto da percepção leva o que aconteceu desde a entrega anterior (ADR-0080): a memória do dev
+# não perde, a cada 20 deltas, o que houve no meio-tempo (a devolução de um pedido).
+perception:
+  snapshot_events: true
+
+minds:  # as mentes com rotina dos devs (ADR-0080): `make escritorio MENTE=tiago_escritorio,kenji_escritorio`
+  tiago:
+    id: llm/tiago
+    mind: tiago_escritorio  # entry point do grupo campsverso.minds (cartridges/office_campsverso/mind)
+    model: claude-opus-5-5  # a conversa e o plano: a mente do Tiago
+    # O sistema padrão do Tiago (ADR-0093, decisão 18): o Claude Code com o Opus 5.5, o da comparação
+    # das mãos do M26 (docs/arena/m26-as-maos.md). Sem a chave da Anthropic, o nosso harness.
+    hands: claude_code
+    effort: medium
+    max_tokens: 8192
+    cassette: {path: data/llm/office-campsverso-03-tiago.jsonl, mode: record}
+    memory: {enabled: true}  # a memória do escritório e a revisão da manhã (o plano do M24, §2.3)
+  kenji:
+    id: llm/kenji
+    mind: kenji_escritorio
+    model: openai/gpt-6.2-astra  # a mente do Kenji, pela OpenRouter, como o revisor (ADR-0093, decisão 3)
+    # O sistema padrão do Kenji: o Codex com o GPT-6.2 Astra, pela chave da OpenAI (a prova de
+    # conformidade de 23/nov, docs/arena/conformidade-2026-11-23-codex.md). Sem a chave, o nosso
+    # harness com o modelo da mente.
+    hands: codex
+    hands_model: gpt-6.2-astra
+    effort: medium
+    max_tokens: 8192
+    cassette: {path: data/llm/office-campsverso-03-kenji.jsonl, mode: record}
+    memory: {enabled: true}
