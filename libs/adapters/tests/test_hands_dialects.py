@@ -273,6 +273,42 @@ async def _gemini(
         )
 
 
+def test_as_ferramentas_do_codex_vem_do_additional_tools_com_os_espacos_de_nomes() -> None:
+    """O Codex 0.171 manda as ferramentas num item `additional_tools` da entrada, com espaços de
+    nomes (o ensaio de 23/nov); a contagem as vê na forma comum, e a livre fica sem esquema."""
+    shell = {"type": "function", "name": "wait", "parameters": {"type": "object"}}
+    body = {
+        "model": "gpt-6.2-astra",
+        "tools": [{"type": "function", "name": "velha", "parameters": {"required": ["x"]}}],
+        "input": [
+            {
+                "type": "additional_tools",
+                "role": "developer",
+                "tools": [
+                    {
+                        "type": "namespace",
+                        "name": "functions",
+                        "tools": [{"type": "custom", "name": "exec", "description": "JS"}, shell],
+                    }
+                ],
+            },
+            {"type": "message", "role": "user", "content": "oi"},
+        ],
+    }
+    _, _, tools, _ = OpenAIDialect().parts(body)
+    assert [t["name"] for t in tools] == ["velha", "exec", "wait"]
+    assert "input_schema" not in tools[1]
+    assert tools[0]["input_schema"] == {"required": ["x"]}
+
+
+def test_a_chamada_livre_do_codex_vai_num_objeto() -> None:
+    reader = ResponsesReader()
+    code = 'const r = await tools.exec_command({cmd: "ls"});'
+    item = {"type": "custom_tool_call", "name": "exec", "call_id": "c1", "input": code}
+    reader.event({"type": "response.output_item.done", "item": item})
+    assert reader.content == ({"type": "tool_use", "name": "exec", "input": {"input": code}},)
+
+
 async def test_o_antigravity_chama_pela_porta_e_a_chave_nunca_vai_na_url() -> None:
     raw = _sse(GEMINI_CHUNKS, named=False)
     upstream, meter = Upstream(raw), Meter()

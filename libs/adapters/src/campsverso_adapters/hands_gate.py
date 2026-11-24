@@ -136,6 +136,11 @@ class Dialect(Protocol):
         """A resposta de uma rota `pass` na reprodução da fita, sem a API."""
         ...
 
+    def slim(self, text: str) -> str:
+        """A resposta como vai para a fita: sem o que o provedor ecoa do pedido e o harness não lê
+        (o mesmo texto, nos dialetos que não ecoam nada)."""
+        ...
+
 
 TOOL_BLOCKS = ("tool_use", "server_tool_use", "mcp_tool_use")
 
@@ -392,6 +397,9 @@ class AnthropicDialect:
     def stub(self, path: str) -> Response:
         return JSONResponse({"input_tokens": 0})
 
+    def slim(self, text: str) -> str:
+        return text
+
 
 SPACE = "{espaco}"
 
@@ -454,10 +462,23 @@ class Tape:
         with self.path.open("a", encoding="utf-8") as tape:
             tape.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
-    def write_raw(self, path: str, model: str, tools: bool, raw: bytes, *, stream: bool) -> None:
+    def write_raw(
+        self,
+        path: str,
+        model: str,
+        tools: bool,
+        raw: bytes,
+        *,
+        stream: bool,
+        slim: Callable[[str], str] | None = None,
+    ) -> None:
         """A resposta como veio (o streaming inteiro, ou o JSON), nos dialetos sem a resposta magra
-        (ADR-0093): a reprodução a devolve igual, na língua do harness."""
-        text = _swap(raw.decode("utf-8", errors="replace"), self._space, SPACE)
+        (ADR-0093), menos o eco do pedido (`slim`): a reprodução a devolve igual, na língua do
+        harness."""
+        text = raw.decode("utf-8", errors="replace")
+        if slim is not None:
+            text = slim(text)
+        text = _swap(text, self._space, SPACE)
         entry = {"path": path, "model": model, "tools": tools, "stream": stream, "raw": text}
         with self.path.open("a", encoding="utf-8") as tape:
             tape.write(json.dumps(entry, ensure_ascii=False) + "\n")
@@ -752,7 +773,8 @@ class HandsGate:
         if self._dialect.lean and isinstance(reader, UsageReader):
             self._tape.write(path, body, reader.as_message())
         else:
-            self._tape.write_raw(path, model, bool(body.get("tools")), raw, stream=stream)
+            tools = bool(body.get("tools"))
+            self._tape.write_raw(path, model, tools, raw, stream=stream, slim=self._dialect.slim)
 
     async def _measure(
         self,

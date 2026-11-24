@@ -147,9 +147,16 @@ class ResponsesReader:
                                 "text": str(cast(Mapping[str, Any], part).get("text") or ""),
                             }
                         )
-            elif kind in ("function_call", "custom_tool_call", "local_shell_call"):
+            elif kind == "custom_tool_call":
+                # A ferramenta livre (o `exec` do modo código do Codex): a entrada é texto, e não
+                # JSON. Ela vai num objeto, para a contagem não a tomar por argumentos errados.
                 name = item.get("name") or kind
-                raw = item.get("arguments", item.get("input", item.get("action")))
+                blocks.append(
+                    {"type": "tool_use", "name": str(name), "input": {"input": item.get("input")}}
+                )
+            elif kind in ("function_call", "local_shell_call"):
+                name = item.get("name") or kind
+                raw = item.get("arguments", item.get("action"))
                 blocks.append({"type": "tool_use", "name": str(name), "input": _arguments(raw)})
         return tuple(blocks)
 
@@ -165,6 +172,84 @@ class ResponsesReader:
     @property
     def complete(self) -> bool:
         return self.stop_reason in ("completed", "incomplete")
+
+
+# O que a Responses API ecoa do pedido em cada `response.*` e o Codex não lê.
+ECHOED = ("tools", "instructions")
+
+
+def _without_echo(event: object) -> object:
+    if not isinstance(event, Mapping):
+        return event
+    data = cast(Mapping[str, Any], event)
+    response = data.get("response")
+    if isinstance(response, Mapping):
+        inner = cast(Mapping[str, Any], response)
+        return {**data, "response": {k: v for k, v in inner.items() if k not in ECHOED}}
+    if data.get("object") == "response":
+        return {k: v for k, v in data.items() if k not in ECHOED}
+    return data
+
+
+def slim_responses(text: str) -> str:
+    """A resposta da Responses API sem o eco do pedido: a lista das ferramentas e as instruções,
+    que a OpenAI repete em três eventos de cada resposta e o Codex não lê (na prova de 23/nov, 960
+    KB de uma fita de 1,3 MB). O resto fica como veio."""
+    if text.lstrip().startswith("{"):  # o JSON de uma resposta sem streaming
+        try:
+            return json.dumps(_without_echo(json.loads(text)), ensure_ascii=False)
+        except ValueError:
+            return text
+    blocks: list[str] = []
+    for block in text.split("\n\n"):
+        lines = block.split("\n")
+        data = [i for i, line in enumerate(lines) if line.startswith("data: ")]
+        if len(data) == 1:
+            try:
+                event: object = json.loads(lines[data[0]][6:])
+            except ValueError:
+                event = None
+            slim = _without_echo(event)
+            if event is not None and slim is not event:
+                lines[data[0]] = "data: " + json.dumps(slim, ensure_ascii=False)
+        blocks.append("\n".join(lines))
+    return "\n\n".join(blocks)
+
+
+def _responses_tools(body: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    """As ferramentas que o harness ofereceu, na forma comum (`name`, `description` e, quando há,
+    `input_schema`): as do campo `tools` e as do item `additional_tools` da entrada, que é onde o
+    Codex 0.171 as manda (o ensaio de 23/nov), com os espaços de nomes (`namespace`) abertos. A
+    ferramenta livre (`custom`) fica sem esquema."""
+    found: list[Mapping[str, Any]] = []
+
+    def add(raw: object) -> None:
+        if not isinstance(raw, Mapping):
+            return
+        tool = cast(Mapping[str, Any], raw)
+        if tool.get("type") == "namespace":
+            for inner in cast(list[Any], tool.get("tools") or []):
+                add(inner)
+            return
+        name = tool.get("name")
+        if not isinstance(name, str) or not name:
+            return
+        entry: dict[str, Any] = {"name": name, "description": str(tool.get("description") or "")}
+        schema = tool.get("parameters")
+        if isinstance(schema, Mapping):
+            entry["input_schema"] = dict(cast(Mapping[str, Any], schema))
+        found.append(entry)
+
+    for raw in cast(list[Any], body.get("tools") or []):
+        add(raw)
+    given = body.get("input")
+    for item in cast(list[Any], given) if isinstance(given, list) else []:
+        if isinstance(item, Mapping):
+            extra = cast(Mapping[str, Any], item)
+            if extra.get("type") == "additional_tools":
+                for raw in cast(list[Any], extra.get("tools") or []):
+                    add(raw)
+    return found
 
 
 def _bearer(request: Request) -> str:
@@ -220,7 +305,7 @@ class OpenAIDialect:
         return (
             messages,
             body.get("instructions"),
-            cast(list[Mapping[str, Any]], body.get("tools") or []),
+            _responses_tools(body),
             _int(body.get("max_output_tokens")),
         )
 
@@ -245,6 +330,9 @@ class OpenAIDialect:
 
     def stub(self, path: str) -> Response:
         return JSONResponse({"object": "list", "data": []})
+
+    def slim(self, text: str) -> str:
+        return slim_responses(text)
 
 
 # ------------------------------------------------------------------ o Gemini
@@ -429,3 +517,6 @@ class GeminiDialect:
 
     def stub(self, path: str) -> Response:
         return JSONResponse({"totalTokens": 0})
+
+    def slim(self, text: str) -> str:
+        return text
