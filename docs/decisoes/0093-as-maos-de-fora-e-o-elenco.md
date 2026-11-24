@@ -1,6 +1,6 @@
 # ADR-0093 — As mãos de fora e o elenco: o Codex, o Antigravity, o Kenji e a Lívia (decisões do plano do M27)
 
-**Status:** aceita · **Data:** 2026-11-22 · **Marco:** M27
+**Status:** aceita, com a emenda de 23/nov · **Data:** 2026-11-22 · **Marco:** M27
 **Complementa:** `docs/planos/m27-o-codex-e-o-antigravity.md`; ADR-0058 (a porta de modelo); ADR-0077 (o plano macro da v0.4, decisões 8 e 11); ADR-0089 (as mãos e a porta das mãos); ADR-0092 (o Camps e o Tiago)
 
 ## Contexto
@@ -68,3 +68,41 @@ Ao rever o plano, o usuário pediu três coisas:
 - **O escritório vivo troca de mundo de novo,** com o `estado.json` do supervisor guardado à parte, como na ADR-0092.
 - **O usuário cria duas contas de API.** Sem as chaves, a primeira metade avança só até onde o transporte falso e as fitas vão.
 - **Três devs custam mais.** Sem pedido no quadro, nenhuma mente é chamada; o teto por dia e por pedido vale para todos; o "Para todos" é escolhido, nunca automático.
+
+## Emenda de 23/nov: o Kenji só, os sistemas trocáveis e a Lívia no M28
+
+**O contexto.** O `make tools-maos` rodou, e um ensaio sem custo pôs o Codex e o `agy` de verdade no cercado, diante de modelos falsos locais. Ele mostrou duas coisas:
+- **O Codex 0.171 cabe no cercado.** Ele roda comandos pelo modo código, que precisa do `codex-code-mode-host`: o binário avulso do release não o traz, e o pacote completo (`codex-package`) traz.
+- **O `agy` não cabe.** Ele roda um servidor de linguagem numa porta local que ele mesmo sorteia. O `sandbox-exec` não aceita uma faixa de portas, nem um cercado dentro de outro. Liberar todas as portas locais deixaria os comandos do modelo alcançarem o que roda no Mac: o editor Antigravity do usuário, o app do Claude, e o NATS e o gateway do escritório vivo.
+
+Ao ver o resultado, o usuário pediu três coisas:
+- a Lívia entra no M28, com o Antigravity dentro do computador dela;
+- a comparação é entre sistemas (o harness com o modelo dele), não entre modelos. O modelo sozinho, pela OpenRouter ou pela API, as arenas já mediram;
+- qualquer dev pode usar qualquer sistema: o Tiago com o Codex, a Lívia com o Claude Code, o Kenji com o Antigravity.
+
+**A decisão:**
+
+15. **O M27 tem dois devs: o Tiago e o Kenji.** A Lívia entra no M28, com o Antigravity dentro do computador dela (o plano macro, §5), onde o localhost é só dela. O conector do Antigravity, a porta na língua do Gemini e os testes ficam prontos para ela. A chave do Google sai do M27. Muda as decisões 1, 3 e 5.
+16. **O Codex vem do pacote completo do release,** fixado no `Makefile` (decisão 6). As mãos chamam cada programa fixado pelo endereço real, onde ele acha o que veio ao lado dele.
+17. **A comparação é entre sistemas.**
+    - **Em processo:** os três pedidos de robô do M26 pelo Codex com o Astra, ao lado do Claude Code com o Opus que o M26 já mediu (`docs/arena/m26-as-maos.md`), na mesma base. O nosso harness sai dessa comparação.
+    - **Ao vivo:** o "Para todos" com o Tiago e o Kenji.
+
+    Muda a decisão 7.
+18. **O dev e o sistema são independentes.** O dev é a identidade: o cartão, a memória e a mente, que é o modelo da conversa e do plano. O sistema é quem programa: o harness, com o modelo e o esforço dele.
+    - **O catálogo dos sistemas** fica no gênero do escritório (`office.yaml`). Cada harness lista os modelos da língua dele:
+      - o Claude Code, os da Anthropic;
+      - o Codex, os da OpenAI;
+      - o Antigravity, os do Google, a partir do M28;
+      - o nosso harness, os da porta de modelo.
+    - **Cada dev tem, no mundo, a mente e o sistema padrão em campos separados.** Hoje um campo só (`model`) serve à conversa e à sessão das mãos.
+    - **A prancheta escolhe o sistema do pedido entre todos,** com os modelos do harness escolhido. O kernel confere o par harness–modelo, nunca o par dev–harness.
+    - **A entrega registra o sistema** (o `harness` e o `model` no `office.ticket.returned.v2`, decisão 12).
+    - **Um teste roda cada dev com cada sistema,** com os harnesses e os provedores falsos, e prova a troca.
+
+    Trocar o sistema de um dev é mudar o padrão dele no mundo ou escolher na prancheta, sem código. Um harness com o modelo de outro laboratório, como o Codex com o Claude, pediria traduzir uma língua na outra dentro da porta, e fica fora.
+
+    Muda a decisão 1: a tabela passa a ser o padrão de cada dev. O dev continua sendo o modelo da mente (ADR-0077, decisão 8), e o sistema é a ferramenta dele.
+19. **O mundo 03 nasce com o Tiago e o Kenji.** No M28, a Lívia e os computadores vêm com um mundo novo, como em cada troca de elenco. Muda a decisão 9.
+20. **A criação do M27 é a receita do computador, num "Para todos" com dois devs.** A receita já diz o que o `agy` pede: portas locais só dele. Muda a decisão 13.
+

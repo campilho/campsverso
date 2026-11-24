@@ -2,6 +2,19 @@
 
 *Proposto em 22/nov/2026, depois do bloco das telas do Claude Design (ADR-0092), e revisto no mesmo dia com o rumo do usuário: o Kenji e a Lívia entram já, um dev por laboratório; a conversa passa a ter ações; o tamanho do pedido sai da tela. **Aprovado em 22/nov/2026 (ADR-0093).** É o terceiro degrau da escada de ferramentas do dev (o plano macro da v0.4, §4; ADR-0077): o nosso harness pela API (M24), o Claude Code (M26) e agora os harnesses da OpenAI e do Google, cada um com o modelo do próprio laboratório.*
 
+> **Revisão de 23/nov (a emenda da ADR-0093, decisões 15 a 20).** Onde este bloco e o texto abaixo divergirem, vale o bloco.
+> - **O M27 tem dois devs, o Tiago e o Kenji.** A Lívia entra no M28, com o Antigravity dentro do computador dela. O `agy` sorteia uma porta local para o servidor de linguagem dele, e o `sandbox-exec` não a isola (o ensaio de 23/nov). O conector e os testes do Antigravity ficam prontos.
+> - **A comparação é entre sistemas, o harness com o modelo dele.** Em processo, os três pedidos do M26 pelo Codex com o Astra, ao lado do Claude Code com o Opus do M26. Ao vivo, o "Para todos" com o Tiago e o Kenji. O nosso harness sai da comparação em processo (o §6 abaixo).
+> - **O dev e o sistema são independentes** (o §9 abaixo muda):
+>   - o catálogo dos sistemas fica no `office.yaml`, cada harness com os modelos da língua dele;
+>   - cada dev tem a mente e o sistema padrão em campos separados no mundo;
+>   - a prancheta escolhe qualquer sistema;
+>   - um teste roda cada dev com cada sistema.
+>
+>   O Tiago com o Codex, ou o Kenji com o Claude Code, é uma escolha, sem código.
+> - **O mundo 03 nasce com o Tiago e o Kenji.** A receita do computador sai de um "Para todos" com os dois.
+> - **O Codex vem do pacote completo** (`codex-package`), com o modo código.
+
 **Pronto quando:**
 - **Três devs, um por laboratório,** e "o dev é o modelo" (ADR-0077, decisão 8):
 
