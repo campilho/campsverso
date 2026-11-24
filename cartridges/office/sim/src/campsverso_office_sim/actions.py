@@ -79,6 +79,16 @@ def desk_of(view: WorldView, avatar_id: str) -> EntityView | None:
     return (mine or list(desks) or [None])[0]
 
 
+def devs(view: WorldView) -> list[str]:
+    """Os devs do elenco, pelo id."""
+    return sorted(e.entity_id for e in view.entities("avatar") if e.attributes.get("papel") == DEV)
+
+
+def open_to(entity: EntityView, avatar_id: str) -> bool:
+    """O pedido que o dev pode pegar (ADR-0093, decisão 8): o dele, ou o de ninguém."""
+    return entity.attributes.get("para") in (None, avatar_id)
+
+
 def tickets(view: WorldView) -> list[EntityView]:
     """Os pedidos do quadro, na ordem em que foram escritos."""
     return sorted(view.entities(TICKET), key=lambda t: int(cast(int, t.attributes["numero"])))
@@ -249,6 +259,21 @@ class WriteTicket(OfficeAction):
         if isinstance(picked, Rejection):
             return picked
         found["harness"], found["model"] = picked
+        # Para quem e para todos (ADR-0093, decisão 8): um dev do elenco, ou uma ficha para cada.
+        cast_devs = devs(ctx.view)
+        assignee = ctx.params.get("assignee")
+        everyone = ctx.params.get("everyone")
+        if everyone not in (None, False, True):
+            return Rejection("invalid_params", "everyone é sim ou não")
+        if assignee in (None, ""):
+            found["assignee"] = None
+        elif everyone:
+            return Rejection("invalid_params", "o pedido é para todos ou para um dev, não os dois")
+        elif assignee not in cast_devs:
+            return Rejection("invalid_params", f"assignee é um dev do elenco: {cast_devs}")
+        else:
+            found["assignee"] = str(assignee)
+        found["everyone"] = "sim" if everyone else None
         return found
 
     def check(self, ctx: ActionContext) -> Rejection | None:
@@ -262,8 +287,28 @@ class WriteTicket(OfficeAction):
         board, fields = _at_board(ctx), self._fields(ctx)
         assert not isinstance(board, Rejection)
         assert not isinstance(fields, Rejection)
+        if fields["everyone"] is None:
+            self._spawn(ctx, ops, board, fields, fields["assignee"], None)
+            return
+        # Para todos: uma ficha por dev, com o mesmo texto, ligadas pelo grupo do primeiro número.
+        group: str | None = None
+        for dev in devs(ctx.view):
+            number = self._spawn(ctx, ops, board, fields, dev, group)
+            group = group or f"grupo-{number:03d}"
+
+    def _spawn(
+        self,
+        ctx: ActionContext,
+        ops: WorldOps,
+        board: EntityView,
+        fields: Mapping[str, str | None],
+        assignee: str | None,
+        group: str | None,
+    ) -> int:
+        """Uma ficha no quadro e o fato dela; devolve o número."""
         number = ops.next_seq("pedido")
         ticket_id = f"pedido-{number:03d}"
+        group = group or (f"grupo-{number:03d}" if fields["everyone"] else None)
         attributes: dict[str, Any] = {
             "numero": number,
             "titulo": fields["title"],
@@ -277,11 +322,15 @@ class WriteTicket(OfficeAction):
             "comentario": None,
             "patch": None,  # a referência da entrega da oficina (ADR-0080)
         }
-        # Quem programa e o modelo (ADR-0089), só quando o gerente escolheu: sem eles, o padrão do
-        # mundo, e o pedido fica igual ao de antes do M26.
-        for key, attribute in (("harness", "maos"), ("model", "modelo")):
-            if fields[key] is not None:
-                attributes[attribute] = fields[key]
+        # Quem programa e o modelo (ADR-0089), para quem e o grupo (ADR-0093), só quando o gerente
+        # escolheu: sem eles, o padrão, e o pedido fica igual ao de antes.
+        chosen = {
+            "maos": fields["harness"],
+            "modelo": fields["model"],
+            "para": assignee,
+            "grupo": group,
+        }
+        attributes.update({k: v for k, v in chosen.items() if v is not None})
         ops.spawn(
             SpawnDef(
                 ticket_id,
@@ -300,15 +349,21 @@ class WriteTicket(OfficeAction):
             "size": fields["size"],
             "author": ctx.avatar_id,
         }
-        for key in ("harness", "model"):
-            if fields[key] is not None:
-                created[key] = fields[key]
+        optional = {
+            "harness": fields["harness"],
+            "model": fields["model"],
+            "assignee": assignee,
+            "group": group,
+        }
+        created.update({k: v for k, v in optional.items() if v is not None})
         ops.emit("campsverso.office.ticket.created.v1", created)
+        return number
 
 
 @dataclass(frozen=True)
 class TakeTicket(OfficeAction):
-    """O dev pega um pedido do quadro: o escolhido, ou o mais antigo a fazer. Um de cada vez."""
+    """O dev pega um pedido do quadro: o escolhido, ou o mais antigo a fazer. Um de cada vez, e só
+    o dele ou o de ninguém (ADR-0093, decisão 8)."""
 
     name: str = "take_ticket"
     role: ClassVar[str] = DEV
@@ -316,15 +371,22 @@ class TakeTicket(OfficeAction):
     def _ticket(self, ctx: ActionContext) -> EntityView | Rejection:
         target = ctx.params.get("target")
         if target is None:
-            todo = [t for t in tickets(ctx.view) if t.attributes.get("estado") == TODO]
+            todo = [
+                t
+                for t in tickets(ctx.view)
+                if t.attributes.get("estado") == TODO and open_to(t, ctx.avatar_id)
+            ]
             return todo[0] if todo else Rejection("no_ticket", "não há pedido a fazer")
         found = ticket(ctx.view, target)
         if isinstance(found, Rejection):
             return found
+        number = found.attributes["numero"]
         if found.attributes.get("estado") != TODO:
-            return Rejection(
-                "wrong_state", f"o pedido {found.attributes['numero']} não está a fazer"
-            )
+            return Rejection("wrong_state", f"o pedido {number} não está a fazer")
+        if not open_to(found, ctx.avatar_id):
+            owner = str(found.attributes["para"])
+            name = ctx.view.entity(owner).display_name or owner
+            return Rejection("not_allowed", f"o pedido {number} é do {name}")
         return found
 
     def check(self, ctx: ActionContext) -> Rejection | None:
@@ -518,7 +580,8 @@ def _name(title: str) -> str:
 @dataclass(frozen=True)
 class ReturnTicket(OfficeAction):
     """O gerente devolve um pedido entregue, com o comentário do que falta: ele volta para "a
-    fazer", sem dono, e o trabalho recomeça."""
+    fazer", sem dono, e o trabalho recomeça. Se quiser, troca quem programa a volta (ADR-0093,
+    decisão 12): o harness e o modelo, como um par que o kernel confere. O "para quem" fica."""
 
     name: str = "return_ticket"
     role: ClassVar[str] = MANAGER
@@ -526,6 +589,10 @@ class ReturnTicket(OfficeAction):
     def _comment(self, ctx: ActionContext) -> str | Rejection:
         limit = int(section(ctx.view, "ticket")["comment_max"])
         return text(ctx.params, "comment", limit, required=True)
+
+    def _system(self, ctx: ActionContext) -> tuple[str | None, str | None] | Rejection:
+        systems = cast(Mapping[str, Any], section(ctx.view, "ticket").get("systems") or {})
+        return system(ctx.params, systems)
 
     def check(self, ctx: ActionContext) -> Rejection | None:
         board = _at_board(ctx)
@@ -535,35 +602,42 @@ class ReturnTicket(OfficeAction):
         if isinstance(found, Rejection):
             return found
         comment = self._comment(ctx)
-        return comment if isinstance(comment, Rejection) else None
+        if isinstance(comment, Rejection):
+            return comment
+        picked = self._system(ctx)
+        return picked if isinstance(picked, Rejection) else None
 
     def apply(self, ctx: ActionContext, ops: WorldOps) -> None:
-        found, comment = _delivered(ctx), self._comment(ctx)
+        found, comment, picked = _delivered(ctx), self._comment(ctx), self._system(ctx)
         assert not isinstance(found, Rejection)
         assert not isinstance(comment, Rejection)
-        ops.set_attributes(
-            found.entity_id,
-            visible={"estado": TODO, "dono": None, "trabalho": 0, "comentario": comment},
-        )
-        ops.emit(
-            "campsverso.office.ticket.returned.v2",
-            {
-                "ticket_id": found.entity_id,
-                "number": int(cast(int, found.attributes["numero"])),
-                "by": ctx.avatar_id,
-                "comment": comment,
-            },
-        )
+        assert not isinstance(picked, Rejection)
+        harness, model = picked
+        visible: dict[str, Any] = {
+            "estado": TODO,
+            "dono": None,
+            "trabalho": 0,
+            "comentario": comment,
+        }
+        returned: dict[str, Any] = {
+            "ticket_id": found.entity_id,
+            "number": int(cast(int, found.attributes["numero"])),
+            "by": ctx.avatar_id,
+            "comment": comment,
+        }
+        if harness is not None:
+            visible.update({"maos": harness, "modelo": model})
+            returned.update({"harness": harness, "model": model})
+        ops.set_attributes(found.entity_id, visible=visible)
+        ops.emit("campsverso.office.ticket.returned.v2", returned)
 
 
 def _dev(ctx: ActionContext) -> str | Rejection:
     """O dev que o gerente convoca ou dispensa: o dado, ou o único dev do elenco."""
-    devs = sorted(
-        e.entity_id for e in ctx.view.entities("avatar") if e.attributes.get("papel") == DEV
-    )
-    target = ctx.params.get("target") or (devs[0] if len(devs) == 1 else None)
-    if target not in devs:
-        return Rejection("invalid_params", f"target é um dev do elenco: {devs}")
+    cast_devs = devs(ctx.view)
+    target = ctx.params.get("target") or (cast_devs[0] if len(cast_devs) == 1 else None)
+    if target not in cast_devs:
+        return Rejection("invalid_params", f"target é um dev do elenco: {cast_devs}")
     return str(target)
 
 

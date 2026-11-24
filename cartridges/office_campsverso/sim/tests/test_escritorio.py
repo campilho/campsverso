@@ -367,6 +367,56 @@ def test_o_gerente_aceita_ou_devolve_com_o_comentario() -> None:
     )
 
 
+def test_a_devolucao_pode_trocar_quem_programa_a_volta() -> None:
+    """ADR-0093, decisão 12: o gerente devolve e escolhe outro sistema, como um par que o kernel
+    confere; sem escolha, fica o de antes."""
+    core = _core()
+    _until(core, "09:00")
+    _manager_in(core)
+    _write(core, size="P")
+    _act(core, "tiago", "move", {"near": "quadro"}, DEV)
+    _act(core, "tiago", "take_ticket", {}, DEV)
+    _act(core, "tiago", "move", {"target": {"x": 4, "y": 5}}, DEV)
+    _act(core, "tiago", "work", {}, DEV)
+    _act(core, "tiago", "deliver", {}, DEV)
+    wrong = {"target": "pedido-001", "comment": "De novo.", "harness": "codex", "model": "x"}
+    refused = _act(core, "gerente", "return_ticket", wrong, HUMAN["id"])
+    assert _only(refused, "action.rejected")[0]["reason"] == "invalid_params"
+    swap = {"target": "pedido-001", "comment": "Tente pelo Codex.", "harness": "codex"}
+    facts = _act(core, "gerente", "return_ticket", swap, HUMAN["id"])
+    (returned,) = _only(facts, "office.ticket.returned.v2")
+    assert (returned["harness"], returned["model"]) == ("codex", "gpt-6.2-astra")
+    attributes = core.world.entity_map["pedido-001"].attributes
+    assert (attributes["maos"], attributes["modelo"]) == ("codex", "gpt-6.2-astra")
+
+
+def test_o_pedido_para_um_dev_e_o_para_todos() -> None:
+    """ADR-0093, decisão 8: o "para quem" é um dev do elenco; o "para todos" cria uma ficha por
+    dev, ligadas pelo grupo; os dois juntos, não."""
+    core = _core()
+    _until(core, "09:00")
+    _manager_in(core)
+    _act(core, "gerente", "move", {"near": "quadro"}, HUMAN["id"])
+    mine = _act(core, "gerente", "write_ticket", {"title": "a", "assignee": "tiago"}, HUMAN["id"])
+    assert _only(mine, "office.ticket.created")[0]["assignee"] == "tiago"
+    assert core.world.entity_map["pedido-001"].attributes["para"] == "tiago"
+    for wrong in (
+        {"assignee": "gerente"},  # o gerente não é dev
+        {"assignee": "ninguem"},
+        {"assignee": "tiago", "everyone": True},
+        {"everyone": "sim"},
+    ):
+        refused = _act(core, "gerente", "write_ticket", {"title": "x", **wrong}, HUMAN["id"])
+        assert _only(refused, "action.rejected")[0]["reason"] == "invalid_params"
+    everyone = _act(core, "gerente", "write_ticket", {"title": "b", "everyone": True}, HUMAN["id"])
+    created = _only(everyone, "office.ticket.created")
+    assert [(c["assignee"], c["group"]) for c in created] == [("tiago", "grupo-002")]
+    # O dev pega o dele e o de ninguém; o "para quem" fica na ficha.
+    _act(core, "tiago", "move", {"near": "quadro"}, DEV)
+    taken = _act(core, "tiago", "take_ticket", {"target": "pedido-001"}, DEV)
+    assert _only(taken, "office.ticket.taken")
+
+
 def test_aceitar_de_novo_diz_que_ja_foi_aceito() -> None:
     """Dois cliques em aceitar saíam juntos da fila da tela, e o segundo dizia "não foi entregue"
     (achado do usuário em 18/nov)."""

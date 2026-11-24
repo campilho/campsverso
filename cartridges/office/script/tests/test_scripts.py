@@ -123,6 +123,17 @@ def test_o_dev_pega_o_pedido_mais_antigo_no_quadro() -> None:
     assert far["params"] == {"near": "quadro"}
 
 
+def test_o_dev_so_pega_o_pedido_dele_ou_o_de_ninguem() -> None:
+    """ADR-0093, decisão 8: o pedido 1 é de outro dev; o dev-script pega o 2, que é de ninguém."""
+    other = {**_ticket(1, "a_fazer")}
+    other["attributes"] = {**other["attributes"], "para": "kenji"}
+    proposal = _dev().decide(_view(tickets=[other, _ticket(2, "a_fazer")]))
+    assert proposal["params"] == {"target": "pedido-002"}
+    mine = {**_ticket(1, "a_fazer")}
+    mine["attributes"] = {**mine["attributes"], "para": "camps"}
+    assert _dev().decide(_view(tickets=[mine]))["params"] == {"target": "pedido-001"}
+
+
 def test_o_dev_avisa_trabalha_em_blocos_e_entrega() -> None:
     dev = _dev()
     doing = [_ticket(1, "fazendo", "camps")]

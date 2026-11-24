@@ -434,7 +434,12 @@ class DevScript:
             done = delivered[0]
             self.announced.add(f"entregue:{done['entity_id']}:{attrs(done).get('comentario')}")
             return say(self._line("delivered", done), manager_id, "avisar a entrega")
-        todo = [t for t in tickets(view) if attrs(t)["estado"] == TODO]
+        # Só o pedido dele ou o de ninguém (ADR-0093, decisão 8).
+        todo = [
+            t
+            for t in tickets(view)
+            if attrs(t)["estado"] == TODO and attrs(t).get("para") in (None, mine)
+        ]
         if todo and board is not None:
             if not adjacent(here, board.get("position")):
                 return go_near(str(board["entity_id"]), "ir ao quadro pegar um pedido")
