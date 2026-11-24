@@ -309,7 +309,7 @@ def test_na_ronda_o_vigia_apaga_a_sala_vazia_e_com_gente_deixa_acesa() -> None:
 def test_o_gerente_script_escreve_o_que_venceu_e_devolve_um_de_cada_tres() -> None:
     manager = staff("gerente")
     assert isinstance(manager, ManagerScript)
-    manager.greeted = 1
+    manager.greeted, manager.greeted_devs = 1, {"camps"}  # o bom-dia de hoje já foi
     write = manager.decide(_view(me="gerente", at=(3, 2), hhmm="09:31"))
     assert write["action"] == "write_ticket"
     assert write["params"]["title"] == "Ferramenta de busca no código (dia 1)"
@@ -321,12 +321,27 @@ def test_o_gerente_script_escreve_o_que_venceu_e_devolve_um_de_cada_tres() -> No
     assert accepted["action"] == "accept_ticket"
 
 
+def test_o_gerente_script_da_bom_dia_a_cada_dev_uma_vez_por_dia() -> None:
+    """ADR-0093: com dois devs na sala, um bom-dia para cada um, na ordem dos ids, e só uma vez."""
+    manager = staff("gerente")
+    assert isinstance(manager, ManagerScript)
+    view = _view(me="gerente", at=(3, 2), hhmm="09:05")
+    kenji = {"entity_id": "kenji", "kind": "avatar", "position": {"x": 4, "y": 8}}
+    view["entities"].append({**kenji, "attributes": {"papel": "dev"}})
+    said = [manager.decide(view) for _ in range(3)]
+    assert [(s["action"], s["params"].get("to")) for s in said[:2]] == [
+        ("say", "camps"),
+        ("say", "kenji"),
+    ]
+    assert said[2]["action"] != "say"
+
+
 def test_o_gerente_script_nao_escreve_no_dia_em_que_o_dev_nao_veio() -> None:
     """No feriado e no fim de semana o dev não vem, e os pedidos ficariam para o dia útil seguinte
     (o soak de 5 dias do M23 caiu no 20/11)."""
     manager = staff("gerente")
     assert isinstance(manager, ManagerScript)
-    manager.greeted = 1
+    manager.greeted, manager.greeted_devs = 1, {"camps"}  # o bom-dia de hoje já foi
     holiday = _view(me="gerente", at=(3, 2), hhmm="09:31")
     for item in holiday["entities"]:
         if item["entity_id"] == "camps":

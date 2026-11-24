@@ -182,8 +182,14 @@ async def run_office(port: ModelPort, model: str = OFFICE_MODEL) -> dict[str, An
     """A manhã do escritório, com a oficina numa cópia nova do repositório de exemplo."""
     with tempfile.TemporaryDirectory(prefix="campsverso-escritorio-") as folder:
         repo = example_office_repo(Path(folder))
+        # A manhã gravada é a do Tiago: o Kenji (ADR-0093) fica parado, e os pedidos são dele.
         pipeline = Pipeline(
-            controller="llm", port=port, cartridge=OFFICE, workshop_repo=repo, model=model
+            controller="llm",
+            port=port,
+            cartridge=OFFICE,
+            workshop_repo=repo,
+            model=model,
+            devs=("tiago",),
         )
         if isinstance(port, Capped):
             port.pipeline = pipeline

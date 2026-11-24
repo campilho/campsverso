@@ -567,8 +567,10 @@ class ManagerScript:
     """O gerente-script, só para os testes e o soak (ADR-0078, decisão 17): o roteiro do dia."""
 
     config: Mapping[str, Any]
-    greeted: int = 0
-    dev_came: int = 0  # o último dia em que o dev veio: sem ele, não é dia de escrever pedido
+    greeted: int = 0  # o dia dos bons-dias de `greeted_devs`
+    dev_came: int = 0  # o último dia em que um dev veio: sem ele, não é dia de escrever pedido
+    # Os devs que já ganharam bom-dia hoje (ADR-0093: com vários devs, um bom-dia para cada).
+    greeted_devs: set[str] = field(default_factory=set[str])
 
     @property
     def controller_type(self) -> str:
@@ -580,13 +582,20 @@ class ManagerScript:
 
     def decide(self, view: View) -> Proposal:
         now, here = minute_of(view), position(view)
-        dev = next((e for e in entities(view, "avatar") if attrs(e).get("papel") == "dev"), None)
-        dev_id = None if dev is None else str(dev["entity_id"])
-        if dev_id is not None and present(view, dev_id):
+        here_devs = [
+            str(e["entity_id"])
+            for e in entities(view, "avatar")
+            if attrs(e).get("papel") == "dev" and present(view, str(e["entity_id"]))
+        ]
+        if here_devs:
             self.dev_came = day_of(view)
-        if dev_id is not None and present(view, dev_id) and self.greeted != day_of(view):
-            self.greeted = day_of(view)
-            return say(str(self.config["greeting"]), dev_id, "cumprimentar o dev")
+        if self.greeted != day_of(view):
+            self.greeted, self.greeted_devs = day_of(view), set()
+        # Um bom-dia para cada dev que chega, uma vez por dia (ADR-0093).
+        hello = next((d for d in sorted(here_devs) if d not in self.greeted_devs), None)
+        if hello is not None:
+            self.greeted_devs.add(hello)
+            return say(str(self.config["greeting"]), hello, "cumprimentar o dev")
         board = next(iter(entities(view, "board")), None)
         if board is None:
             return wait(int(self.config["wait_seconds"]), "sem quadro")

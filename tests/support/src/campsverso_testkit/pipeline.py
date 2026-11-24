@@ -125,6 +125,7 @@ class Pipeline:
         helper_config: Mapping[str, Mapping[str, Any]] | None = None,
         workshop_root: Path | None = None,
         python_env: bool = False,
+        devs: Sequence[str] | None = None,
     ) -> None:
         """`memory=True` dá à mente um caderno SQLite em memória (ADR-0060); `False` é o M10;
         uma porta pronta (um arquivo) serve ao teste de reinício. `cartridge` escolhe o mundo
@@ -318,7 +319,14 @@ class Pipeline:
             }
         )
         # Os outros devs do mundo (ADR-0093), como o processo `controller`: o dev-script de cada um,
-        # com a oficina dele. O avatar principal fica com o controlador escolhido acima.
+        # com a oficina dele. O avatar principal fica com o controlador escolhido acima. Com `devs`,
+        # só esses; os outros do mundo ficam parados, com uma mente que ninguém roda (o dev não
+        # aceita humano), e o modo máximo só espera o script e o replay: a manhã gravada só com o
+        # Tiago, antes do Kenji.
+        chosen = list(world_file.devs) if devs is None else list(devs)
+        idle = [d for d in world_file.devs if d not in chosen and d != self.avatar]
+        if idle:
+            core.configure_controllers({d: ControllerRef("llm", f"llm/{d}-parado") for d in idle})
         self.devs = [
             ControllerRunner(
                 worldid,
@@ -332,7 +340,7 @@ class Pipeline:
                 if workshop_repo is None
                 else self._workshop(worldid, workshop_repo, dev),
             )
-            for dev in world_file.devs
+            for dev in chosen
             if dev != self.avatar
         ]
         # Os ajudantes (ADR-0072), como o processo `helpers`: um runner e um script por avatar.
