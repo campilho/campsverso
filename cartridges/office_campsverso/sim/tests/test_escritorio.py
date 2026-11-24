@@ -150,34 +150,50 @@ def test_o_gerente_escreve_o_pedido_no_quadro() -> None:
 
 
 def test_a_prancheta_escolhe_quem_programa_e_o_modelo() -> None:
-    """ADR-0089: as mãos e o modelo do pedido, entre os que o cartucho oferece."""
+    """ADR-0089 e ADR-0093, decisão 18: o sistema do pedido, o harness com um modelo da língua
+    dele, entre os que o cartucho oferece."""
     core = _core()
     _until(core, "09:00")
     _manager_in(core)
     _act(core, "gerente", "move", {"near": "quadro"}, HUMAN["id"])
-    chosen = {"title": "Conector do Codex", "harness": "claude_code", "model": "claude-opus-5-5"}
+    chosen = {"title": "Conector do Codex", "harness": "claude_code", "model": "claude-sonnet-5-5"}
     facts = _act(core, "gerente", "write_ticket", chosen, HUMAN["id"])
     (created,) = _only(facts, "office.ticket.created")
-    assert (created["harness"], created["model"]) == ("claude_code", "claude-opus-5-5")
+    assert (created["harness"], created["model"]) == ("claude_code", "claude-sonnet-5-5")
     attributes = core.world.entity_map["pedido-001"].attributes
-    assert (attributes["maos"], attributes["modelo"]) == ("claude_code", "claude-opus-5-5")
-    # Vazio é o padrão do mundo; o que o cartucho não oferece, o kernel recusa.
+    assert (attributes["maos"], attributes["modelo"]) == ("claude_code", "claude-sonnet-5-5")
+    # O harness sem o modelo leva o padrão dele, o primeiro da lista.
+    codex = _act(core, "gerente", "write_ticket", {"title": "x", "harness": "codex"}, HUMAN["id"])
+    assert _only(codex, "office.ticket.created")[0]["model"] == "gpt-6.2-astra"
+    # Vazio é o padrão do dev; o que o cartucho não oferece, o kernel recusa.
     empty = _act(core, "gerente", "write_ticket", {"title": "x", "harness": ""}, HUMAN["id"])
     assert "harness" not in _only(empty, "office.ticket.created")[0]
-    for wrong in ({"harness": "codex"}, {"model": "gpt-qualquer"}, {"harness": 3}):
+    assert "model" not in _only(empty, "office.ticket.created")[0]
+    for wrong in (
+        {"harness": "antigravity"},  # o Antigravity entra no M28
+        {"harness": "codex", "model": "claude-opus-5-5"},  # o par não fecha
+        {"model": "claude-opus-5-5"},  # o modelo vem com o harness
+        {"harness": "claude_code", "model": "gpt-qualquer"},
+        {"harness": 3},
+    ):
         refused = _act(core, "gerente", "write_ticket", {"title": "x", **wrong}, HUMAN["id"])
         assert _only(refused, "action.rejected")[0]["reason"] == "invalid_params"
 
 
 def test_a_tela_mostra_as_escolhas_que_o_cartucho_oferece() -> None:
-    """As escolhas da prancheta no locale do gênero são as do office.yaml, na mesma ordem."""
+    """As escolhas da prancheta no locale do gênero são as do office.yaml, na mesma ordem: os
+    harnesses, os modelos de cada um e todos os modelos, para os nomes."""
     office = Path(__file__).parents[3] / "office"
     config = yaml.safe_load(
         (office / "sim/src/campsverso_office_sim/data/office.yaml").read_text(encoding="utf-8")
     )
     locale = json.loads((office / "locale/pt-BR.json").read_text(encoding="utf-8"))
-    assert list(locale["choices"]["hands"]) == config["ticket"]["hands"]
-    assert list(locale["choices"]["models"]) == config["ticket"]["models"]
+    systems: dict[str, list[str]] = config["ticket"]["systems"]
+    assert list(locale["choices"]["hands"]) == list(systems)
+    for harness, models in systems.items():
+        assert list(locale["choices"][f"models.{harness}"]) == models
+    every = list(dict.fromkeys(m for models in systems.values() for m in models))
+    assert list(locale["choices"]["models"]) == every
 
 
 def test_cada_papel_faz_o_que_e_dele_e_perto_do_lugar_certo() -> None:

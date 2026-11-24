@@ -69,9 +69,15 @@ test("o gerente entra, escreve um pedido, fala com o dev, vê o patch e aceita a
   await expect(title).toHaveValue("Ferramenta de busca"); // o rascunho ficou
   await clipboard.getByRole("textbox", { name: "O que fazer" }).fill("Achar um arquivo do repositório pelo nome.");
   await clipboard.getByRole("radio", { name: "P, pequeno" }).check();
-  // Quem programa e o modelo (ADR-0089): o dev-script não usa, mas a ficha guarda.
-  await clipboard.getByRole("combobox", { name: "Quem programa" }).selectOption({ label: "Claude Code" });
-  await clipboard.getByRole("combobox", { name: "Modelo" }).selectOption({ label: "Opus 5.5" });
+  // Quem programa e o modelo (ADR-0089): o dev-script não usa, mas a ficha guarda. O modelo segue
+  // quem programa (ADR-0093, decisão 18): sem harness, só o padrão do dev; no Codex, o Astra.
+  const hands = clipboard.getByRole("combobox", { name: "Quem programa" });
+  const model = clipboard.getByRole("combobox", { name: "Modelo" });
+  await expect(model).toBeDisabled();
+  await hands.selectOption({ label: "Codex" });
+  await expect(model.locator("option")).toHaveText(["o padrão do Codex", "GPT-6.2 Astra"]);
+  await hands.selectOption({ label: "Claude Code" });
+  await model.selectOption({ label: "Opus 5.5" });
   await page.screenshot({ path: `${SHOTS}/escritorio-prancheta.png` });
   await clipboard.getByRole("button", { name: "Pôr no quadro" }).click();
   await expect(clipboard).toBeHidden();

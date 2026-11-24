@@ -9,7 +9,7 @@ import { summonsOf, type TicketView } from "./panels/office.ts";
 import type { Step } from "./queue.ts";
 import { chipsOf, clockView, lightOf, robotLine, summonShort, versionLine } from "./retro/model.ts";
 import { overHead } from "./progress.ts";
-import { handsLine } from "./retro/clipboard.ts";
+import { handsLine, modelsFor } from "./retro/clipboard.ts";
 import { BADGE_SAID, badgeText, fitCommand, screenView, stepCommand, terminalOf } from "./retro/devscreen.ts";
 import { prsText, systemOf } from "./retro/system.ts";
 import {
@@ -372,10 +372,19 @@ describe("a prancheta (§3.6)", () => {
     expect(choicesOf("hands")).toEqual([["api", "harness próprio"], ["claude_code", "Claude Code"]]);
     expect(handsLine(undefined, undefined)).toBeUndefined();
     expect(handsLine("claude_code", "claude-opus-5-5")).toBe("Claude Code · Opus 5.5");
-    expect(handsLine(undefined, "claude-opus-5-5")).toBe("o padrão do escritório · Opus 5.5");
+    expect(handsLine(undefined, "claude-opus-5-5")).toBe("o padrão do dev · Opus 5.5");
     expect(handsLine("api", "claude-haiku-5-5")).toBe("harness próprio · claude-haiku-5-5"); // sem nome, o id
     setLocale([]);
     expect(choicesOf("hands")).toEqual([]);
+  });
+
+  it("oferece os modelos da língua de quem programa (ADR-0093, decisão 18)", () => {
+    const claude = { "claude-opus-5-5": "Opus 5.5", "claude-sonnet-5-5": "Sonnet 5.5" };
+    setLocale([{ choices: { models: { ...claude, "gpt-6.2-astra": "GPT-6.2 Astra" }, "models.claude_code": claude, "models.codex": { "gpt-6.2-astra": "GPT-6.2 Astra" } } }]);
+    expect(modelsFor("codex")).toEqual([["gpt-6.2-astra", "GPT-6.2 Astra"]]);
+    expect(modelsFor("claude_code").map(([id]) => id)).toEqual(["claude-opus-5-5", "claude-sonnet-5-5"]);
+    expect(modelsFor("sem_lista").map(([id]) => id)).toEqual(["claude-opus-5-5", "claude-sonnet-5-5", "gpt-6.2-astra"]); // sem a lista dele, todos
+    setLocale([]);
   });
 });
 

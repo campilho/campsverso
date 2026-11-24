@@ -121,7 +121,7 @@ function strong(text: string): HTMLElement {
   return el("b", {}, text);
 }
 
-/** Uma escolha da prancheta (ADR-0089): a primeira opção, vazia, é o padrão do escritório. */
+/** Uma escolha da prancheta (ADR-0089): a primeira opção, vazia, é o padrão do dev. */
 function picker(kind: string, chosen: string, labelId: string, onPick: (value: string) => void): HTMLSelectElement | undefined {
   const options = choicesOf(kind);
   if (options.length === 0) {
@@ -129,22 +129,50 @@ function picker(kind: string, chosen: string, labelId: string, onPick: (value: s
   }
   const select = el("select", { className: "retro-hand retro-pick" });
   select.setAttribute("aria-labelledby", labelId);
-  for (const [value, name] of [["", "o padrão do escritório"] as const, ...options]) {
-    const option = el("option", {}, name);
-    option.value = value;
-    option.selected = value === chosen;
-    select.append(option);
-  }
+  fill(select, [["", "o padrão do dev"], ...options], chosen);
   select.addEventListener("change", () => { onPick(select.value); });
   return select;
 }
 
-/** "Claude Code · Opus 5.5" (ou o padrão do escritório no que não foi escolhido). */
+function fill(select: HTMLSelectElement, options: readonly (readonly [string, string])[], chosen: string): void {
+  select.replaceChildren(
+    ...options.map(([value, name]) => {
+      const option = el("option", {}, name);
+      option.value = value;
+      option.selected = value === chosen;
+      return option;
+    }),
+  );
+}
+
+/** Os modelos que cabem em quem programa (ADR-0093, decisão 18): a lista do harness, ou todos. */
+export function modelsFor(harness: string): (readonly [string, string])[] {
+  const own = choicesOf(`models.${harness}`);
+  return own.length > 0 ? own : choicesOf("models");
+}
+
+/** O seletor do modelo segue o de quem programa: sem harness, só o padrão do dev; com ele, o
+ * padrão do harness (o primeiro da lista dele) e os modelos da língua dele. Devolve o modelo que
+ * ficou escolhido, vazio quando o de antes não cabe no harness novo. */
+export function syncModels(select: HTMLSelectElement, harness: string, chosen: string): string {
+  if (harness === "") {
+    fill(select, [["", "o padrão do dev"]], "");
+    select.disabled = true;
+    return "";
+  }
+  const models = modelsFor(harness);
+  const kept = models.some(([id]) => id === chosen) ? chosen : "";
+  fill(select, [["", `o padrão do ${choiceName("hands", harness)}`], ...models], kept);
+  select.disabled = false;
+  return kept;
+}
+
+/** "Claude Code · Opus 5.5" (ou o padrão do dev no que não foi escolhido). */
 export function handsLine(harness: string | undefined, model: string | undefined): string | undefined {
   if (harness === undefined && model === undefined) {
     return undefined;
   }
-  const who = harness === undefined ? "o padrão do escritório" : choiceName("hands", harness);
+  const who = harness === undefined ? "o padrão do dev" : choiceName("hands", harness);
   const which = model === undefined ? "o modelo padrão" : choiceName("models", model);
   return `${who} · ${which}`;
 }
@@ -384,9 +412,19 @@ export class Clipboard {
     let harness = this.draft.harness;
     let model = this.draft.model;
     const sizes = this.sizes(size, (picked) => { size = picked; sync(); });
-    // Quem programa e o modelo (ADR-0089): o kernel confere; sem escolha, o padrão do escritório.
-    const hands = picker("hands", harness, "retro-hands-label", (value) => { harness = value; sync(); });
+    // Quem programa e o modelo (ADR-0089; ADR-0093, decisão 18): o kernel confere o par; sem
+    // escolha, o padrão do dev. O modelo segue o harness.
     const models = picker("models", model, "retro-model-label", (value) => { model = value; sync(); });
+    const hands = picker("hands", harness, "retro-hands-label", (value) => {
+      harness = value;
+      if (models !== undefined) {
+        model = syncModels(models, harness, model);
+      }
+      sync();
+    });
+    if (models !== undefined) {
+      model = syncModels(models, harness, model);
+    }
     const paper = (): HTMLElement | null => this.element.querySelector(".retro-paper");
     const sync = (): void => {
       this.draft = { title: title.value, description: description.value, acceptance: acceptance.value, size, harness, model };

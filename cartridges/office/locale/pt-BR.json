@@ -54,12 +54,27 @@
   "choices": {
     "hands": {
       "api": "harness próprio",
-      "claude_code": "Claude Code"
+      "claude_code": "Claude Code",
+      "codex": "Codex"
     },
     "models": {
-      "claude-sonnet-5-5": "Sonnet 5.5",
       "claude-opus-5-5": "Opus 5.5",
+      "claude-sonnet-5-5": "Sonnet 5.5",
+      "claude-fable-5-2": "Fable 5.2",
+      "gpt-6.2-astra": "GPT-6.2 Astra"
+    },
+    "models.api": {
+      "claude-opus-5-5": "Opus 5.5",
+      "claude-sonnet-5-5": "Sonnet 5.5",
       "claude-fable-5-2": "Fable 5.2"
+    },
+    "models.claude_code": {
+      "claude-opus-5-5": "Opus 5.5",
+      "claude-sonnet-5-5": "Sonnet 5.5",
+      "claude-fable-5-2": "Fable 5.2"
+    },
+    "models.codex": {
+      "gpt-6.2-astra": "GPT-6.2 Astra"
     }
   }
 }

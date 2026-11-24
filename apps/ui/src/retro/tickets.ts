@@ -197,7 +197,7 @@ export interface Draft {
   readonly description: string;
   readonly acceptance: string;
   readonly size: Size;
-  /** Quem programa e o modelo (ADR-0089); vazio é o padrão do escritório. */
+  /** Quem programa e o modelo (ADR-0089); vazio é o padrão do dev. */
   readonly harness: string;
   readonly model: string;
 }

@@ -37,11 +37,16 @@ ticket:
     P: 15
     M: 60
     G: 180
-  # Quem programa o pedido e o modelo da sessão, escolhidos na prancheta (ADR-0089; a decisão 14
-  # da ADR-0083). Sem escolha, vale o padrão do mundo (`minds.<dev>.hands` e `model`). A tela mostra
-  # os nomes de `choices` no locale do gênero, na mesma ordem.
-  hands: [api, claude_code]
-  models: [claude-sonnet-5-5, claude-opus-5-5, claude-fable-5-2]
+  # Os sistemas: quem programa o pedido, cada harness com os modelos da língua dele, o padrão
+  # primeiro (ADR-0089; ADR-0093, decisão 18). O dev e o sistema são independentes: a prancheta
+  # escolhe qualquer sistema para qualquer dev, e o kernel confere só o par harness–modelo. Sem
+  # escolha, vale o padrão do dev no mundo (`minds.<dev>.hands` e `hands_model`); o harness sem o
+  # modelo leva o primeiro da lista dele; o modelo vem sempre com o harness. A tela mostra os nomes
+  # de `choices` no locale do gênero, na mesma ordem.
+  systems:
+    api: [claude-opus-5-5, claude-sonnet-5-5, claude-fable-5-2]
+    claude_code: [claude-opus-5-5, claude-sonnet-5-5, claude-fable-5-2]
+    codex: [gpt-6.2-astra]
 
 # O expediente do dev, em dias da semana de 1 (segunda) a 7 (domingo). O cenário dá os números.
 schedule:

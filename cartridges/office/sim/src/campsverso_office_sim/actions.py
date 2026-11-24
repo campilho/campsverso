@@ -201,6 +201,26 @@ def choice(params: Mapping[str, Any], key: str, allowed: object) -> str | Reject
     return str(raw)
 
 
+def system(
+    params: Mapping[str, Any], systems: Mapping[str, Any]
+) -> tuple[str | None, str | None] | Rejection:
+    """O sistema do pedido (ADR-0093, decisão 18): o harness e o modelo, conferidos como par. Sem
+    harness, nenhum dos dois (o padrão do dev); o harness sem o modelo leva o primeiro da lista
+    dele; o modelo sozinho, não."""
+    harness = choice(params, "harness", list(systems))
+    if isinstance(harness, Rejection):
+        return harness
+    if harness is None:
+        if params.get("model") not in (None, ""):
+            return Rejection("invalid_params", "o modelo vem com quem programa (harness)")
+        return None, None
+    models = [str(m) for m in cast(list[Any], systems[harness] or [])]
+    model = choice(params, "model", models)
+    if isinstance(model, Rejection):
+        return Rejection("invalid_params", f"o {harness} programa com um de {models}")
+    return harness, model if model is not None else models[0]
+
+
 @dataclass(frozen=True)
 class WriteTicket(OfficeAction):
     """O gerente escreve um pedido no quadro: o título, a descrição, o teste de aceite e o
@@ -225,11 +245,10 @@ class WriteTicket(OfficeAction):
         if size not in SIZES:
             return Rejection("invalid_params", f"size é um de {list(SIZES)}")
         found["size"] = str(size)
-        for key, allowed in (("harness", "hands"), ("model", "models")):
-            picked = choice(ctx.params, key, limits.get(allowed))
-            if isinstance(picked, Rejection):
-                return picked
-            found[key] = picked
+        picked = system(ctx.params, cast(Mapping[str, Any], limits.get("systems") or {}))
+        if isinstance(picked, Rejection):
+            return picked
+        found["harness"], found["model"] = picked
         return found
 
     def check(self, ctx: ActionContext) -> Rejection | None:
