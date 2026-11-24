@@ -55,6 +55,14 @@ from claude_agent_sdk import (
 
 from campsverso_adapters.hands_fence import sandbox_profile
 from campsverso_adapters.hands_gate import ANTHROPIC, HandsGate, Tape
+from campsverso_adapters.hands_world_tools import (
+    NOTE,
+    ROBOT,
+    SERVER,
+    WorldTool,
+    call_world_tool,
+    world_tools,
+)
 from campsverso_ports import (
     CallMeter,
     HandsJob,
@@ -69,9 +77,6 @@ HARNESS = "claude_code"
 # As ferramentas do Claude Code na oficina (ADR-0089, decisão 5). A web, os subagentes e os MCPs
 # de fora ficam de fora.
 TOOLS = ("Read", "Write", "Edit", "Glob", "Grep", "TodoWrite", "Bash")
-SERVER = "oficina"
-ROBOT = "chamar_robo"
-NOTE = "anotar"
 WORLD_TOOLS = (f"mcp__{SERVER}__{ROBOT}", f"mcp__{SERVER}__{NOTE}")
 PATH_KEYS = ("file_path", "path", "notebook_path")
 # O que o `Bash` não roda na oficina: a rede (que o sandbox já corta, mas a recusa explica), o git
@@ -325,41 +330,17 @@ class ClaudeCodeHands:
         return script
 
     def _world_server(self, world: HandsWorld) -> Any:
-        robots = list(world.robots)
-        names = [r.name for r in robots]
-        present = "; ".join(
-            f"{r.name}: {r.description}" if r.description else r.name for r in robots
-        )
+        """As ferramentas do mundo num servidor MCP do processo, pelo SDK, com a definição comum a
+        todas as mãos (`hands_world_tools.py`)."""
 
-        @tool(
-            ROBOT,
-            "Chama um robô da bancada do escritório no espaço do pedido e devolve o que ele disse."
-            + (f" Na bancada agora: {present}." if present else " A bancada está vazia."),
-            {
-                "type": "object",
-                "properties": {
-                    "nome": {"type": "string", "enum": names or [""]},
-                    "argumentos": {"type": "array", "items": {"type": "string"}},
-                },
-                "required": ["nome"],
-            },
-        )
-        async def chamar_robo(args: dict[str, Any]) -> dict[str, Any]:
-            given = args.get("argumentos")
-            argv = [str(a) for a in cast(list[Any], given)] if isinstance(given, list) else []
-            result = await world.robot(str(args.get("nome") or ""), argv)
-            return _tool_answer(result)
+        def wrapped(spec: WorldTool) -> Any:
+            @tool(spec.name, spec.description, dict(spec.schema))
+            async def call(args: dict[str, Any]) -> dict[str, Any]:
+                return _tool_answer(await call_world_tool(world, spec.name, args))
 
-        @tool(
-            NOTE,
-            "Anota na sua memória algo para lembrar nos próximos dias: uma decisão, um cuidado,"
-            " o que aprendeu sobre o projeto.",
-            {"type": "object", "properties": {"texto": {"type": "string"}}, "required": ["texto"]},
-        )
-        async def anotar(args: dict[str, Any]) -> dict[str, Any]:
-            return _tool_answer(await world.note(str(args.get("texto") or "")))
+            return call
 
-        return create_sdk_mcp_server(SERVER, tools=[chamar_robo, anotar])
+        return create_sdk_mcp_server(SERVER, tools=[wrapped(s) for s in world_tools(world)])
 
     async def run(self, space: Workspace, job: HandsJob, world: HandsWorld) -> HandsResult:
         root = space.root

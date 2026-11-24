@@ -2,7 +2,7 @@
 
 Duas saídas do `codex exec --json`, para o conector do Codex (o plano do M26, §8; ADR-0089; o M27, ADR-0093):
 
-- **`sessao-0.171.0.jsonl`** é uma sessão de verdade do Codex 0.171.0, o pacote completo do `make tools-maos`, **gravada no ensaio de 23/nov/2026**. O Codex rodou no nosso cercado, chamando o modelo pela porta das mãos, diante de uma OpenAI falsa que pedia três ferramentas e depois respondia: um `ls`, um patch que cria um arquivo e um comando que sai com 1. O modelo era falso, então o texto e os tokens são os dele; o formato é o do Codex.
+- **`sessao-0.171.0.jsonl`** é uma sessão de verdade do Codex 0.171.0, o pacote completo do `make tools-maos`, **gravada no ensaio de 23/nov/2026**. O Codex rodou no nosso cercado, chamando o modelo pela porta das mãos, diante de uma OpenAI falsa que pedia cinco ferramentas e depois respondia: um `ls`, um patch que cria um arquivo, o robô testador e uma anotação (as ferramentas do mundo, pelo `/mcp` da porta) e um comando que sai com 1. O modelo era falso, então o texto e os tokens são os dele; o formato é o do Codex.
 - **`exemplo.jsonl`** é uma sessão mais longa, **montada à mão em 22/nov** para a criação do M26, quando o dev não tinha rede nem o Codex na oficina. É ela que o `codex_falso.py` imprime nos testes das mãos.
 
 As fontes do exemplo, lidas em 22/nov:
@@ -36,6 +36,7 @@ O código traz também o `collab_tool_call` (os subagentes do Codex), que a ofic
 - **Os itens.** As chamadas de dentro do JavaScript saem como os itens de sempre: o `command_execution` (com `item.started` e `item.completed`) e o `file_change`, que também tem `item.started`. O `exec` em si não vira item.
 - **O comando** vem num shell de login, `/bin/zsh -lc 'ls -a'`; o passo mostra só o `ls -a`. O comando que sai com 1 acaba com `status` `failed` e o `exit_code`.
 - **O caminho do `file_change`** é absoluto.
+- **As ferramentas do mundo** vêm do `[mcp_servers.oficina]` do `config.toml`, no `/mcp` da porta das mãos, com a chave da sessão no `bearer_token_env_var`. O modelo as chama de dentro do JavaScript (`tools.mcp__oficina__chamar_robo`), e cada chamada sai como um `mcp_tool_call`, com o `server`, a `tool`, os `arguments` e o `result`.
 - **Os tokens:** o `cached_input_tokens` é parte do `input_tokens`, como na API da OpenAI.
 - **O cercado:** o Codex roda com o sandbox dele desligado (`danger-full-access`, `"sandbox":"none"` no pedido) e guarda o estado na casa da sessão (`.oficina/casa-codex`: as sessões, as memórias, os bancos SQLite), que fica fora da entrega.
 - **O pedido ao modelo** é um `POST /v1/responses`, com `stream`, `store: false`, o `reasoning.effort` da sessão e as ferramentas num item `additional_tools` da entrada, não no campo `tools`.

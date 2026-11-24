@@ -29,7 +29,7 @@ from typing import Any, cast
 
 from campsverso_adapters.hands_dialects import OpenAIDialect
 from campsverso_adapters.hands_fence import resolve_program
-from campsverso_adapters.hands_gate import Dialect, HandsGate
+from campsverso_adapters.hands_gate import MCP_PATH, Dialect, HandsGate
 from campsverso_adapters.hands_process import (
     MAX_SUMMARY,
     ProcessHands,
@@ -39,6 +39,7 @@ from campsverso_adapters.hands_process import (
     relative,
 )
 from campsverso_adapters.hands_process import clean_environment as _clean
+from campsverso_adapters.hands_world_tools import ROBOT, SERVER
 from campsverso_ports import HandsJob, HandsStep
 
 HARNESS = "codex"
@@ -86,8 +87,10 @@ def clean_environment(root: Path) -> dict[str, str]:
 
 
 def codex_config(gate_url: str, model: str, effort: str | None) -> str:
-    """O `config.toml` da sessão: o provedor na porta das mãos, na língua da Responses API, e o
-    sandbox e as aprovações do Codex desligados (a cerca é a nossa)."""
+    """O `config.toml` da sessão: o provedor na porta das mãos, na língua da Responses API; as
+    ferramentas do mundo no `/mcp` da mesma porta, com a mesma chave (ADR-0093, decisão 18); e o
+    sandbox e as aprovações do Codex desligados (a cerca é a nossa). O robô roda os testes, e o
+    tempo da ferramenta é o dele."""
 
     def quoted(value: str) -> str:
         return json.dumps(value, ensure_ascii=False)  # uma string do TOML, com os mesmos escapes
@@ -108,6 +111,12 @@ def codex_config(gate_url: str, model: str, effort: str | None) -> str:
         f"base_url = {quoted(gate_url.rstrip('/') + '/v1')}",
         f"env_key = {quoted(SESSION_VARIABLE)}",
         'wire_api = "responses"',
+        "",
+        f"[mcp_servers.{SERVER}]",
+        f"url = {quoted(gate_url.rstrip('/') + MCP_PATH)}",
+        f"bearer_token_env_var = {quoted(SESSION_VARIABLE)}",
+        "startup_timeout_sec = 20",
+        "tool_timeout_sec = 300",
         "",
     ]
     return "\n".join(lines)
@@ -157,8 +166,22 @@ def steps_of(item: Mapping[str, Any], root: Path, ms: int) -> list[HandsStep]:
         ok = status == "completed" and item.get("exit_code") == 0
         what = first_line(shown_command(str(item.get("command") or "")))
     elif kind == "mcp_tool_call":
-        ok = status == "completed" and not item.get("error")
+        result = item.get("result")
+        answer: Mapping[str, Any] = (
+            cast(Mapping[str, Any], result) if isinstance(result, Mapping) else {}
+        )
+        refused = bool(answer.get("is_error") or answer.get("isError"))
+        ok = status == "completed" and not item.get("error") and not refused
         tool = str(item.get("tool") or "")
+        if item.get("server") == SERVER:
+            # As ferramentas do mundo, como no Claude Code: o nome curto e o robô chamado.
+            raw = item.get("arguments")
+            given: Mapping[str, Any] = (
+                cast(Mapping[str, Any], raw) if isinstance(raw, Mapping) else {}
+            )
+            what = f"robô {given.get('nome', '')}" if tool == ROBOT else ""
+            summary = f"{tool}: {what}" if what else tool
+            return [HandsStep(tool, summary[:MAX_SUMMARY], ok, ms)]
         what = f"{item.get('server', '')}.{tool}" if item.get("server") else tool
     elif kind == "web_search":
         ok = status != "failed"

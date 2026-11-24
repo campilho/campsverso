@@ -278,6 +278,12 @@ def test_o_config_da_sessao_aponta_o_provedor_para_a_porta() -> None:
     # A cerca é a nossa: o sandbox e as aprovações do Codex ficam desligados.
     assert (config["sandbox_mode"], config["approval_policy"]) == ("danger-full-access", "never")
     assert "model_reasoning_effort" not in tomllib.loads(codex_config("http://x", MODEL, None))
+    # As ferramentas do mundo no /mcp da mesma porta, com a chave da sessão (ADR-0093, decisão 18).
+    world = config["mcp_servers"]["oficina"]
+    assert (world["url"], world["bearer_token_env_var"]) == (
+        "http://127.0.0.1:5123/mcp",
+        SESSION_VARIABLE,
+    )
 
 
 # ------------------------------------------------------------------ os tetos
@@ -351,8 +357,9 @@ SESSION = Path(__file__).parents[3] / "tests" / "fixtures" / "codex" / "sessao-0
 
 def test_a_sessao_do_codex_de_verdade_vira_os_passos(tmp_path: Path) -> None:
     """A saída do Codex 0.171.0 (o pacote, com o modo código) no cercado, diante de uma OpenAI
-    falsa que pede três ferramentas pelo `exec` (o ensaio de 23/nov): as chamadas de dentro do
-    JavaScript saem como os itens de sempre."""
+    falsa que pede cinco ferramentas pelo `exec` (o ensaio de 23/nov): as chamadas de dentro do
+    JavaScript saem como os itens de sempre, e as do mundo, pelo `/mcp` da porta, como as do
+    Claude Code."""
     stream = CodexStream(tmp_path)
     steps: list[HandsStep] = []
     turns: list[str] = []
@@ -366,13 +373,15 @@ def test_a_sessao_do_codex_de_verdade_vira_os_passos(tmp_path: Path) -> None:
     assert [(s.tool, s.summary, s.path, s.ok) for s in steps] == [
         ("command_execution", "command_execution: ls -a", None, True),
         ("file_change", "file_change: add notas/ensaio.md", "notas/ensaio.md", True),
+        ("chamar_robo", "chamar_robo: robô testador", None, True),
+        ("anotar", "anotar", None, True),
         ("command_execution", "command_execution: false", None, False),
     ]
-    assert turns == ["tool", "tool", "tool", "message"]
+    assert turns == ["tool", "tool", "tool", "tool", "tool", "message"]
     assert stream.completed
     assert stream.failed is None
     assert stream.notices == []
-    assert stream.usage == CodexUsage(4000, 1600, 0, 200, 0)
+    assert stream.usage == CodexUsage(6000, 2400, 0, 300, 0)
 
 
 NOTICE = (
@@ -547,8 +556,23 @@ def test_os_passos_aceitam_o_caminho_absoluto_e_ignoram_o_que_nao_e_ferramenta(
     assert (step.path, step.ok, step.duration_ms) == ("a/b.py", False, 3)
     assert steps_of({"type": "reasoning", "text": "pensando"}, tmp_path, 0) == []
     assert steps_of({"type": "todo_list", "items": []}, tmp_path, 0) == []
-    mcp = {"type": "mcp_tool_call", "server": "oficina", "tool": "anotar", "status": "completed"}
-    assert steps_of(mcp, tmp_path, 0)[0].summary == "mcp_tool_call: oficina.anotar"
+    # As ferramentas do mundo saem como no Claude Code; as de outro servidor, pelo nome completo.
+    mcp: dict[str, Any] = {
+        "type": "mcp_tool_call",
+        "server": "oficina",
+        "tool": "anotar",
+        "status": "completed",
+    }
+    assert (steps_of(mcp, tmp_path, 0)[0].tool, steps_of(mcp, tmp_path, 0)[0].summary) == (
+        "anotar",
+        "anotar",
+    )
+    robot = {**mcp, "tool": "chamar_robo", "arguments": {"nome": "testador"}}
+    refused: dict[str, Any] = {**robot, "result": {"content": [], "is_error": True}}
+    assert steps_of(robot, tmp_path, 0)[0].summary == "chamar_robo: robô testador"
+    assert not steps_of(refused, tmp_path, 0)[0].ok
+    other = {**mcp, "server": "busca", "tool": "achar"}
+    assert steps_of(other, tmp_path, 0)[0].summary == "mcp_tool_call: busca.achar"
 
 
 def test_o_usage_do_codex_soma_cada_campo() -> None:

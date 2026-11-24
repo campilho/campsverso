@@ -404,6 +404,7 @@ class ProcessHands:
             transport=self._transport,
             tape=tape,
             dialect=self.dialect(),
+            world=world,
         )
         refusal.spent = lambda: gate.cost_usd
         stream = self.stream(root)

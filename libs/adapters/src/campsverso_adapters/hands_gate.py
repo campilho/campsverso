@@ -11,7 +11,9 @@ Gemini, que o Antigravity usa (`hands_dialects.py`). A porta:
 - **mede** cada resposta pelo `CallMeter`, com o mesmo evento da porta de modelo, e a guarda soma
   por pedido e por dia como sempre;
 - **recusa** a chamada seguinte quando o teto do pedido ou do dia estourou (`refuse`);
-- **grava a fita**, de que os testes respondem, na ordem, sem a API.
+- **grava a fita**, de que os testes respondem, na ordem, sem a API;
+- **serve as ferramentas do mundo** no `/mcp` (chamar um robô, anotar), às mãos que as pedem por MCP
+  (o Codex), com a mesma chave da sessão (`hands_world_tools.py`; ADR-0093, decisão 18).
 
 Roda dentro do processo de quem a abre, numa porta efêmera de `127.0.0.1`, enquanto a sessão dura.
 """
@@ -34,7 +36,8 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response, StreamingResponse
 from starlette.routing import Route
 
-from campsverso_ports import CallMeter, ModelRequest, ModelResponse, ModelUsage
+from campsverso_adapters.hands_world_tools import mcp_answer
+from campsverso_ports import CallMeter, HandsWorld, ModelRequest, ModelResponse, ModelUsage
 
 ANTHROPIC = "https://api.anthropic.com"
 MESSAGES = "/v1/messages"
@@ -42,6 +45,7 @@ COUNT_TOKENS = "/v1/messages/count_tokens"
 # Os cabeçalhos do harness que seguem para o modelo; a chave é a da porta.
 FORWARDED = ("anthropic-version", "anthropic-beta", "content-type", "accept")
 TIMEOUT_SECONDS = 600.0
+MCP_PATH = "/mcp"
 
 type Refuse = Callable[[], str | None]
 # O que a porta faz com uma rota: a chamada ao modelo, medida; ou só repassa, sem custo (contar os
@@ -502,8 +506,10 @@ class HandsGate:
         transport: httpx2.AsyncBaseTransport | None = None,
         tape: Tape | None = None,
         dialect: Dialect | None = None,
+        world: HandsWorld | None = None,
     ) -> None:
         self._meter = meter
+        self._world = world
         self._key = api_key
         self._harness = harness
         self._avatar = avatar_id
@@ -528,7 +534,9 @@ class HandsGate:
         self._client = httpx2.AsyncClient(
             base_url=self._upstream, timeout=TIMEOUT_SECONDS, transport=self._transport
         )
-        app = Starlette(routes=[Route("/{path:path}", self._handle, methods=["GET", "POST"])])
+        app = Starlette(
+            routes=[Route("/{path:path}", self._handle, methods=["GET", "POST", "DELETE"])]
+        )
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind(("127.0.0.1", 0))
@@ -559,8 +567,28 @@ class HandsGate:
     def _authorized(self, request: Request) -> bool:
         return secrets.compare_digest(self._dialect.session_key(request), self.token)
 
+    async def _mcp(self, request: Request) -> Response:
+        """As ferramentas do mundo pelo MCP, com a chave da sessão no `Authorization: Bearer`. Só o
+        `POST`: a corrente de eventos (o `GET`) e o fim da sessão (o `DELETE`) não existem aqui."""
+        given = request.headers.get("authorization", "")
+        bearer = given[7:] if given.lower().startswith("bearer ") else ""
+        if not secrets.compare_digest(bearer, self.token):
+            return JSONResponse({"error": "chave da sessão inválida"}, status_code=401)
+        if request.method != "POST":
+            return Response(status_code=405, headers={"Allow": "POST"})
+        try:
+            body: object = json.loads(await request.body() or b"null")
+        except ValueError:
+            error = {"code": -32700, "message": "o corpo não é JSON"}
+            return JSONResponse({"jsonrpc": "2.0", "id": None, "error": error}, status_code=400)
+        assert self._world is not None
+        answer = await mcp_answer(self._world, body)
+        return Response(status_code=202) if answer is None else JSONResponse(answer)
+
     async def _handle(self, request: Request) -> Response:
         dialect = self._dialect
+        if self._world is not None and request.url.path.rstrip("/") == MCP_PATH:
+            return await self._mcp(request)
         if not self._authorized(request):
             return dialect.error(401, "auth", "chave da sessão inválida")
         path = request.url.path
