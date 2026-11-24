@@ -23,10 +23,12 @@ NATS_BIN := .tools/bin/nats-server
 # As mãos de fora do M27 (ADR-0093, decisão 6): o Codex do GitHub da OpenAI e o Antigravity CLI do
 # Google, com a versão e o hash fixados aqui (lidos dos metadados publicados em 22/nov). O agy se
 # atualiza sozinho ao rodar; no cercado das mãos, sem rede nem escrita fora do espaço, não consegue.
+# O Codex vem no pacote completo do release (o codex-package): o modo código, que é como ele roda
+# comandos, precisa do codex-code-mode-host ao lado do codex (o ensaio de 23/nov).
 CODEX_VERSION := 0.171.0
-CODEX_SHA256_darwin-arm64 := 9414c8c967f110b11e8324c0cfa2b20f012094ef890110a561c92ee535a2681a
-CODEX_SHA256_linux-amd64 := 01baa2e47809f8597be5b2f8abd4e4dfe3fb5bcb6e504c2fbaaad97056c15e8d
-CODEX_DIR := .tools/codex-v$(CODEX_VERSION)
+CODEX_SHA256_darwin-arm64 := 58c88032ec446e72922d911d8f03773102da20c16a6059cf21f6744bce57f210
+CODEX_SHA256_linux-amd64 := 8391d67757496bfd14893eca6cbf0c96994bf2627566ff1f018f70600c9ef6b3
+CODEX_DIR := .tools/codex-pacote-v$(CODEX_VERSION)
 AGY_VERSION := 1.5.14
 AGY_BUILD := 1.5.14-5302690847260672
 AGY_SHA512_darwin-arm64 := 26830fd46bfb9200d073cf3e71bf94b707552557b4380ec01afd6e99f3a2b030e65422dab1867f77318078692defc859a7547d17ec4b0b1e9369f13c9c3caea6
@@ -278,8 +280,8 @@ tools-maos: $(CODEX_DIR)/.pronto $(AGY_DIR)/.pronto ## baixa o Codex e o Antigra
 $(CODEX_DIR)/.pronto:
 	@set -euo pipefail; \
 	case "$$(uname -s)-$$(uname -m)" in \
-	  Darwin-arm64) name=codex-aarch64-apple-darwin; expected=$(CODEX_SHA256_darwin-arm64) ;; \
-	  Linux-x86_64) name=codex-x86_64-unknown-linux-musl; expected=$(CODEX_SHA256_linux-amd64) ;; \
+	  Darwin-arm64) name=codex-package-aarch64-apple-darwin; expected=$(CODEX_SHA256_darwin-arm64) ;; \
+	  Linux-x86_64) name=codex-package-x86_64-unknown-linux-musl; expected=$(CODEX_SHA256_linux-amd64) ;; \
 	  *) echo "sem Codex fixado para $$(uname -s)-$$(uname -m)"; exit 1 ;; \
 	esac; \
 	file=.tools/download/$$name-$(CODEX_VERSION).tar.gz; \
@@ -289,11 +291,12 @@ $(CODEX_DIR)/.pronto:
 	actual=$$( (command -v sha256sum >/dev/null && sha256sum $$file || shasum -a 256 $$file) | cut -d' ' -f1); \
 	if [ "$$actual" != "$$expected" ]; then echo "sha256 não confere: $$actual (esperado $$expected)"; exit 1; fi; \
 	tar -xzf $$file -C $(CODEX_DIR); \
-	program=$$(find $(CODEX_DIR) -type f -name 'codex*' -perm -u+x | head -1); \
-	if [ -z "$$program" ]; then echo "o pacote do Codex veio sem o programa"; exit 1; fi; \
+	program=$$(find $(CODEX_DIR) -type f -path '*/bin/codex' -perm -u+x | head -1); \
+	host=$$(find $(CODEX_DIR) -type f -path '*/bin/codex-code-mode-host' -perm -u+x | head -1); \
+	if [ -z "$$program" ] || [ -z "$$host" ]; then echo "o pacote do Codex veio sem o codex ou sem o codex-code-mode-host"; exit 1; fi; \
 	ln -sf "../$${program#.tools/}" .tools/bin/codex; \
 	touch $@; \
-	echo "Codex $(CODEX_VERSION) em .tools/bin/codex"
+	echo "Codex $(CODEX_VERSION), o pacote com o modo código, em .tools/bin/codex"
 
 $(AGY_DIR)/.pronto:
 	@set -euo pipefail; \

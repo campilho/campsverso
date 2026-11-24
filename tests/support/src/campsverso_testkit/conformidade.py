@@ -679,9 +679,12 @@ def priced_name(model: str, harness: str) -> str:
 
 
 def pinned(program: str, tools: Path = REPO / ".tools" / "bin") -> list[str] | None:
-    """O programa que o `make tools-maos` instalou com a versão fixa; sem ele, o do `PATH`."""
+    """O programa que o `make tools-maos` instalou com a versão fixa; sem ele, o do `PATH`.
+
+    O `.tools/bin` só tem atalhos: o programa vai pelo endereço real, onde ele acha o que veio no
+    pacote ao lado dele (o `codex-code-mode-host` do Codex, no ensaio de 23/nov)."""
     path = tools / program
-    return [str(path)] if path.exists() else None
+    return [str(path.resolve())] if path.exists() else None
 
 
 def outside_hands(harness: str, key: str, out: Path, tape: Path) -> Callable[[CallMeter], Hands]:

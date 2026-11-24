@@ -320,4 +320,12 @@ def test_cada_mao_de_fora_vem_com_o_modelo_e_o_preco_do_laboratorio(tmp_path: Pa
 def test_o_programa_fixado_vem_do_tools_quando_existe(tmp_path: Path) -> None:
     assert pinned("codex", tmp_path) is None
     (tmp_path / "codex").write_text("#!/bin/sh\n", encoding="utf-8")
-    assert pinned("codex", tmp_path) == [str(tmp_path / "codex")]
+    assert pinned("codex", tmp_path) == [str((tmp_path / "codex").resolve())]
+    # Pelo atalho, o programa vai pelo endereço real, onde estão os vizinhos do pacote.
+    package = tmp_path / "codex-pacote" / "bin"
+    package.mkdir(parents=True)
+    (package / "codex").write_text("#!/bin/sh\n", encoding="utf-8")
+    links = tmp_path / "bin"
+    links.mkdir()
+    (links / "codex").symlink_to(Path("..") / "codex-pacote" / "bin" / "codex")
+    assert pinned("codex", links) == [str((package / "codex").resolve())]
