@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "contracts://events/office/ticket.returned.v2",
   "title": "OfficeTicketReturnedV2",
-  "description": "O gerente devolveu um pedido entregue (ADR-0078), ou o PR dele foi fechado sem mesclar (ADR-0083): o pedido volta para \"a fazer\", com o comentário. Igual ao v1, com o comentário até 1.000 caracteres, o mesmo da descrição do pedido (ADR-0092): a ficha aberta tem um campo do tamanho do pedido. O v1, até 280, fica para os dias antigos.",
+  "description": "O gerente devolveu um pedido entregue (ADR-0078), ou o PR dele foi fechado sem mesclar (ADR-0083): o pedido volta para \"a fazer\", com o comentário. Igual ao v1, com o comentário até 1.000 caracteres, o mesmo da descrição do pedido (ADR-0092): a ficha aberta tem um campo do tamanho do pedido. O v1, até 280, fica para os dias antigos. Desde o M27, a devolução pode trocar quem programa a volta (ADR-0093, decisão 12).",
   "x-type": "campsverso.office.ticket.returned.v2",
   "x-visibility": "world",
   "x-producer": "kernel",
@@ -32,6 +32,16 @@
       "minLength": 1,
       "maxLength": 1000,
       "description": "O que falta, nas palavras do gerente."
+    },
+    "harness": {
+      "$ref": "contracts://common/defs.v1#/$defs/token",
+      "description": "Quem programa a volta, escolhido pelo gerente ao devolver (ADR-0093, decisão 12): um harness do catálogo dos sistemas. Sem o campo, o mesmo de antes."
+    },
+    "model": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._:/-]*$",
+      "maxLength": 128,
+      "description": "O modelo da volta, com o harness, como um par que o kernel confere. Sem o campo, o padrão do harness escolhido, ou o mesmo de antes."
     }
   }
 }

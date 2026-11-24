@@ -4273,14 +4273,24 @@ components:
           description: 'Quem escreveu: o gerente.'
         harness:
           $ref: '#/components/schemas/Token'
-          description: 'Quem programa o pedido, escolhido na prancheta (ADR-0089): `api`, o nosso harness,
-            ou `claude_code`. Sem o campo, o padrão do mundo.'
+          description: 'Quem programa o pedido, escolhido na prancheta (ADR-0089; ADR-0093, decisão 18):
+            um harness do catálogo dos sistemas do cartucho, como `api` (o nosso harness), `claude_code`
+            ou `codex`. Sem o campo, o sistema padrão do dev.'
         model:
           type: string
           pattern: ^[a-z0-9][a-z0-9._:/-]*$
           maxLength: 128
-          description: O modelo da sessão do pedido, escolhido na prancheta (ADR-0089; a decisão 14 da
-            ADR-0083). Sem o campo, o padrão do mundo.
+          description: O modelo da sessão do pedido, escolhido na prancheta com o harness, como um par
+            que o kernel confere (ADR-0089; ADR-0093, decisão 18). Sem o campo, o padrão do dev.
+        assignee:
+          $ref: '#/components/schemas/EntityId'
+          description: 'Para quem (ADR-0093, decisão 8): o dev a quem o pedido é dado. Um dev só pega
+            o que é dele ou o que não é de ninguém. Sem o campo, quem estiver livre.'
+        group:
+          $ref: '#/components/schemas/EntityId'
+          description: 'Para todos (ADR-0093, decisão 8): o gerente escreveu uma vez, e o kernel criou
+            uma ficha por dev, com o mesmo texto, cada uma com o `assignee` do dev e este mesmo grupo.
+            Sem o campo, a ficha é só dela.'
     OfficeTicketDeliveredV1:
       title: OfficeTicketDeliveredV1
       description: 'O dev entregou um pedido (ADR-0078): o pedido passa a "entregue" e espera o gerente.'
@@ -4488,7 +4498,8 @@ components:
       description: 'O gerente devolveu um pedido entregue (ADR-0078), ou o PR dele foi fechado sem mesclar
         (ADR-0083): o pedido volta para "a fazer", com o comentário. Igual ao v1, com o comentário até
         1.000 caracteres, o mesmo da descrição do pedido (ADR-0092): a ficha aberta tem um campo do tamanho
-        do pedido. O v1, até 280, fica para os dias antigos.'
+        do pedido. O v1, até 280, fica para os dias antigos. Desde o M27, a devolução pode trocar quem
+        programa a volta (ADR-0093, decisão 12).'
       type: object
       additionalProperties: false
       required:
@@ -4511,6 +4522,16 @@ components:
           minLength: 1
           maxLength: 1000
           description: O que falta, nas palavras do gerente.
+        harness:
+          $ref: '#/components/schemas/Token'
+          description: 'Quem programa a volta, escolhido pelo gerente ao devolver (ADR-0093, decisão 12):
+            um harness do catálogo dos sistemas. Sem o campo, o mesmo de antes.'
+        model:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9._:/-]*$
+          maxLength: 128
+          description: O modelo da volta, com o harness, como um par que o kernel confere. Sem o campo,
+            o padrão do harness escolhido, ou o mesmo de antes.
     OfficeTicketTakenV1:
       title: OfficeTicketTakenV1
       description: 'O dev pegou um pedido do quadro (ADR-0078): o pedido passa a "fazendo".'
@@ -5300,6 +5321,13 @@ components:
         duration_ms:
           type: integer
           minimum: 0
+        note:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: 'O texto que o modelo escreveu antes do passo, até 200 caracteres (ADR-0093, decisão
+            12): a tela do dev o mostra como um comentário do shell, apagado. Sem o campo, o modelo não
+            escreveu nada.'
     WorldClockCaughtUpV1:
       title: WorldClockCaughtUpV1
       description: 'O relógio ancorado no real alcançou o tick de agora (ADR-0078): o mundo andou de `from_tick`
@@ -7602,7 +7630,8 @@ components:
       summary: 'O gerente devolveu um pedido entregue (ADR-0078), ou o PR dele foi fechado sem mesclar
         (ADR-0083): o pedido volta para "a fazer", com o comentário. Igual ao v1, com o comentário até
         1.000 caracteres, o mesmo da descrição do pedido (ADR-0092): a ficha aberta tem um campo do tamanho
-        do pedido. O v1, até 280, fica para os dias antigos.'
+        do pedido. O v1, até 280, fica para os dias antigos. Desde o M27, a devolução pode trocar quem
+        programa a volta (ADR-0093, decisão 12).'
       contentType: application/json
       payload:
         $ref: '#/components/schemas/OfficeTicketReturnedV2'

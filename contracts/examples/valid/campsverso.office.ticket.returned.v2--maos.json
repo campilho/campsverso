@@ -1,0 +1,24 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c62-7d00-8e10-5a6b7c8d9e21",
+  "source": "/kernel/office-campsverso-02",
+  "type": "campsverso.office.ticket.returned.v2",
+  "time": "2026-11-23T13:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/office/ticket.returned.v2",
+  "worldid": "office-campsverso-02",
+  "cartridge": "office_campsverso",
+  "tick": 19200,
+  "simtime": "2026-11-23T10:00:00-03:00",
+  "seq": 5004,
+  "provenance": "simulated",
+  "visibility": "world",
+  "data": {
+    "ticket_id": "pedido-003",
+    "number": 3,
+    "by": "gerente",
+    "comment": "Falta o caso dos acentos. Tente pelo Codex desta vez.",
+    "harness": "codex",
+    "model": "gpt-6.2-astra"
+  }
+}

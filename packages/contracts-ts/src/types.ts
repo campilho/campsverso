@@ -1593,9 +1593,11 @@ export interface OfficeTicketCreatedV1 {
   author: EntityId;
   harness?: Token;
   /**
-   * O modelo da sessão do pedido, escolhido na prancheta (ADR-0089; a decisão 14 da ADR-0083). Sem o campo, o padrão do mundo.
+   * O modelo da sessão do pedido, escolhido na prancheta com o harness, como um par que o kernel confere (ADR-0089; ADR-0093, decisão 18). Sem o campo, o padrão do dev.
    */
   model?: string;
+  assignee?: EntityId;
+  group?: EntityId;
 }
 /**
  * O dev entregou um pedido (ADR-0078): o pedido passa a "entregue" e espera o gerente.
@@ -1744,7 +1746,7 @@ export interface OfficeTicketReturnedV1 {
   comment: string;
 }
 /**
- * O gerente devolveu um pedido entregue (ADR-0078), ou o PR dele foi fechado sem mesclar (ADR-0083): o pedido volta para "a fazer", com o comentário. Igual ao v1, com o comentário até 1.000 caracteres, o mesmo da descrição do pedido (ADR-0092): a ficha aberta tem um campo do tamanho do pedido. O v1, até 280, fica para os dias antigos.
+ * O gerente devolveu um pedido entregue (ADR-0078), ou o PR dele foi fechado sem mesclar (ADR-0083): o pedido volta para "a fazer", com o comentário. Igual ao v1, com o comentário até 1.000 caracteres, o mesmo da descrição do pedido (ADR-0092): a ficha aberta tem um campo do tamanho do pedido. O v1, até 280, fica para os dias antigos. Desde o M27, a devolução pode trocar quem programa a volta (ADR-0093, decisão 12).
  *
  * This interface was referenced by `ContractsBundle`'s JSON-Schema
  * via the `definition` "OfficeTicketReturnedV2".
@@ -1760,6 +1762,11 @@ export interface OfficeTicketReturnedV2 {
    * O que falta, nas palavras do gerente.
    */
   comment: string;
+  harness?: Token;
+  /**
+   * O modelo da volta, com o harness, como um par que o kernel confere. Sem o campo, o padrão do harness escolhido, ou o mesmo de antes.
+   */
+  model?: string;
 }
 /**
  * O dev pegou um pedido do quadro (ADR-0078): o pedido passa a "fazendo".
@@ -2542,6 +2549,10 @@ export interface WorkshopStepV2 {
    */
   ok: boolean;
   duration_ms: number;
+  /**
+   * O texto que o modelo escreveu antes do passo, até 200 caracteres (ADR-0093, decisão 12): a tela do dev o mostra como um comentário do shell, apagado. Sem o campo, o modelo não escreveu nada.
+   */
+  note?: string;
 }
 /**
  * O relógio ancorado no real alcançou o tick de agora (ADR-0078): o mundo andou de `from_tick` a `to_tick` de uma vez, ao subir de novo.

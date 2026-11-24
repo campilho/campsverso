@@ -60,6 +60,12 @@
     "duration_ms": {
       "type": "integer",
       "minimum": 0
+    },
+    "note": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "O texto que o modelo escreveu antes do passo, até 200 caracteres (ADR-0093, decisão 12): a tela do dev o mostra como um comentário do shell, apagado. Sem o campo, o modelo não escreveu nada."
     }
   }
 }

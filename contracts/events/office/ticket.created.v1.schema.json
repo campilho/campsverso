@@ -55,13 +55,21 @@
     },
     "harness": {
       "$ref": "contracts://common/defs.v1#/$defs/token",
-      "description": "Quem programa o pedido, escolhido na prancheta (ADR-0089): `api`, o nosso harness, ou `claude_code`. Sem o campo, o padrão do mundo."
+      "description": "Quem programa o pedido, escolhido na prancheta (ADR-0089; ADR-0093, decisão 18): um harness do catálogo dos sistemas do cartucho, como `api` (o nosso harness), `claude_code` ou `codex`. Sem o campo, o sistema padrão do dev."
     },
     "model": {
       "type": "string",
       "pattern": "^[a-z0-9][a-z0-9._:/-]*$",
       "maxLength": 128,
-      "description": "O modelo da sessão do pedido, escolhido na prancheta (ADR-0089; a decisão 14 da ADR-0083). Sem o campo, o padrão do mundo."
+      "description": "O modelo da sessão do pedido, escolhido na prancheta com o harness, como um par que o kernel confere (ADR-0089; ADR-0093, decisão 18). Sem o campo, o padrão do dev."
+    },
+    "assignee": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "Para quem (ADR-0093, decisão 8): o dev a quem o pedido é dado. Um dev só pega o que é dele ou o que não é de ninguém. Sem o campo, quem estiver livre."
+    },
+    "group": {
+      "$ref": "contracts://common/defs.v1#/$defs/entity_id",
+      "description": "Para todos (ADR-0093, decisão 8): o gerente escreveu uma vez, e o kernel criou uma ficha por dev, com o mesmo texto, cada uma com o `assignee` do dev e este mesmo grupo. Sem o campo, a ficha é só dela."
     }
   }
 }

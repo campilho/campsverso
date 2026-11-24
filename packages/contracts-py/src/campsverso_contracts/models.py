@@ -2249,11 +2249,25 @@ class OfficeTicketCreatedV1(BaseModel):
         str | None, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")
     ] = None
     """
-    Quem programa o pedido, escolhido na prancheta (ADR-0089): `api`, o nosso harness, ou `claude_code`. Sem o campo, o padrão do mundo.
+    Quem programa o pedido, escolhido na prancheta (ADR-0089; ADR-0093, decisão 18): um harness do catálogo dos sistemas do cartucho, como `api` (o nosso harness), `claude_code` ou `codex`. Sem o campo, o sistema padrão do dev.
     """
     model: Annotated[str | None, Field(max_length=128, pattern="^[a-z0-9][a-z0-9._:/-]*$")] = None
     """
-    O modelo da sessão do pedido, escolhido na prancheta (ADR-0089; a decisão 14 da ADR-0083). Sem o campo, o padrão do mundo.
+    O modelo da sessão do pedido, escolhido na prancheta com o harness, como um par que o kernel confere (ADR-0089; ADR-0093, decisão 18). Sem o campo, o padrão do dev.
+    """
+    assignee: Annotated[
+        str | None,
+        Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId"),
+    ] = None
+    """
+    Para quem (ADR-0093, decisão 8): o dev a quem o pedido é dado. Um dev só pega o que é dele ou o que não é de ninguém. Sem o campo, quem estiver livre.
+    """
+    group: Annotated[
+        str | None,
+        Field(max_length=64, pattern="^[a-z0-9]+(-[a-z0-9]+)*$", title="EntityId"),
+    ] = None
+    """
+    Para todos (ADR-0093, decisão 8): o gerente escreveu uma vez, e o kernel criou uma ficha por dev, com o mesmo texto, cada uma com o `assignee` do dev e este mesmo grupo. Sem o campo, a ficha é só dela.
     """
 
 
@@ -2469,7 +2483,7 @@ class OfficeTicketReturnedV1(BaseModel):
 
 class OfficeTicketReturnedV2(BaseModel):
     """
-    O gerente devolveu um pedido entregue (ADR-0078), ou o PR dele foi fechado sem mesclar (ADR-0083): o pedido volta para "a fazer", com o comentário. Igual ao v1, com o comentário até 1.000 caracteres, o mesmo da descrição do pedido (ADR-0092): a ficha aberta tem um campo do tamanho do pedido. O v1, até 280, fica para os dias antigos.
+    O gerente devolveu um pedido entregue (ADR-0078), ou o PR dele foi fechado sem mesclar (ADR-0083): o pedido volta para "a fazer", com o comentário. Igual ao v1, com o comentário até 1.000 caracteres, o mesmo da descrição do pedido (ADR-0092): a ficha aberta tem um campo do tamanho do pedido. O v1, até 280, fica para os dias antigos. Desde o M27, a devolução pode trocar quem programa a volta (ADR-0093, decisão 12).
     """
 
     model_config = ConfigDict(
@@ -2492,6 +2506,16 @@ class OfficeTicketReturnedV2(BaseModel):
     comment: Annotated[str, Field(max_length=1000, min_length=1)]
     """
     O que falta, nas palavras do gerente.
+    """
+    harness: Annotated[
+        str | None, Field(max_length=64, pattern="^[a-z][a-z0-9_]*$", title="Token")
+    ] = None
+    """
+    Quem programa a volta, escolhido pelo gerente ao devolver (ADR-0093, decisão 12): um harness do catálogo dos sistemas. Sem o campo, o mesmo de antes.
+    """
+    model: Annotated[str | None, Field(max_length=128, pattern="^[a-z0-9][a-z0-9._:/-]*$")] = None
+    """
+    O modelo da volta, com o harness, como um par que o kernel confere. Sem o campo, o padrão do harness escolhido, ou o mesmo de antes.
     """
 
 
@@ -3265,6 +3289,10 @@ class WorkshopStepV2(BaseModel):
     Falso quando a ferramenta recusou ou falhou.
     """
     duration_ms: Annotated[int, Field(ge=0)]
+    note: Annotated[str | None, Field(max_length=200, min_length=1)] = None
+    """
+    O texto que o modelo escreveu antes do passo, até 200 caracteres (ADR-0093, decisão 12): a tela do dev o mostra como um comentário do shell, apagado. Sem o campo, o modelo não escreveu nada.
+    """
 
 
 class WorldClockCaughtUpV1(BaseModel):

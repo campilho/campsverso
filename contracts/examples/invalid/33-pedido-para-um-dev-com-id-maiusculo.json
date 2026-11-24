@@ -1,0 +1,33 @@
+{
+  "expect_error": "payload_schema",
+  "description": "O \"Para quem\" é o id do dev (`kenji`), e não o nome dele.",
+  "event": {
+    "specversion": "1.0",
+    "id": "01a12d2b-6c62-7d00-8e10-5a6b7c8d9e24",
+    "source": "/kernel/office-campsverso-01",
+    "type": "campsverso.office.ticket.created.v1",
+    "time": "2026-11-23T12:10:00Z",
+    "datacontenttype": "application/json",
+    "dataschema": "contracts://events/office/ticket.created.v1",
+    "worldid": "office-campsverso-01",
+    "cartridge": "office_campsverso",
+    "tick": 1290000,
+    "simtime": "2026-11-23T09:10:00-03:00",
+    "seq": 5100,
+    "provenance": "simulated",
+    "visibility": "world",
+    "data": {
+      "ticket_id": "pedido-022",
+      "number": 22,
+      "title": "A receita do computador",
+      "description": "A receita da máquina do dev no M28, com o robô que a confere.",
+      "acceptance": "O robô passa na receita e falha quando uma versão diverge.",
+      "size": "M",
+      "author": "gerente",
+      "harness": "codex",
+      "model": "gpt-6.2-astra",
+      "assignee": "Kenji",
+      "group": "grupo-021"
+    }
+  }
+}

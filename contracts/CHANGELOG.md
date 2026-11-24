@@ -4,6 +4,12 @@ Toda mudança em `contracts/` entra aqui (contratos §9). Dentro de uma versão 
 
 ## Em andamento: v0.4
 
+### M27 (ADR-0093)
+
+- **O "Para quem" e o "Para todos"** (decisão 8): o `office.ticket.created.v1` ganha dois campos opcionais. O `assignee` é o dev a quem o pedido é dado; um dev só pega o que é dele ou o que não é de ninguém. O `group` liga as fichas de um "Para todos": o gerente escreve uma vez, e o kernel cria uma ficha por dev, com o mesmo texto, o `assignee` de cada um e o mesmo grupo. O `harness` passa a ser um harness do catálogo dos sistemas do cartucho (decisão 18), como `codex`, e vem com o `model` como um par que o kernel confere.
+- **A devolução troca quem programa** (decisão 12): o `office.ticket.returned.v2` ganha `harness` e `model`, opcionais: o sistema da volta, escolhido pelo gerente ao devolver. Sem eles, o mesmo de antes.
+- **O texto do modelo entre os passos** (decisão 12): o `workshop.step.v2` ganha `note`, opcional, até 200 caracteres: o que o modelo escreveu antes do passo, que a tela do dev mostra como um comentário do shell.
+
 ### As telas do Claude Design (ADR-0092)
 
 - **A devolução maior** (ADR-0092, decisão 6): o tipo novo `campsverso.office.ticket.returned.v2`, igual ao v1 com o comentário até 1.000 caracteres (era 280), o mesmo da descrição do pedido. A ficha aberta ganha um campo do tamanho do pedido, com o contador, e nunca corta escondido. O kernel passa a publicar só o v2, nas duas portas da devolução (o gerente no quadro e o PR fechado sem mesclar); o v1 fica para os dias antigos, e a linha do tempo e a memória do dev leem os dois.

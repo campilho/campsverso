@@ -1,0 +1,28 @@
+{
+  "specversion": "1.0",
+  "id": "01a12d2b-6c62-7d01-8e10-5a6b7c8d9e22",
+  "source": "/controller-runner/llm/camps",
+  "type": "campsverso.workshop.step.v2",
+  "time": "2026-11-23T12:20:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "contracts://events/workshop/step.v2",
+  "worldid": "office-campsverso-01",
+  "cartridge": "office_campsverso",
+  "tick": 1292400,
+  "simtime": "2026-11-23T09:20:00-03:00",
+  "seq": 5120,
+  "provenance": "simulated",
+  "visibility": "observer",
+  "actor": "system/controller-runner",
+  "data": {
+    "avatar_id": "kenji",
+    "ticket_id": "pedido-021",
+    "harness": "codex",
+    "model": "gpt-6.2-astra",
+    "tool": "command_execution",
+    "summary": "command_execution: python -m pytest -q",
+    "ok": true,
+    "duration_ms": 35,
+    "note": "Vou rodar os testes antes de mexer no conector."
+  }
+}
