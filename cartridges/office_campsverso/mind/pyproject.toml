@@ -11,6 +11,7 @@ dependencies = [
 
 [project.entry-points."campsverso.minds"]
 tiago_escritorio = "campsverso_office_campsverso_mind:mind"
+kenji_escritorio = "campsverso_office_campsverso_mind:kenji"
 
 [build-system]
 requires = ["uv_build>=0.13,<0.14"]

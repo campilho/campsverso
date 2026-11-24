@@ -4,6 +4,7 @@
   "visual_map": "map-visual.tmj",
   "sheets": {
     "tiago": { "image": "tiago.png", "frame_width": 64, "frame_height": 64 },
+    "kenji": { "image": "kenji.png", "frame_width": 64, "frame_height": 64 },
     "gerente_blazer": { "image": "gerente_blazer.png", "frame_width": 64, "frame_height": 64 },
     "vigia": { "image": "vigia.png", "frame_width": 64, "frame_height": 64 },
     "retratos": { "image": "retratos.png", "frame_width": 40, "frame_height": 40 }
@@ -88,6 +89,45 @@
       "hidden": ["restroom"],
       "portrait": { "frame": 48, "x": 16, "y": 14, "size": 32 },
       "face": { "sheet": "retratos", "column": 4 }
+    },
+    "kenji": {
+      "sheet": "kenji",
+      "feet": 0,
+      "label_above": 62,
+      "animations": {
+        "walk": { "row": 0, "frames": [0, 1, 2, 3, 4, 5, 6, 7], "per_tile": 8 },
+        "idle": { "row": 4, "frames": [0, 0, 0, 0, 0, 1], "fps": 3 },
+        "use": { "row": 8, "frames": [0, 1, 2, 3, 4, 5], "fps": 6 },
+        "sit": { "row": 12, "frames": [0], "fps": 1 },
+        "type": { "row": 16, "frames": [0, 1, 2, 3], "fps": 6, "single": true },
+        "drink": { "row": 17, "frames": [0, 1, 2, 2, 2, 1], "fps": 3 },
+        "eat": { "row": 21, "frames": [0, 1, 2, 3], "fps": 3, "facings": ["left", "right"] },
+        "carry": { "row": 23, "frames": [0, 1, 2, 3, 4, 5, 6, 7], "per_tile": 8 },
+        "carry_idle": { "row": 23, "frames": [0], "fps": 1 },
+        "sofa_tv": { "row": 27, "frames": [0, 0, 0, 0, 1], "fps": 2, "single": true },
+        "sofa_game": { "row": 28, "frames": [0, 1, 2, 3], "fps": 4, "single": true }
+      },
+      "actions": {
+        "move": "walk",
+        "drink": "drink",
+        "coffee": "drink",
+        "fridge": "use",
+        "microwave": "use",
+        "trash": "use",
+        "lunch": "eat",
+        "tv": "sofa_tv",
+        "videogame": "sofa_game",
+        "*": "idle"
+      },
+      "idle": "idle",
+      "asleep": "idle",
+      "seated": "sit",
+      "seated_actions": { "work": "type", "lunch": "eat" },
+      "sit_on": { "tv": "sofa", "videogame": "sofa" },
+      "carry": { "marmita": { "walk": "carry", "idle": "carry_idle" } },
+      "hidden": ["restroom"],
+      "portrait": { "frame": 48, "x": 16, "y": 14, "size": 32 },
+      "face": { "sheet": "retratos", "column": 7 }
     },
     "gerente": {
       "sheet": "gerente_blazer",

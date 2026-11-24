@@ -96,15 +96,18 @@ def test_o_dia_util_do_dev_e_do_vigia() -> None:
     assert core.world.avatar_map["vigia"].present  # meia-noite de segunda: o plantão
     assert not core.world.avatar_map["tiago"].present
     facts = _until(core, "09:00")
+    # Os dois devs do elenco (ADR-0093) entram pela porta no expediente.
     assert _only(facts, "avatar.entered") == [
-        {"avatar_id": "tiago", "position": {"x": 9, "y": 15}, "reason": "expediente"}
+        {"avatar_id": dev, "position": {"x": 9, "y": 15}, "reason": "expediente"}
+        for dev in ("kenji", "tiago")
     ]
     assert _only(facts, "avatar.left")[0]["avatar_id"] == "vigia"
     assert not _only(_until(core, "12:00"), "avatar.left")  # o almoço é na copa (ADR-0080)
     assert core.world.avatar_map["tiago"].present
     assert not core.world.avatar_map["vigia"].present  # o vigia não vem no almoço
     facts = _until(core, "18:00")
-    assert _only(facts, "avatar.left")[0] == {
+    assert [d["avatar_id"] for d in _only(facts, "avatar.left")] == ["kenji", "tiago"]
+    assert _only(facts, "avatar.left")[1] == {
         "avatar_id": "tiago",
         "reason": "expediente",
         "position": {"x": 9, "y": 15},
@@ -410,11 +413,22 @@ def test_o_pedido_para_um_dev_e_o_para_todos() -> None:
         assert _only(refused, "action.rejected")[0]["reason"] == "invalid_params"
     everyone = _act(core, "gerente", "write_ticket", {"title": "b", "everyone": True}, HUMAN["id"])
     created = _only(everyone, "office.ticket.created")
-    assert [(c["assignee"], c["group"]) for c in created] == [("tiago", "grupo-002")]
-    # O dev pega o dele e o de ninguém; o "para quem" fica na ficha.
+    assert [(c["ticket_id"], c["assignee"], c["group"]) for c in created] == [
+        ("pedido-002", "kenji", "grupo-002"),
+        ("pedido-003", "tiago", "grupo-002"),
+    ]
+    assert {c["title"] for c in created} == {"b"}
+    # O dev pega o dele e o de ninguém, nunca o do outro.
     _act(core, "tiago", "move", {"near": "quadro"}, DEV)
+    other = _act(core, "tiago", "take_ticket", {"target": "pedido-002"}, DEV)
+    rejected = _only(other, "action.rejected")[0]
+    assert (rejected["reason"], rejected["detail"]) == ("not_allowed", "o pedido 2 é do Kenji")
     taken = _act(core, "tiago", "take_ticket", {"target": "pedido-001"}, DEV)
     assert _only(taken, "office.ticket.taken")
+    # Sem escolher, cada um pega o mais antigo que pode: o Kenji, o 2.
+    _act(core, "kenji", "move", {"near": "quadro"}, DEV)
+    kenji = _act(core, "kenji", "take_ticket", {}, DEV)
+    assert _only(kenji, "office.ticket.taken")[0]["ticket_id"] == "pedido-002"
 
 
 def test_aceitar_de_novo_diz_que_ja_foi_aceito() -> None:

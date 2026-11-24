@@ -445,12 +445,17 @@
       {
        "name": "display_name",
        "type": "string",
-       "value": "Mesa vazia"
+       "value": "Mesa do Kenji"
       },
       {
        "name": "blocking",
        "type": "bool",
        "value": true
+      },
+      {
+       "name": "dono",
+       "type": "string",
+       "value": "kenji"
       }
      ]
     },

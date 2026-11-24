@@ -69,13 +69,14 @@ def _release(core: KernelCore) -> None:
     )
 
 
-def _propose(core: KernelCore, action: str) -> None:
+def _propose(core: KernelCore, action: str, dev: str = "tiago") -> None:
+    """O gerente convoca ou dispensa um dev pelo chip dele: com dois devs, o alvo vai sempre."""
     core.submit(
         {
             "id": f"cmd-gerente-{action}-{core.tick}",
             "type": "campsverso.cmd.action.propose.v1",
             "controllerid": HUMAN["id"],
-            "data": {"avatar_id": "gerente", "action": action, "params": {}},
+            "data": {"avatar_id": "gerente", "action": action, "params": {"target": dev}},
         }
     )
 

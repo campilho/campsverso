@@ -53,13 +53,22 @@ robos:
 
 # O elenco (ADR-0077): o dev é sempre um LLM ou um script; o humano entra como o gerente. Desde
 # 22/nov (ADR-0092), o dev é o Tiago, e o gerente se chama Camps: o id dele continua `gerente`, a
-# cadeira do jogador.
+# cadeira do jogador. No M27 (ADR-0093), o Kenji é o segundo dev, na mesa de baixo; um mundo
+# retomado não ganha avatares, e ele só nasce com um mundo novo (o 03).
 cast:
   - id: tiago
     name: Tiago
     role: dev
     controller: { type: script, id: script/dev }
     accepts: [llm, script, replay]
+  - id: kenji
+    name: Kenji
+    role: dev
+    controller: { type: script, id: script/dev }
+    accepts: [llm, script, replay]
+    # Fora do expediente, o Kenji vem só pelo botão do chip: ao entrar como o gerente, quem vem é o
+    # Tiago, e a noite não custa duas mentes sem o gerente pedir.
+    on_call: { on_manager_enter: false }
   - id: gerente
     name: Camps
     role: gerente
